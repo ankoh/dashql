@@ -27,26 +27,24 @@ function tablesOf(catalog: dashql.DashQLCatalog, entryId: number): string[] {
     return tables.sort();
 }
 
-/// Run a script statement by statement and collect the reported catalog changes
+/// Plan a script and collect the catalog changes of its statements
 function runScript(text: string): dashql.buffers.catalog.CatalogChangeT[] {
-    const session = dql.createScriptSession(dql.createCatalog());
+    const catalog = dql.createCatalog();
+    const session = dql.createScriptSession(catalog);
     session.replaceText(0n, text);
-    const execution = session.startExecution();
-    const changes: dashql.buffers.catalog.CatalogChangeT[] = [];
-    let update = execution.start();
-    while (update.pendingStatement != null) {
-        update = execution.resume(new dashql.buffers.execution.StatementResultT(
-            update.pendingStatement.id,
-            dashql.buffers.execution.StatementResultStatus.SUCCEEDED,
-        ));
-        changes.push(...update.catalogChanges);
-    }
-    execution.destroy();
+    session.analyze();
+    const graph = dql.planSession({
+        connections: [{ id: 'c', local: false, catalog }],
+        scripts: [{ name: 'script', connection: 0, session }],
+        targets: [0],
+    }).unpack();
+    const changes = graph.nodes.flatMap(node => node.catalogChanges);
+    session.destroy();
     return dql.qualifyCatalogChanges(changes, { databaseName: 'db', schemaName: 'main' });
 }
 
 describe('Catalog changes', () => {
-    it('are reported by the script execution and qualified with the defaults', () => {
+    it('are carried by the planned statements and qualified with the defaults', () => {
         const changes = runScript('create table t (b int, a int); create table s.u as select 1 as x; drop table v; select 1');
         expect(changes.map(c => [c.changeType, c.databaseName, c.schemaName, c.relationName, c.columnNames])).toEqual([
             [ChangeType.CREATE_RELATION, 'db', 'main', 't', ['b', 'a']],

@@ -13,28 +13,21 @@ into the core, and why we decided against it for now.
 
 ## Background
 
-Two execution paths run SQL from a session:
+Every run of a session executes a plan. The planner (`packages/dashql-core-session/src/planner.rs`)
+turns the scripts of a session, or one target script and the scripts it references, into an
+`ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines and the
+catalog changes once it succeeded. Edges order conflicting accesses. The app's
+`packages/dashql-app/src/app/session/scripts/session_execution.ts` (`runExecutionGraph`) executes
+that graph in TypeScript, for a run of the session (`runSessionExecution`) and for a run of one
+script (`runPlannedScript` in `script_run.ts`).
 
-- **Single script.** `ScriptExecution` in `packages/dashql-core-session/src/script_execution.rs`
-  is a core state machine. The host calls `start`, executes each statement, passes the result
-  to `resume` and gets the next step back. `cancel` ends the run. The core owns the order and the
-  catalog changes.
-- **Planned session run.** The planner (`packages/dashql-core-session/src/planner.rs`) turns the
-  scripts of one connection into an `ExecutionGraph`. Each node is a statement with the relations
-  it reads, writes or defines. Edges order conflicting accesses. The app's
-  `packages/dashql-app/src/app/session/scripts/session_execution.ts` (`runSessionExecution`)
-  executes that graph in TypeScript.
-
-The second path re-implements scheduling outside the core. That is how DDL in planned runs
-stopped updating the catalog: the single-script path derived catalog changes in Rust, the graph
-path never did. The fix (commit 83b603ab6) derives them in the planner and stores them on each
-node, and the app applies them after the query succeeds.
+The scheduling lives outside the core, the core owns the order (the edges) and the catalog
+changes (the nodes).
 
 ## The proposal
 
-Add a graph execution state machine to `dashql-core-session`, next to `planner.rs` and
-`script_execution.rs` (for example `graph_execution.rs`), exported through the core wasm with the
-same protocol as `ScriptExecution`:
+Add a graph execution state machine to `dashql-core-session`, next to `planner.rs` (for example
+`graph_execution.rs`), exported through the core wasm with a protocol of steps:
 
 - `start` returns the nodes that are ready to run.
 - `complete(node)` and `fail(node, error)` return the newly ready nodes, the node's catalog
@@ -45,8 +38,8 @@ The app would keep the async loop around these calls.
 
 ### Arguments for it
 
-- **One execution protocol.** Both paths would get order and catalog changes from the core, so
-  the class of bug above cannot come back on one path only.
+- **One execution protocol.** The order of the statements and their catalog changes would come
+  from the core together with the scheduling.
 - **The graph's invariants live with the graph.** `session_execution.ts` checks that nodes come
   in committed statement order, that edges point forward and that edge targets are in range. It
   also deduplicates edges, because the planner emits one edge per conflicting entity and reason.
@@ -57,18 +50,19 @@ The app would keep the async loop around these calls.
 ### Arguments against it
 
 - **Little would move.** The pure scheduling part is predecessor counting and the ready queue,
-  about 30 lines. Most of `runSessionExecution` is async work or app state and stays in the app:
+  about 30 lines. Most of `runExecutionGraph` is async work or app state and stays in the app:
   - issuing queries against the connection, and cancelling the running ones on failure or abort
   - the concurrency limit per connection (`maxConcurrentQueries`)
   - releasing successors on `onResultsReady`, before result post-processing finishes
-  - re-analyzing scripts between connection blocks and applying `APPLY_PLANNER_ANALYSIS`
+  - writing and mounting the materialized results of scripts of other connections
+  - applying `APPLY_PLANNER_ANALYSIS` once the plan was checked
   - checking that the session and script versions did not change mid-run
   - decoding the captured visualizations before the first backend call
   - query registration, result registration, visualizations, progress state and replacing the
     previous output (`REGISTER_QUERY`, `REGISTER_SCRIPT_RESULT`, ...)
 - **The app keeps its loop either way.** It would call into wasm on every completion to learn
   what is ready, and still run its own async loop around those calls.
-- **The motivating bug is fixed.** Nodes already carry their catalog changes.
+- **Nodes already carry their catalog changes.**
 - **Risk.** `session_execution.test.ts`, `session_execution_integration.test.ts` and
   `session_commands_execution.test.tsx` cover concurrency, readiness, cancellation and output
   cleanup densely. A rewrite would have to rebuild that coverage against the new split.
@@ -79,7 +73,6 @@ Leave the scheduler in the app for now. Revisit if one of these happens:
 
 - a second consumer of planned runs appears (the shell, a CLI or the agent bridge)
 - the scheduler grows features such as retries, partial reruns or resuming a failed run
-- planned and single-script execution diverge again in what they apply to the catalog
 
 ## Possible small step
 
@@ -96,7 +89,7 @@ This is a small, independent change.
 ## Files
 
 - `packages/dashql-core-session/src/planner.rs`
-- `packages/dashql-core-session/src/script_execution.rs`
+- `packages/dashql-app/src/app/session/scripts/script_run.ts`
 - `packages/dashql-app/src/app/session/scripts/session_execution.ts`
 - `proto/fb/dashql/execution_graph.fbs`
 - `docs/design/core_analysis_catalog.md` (catalog changes in planned execution)

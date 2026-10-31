@@ -21,7 +21,6 @@ function fixture(sessionId: string): SessionScripts {
     // REGISTER_QUERY only needs the script entry; no Wasm or execution setup is required.
     return {
         sessionId,
-        settings: { cacheQueryResults: false },
         pendingConnection: null,
         scripts: { 1: { scriptKey: 1, fileName: '1.sql', latestQueryId: null, connection: { connectionId: `${sessionId}-database` } } },
         scriptRefs: { '1.sql': { scriptId: 1, fileName: '1.sql' } },
@@ -112,7 +111,7 @@ describe('useSessionScripts dispatch', () => {
                 modifyA({ type: RENAME_SESSION, value: 'Offline session' });
             });
             await vi.waitFor(() => expect(write).toHaveBeenCalledWith(expect.any(String), {
-                type: WRITE_SESSION_PROPERTIES, value: ['a', { name: 'Offline session', settings: { cacheQueryResults: false } }],
+                type: WRITE_SESSION_PROPERTIES, value: ['a', { name: 'Offline session' }],
             }, expect.any(Number)));
         } finally {
             write.mockRestore();

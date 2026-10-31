@@ -1,0 +1,412 @@
+planner-snapshots:
+
+  - name: IndependentConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, amount int);
+    scripts:
+      - name: load
+        connection: local
+        input: |
+          insert into orders values (1, 10);
+      - name: remote
+        connection: trino
+        input: |
+          select * from orders;
+      - name: report
+        connection: local
+        input: |
+          select count(*) from orders;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: load
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "ba869565360ad9a98fe71062ba01fcce"
+        - name: remote
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6e440c81da8e4246e37e5ae22d7e08a7"
+        - name: report
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "3bc46f571ba7cb1188f84dab00bf5cca"
+      entities:
+        - catalog-id: 'local/256.65536.4294967296'
+          type: TABLE
+          name: orders
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: load
+          connection: local
+          statement-id: 0
+          type: INSERT
+          sql: "insert into orders values (1, 10)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: 'local/256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: remote
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select * from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: report
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'local/256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: 'local/256.65536.4294967296'
+      diagnostics: []
+
+  - name: BarrierPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: unresolved
+        connection: local
+        input: |
+          select * from missing;
+      - name: remote
+        connection: trino
+        input: |
+          select * from orders;
+      - name: after
+        connection: local
+        input: |
+          select 1;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: unresolved
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "66f4a6f421d5c048d5210f8723215cd5"
+        - name: remote
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6e440c81da8e4246e37e5ae22d7e08a7"
+        - name: after
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6af7609b1d6bef5d44f30b22ca6eb7d2"
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references:
+        - name: missing
+          connection: local
+      nodes:
+        - id: 0
+          script: unresolved
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: "select * from missing"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - unresolved-reference: 0
+              mode: READ
+        - id: 1
+          script: remote
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select * from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: after
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: unresolved
+          error: false
+          message: 'unresolved relation: missing'
+
+  - name: CatalogEntryIdsPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: first
+        connection: local
+        input: |
+          select 1;
+      - name: drops
+        connection: trino
+        input: |
+          drop table orders;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: first
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6af7609b1d6bef5d44f30b22ca6eb7d2"
+        - name: drops
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "14c23401b186bdfe0cd8cb6a4c8cece7"
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: first
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 1
+          script: drops
+          connection: trino
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table orders"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: DDL
+      edges: []
+      diagnostics: []
+
+  - name: DdlPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: create_local
+        connection: local
+        input: |
+          create table t (a int);
+      - name: create_remote
+        connection: trino
+        input: |
+          create table t (a int);
+      - name: read_local
+        connection: local
+        input: |
+          select * from t;
+      - name: read_remote
+        connection: trino
+        input: |
+          select * from t;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: create_local
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "9b8f55ee6edc5cf21b08b8d7f51d46bb"
+        - name: create_remote
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "9b8f55ee6edc5cf21b08b8d7f51d46bb"
+        - name: read_local
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "608d5b17140af18c967f1a37ac683cc5"
+        - name: read_remote
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "608d5b17140af18c967f1a37ac683cc5"
+      entities:
+        - catalog-id: 'local/256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: create_local
+          connection: local
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: 'local/256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: create_remote
+          connection: trino
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: DDL
+        - id: 2
+          script: read_local
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'local/256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: read_remote
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: DDL
+          entity: 'local/256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: DDL
+          entity: 'trino/256.65536.4294967296'
+      diagnostics: []

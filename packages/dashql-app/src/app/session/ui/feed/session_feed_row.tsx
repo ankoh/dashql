@@ -18,10 +18,9 @@ import { ConnectionHealth, type ConnectionState } from '../../../connections/con
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { ConnectorType } from '../../../connections/connector_info.js';
 import { QueryExecutionStatus, queryIsDone } from '../../../../query/query_execution_state.js';
-import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../../connections/query_executor.js';
+import { useCancelQuery, useQueryState } from '../../../connections/query_executor.js';
 import type { StorageReader } from '../../../storage/storage_provider.js';
 import { getScriptRefs, type SessionScripts, type ScriptData } from '../../scripts/session_scripts.js';
-import { compileSessionQuery } from '../../scripts/script_compilation.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
@@ -51,8 +50,10 @@ export interface ScriptCardProps {
     connectorType: ConnectorType;
     /// The connection the script runs on, null while it is not registered
     connection: ScriptConnectionView | null;
-    /// Whether the session caches query results.
-    cacheQueryResults: boolean;
+    /// The cache key of the result of a script, the key that a run of the script reads and writes
+    computeCacheKey: (scriptKey: number) => Promise<string | null>;
+    /// Is a cache key cached in the query result cache of the app?
+    hasCachedResult: (cacheKey: string) => Promise<boolean>;
     storageReader: StorageReader;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
@@ -76,7 +77,7 @@ export interface ScriptCardProps {
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onShowDetails: (fileName: string) => void;
-    onRerun: (fileName: string, cacheKey: string | null) => void;
+    onRerun: (fileName: string) => void;
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of the script with the text of a snippet
     onApplySnippet: (scriptKey: number, text: string) => void;
@@ -99,7 +100,6 @@ export interface ScriptCardProps {
 export interface ScriptCardDependencies {
     useQueryState: typeof useQueryState;
     useCancelQuery: typeof useCancelQuery;
-    computeQueryCacheKeyForConnection: typeof computeQueryCacheKeyForConnection;
     ScriptEditor: typeof ScriptEditor;
     ScriptDiagnosticsButton: typeof ScriptDiagnosticsButton;
     ScriptStatisticsBar: typeof ScriptStatisticsBar;
@@ -116,7 +116,6 @@ export interface ScriptCardDependencies {
 const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
     useQueryState,
     useCancelQuery,
-    computeQueryCacheKeyForConnection,
     ScriptEditor,
     ScriptDiagnosticsButton,
     ScriptStatisticsBar,
@@ -150,7 +149,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const hasPendingDiff = props.scriptData?.pendingDiff != null;
 
     // Is the script cached?
-    // Compiling the query is a full pass over the script, only re-check when the text, the catalog,
+    // Planning the script is a full pass over the scripts it needs, only re-check when the text, the catalog,
     // the queries or their cache entries changed (and not on every cursor move).
     const [isCached, setIsCached] = React.useState<boolean | null>(null);
     React.useEffect(() => {
@@ -171,14 +170,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                 return;
             }
             try {
-                // Compile the query
-                const compiled = compileSessionQuery(props.scriptData, props.connectorType);
-                if (!props.cacheQueryResults || !compiled.cacheable) {
-                    setIsCached(false);
-                    return;
-                }
-                // Compute the query cache key
-                const cacheKey = await dependencies.computeQueryCacheKeyForConnection(connectionDetails, compiled.cacheSignature);
+                // The key of a run of the script, null if its result is not cacheable
+                const cacheKey = await props.computeCacheKey(props.scriptData.scriptKey);
                 // Cache key is null, then clear the cache if required
                 if (cacheKey == null) {
                     if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
@@ -186,8 +179,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     }
                     return;
                 }
-                // Check with storage if the query is cached
-                const isCached = await props.storageReader.backend.hasCachedQueryResult(props.sessionId, cacheKey);
+                // Check with the cache of the app if the result is cached
+                const isCached = await props.hasCachedResult(cacheKey);
                 if (!cancel.signal.aborted) {
                     setIsCached(isCached);
                 }
@@ -205,7 +198,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         queryState?.cacheKey,
         queryState?.cacheDeleted,
         props.connectionDetails,
-        props.cacheQueryResults,
+        props.computeCacheKey,
+        props.hasCachedResult,
         props.sessionId,
     ]);
 
@@ -308,7 +302,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
                         data-testid="script-execute"
                         aria-current={props.isFocused ? 'true' : undefined}
-                        disabled={!queryActive && (sessionExecution.busy || (needsConnection ? props.scriptData == null : !props.canExecute))}
+                        disabled={!queryActive && (sessionExecution.runActive || (needsConnection ? props.scriptData == null : !props.canExecute))}
                         onClick={() => {
                             if (queryActive && props.scriptData?.latestQueryId != null) {
                                 if (sessionExecution.busy) sessionExecution.stop();
@@ -489,8 +483,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                                     <dependencies.QueryResultCacheLabel query={queryState} />
                                     <dependencies.QueryResultRerunButton
                                         query={queryState}
-                                        onRerun={props.connectionHealth === ConnectionHealth.ONLINE && !sessionExecution.busy
-                                            ? (cacheKey) => props.onRerun(props.scriptFileName, cacheKey) : undefined}
+                                        onRerun={props.connectionHealth === ConnectionHealth.ONLINE && !sessionExecution.runActive
+                                            ? () => props.onRerun(props.scriptFileName) : undefined}
                                     />
                                 </>
                             }
@@ -518,7 +512,10 @@ export interface ScriptFeedRowProps {
     sessionId: string;
     /// The connections that the scripts run on
     connections: ReadonlyMap<string, ScriptConnectionView>;
-    cacheQueryResults: boolean;
+    /// The cache key of the result of a script, the key that a run of the script reads and writes
+    computeCacheKey: (scriptKey: number) => Promise<string | null>;
+    /// Is a cache key cached in the query result cache of the app?
+    hasCachedResult: (cacheKey: string) => Promise<boolean>;
     storageReader: StorageReader;
     entries: ReturnType<typeof getScriptRefs>;
     scripts: SessionScripts['scripts'];
@@ -538,7 +535,7 @@ export interface ScriptFeedRowProps {
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onShowDetails: (fileName: string) => void;
-    onRerun: (fileName: string, cacheKey: string | null) => void;
+    onRerun: (fileName: string) => void;
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of a script with the text of a snippet
     onApplySnippet: (scriptKey: number, text: string) => void;
@@ -682,7 +679,8 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     connectionDetails={connection?.details ?? null}
                     connectorType={scriptData?.connection.connectorInfo.connectorType ?? ConnectorType.HYPER}
                     connection={connection}
-                    cacheQueryResults={props.cacheQueryResults}
+                    computeCacheKey={props.computeCacheKey}
+                    hasCachedResult={props.hasCachedResult}
                     storageReader={props.storageReader}
                     isFocused={scriptFileName === props.focusedFileName}
                     scriptData={scriptData}

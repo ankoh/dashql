@@ -1,4 +1,4 @@
-# The workflows on top of the DashQL core: editor sessions, compilation and statement-wise execution, the planner,
+# The workflows on top of the DashQL core: editor sessions, compilation, the planner of script runs,
 # batch processing, the catalog changes of executed statements and the renderer specs of `@vis` tags.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
@@ -34,7 +34,6 @@ DASHQL_CORE_SESSION_TESTS = [
     "batch_test",
     "catalog_changes_test",
     "compiler_test",
-    "script_execution_test",
     "script_session_test",
 ]
 
@@ -76,6 +75,33 @@ DASHQL_CORE_SESSION_SNAPSHOT_TESTS = {
         "@core_crates//:serde_json",
     ],
 ) for name, (src, data) in DASHQL_CORE_SESSION_SNAPSHOT_TESTS.items()]
+
+# Executes the planned SQL of the planner snapshots with script references in Hyper, through the C ABI
+# //packages/hyper-api:hyper_ffi over the Hyper C++ API.
+rust_test(
+    name = "planner_validation_hyper_test",
+    size = "medium",
+    srcs = ["tests/planner_validation_hyper.rs"],
+    data = [
+        "//packages/hyper-api:hyperd",
+        "//snapshots/planner:files",
+    ],
+    edition = "2021",
+    env = {"HYPERD_BINARY": "$(rootpath //packages/hyper-api:hyperd)"},
+    target_compatible_with = select({
+        "//packages/hyper-api:linux_x86_64": [],
+        "//packages/hyper-api:macos_arm64": [],
+        "//packages/hyper-api:macos_x86_64": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    use_libtest_harness = False,
+    deps = [
+        ":dashql_core_session",
+        "//packages/dashql-snapshots:dashql_snapshots",
+        "//packages/hyper-api:hyper_ffi_rs",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
 
 # Editor events of a session (bazel run -c opt //packages/dashql-core-session:bench_session)
 rust_binary(

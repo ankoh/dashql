@@ -6,7 +6,6 @@ import { groupSessionManifestWrites, WRITE_SESSION_MANIFEST } from '../storage/s
 import { scriptConnectionOf, SessionScripts } from './scripts/session_scripts.js';
 import { useSessionScriptsAllocator, useSessionScriptsRegistryReader } from './scripts/session_scripts_registry.js';
 import { createEmptyMetadata } from './scripts/script_types.js';
-import { createDefaultSessionSettings } from './scripts/session_settings.js';
 
 /// Create a session whose first script runs on a connection, a session without a name gets a free one
 export type SessionCreation = (database: ConnectionState, name?: string) => SessionScripts;
@@ -36,7 +35,6 @@ export function useSessionCreation(): SessionCreation {
             instance: database.instance,
             sessionId,
             name: name ?? freeSessionName([...readRegistry().sessionScriptsMap.values()].map(scripts => scripts.name)),
-            settings: createDefaultSessionSettings(database.connectorInfo),
             pendingConnection: scriptConnectionOf(database),
             scripts: {},
             scriptRefs: {},

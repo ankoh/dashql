@@ -4,22 +4,39 @@
 //! a node with the relations it reads, writes or defines, and edges order conflicting accesses.
 //! Opaque SELECT functions may have side effects; barriers order statements but do not promise
 //! backend session affinity.
+//!
+//! Scripts run on connections, every connection has its own catalog. Relations of different connections
+//! never conflict. A script references the result of another script with a table parameter, `:foo` reads
+//! the terminal query of `foo.sql` (see `script_references`). A reference within one connection fuses the
+//! query into the statement as a common table expression, a reference of the LOCAL connection to another
+//! connection scans the result as Parquet file that the host materializes, a reference of a REMOTE
+//! connection to another connection is an error.
+//!
+//! A plan covers the whole session or the target scripts and what they need: the statements that a fused
+//! reference needs before it, and the scripts that a materialized reference scans unless the host provides
+//! their results. A plan of targets treats statements like a run of a single script: statements of every
+//! kind keep their SQL, and the statements of a script run in their order.
 
-use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
-use crate::compiler::{compile_visualization, produces_output, read_executable_text};
-use dashql_core::pack;
-use dashql_core::script::Script;
+use crate::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
+use crate::script_references::{self, ReferenceKind, ScriptReferences};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::execution::{
-    ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphDiagnosticT,
-    ExecutionGraphEdgeReason as Reason, ExecutionGraphEdgeT, ExecutionGraphEntityT, ExecutionGraphEntityType, ExecutionGraphNodeT,
-    ExecutionGraphScriptT, ExecutionGraphT, ExecutionGraphUnresolvedReferenceT,
+    ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphConnectionKind,
+    ExecutionGraphConnectionT, ExecutionGraphDiagnosticT, ExecutionGraphEdgeReason as Reason, ExecutionGraphEdgeT, ExecutionGraphEntityT,
+    ExecutionGraphEntityType, ExecutionGraphMaterializationT, ExecutionGraphNodeT, ExecutionGraphScriptReferenceT, ExecutionGraphScriptT,
+    ExecutionGraphT, ExecutionGraphUnresolvedReferenceT,
 };
-use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType as Type, TempType};
+use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType as Type, TempType, TextSpanT};
+use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
+use dashql_core::pack;
+use dashql_core::script::Script;
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
+use dashql_parser::parser::ParsedScript;
+use dashql_parser::scanner::ScannedScript;
+use dashql_parser::span::TextSpan;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
@@ -37,41 +54,144 @@ fn tables(entry: &CatalogEntryRef) -> &[TableDeclaration] {
     &entry.data().table_declarations
 }
 
-/// A table of the plan: a published or an input declaration
-struct PlanState<'a> {
+/// The kind of a connection
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConnectionKind {
+    /// A database that only reads its own relations
+    Remote,
+    /// The embedded Hyper, which scans the materialized results of scripts of other connections
+    Local,
+}
+
+/// A connection of the plan
+#[derive(Clone, Copy)]
+pub struct PlannerConnection<'a> {
+    /// The connection id of the host
+    pub id: &'a str,
+    /// The kind of the connection
+    pub kind: ConnectionKind,
+    /// The catalog of the connection, its scripts were analyzed with it
+    pub catalog: &'a Catalog,
+}
+
+/// A script of the plan
+#[derive(Clone, Copy)]
+pub struct PlannerScript<'a> {
+    /// The script
+    pub script: &'a Script,
+    /// The name of the script, `foo` for `foo.sql`, that table parameters reference
+    pub name: &'a str,
+    /// The connection index
+    pub connection: u32,
+    /// The name of the Parquet file of the result of the script below the mount prefix, if a statement of another
+    /// connection scans it. `s<index>.parquet` if absent.
+    pub materialization_file: Option<&'a str>,
+}
+
+/// What a plan covers
+#[derive(Clone, Copy)]
+pub enum PlanScope<'a> {
+    /// Every statement of every script, in session order
+    Session,
+    /// The target scripts and what they need
+    Targets(&'a [u32]),
+}
+
+/// A plan request
+#[derive(Clone, Copy)]
+pub struct SessionPlanRequest<'a> {
+    /// The connections
+    pub connections: &'a [PlannerConnection<'a>],
+    /// The scripts in session order
+    pub scripts: &'a [PlannerScript<'a>],
+    /// What the plan covers
+    pub scope: PlanScope<'a>,
+    /// The scripts whose materialized results the host provides, plans of targets don't compute them
+    pub materialized: &'a [u32],
+    /// The directory that the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
+    pub mount_prefix: &'a str,
+}
+
+/// A script with a current analysis
+pub(crate) struct Prepared<'a> {
+    pub(crate) scanned: &'a ScannedScript,
+    pub(crate) parsed: &'a ParsedScript,
+    pub(crate) analyzed: &'a Arc<AnalyzedScript>,
+}
+
+impl Prepared<'_> {
+    /// Does the script parse without errors?
+    pub(crate) fn parses(&self) -> bool {
+        self.scanned.errors.is_empty() && self.parsed.errors.is_empty()
+    }
+
+    /// The last statement
+    pub(crate) fn terminal(&self) -> Option<u32> {
+        self.parsed.statements.len().checked_sub(1).map(|s| s as u32)
+    }
+}
+
+/// How much of a script a plan includes
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Include {
+    /// Nothing
+    None,
+    /// No statement, the single query of the script is inlined into its consumers, its references are planned
+    Inlined,
+    /// Every statement
+    All,
+}
+
+/// The state of the plan
+struct PlanState {
     /// The execution graph, completed with the lists below when finished
     graph: ExecutionGraphT,
-    /// The entity indexes by table object id
-    entities: BTreeMap<QualifiedCatalogObjectId, u32>,
-    /// The unresolved reference indexes by (database, schema, table) name
-    unresolved_references: BTreeMap<Name, u32>,
+    /// The entity indexes by connection and table object id
+    entities: BTreeMap<(u32, QualifiedCatalogObjectId), u32>,
+    /// The unresolved reference indexes by connection and name
+    unresolved_references: BTreeMap<(u32, Name), u32>,
     /// The interned table entities, in interning order
     entity_list: Vec<ExecutionGraphEntityT>,
     /// The interned unresolved references, in interning order
     unresolved_list: Vec<ExecutionGraphUnresolvedReferenceT>,
     /// The diagnostics of the plan
     diagnostics: Vec<ExecutionGraphDiagnosticT>,
-    /// Binds the lifetime parameter
-    _marker: std::marker::PhantomData<&'a ()>,
+    /// Are diagnostics of statements warnings? Plans of targets run statements of every kind.
+    lenient: bool,
 }
 
-impl PlanState<'_> {
-    fn diagnose(&mut self, node: u32, message: String, invalid: bool) {
+impl PlanState {
+    /// Report a diagnostic, an error invalidates the plan
+    fn report(&mut self, node: u32, script: u32, text_span: Option<TextSpan>, message: String, error: bool) {
         let mut d = ExecutionGraphDiagnosticT::default();
         d.node = node;
+        d.script = script;
         d.message = Some(message);
+        d.text_span = text_span.map(|s| {
+            let mut t = TextSpanT::default();
+            t.offset = s.offset;
+            t.length = s.length;
+            t
+        });
+        d.error = error;
         self.diagnostics.push(d);
-        if invalid {
+        if error {
             self.graph.valid = false;
         }
     }
 
-    fn intern_entity(&mut self, table: &TableDeclaration) -> u32 {
-        if let Some(&i) = self.entities.get(&table.object_id) {
+    /// Report a diagnostic of a statement, an invalidating one is a warning in a plan of targets
+    fn diagnose(&mut self, node: u32, script: u32, message: String, invalid: bool) {
+        let error = invalid && !self.lenient;
+        self.report(node, script, None, message, error);
+    }
+
+    fn intern_entity(&mut self, connection: u32, table: &TableDeclaration) -> u32 {
+        if let Some(&i) = self.entities.get(&(connection, table.object_id)) {
             return i;
         }
         let i = self.entity_list.len() as u32;
-        self.entities.insert(table.object_id, i);
+        self.entities.insert((connection, table.object_id), i);
         let mut entity = ExecutionGraphEntityT::default();
         let mut id = ExecutionGraphCatalogObjectIDT::default();
         id.object_type = ExecutionGraphEntityType::TABLE;
@@ -83,38 +203,103 @@ impl PlanState<'_> {
         entity.database_name = Some(db);
         entity.schema_name = Some(schema);
         entity.name = Some(name);
+        entity.connection = connection;
         self.entity_list.push(entity);
         i
     }
 
-    fn intern_unresolved(&mut self, name: &Name) -> u32 {
-        if let Some(&i) = self.unresolved_references.get(name) {
+    fn intern_unresolved(&mut self, connection: u32, name: &Name) -> u32 {
+        if let Some(&i) = self.unresolved_references.get(&(connection, name.clone())) {
             return i;
         }
         let i = self.unresolved_list.len() as u32;
-        self.unresolved_references.insert(name.clone(), i);
+        self.unresolved_references.insert((connection, name.clone()), i);
         let mut r = ExecutionGraphUnresolvedReferenceT::default();
         r.database_name = Some(name.0.clone());
         r.schema_name = Some(name.1.clone());
         r.name = Some(name.2.clone());
+        r.connection = connection;
         self.unresolved_list.push(r);
         i
     }
 }
 
-/// A script to plan and the catalog it was analyzed with
-#[derive(Clone, Copy)]
-pub struct PlannerInput<'a> {
-    /// The script to plan
-    pub script: &'a Script,
-    /// The catalog the script was analyzed with
-    pub catalog: &'a Catalog,
+/// The relations of a connection: the declarations of its catalog and of the planned scripts, and the live
+/// namespace while the statements are planned in order
+#[derive(Default)]
+struct ConnectionState<'a> {
+    /// The node of the statement that declares a table, by packed table id
+    producers: BTreeMap<u64, u32>,
+    /// The declarations by object id
+    declarations: BTreeMap<QualifiedCatalogObjectId, &'a TableDeclaration>,
+    /// The kinds of the published declarations
+    published_views: BTreeMap<QualifiedCatalogObjectId, bool>,
+    /// Declarations that are a view in one place and a table in another
+    incompatible_kinds: BTreeSet<QualifiedCatalogObjectId>,
+    /// The views by packed table id
+    views: BTreeSet<u64>,
+    /// The relations that a planned statement created
+    live_producers: BTreeSet<Name>,
+    /// The relations that a planned statement dropped
+    dropped_resources: BTreeSet<Name>,
+    /// The views that a planned statement created
+    live_views: BTreeSet<Name>,
+    /// The declarations by name, as the planned statements see them
+    live_namespace: BTreeMap<Name, &'a TableDeclaration>,
 }
 
-/// Plan the statements of scripts. Consumes the current analysis without
-/// analyzing, publishing or changing scripts. All scripts must belong to the same catalog.
-pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
-    let inputs: Vec<&Script> = planner_inputs.iter().map(|input| input.script).collect();
+/// Validate the analysis of a script against the catalog of its connection
+fn prepare<'a>(state: &mut PlanState, index: u32, script: &'a Script, catalog: &Catalog) -> Option<Prepared<'a>> {
+    let (Some(scanned), Some(parsed), Some(analyzed)) = (&script.scanned, &script.parsed, &script.analyzed) else {
+        state.report(NONE, index, None, "missing or stale script analysis".into(), true);
+        return None;
+    };
+    if !Arc::ptr_eq(&analyzed.parsed, parsed) || !Arc::ptr_eq(&parsed.scanned, scanned) || scanned.text_version != script.text_version() {
+        state.report(NONE, index, None, "missing or stale script analysis".into(), true);
+        return None;
+    }
+    if analyzed.snapshot.id() != catalog.id() {
+        state.report(NONE, index, None, "script was analyzed with another catalog than the one of its connection".into(), true);
+        return None;
+    }
+    if !catalog.is_current(&analyzed.snapshot) {
+        state.report(NONE, index, None, "stale catalog analysis".into(), true);
+        return None;
+    }
+    Some(Prepared { scanned, parsed, analyzed })
+}
+
+/// Report the syntax errors of a script, they invalidate a plan of the session
+fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
+    let (scanned, parsed) = (prepared.scanned, prepared.parsed);
+    for e in &scanned.errors {
+        state.report(NONE, index, None, format!("scanner: {}", e.message), true);
+    }
+    for e in &parsed.errors {
+        state.report(NONE, index, None, format!("parser: {}", e.message), true);
+    }
+    if parsed.statements.is_empty() {
+        let text = scanned.text.as_bytes();
+        let mut offset = 0;
+        while offset < text.len() {
+            let comment = scanned.comments.iter().find(|c| c.offset as usize <= offset && offset < (c.offset + c.length) as usize);
+            if let Some(c) = comment {
+                offset = (c.offset + c.length) as usize;
+                continue;
+            }
+            if !b" \t\r\n\x0c;".contains(&text[offset]) {
+                state.report(NONE, index, None, "unsupported SQL: parser produced no statements".into(), true);
+                break;
+            }
+            offset += 1;
+        }
+    }
+}
+
+/// Plan the statements of the scripts of a session. Consumes the current analysis without analyzing, publishing or
+/// changing scripts.
+pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
+    let lenient = matches!(request.scope, PlanScope::Targets(_));
     let mut state = PlanState {
         graph: ExecutionGraphT::default(),
         entities: BTreeMap::new(),
@@ -122,123 +307,211 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
         entity_list: Vec::new(),
         unresolved_list: Vec::new(),
         diagnostics: Vec::new(),
-        _marker: Default::default(),
+        lenient,
     };
     state.graph.valid = true;
-    let mut script_ids: BTreeSet<CatalogEntryId> = BTreeSet::new();
-    let mut offsets = Vec::new();
-    let mut scripts_meta = Vec::new();
-    let mut count = 0u32;
-    // The catalog of the first script
-    let mut catalog: Option<&Catalog> = None;
-    for input in planner_inputs {
-        let script = input.script;
-        offsets.push(count);
-        let first = *catalog.get_or_insert(input.catalog);
-        if first.id() != input.catalog.id() {
-            state.diagnose(NONE, "planner scripts belong to different catalogs".into(), true);
+    let script_count = request.scripts.len();
+
+    // The request itself
+    let mut catalogs: BTreeSet<u64> = BTreeSet::new();
+    for connection in request.connections {
+        if !catalogs.insert(connection.catalog.id()) {
+            state.report(NONE, NONE, None, format!("connections share a catalog: {}", connection.id), true);
         }
-        if !script_ids.insert(script.catalog_entry_id()) {
-            state.diagnose(NONE, "duplicate planner script".into(), true);
+    }
+    // Catalog entry ids are unique within a catalog
+    let mut script_ids: BTreeSet<(u32, CatalogEntryId)> = BTreeSet::new();
+    let mut names: BTreeSet<&str> = BTreeSet::new();
+    for (i, s) in request.scripts.iter().enumerate() {
+        if s.connection as usize >= request.connections.len() {
+            state.report(NONE, i as u32, None, "unknown planner connection".into(), true);
         }
-        let (Some(scanned), Some(parsed), Some(analyzed)) = (&script.scanned, &script.parsed, &script.analyzed) else {
-            state.diagnose(NONE, "missing or stale script analysis".into(), true);
+        if !script_ids.insert((s.connection, s.script.catalog_entry_id())) {
+            state.report(NONE, i as u32, None, "duplicate planner script".into(), true);
+        }
+        if !s.name.is_empty() && !names.insert(s.name) {
+            state.report(NONE, i as u32, None, format!("duplicate script name: {}", s.name), true);
+        }
+    }
+    let targets: Vec<u32> = match request.scope {
+        PlanScope::Session => (0..script_count as u32).collect(),
+        PlanScope::Targets(targets) => targets.to_vec(),
+    };
+    if targets.iter().chain(request.materialized).any(|&t| t as usize >= script_count) {
+        state.report(NONE, NONE, None, "unknown planner script".into(), true);
+    }
+    if !state.graph.valid {
+        return finish(state, request, &[], &[], None, Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    }
+
+    // Prepare the scripts: all of them in a plan of the session, the targets and the scripts they reference in a plan
+    // of targets
+    let mut prepared: Vec<Option<Prepared>> = (0..script_count).map(|_| None).collect();
+    let mut planned = vec![false; script_count];
+    let mut references = ScriptReferences::new(script_count);
+    let mut pending: Vec<u32> = targets.clone();
+    while let Some(i) = pending.pop() {
+        if planned[i as usize] {
             continue;
-        };
-        if !Arc::ptr_eq(&analyzed.parsed, parsed) || !Arc::ptr_eq(&parsed.scanned, scanned) || scanned.text_version != script.text_version() {
-            state.diagnose(NONE, "missing or stale script analysis".into(), true);
-            continue;
         }
-        if !input.catalog.is_current(&analyzed.snapshot) {
-            state.diagnose(NONE, "stale catalog analysis".into(), true);
-            continue;
+        planned[i as usize] = true;
+        let input = &request.scripts[i as usize];
+        let catalog = request.connections[input.connection as usize].catalog;
+        let Some(p) = prepare(&mut state, i, input.script, catalog) else { continue };
+        if !lenient {
+            diagnose_syntax(&mut state, i, &p);
         }
-        for e in &scanned.errors {
-            state.diagnose(NONE, format!("scanner: {}", e.message), true);
-        }
-        for e in &parsed.errors {
-            state.diagnose(NONE, format!("parser: {}", e.message), true);
-        }
-        if parsed.statements.is_empty() {
-            let text = scanned.text.as_bytes();
-            let mut offset = 0;
-            while offset < text.len() {
-                let comment = scanned.comments.iter().find(|c| c.offset as usize <= offset && offset < (c.offset + c.length) as usize);
-                if let Some(c) = comment {
-                    offset = (c.offset + c.length) as usize;
-                    continue;
-                }
-                if !b" \t\r\n\x0c;".contains(&text[offset]) {
-                    state.diagnose(NONE, "unsupported SQL: parser produced no statements".into(), true);
-                    break;
-                }
-                offset += 1;
-            }
-        }
-        let mut meta = ExecutionGraphScriptT::default();
-        meta.script_id = script.catalog_entry_id();
-        meta.text_version = script.text_version();
-        meta.analyzed_text_version = analyzed.parsed.scanned.text_version;
-        meta.analyzed_catalog_revision = analyzed.snapshot.version() as u64;
-        scripts_meta.push(meta);
-        count += parsed.statements.len() as u32;
+        references.resolve(&mut state_reporter(&mut state), request, i, &p);
+        pending.extend(references.of(i).iter().filter_map(|r| r.producer));
+        prepared[i as usize] = Some(p);
     }
     // Invalid input snapshots must never yield executable partial plans
     if !state.graph.valid {
-        return finish(state, scripts_meta, Vec::new(), Vec::new());
+        return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    }
+    references.check(&mut state_reporter(&mut state), request, &prepared);
+    if !state.graph.valid {
+        return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
     }
 
-    // The declarations of the catalog and the inputs
-    let mut producers: BTreeMap<u64, u32> = BTreeMap::new();
-    let mut declarations: BTreeMap<QualifiedCatalogObjectId, &TableDeclaration> = BTreeMap::new();
-    let mut published_views: BTreeMap<QualifiedCatalogObjectId, bool> = BTreeMap::new();
-    let mut incompatible_kinds: BTreeSet<QualifiedCatalogObjectId> = BTreeSet::new();
-    let mut views: BTreeSet<u64> = BTreeSet::new();
-    let remember_views = |views: &mut BTreeSet<u64>, tables: &[TableDeclaration]| {
-        views.extend(tables.iter().filter(|t| t.is_view).map(|t| t.table_id().pack()));
-    };
-    for (_, entry) in catalog.into_iter().flat_map(|c| c.entries_ranked()) {
-        remember_views(&mut views, tables(entry));
-        for table in tables(entry) {
-            declarations.insert(table.object_id, table);
-            published_views.insert(table.object_id, table.is_view);
-        }
-    }
-    let analyzed_inputs: Vec<&Arc<AnalyzedScript>> = inputs.iter().map(|s| s.analyzed.as_ref().unwrap()).collect();
-    for (i, analyzed) in analyzed_inputs.iter().enumerate() {
-        remember_views(&mut views, &analyzed.entry.table_declarations);
-        for table in &analyzed.entry.table_declarations {
-            if published_views.get(&table.object_id).is_some_and(|&p| p != table.is_view) {
-                incompatible_kinds.insert(table.object_id);
+    // The statements of the plan
+    let mut include = vec![Include::None; script_count];
+    {
+        let mut pending: Vec<(u32, Include)> = targets.iter().map(|&t| (t, Include::All)).collect();
+        while let Some((i, level)) = pending.pop() {
+            if include[i as usize] >= level {
+                continue;
             }
-            declarations.insert(table.object_id, table);
-            if let Some(statement) = table.ast_statement_id {
-                producers.insert(table.table_id().pack(), offsets[i] + statement);
+            include[i as usize] = level;
+            // The references of the included statements and of the terminal query, which a fused reference inlines
+            for r in references.of(i) {
+                let Some(producer) = r.producer else { continue };
+                match r.kind {
+                    ReferenceKind::Fuse => pending.push((producer, Include::Inlined)),
+                    ReferenceKind::Materialize if lenient && request.materialized.contains(&producer) => {}
+                    ReferenceKind::Materialize => pending.push((producer, Include::All)),
+                    ReferenceKind::Invalid => {}
+                }
             }
         }
     }
+    // A plan includes every statement of a script or none
+    let included = |i: usize| include[i] == Include::All;
+    // Scripts that a plan of targets passes through as one statement, they don't parse
+    let opaque: Vec<bool> = (0..script_count).map(|i| lenient && include[i] == Include::All && prepared[i].as_ref().is_some_and(|p| !p.parses())).collect();
 
-    let mut live_producers: BTreeSet<Name> = BTreeSet::new();
-    let mut dropped_resources: BTreeSet<Name> = BTreeSet::new();
-    let mut live_views: BTreeSet<Name> = BTreeSet::new();
-    let mut live_namespace: BTreeMap<Name, &TableDeclaration> = BTreeMap::new();
-    for (_, entry) in catalog.into_iter().flat_map(|c| c.entries_ranked()) {
-        // Participating declarations enter the namespace only when their CREATE is reached
-        if script_ids.contains(&entry.data().catalog_entry_id) {
+    // The node ids of the included statements
+    let mut node_of: BTreeMap<(u32, u32), u32> = BTreeMap::new();
+    let mut node_count = 0u32;
+    for i in 0..script_count {
+        let Some(p) = prepared[i].as_ref() else { continue };
+        if opaque[i] {
+            node_of.insert((i as u32, 0), node_count);
+            node_count += 1;
             continue;
         }
-        for table in tables(entry) {
-            live_namespace.entry(resource_name(&table.table_name)).or_insert(table);
+        if !included(i) {
+            continue;
+        }
+        for statement_id in 0..p.parsed.statements.len() as u32 {
+            node_of.insert((i as u32, statement_id), node_count);
+            node_count += 1;
+        }
+    }
+    let participates = |i: usize| node_of.range((i as u32, 0)..=(i as u32, u32::MAX)).next().is_some();
+
+    // The relations of every connection
+    let mut connections: Vec<ConnectionState> = (0..request.connections.len()).map(|_| ConnectionState::default()).collect();
+    // Catalog entry ids are unique within the catalog of a connection
+    let participating_ids: BTreeSet<(u32, CatalogEntryId)> = (0..script_count)
+        .filter(|&i| participates(i))
+        .map(|i| (request.scripts[i].connection, request.scripts[i].script.catalog_entry_id()))
+        .collect();
+    for (ci, connection) in request.connections.iter().enumerate() {
+        let c = &mut connections[ci];
+        for (_, entry) in connection.catalog.entries_ranked() {
+            c.views.extend(tables(entry).iter().filter(|t| t.is_view).map(|t| t.table_id().pack()));
+            for table in tables(entry) {
+                c.declarations.insert(table.object_id, table);
+                c.published_views.insert(table.object_id, table.is_view);
+            }
+        }
+        for (i, s) in request.scripts.iter().enumerate() {
+            let Some(p) = prepared[i].as_ref().filter(|_| s.connection as usize == ci) else { continue };
+            let analyzed = p.analyzed;
+            c.views.extend(analyzed.entry.table_declarations.iter().filter(|t| t.is_view).map(|t| t.table_id().pack()));
+            for table in &analyzed.entry.table_declarations {
+                if c.published_views.get(&table.object_id).is_some_and(|&v| v != table.is_view) {
+                    c.incompatible_kinds.insert(table.object_id);
+                }
+                c.declarations.insert(table.object_id, table);
+                let node = table.ast_statement_id.and_then(|statement| node_of.get(&(i as u32, statement)));
+                if let Some(&node) = node {
+                    c.producers.insert(table.table_id().pack(), node);
+                }
+            }
+        }
+        for (_, entry) in connection.catalog.entries_ranked() {
+            // Participating declarations enter the namespace only when their CREATE is reached
+            if participating_ids.contains(&(ci as u32, entry.data().catalog_entry_id)) {
+                continue;
+            }
+            for table in tables(entry) {
+                c.live_namespace.entry(resource_name(&table.table_name)).or_insert(table);
+            }
+        }
+    }
+
+    // The materializations: the scripts that a reference of the LOCAL connection scans
+    let mut materializations: Vec<ExecutionGraphMaterializationT> = Vec::new();
+    let mut materialization_of: BTreeMap<u32, u32> = BTreeMap::new();
+    for i in 0..script_count as u32 {
+        for r in references.of(i) {
+            if include[i as usize] == Include::None {
+                continue;
+            }
+            let (ReferenceKind::Materialize, Some(producer)) = (r.kind, r.producer) else { continue };
+            materialization_of.entry(producer).or_insert_with(|| {
+                let mut m = ExecutionGraphMaterializationT::default();
+                m.script = producer;
+                let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
+                m.node = terminal.and_then(|t| node_of.get(&(producer, t)).copied()).unwrap_or(NONE);
+                m.path = Some(match request.scripts[producer as usize].materialization_file {
+                    Some(file) => format!("{}/{}", request.mount_prefix, file),
+                    None => format!("{}/s{}.parquet", request.mount_prefix, producer),
+                });
+                materializations.push(m);
+                (materializations.len() - 1) as u32
+            });
         }
     }
 
     let mut nodes: Vec<ExecutionGraphNodeT> = Vec::new();
+    let mut graph_references: Vec<ExecutionGraphScriptReferenceT> = Vec::new();
+    // Edges of script references: (from, to, reason)
+    let mut reference_edges: Vec<(u32, u32, Reason, u32)> = Vec::new();
     // Temporary relations do not outlive the database session
     let change_options = CatalogChangeOptions::default();
-    for (si, script) in inputs.iter().enumerate() {
-        let analyzed = analyzed_inputs[si];
-        let parsed = script.parsed.as_ref().unwrap();
-        let scanned = &parsed.scanned;
+    for si in 0..script_count {
+        let Some(p) = prepared[si].as_ref() else { continue };
+        let connection = request.scripts[si].connection;
+        let (scanned, parsed, analyzed) = (p.scanned, p.parsed, p.analyzed);
+        if opaque[si] {
+            // A script that does not parse runs as written, as one statement
+            let node_id = nodes.len() as u32;
+            let mut node = ExecutionGraphNodeT::default();
+            node.script = si as u32;
+            node.statement_id = 0;
+            node.statement_type = parsed.statements.first().map(|s| s.statement_type).unwrap_or(Type::NONE);
+            node.sql = Some(read_executable_text(scanned, TextSpan::new(0, scanned.text.len() as u32)).trim().to_string());
+            node.produces_output = true;
+            node.script_result = true;
+            node.barrier = true;
+            node.connection = connection;
+            state.diagnose(node_id, si as u32, "the script does not parse, it runs as written".into(), false);
+            nodes.push(node);
+            continue;
+        }
         let text_at = |offset: u32, length: u32| -> String {
             let text = scanned.text.as_bytes();
             let begin = (offset as usize).min(text.len());
@@ -250,17 +523,42 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             let begin = n.children_begin_or_value() as usize;
             &parsed.nodes[begin..begin + n.children_count() as usize]
         };
+        let terminal = p.terminal();
         for (statement_id, statement) in parsed.statements.iter().enumerate() {
+            if !included(si) {
+                continue;
+            }
             let node_id = nodes.len() as u32;
+            debug_assert_eq!(node_of.get(&(si as u32, statement_id as u32)), Some(&node_id));
+            let c = &mut connections[connection as usize];
             let mut node = ExecutionGraphNodeT::default();
             node.script = si as u32;
             node.statement_id = statement_id as u32;
             node.statement_type = statement.statement_type;
+            node.connection = connection;
             let ty = statement.statement_type;
             let span = descriptions[statement_id].statement_span;
-            // The same SQL and output as a compiled statement
-            let mut sql = read_executable_text(scanned, span);
             node.produces_output = produces_output(parsed, statement);
+            node.script_result = terminal == Some(statement_id as u32) && node.produces_output;
+            if node.script_result {
+                if let Some(&m) = materialization_of.get(&(si as u32)) {
+                    node.materialization = m;
+                }
+            }
+            // The SQL of the statement as written, with the script references spliced in
+            let fused = script_references::splice_statement(request, &prepared, &references, si as u32, statement_id as u32, &materialization_of, &materializations);
+            let mut sql = if fused.edits.is_empty() { read_executable_text(scanned, span) } else { read_executable_text_with(scanned, span, &fused.edits) };
+            for r in &fused.references {
+                let mut reference = ExecutionGraphScriptReferenceT::default();
+                reference.node = node_id;
+                reference.consumer_script = si as u32;
+                reference.text_span = Some(text_span_t(r.reference.text_span));
+                reference.script = r.reference.producer.unwrap_or(NONE);
+                reference.parameter = Some(r.reference.name.clone());
+                reference.cte_name = Some(r.cte_name.clone());
+                reference.materialization = r.materialization.unwrap_or(NONE);
+                graph_references.push(reference);
+            }
             let root = &parsed.nodes[statement.root as usize];
             let mut explain_executes = false;
             let mut accesses: BTreeMap<(u32, u32), Mode> = BTreeMap::new();
@@ -269,13 +567,13 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             macro_rules! barrier {
                 ($message:expr, $invalid:expr) => {{
                     barrier = true;
-                    state.diagnose(node_id, $message.to_string(), $invalid);
+                    state.diagnose(node_id, si as u32, $message.to_string(), $invalid);
                 }};
             }
             let access = |state: &mut PlanState, accesses: &mut BTreeMap<(u32, u32), Mode>, name: &Name, table: Option<&TableDeclaration>, mode: Mode| {
                 let target = match table {
-                    Some(t) => (state.intern_entity(t), NONE),
-                    None => (NONE, state.intern_unresolved(name)),
+                    Some(t) => (state.intern_entity(connection, t), NONE),
+                    None => (NONE, state.intern_unresolved(connection, name)),
                 };
                 let entry = accesses.entry(target).or_insert(mode);
                 if mode > *entry {
@@ -295,7 +593,9 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 | Type::DROP_VIEW => {}
                 _ => {
                     barrier!("unsupported statement effects; backend session semantics are not guaranteed", true);
-                    sql.clear();
+                    if !lenient {
+                        sql.clear();
+                    }
                 }
             }
             // A query with `@vis` tags carries its visualization
@@ -304,7 +604,8 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 match compile_visualization(spec, analyzed) {
                     Ok(compiled) => node.visualization = Some(Box::new(compiled)),
                     Err(e) => {
-                        barrier!(format!("visualization: {e}"), true);
+                        barrier = true;
+                        state.report(node_id, si as u32, None, format!("visualization: {e}"), true);
                         sql.clear();
                     }
                 }
@@ -338,7 +639,9 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 }
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
                     barrier!("EXPLAIN requires a statement or expressions body", true);
-                    sql.clear();
+                    if !lenient {
+                        sql.clear();
+                    }
                 }
             }
             for e in &analyzed.errors {
@@ -347,7 +650,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                     continue;
                 }
                 let invalid = e.severity == AnalyzerErrorSeverity::ERROR;
-                state.diagnose(node_id, format!("analyzer: {}", e.message), invalid);
+                state.diagnose(node_id, si as u32, format!("analyzer: {}", e.message), invalid);
                 if invalid {
                     barrier = true;
                 }
@@ -369,7 +672,9 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 ) || ast.attribute_key() == Key::SQL_SELECT_INTO;
                 if ty == Type::EXPLAIN && explain_executes && mutating {
                     barrier!("execution-enabled EXPLAIN with a mutating body cannot be safely classified", true);
-                    sql.clear();
+                    if !lenient {
+                        sql.clear();
+                    }
                 }
                 if ast.node_type() == NodeType::ENUM_SQL_TEMP_TYPE && ast.children_begin_or_value() == TempType::NONE.0 as u32 {
                     continue;
@@ -399,36 +704,24 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                     barrier!("ambiguous relation reference", true);
                 }
                 // References to CTEs are no relation accesses
-                if relation.resolved_table.is_none()
-                    && table_ref.role == TableRole::Read
-                    && relation.table_name.database_name.text.is_empty()
-                    && relation.table_name.schema_name.text.is_empty()
-                {
-                    if let Some(&scope) = table_ref.ast_scope_root.and_then(|r| analyzed.name_scopes_by_root_node.get(&r)) {
-                        let alias = match &table_ref.alias {
-                            Some((a, _)) => a.text.clone(),
-                            None => relation.table_name.table_name.text.clone(),
-                        };
-                        if matches!(analyzed.name_scopes[scope as usize].source(&alias).map(|s| &s.table), Some(ReferencedTable::Cte(_))) {
-                            continue;
-                        }
-                    }
+                if is_cte_reference(analyzed, table_ref) {
+                    continue;
                 }
                 let name = resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
                 let mut table: Option<&TableDeclaration> = None;
                 if let Some(resolved) = &relation.resolved_table {
-                    if let Some(&declaration) = declarations.get(&resolved.catalog_table_id) {
+                    if let Some(&declaration) = c.declarations.get(&resolved.catalog_table_id) {
                         if declaration.catalog_schema_id == resolved.catalog_schema_id
                             && resource_name(&declaration.table_name) == name
-                            && !incompatible_kinds.contains(&resolved.catalog_table_id)
+                            && !c.incompatible_kinds.contains(&resolved.catalog_table_id)
                         {
                             table = Some(declaration);
                         }
                     }
                     // Analysis can bind an earlier access to a later same-name declaration, the live
                     // lifetime still owns that access
-                    if let (Some(_), Some(&live)) = (table, live_namespace.get(&name)) {
-                        if live_producers.contains(&name) || producers.contains_key(&resolved.catalog_table_id.unpack_table_id().pack()) {
+                    if let (Some(_), Some(&live)) = (table, c.live_namespace.get(&name)) {
+                        if c.live_producers.contains(&name) || c.producers.contains_key(&resolved.catalog_table_id.unpack_table_id().pack()) {
                             table = Some(live);
                         }
                     }
@@ -438,7 +731,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 }
                 let write = table_ref.role == TableRole::Write && (ty != Type::EXPLAIN || explain_executes);
                 access(&mut state, &mut accesses, &name, table, if write { Mode::WRITE } else { Mode::READ });
-                if dropped_resources.contains(&name) {
+                if c.dropped_resources.contains(&name) {
                     barrier!("relation was dropped without an earlier lifetime producer; later producer cannot be reordered", true);
                 }
                 match &relation.resolved_table {
@@ -448,15 +741,44 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                             Some(t) => t.table_id().pack(),
                             None => resolved.catalog_table_id.unpack_table_id().pack(),
                         };
-                        if producers.get(&id).is_some_and(|&p| p >= node_id) && !live_producers.contains(&name) {
+                        if c.producers.get(&id).is_some_and(|&p| p >= node_id) && !c.live_producers.contains(&name) {
                             barrier!("relation resolves to a later producer in input order", true);
                         }
-                        if views.contains(&id) || live_views.contains(&name) {
+                        if c.views.contains(&id) || c.live_views.contains(&name) {
                             barrier!("view dependencies are not expanded; conservative access barrier", false);
                         }
                     }
                 }
             }
+            // A fused script reference reads the relations of the terminal query of the referenced script
+            for &(producer, producer_statement) in &fused.inlined {
+                let producer_analyzed = prepared[producer as usize].as_ref().unwrap().analyzed;
+                for table_ref in &producer_analyzed.table_references {
+                    if table_ref.ast_statement_id != Some(producer_statement) || is_cte_reference(producer_analyzed, table_ref) {
+                        continue;
+                    }
+                    let Some(relation) = &table_ref.inner else { continue };
+                    let name = resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
+                    let table = relation
+                        .resolved_table
+                        .as_ref()
+                        .and_then(|resolved| c.declarations.get(&resolved.catalog_table_id).copied())
+                        .filter(|d| resource_name(&d.table_name) == name && !c.incompatible_kinds.contains(&d.object_id));
+                    let table = table.map(|t| c.live_namespace.get(&name).copied().filter(|_| c.live_producers.contains(&name)).unwrap_or(t));
+                    access(&mut state, &mut accesses, &name, table, Mode::READ);
+                    if relation.resolved_table.is_none() {
+                        barrier!(format!("unresolved relation: {}", relation.table_name.debug_string()), false);
+                    }
+                }
+            }
+            for &m in &fused.inputs {
+                let producer_node = materializations[m as usize].node;
+                if producer_node != NONE {
+                    reference_edges.push((producer_node, node_id, Reason::MATERIALIZATION, materializations[m as usize].script));
+                }
+            }
+            node.inputs = (!fused.inputs.is_empty()).then(|| fused.inputs.clone());
+            node.fused_scripts = (!fused.inlined.is_empty()).then(|| fused.inlined.iter().map(|&(producer, _)| producer).collect());
             let drop = matches!(ty, Type::DROP_TABLE | Type::DROP_VIEW);
             let ddl = drop || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
             if ddl {
@@ -473,10 +795,11 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                         if drop {
                             // Prefer an exact live name, then native suffix matches. Never let a future
                             // declaration in an analyzed input redirect this DROP.
-                            if !live_namespace.contains_key(&name) {
-                                let matches: BTreeSet<Name> = live_namespace
+                            if !c.live_namespace.contains_key(&name) {
+                                let matches: BTreeSet<Name> = c
+                                    .live_namespace
                                     .keys()
-                                    .filter(|c| c.2 == name.2 && (name.1.is_empty() || c.1 == name.1) && (name.0.is_empty() || c.0 == name.0))
+                                    .filter(|n| n.2 == name.2 && (name.1.is_empty() || n.1 == name.1) && (name.0.is_empty() || n.0 == name.0))
                                     .cloned()
                                     .collect();
                                 if matches.len() == 1 {
@@ -485,12 +808,12 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                                     barrier!("ambiguous DROP target", true);
                                 }
                             }
-                            match live_namespace.get(&name) {
+                            match c.live_namespace.get(&name) {
                                 Some(&live) => table = Some(live),
                                 None => barrier!("unresolved DROP target; conservative access barrier", false),
                             }
                             if let Some(t) = table {
-                                if views.contains(&t.table_id().pack()) || live_views.contains(&name) {
+                                if c.views.contains(&t.table_id().pack()) || c.live_views.contains(&name) {
                                     barrier!("view dependencies are not expanded; conservative access barrier", false);
                                 }
                             }
@@ -507,20 +830,20 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                         }
                         access(&mut state, &mut accesses, &name, table, Mode::DDL);
                         if drop {
-                            live_producers.remove(&name);
-                            live_namespace.remove(&name);
-                            live_views.remove(&name);
-                            dropped_resources.insert(name);
+                            c.live_producers.remove(&name);
+                            c.live_namespace.remove(&name);
+                            c.live_views.remove(&name);
+                            c.dropped_resources.insert(name);
                         } else {
-                            live_producers.insert(name.clone());
+                            c.live_producers.insert(name.clone());
                             if let Some(t) = table {
-                                live_namespace.insert(name.clone(), t);
+                                c.live_namespace.insert(name.clone(), t);
                             }
-                            dropped_resources.remove(&name);
+                            c.dropped_resources.remove(&name);
                             if ty == Type::CREATE_VIEW {
-                                live_views.insert(name);
+                                c.live_views.insert(name);
                             } else {
-                                live_views.remove(&name);
+                                c.live_views.remove(&name);
                             }
                         }
                     }
@@ -538,8 +861,8 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                     })
                     .collect(),
             );
-            // The catalog changes ScriptExecution reports for the statement. A script with syntax
-            // errors changes nothing we could follow.
+            // The catalog changes of the statement once it succeeded. A script with syntax errors changes
+            // nothing we could follow.
             if !sql.is_empty() && parsed.errors.is_empty() && scanned.errors.is_empty() {
                 node.catalog_changes = derive_catalog_change(analyzed, statement_id, &change_options).map(|c| vec![c.pack()]);
             }
@@ -560,7 +883,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
         /// The nodes that read the relation since the last write
         readers: Vec<u32>,
     }
-    let mut timelines: BTreeMap<Name, Timeline> = BTreeMap::new();
+    let mut timelines: BTreeMap<(u32, Name), Timeline> = BTreeMap::new();
     let mut edges: BTreeSet<(u32, u32, u32, u32, u8)> = BTreeSet::new();
     let mut edge = |from: Option<u32>, to: u32, entity: u32, unresolved: u32, reason: Reason| {
         if let Some(from) = from {
@@ -569,19 +892,27 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             }
         }
     };
-    let mut last_barrier = None;
-    let mut since_barrier = Vec::new();
+    // Barriers order the statements of their connection
+    let mut last_barrier: BTreeMap<u32, u32> = BTreeMap::new();
+    let mut since_barrier: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
+    let mut previous_of_script: BTreeMap<u32, u32> = BTreeMap::new();
     for (i, node) in nodes.iter().enumerate() {
         let i = i as u32;
-        edge(last_barrier, i, NONE, NONE, Reason::BARRIER);
+        let connection = node.connection;
+        // A plan of targets runs the statements of a script in order
+        if lenient {
+            edge(previous_of_script.insert(node.script, i), i, NONE, NONE, Reason::SEQUENCE);
+        }
+        edge(last_barrier.get(&connection).copied(), i, NONE, NONE, Reason::BARRIER);
+        let since = since_barrier.entry(connection).or_default();
         if node.barrier {
-            for &earlier in &since_barrier {
+            for &earlier in since.iter() {
                 edge(Some(earlier), i, NONE, NONE, Reason::BARRIER);
             }
-            since_barrier.clear();
-            last_barrier = Some(i);
+            since.clear();
+            last_barrier.insert(connection, i);
         } else {
-            since_barrier.push(i);
+            since.push(i);
         }
         // Merge by name only for conflict tracking
         let mut merged: BTreeMap<Name, &ExecutionGraphAccessT> = BTreeMap::new();
@@ -601,7 +932,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             }
         }
         for (name, a) in merged {
-            let timeline = timelines.entry(name).or_default();
+            let timeline = timelines.entry((connection, name)).or_default();
             let ddl = a.mode == Mode::DDL || timeline.mode == Some(Mode::DDL);
             if a.mode == Mode::READ {
                 edge(timeline.writer, i, a.entity, a.unresolved_reference, if ddl { Reason::DDL } else { Reason::READ_AFTER_WRITE });
@@ -617,6 +948,22 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             }
         }
     }
+    // A materialized reference needs the result of the referenced script before it in the session
+    for (from, to, reason, producer) in reference_edges {
+        if from < to {
+            edge(Some(from), to, NONE, NONE, reason);
+        } else {
+            let consumer = nodes[to as usize].script;
+            let message = format!(
+                "{} references {}, which runs later; move {} above {}",
+                script_label(request, consumer),
+                script_label(request, producer),
+                script_label(request, producer),
+                script_label(request, consumer)
+            );
+            state.report(to, consumer, None, message, true);
+        }
+    }
     let edges = edges
         .into_iter()
         .map(|(from, to, entity, unresolved, reason)| {
@@ -629,7 +976,56 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             e
         })
         .collect();
-    finish(state, scripts_meta, nodes, edges)
+    finish(state, request, &prepared, &planned, Some(&references), nodes, edges, materializations, graph_references)
+}
+
+/// The label of a script in diagnostics, `foo.sql`
+pub(crate) fn script_label(request: &SessionPlanRequest, script: u32) -> String {
+    match request.scripts.get(script as usize).map(|s| s.name).filter(|n| !n.is_empty()) {
+        Some(name) => format!("{name}.sql"),
+        None => format!("script {script}"),
+    }
+}
+
+/// Does a table reference read a common table expression?
+fn is_cte_reference(analyzed: &AnalyzedScript, table_ref: &dashql_core::analyzer::TableReference) -> bool {
+    let Some(relation) = &table_ref.inner else { return false };
+    if relation.resolved_table.is_some()
+        || table_ref.role != TableRole::Read
+        || !relation.table_name.database_name.text.is_empty()
+        || !relation.table_name.schema_name.text.is_empty()
+    {
+        return false;
+    }
+    let Some(&scope) = table_ref.ast_scope_root.and_then(|r| analyzed.name_scopes_by_root_node.get(&r)) else { return false };
+    let alias = match &table_ref.alias {
+        Some((a, _)) => a.text.clone(),
+        None => relation.table_name.table_name.text.clone(),
+    };
+    matches!(analyzed.name_scopes[scope as usize].source(&alias).map(|s| &s.table), Some(ReferencedTable::Cte(_)))
+}
+
+fn text_span_t(span: TextSpan) -> TextSpanT {
+    let mut t = TextSpanT::default();
+    t.offset = span.offset;
+    t.length = span.length;
+    t
+}
+
+/// A reporter for the diagnostics of script references
+pub(crate) struct Reporter<'s> {
+    state: &'s mut PlanState,
+}
+
+impl Reporter<'_> {
+    /// Report an error at the text of a script
+    pub(crate) fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
+        self.state.report(NONE, script, text_span, message, true);
+    }
+}
+
+fn state_reporter(state: &mut PlanState) -> Reporter<'_> {
+    Reporter { state }
 }
 
 /// A string that is left out of the packed buffer when empty
@@ -642,9 +1038,83 @@ fn opt_vec<T>(v: Vec<T>) -> Option<Vec<T>> {
     (!v.is_empty()).then_some(v)
 }
 
-fn finish(state: PlanState, scripts: Vec<ExecutionGraphScriptT>, nodes: Vec<ExecutionGraphNodeT>, edges: Vec<ExecutionGraphEdgeT>) -> ExecutionGraphT {
+#[allow(clippy::too_many_arguments)]
+fn finish(
+    state: PlanState,
+    request: &SessionPlanRequest,
+    prepared: &[Option<Prepared>],
+    planned: &[bool],
+    script_references: Option<&ScriptReferences>,
+    nodes: Vec<ExecutionGraphNodeT>,
+    edges: Vec<ExecutionGraphEdgeT>,
+    materializations: Vec<ExecutionGraphMaterializationT>,
+    references: Vec<ExecutionGraphScriptReferenceT>,
+) -> ExecutionGraphT {
+    let targets: BTreeSet<u32> = match request.scope {
+        PlanScope::Session => (0..request.scripts.len() as u32).collect(),
+        PlanScope::Targets(t) => t.iter().copied().collect(),
+    };
     let mut graph = state.graph;
-    graph.scripts = opt_vec(scripts);
+    graph.connections = opt_vec(
+        request
+            .connections
+            .iter()
+            .map(|c| {
+                let mut out = ExecutionGraphConnectionT::default();
+                out.connection_id = opt(Some(c.id.to_string()));
+                out.kind = match c.kind {
+                    ConnectionKind::Remote => ExecutionGraphConnectionKind::REMOTE,
+                    ConnectionKind::Local => ExecutionGraphConnectionKind::LOCAL,
+                };
+                out
+            })
+            .collect(),
+    );
+    // Cacheable scripts: queries only, and the scripts they reference are cacheable
+    let producers_of = |i: usize| script_references.map(|r| r.producers_of(i as u32)).unwrap_or_default();
+    let mut cacheable: Vec<Option<bool>> = vec![None; request.scripts.len()];
+    fn is_cacheable(i: usize, prepared: &[Option<Prepared>], producers_of: &dyn Fn(usize) -> Vec<u32>, memo: &mut [Option<bool>]) -> bool {
+        if let Some(c) = memo[i] {
+            return c;
+        }
+        let Some(p) = prepared.get(i).and_then(Option::as_ref) else { return false };
+        // A cycle is not cacheable, it was reported
+        memo[i] = Some(false);
+        let queries = p.parses() && !p.parsed.statements.is_empty() && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN));
+        let result = queries && producers_of(i).into_iter().all(|r| is_cacheable(r as usize, prepared, producers_of, memo));
+        memo[i] = Some(result);
+        result
+    }
+    graph.scripts = opt_vec(
+        request
+            .scripts
+            .iter()
+            .enumerate()
+            .map(|(i, s)| {
+                let mut meta = ExecutionGraphScriptT::default();
+                let script = s.script;
+                meta.script_id = script.catalog_entry_id();
+                meta.text_version = script.text_version();
+                if let Some(analyzed) = script.analyzed.as_ref() {
+                    meta.analyzed_text_version = analyzed.parsed.scanned.text_version;
+                    meta.analyzed_catalog_revision = analyzed.snapshot.version() as u64;
+                }
+                meta.name = opt(Some(s.name.to_string()));
+                meta.connection = s.connection;
+                meta.planned = planned.get(i).copied().unwrap_or(false);
+                meta.target = targets.contains(&(i as u32));
+                if let Some(p) = prepared.get(i).and_then(Option::as_ref) {
+                    meta.signature = opt(dashql_core::signature::compute_signature(p.parsed).ok());
+                    meta.cacheable = is_cacheable(i, prepared, &producers_of, &mut cacheable);
+                    meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
+                    meta.referenced_scripts = opt_vec(producers_of(i));
+                } else {
+                    meta.terminal_statement_id = NONE;
+                }
+                meta
+            })
+            .collect(),
+    );
     graph.entities = opt_vec(
         state
             .entity_list
@@ -694,5 +1164,138 @@ fn finish(state: PlanState, scripts: Vec<ExecutionGraphScriptT>, nodes: Vec<Exec
             })
             .collect(),
     );
+    graph.materializations = opt_vec(materializations);
+    graph.references = opt_vec(references);
     graph
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn analyzed(catalog: &Catalog, text: &str) -> Script {
+        let mut script = Script::new(catalog);
+        script.replace_text(text);
+        script.scan();
+        script.parse();
+        script.analyze(catalog, false).unwrap();
+        script
+    }
+
+    fn messages(graph: &ExecutionGraphT) -> Vec<String> {
+        graph.diagnostics.iter().flatten().filter_map(|d| d.message.clone()).collect()
+    }
+
+    fn request<'a>(connections: &'a [PlannerConnection<'a>], scripts: &'a [PlannerScript<'a>]) -> SessionPlanRequest<'a> {
+        SessionPlanRequest { connections, scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "/mnt/external/test" }
+    }
+
+    #[test]
+    fn rejects_duplicate_script_names() {
+        let catalog = Catalog::new();
+        let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }, PlannerScript { script: &b, name: "foo", connection: 0, materialization_file: None }];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(!graph.valid);
+        assert!(graph.nodes.is_none());
+        assert_eq!(messages(&graph), vec!["duplicate script name: foo"]);
+    }
+
+    #[test]
+    fn rejects_connections_that_share_a_catalog() {
+        let catalog = Catalog::new();
+        let a = analyzed(&catalog, "select 1");
+        let connections = [
+            PlannerConnection { id: "first", kind: ConnectionKind::Local, catalog: &catalog },
+            PlannerConnection { id: "second", kind: ConnectionKind::Remote, catalog: &catalog },
+        ];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(!graph.valid);
+        assert_eq!(messages(&graph), vec!["connections share a catalog: second"]);
+    }
+
+    #[test]
+    fn rejects_unknown_connections_and_scripts() {
+        let catalog = Catalog::new();
+        let a = analyzed(&catalog, "select 1");
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 1, materialization_file: None }];
+        assert_eq!(messages(&plan_session(&request(&connections, &scripts))), vec!["unknown planner connection"]);
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let mut targets = request(&connections, &scripts);
+        targets.scope = PlanScope::Targets(&[3]);
+        assert_eq!(messages(&plan_session(&targets)), vec!["unknown planner script"]);
+    }
+
+    #[test]
+    fn names_materializations_after_the_files_of_the_host() {
+        let (trino, local) = (Catalog::new(), Catalog::new());
+        let (foo, bar) = (analyzed(&trino, "select 1 as a"), analyzed(&local, "select * from :foo"));
+        let connections = [
+            PlannerConnection { id: "trino", kind: ConnectionKind::Remote, catalog: &trino },
+            PlannerConnection { id: "local", kind: ConnectionKind::Local, catalog: &local },
+        ];
+        let scripts = [
+            PlannerScript { script: &foo, name: "foo", connection: 0, materialization_file: Some("abc.0123.parquet") },
+            PlannerScript { script: &bar, name: "bar", connection: 1, materialization_file: None },
+        ];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(graph.valid, "{:?}", messages(&graph));
+        let path = graph.materializations.as_ref().unwrap()[0].path.clone().unwrap();
+        assert_eq!(path, "/mnt/external/test/abc.0123.parquet");
+        assert!(graph.nodes.as_ref().unwrap()[1].sql.as_ref().unwrap().contains("external('/mnt/external/test/abc.0123.parquet'"));
+    }
+
+    #[test]
+    fn rejects_scripts_of_another_catalog() {
+        let (catalog, other) = (Catalog::new(), Catalog::new());
+        let a = analyzed(&other, "select 1");
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(!graph.valid);
+        assert_eq!(messages(&graph), vec!["script was analyzed with another catalog than the one of its connection"]);
+    }
+
+    #[test]
+    fn caches_the_results_of_scripts_of_queries() {
+        // A cache hit skips the whole script, so every statement must be a query
+        for (text, cacheable) in [
+            ("select 1", true),
+            ("explain select 1", true),
+            ("select 1; select 2", true),
+            ("create table t as select 1 as a; select a from t", false),
+            ("set search_path = x; select 1", false),
+            ("create table t (a int)", false),
+            ("select 1 +;", false),
+        ] {
+            let catalog = Catalog::new();
+            let mut script = Script::new(&catalog);
+            script.replace_text(text);
+            script.scan();
+            script.parse();
+            script.analyze(&catalog, false).unwrap();
+            let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog }];
+            let scripts = [PlannerScript { script: &script, name: "foo", connection: 0, materialization_file: None }];
+            let mut targets = request(&connections, &scripts);
+            targets.scope = PlanScope::Targets(&[0]);
+            let graph = plan_session(&targets);
+            assert!(graph.valid, "{text}: {:?}", messages(&graph));
+            assert_eq!(graph.scripts.as_ref().unwrap()[0].cacheable, cacheable, "{text}");
+        }
+    }
+
+    #[test]
+    fn plans_scripts_without_names() {
+        let catalog = Catalog::new();
+        let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog }];
+        let scripts = [PlannerScript { script: &a, name: "", connection: 0, materialization_file: None }, PlannerScript { script: &b, name: "", connection: 0, materialization_file: None }];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(graph.valid);
+        assert_eq!(graph.nodes.as_ref().map(Vec::len), Some(2));
+        assert!(graph.connections.as_ref().is_some_and(|c| c.len() == 1 && c[0].kind == ExecutionGraphConnectionKind::REMOTE));
+    }
 }

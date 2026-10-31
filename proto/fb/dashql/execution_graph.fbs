@@ -5,7 +5,11 @@ include "dashql/script_compilation.fbs";
 namespace dashql.buffers.execution;
 
 enum ExecutionGraphAccessMode: uint8 { READ, WRITE, DDL }
-enum ExecutionGraphEdgeReason: uint8 { READ_AFTER_WRITE, WRITE_AFTER_READ, WRITE_AFTER_WRITE, DDL, BARRIER }
+/// MATERIALIZATION orders the query of a materialized script before the statements that scan it, SEQUENCE keeps the
+/// statement order of a script in a plan of target scripts
+enum ExecutionGraphEdgeReason: uint8 { READ_AFTER_WRITE, WRITE_AFTER_READ, WRITE_AFTER_WRITE, DDL, BARRIER, MATERIALIZATION, SEQUENCE }
+/// A LOCAL connection is the embedded Hyper that can scan the materialized results of scripts of other connections
+enum ExecutionGraphConnectionKind: uint8 { REMOTE, LOCAL }
 enum ExecutionGraphEntityType: uint8 { DEFERRED = 0, DATABASE = 1, SCHEMA = 2, TABLE = 3, COLUMN = 4, FUNCTION = 5 }
 
 struct ExecutionGraphCatalogObjectID {
@@ -14,11 +18,59 @@ struct ExecutionGraphCatalogObjectID {
     sub_object_id: uint32;
 }
 
+table ExecutionGraphConnection {
+    connection_id: string;
+    kind: ExecutionGraphConnectionKind;
+}
+
 table ExecutionGraphScript {
     script_id: uint32;
     text_version: uint64;
     analyzed_text_version: uint64;
     analyzed_catalog_revision: uint64;
+    /// The name of the script, `foo` for `foo.sql`, the name of the table parameter `:foo` that reads its result
+    name: string;
+    /// The connection index
+    connection: uint32;
+    /// Was the analysis of the script used? Plans of target scripts use the targets and the scripts they reference.
+    planned: bool;
+    /// Is the script a target of the plan?
+    target: bool;
+    /// The cache signature of the AST of the script, empty if it does not parse
+    signature: string;
+    /// Can the result of the script be cached? Its statements are queries and the scripts it references can be cached.
+    cacheable: bool;
+    /// The last statement of the script, the query that a script reference reads
+    terminal_statement_id: uint32 = 4294967295;
+    /// The scripts that the script references, in the order of their first reference
+    referenced_scripts: [uint32];
+}
+
+/// The result of a script that a statement of another connection scans as Parquet file
+table ExecutionGraphMaterialization {
+    /// The script whose result is materialized
+    script: uint32;
+    /// The node that computes the result, absent if the host provides the result
+    node: uint32 = 4294967295;
+    /// The path that the host mounts the Parquet file at
+    path: string;
+}
+
+/// A table parameter that references a script
+table ExecutionGraphScriptReference {
+    /// The node of the statement with the reference
+    node: uint32 = 4294967295;
+    /// The referencing script and the parameter in its text
+    consumer_script: uint32;
+    text_span: dashql.buffers.parser.TextSpan;
+    /// The referenced script
+    script: uint32;
+    /// The parameter name
+    parameter: string;
+    /// The name of the common table expression that stands for the referenced script
+    cte_name: string;
+    /// The materialization the reference scans, absent if the script is fused
+    materialization: uint32 = 4294967295;
 }
 
 table ExecutionGraphEntity {
@@ -28,12 +80,16 @@ table ExecutionGraphEntity {
     database_name: string;
     schema_name: string;
     name: string;
+    /// The connection index, entities of different connections are different
+    connection: uint32;
 }
 
 table ExecutionGraphUnresolvedReference {
     database_name: string;
     schema_name: string;
     name: string;
+    /// The connection index
+    connection: uint32;
 }
 
 table ExecutionGraphAccess {
@@ -51,8 +107,19 @@ table ExecutionGraphNode {
     barrier: bool;
     accesses: [ExecutionGraphAccess];
     visualization: CompiledVisualization;
-    /// The changes of the catalog of the connection once the statement succeeded, as ScriptExecution reports them
+    /// The changes of the catalog of the connection once the statement succeeded
     catalog_changes: [dashql.buffers.catalog.CatalogChange];
+    /// The connection index
+    connection: uint32;
+    /// The materialization that the result of the node is written to
+    materialization: uint32 = 4294967295;
+    /// The materializations to mount before the node runs
+    inputs: [uint32];
+    /// Is the node the terminal output of its script, the result of the script?
+    script_result: bool;
+    /// The scripts whose queries the statement fuses, also those that fused queries reference, in the order of their
+    /// common table expressions
+    fused_scripts: [uint32];
 }
 
 table ExecutionGraphEdge {
@@ -66,6 +133,12 @@ table ExecutionGraphEdge {
 table ExecutionGraphDiagnostic {
     node: uint32 = 4294967295;
     message: string;
+    /// The script, set with the node and for diagnostics of script references
+    script: uint32 = 4294967295;
+    /// The text of the script the diagnostic is about, e.g. a table parameter
+    text_span: dashql.buffers.parser.TextSpan;
+    /// Does the diagnostic invalidate the plan?
+    error: bool;
 }
 
 table ExecutionGraph {
@@ -76,4 +149,7 @@ table ExecutionGraph {
     edges: [ExecutionGraphEdge];
     diagnostics: [ExecutionGraphDiagnostic];
     valid: bool = true;
+    connections: [ExecutionGraphConnection];
+    materializations: [ExecutionGraphMaterialization];
+    references: [ExecutionGraphScriptReference];
 }

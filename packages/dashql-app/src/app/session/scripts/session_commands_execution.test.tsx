@@ -16,15 +16,13 @@ describe('global session execution feedback', () => {
     const execute = vi.fn();
     const resolveMain = vi.fn();
     const sessionScripts = {
-        sessionId: 'session', settings: { cacheQueryResults: false },
+        sessionId: 'session',
         scriptFocus: { fileName: '01_query.sql' },
         scriptRefs: { '01_query.sql': { scriptId: 1, fileName: '01_query.sql' } },
         scriptOrder: ['01_query.sql'],
-        scripts: { 1: { scriptKey: 1, connection: { connectionId: 'main', connectorInfo: {} }, annotations: {}, analysisOutdated: false, scriptSession: {
-            getText: () => 'SELECT 1', startExecution: () => ({}),
-            compileQuery: () => ({ read: () => ({ errorsLength: () => 0, sql: () => 'SELECT 1', cacheable: () => false, cacheSignature: () => '' }), destroy: () => {} }),
-        } } },
+        scripts: { 1: { scriptKey: 1, connection: { connectionId: 'main', connectorInfo: {} }, annotations: {}, analysisOutdated: false } },
     };
+    const runSessionScript = vi.fn();
     const dependencies = {
         useSessionScripts: () => [sessionScripts, vi.fn()],
         useSessionConnections: (sessionId: string) => { resolveMain(sessionId); return connection == null ? null : [connection]; },
@@ -33,6 +31,7 @@ describe('global session execution feedback', () => {
         useCatalogLoaderQueue: () => vi.fn(),
         useLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
         useSessionViewMode: () => ({ mode: SessionViewMode.Session, setMode: vi.fn() }),
+        runSessionScript,
     } as unknown as SessionCommandsDependencies;
     function Probe() {
         attention = React.useContext(SessionConnectionAttentionContext);
@@ -44,7 +43,7 @@ describe('global session execution feedback', () => {
     const shortcut = () => act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true })));
     beforeEach(() => {
         connection = null;
-        execute.mockReset().mockReturnValue([42, Promise.resolve()]);
+        runSessionScript.mockReset();
         resolveMain.mockReset();
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -57,7 +56,7 @@ describe('global session execution feedback', () => {
         const focused = document.activeElement;
         shortcut();
         expect(attention?.active).toBe(true);
-        expect(execute).not.toHaveBeenCalled();
+        expect(runSessionScript).not.toHaveBeenCalled();
         expect(resolveMain).toHaveBeenCalledWith('session');
         expect(document.activeElement).toBe(focused);
         connection = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE };
@@ -69,7 +68,7 @@ describe('global session execution feedback', () => {
         connection = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE };
         render();
         shortcut();
-        expect(execute).toHaveBeenCalledWith('main', expect.objectContaining({ query: 'SELECT 1' }));
+        expect(runSessionScript).toHaveBeenCalledWith(sessionScripts, sessionScripts.scripts[1], execute, expect.any(Function), expect.anything());
         expect(attention?.active).toBe(false);
     });
 });

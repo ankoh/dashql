@@ -17,7 +17,6 @@ use dashql_core::error::Error;
 use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisCard, VisRenderer};
 use dashql_core::script::Script as CoreScript;
-use dashql_core_session::script_execution::ScriptExecution as CoreScriptExecution;
 use dashql_core_session::script_session::ScriptSession as CoreScriptSession;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
@@ -746,83 +745,109 @@ impl ScriptSession {
     pub fn drop_from_catalog(&self) {
         self.inner.borrow().drop_from_catalog(&mut self.catalog.borrow_mut());
     }
-
-    /// Compile the session text into an execution
-    #[wasm_bindgen(js_name = startExecution)]
-    pub fn start_execution(&self, dialect: u8, mode: u8, max_width: u32, indentation_width: u32, debug_mode: bool) -> ScriptExecution {
-        let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, 0);
-        ScriptExecution {
-            inner: CoreScriptExecution::new(&mut self.inner.borrow_mut(), &self.catalog.borrow(), config),
-        }
-    }
 }
 
-/// The execution of a session script (`dashql_script_execution_*`). Updates are packed
-/// `ScriptExecutionUpdate`s.
+/// A request to plan the scripts of a session across connections (`planner::SessionPlanRequest`)
 #[wasm_bindgen]
-pub struct ScriptExecution {
-    /// The core execution
-    inner: CoreScriptExecution,
-}
-
-#[wasm_bindgen]
-impl ScriptExecution {
-    pub fn start(&mut self) -> Vec<u8> {
-        finish!(self.inner.start())
-    }
-
-    /// Resume with a packed `StatementResult`
-    pub fn resume(&mut self, statement_result: &[u8]) -> Result<Vec<u8>, JsError> {
-        let result = flatbuffers::root::<dashql_buffers::execution::StatementResult>(statement_result)
-            .map_err(|e| JsError::new(&format!("invalid statement result: {e}")))?
-            .unpack();
-        Ok(finish!(self.inner.resume(&result)))
-    }
-
-    pub fn cancel(&mut self) -> Vec<u8> {
-        finish!(self.inner.cancel())
-    }
-}
-
-/// The script sessions to plan, in script order
-#[wasm_bindgen]
-pub struct SessionList {
-    /// The catalogs and the shared script sessions in script order
-    sessions: Vec<(SharedCatalog, Rc<RefCell<CoreScriptSession>>)>,
+pub struct SessionPlanRequest {
+    /// The connections: the host id, whether it is the LOCAL connection, and its catalog
+    connections: Vec<(String, bool, SharedCatalog)>,
+    /// The scripts in session order: the name, the connection index, the session and the name of the file of a
+    /// materialized result
+    scripts: Vec<(String, u32, Rc<RefCell<CoreScriptSession>>, Option<String>)>,
+    /// The target scripts, the whole session if absent
+    targets: Option<Vec<u32>>,
+    /// The scripts whose materialized results the host provides
+    materialized: Vec<u32>,
+    /// The directory the host mounts materialized results in
+    mount_prefix: String,
 }
 
 #[wasm_bindgen]
-impl SessionList {
+impl SessionPlanRequest {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> SessionList {
-        SessionList { sessions: Vec::new() }
+    pub fn new() -> SessionPlanRequest {
+        SessionPlanRequest { connections: Vec::new(), scripts: Vec::new(), targets: None, materialized: Vec::new(), mount_prefix: String::new() }
     }
 
-    pub fn add(&mut self, session: &ScriptSession) {
-        self.sessions.push((session.catalog.clone(), session.inner.clone()));
+    /// Add a connection, returns its index
+    #[wasm_bindgen(js_name = addConnection)]
+    pub fn add_connection(&mut self, id: String, local: bool, catalog: &Catalog) -> u32 {
+        self.connections.push((id, local, catalog.inner.clone()));
+        (self.connections.len() - 1) as u32
+    }
+
+    /// Add a script in session order, returns its index. A materialized result of the script is written to
+    /// `materialization_file` below the mount prefix, `s<index>.parquet` if absent.
+    #[wasm_bindgen(js_name = addScript)]
+    pub fn add_script(&mut self, name: String, connection: u32, session: &ScriptSession, materialization_file: Option<String>) -> u32 {
+        self.scripts.push((name, connection, session.inner.clone(), materialization_file));
+        (self.scripts.len() - 1) as u32
+    }
+
+    /// Plan the target scripts and what they need instead of the whole session
+    #[wasm_bindgen(js_name = setTargets)]
+    pub fn set_targets(&mut self, targets: Vec<u32>) {
+        self.targets = Some(targets);
+    }
+
+    /// The scripts whose materialized results the host provides
+    #[wasm_bindgen(js_name = setMaterialized)]
+    pub fn set_materialized(&mut self, materialized: Vec<u32>) {
+        self.materialized = materialized;
+    }
+
+    /// The directory the host mounts materialized results in
+    #[wasm_bindgen(js_name = setMountPrefix)]
+    pub fn set_mount_prefix(&mut self, prefix: String) {
+        self.mount_prefix = prefix;
     }
 }
 
-impl Default for SessionList {
+impl Default for SessionPlanRequest {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Plan the current analysis of sessions, returns the packed `ExecutionGraph`
-#[wasm_bindgen]
-pub fn plan(sessions: &SessionList) -> Vec<u8> {
-    let catalogs: Vec<_> = sessions.sessions.iter().map(|(catalog, _)| catalog.borrow()).collect();
-    let sessions: Vec<_> = sessions.sessions.iter().map(|(_, session)| session.borrow()).collect();
-    let inputs: Vec<_> = sessions
+/// Plan the current analysis of the scripts of a session across connections, returns the packed `ExecutionGraph`
+#[wasm_bindgen(js_name = planSession)]
+pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
+    use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerConnection, PlannerScript};
+    let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog)| catalog.borrow()).collect();
+    let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
+    let connections: Vec<_> = request
+        .connections
         .iter()
         .zip(&catalogs)
-        .map(|(session, catalog)| dashql_core_session::planner::PlannerInput {
-            script: session.script(),
+        .map(|((id, local, _), catalog)| PlannerConnection {
+            id,
+            kind: if *local { ConnectionKind::Local } else { ConnectionKind::Remote },
             catalog,
         })
         .collect();
-    finish!(dashql_core_session::planner::plan(&inputs))
+    let scripts: Vec<_> = request
+        .scripts
+        .iter()
+        .zip(&sessions)
+        .map(|((name, connection, _, file), session)| PlannerScript {
+            script: session.script(),
+            name,
+            connection: *connection,
+            materialization_file: file.as_deref(),
+        })
+        .collect();
+    let scope = match &request.targets {
+        Some(targets) => PlanScope::Targets(targets),
+        None => PlanScope::Session,
+    };
+    finish!(dashql_core_session::planner::plan_session(&dashql_core_session::planner::SessionPlanRequest {
+        connections: &connections,
+        scripts: &scripts,
+        scope,
+        materialized: &request.materialized,
+        mount_prefix: &request.mount_prefix,
+    }))
 }
 
 /// Read packed `CatalogChanges`, changes without effect are skipped

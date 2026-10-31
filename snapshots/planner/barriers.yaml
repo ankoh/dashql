@@ -17,6 +17,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "5ccf58a55fa53813dd2c510d55998b1e"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -53,6 +56,7 @@ planner-snapshots:
           sql: "select b from t"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -65,6 +69,8 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 1
+          script: queries
+          error: true
           message: 'analyzer: column reference is ambiguous, candidates: t.a, u.a'
 
   - name: TableFunctionSource
@@ -80,6 +86,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "52bec185a04c052c3ebc337370bd1ae4"
       entities: []
       unresolved-references: []
       nodes:
@@ -98,6 +107,7 @@ planner-snapshots:
           sql: "select 1"
           produces-output: true
           barrier: false
+          script-result: true
           accesses: []
       edges: []
       diagnostics: []
@@ -118,6 +128,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "89c5be67a7165394b5e29ac65a063594"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -141,6 +154,7 @@ planner-snapshots:
           sql: "select 1"
           produces-output: true
           barrier: false
+          script-result: true
           accesses: []
       edges:
         - from: 0
@@ -148,6 +162,8 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 0
+          script: queries
+          error: true
           message: ambiguous relation reference
 
   - name: AmbiguousDropTarget
@@ -166,6 +182,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "a344b8581a464ee899a9fde89bca0b5c"
       entities: []
       unresolved-references:
         - name: t
@@ -187,6 +206,7 @@ planner-snapshots:
           sql: "select 1"
           produces-output: true
           barrier: false
+          script-result: true
           accesses: []
       edges:
         - from: 0
@@ -194,8 +214,12 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 0
+          script: queries
+          error: true
           message: ambiguous DROP target
         - node: 0
+          script: queries
+          error: false
           message: unresolved DROP target; conservative access barrier
 
   - name: ReadAfterDrop
@@ -213,6 +237,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "556712fbf365c0f7669b4510d6a381d1"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -236,6 +263,7 @@ planner-snapshots:
           sql: "select * from a"
           produces-output: true
           barrier: true
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -249,6 +277,8 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 1
+          script: queries
+          error: true
           message: relation was dropped without an earlier lifetime producer; later producer cannot be reordered
 
   - name: AliasesAndDerivedTables
@@ -268,6 +298,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "5ffee4711845ac50c2a34e2e9de1953f"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -306,6 +339,7 @@ planner-snapshots:
           sql: "select * from a, a as a2"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -329,14 +363,23 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "2114dfc42d8415e8eb45687e9ac6fad1"
         - name: view_producer
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "aca0e1642abae2a2dc096adbd99fb377"
         - name: consumer
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdee56b86b899338dba0289c7ec99d61"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -380,6 +423,7 @@ planner-snapshots:
           sql: "select * from shared"
           produces-output: true
           barrier: true
+          script-result: true
           accesses:
             - entity: '256.65536.12884901888'
               mode: READ
@@ -400,8 +444,12 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 2
+          script: consumer
+          error: true
           message: ambiguous relation reference
         - node: 2
+          script: consumer
+          error: false
           message: view dependencies are not expanded; conservative access barrier
 
   - name: VisualizationRenderers
@@ -424,6 +472,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "37de1aaae4f3e465699a0744d5cefda8"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -457,6 +508,7 @@ planner-snapshots:
           sql: "select category from sales"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -476,13 +528,18 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
+          cacheable: false
       entities: []
       unresolved-references: []
       nodes: []
       edges: []
       diagnostics:
-        - message: 'parser: syntax error, unexpected SEMICOLON'
-        - message: 'unsupported SQL: parser produced no statements'
+        - script: queries
+          error: true
+          message: 'parser: syntax error, unexpected SEMICOLON'
+        - script: queries
+          error: true
+          message: 'unsupported SQL: parser produced no statements'
 
   - name: ExplainOptions
     catalog: |
@@ -500,6 +557,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "92afac839f9e488fd351395bd2a56872"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -531,6 +591,7 @@ planner-snapshots:
           sql: "explain select * from a where id = 1"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -553,6 +614,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 4
+          signature: "166ea22eb93c467c356b05c3fc169b79"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -611,6 +675,7 @@ planner-snapshots:
           sql: "select 1"
           produces-output: true
           barrier: false
+          script-result: true
           accesses: []
       edges:
         - from: 0
@@ -643,6 +708,8 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 2
+          script: queries
+          error: false
           message: view dependencies are not expanded; conservative access barrier
 
   - name: WriteSequence
@@ -664,6 +731,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 4
+          signature: "9f72fd3c8e9dc589f396902114c33b8e"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -727,6 +797,7 @@ planner-snapshots:
           sql: "select * from c"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.8589934592'
               mode: READ
@@ -776,18 +847,30 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "bb5bab00db031daf5190c6f28146b9dc"
         - name: second
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "daa4554ecd80c92bb339ba3d6db36d58"
         - name: third
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "d74c3219a941bfcaab1690d74aa5a5f7"
         - name: fourth
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "daa4554ecd80c92bb339ba3d6db36d58"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -811,6 +894,7 @@ planner-snapshots:
           sql: "select * from a"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -831,6 +915,7 @@ planner-snapshots:
           sql: "select * from a"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -871,10 +956,16 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "7983ddc49da5eb6d9ab250d2f0bca6ef"
         - name: second
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "0b4ae044fed62a64b44d341268ced5f3"
       entities: []
       unresolved-references:
         - name: missing
@@ -897,6 +988,7 @@ planner-snapshots:
           sql: "select * from missing"
           produces-output: true
           barrier: true
+          script-result: true
           accesses:
             - unresolved-reference: 0
               mode: READ
@@ -927,6 +1019,7 @@ planner-snapshots:
           sql: "select * from db.sch.missing"
           produces-output: true
           barrier: true
+          script-result: true
           accesses:
             - unresolved-reference: 1
               mode: READ
@@ -945,14 +1038,24 @@ planner-snapshots:
           reason: BARRIER
       diagnostics:
         - node: 0
+          script: first
+          error: false
           message: 'unresolved relation: missing'
         - node: 1
+          script: first
+          error: false
           message: 'unresolved relation: missing'
         - node: 2
+          script: second
+          error: false
           message: 'unresolved relation: missing'
         - node: 3
+          script: second
+          error: false
           message: 'unresolved relation: db.sch.missing'
         - node: 4
+          script: second
+          error: false
           message: 'unresolved relation: db.sch.missing'
 
   - name: CteAliases
@@ -970,6 +1073,9 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "99aaf08473968f3b41eeba6e5b4581e9"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -993,6 +1099,7 @@ planner-snapshots:
           sql: "with c as (select * from a), d as (select * from c) select * from d, c as y"
           produces-output: true
           barrier: false
+          script-result: true
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ

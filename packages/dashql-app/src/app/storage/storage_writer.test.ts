@@ -23,10 +23,7 @@ import {
     REPLACE_SESSION_SCRIPTS,
     WRITE_SESSION_SCRIPTS,
     storageWriteChainKey,
-    WRITE_QUERY_RESULT_CACHE,
-    groupQueryResultCacheWrites,
 } from './storage_writer.js';
-import { createSessionQueryResultCache } from './session_query_result_cache.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
 import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
@@ -49,7 +46,7 @@ describe('V2 storage writer flat mutations', () => {
             const saved = { trino: { ...params.trino, endpoint } };
             const name = `renamed before ${endpoint}`;
             const rename = () => writer.write(groupSessionManifestWrites(TEST_SESSION_ID), {
-                type: WRITE_SESSION_PROPERTIES, value: [TEST_SESSION_ID, { name, settings: { cacheQueryResults: true } }],
+                type: WRITE_SESSION_PROPERTIES, value: [TEST_SESSION_ID, { name }],
             }, 10_000);
             const connection = () => writer.write(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID), {
                 type: PATCH_SESSION_CONNECTION, value: [TEST_SESSION_ID, { connectionId: TEST_CONNECTION_ID, params: saved }],
@@ -60,7 +57,6 @@ describe('V2 storage writer flat mutations', () => {
             await expect(Promise.all(tasks)).resolves.toEqual([true, true]);
             const session = await backend.loadSession(TEST_SESSION_ID);
             expect(session.name).toBe(name);
-            expect(session.settings).toEqual({ cacheQueryResults: true });
             expect(session.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: saved }]);
         }
     });
@@ -73,7 +69,7 @@ describe('V2 storage writer flat mutations', () => {
         const scripts = [{ name: 'b.sql', connectionId: remoteId }, { name: 'a.sql', connectionId: TEST_CONNECTION_ID }];
         const tasks = [
             writer.write(groupSessionManifestWrites(TEST_SESSION_ID), {
-                type: WRITE_SESSION_PROPERTIES, value: [TEST_SESSION_ID, { name: 'renamed', settings: { cacheQueryResults: true } }],
+                type: WRITE_SESSION_PROPERTIES, value: [TEST_SESSION_ID, { name: 'renamed' }],
             }, 10_000),
             writer.write(groupSessionScriptListWrites(TEST_SESSION_ID), {
                 type: WRITE_SESSION_SCRIPTS, value: [TEST_SESSION_ID, { scripts, connections: [remote] }],
@@ -116,7 +112,7 @@ describe('V2 storage writer flat mutations', () => {
                 type: REPLACE_SESSION_SCRIPTS,
                 value: {
                     sessionId: TEST_SESSION_ID, name: null, scripts: [{ fileName: 'a.sql', readText: () => 'SELECT 1' }],
-                    connection: testSession().connections[0], originalFileName: undefined, settings: { cacheQueryResults: false },
+                    connection: testSession().connections[0], originalFileName: undefined,
                 },
             }, 10_000),
             writer.write(groupSessionScriptListWrites(TEST_SESSION_ID), { type: WRITE_SESSION_SCRIPTS, value: [TEST_SESSION_ID, list(['b.sql', 'a.sql'])] }, 10_000),
@@ -268,7 +264,6 @@ describe('storage writer outcomes', () => {
         expect(storageWriteChainKey(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID))).toBe(TEST_SESSION_ID);
         expect(storageWriteChainKey(groupConnectionEntryWrites(TEST_CONNECTION_ID))).toBe('@manifest');
         expect(storageWriteChainKey(`@connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(`@connections/${TEST_CONNECTION_ID}`);
-        expect(storageWriteChainKey(groupQueryResultCacheWrites(TEST_SESSION_ID, 'hash'))).toBe(`${TEST_SESSION_ID}/cache`);
     });
 
     it('writes durably without debouncing and defers while paused', async () => {
@@ -316,35 +311,6 @@ describe('storage writer outcomes', () => {
         await writer.flush();
         expect(backend.sessions.has(TEST_SESSION_ID)).toBe(false);
         expect(backend.calls.filter(call => call.startsWith('write:'))).toEqual([]);
-    });
-
-    it('deletes a session after its running cache writes and drops the later ones', async () => {
-        const events: string[] = [];
-        let finishWrite = () => { };
-        class Backend extends SessionTestBackend {
-            override async saveQueryResultCache(_sessionId?: string, hash?: string): Promise<void> {
-                events.push(`store:${hash}`);
-                await new Promise<void>(resolve => { finishWrite = resolve; });
-                events.push(`stored:${hash}`);
-            }
-            override async deleteSession(sessionId: string): Promise<void> {
-                events.push('delete');
-                await super.deleteSession(sessionId);
-            }
-        }
-        const backend = new Backend();
-        backend.sessions.set(TEST_SESSION_ID, testSession());
-        const writer = new StorageWriter(new NullLogger(), backend);
-        const cache = createSessionQueryResultCache(backend, writer, TEST_SESSION_ID);
-        const running = cache.store('first', new Uint8Array([1]));
-        await vi.waitFor(() => expect(events).toEqual(['store:first']));
-        const deleted = writer.deleteSession(TEST_SESSION_ID);
-        finishWrite();
-        await deleted;
-        expect(await running).toBe(true);
-        expect(await cache.store('second', new Uint8Array([2]))).toBe(false);
-        expect(await writer.write(groupQueryResultCacheWrites(TEST_SESSION_ID, 'third'), { type: WRITE_QUERY_RESULT_CACHE, value: [TEST_SESSION_ID, 'third', new Uint8Array()] })).toBe(false);
-        expect(events).toEqual(['store:first', 'stored:first', 'delete']);
     });
 
     it('accepts writes again when a deleted session is registered again', async () => {

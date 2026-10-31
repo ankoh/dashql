@@ -54,23 +54,21 @@ export const QueryResultCacheLabel: React.FC<QueryResultCacheControlsProps> = ({
 
 interface QueryResultRerunButtonProps {
     query: QueryExecutionState | null;
-    /// Re-execute the query for this result. Receives the current result's cache key (if any) so the
-    /// caller can drop the stale entry before re-running.
-    onRerun?: (cacheKey: string | null) => void;
+    /// Run the script of this result again without reading cached results
+    onRerun?: () => void;
 }
 
-/// The Refresh icon shown in the entry status bar. Shown for any succeeded result; clicking
-/// it drops the cached entry (if any) and re-executes the query against the backend.
+/// The Refresh icon shown in the entry status bar. Shown for any succeeded result; clicking it runs the script and
+/// the scripts it references again against their backends, without reading cached results.
 export const QueryResultRerunButton: React.FC<QueryResultRerunButtonProps> = ({ query, onRerun }) => {
     if (!hasResult(query)) {
         return null;
     }
-    const cacheKey = query?.cacheKey ?? null;
     return (
         <IconButton
             className={styles.rerun_button}
             variant={ButtonVariant.Invisible}
-            onClick={onRerun != null ? () => onRerun(cacheKey) : undefined}
+            onClick={onRerun}
             disabled={onRerun == null}
             aria-label="Refresh"
             description="Refresh"

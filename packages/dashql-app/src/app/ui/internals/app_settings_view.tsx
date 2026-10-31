@@ -11,6 +11,7 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../.
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { LogLevel } from '../../../platform/logger/log_buffer.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
+import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { AppFlavor, FLAVORS } from '../../flavor/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../../flavor/flavor_provider.js';
 import { useAppRestart } from '../../../platform/crosstab/app_hand_over.js';
@@ -22,6 +23,7 @@ export function AppSettings(props: { onClose: () => void; }) {
     const routerContext = useRouteContext();
     const logger = useLogger();
     const storageReader = useStorageReader();
+    const queryResultCache = useQueryResultCache();
     const restartApp = useAppRestart();
 
     const [isClearing, setIsClearing] = React.useState(false);
@@ -181,6 +183,8 @@ export function AppSettings(props: { onClose: () => void; }) {
             setIsClearing(true);
             logger.info("Clearing all storage", {}, "app_settings");
             await storageReader.backend.clearAllStorage();
+            // The query results of every connection, files that other windows read right now stay
+            await queryResultCache?.clear();
             logger.info("Storage cleared successfully", {}, "app_settings");
             alert("Storage cleared successfully. The page will now reload.");
             window.location.reload();
@@ -192,7 +196,7 @@ export function AppSettings(props: { onClose: () => void; }) {
         } finally {
             setIsClearing(false);
         }
-    }, [storageReader, logger]);
+    }, [storageReader, queryResultCache, logger]);
 
     // Apply log level from config on mount
     React.useEffect(() => {

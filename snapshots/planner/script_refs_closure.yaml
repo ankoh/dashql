@@ -1,0 +1,700 @@
+planner-snapshots:
+
+  - name: TargetAlone
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: other
+        input: |
+          select 1;
+      - name: bar
+        input: |
+          create table t as select * from orders;
+          select count(*) from t;
+    targets: [bar]
+    expected:
+      valid: true
+      scripts:
+        - name: other
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          planned: false
+          target: false
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          target: true
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "77f368bc42339156761d05bbe7aa178a"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.12884901888'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: CREATE_TABLE_AS
+          sql: "create table t as select * from orders"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.12884901888'
+              mode: DDL
+        - id: 1
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: "select count(*) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.12884901888'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.12884901888'
+        - from: 0
+          to: 1
+          reason: SEQUENCE
+      diagnostics: []
+
+  - name: TargetFusesProducer
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: setup
+        input: |
+          insert into t values (1);
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          select * from :foo;
+    targets: [bar]
+    expected:
+      valid: true
+      scripts:
+        - name: setup
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          planned: false
+          target: false
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a2a3c8a2261b895606b724ae6948ae57"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select a from t
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: TargetMaterializes
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select * from orders where amount > 0;
+      - name: foo
+        connection: trino
+        input: |
+          select * from :base where amount > 1;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    targets: [bar]
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: base
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6fb28f3e982dd3d1ef60b3970450de62"
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "55042dcf2af23bf9a471c846173ecc42"
+          references: [base]
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with base as (
+            select * from orders where amount > 0
+            )
+            select * from base where amount > 1
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 0
+          fused-scripts: [0]
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: MATERIALIZATION
+      materializations:
+        - script: foo
+          node: 0
+          path: /mnt/external/dashql-run-test/s1.parquet
+      references:
+        - node: 0
+          script: foo
+          text: ":base"
+          target: base
+          cte: base
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+
+  - name: TargetReusesMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    targets: [bar]
+    materialized: [foo]
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges: []
+      materializations:
+        - script: foo
+          reused: true
+          path: /mnt/external/dashql-run-test/s0.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+
+  - name: TargetReusesMaterializationWithReferences
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: foo
+        connection: trino
+        input: |
+          select id from :base;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    targets: [bar]
+    materialized: [foo]
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: base
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b136dbde45641078620ce56ac946d341"
+          references: [base]
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges: []
+      materializations:
+        - script: foo
+          reused: true
+          path: /mnt/external/dashql-run-test/s1.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+
+  - name: TargetWithSyntaxErrors
+    scripts:
+      - name: bar
+        input: |
+          select from where;
+    targets: [bar]
+    expected:
+      valid: true
+      scripts:
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: false
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: NONE
+          sql: "select from where;"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges: []
+      diagnostics:
+        - node: 0
+          script: bar
+          error: false
+          message: 'the script does not parse, it runs as written'
+
+  - name: TargetWithUnsupportedStatement
+    scripts:
+      - name: bar
+        input: |
+          set search_path = foo;
+          select 1;
+    targets: [bar]
+    expected:
+      valid: true
+      scripts:
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "b3ab00830fb4bba95caa6c4097d7ac93"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: SET
+          sql: "set search_path = foo"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 1
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 0
+          to: 1
+          reason: SEQUENCE
+      diagnostics:
+        - node: 0
+          script: bar
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed
+
+  - name: TargetWithStaleOtherScript
+    scripts:
+      - name: stale
+        input: |
+          select 1;
+        stale-prepend: "select 2; "
+      - name: bar
+        input: |
+          select 3;
+    targets: [bar]
+    expected:
+      valid: true
+      scripts:
+        - name: stale
+          text-version: 2
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          planned: false
+          target: false
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "0e63c224db336ad609f0f7038a55c7bb"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: "select 3"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+      edges: []
+      diagnostics: []
+
+  - name: TargetWithStaleProducer
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a;
+        stale-prepend: "select 2 as a; "
+      - name: bar
+        input: |
+          select * from :foo;
+    targets: [bar]
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 2
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: false
+          cacheable: false
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: foo
+          error: true
+          message: missing or stale script analysis
+
+  - name: TargetCacheability
+    scripts:
+      - name: reads
+        input: |
+          select 1 as a;
+      - name: bar
+        input: |
+          create table t as select * from :reads;
+          select a from t;
+      - name: baz
+        input: |
+          select * from :reads;
+    targets: [bar,baz]
+    expected:
+      valid: true
+      scripts:
+        - name: reads
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "46f3b5773c8ce050eb260c3d53ede63d"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "3cdbd944ce7dc71c8e75405d065048d4"
+          references: [reads]
+        - name: baz
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "277e9d328985104b16cb99d6443e28a0"
+          references: [reads]
+      entities:
+        - catalog-id: '256.65536.8589934592'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: CREATE_TABLE_AS
+          sql: |-
+            create table t as with reads as (
+            select 1 as a
+            )
+            select * from reads
+          produces-output: false
+          barrier: false
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: DDL
+        - id: 1
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: "select a from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: READ
+        - id: 2
+          script: baz
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with reads as (
+            select 1 as a
+            )
+            select * from reads
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.8589934592'
+        - from: 0
+          to: 1
+          reason: SEQUENCE
+      references:
+        - node: 0
+          script: bar
+          text: ":reads"
+          target: reads
+          cte: reads
+        - node: 2
+          script: baz
+          text: ":reads"
+          target: reads
+          cte: reads
+      diagnostics: []

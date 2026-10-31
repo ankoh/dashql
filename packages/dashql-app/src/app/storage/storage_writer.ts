@@ -2,8 +2,8 @@ import * as Immutable from 'immutable';
 
 import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { VariantKind } from '../../utils/variant.js';
-import type { StorageBackend, SessionData, SessionMetadata as StorageSessionMetadata, SessionSettings, SessionConnection, ConnectionEntry, ConnectionParams, SessionRegistryBackend, SessionScript } from './storage_backend.js';
-import { ExternalScriptChangeError, STORAGE_CACHE_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
+import type { StorageBackend, SessionData, SessionMetadata as StorageSessionMetadata, SessionConnection, ConnectionEntry, ConnectionParams, SessionRegistryBackend, SessionScript } from './storage_backend.js';
+import { ExternalScriptChangeError, STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
 import { SESSION_FORMAT_VERSION } from '../../migration/versions.js';
 import { sessionAttachments, withSessionScripts } from './session_files.js';
 
@@ -44,7 +44,6 @@ function sessionManifestEquals(a: SessionData, b: SessionData): boolean {
         formatVersion: s.formatVersion,
         sessionId: s.sessionId,
         name: s.name,
-        settings: s.settings,
         connections: s.connections,
         scripts: s.scripts,
         attachments: s.attachments,
@@ -64,8 +63,6 @@ export const WRITE_SESSION_PROPERTIES = Symbol('WRITE_SESSION_PROPERTIES');
 export interface SessionProperties {
     /// The session name, null if the user never named the session
     name: string | null;
-    /// The session settings
-    settings: SessionSettings;
 }
 /// A session that is written as a whole, its scripts first and its manifest last
 export interface SessionReplacement {
@@ -80,8 +77,6 @@ export interface SessionReplacement {
     connection: SessionConnection | null;
     /// The file name the session was created from, if any
     originalFileName: string | undefined;
-    /// The session settings
-    settings: SessionSettings;
 }
 export const REPLACE_SESSION_SCRIPTS = Symbol('REPLACE_SESSION_SCRIPTS');
 export const WRITE_CONNECTION_ENTRY = Symbol('WRITE_CONNECTION_ENTRY');
@@ -93,8 +88,6 @@ export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
 export const WRITE_SESSION_SCRIPTS = Symbol('WRITE_SESSION_SCRIPTS');
 export const REFRESH_SESSION_ATTACHMENTS = Symbol('REFRESH_SESSION_ATTACHMENTS');
-export const WRITE_QUERY_RESULT_CACHE = Symbol('WRITE_QUERY_RESULT_CACHE');
-export const TOUCH_QUERY_RESULT_CACHE = Symbol('TOUCH_QUERY_RESULT_CACHE');
 
 /// The script list of a session
 export interface SessionScriptList {
@@ -117,8 +110,6 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof RENAME_SCRIPT, [string, string, string]>
     | VariantKind<typeof WRITE_SESSION_SCRIPTS, [string, SessionScriptList]>
     | VariantKind<typeof REFRESH_SESSION_ATTACHMENTS, string>
-    | VariantKind<typeof WRITE_QUERY_RESULT_CACHE, [string, string, Uint8Array]>
-    | VariantKind<typeof TOUCH_QUERY_RESULT_CACHE, [string, string]>
     ;
 
 /// The key of a write. Writes with the same key coalesce, the latest task wins.
@@ -151,8 +142,6 @@ export const groupSessionScriptListWrites = (sessionId: string) => `${sessionId}
 /// The attachment list of a session
 export const groupSessionAttachmentListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:attachments`;
 /// A cached query result of a session and the marker of its last access
-export const groupQueryResultCacheWrites = (sessionId: string, hash: string) => `${sessionId}/${STORAGE_CACHE_FOLDER}/${hash}`;
-export const groupQueryResultCacheTouches = (sessionId: string, hash: string) => `${sessionId}/${STORAGE_CACHE_FOLDER}/${hash}:touch`;
 export const groupScriptWrites = (sessionId: string, fileName: string) =>
     `${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`;
 export const groupScriptDeletes = (sessionId: string, scriptName: string) =>
@@ -201,12 +190,11 @@ export type StorageWriteResult =
 
 /// The chain key of a write key, tasks with the same chain key are executed one after another.
 /// Session keys chain per session (`<sessionId>/…`), so mutations and their index rebuilds cannot
-/// overlap. The query result cache of a session chains on its own (`<sessionId>/cache`), a large
-/// result does not hold the script writes back. Global keys start with `@` and chain per entity
+/// overlap. Global keys start with `@` and chain per entity
 /// (`@manifest/…`, `@connections/<id>/…`).
 export function storageWriteChainKey(key: StorageWriteKey): string {
     const parts = key.split('/');
-    if ((key.startsWith('@connections/') || parts[1] === STORAGE_CACHE_FOLDER) && parts.length > 1) {
+    if (key.startsWith('@connections/') && parts.length > 1) {
         return `${parts[0]}/${parts[1]}`;
     }
     return parts[0];
@@ -721,7 +709,6 @@ export class StorageWriter {
                     scripts: [],
                     attachments: existingSession?.attachments ?? [],
                     metadata: sessionMetadata,
-                    ...(existingSession?.settings ? { settings: existingSession.settings } : {}),
                 }, existingSession?.scripts ?? [], [...connections, ...existingSession?.connections ?? []]);
 
                 // Skip the write if the persisted manifest already matches what we'd write.
@@ -737,9 +724,9 @@ export class StorageWriter {
                 break;
             }
             case WRITE_SESSION_PROPERTIES: {
-                const [sessionId, { name, settings }] = task.value;
+                const [sessionId, { name }] = task.value;
                 await this.patchSessionFile(key, sessionId, existing => {
-                    const next: SessionData = { ...existing, settings };
+                    const next: SessionData = { ...existing };
                     if (name) next.name = name;
                     else delete next.name;
                     return next;
@@ -797,7 +784,6 @@ export class StorageWriter {
                     scripts: [],
                     attachments: existingAttachments,
                     metadata: sessionMetadata,
-                    settings: session.settings,
                 }, existingScripts);
 
                 await this.saveSessionFile(sessionId, connData);
@@ -812,18 +798,6 @@ export class StorageWriter {
                 const sessionId = task.value;
                 const attachments = sessionAttachments((await this.backend.listDataFiles(sessionId)).map(file => file.name));
                 await this.patchSessionFile(key, sessionId, session => ({ ...session, attachments }));
-                break;
-            }
-            case WRITE_QUERY_RESULT_CACHE: {
-                const [sessionId, hash, bytes] = task.value;
-                const timeBefore = new Date();
-                await this.backend.saveQueryResultCache(sessionId, hash, bytes);
-                this.registerWrite(key, bytes.byteLength, new Date().getTime() - timeBefore.getTime());
-                break;
-            }
-            case TOUCH_QUERY_RESULT_CACHE: {
-                const [sessionId, hash] = task.value;
-                await this.backend.touchQueryResultCacheAccess(sessionId, hash);
                 break;
             }
             case WRITE_CONNECTION_ENTRY: {

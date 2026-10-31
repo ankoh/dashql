@@ -86,6 +86,8 @@ export interface ConnectionState {
     connectorInfo: ConnectorInfo;
     /// The name the user gave the connection, the label falls back to the connector without it
     name?: string;
+    /// Does the connection cache query results? Absent for the default of the connector.
+    cacheQueryResults?: boolean;
 
     /// The connection details
     details: ConnectionStateDetailsVariant;
@@ -211,6 +213,7 @@ export const SET_CONNECTION_DRAFT = Symbol('SET_CONNECTION_DRAFT');
 export const DISCARD_CONNECTION_DRAFT = Symbol('DISCARD_CONNECTION_DRAFT');
 export const COMMIT_CONNECTION_PARAMS = Symbol('COMMIT_CONNECTION_PARAMS');
 export const RENAME_CONNECTION = Symbol('RENAME_CONNECTION');
+export const SET_CONNECTION_QUERY_RESULT_CACHING = Symbol('SET_CONNECTION_QUERY_RESULT_CACHING');
 
 export type CatalogAction =
     | VariantKind<typeof SET_CATALOG_SCRIPT, core.DashQLScript>
@@ -237,6 +240,7 @@ export type ConnectionAction =
     | VariantKind<typeof DISCARD_CONNECTION_DRAFT, null>
     | VariantKind<typeof COMMIT_CONNECTION_PARAMS, ConnectionParams>
     | VariantKind<typeof RENAME_CONNECTION, string>
+    | VariantKind<typeof SET_CONNECTION_QUERY_RESULT_CACHING, boolean>
     | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof SWITCH_CONNECTOR_TYPE, ConnectorType>
@@ -247,6 +251,11 @@ export type ConnectionAction =
     | TrinoConnectorAction
     | SalesforceConnectionStateAction
     ;
+
+/// Does a connection cache query results? The connector decides unless the user chose.
+export function connectionCachesQueryResults(state: Pick<ConnectionState, 'cacheQueryResults' | 'connectorInfo'>): boolean {
+    return state.cacheQueryResults ?? state.connectorInfo.features.queryResultCaching;
+}
 
 export function reduceConnectionState(state: ConnectionState, action: ConnectionAction, logger: Logger): ConnectionState {
     switch (action.type) {
@@ -270,6 +279,11 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             const name = action.value.trim() || undefined;
             if (name === state.name) return state;
             return { ...state, name };
+        }
+        // The connection keeps the choice, also when it matches the default of the connector
+        case SET_CONNECTION_QUERY_RESULT_CACHING: {
+            if (state.cacheQueryResults === action.value) return state;
+            return { ...state, cacheQueryResults: action.value };
         }
         case DISCARD_CONNECTION_DRAFT: {
             if (state.connectionHealth === ConnectionHealth.CONNECTING) return state;

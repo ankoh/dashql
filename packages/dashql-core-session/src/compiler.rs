@@ -1,5 +1,6 @@
-//! The script compiler: turns a script into the SQL statements
-//! to execute and the compiled visualization of a terminal query with `@vis` tags.
+//! The script compiler: the terminal statement of a script, its SQL and the compiled visualization of a
+//! terminal query with `@vis` tags. Runs execute the plan of the planner, the compilation describes the
+//! terminal statement for the editor.
 
 use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
@@ -7,8 +8,8 @@ use dashql_core::formatter::Formatter;
 use dashql_core::script::Script;
 use crate::visualize;
 use dashql_buffers::execution::{
-    CompiledScriptStatementKind as CompiledKind, CompiledScriptStatementT, CompiledVisualizationT, ScriptCompilationErrorCode as ErrorCode,
-    ScriptCompilationErrorT, ScriptCompilationResultT, ScriptCompilationStatementKind as StatementKind,
+    CompiledVisualizationT, ScriptCompilationErrorCode as ErrorCode, ScriptCompilationErrorT, ScriptCompilationResultT,
+    ScriptCompilationStatementKind as StatementKind,
 };
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{AttributeKey, NodeType, StatementType, TextSpanT};
@@ -54,21 +55,41 @@ fn error(code: ErrorCode, message: &str, statement_id: u32, ast_node_id: u32, te
 
 /// The text of a span with the obfuscated literals replaced, so that it can be executed
 pub fn read_executable_text(scanned: &ScannedScript, span: TextSpan) -> String {
+    read_executable_text_with(scanned, span, &[])
+}
+
+/// The text of a span with the obfuscated literals replaced and with edits: ascending, disjoint text spans and
+/// their replacements, an empty span inserts its text. Edits within obfuscated literals are dropped.
+pub fn read_executable_text_with(scanned: &ScannedScript, span: TextSpan, edits: &[(TextSpan, String)]) -> String {
     let text = scanned.text.as_bytes();
-    let mut begin = span.offset as usize;
-    let end = (span.offset + span.length) as usize;
-    let mut out = Vec::with_capacity(span.length as usize);
+    let clamp = |offset: usize| offset.min(text.len());
+    let begin = clamp(span.offset as usize);
+    let end = clamp((span.offset + span.length) as usize);
+    // The replacements of the obfuscated literals and the edits, ordered by offset with insertions first
     let first = scanned.obfuscated_literals.partition_point(|l| (l.location.offset as usize) < begin);
-    for literal in &scanned.obfuscated_literals[first..] {
-        let literal_end = (literal.location.offset + literal.location.length) as usize;
-        if literal_end > end {
-            break;
+    let mut replacements: Vec<(usize, usize, &str)> = scanned.obfuscated_literals[first..]
+        .iter()
+        .take_while(|l| (l.location.offset + l.location.length) as usize <= end)
+        .map(|l| (l.location.offset as usize, (l.location.offset + l.location.length) as usize, l.replacement.as_str()))
+        .collect();
+    replacements.extend(
+        edits
+            .iter()
+            .filter(|(s, _)| s.offset as usize >= begin && s.end() as usize <= end)
+            .map(|(s, t)| (s.offset as usize, s.end() as usize, t.as_str())),
+    );
+    replacements.sort_by_key(|&(b, e, _)| (b, e));
+    let mut out = Vec::with_capacity(end - begin);
+    let mut at = begin;
+    for (b, e, replacement) in replacements {
+        if b < at {
+            continue;
         }
-        out.extend_from_slice(&text[begin.min(text.len())..(literal.location.offset as usize).min(text.len())]);
-        out.extend_from_slice(literal.replacement.as_bytes());
-        begin = literal_end;
+        out.extend_from_slice(&text[at..clamp(b)]);
+        out.extend_from_slice(replacement.as_bytes());
+        at = clamp(e);
     }
-    out.extend_from_slice(&text[begin.min(text.len())..end.min(text.len()).max(begin.min(text.len()))]);
+    out.extend_from_slice(&text[at.min(end)..end]);
     String::from_utf8_lossy(&out).into_owned()
 }
 
@@ -131,12 +152,9 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     result.terminal_statement_id = PROTO_NULL_U32;
     // The result always writes its strings
     result.sql = Some(String::new());
-    result.cache_signature = Some(String::new());
     let mut errors = Vec::new();
-    let mut statements: Vec<CompiledScriptStatementT> = Vec::new();
-    let finish = |mut result: ScriptCompilationResultT, errors, statements| {
+    let finish = |mut result: ScriptCompilationResultT, errors| {
         result.errors = Some(errors);
-        result.statements = Some(statements);
         result
     };
     if options.parse_if_outdated && script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version()) {
@@ -144,7 +162,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     }
     let Some(parsed) = script.parsed.clone() else {
         errors.push(error(ErrorCode::EMPTY_SCRIPT, "script is not parsed", PROTO_NULL_U32, PROTO_NULL_U32, None));
-        return finish(result, errors, statements);
+        return finish(result, errors);
     };
     let scanned = &parsed.scanned;
     for e in &scanned.errors {
@@ -155,22 +173,17 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         errors.push(error(ErrorCode::PARSER_ERROR, &e.message, PROTO_NULL_U32, PROTO_NULL_U32, Some(span)));
     }
     if !errors.is_empty() {
-        // Without a reliable AST, send the original text once and do not cache or split it
+        // Without a reliable AST, the original text is the one statement
         let sql = read_executable_text(scanned, TextSpan::new(0, scanned.text.len() as u32));
         if sql.bytes().any(|c| !is_c_space(c)) {
-            result.sql = Some(sql.clone());
+            result.sql = Some(sql);
             result.terminal_statement_id = 0;
-            let mut statement = CompiledScriptStatementT::default();
-            statement.statement_id = 0;
-            statement.kind = CompiledKind::OUTPUT;
-            statement.sql = Some(sql);
-            statements.push(statement);
         }
-        return finish(result, errors, statements);
+        return finish(result, errors);
     }
     if parsed.statements.is_empty() {
         errors.push(error(ErrorCode::EMPTY_SCRIPT, "script has no executable statement", PROTO_NULL_U32, PROTO_NULL_U32, None));
-        return finish(result, errors, statements);
+        return finish(result, errors);
     }
     let terminal_statement_id = parsed.statements.len() - 1;
     result.terminal_statement_id = terminal_statement_id as u32;
@@ -178,39 +191,11 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     let vis_tags = options.allow_extensions
         && parsed.statements[terminal_statement_id].statement_type == StatementType::SELECT
         && dashql_core::analyzer::has_vis_tags(&parsed, terminal_statement_id);
-    // A cache hit skips the whole script, so every statement must be a query, not only the terminal one
-    result.cacheable = parsed.statements.iter().all(|s| matches!(s.statement_type, StatementType::SELECT | StatementType::EXPLAIN));
-
     let descriptions = parsed.associate_descriptions();
-    for (statement_id, statement) in parsed.statements.iter().enumerate() {
-        let output = produces_output(&parsed, statement);
-        let span = descriptions[statement_id].statement_span;
-        if output && statement_id != terminal_statement_id {
-            errors.push(error(
-                ErrorCode::OUTPUT_STATEMENT_NOT_LAST,
-                "SELECT, EXPLAIN, INSERT RETURNING, or DELETE RETURNING must be the final statement",
-                statement_id as u32,
-                statement.root,
-                Some(span),
-            ));
-            continue;
-        }
-        let mut compiled = CompiledScriptStatementT::default();
-        compiled.statement_id = statement_id as u32;
-        compiled.statement_type = statement.statement_type;
-        compiled.kind = if output { CompiledKind::OUTPUT } else { CompiledKind::COMMAND };
-        compiled.sql = Some(read_executable_text(scanned, span));
-        statements.push(compiled);
-    }
-    if !errors.is_empty() {
-        return finish(result, errors, statements);
-    }
-    result.cache_signature = Some(dashql_core::signature::compute_signature(&parsed).unwrap_or_default());
-
+    let terminal_sql = read_executable_text(scanned, descriptions[terminal_statement_id].statement_span);
     if !vis_tags {
-        result.kind = StatementKind::QUERY;
-        result.sql = statements.last().and_then(|s| s.sql.clone()).or(Some(String::new()));
-        return finish(result, errors, statements);
+        result.sql = Some(terminal_sql);
+        return finish(result, errors);
     }
 
     result.kind = StatementKind::VISUALIZE;
@@ -220,21 +205,16 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         // A failed analysis leaves the visualization without metadata
         if let Err(e) = script.analyze(catalog, false) {
             errors.push(error(ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE, &e.message, terminal_statement_id as u32, terminal_root, None));
-            return finish(result, errors, statements);
+            return finish(result, errors);
         }
     }
 
     let mut formatter = Formatter::new(&parsed);
     formatter.replace_obfuscated_literals();
     let formatted = formatter.format_node_at(terminal_root as usize, config);
-    // A placeholder of a node that the formatter does not know would change the query, the source text runs instead
-    let sql = if formatter.is_fully_formatted() {
-        formatted
-    } else {
-        statements.last().and_then(|s| s.sql.clone()).unwrap_or_default()
-    };
+    // A placeholder of a node that the formatter does not know would change the query, the source text is used instead
+    let sql = if formatter.is_fully_formatted() { formatted } else { terminal_sql };
     if sql.is_empty() {
-        result.sql = Some(String::new());
         errors.push(error(
             ErrorCode::FORMAT_ERROR,
             "could not format the executable query",
@@ -242,9 +222,9 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
             terminal_root,
             None,
         ));
-        return finish(result, errors, statements);
+        return finish(result, errors);
     }
-    result.sql = Some(sql.clone());
+    result.sql = Some(sql);
 
     let analyzed = script.analyzed.clone().unwrap();
     let visualization = analyzed
@@ -255,16 +235,10 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     // Invalid `@vis` tags are analyzer warnings, the query still runs
     let Some(visualization) = visualization else {
         result.kind = StatementKind::QUERY;
-        return finish(result, errors, statements);
+        return finish(result, errors);
     };
     match compile_visualization(visualization, &analyzed) {
-        Ok(compiled) => {
-            let terminal = statements.last_mut().unwrap();
-            terminal.kind = CompiledKind::VISUALIZE;
-            terminal.sql = Some(sql);
-            terminal.visualization = Some(Box::new(compiled.clone()));
-            result.visualization = Some(Box::new(compiled));
-        }
+        Ok(compiled) => result.visualization = Some(Box::new(compiled)),
         Err(message) => {
             result.sql = Some(String::new());
             errors.push(error(
@@ -274,8 +248,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
                 terminal_root,
                 None,
             ));
-            return finish(result, errors, statements);
         }
     }
-    finish(result, errors, statements)
+    finish(result, errors)
 }

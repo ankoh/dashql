@@ -35,7 +35,6 @@ const dependencies = {
     scriptCard: {
         useQueryState: () => state.query,
         useCancelQuery: () => vi.fn(),
-        computeQueryCacheKeyForConnection: vi.fn(),
         ScriptEditor: (props: any) => {
             React.useEffect(() => props.setView?.({}), [props.setView]);
             return <div data-testid="editor" />;
@@ -58,8 +57,8 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 
 function baseProps() {
     return {
-        sessionId: 'session', connections: new Map(), cacheQueryResults: false,
-        storageReader: { backend: { hasCachedQueryResult: vi.fn() }, getSessionLocation: () => ({ type: 'opfs' }) },
+        sessionId: 'session', connections: new Map(), computeCacheKey: vi.fn(async () => null),
+        storageReader: { backend: {}, getSessionLocation: () => ({ type: 'opfs' }) },
         entries: [{ scriptId: 1, fileName: '01_alpha.sql' }, { scriptId: 2, fileName: '02_beta.sql' }],
         scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
         keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
@@ -411,7 +410,7 @@ describe('Session feed composer', () => {
             scriptRefs[fileName] = { scriptId: i + 1, fileName };
         });
         return {
-            sessionId: 'session', name: null, settings: { cacheQueryResults: false }, instance: {} as any, sessionMetadata: {} as any,
+            sessionId: 'session', name: null, instance: {} as any, sessionMetadata: {} as any,
             pendingConnection: { connectionId: 'database', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any },
             scripts, scriptRefs, scriptOrder: [...fileNames], scriptFocus: { fileName: fileNames[fileNames.length - 1] ?? '' }, semanticUserFocus: null,
         };

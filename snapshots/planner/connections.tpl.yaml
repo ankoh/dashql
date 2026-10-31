@@ -1,0 +1,93 @@
+planner-snapshots:
+  # Scripts of two connections without references: relations of different connections never conflict
+  - name: IndependentConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, amount int);
+    scripts:
+      - name: load
+        connection: local
+        input: |
+          insert into orders values (1, 10);
+      - name: remote
+        connection: trino
+        input: |
+          select * from orders;
+      - name: report
+        connection: local
+        input: |
+          select count(*) from orders;
+
+  # A barrier orders the statements of its own connection only
+  - name: BarrierPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: unresolved
+        connection: local
+        input: |
+          select * from missing;
+      - name: remote
+        connection: trino
+        input: |
+          select * from orders;
+      - name: after
+        connection: local
+        input: |
+          select 1;
+
+  # The catalogs of connections number their entries independently, a script of one connection with the id of a
+  # catalog entry of another connection leaves the tables of that entry in its namespace
+  - name: CatalogEntryIdsPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: first
+        connection: local
+        input: |
+          select 1;
+      - name: drops
+        connection: trino
+        input: |
+          drop table orders;
+
+  # DDL of one connection does not order the statements of another connection with the same relation name
+  - name: DdlPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: create_local
+        connection: local
+        input: |
+          create table t (a int);
+      - name: create_remote
+        connection: trino
+        input: |
+          create table t (a int);
+      - name: read_local
+        connection: local
+        input: |
+          select * from t;
+      - name: read_remote
+        connection: trino
+        input: |
+          select * from t;

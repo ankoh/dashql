@@ -423,8 +423,8 @@ persisting them needs the analyzer and scripts and lives in `dashql-core-session
    `-- Catalog changes of executed statements`. Parsing runs the script through a throwaway catalog and
    the normal derivation.
 
-`ScriptExecution` derives the change of every compiled statement up front and emits it with the
-statement's successful result.
+The planner derives the change of every planned statement (`ExecutionGraphNode.catalog_changes`), the
+query executor applies it once the statement succeeded.
 
 An applied change supersedes a running refresh of the connection (`invalidateCatalogBatch`): the
 refresh may have read the metadata before the statement ran, and publishing it would undo the change.
@@ -443,7 +443,7 @@ The catalog loader starts the refresh again.
 - All catalogs of a module share one `EntryIdSource`, so an entry id identifies a script across
   catalogs of the same module. The app runs three core modules (main thread, batch worker, shell),
   each with its own id space.
-- `SessionList` + `plan()` borrow every session and its catalog for one planning call.
+- `SessionPlanRequest` + `planSession()` borrow every session and every catalog for one planning call.
 
 **JS caches** (`packages/dashql-core-js/src/api.ts`)
 - `DashQLCatalog` caches a `flatten()` snapshot for the version of the catalog (`Catalog.version`).
@@ -478,12 +478,12 @@ analyze as in step 4. Passive rendering never analyzes. `CATALOG_DID_UPDATE` mar
 connection outdated; a native reload that adds, removes, moves or changes any script marks every script
 of the session outdated.
 
-**Planning and execution** (`session_execution.ts`) analyzes and publishes every script, re-analyzes
-them at the final catalog version, then calls `plan()`. The planner reads the published
-declarations and the inputs, and flags a relation whose published kind (`TableDeclaration.is_view`)
-differs from the input. Every node carries the catalog changes of its statement
-(`ExecutionGraphNode.catalog_changes`, derived like `ScriptExecution` derives them), and the query
-executor applies them to the connection once the statement succeeded (`QueryExecutionArgs.catalogChanges`).
+**Planning and execution** (`session_execution.ts`, and `script_run.ts` for a run of one script)
+analyzes and publishes every script, re-analyzes them at the final catalog version, then calls
+`planSession()`. The planner reads the published declarations and the inputs, and flags a relation whose
+published kind (`TableDeclaration.is_view`) differs from the input. Every node carries the catalog changes
+of its statement (`ExecutionGraphNode.catalog_changes`), and the query executor applies them to the
+connection once the statement succeeded (`QueryExecutionArgs.catalogChanges`).
 
 ## Invariants
 

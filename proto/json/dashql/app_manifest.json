@@ -55,6 +55,10 @@
           "type": "string",
           "format": "date-time",
           "description": "When the connection was created"
+        },
+        "cacheQueryResults": {
+          "type": "boolean",
+          "description": "Whether query results of the connection are cached and reused for unchanged scripts. Absent for the default of the connector."
         }
       },
       "required": ["id", "params"],

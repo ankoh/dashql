@@ -29,7 +29,6 @@ import {
     RENAME_SCRIPT,
     RENAME_SESSION,
     UPDATE_FROM_PROCESSOR,
-    UPDATE_SESSION_SETTINGS,
     REORDER_SCRIPTS,
     replaceSessionScriptsFromStorage,
     SET_SCRIPT_TEXT,
@@ -37,10 +36,8 @@ import {
     REJECT_PENDING_DIFF,
     replaceScriptSessionText,
 } from './session_scripts.js';
-import { compileSessionQuery } from './script_compilation.js';
 import { runSessionScript } from '../ui/rerun_query.js';
 import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './script_types.js';
-import { createDefaultSessionSettings, readSessionSettings } from './session_settings.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -84,7 +81,7 @@ function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql'], main: Scrip
     }
     return {
         instance: dql, sessionId: crypto.randomUUID(), name: 'Test', pendingConnection: names.length === 0 ? main : null,
-        settings: { cacheQueryResults: false }, sessionMetadata: createEmptyMetadata(), scripts, scriptRefs: refs, scriptOrder: [...names],
+        sessionMetadata: createEmptyMetadata(), scripts, scriptRefs: refs, scriptOrder: [...names],
         scriptFocus: { fileName: names[1] ?? names[0] ?? '' }, semanticUserFocus: null,
     };
 }
@@ -136,29 +133,6 @@ describe('V2 flat session script mutations', () => {
         expect(deleted.scriptSession.ptr.isNull()).toBe(true);
     });
 
-    it('persists settings together with the name and skips unchanged settings', () => {
-        const writer = new RecordingWriter(logger, new SessionTestBackend());
-        let current = state();
-        current = reduceSessionScripts(current, { type: UPDATE_SESSION_SETTINGS, value: { cacheQueryResults: true } }, writer, logger);
-        expect(current.settings).toEqual({ cacheQueryResults: true });
-        expect(writer.records[writer.records.length - 1]).toEqual({
-            type: WRITE_SESSION_PROPERTIES, value: [current.sessionId, { name: 'Test', settings: { cacheQueryResults: true } }],
-        });
-        const writes = writer.records.length;
-        expect(reduceSessionScripts(current, { type: UPDATE_SESSION_SETTINGS, value: { cacheQueryResults: true } }, writer, logger)).toBe(current);
-        expect(writer.records).toHaveLength(writes);
-    });
-
-    it.each([
-        [ConnectorType.HYPER, false],
-        [ConnectorType.TRINO, true],
-        [ConnectorType.SALESFORCE_DATA_CLOUD, true],
-    ])('defaults %s sessions to caching %s, also when settings were never persisted', (type, cacheQueryResults) => {
-        expect(createDefaultSessionSettings(CONNECTOR_INFOS[type])).toEqual({ cacheQueryResults });
-        expect(readSessionSettings(undefined, CONNECTOR_INFOS[type])).toEqual({ cacheQueryResults });
-        expect(readSessionSettings({ cacheQueryResults: !cacheQueryResults }, CONNECTOR_INFOS[type])).toEqual({ cacheQueryResults: !cacheQueryResults });
-    });
-
     it('persists editor text changes with an inactive connection', () => {
         const current = state(['1_alpha.sql']);
         const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
@@ -202,25 +176,11 @@ describe('V2 flat session script mutations', () => {
         await runSessionScript(current, current.scripts[scriptKey], executeQuery,
             modifySessionScripts, logger);
 
-        expect(executeQuery).toHaveBeenCalledWith(mainConnection(current).connectionId, expect.objectContaining({
+        // The plan of the script passes it through as one statement, its result is not cacheable
+        expect(executeQuery).toHaveBeenCalledExactlyOnceWith(mainConnection(current).connectionId, expect.objectContaining({
             query: sql,
             cacheable: false,
-            cacheSignature: '',
         }));
-    });
-
-    it('compiles visualizations in the session connector dialect', () => {
-        const current = state(['1_chart.sql']);
-        const scriptKey = current.scriptRefs['1_chart.sql'].scriptId;
-        const scriptData = current.scripts[scriptKey];
-        replaceScriptSessionText(scriptData.scriptSession,
-            '/* @vis vegalite {"mark": "bar"} */\nselect cast(payload as array(json)) from events');
-        scriptData.scriptSession.analyze();
-
-        const trino = compileSessionQuery(scriptData, ConnectorType.TRINO);
-        const hyper = compileSessionQuery(scriptData, ConnectorType.HYPER);
-        expect(trino.sql).toContain('cast(payload as array(json))');
-        expect(hyper.sql).toContain('cast(payload as json[])');
     });
 
     it('inserts at an indexed feed boundary and persists the new flat file', () => {

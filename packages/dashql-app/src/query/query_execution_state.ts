@@ -152,6 +152,38 @@ export interface QueryMetadata {
     /// The owner of the result, e.g. a script of a session. A succeeded query releases the result table of the
     /// earlier queries of its owner, the owner shows only its latest result.
     resultOwner?: string;
+    /// Where a statement of a plan of session scripts comes from
+    planned?: PlannedStatement;
+}
+
+/// A statement of a plan of session scripts (docs/design/planner_dependencies.md)
+export interface PlannedStatement {
+    /// A run of the whole session or of a script
+    run: 'session' | 'script';
+    /// The script that a run of a script runs
+    target: string | null;
+    /// The node of the plan
+    node: number;
+    /// The script of the statement
+    script: string;
+    /// The statement within the statements of the script in the plan, from 1
+    statement: number;
+    statements: number;
+    /// The type of the statement, e.g. SELECT
+    statementType: string;
+    /// Is the statement the result of its script?
+    result: boolean;
+    /// Is the statement the cached result of its script? The executor reads the file instead of running it.
+    cached: boolean;
+    /// The scripts whose queries the statement fuses as common table expressions
+    fused: string[];
+    /// The materialized results of the scripts of other connections that the statement scans, cached if the host
+    /// provides the file of an earlier run
+    scans: Array<{ script: string; path: string; cached: boolean }>;
+    /// The file that the result of the statement is written to, for statements of other connections
+    materializes: string | null;
+    /// The nodes the statement runs after and why
+    after: Array<{ node: number; reason: string }>;
 }
 
 export interface QueryExecutionState {

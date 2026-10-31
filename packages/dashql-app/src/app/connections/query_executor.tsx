@@ -11,8 +11,6 @@ import {
     QUERY_PROCESSING_RESULTS,
     QUERY_PROCESSED_RESULTS,
     QUERY_PROGRESS_UPDATED,
-    QUERY_STATEMENT_STARTED,
-    QUERY_STATEMENT_SUCCEEDED,
     QUERY_RECEIVED_ALL_BATCHES,
     QUERY_RECEIVED_BATCH,
     QueryExecutionResponseStream,
@@ -23,9 +21,7 @@ import { analyzeTable } from '../../compute/analyze_table.js';
 import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
 import { ResultComputations } from './result_computations.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { useStorage } from '../storage/storage_provider.js';
-import { createSessionQueryResultCache } from '../storage/session_query_result_cache.js';
-import type { CachedQueryResult } from '../../query/query_result_cache.js';
+import { QueryCacheMissError, type QueryResultCacheEntry } from '../../query/query_result_cache.js';
 import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { computeQueryResultCacheKey } from '../../query/query_result_cache_key.js';
@@ -36,8 +32,9 @@ import { LoggableException, stringifyError, type TracedLogger } from '../../plat
 import type { LogRecord } from '../../platform/logger/log_buffer.js';
 import { allocateQueryId, executeTrackedQuery } from '../../query/tracked_query_execution.js';
 import { consumeQueryResponseStream, executeConnectionQuery } from './query_execution.js';
-import { executeScriptQuery } from './script_query_execution.js';
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
+import { supportsParquet, type ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 
 const LOG_CTX = 'query_executor';
 
@@ -133,7 +130,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
     const computeDispatch = useComputationDispatch();
     const computeDb = useComputeDatabase();
-    const [storageReader, storageWriter] = useStorage();
+    const queryResultCache = useQueryResultCache();
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
     const resultComputations = React.useRef(new ResultComputations());
 
@@ -163,6 +160,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             autoStart: false,
             errorTarget: LOG_CTX,
             execute: async tracked => {
+                if (args.failure != null) throw args.failure;
                 const initialState = tracked.initialState;
                 let queryExecutionStartedAt: number | null = null;
                 let queryExecutionReported = false;
@@ -203,37 +201,47 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 traced.info("Executing query", {
                     sessionId,
                     "query": queryId.toString(),
+                    // Where a statement of a plan of session scripts comes from, e.g. `bar.sql 2/3 · fuses foo.sql`
+                    ...(args.metadata.planned != null ? { "planned": args.metadata.title ?? '', "node": args.metadata.planned.node.toString() } : {}),
                     "text": args.query
                 }, LOG_CTX);
 
+                // The cache of the app holds Parquet files that the compute database writes and reads
+                const resultCache = queryResultCache;
                 let cacheHash: string | null = null;
-                if (args.cacheable && args.cacheSignature) {
+                if (args.cacheable && args.cacheSignature && resultCache != null && supportsParquet(computeDb)) {
                     cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.cacheSignature);
                 }
-                const resultCache = cacheHash == null || querySessionId == null
-                    ? null
-                    : createSessionQueryResultCache(storageReader.backend, storageWriter, querySessionId);
+                const parquetDb = computeDb as ParquetDatabase;
 
-                // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
+                // Cache read path: on a hit, read the Parquet file and drive the state machine as if
                 // the result had just streamed in, skipping the backend entirely.
                 const serveFromCache = async (): Promise<arrow.Table | null> => {
-                    if (cacheHash == null) return null;
-                    let cached: CachedQueryResult | null = null;
+                    if (cacheHash == null || args.refreshCache) return null;
+                    let cached: QueryResultCacheEntry | null = null;
                     try {
-                        cached = await resultCache!.load(cacheHash);
+                        cached = await resultCache!.lookup(cacheHash);
                     } catch (e: any) {
                         traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                     }
                     // A user cancel during the async cache read behaves like any other cancel
                     initialState.cancellation.signal.throwIfAborted();
                     if (cached == null) return null;
-                    const table = arrow.tableFromIPC(cached.bytes);
+                    let table: arrow.Table;
+                    try {
+                        table = await resultCache!.readTable(parquetDb, cached.name);
+                    } catch (e: any) {
+                        // An unreadable entry is a miss
+                        traced.warn("Failed to read cached query result", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                        return null;
+                    }
+                    initialState.cancellation.signal.throwIfAborted();
                     // Record the access so eviction sees this as a recently-used (LRU) entry. This
                     // bumps only the empty `.last_access` marker, never the payload, so it is cheap and
                     // leaves the payload's "cached at" write time intact. Best-effort: a failure here
                     // must never surface into the query path (it only means the entry looks colder to
                     // eviction than it is).
-                    void resultCache!.touch(cacheHash).catch((e: any) => {
+                    void resultCache!.touch(cached.name).catch((e: any) => {
                         traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                     });
                     traced.info("Served query from cache", {
@@ -284,10 +292,17 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 // a quota/permission failure just logs.
                 const storeInCache = (table: arrow.Table | null) => {
                     if (cacheHash == null || table == null) return;
-                    const bytes = arrow.tableToIPC(table, 'stream');
-                    void resultCache!.store(cacheHash, bytes).then(written => {
-                        // A write that was discarded, e.g. because the session was deleted, failed or was replaced
-                        if (!written) return;
+                    // Hyper writes the file into the mounted cache, the new file stays pinned until it is complete
+                    const write = async () => {
+                        const name = resultCache!.newFileName(cacheHash!);
+                        const release = await resultCache!.pin(name);
+                        try {
+                            await resultCache!.writeTable(parquetDb, table, name);
+                        } finally {
+                            await release();
+                        }
+                    };
+                    void write().then(() => {
                         // The write landed: record the key (but not servedFromCache — this run hit the
                         // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
                         // time is the write we just made; a later hit reads the precise mtime from disk.
@@ -310,97 +325,6 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     }
                 };
 
-                if (args.scriptExecution != null) {
-                    try {
-                        // executeScriptQuery normally owns the cleanup of the execution, a hit or a failed
-                        // cache read skips it.
-                        let cached: arrow.Table | null;
-                        try {
-                            cached = await serveFromCache();
-                        } catch (error) {
-                            args.scriptExecution.destroy();
-                            throw error;
-                        }
-                        if (cached != null) {
-                            args.scriptExecution.destroy();
-                            reportResultsReady();
-                            await analyzeResults(cached);
-                            return cached;
-                        }
-                        startQueryExecution();
-                        const table = await executeScriptQuery({
-                            execution: args.scriptExecution,
-                            queryArgs: args,
-                            abortSignal: initialState.cancellation.signal,
-                            logger: traced,
-                            sessionId,
-                            queryId,
-                            logTarget: LOG_CTX,
-                            callbacks: {
-                                onStatementStarted: (index, statementCount) => queryTracker.dispatch({
-                                    type: QUERY_STATEMENT_STARTED,
-                                    value: [queryId, index, statementCount],
-                                }),
-                                onStatementSucceeded: (index, statementCount) => queryTracker.dispatch({
-                                    type: QUERY_STATEMENT_SUCCEEDED,
-                                    value: [queryId, index, statementCount],
-                                }),
-                                onCatalogChanges: applyCatalogChanges,
-                                setResultStream: stream => {
-                                    runtime.resultStream = stream;
-                                },
-                                executeStatement: async (statementArgs, producesOutput) => {
-                                    tracked.sending();
-                                    const stream = await executeConnectionQuery(
-                                        conn.details,
-                                        statementArgs,
-                                        initialState.cancellation.signal,
-                                    );
-                                    runtime.resultStream = stream;
-                                    tracked.running(stream);
-                                    const statementTable = await consumeQueryResponseStream({
-                                        stream,
-                                        abort: initialState.cancellation.signal,
-                                        publishResults: producesOutput,
-                                        onProgress: progress => queryTracker.dispatch({
-                                            type: QUERY_PROGRESS_UPDATED,
-                                            value: [queryId, progress],
-                                        }),
-                                        onBatch: (batch, batchStream) => queryTracker.dispatch({
-                                            type: QUERY_RECEIVED_BATCH,
-                                            value: [queryId, batch, batchStream.getMetrics()],
-                                        }),
-                                    });
-                                    if (statementTable != null) {
-                                        queryTracker.dispatch({
-                                            type: QUERY_RECEIVED_ALL_BATCHES,
-                                            value: [queryId, statementTable, stream.getMetadata(), stream.getMetrics()],
-                                        });
-                                    }
-                                    return statementTable;
-                                },
-                            },
-                        });
-                        reportQueryExecution();
-                        reportResultsReady();
-                        if (table != null) await analyzeResults(table);
-                        storeInCache(table);
-                        return table;
-                    } catch (error: any) {
-                        const cancelled = initialState.cancellation.signal.aborted || error?.name === 'AbortError' || error?.message === 'AbortError';
-                        const metrics = runtime.resultStream?.getMetrics() ?? null;
-                        if (cancelled) tracked.cancel(error, metrics);
-                        else {
-                            logQueryFailure(traced, error, queryId, sessionId);
-                            tracked.fail(error, metrics);
-                        }
-                        if (args.throwOnError) throw error;
-                        return null;
-                    } finally {
-                        runtime.resultStream = null;
-                    }
-                }
-
                 // Compute the cache key up front for cacheable queries. This is best-effort: if the
                 // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
                 // caching and execute normally. Never let a cache concern surface into the query path.
@@ -413,6 +337,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 try {
                     table = await serveFromCache();
                     servedFromCache = table != null;
+                    if (!servedFromCache && args.cacheOnly) throw new QueryCacheMissError();
 
                     if (!servedFromCache) {
                         tracked.sending();
@@ -534,7 +459,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         });
         return execution;
 
-    }, [computeDb, connStore, connDispatch, computeDispatch, logger, storageReader, storageWriter]);
+    }, [computeDb, connStore, connDispatch, computeDispatch, logger, queryResultCache]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {

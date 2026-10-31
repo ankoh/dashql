@@ -14,15 +14,51 @@ export type DashQLBindings = Pick<
     | 'Script'
     | 'ScriptBatch'
     | 'ScriptSession'
-    | 'ScriptExecution'
-    | 'SessionList'
     | 'PlanViewModel'
-    | 'plan'
+    | 'SessionPlanRequest'
+    | 'planSession'
     | 'processBatch'
     | 'appendCatalogChangesSql'
     | 'qualifyCatalogChanges'
     | 'installPanicHook'
 >;
+
+/// A connection of a session plan
+export interface SessionPlanConnection {
+    /// The connection id of the host
+    id: string;
+    /// Is the connection the embedded Hyper, which scans the materialized results of other connections?
+    local: boolean;
+    /// The catalog of the connection, its scripts are analyzed with it
+    catalog: DashQLCatalog;
+}
+
+/// A script of a session plan
+export interface SessionPlanScript {
+    /// The script name, `foo` for `foo.sql`, that table parameters reference
+    name: string;
+    /// The connection index
+    connection: number;
+    /// The script session
+    session: DashQLScriptSession;
+    /// The name of the Parquet file of a materialized result of the script below the mount prefix, `s<index>.parquet`
+    /// if absent
+    materializationFile?: string;
+}
+
+/// A request to plan the scripts of a session
+export interface SessionPlanRequest {
+    /// The connections
+    connections: SessionPlanConnection[];
+    /// The scripts in session order
+    scripts: SessionPlanScript[];
+    /// The target scripts, the plan covers the whole session without them
+    targets?: number[];
+    /// The scripts whose materialized results the host provides
+    materialized?: number[];
+    /// The directory the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
+    mountPrefix?: string;
+}
 
 /// A listener for panics of the core
 export type CorePanicListener = (message: string) => void;
@@ -87,8 +123,6 @@ const SCRIPT_SESSION_TYPE = Symbol('SCRIPT_SESSION_TYPE');
 const EDITOR_UPDATE_TYPE = Symbol('EDITOR_UPDATE_TYPE');
 const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
-const SCRIPT_EXECUTION_TYPE = Symbol('SCRIPT_EXECUTION_TYPE');
-const SCRIPT_EXECUTION_UPDATE_TYPE = Symbol('SCRIPT_EXECUTION_UPDATE_TYPE');
 const EXECUTION_GRAPH_TYPE = Symbol('EXECUTION_GRAPH_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
@@ -217,28 +251,34 @@ export class DashQL {
         return new DashQLScriptSession(new Ptr(SCRIPT_SESSION_TYPE, this, native));
     }
 
-    /// Plan current analysis in script order; callers prepare and publish script sessions explicitly.
-    public plan(sessions: readonly DashQLScriptSession[]): FlatBufferPtr<buffers.execution.ExecutionGraph> {
-        if (!Array.isArray(sessions)) {
-            throw new TypeError('planner sessions must be an array');
-        }
-        const natives = Array.from(sessions, session => {
-            if (!(session instanceof DashQLScriptSession)) {
-                throw new TypeError('planner input must be a DashQLScriptSession');
-            }
-            if (session.ptr.api !== this) {
-                throw new Error('planner session belongs to a different DashQL instance');
-            }
-            return session.ptr.assertNotNull();
-        });
-        const list = new this.bindings.SessionList();
+    /// Plan the scripts of a session across connections. The scripts reference each other by name with table
+    /// parameters (`:foo`), see docs/design/planner.md. Without targets, the plan covers the whole session.
+    public planSession(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.ExecutionGraph> {
+        const native = new this.bindings.SessionPlanRequest();
         try {
-            for (const native of natives) {
-                list.add(native);
+            for (const connection of request.connections) {
+                if (connection.catalog.ptr.api !== this) {
+                    throw new Error('planner catalog belongs to a different DashQL instance');
+                }
+                native.addConnection(connection.id, connection.local, connection.catalog.ptr.assertNotNull());
             }
-            return new FlatBufferPtr(EXECUTION_GRAPH_TYPE, this, this.bindings.plan(list), () => new buffers.execution.ExecutionGraph());
+            for (const script of request.scripts) {
+                if (!(script.session instanceof DashQLScriptSession)) {
+                    throw new TypeError('planner script must be a DashQLScriptSession');
+                }
+                if (script.session.ptr.api !== this) {
+                    throw new Error('planner session belongs to a different DashQL instance');
+                }
+                native.addScript(script.name, script.connection, script.session.ptr.assertNotNull(), script.materializationFile);
+            }
+            if (request.targets != null) {
+                native.setTargets(Uint32Array.from(request.targets));
+            }
+            native.setMaterialized(Uint32Array.from(request.materialized ?? []));
+            native.setMountPrefix(request.mountPrefix ?? '');
+            return new FlatBufferPtr(EXECUTION_GRAPH_TYPE, this, this.bindings.planSession(native), () => new buffers.execution.ExecutionGraph());
         } finally {
-            list.free();
+            native.free();
         }
     }
 
@@ -357,7 +397,6 @@ export class ParserError extends Error {
     }
 }
 
-type NativeScriptExecution = glue.ScriptExecution;
 type NativeScriptSession = glue.ScriptSession;
 type NativeScript = glue.Script;
 type NativeCatalog = glue.Catalog;
@@ -369,41 +408,6 @@ export interface CatalogNameDefaults {
     databaseName: string;
     /// The schema of relations without a schema name
     schemaName: string;
-}
-
-export class DashQLScriptExecution {
-    public readonly ptr: Ptr<typeof SCRIPT_EXECUTION_TYPE, NativeScriptExecution>;
-
-    public constructor(ptr: Ptr<typeof SCRIPT_EXECUTION_TYPE, NativeScriptExecution>) {
-        this.ptr = ptr;
-    }
-
-    public destroy(): void {
-        this.ptr.destroy();
-    }
-
-    public start(): buffers.execution.ScriptExecutionUpdateT {
-        return this.readUpdate(this.ptr.assertNotNull().start());
-    }
-
-    public resume(statementResult: buffers.execution.StatementResultT): buffers.execution.ScriptExecutionUpdateT {
-        const builder = new flatbuffers.Builder();
-        builder.finish(statementResult.pack(builder));
-        return this.readUpdate(this.ptr.assertNotNull().resume(builder.asUint8Array()));
-    }
-
-    public cancel(): buffers.execution.ScriptExecutionUpdateT {
-        return this.readUpdate(this.ptr.assertNotNull().cancel());
-    }
-
-    private readUpdate(bytes: Uint8Array): buffers.execution.ScriptExecutionUpdateT {
-        return new FlatBufferPtr<buffers.execution.ScriptExecutionUpdate, buffers.execution.ScriptExecutionUpdateT>(
-            SCRIPT_EXECUTION_UPDATE_TYPE,
-            this.ptr.api,
-            bytes,
-            () => new buffers.execution.ScriptExecutionUpdate(),
-        ).unpack();
-    }
 }
 
 export class DashQLScriptSession {
@@ -420,25 +424,6 @@ export class DashQLScriptSession {
 
     public destroy(): void {
         this.ptr.destroy();
-    }
-
-    public startExecution(
-        formattingConfig: buffers.formatting.FormattingConfigT = new buffers.formatting.FormattingConfigT(
-            buffers.formatting.FormattingDialect.HYPER,
-            buffers.formatting.FormattingMode.INLINE,
-            120,
-            2,
-            false,
-        ),
-    ): DashQLScriptExecution {
-        const native = this.ptr.assertNotNull().startExecution(
-            formattingConfig.dialect,
-            formattingConfig.mode,
-            formattingConfig.maxWidth,
-            formattingConfig.indentationWidth,
-            formattingConfig.debugMode,
-        );
-        return new DashQLScriptExecution(new Ptr(SCRIPT_EXECUTION_TYPE, this.ptr.api, native));
     }
 
     public getCatalogEntryId(): number {

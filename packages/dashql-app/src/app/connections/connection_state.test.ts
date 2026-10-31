@@ -8,7 +8,9 @@ import {
     RESET_CONNECTION,
     reduceConnectionState,
     RENAME_CONNECTION,
+    SET_CONNECTION_QUERY_RESULT_CACHING,
     UPDATE_CATALOG,
+    connectionCachesQueryResults,
     type ConnectionState,
 } from './connection_state.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
@@ -193,5 +195,26 @@ describe('connection names', () => {
         expect(reduceConnectionState(named, { type: RENAME_CONNECTION, value: 'Production' }, logger)).toBe(named);
         expect(reduceConnectionState(named, { type: RENAME_CONNECTION, value: '   ' }, logger).name).toBeUndefined();
         expect(reduceConnectionState(unnamed, { type: RENAME_CONNECTION, value: '' }, logger)).toBe(unnamed);
+    });
+
+    it.each([
+        [ConnectorType.HYPER, false],
+        [ConnectorType.TRINO, true],
+        [ConnectorType.SALESFORCE_DATA_CLOUD, true],
+    ])('caches query results of %s connections by default: %s', (type, caching) => {
+        const connection = createConnectionState(dql, CONNECTOR_INFOS[type], createConnectionStateDetails(type));
+        expect(connection.cacheQueryResults).toBeUndefined();
+        expect(connectionCachesQueryResults(connection)).toBe(caching);
+    });
+
+    it('keeps the choice whether a connection caches query results', () => {
+        const logger = new TestLogger();
+        const defaults = state();
+        const off = reduceConnectionState(defaults, { type: SET_CONNECTION_QUERY_RESULT_CACHING, value: false }, logger);
+        // The choice is kept also when it matches the default of the connector
+        expect(off.cacheQueryResults).toBe(false);
+        expect(reduceConnectionState(off, { type: SET_CONNECTION_QUERY_RESULT_CACHING, value: false }, logger)).toBe(off);
+        const on = reduceConnectionState(off, { type: SET_CONNECTION_QUERY_RESULT_CACHING, value: true }, logger);
+        expect(connectionCachesQueryResults(on)).toBe(true);
     });
 });

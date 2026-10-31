@@ -2,7 +2,6 @@ import type {
     AppSettings,
     ConnectionEntry,
     DataFile,
-    CachedQueryResult,
     SessionData,
     SessionEntry,
     ScriptData,
@@ -10,7 +9,6 @@ import type {
     StorageManifest,
 } from './storage_backend.js';
 import { StorageBackendType, validateDataFileName } from './storage_backend.js';
-import type { CacheFileStat } from './query_result_cache_eviction.js';
 import { SESSION_FORMAT_VERSION } from '../../migration/versions.js';
 
 export class SessionTestBackend implements StorageBackend {
@@ -102,7 +100,6 @@ export class SessionTestBackend implements StorageBackend {
         scripts.delete(oldScriptName);
         scripts.set(newScriptName, sql);
     }
-    async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
     async listDataFiles(sessionId: string): Promise<DataFile[]> {
         return [...(this.data.get(sessionId) ?? new Map<string, Uint8Array>())]
             .map(([name, bytes]) => ({ name, sizeBytes: bytes.byteLength }))
@@ -133,11 +130,6 @@ export class SessionTestBackend implements StorageBackend {
         data.set(newName, data.get(oldName)!);
         data.delete(oldName);
     }
-    async touchQueryResultCacheAccess(): Promise<void> {}
-    async saveQueryResultCache(): Promise<void> {}
-    async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
-    async hasCachedQueryResult(): Promise<boolean> { return false; }
-    async deleteQueryResultCache(): Promise<void> {}
 }
 
 export const TEST_SESSION_ID = '11111111-2222-4333-8444-555555555555';

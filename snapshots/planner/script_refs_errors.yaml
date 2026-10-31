@@ -1,0 +1,446 @@
+planner-snapshots:
+
+  - name: UnknownScript
+    scripts:
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: false
+      scripts:
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: 'unknown script :foo'
+
+  - name: AmbiguousScriptName
+    scripts:
+      - name: Foo
+        input: |
+          select 1 as a;
+      - name: FOO
+        input: |
+          select 2 as a;
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: false
+      scripts:
+        - name: Foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "46f3b5773c8ce050eb260c3d53ede63d"
+        - name: FOO
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "5ac809a6c0bc9c301a3b25af08a4e71d"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: 'the script reference :foo matches several scripts'
+
+  - name: PositionalTableParameter
+    scripts:
+      - name: bar
+        input: |
+          select * from $1;
+          select * from ?;
+    expected:
+      valid: false
+      scripts:
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "a292702009186822ac310747e8aa63ce"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: "$1"
+          error: true
+          message: the positional table parameter $1 cannot reference a script
+        - script: bar
+          text: "?"
+          error: true
+          message: the positional table parameter ? cannot reference a script
+
+  - name: WriteTarget
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a;
+      - name: bar
+        input: |
+          insert into :foo values (1);
+          delete from :foo;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "46f3b5773c8ce050eb260c3d53ede63d"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "63cee28adda741a8673001c72cce98a4"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: 'the script reference :foo cannot be written'
+        - script: bar
+          text: ":foo"
+          error: true
+          message: 'the script reference :foo cannot be written'
+
+  - name: ReferenceOutsideOfQuery
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: foo
+        input: |
+          select 1 as id;
+      - name: bar
+        input: |
+          delete from orders using :foo f where f.id = orders.id;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "1eb30f7c26bd60a8b4d4c790560f2a31"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "4ac4ab45416c9a12dfc6404a8872acb7"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: a script reference must be part of a query
+
+  - name: ProducerWithoutQuery
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: inserts
+        input: |
+          insert into orders values (1);
+      - name: creates
+        input: |
+          create table t (a int);
+      - name: explains
+        input: |
+          explain select 1;
+      - name: empty
+        input: |
+          -- nothing
+      - name: bar
+        input: |
+          select * from :inserts, :creates, :explains, :empty;
+    expected:
+      valid: false
+      scripts:
+        - name: inserts
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "c7d3f676ec5dd94fa5e2eeabeb672cd8"
+        - name: creates
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "9b8f55ee6edc5cf21b08b8d7f51d46bb"
+        - name: explains
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "c05c4b46651fc195a9dbabbbdce20b3a"
+        - name: empty
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          signature: "69530b77f085140f928f0dc3244f228f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f8e2a1541f02cb33ffc97ee99e57cf40"
+          references: [inserts,creates,explains,empty]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":inserts"
+          error: true
+          message: inserts.sql is no single SELECT that bar.sql could read
+        - script: bar
+          text: ":creates"
+          error: true
+          message: creates.sql is no single SELECT that bar.sql could read
+        - script: bar
+          text: ":explains"
+          error: true
+          message: explains.sql is no single SELECT that bar.sql could read
+        - script: bar
+          text: ":empty"
+          error: true
+          message: empty.sql is no single SELECT that bar.sql could read
+
+  - name: ProducerWithSyntaxErrors
+    scripts:
+      - name: foo
+        input: |
+          select from where;
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: foo
+          error: true
+          message: 'parser: expected a table reference after FROM'
+        - script: foo
+          error: true
+          message: 'unsupported SQL: parser produced no statements'
+
+  - name: SelfReference
+    scripts:
+      - name: foo
+        input: |
+          select * from :foo;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: foo
+          text: ":foo"
+          error: true
+          message: 'cyclic script reference: foo.sql -> foo.sql'
+
+  - name: Cycles
+    scripts:
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+      - name: c
+        input: |
+          select * from :d;
+      - name: d
+        input: |
+          select * from :e;
+      - name: e
+        input: |
+          select * from :c;
+    expected:
+      valid: false
+      scripts:
+        - name: a
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "fe235a7a8b58c2a3883e48f928d53b58"
+          references: [b]
+        - name: b
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "53cb8d838665dfc222f33fbc869bf813"
+          references: [a]
+        - name: c
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "cddfd669199bf7db6dc79d7f0eb1a0d0"
+          references: [d]
+        - name: d
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "625567cadd99548b4029cb40b6c851c0"
+          references: [e]
+        - name: e
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "0460f47e2de906f4351e2b3df35bca21"
+          references: [c]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: b
+          text: ":a"
+          error: true
+          message: 'cyclic script reference: a.sql -> b.sql -> a.sql'
+        - script: e
+          text: ":c"
+          error: true
+          message: 'cyclic script reference: c.sql -> d.sql -> e.sql -> c.sql'
+
+  - name: ProducerOfSeveralStatements
+    scripts:
+      - name: foo
+        input: |
+          create table t (a int);
+          select a from t;
+      - name: two
+        input: |
+          select 1 as a;
+          select 2 as a;
+      - name: bar
+        input: |
+          select * from :foo, :two;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "b93c2a9cf30701ad01f6c7d9a7000b4f"
+        - name: two
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "2a04468b43b47a3913f4e29e9ee713e7"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "941369e7141a307a6f67de9ef3e5ba97"
+          references: [foo,two]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: foo.sql is no single SELECT that bar.sql could read
+        - script: bar
+          text: ":two"
+          error: true
+          message: two.sql is no single SELECT that bar.sql could read

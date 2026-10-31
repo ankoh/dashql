@@ -5,22 +5,56 @@ consumes an ordered set of analyzed scripts without analyzing, publishing, or
 modifying them. Session order, followed by statement order, defines the baseline
 semantics; independent statements do not acquire source-order edges.
 
+Scripts run on connections, and every connection has its own catalog. Relations of
+different connections never conflict and barriers order the statements of their own
+connection only. A script references the result of another script with a table
+parameter, `select * from :foo` reads the single SELECT of `foo.sql`; the planner
+fuses or materializes such references (see Script References and
+`script_references.md`).
+
+`planner_dependencies.md` describes the nodes and edges precisely and what a run of the session and a run of one
+script execute.
+
 ## Preparation and API
 
-All inputs must share a catalog and have current parsing and analysis for both
-their text and the catalog revision. Publish participating definitions before
+The scripts of a connection share its catalog, and every planned script must have current parsing and
+analysis for both its text and the catalog revision. Publish participating definitions before
 refreshing every input's analysis. Publishing another script can invalidate an
 earlier analysis, even if that script's text did not change: a publish that changes
 declarations bumps the catalog revision, one with unchanged declarations does not
 (`docs/design/core_analysis_catalog.md`).
 
-The native API is `planner::plan(&[PlannerInput])` (`packages/dashql-core-session/src/planner.rs`). Each
-input borrows a live `Script` and the `Catalog` it was analyzed with; there is no caller-supplied
-revision. Inputs with different catalogs or duplicate scripts invalidate the plan.
+The native API is `planner::plan_session(&SessionPlanRequest)` (`packages/dashql-core-session/src/planner.rs`).
+A request lists the connections (`PlannerConnection`: the host id, the kind and the catalog), the scripts in
+session order (`PlannerScript`: the live `Script`, its name and its connection index), the scope, the scripts
+whose materialized results the host provides, and the directory the host mounts materialized results in
+(`mount_prefix`, e.g. `/mnt/external/cache`). A script may name the file of its materialized result below the mount
+prefix (`PlannerScript.materialization_file`, e.g. the cache entry of the result), `s<index>.parquet` otherwise. There is no caller-supplied revision. A script
+analyzed with another catalog than the one of its connection, duplicate scripts or script names, connections
+that share a catalog and unknown indexes invalidate the plan. The connection kind comes from the host: LOCAL
+is the embedded Hyper, every other connection is REMOTE.
+
+The scope is the whole session (`PlanScope::Session`) or target scripts (`PlanScope::Targets`). A plan of
+targets includes every statement of the targets and the queries of the scripts that they materialize, unless the
+host provides the materialized result. The targets, the scripts they reference and the scripts those reference must
+have a current analysis, `ExecutionGraphScript.planned` marks them. A plan of targets runs like a
+single script: statements keep their SQL whatever their kind, the statements of a script are chained with
+SEQUENCE edges, a target that does not parse becomes one barrier node with its text as written, and the
+diagnostics of statements are warnings. Diagnostics of script references, stale analysis, visualizations that fail
+to compile and a referenced script that runs later stay errors.
+
+Every run in the app executes a plan: a run of the session plans every script, a run of one script plans
+that script as the target (`script_references.md`). Scripts without names can't be referenced, so a plan of
+scripts without names is a plan of their statement dependencies.
 The core-js API is:
 
 ```typescript
-const buffer = dashql.plan(orderedSessions);
+const buffer = dashql.planSession({
+    connections: [{ id: 'trino', local: false, catalog }],
+    scripts: [{ name: 'foo', connection: 0, session }],
+    targets: [0],
+    mountPrefix: '/mnt/external/cache',
+});
 try {
     const graph = buffer.read().unpack();
     if (!graph.valid) {
@@ -35,7 +69,13 @@ try {
 
 Planning captures executable SQL, script IDs, text versions, catalog revisions, catalog
 entities, unresolved references, accesses, edges, and diagnostics in
-`execution_graph.fbs`. The authoritative native `Script::text_version()` is the
+`execution_graph.fbs`. The graph also carries the connections, the materializations and the script
+references. `graph.scripts[i]` is the `i`-th script of the request; it records the name, the connection, the
+cache signature of its AST, whether its result can be cached (its statements are queries and the scripts it
+references can be cached), its terminal statement and the scripts it references. A node records its
+connection, whether it is the terminal output of its script (`script_result`), the materialization its result
+is written to, and the materializations to mount before it runs (`inputs`). Diagnostics name their script, the
+text they are about (e.g. a table parameter) and whether they invalidate the plan (`error`). The authoritative native `Script::text_version()` is the
 single shared 64-bit text version; `ScriptSession::text_version()` derives it
 from the script rather than maintaining an independent counter. Script metadata
 records `text_version` directly from the live script, `analyzed_text_version` from
@@ -89,6 +129,36 @@ for (const node of graph.nodes) {
 The graph owns its SQL and metadata, not execution state, and does not imply that
 database objects declared in the catalog already exist in the backend.
 
+## Script References
+
+A table parameter `:foo` that is the table of a table reference references the script named `foo`, an exact
+name or the only name that differs in case. The connections decide what it becomes:
+
+| Statement | Referenced script | Reference |
+|---|---|---|
+| same connection | | fused: `with foo as (<query of foo>)` |
+| LOCAL connection | other connection | materialized: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (select * from external('<path>', format => 'parquet'))` |
+| REMOTE connection | other connection | error |
+
+A referenced script is a single SELECT, so a reference never runs commands of the referenced script. The common
+table expressions of a statement are flattened: the references of a fused query are resolved in
+the context of the statement, every script appears once after the scripts it references. They go into the
+outermost SELECT around the references, inside the parentheses of a subquery, and before the common table
+expressions the SELECT already has, also under WITH RECURSIVE: at the statement start, before the query of
+INSERT, CREATE TABLE AS and EXPLAIN, and into the subquery of a DELETE. The CTE is named after the script and
+quoted where needed (`"brave_otter-2"`); a name that a relation or common table expression of the statement or
+of a fused query uses gets a suffix (`foo_2`), and the reference keeps the script name as alias
+(`foo_2 as foo`) unless the statement reads a relation of that name. A fused statement reads the relations of the fused queries, so it is ordered after their
+writers.
+
+Errors, each with the text of the parameter except the one of a script that runs later: an unknown or ambiguous script name, a positional table
+parameter, a script as the target of INSERT or DELETE, a reference outside of a query (`delete ... using
+:foo`), a referenced script that is no single SELECT or does not parse ("foo.sql is no single SELECT that bar.sql
+could read"), a cycle, a REMOTE statement that reads another connection, a view over a materialized result, also
+through a fused query, a fused query that reads a relation that the statement defines as common table expression
+where the query goes (a recursive WITH, the WITH of an INSERT around it), and a materialized script that runs later in the session than the statement that scans it ("move foo.sql above bar.sql").
+A fused script may be below its consumer.
+
 ## Conflicts
 
 For each qualified relation name, the planner remembers its last writer and the
@@ -114,8 +184,8 @@ ahead of session order. CTE bindings are not catalog entities in this graph.
 
 The current supported statement families are SELECT, INSERT, DELETE, EXPLAIN,
 CREATE TABLE, CREATE TABLE AS, CREATE VIEW, SELECT INTO, DROP TABLE, and DROP
-VIEW. Multiple outputs within a script are supported independently of
-the sequential script compiler's terminal-output policy. INSERT and DELETE
+VIEW. A script may have several outputs, the last output of a script is its
+result. INSERT and DELETE
 produce output only when their root DML node has RETURNING. Nested DML RETURNING
 never overrides the output classification of an enclosing EXPLAIN.
 
@@ -166,7 +236,17 @@ concurrent operations.
 
 Planner snapshots contain ordered named scripts, optional external catalog SQL,
 and expected native text versions, catalog revisions, entities, unresolved
-references, nodes, accesses, edges, and diagnostics. Node identifiers are
+references, nodes, accesses, edges, and diagnostics. A fixture may declare
+connections (`connections: [{name, kind, catalog}]`, every script then names its
+`connection`), target scripts (`targets: [bar]`) and provided materializations
+(`materialized: [foo]`); without connections the scripts run on one implicit
+REMOTE connection with the top-level `catalog`. The mount prefix of snapshots is
+`/mnt/external/dashql-run-test`. Fixtures with connections print the connection of
+scripts, nodes and unresolved references, and prefix entity ids with the
+connection name (`trino/256.65536.4294967296`), since catalog ids of different
+connections may be equal. Every snapshot prints the cacheability, terminal
+statement, signature and references of the planned scripts, the materializations
+and the script references with the text of their parameters. Node identifiers are
 structured: `id` is the graph-local node index, `script` is the fixture script
 name, and `statement-id` is the zero-based statement index. Edge `from`/`to` and
 diagnostic `node` fields refer to numeric node IDs. The same preparation and
@@ -210,8 +290,15 @@ Fixtures cover cross-script, same-script, and external-catalog DROP/recreation
 identities, preserved DDL hazards, unresolved names without catalog entities, and
 qualified identifiers containing dots, quotes, keywords, or case-sensitive text.
 
+`planner_validation_hyper_test` executes every valid plan with script references in
+Hyper: a database per connection with the catalog of the connection, the SQL of the
+nodes in node order, and a `COPY ... TO ... WITH (format => 'parquet')` for every
+materialization into a temporary directory that stands for the mount prefix. A
+fixture with `hyper: skip` is left out (Hyper rejects `SELECT INTO`).
+
 ```bash
 bazel run //snapshots/planner:update
-bazel test //packages/dashql-core-session:planner_snapshot_test //packages/dashql-core-session:dashql_core_session_unit_tests
+bazel test //packages/dashql-core-session:planner_snapshot_test //packages/dashql-core-session:planner_validation_hyper_test \
+    //packages/dashql-core-session:dashql_core_session_unit_tests
 bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
 ```

@@ -7,7 +7,7 @@
   "properties": {
     "formatVersion": {
       "type": "integer",
-      "enum": [8],
+      "enum": [9],
       "description": "Session persistence format. The app migrates older versions at startup and on import, see packages/dashql-app/src/migration."
     },
     "sessionId": {
@@ -55,10 +55,6 @@
     "metadata": {
       "$ref": "#/definitions/SessionMetadata",
       "description": "The session metadata"
-    },
-    "settings": {
-      "$ref": "#/definitions/SessionSettings",
-      "description": "The session settings. Absent in sessions written before settings existed."
     },
     "lastModified": {
       "type": "string",
@@ -130,18 +126,6 @@
       "type": "string",
       "enum": ["FILE", "LOCAL", "HTTP"],
       "description": "The origin type of the session"
-    },
-    "SessionSettings": {
-      "type": "object",
-      "description": "Session settings",
-      "properties": {
-        "cacheQueryResults": {
-          "type": "boolean",
-          "description": "Whether query results are cached and reused for unchanged queries"
-        }
-      },
-      "required": ["cacheQueryResults"],
-      "additionalProperties": false
     },
     "SessionMetadata": {
       "type": "object",

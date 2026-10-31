@@ -12,8 +12,8 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 ├── sessions/<session-id>/                     OPFS sessions
 │   ├── dashql-session.json                    session metadata
 │   ├── scripts/<script-name>                  script text
-│   ├── attachments/<file-name>                attached data files
-│   └── cache/<hash>.arrow[.last_access]       query result cache
+│   └── attachments/<file-name>                attached data files
+├── cache/<hash>.<uuid>.parquet[.last_access]  query result cache of the app
 ├── connections/<connection-id>/               files of a global connection
 │   ├── dashql-catalog-relations.sql           catalog of the last refresh
 │   ├── dashql-catalog-functions.sql
@@ -32,14 +32,16 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 | Path | Written by | Lifetime | Part of session bundles |
 |------|------------|----------|-------------------------|
 | `dashql-manifest.json` | `OPFSStorageBackend` | persistent | no |
-| `sessions/<id>/` | `OPFSStorageBackend` | until the session is deleted | yes, except `cache/` |
+| `sessions/<id>/` | `OPFSStorageBackend` | until the session is deleted | yes |
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
+| `cache/` | `createOPFSQueryResultCache` | until evicted | no |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
-"Clear all data" empties the sessions of the manifest and removes `sessions/`, `connections/` and `shell/`. It keeps
-`instances/`, because the running window owns its instance.
+"Clear all data" empties the sessions of the manifest, removes `sessions/`, `connections/` and `shell/` and clears
+`cache/`, except the files that other windows read right now. It keeps `instances/`, because the running window owns
+its instance.
 
 ### The manifest
 
@@ -47,7 +49,9 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 
 - `storageVersion`, the version of this layout, see [Versions and migrations](#versions-and-migrations).
 - `sessions`, one entry per session: `path` (the session id), `storageType` and, for native sessions, `nativePath`.
-- `connections`, the global connections: `id`, `name`, `params`, `paramsDraft` and `createdAt`.
+- `connections`, the global connections: `id`, `name`, `params`, `paramsDraft`, `createdAt` and
+  `cacheQueryResults`, whether the [query result cache](query_cache.md) keeps their results, absent for the default
+  of the connector.
 - `appSettings`.
 
 Writers hold the Web Lock of the manifest, which all tabs of the app share.
@@ -55,14 +59,21 @@ Writers hold the Web Lock of the manifest, which all tabs of the app share.
 ### Sessions
 
 A session folder holds `dashql-session.json` (schema `proto/json/dashql/app_session.json`: `formatVersion`,
-`sessionId`, `name`, `connections`, `scripts`, `attachments`, `metadata`, `settings`) and
-the files it lists:
+`sessionId`, `name`, `connections`, `scripts`, `attachments`, `metadata`) and
+the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format 9 drops it: connections decide
+whether their results are cached.
 
 - `scripts/` holds one file per script, named by the script.
 - `attachments/` holds data files that queries read in place, e.g. `external('/mnt/fs/sessions/<id>/attachments/a.csv')`.
   Session bundles rebase these paths when a session is imported under a new id.
-- `cache/` holds the [query result cache](query_cache.md): one Arrow IPC stream per result, and an empty
-  `.last_access` marker whose mtime makes the eviction least-recently-used.
+
+### The query result cache
+
+`cache/` holds the [query result cache](query_cache.md) of the app, for every session and connection: one Parquet
+file per result named `<hash>.<uuid>.parquet`, and an empty `.last_access` marker whose mtime makes the eviction
+least-recently-used. The materialized results of runs are files of their keys too, or transient files
+(`<uuid>.transient.parquet`) if their keys aren't reusable. hyperdb-wasm mounts the folder read-write at
+`/mnt/external/cache`.
 
 ### Connections
 
@@ -114,7 +125,7 @@ empty `logs/` folder at startup, before the instance settings apply.
 
 The native app keeps a session in a directory that the user chose, the manifest entry has `storageType: native`
 and `nativePath`. The directory has the layout of an OPFS session folder (`dashql-session.json`, `scripts/`,
-`attachments/`, `cache/`), and users may edit its files, see [native file synchronization](native_file_sync.md).
+`attachments/`), and users may edit its files, see [native file synchronization](native_file_sync.md).
 
 hyperdb-wasm can only read OPFS. When a native session loads, its attachments are mirrored into
 `sessions/<id>/attachments/` in OPFS, so the attachment paths of the session work in both storage types.
@@ -128,6 +139,7 @@ Connections, the manifest, the shell files and the instances stay in OPFS.
 |------------|-----------|
 | `/mnt/fs/...` | the OPFS root |
 | `/mnt/external/<name>` | browser files and directories registered with `registerExternalFile` and `registerExternalDirectory`, e.g. shell file mounts and Parquet exports |
+| `/mnt/external/cache` | the folder `cache/` of the query result cache (`createOPFSQueryResultCache`), mounted read-write while a run or a cache read uses it |
 
 `/mnt/external/` paths only exist while they are registered and are not stored.
 

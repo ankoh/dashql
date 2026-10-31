@@ -1,6 +1,5 @@
 import {
     STORAGE_ATTACHMENTS_FOLDER,
-    STORAGE_CACHE_FOLDER,
     STORAGE_CONNECTIONS_FOLDER,
     STORAGE_MANIFEST_FILE,
     STORAGE_SCRIPTS_FOLDER,
@@ -20,6 +19,7 @@ import {
     isUuid,
 } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
 import { PARQUET_EXPORT_DIRECTORY } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import { QUERY_RESULT_CACHE_DIRECTORY } from './opfs_query_result_cache.js';
 import { OPFS_TESTS_FOLDER } from '../../platform/opfs_root.js';
 
 /// An OPFS entry that the current app version doesn't use
@@ -86,7 +86,6 @@ const OPFS_SESSION_ENTRIES = new Map<string, boolean>([
     [STORAGE_SESSION_FILE, false],
     [STORAGE_SCRIPTS_FOLDER, true],
     [STORAGE_ATTACHMENTS_FOLDER, true],
-    [STORAGE_CACHE_FOLDER, true],
 ]);
 const NATIVE_SESSION_ENTRIES = new Map<string, boolean>([[STORAGE_ATTACHMENTS_FOLDER, true]]);
 
@@ -143,6 +142,9 @@ export async function findOPFSCleanupCandidates(
                 for await (const [id, child] of dir.entries()) {
                     add([name, id], child.kind === 'directory', 'Leftover of an interrupted Parquet export');
                 }
+                break;
+            case QUERY_RESULT_CACHE_DIRECTORY:
+                // The cache evicts its own files, also the leftovers of interrupted runs
                 break;
             case STORAGE_SHELL_FOLDER:
             case SHELL_FILES_DIRECTORY:

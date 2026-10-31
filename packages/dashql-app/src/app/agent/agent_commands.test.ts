@@ -8,7 +8,14 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { ConnectionHealth } from '../connections/connection_state.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
-import { CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, type SessionScripts } from '../session/scripts/session_scripts.js';
+import {
+    CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, createEmptyScriptData, reduceSessionScripts, replaceScriptSessionText,
+    type SessionScripts,
+} from '../session/scripts/session_scripts.js';
+import { createScriptRef } from '../session/scripts/script_types.js';
+import { acquireSessionExecution, isSessionExecutionRunning, releaseSessionExecution } from '../session/scripts/session_execution.js';
+import { SessionTestBackend } from '../storage/session_test_backend.js';
+import { StorageWriter } from '../storage/storage_writer.js';
 
 /// A script with a text and the diagnostics of its analysis
 function script(scriptKey: number, fileName: string, text: string, diagnostics: unknown[] = []) {
@@ -29,7 +36,6 @@ function session(scripts: any[]): SessionScripts {
         sessionId: 's1',
         name: 'Revenue',
         pendingConnection: scripts.length === 0 ? { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any } : null,
-        settings: { cacheQueryResults: false },
         instance: {} as any,
         sessionMetadata: {} as any,
         scripts: Object.fromEntries(scripts.map(s => [s.scriptKey, s])),
@@ -200,30 +206,6 @@ describe('agent commands', () => {
         await expect(run('run', { script: 'orders' })).rejects.toThrow('The connection db of orders is not online');
     });
 
-    it('reports a failed query instead of a run without a result', async () => {
-        const text = 'create table t (a int primary key)';
-        state = session([{
-            ...script(1, 'orders.sql', text),
-            scriptSession: {
-                getText: () => text,
-                getTextVersion: () => 1,
-                getCatalogRevision: () => 1,
-                compileQuery: () => ({
-                    read: () => ({ errorsLength: () => 0, sql: () => text, cacheSignature: () => '', cacheable: () => false }),
-                    destroy: () => { },
-                }),
-                startExecution: () => ({}),
-            },
-            annotations: { visualizeQuery: null },
-            editorUpdate: { diagnostics: [], textVersion: 1, stateRevision: 1, catalogRevision: 1, analysisAvailable: true },
-        }]);
-        // Like the query executor: a failed query resolves with null unless the caller asks for the error
-        const failure = { message: 'Index support is disabled.' };
-        env.executeQuery = vi.fn<QueryExecutor>((_connectionId, args) => [24, args.throwOnError ? Promise.reject(failure) : Promise.resolve(null)]);
-        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders failed: Index support is disabled.');
-        expect(env.executeQuery).toHaveBeenCalledWith('db', expect.objectContaining({ throwOnError: true }));
-    });
-
     it('pages through the last result of a script', async () => {
         state.scripts[1].latestQueryId = 7;
         const table = arrow.tableFromArrays({ n: Int32Array.from({ length: 60 }, (_, i) => i) });
@@ -348,5 +330,89 @@ describe('agent vis edit command', () => {
     it('needs a query as the last statement', async () => {
         setup('create table t (a int)');
         await expect(visualize({ mark: 'bar' })).rejects.toThrow('Cannot visualize orders: the last statement of the script is no query');
+    });
+});
+
+describe('agent run command', () => {
+    let dql: core.DashQL;
+
+    beforeAll(async () => {
+        dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    });
+    afterEach(() => dql.resetUnsafe());
+
+    /// A session with one script on an online connection
+    const setup = (text: string, executeQuery: QueryExecutor) => {
+        const connection = { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
+        const [scriptKey, scriptData] = createEmptyScriptData(dql, connection, 'orders.sql');
+        replaceScriptSessionText(scriptData.scriptSession, text);
+        let state: SessionScripts = {
+            ...session([]), instance: dql, pendingConnection: null,
+            scripts: { [scriptKey]: scriptData }, scriptRefs: { 'orders.sql': createScriptRef(scriptKey, 'orders.sql') },
+            scriptOrder: ['orders.sql'], scriptFocus: { fileName: 'orders.sql' },
+        };
+        const logger = new TestLogger();
+        const writer = new StorageWriter(logger, new SessionTestBackend());
+        const env: AgentCommandEnvironment = {
+            sessionScripts: () => state,
+            modifySessionScripts: async (_sessionId, action) => (state = reduceSessionScripts(state, action, writer, logger)),
+            connections: () => ({ connections: new Map([['db', { connectionId: 'db', connectionHealth: ConnectionHealth.ONLINE } as any]]), connectionsByType: [] }),
+            executeQuery,
+            logger,
+        };
+        const run = (args: Record<string, unknown>) => runAgentCommand(env, { session: 's1', command: 'run', args: { script: 'orders', ...args } });
+        return Object.assign(run, { session: () => state });
+    };
+
+    it('waits for the run of another script of the session', async () => {
+        const executeQuery = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({ n: Int32Array.from([1]) }))]);
+        const run = setup('select 1 as n', executeQuery);
+        // Another turn runs a script of the session
+        expect(acquireSessionExecution(run.session())).toBe(true);
+        const result = run({});
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(executeQuery).not.toHaveBeenCalled();
+        releaseSessionExecution(run.session());
+        expect((await result).data).toMatchObject({ script: 'orders', rowCount: 1 });
+        expect(isSessionExecutionRunning(run.session())).toBe(false);
+    });
+
+    it('fails while the whole session runs', async () => {
+        const executeQuery = vi.fn<QueryExecutor>(() => [1, Promise.resolve(null)]);
+        const run = setup('select 1 as n', executeQuery);
+        expect(acquireSessionExecution(run.session(), 'session')).toBe(true);
+        try {
+            await expect(run({})).rejects.toThrow('orders failed: The session is running');
+            expect(executeQuery).not.toHaveBeenCalled();
+        } finally {
+            releaseSessionExecution(run.session());
+        }
+    });
+
+    it('reports a failed query instead of a run without a result', async () => {
+        // Like the query executor: a failed query resolves with null unless the caller asks for the error
+        const failure = { message: 'Index support is disabled.' };
+        const executeQuery = vi.fn<QueryExecutor>((_connectionId, args) => [24, args.throwOnError ? Promise.reject(failure) : Promise.resolve(null)]);
+        const run = setup('create table t (a int primary key)', executeQuery);
+        await expect(run({})).rejects.toThrow('orders failed: Index support is disabled.');
+        expect(executeQuery).toHaveBeenCalledWith('db', expect.objectContaining({ query: 'create table t (a int primary key)', throwOnError: true }));
+    });
+
+    it('returns the last output of the script', async () => {
+        let queryId = 0;
+        const executeQuery = vi.fn<QueryExecutor>((_connectionId, args) =>
+            [++queryId, Promise.resolve(args.query.startsWith('select') ? arrow.tableFromArrays({ n: Int32Array.from([1, 2]) }) : null)]);
+        const run = setup('select 1 as n; create table t (a int)', executeQuery);
+        const result = await run({});
+        expect(executeQuery.mock.calls.map(([, args]) => args.query)).toEqual(['select 1 as n', 'create table t (a int)']);
+        expect(result.data).toMatchObject({ script: 'orders', rowCount: 2 });
+    });
+
+    it('reports a script that holds no statement', async () => {
+        const executeQuery = vi.fn<QueryExecutor>(() => [25, Promise.resolve(null)]);
+        const run = setup('-- nothing', executeQuery);
+        await expect(run({})).rejects.toThrow('orders failed: orders.sql holds no statement');
+        // The script shows the error where its result would be
+        expect(executeQuery).toHaveBeenCalledWith('db', expect.objectContaining({ failure: expect.objectContaining({ message: 'orders.sql holds no statement' }) }));
     });
 });
