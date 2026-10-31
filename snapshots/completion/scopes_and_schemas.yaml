@@ -30,6 +30,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [a,b,name]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -127,6 +136,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [a,b,name]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -221,6 +239,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [a,b,name]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -308,6 +335,11 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: s1.tt
+          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved
@@ -368,6 +400,19 @@ completion-snapshots:
               - catalog-id: "257.65537.4294967298.0"
                 name: c
                 text: "c int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: s1.t1
+            columns: [a]
+          - statement-id: 1
+            type: create
+            name: s1.t2
+            columns: [b]
+          - statement-id: 2
+            type: create
+            name: db.s2.t3
+            columns: [c]
         errors: []
     editor:
       input: |-
@@ -447,6 +492,19 @@ completion-snapshots:
               - catalog-id: "257.65537.4294967298.0"
                 name: c
                 text: "c int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: s1.t1
+            columns: [a]
+          - statement-id: 1
+            type: create
+            name: s1.t2
+            columns: [b]
+          - statement-id: 2
+            type: create
+            name: db.s2.t3
+            columns: [c]
         errors: []
     editor:
       input: |-
@@ -461,6 +519,11 @@ completion-snapshots:
             - catalog-id: "256.65536.8589934592.0"
               name: a
               text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: s1.t9
+          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved
@@ -549,6 +612,19 @@ completion-snapshots:
               - catalog-id: "257.65537.4294967298.0"
                 name: c
                 text: "c int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: s1.t1
+            columns: [a]
+          - statement-id: 1
+            type: create
+            name: s1.t2
+            columns: [b]
+          - statement-id: 2
+            type: create
+            name: db.s2.t3
+            columns: [c]
         errors: []
     editor:
       input: |-
@@ -598,6 +674,11 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: db.s9.x
+          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved

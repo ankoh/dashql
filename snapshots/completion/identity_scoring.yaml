@@ -13,6 +13,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: bar
                 text: "bar int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: foo
+            columns: [bar]
         errors: []
     editor:
       input: select ba
@@ -89,6 +94,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: s_name
                 text: "s_name char(25)"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: supplier
+            columns: [s_comment,s_name]
         errors: []
         expressions:
           - expression-idx: 0
@@ -183,6 +193,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: s_comment
                 text: "s_comment ..rchar(101)"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: other_table
+            columns: [s_comment]
         errors: []
         expressions:
           - expression-idx: 0
@@ -275,6 +290,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: s_name
                 text: "s_name char(25)"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: supplier
+            columns: [s_name]
         errors: []
         expressions:
           - expression-idx: 0
@@ -358,6 +378,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: s_name
                 text: "s_name char(25)"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: supplier
+            columns: [s_name]
         errors: []
         expressions:
           - expression-idx: 0
@@ -433,6 +458,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: bar
                 text: "bar int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: foo
+            columns: [bar]
         errors: []
     editor:
       input: select bar as ba from foo
@@ -504,6 +534,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: bar
                 text: "bar int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: foo
+            columns: [bar]
         errors: []
     editor:
       input: with fo as (select * from foo) select * from fo

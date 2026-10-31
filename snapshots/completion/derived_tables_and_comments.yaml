@@ -28,6 +28,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: nb
                 text: "nb int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [na,nb]
         errors: []
     editor:
       input: select * from t, (select na from u) s
@@ -127,6 +136,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: nb
                 text: "nb int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [na,nb]
         errors: []
     editor:
       input: select * from t x where exists (select 1 from u where x.n)
@@ -248,6 +266,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: nb
                 text: "nb int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [na,nb]
         errors: []
     editor:
       input: with c as (select na from u) select * from t, c
@@ -350,6 +377,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: nb
                 text: "nb int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [na,nb]
         errors: []
     editor:
       input: select * from t x, (select x.n from u) s
@@ -410,6 +446,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: nb
                 text: "nb int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
+          - statement-id: 1
+            type: create
+            name: u
+            columns: [na,nb]
         errors: []
     editor:
       input: select (select na from u where n) from t
@@ -516,6 +561,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
         errors: []
     editor:
       input: |-
@@ -551,6 +601,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: t
+            columns: [name,id]
         errors: []
     editor:
       input: select * from /* some comment */ t

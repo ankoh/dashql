@@ -27,6 +27,15 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967297.0"
               name: juice1
               text: "juice1 int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: foo
+          columns: [apple,juice0]
+        - statement-id: 1
+          type: create
+          name: bar
+          columns: [juice1]
       errors: []
       expressions:
         - expression-idx: 0

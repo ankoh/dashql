@@ -3,6 +3,7 @@
 //! Renderers other than `markdown`, including `table`, compare the Vega-Lite JSON.
 
 use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec};
+use dashql_snapshots::encode::analyzer::{analyze_case, compare_script};
 use dashql_snapshots::encode::visualize::{analyze_scripts, encode_dashboard_spec, encode_markdown_spec};
 use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial, Yaml};
 
@@ -19,6 +20,10 @@ fn expected_text(node: &Yaml) -> String {
 fn run_case(node: &Yaml) -> Result<(), String> {
     let catalog_input = node["catalog"]["script"]["input"].as_str().map(trim);
     let script_input = node["script"]["input"].as_str().map(trim).unwrap_or_default();
+    // The snapshot shows the analysis of the catalog script, like the analyzer snapshots
+    if let (Some(catalog_yaml), _) = analyze_case(catalog_input.as_deref(), &script_input)? {
+        compare_script(&node["catalog"]["script"], &catalog_yaml).map_err(|e| format!("catalog: {e}"))?;
+    }
     let analyzed = analyze_scripts(catalog_input.as_deref(), &script_input)?;
     let spec = analyzed.visualization_specs.first().ok_or("no visualization spec")?;
     let renderer = spec.renderer.as_deref();
@@ -29,20 +34,19 @@ fn run_case(node: &Yaml) -> Result<(), String> {
     }
 
     if renderer == Some("markdown") {
+        // The snapshotter always writes the spec of the renderer, a missing one is a stale snapshot
         let markdown = compile_markdown_spec(spec).ok_or("no markdown spec")?;
-        if !matches!(node["markdown"], Yaml::BadValue) {
-            compare(&node["markdown"], &encode_markdown_spec(&markdown).to_yaml())
-                .map_err(|e| format!("markdown: {e}"))?;
-        }
+        compare(&node["markdown"], &encode_markdown_spec(&markdown).to_yaml()).map_err(|e| format!("markdown: {e}"))?;
         return Ok(());
     }
 
     let vegalite = generate_vegalite_spec(spec, &analyzed);
-    if !matches!(node["vegalite"], Yaml::BadValue) {
-        let expected = expected_text(&node["vegalite"]);
-        if vegalite != expected {
-            return Err(format!("vegalite differs\nexpected:\n{expected}\nactual:\n{vegalite}"));
-        }
+    if matches!(node["vegalite"], Yaml::BadValue) {
+        return Err("vegalite: missing in the snapshot".to_string());
+    }
+    let expected = expected_text(&node["vegalite"]);
+    if vegalite != expected {
+        return Err(format!("vegalite differs\nexpected:\n{expected}\nactual:\n{vegalite}"));
     }
     Ok(())
 }

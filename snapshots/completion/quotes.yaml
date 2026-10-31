@@ -13,6 +13,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: r_regionkey
                 text: "r_regionkey int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: region
+            columns: [r_regionkey]
         errors: []
     editor:
       input: select * from region
@@ -95,6 +100,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: r_regionkey
                 text: "r_regionkey int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: Region
+            columns: [r_regionkey]
         errors: []
     editor:
       input: select * from "Region"

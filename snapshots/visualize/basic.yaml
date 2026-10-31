@@ -20,6 +20,11 @@ visualize-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [category,revenue,date]
         errors: []
     script:
       input: |

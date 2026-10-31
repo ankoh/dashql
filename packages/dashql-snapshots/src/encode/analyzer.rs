@@ -553,14 +553,17 @@ pub fn analyze_case(catalog_input: Option<&str>, main_input: &str) -> Result<(Op
     Ok((catalog_yaml, encode_script(&analyzed, true, Some(&catalog)).to_yaml()))
 }
 
-/// Compare the keys that the analyzer snapshot test compares
+/// Compare the keys that the analyzer snapshot test compares.
+/// The encoder leaves out empty keys, so a key is missing on both sides or present on both sides.
 pub fn compare_script(expected: &Yaml, actual: &Yaml) -> Result<(), String> {
     for key in COMPARED_KEYS {
-        let want = &expected[key];
-        if matches!(want, Yaml::BadValue) {
-            continue;
+        let (want, have) = (&expected[key], &actual[key]);
+        match (matches!(want, Yaml::BadValue), matches!(have, Yaml::BadValue)) {
+            (true, true) => {}
+            // A stale snapshot, the analysis has output that the snapshot does not show
+            (true, false) => return Err(format!("{key}: missing in the snapshot, the analysis has {have:?}")),
+            _ => crate::compare(want, have).map_err(|e| format!("{key}: {e}"))?,
         }
-        crate::compare(want, &actual[key]).map_err(|e| format!("{key}: {e}"))?;
     }
     Ok(())
 }

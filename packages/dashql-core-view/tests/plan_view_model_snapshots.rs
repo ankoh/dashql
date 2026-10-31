@@ -22,13 +22,14 @@ fn main() {
                 view_model.compute_layout();
                 let produced = encode_plan_view_model(&view_model.pack_buffer()).into_yaml();
 
-                // Compare every section the snapshot has
+                // Compare every section, a section is missing on both sides or present on both sides
                 for key in ["fragments", "operators", "operator-edges", "pipelines"] {
-                    let expected = &case.node[key];
-                    if matches!(expected, Yaml::BadValue) {
-                        continue;
+                    let (expected, actual) = (&case.node[key], &produced[key]);
+                    match (matches!(expected, Yaml::BadValue), matches!(actual, Yaml::BadValue)) {
+                        (true, true) => {}
+                        (true, false) => return Err(Failed::from(format!("{key}: missing in the snapshot"))),
+                        _ => compare(expected, actual).map_err(|e| Failed::from(format!("{key}: {e}")))?,
                     }
-                    compare(expected, &produced[key]).map_err(|e| Failed::from(format!("{key}: {e}")))?;
                 }
                 Ok(())
             })

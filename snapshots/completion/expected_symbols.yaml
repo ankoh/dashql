@@ -161,6 +161,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: bar
                 text: "bar int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: foo
+            columns: [bar]
         errors: []
     editor:
       input: select bar as baz

@@ -36,6 +36,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.5"
                 name: tenant
                 text: "tenant text"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: iceberg.some_events.some_queries
+            columns: [query_hash,query,tenant,query_metrics,event,event_timestamp]
         errors: []
     editor:
       input: select * from iceberg.some_events.some_queries where event

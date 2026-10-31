@@ -13,6 +13,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: dbname.schemaname.foo
+            columns: [a]
         errors: []
     editor:
       input: select * from dbname.schemaname.foo limit 10

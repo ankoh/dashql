@@ -24,6 +24,15 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967297.0"
               name: a
               text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: CaSeSeNsItIvE_TaBlE
+          columns: [a]
+        - statement-id: 1
+          type: create
+          name: casesensitive_table
+          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved
@@ -83,6 +92,15 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967297.0"
               name: casesensitive
               text: "casesensitive int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: foo0
+          columns: [Casesensitive]
+        - statement-id: 1
+          type: create
+          name: foo1
+          columns: [casesensitive]
       errors: []
       expressions:
         - expression-idx: 0

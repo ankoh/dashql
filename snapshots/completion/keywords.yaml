@@ -674,6 +674,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: li_some_column
                 text: "li_some_column int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: hyperdb_queries
+            columns: [a]
+          - statement-id: 1
+            type: create
+            name: li_some_table_no_keyword
+            columns: [li_some_column]
         errors: []
     editor:
       input: select * from hyperdb_queries li

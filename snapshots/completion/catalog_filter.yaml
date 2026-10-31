@@ -22,6 +22,15 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: attr2
                 text: "attr2 int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: tablea
+            columns: [attr1]
+          - statement-id: 1
+            type: create
+            name: tableb
+            columns: [attr2]
         errors: []
     editor:
       input: select * from TableA where attr

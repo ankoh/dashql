@@ -320,6 +320,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [region,revenue,date]
         errors: []
     editor:
       input: |
@@ -484,6 +489,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: revenue
                 text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [region,revenue]
         errors: []
     editor:
       input: |
