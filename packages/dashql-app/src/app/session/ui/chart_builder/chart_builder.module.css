@@ -118,12 +118,17 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
-    font-size: var(--font_size_compact);
 }
 
 .json_editor > div,
 .json_editor :global(.cm-editor) {
     height: 100%;
+}
+
+/* The font of the script editor in a card */
+.json_editor :global(.cm-editor) {
+    font-size: var(--font_size_compact);
+    line-height: 1.45;
 }
 
 .json_editor :global(.cm-scroller) {
