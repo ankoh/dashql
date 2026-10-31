@@ -27,6 +27,8 @@ interface Props {
     onRename?: () => void;
     /// The storage of the script, the menu offers its storage view
     storage?: ScriptStorage;
+    /// The size of the icon of the trigger, 16 by default
+    iconSize?: number;
 }
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -65,7 +67,7 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                     size={ButtonSize.Small}
                     aria-label={`More actions for ${props.scriptName} script`}
                 >
-                    <MoreIcon size={16} />
+                    <MoreIcon size={props.iconSize ?? 16} />
                 </IconButton>
             )}
         >

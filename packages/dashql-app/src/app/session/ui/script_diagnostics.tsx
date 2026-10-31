@@ -84,7 +84,9 @@ export const ScriptDiagnosticsButton: React.FC<{
     scriptData: ScriptData;
     isFormattable: boolean;
     connectorType?: ConnectorType;
-}> = ({ scriptData, isFormattable, connectorType }) => {
+    /// The size of the icon of the trigger, 16 by default
+    iconSize?: number;
+}> = ({ scriptData, isFormattable, connectorType, iconSize = 16 }) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [selectedDiagnostic, setSelectedDiagnostic] = React.useState<ScriptDiagnostic | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -137,8 +139,8 @@ export const ScriptDiagnosticsButton: React.FC<{
                         aria-label={label}
                     >
                         {hasErrors
-                            ? <XCircleFillIcon size={16} aria-hidden="true" />
-                            : <AlertIcon size={16} aria-hidden="true" />}
+                            ? <XCircleFillIcon size={iconSize} aria-hidden="true" />
+                            : <AlertIcon size={iconSize} aria-hidden="true" />}
                     </IconButton>
                 )}
             >

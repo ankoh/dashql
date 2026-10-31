@@ -34,6 +34,8 @@ export interface SnippetsOverlayProps {
     registry?: SnippetRegistry;
     /// The test id of the trigger
     testId?: string;
+    /// The size of the library icon of the trigger, 16 by default
+    iconSize?: number;
 }
 
 /// The registry while the bundled snippets are parsed
@@ -124,7 +126,7 @@ export function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement
                 disabled={props.disabled}
                 onClick={(event) => { event.stopPropagation(); setOpen(value => !value); }}
             >
-                <LibraryIcon size={16} />
+                <LibraryIcon size={props.iconSize ?? 16} />
             </IconButton>
             <AnchoredOverlay
                 renderAnchor={null}

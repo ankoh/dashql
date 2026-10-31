@@ -310,7 +310,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             }
                         }}
                     >
-                        {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
+                        {queryActive ? <SquareFillIcon size={12} /> : <PaperAirplaneIcon size={14} />}
                     </IconButton>
                     </ExecuteConnectionGuard>
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
@@ -333,6 +333,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             scriptData={props.scriptData}
                             isFormattable={isFormattable}
                             connectorType={props.connectorType}
+                            iconSize={14}
                         />
                     )}
                     <ScriptMentionTag
@@ -348,6 +349,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         connectorType={props.connectorType}
                         disabled={props.scriptData == null || hasPendingDiff}
                         onApply={applySnippet}
+                        iconSize={14}
                     />
                     <IconButton
                         variant={ButtonVariant.Invisible}
@@ -356,7 +358,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         aria-label={`Delete ${displayName} script`}
                         data-testid="script-delete"
                     >
-                        <TrashIcon size={16} />
+                        <TrashIcon size={14} />
                     </IconButton>
                     <ScriptActionMenu
                         scriptName={displayName}
@@ -365,6 +367,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         onDelete={() => props.onDelete(props.scriptFileName)}
                         onRename={() => setRenaming(true)}
                         storage={storage}
+                        iconSize={14}
                     />
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
                     <IconButton
@@ -374,7 +377,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         data-testid="script-move-up"
                         disabled={!props.canMoveUp}
                     >
-                        <MoveUpIcon size={16} />
+                        <MoveUpIcon size={14} />
                     </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
@@ -383,7 +386,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         data-testid="script-move-down"
                         disabled={!props.canMoveDown}
                     >
-                        <MoveDownIcon size={16} />
+                        <MoveDownIcon size={14} />
                     </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
@@ -392,7 +395,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         aria-label={`Expand ${displayName} script details`}
                         data-testid="script-expand"
                     >
-                        <ExpandIcon size={16} />
+                        <ExpandIcon size={14} />
                     </IconButton>
                 </div>
                 <div className={styles.feed_body}>
