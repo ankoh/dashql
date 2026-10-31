@@ -1,26 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { cacheFileHash, clearQueryResultCache, markDeletedQueryResults } from './query_result_cache_clear.js';
-import { fixedConnectionReferences } from '../../../tests/mocks/connection_references.js';
+import { markDeletedQueryResults } from './query_result_cache_clear.js';
 import { QUERY_CACHE_DELETED } from '../../../query/query_execution_state.js';
 
 describe('Query result cache clearing', () => {
-    it('strips the extension of cache files', () => {
-        expect(cacheFileHash('abc.arrow')).toBe('abc');
-        expect(cacheFileHash('abc')).toBe('abc');
-    });
-
-    it('deletes every cached result of a session', async () => {
-        const deleteQueryResultCache = vi.fn(async () => { });
-        const backend = {
-            listQueryResultCache: vi.fn(async () => [{ name: 'a.arrow' }, { name: 'b.arrow' }]),
-            deleteQueryResultCache,
-        };
-        expect(await clearQueryResultCache(backend as any, 'session')).toEqual(['a', 'b']);
-        expect(deleteQueryResultCache.mock.calls).toEqual([['session', 'a'], ['session', 'b']]);
-    });
-
-    it('marks the finished queries of the session whose results were deleted', () => {
+    it('marks the finished queries of every connection whose results were deleted', () => {
         const database = (connectionId: string, queries: [number, string | null, boolean][]) => ({
             connectionId,
             queriesFinished: new Map(queries.map(([queryId, cacheKey, cacheDeleted]) => [queryId, { queryId, cacheKey, cacheDeleted }])),
@@ -33,10 +17,12 @@ describe('Query result cache clearing', () => {
             ]),
         };
         const dispatch = vi.fn();
-        expect(markDeletedQueryResults(registry as any, fixedConnectionReferences({ session: ['main', 'attached'] }), dispatch, 'session', ['a', 'b'])).toBe(2);
+        // The cache belongs to the app, a query of any connection may advertise a deleted key
+        expect(markDeletedQueryResults(registry as any, dispatch, ['a', 'b'])).toBe(3);
         expect(dispatch.mock.calls).toEqual([
             ['main', { type: QUERY_CACHE_DELETED, value: [1] }],
             ['attached', { type: QUERY_CACHE_DELETED, value: [5] }],
+            ['unrelated', { type: QUERY_CACHE_DELETED, value: [6] }],
         ]);
     });
 });

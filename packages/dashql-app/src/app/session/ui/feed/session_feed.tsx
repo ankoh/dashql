@@ -22,7 +22,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { ConnectionHealth, ConnectionState } from '../../../connections/connection_state.js';
+import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../../connections/connection_state.js';
 import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
 import { useQueryExecutor } from '../../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../../scripts/session_scripts_registry.js';
@@ -30,7 +30,9 @@ import { scriptDisplayName } from '../../scripts/script_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { runSessionScript } from '../rerun_query.js';
+import { computeScriptResultCacheKey, scriptRunServices } from '../../scripts/script_run.js';
 import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
+import { useQueryResultCache } from '../../../storage/query_result_cache_provider.js';
 import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '../../../storage/storage_writer.js';
 import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
@@ -186,9 +188,13 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         [props.conn],
     );
     const scriptConnections = useScriptConnectionViews(props.scriptConnections ?? defaultConnections);
+    // The connections that cache query results, the cache indicators follow them
+    const cachingConnections = [...(props.scriptConnections ?? defaultConnections).values()]
+        .filter(connectionCachesQueryResults).map(connection => connection.connectionId).join(',');
     // The composer drafts the next script, on the connection that the script will run on
     const composerConnection = newScriptConnection(props.sessionScripts, null);
     const storageReader = dependencies.useStorageReader();
+    const queryResultCache = useQueryResultCache();
     const storageWriter = dependencies.useStorageWriter();
     const sessionId = props.sessionScripts.sessionId;
     const [dataFiles, setDataFiles] = React.useState<{ sessionId: string; files: DataFile[] } | null>(null);
@@ -285,22 +291,29 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const isScriptOnline = (scriptData: ScriptData) =>
         latest.current.scriptConnections.get(scriptData.connection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
 
-    // Refresh: drop the stale cache entry for a script's result, then re-execute — a plain cacheable
-    // run then misses the cache and re-populates it. Resolves the script by feed file name.
-    const handleRerunEntry = React.useCallback(async (fileName: string, cacheKey: string | null) => {
+    // Refresh: run the script and the scripts it references without reading cached results, their results become the
+    // newest files of their keys. Resolves the script by feed file name.
+    const handleRerunEntry = React.useCallback((fileName: string) => {
         const { sessionScripts } = latest.current;
         const entry = sessionScripts.scriptRefs[fileName];
         const scriptData = entry != null ? sessionScripts.scripts[entry.scriptId] : undefined;
         if (scriptData == null || !isScriptOnline(scriptData)) {
             return;
         }
-        // Best-effort delete of the stale cache entry: a failed delete just means the run may hit the
-        // old entry, which is harmless (the executor's write path overwrites it either way).
-        if (cacheKey != null) {
-            await storageReader.backend.deleteQueryResultCache(sessionScripts.sessionId, cacheKey).catch(() => { });
-        }
-        dependencies.runSessionScript(sessionScripts, scriptData, executeQuery, props.modifySessionScripts, logger);
-    }, [props.modifySessionScripts, executeQuery, storageReader, logger]);
+        dependencies.runSessionScript(sessionScripts, scriptData, executeQuery, props.modifySessionScripts, logger, { refresh: true });
+    }, [props.modifySessionScripts, executeQuery, logger]);
+
+    // The cache indicator of a script checks the key of a run of the script in the cache of the app
+    const hasCachedResult = React.useCallback(async (cacheKey: string) => (await queryResultCache?.has(cacheKey)) ?? false, [queryResultCache]);
+
+    // The cache key of a run of a script, the cache indicator of the script checks it. A new callback when connections
+    // start or stop caching, so the indicators check again.
+    const computeCacheKey = React.useCallback(async (scriptKey: number) => {
+        const { sessionScripts } = latest.current;
+        const scriptData = sessionScripts.scripts[scriptKey];
+        if (scriptData == null) return null;
+        return await computeScriptResultCacheKey(scriptRunServices(sessionScripts.instance), sessionScripts, scriptData);
+    }, [cachingConnections]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
         const { sessionScripts } = latest.current;
@@ -633,7 +646,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         sessionId: props.sessionScripts.sessionId,
         connections: scriptConnections,
-        cacheQueryResults: props.sessionScripts.settings.cacheQueryResults,
+        computeCacheKey,
+        hasCachedResult,
         entries,
         storageReader: storageReader,
         scripts: props.sessionScripts.scripts,
@@ -670,7 +684,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.

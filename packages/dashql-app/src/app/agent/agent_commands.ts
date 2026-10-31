@@ -350,7 +350,8 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     env.onScriptRun?.(sessionId, script.scriptKey);
     let table: arrow.Table | null;
     try {
-        table = await runSessionScriptForResult(state, script, env.executeQuery, modify, env.logger as LoggerLike);
+        // Waits for the run of another script of the session, e.g. one of another turn
+        table = await runSessionScriptForResult(() => env.sessionScripts(sessionId), script.scriptKey, env.executeQuery, modify, env.logger as LoggerLike);
     } catch (e: unknown) {
         fail(`${name} failed: ${stringifyError(e)}`);
     }

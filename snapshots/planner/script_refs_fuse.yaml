@@ -1,0 +1,2132 @@
+planner-snapshots:
+
+  - name: FusePlain
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "3e6c04809c63e6a6433421a13f5e7057"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders where amount > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders where amount > 10
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseAlias
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select f.id from :foo f where f.amount > 1;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "af00fe725b909a7935cb12655786c866"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select f.id from foo f where f.amount > 1
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseQualifiedColumns
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select foo.id from :foo where foo.amount > 1;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "10b8460f299a513e6b37919e28a4f357"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select foo.id from foo where foo.amount > 1
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseIntoWith
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          with big as (select * from :foo where amount > 10) select count(*) from big;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9c0b1171d0ecaf1e859cfa144c20c63b"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            ),
+            big as (select * from foo where amount > 10) select count(*) from big
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseIntoWithRecursive
+    scripts:
+      - name: seeds
+        input: |
+          select 1 as n;
+      - name: bar
+        input: |
+          with recursive r(n) as (select n from :seeds union all select n + 1 from r where n < 3) select * from r;
+    expected:
+      valid: true
+      scripts:
+        - name: seeds
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8c4b6dc4cf8e126c92e6e050e179fe41"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "db220b251affdd1cd6c356dbe009bef9"
+          references: [seeds]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: seeds
+          statement-id: 0
+          type: SELECT
+          sql: "select 1 as n"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with recursive seeds as (
+            select 1 as n
+            ),
+            r(n) as (select n from seeds union all select n + 1 from r where n < 3) select * from r
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses: []
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":seeds"
+          target: seeds
+          cte: seeds
+      diagnostics: []
+
+  - name: FuseInsertSelect
+    catalog: |
+      create table orders (id int, amount int);
+      create table archive (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          insert into archive select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "9f99d7f028413f9b7a027e8ea1c9a3a8"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: archive
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: INSERT
+          sql: |-
+            insert into archive with foo as (
+            select id, amount from orders
+            )
+            select * from foo
+          produces-output: false
+          barrier: false
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.4294967297'
+              mode: WRITE
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseCreateTableAs
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          create table snapshot as select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "fcaa7b29ca16e6b3d9ab8086f0e524e4"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.12884901888'
+          type: TABLE
+          name: '"snapshot"'
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: CREATE_TABLE_AS
+          sql: |-
+            create table snapshot as with foo as (
+            select id, amount from orders
+            )
+            select * from foo
+          produces-output: false
+          barrier: false
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.12884901888'
+              mode: DDL
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseSelectInto
+    hyper: skip
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select * into snapshot from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "037c1c7c406735e438b67b541a48375d"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.12884901888'
+          type: TABLE
+          name: '"snapshot"'
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT_INTO
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select * into snapshot from foo
+          produces-output: false
+          barrier: false
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.12884901888'
+              mode: DDL
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseExplain
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          explain select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "1e3c9a030917caba1cf4e33cc88ef5c3"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: EXPLAIN
+          sql: |-
+            explain with foo as (
+            select id, amount from orders
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseSubqueries
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders where amount > 10;
+      - name: bar
+        input: |
+          select * from orders where id in (select id from :foo) and exists (select 1 from :foo f where f.id = orders.id) and (select count(*) from :foo) > 0;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8a3c11f57723076e1f2d43d8f3a44d1f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "dfe6a19c7160b54295d7caa87fa1534f"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from orders where amount > 10
+            )
+            select * from orders where id in (select id from foo) and exists (select 1 from foo f where f.id = orders.id) and (select count(*) from foo) > 0
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseDeleteSubquery
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders where amount > 10;
+      - name: bar
+        input: |
+          delete from orders where id in (select id from :foo);
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8a3c11f57723076e1f2d43d8f3a44d1f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "ef1bc193aa06bef94a2afd2ca13773be"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: DELETE
+          sql: |-
+            delete from orders where id in (with foo as (
+            select id from orders where amount > 10
+            )
+            select id from foo)
+          produces-output: false
+          barrier: false
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseTwoStatements
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+          select sum(amount) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "3b44e7b4d93514a2a863dfa09f988b56"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select sum(amount) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 2
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseChain
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          select id, amount from orders;
+      - name: b
+        input: |
+          select * from :a where amount > 1;
+      - name: c
+        input: |
+          select count(*) from :b;
+    expected:
+      valid: true
+      scripts:
+        - name: a
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: b
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "75bf8daa89c84f135664334ac6a87bcc"
+          references: [a]
+        - name: c
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "641fcc85d0ed5d5e5bfb16f47cd9fdcf"
+          references: [b]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: a
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: b
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with a as (
+            select id, amount from orders
+            )
+            select * from a where amount > 1
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: c
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with a as (
+            select id, amount from orders
+            ),
+            b as (
+            select * from a where amount > 1
+            )
+            select count(*) from b
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0,1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: b
+          text: ":a"
+          target: a
+          cte: a
+        - node: 2
+          script: c
+          text: ":b"
+          target: b
+          cte: b
+      diagnostics: []
+
+  - name: FuseDiamond
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: base
+        input: |
+          select id, amount from orders;
+      - name: small
+        input: |
+          select * from :base where amount < 10;
+      - name: large
+        input: |
+          select * from :base where amount >= 10;
+      - name: report
+        input: |
+          select (select count(*) from :small) as s, (select count(*) from :large) as l;
+    expected:
+      valid: true
+      scripts:
+        - name: base
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: small
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "443b09df687441992ef4b7d0389d90ea"
+          references: [base]
+        - name: large
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "c0107d915bdf9ba44f4007537748996d"
+          references: [base]
+        - name: report
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "af7379220a5c867d2ed134677b457396"
+          references: [small,large]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: base
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: small
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with base as (
+            select id, amount from orders
+            )
+            select * from base where amount < 10
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: large
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with base as (
+            select id, amount from orders
+            )
+            select * from base where amount >= 10
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: report
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with base as (
+            select id, amount from orders
+            ),
+            small as (
+            select * from base where amount < 10
+            ),
+            "large" as (
+            select * from base where amount >= 10
+            )
+            select (select count(*) from small) as s, (select count(*) from "large") as l
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0,1,2]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: small
+          text: ":base"
+          target: base
+          cte: base
+        - node: 2
+          script: large
+          text: ":base"
+          target: base
+          cte: base
+        - node: 3
+          script: report
+          text: ":small"
+          target: small
+          cte: small
+        - node: 3
+          script: report
+          text: ":large"
+          target: large
+          cte: large
+      diagnostics: []
+
+  - name: FuseProducerWithCtes
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          with o as (select * from orders) select id from o;
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "fafe141266128abfc8146c3e2cac4fe8"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "with o as (select * from orders) select id from o"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            with o as (select * from orders) select id from o
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseProducerTrailingComment
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders -- the large ones
+          where amount > 10;
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8a3c11f57723076e1f2d43d8f3a44d1f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            select id from orders -- the large ones
+            where amount > 10
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from orders -- the large ones
+            where amount > 10
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseProducerOfTable
+    scripts:
+      - name: setup
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: setup
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "52b2239ad9a3680b850299642993492d"
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a2a3c8a2261b895606b724ae6948ae57"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: setup
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: setup
+          statement-id: 1
+          type: INSERT
+          sql: "insert into t values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select a from t
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      references:
+        - node: 3
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseProducerBelow
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: bar
+        input: |
+          select count(*) from :foo;
+      - name: foo
+        input: |
+          select id from orders;
+    expected:
+      valid: true
+      scripts:
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from orders
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseQuotedNames
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: brave_otter-2
+        input: |
+          select id from orders;
+      - name: Mixed Case
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :"brave_otter-2" a, :"Mixed Case" b where a.id = b.id;
+    expected:
+      valid: true
+      scripts:
+        - name: brave_otter-2
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: Mixed Case
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "2f44c76f2a29527bbbbb082a070c10e4"
+          references: [brave_otter-2,Mixed Case]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: brave_otter-2
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: Mixed Case
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with "brave_otter-2" as (
+            select id from orders
+            ),
+            "Mixed Case" as (
+            select id from orders
+            )
+            select * from "brave_otter-2" a, "Mixed Case" b where a.id = b.id
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0,1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 2
+          script: bar
+          text: ":\"brave_otter-2\""
+          target: brave_otter-2
+          cte: brave_otter-2
+        - node: 2
+          script: bar
+          text: ":\"Mixed Case\""
+          target: Mixed Case
+          cte: Mixed Case
+      diagnostics: []
+
+  - name: FuseCaseInsensitiveName
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: Foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :foo f;
+    expected:
+      valid: true
+      scripts:
+        - name: Foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d49474dd15197c80a85eaf36ec93fa05"
+          references: [Foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: Foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with "Foo" as (
+            select id from orders
+            )
+            select * from "Foo" f
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: Foo
+          cte: Foo
+      diagnostics: []
+
+  - name: FuseNameCollisions
+    catalog: |
+      create table foo (id int);
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :foo f join foo using (id);
+      - name: baz
+        input: |
+          with foo_2 as (select 1 as id) select * from :foo f join foo_2 using (id);
+      - name: qux
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "06f324a8f780112a42a3c7d400bc33a7"
+          references: [foo]
+        - name: baz
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "5a901f4e8147ca5fbb6c5cc6f974d1d8"
+          references: [foo]
+        - name: qux
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: foo
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo_2 as (
+            select id from orders
+            )
+            select * from foo_2 f join foo using (id)
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: baz
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from orders
+            ),
+            foo_2 as (select 1 as id) select * from foo f join foo_2 using (id)
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 3
+          script: qux
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from orders
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo_2
+        - node: 2
+          script: baz
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 3
+          script: qux
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseRenamedWithoutAlias
+    catalog: |
+      create table foo (id int);
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :foo join foo using (id);
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "697f9dc7d245d7b794e32135c0c46430"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: foo
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo_2 as (
+            select id from orders
+            )
+            select * from foo_2 join foo using (id)
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo_2
+      diagnostics: []
+
+  - name: FuseShadowedByCte
+    catalog: |
+      create table orders (id int, amount int);
+      create table t (id int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: plain
+        input: |
+          with orders as (select 1 as id) select * from orders, :foo f;
+      - name: recursive
+        input: |
+          with recursive orders(id) as (select 1 union all select id + 1 from orders where id < 3) select * from orders, :foo f;
+      - name: inserts
+        input: |
+          with orders as (select 1 as id) insert into t select id from :foo;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: plain
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "724f01b2ce5017308ba27efbc1bbc45d"
+          references: [foo]
+        - name: recursive
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6232c87424669fb02ed3b96b8d8d2341"
+          references: [foo]
+        - name: inserts
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f1071e8f1da3fddf5c7249b77385bb78"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: recursive
+          text: ":foo"
+          error: true
+          message: 'the query of foo.sql reads orders, which recursive.sql defines as a common table expression there'
+        - script: inserts
+          text: ":foo"
+          error: true
+          message: 'the query of foo.sql reads orders, which inserts.sql defines as a common table expression there'
+
+  - name: FuseVisualization
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          /* @vis table */
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "400b56f938d45d0772f97ea2363aff94"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: FuseAccesses
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: load
+        input: |
+          insert into orders values (1, 10);
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "ba869565360ad9a98fe71062ba01fcce"
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: load
+          statement-id: 0
+          type: INSERT
+          sql: "insert into orders values (1, 10)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          fused-scripts: [1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      references:
+        - node: 2
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+
+  - name: ScalarParameter
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from orders where amount > :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "68b0b821262a0a9ae31056cc09ff4ed3"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: "select * from orders where amount > :foo"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []

@@ -7,16 +7,15 @@ import { ConnectorType } from '../../connections/connector_info.js';
 import * as dashql from '@ankoh/dashql-core';
 import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { QueryResultRerunButton } from './query_result_cache_controls.js';
-import { runSessionScript } from './rerun_query.js';
 import { ScriptDetails, type ScriptDetailsDependencies } from './script_details.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-const state = { keyHandlers: [] as any[], executeQuery: vi.fn(), formatScriptEditor: vi.fn(), deleteCache: vi.fn(), outputProps: null as any };
+const state = { keyHandlers: [] as any[], executeQuery: vi.fn(), runSessionScript: vi.fn(), formatScriptEditor: vi.fn(), outputProps: null as any };
 /// Stable like the storage context
-const storageReader = { backend: { deleteQueryResultCache: state.deleteCache }, getSessionLocation: () => ({}) };
+const storageReader = { backend: {}, getSessionLocation: () => ({}) };
 const dependencies = {
     useAppConfig: () => ({ settings: {} }),
     useLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn() }),
@@ -32,7 +31,7 @@ const dependencies = {
         state.formatScriptEditor(...args);
         args[3]('SELECT 2;');
     },
-    runSessionScript,
+    runSessionScript: state.runSessionScript,
     ScriptDetailsEditorPane: (props: any) => {
         React.useEffect(() => props.onEditorView({ focus: vi.fn() }), [props.onEditorView]);
         return <div>
@@ -47,14 +46,11 @@ const dependencies = {
 
 function scripts(): SessionScripts {
     const scriptSession = {
-        getText: () => 'SELECT 2', isFullyFormattable: () => true, compileQuery: () => ({
-            read: () => ({ errorsLength: () => 0, sql: () => 'SELECT 2', cacheSignature: () => 'signature', cacheable: () => true }),
-            destroy: () => {},
-        }), startExecution: () => ({}),
+        getText: () => 'SELECT 2', isFullyFormattable: () => true,
     };
     const connection = { connectionId: 'database', connectorInfo: { connectorType: ConnectorType.TRINO } };
     return {
-        sessionId: 'session', name: 'Test', pendingConnection: null, settings: { cacheQueryResults: true }, instance: {} as any, sessionMetadata: {} as any,
+        sessionId: 'session', name: 'Test', pendingConnection: null, instance: {} as any, sessionMetadata: {} as any,
         scripts: { 1: { scriptKey: 1, fileName: '01_first.sql', scriptSession, analysisOutdated: false, annotations: {}, latestQueryId: null, connection } as any,
             2: { scriptKey: 2, fileName: '02_second.sql', scriptSession, analysisOutdated: false, annotations: {}, latestQueryId: null, connection } as any },
         scriptRefs: {
@@ -78,7 +74,7 @@ function menuItem(action: string): HTMLButtonElement | null {
 describe('ScriptDetails V2 flat scripts', () => {
     let container: HTMLDivElement;
     let root: Root;
-    beforeEach(() => { state.keyHandlers = []; state.executeQuery.mockReset().mockReturnValue([42, Promise.resolve()]); state.formatScriptEditor.mockReset(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
+    beforeEach(() => { state.keyHandlers = []; state.runSessionScript.mockReset(); state.formatScriptEditor.mockReset(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
     it('pins a flat script by id rather than current focus', () => {
@@ -105,18 +101,30 @@ describe('ScriptDetails V2 flat scripts', () => {
 
     it('executes the pinned script from Ctrl+E', () => {
         const modify = vi.fn();
+        const sessionScripts = scripts();
         const connection = connectionState('database', ConnectionHealth.ONLINE);
-        act(() => root.render(<ScriptDetails sessionScripts={scripts()} modifySessionScripts={modify}
+        act(() => root.render(<ScriptDetails sessionScripts={sessionScripts} modifySessionScripts={modify}
             connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
         const handler = state.keyHandlers.find(value => value.key === 'e' && value.ctrlKey === true);
         expect(handler).toBeDefined();
         act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
-        expect(state.executeQuery).toHaveBeenCalledWith('database', expect.objectContaining({ query: 'SELECT 2' }));
+        expect(state.runSessionScript).toHaveBeenCalledExactlyOnceWith(sessionScripts, sessionScripts.scripts[2], state.executeQuery, modify, expect.anything());
     });
 
-    it('blocks pinned Ctrl+E and cached reruns before cache deletion while main is offline', async () => {
+    it('refreshes the pinned script without reading cached results', () => {
+        const modify = vi.fn();
+        const sessionScripts = scripts();
+        const connection = connectionState('database', ConnectionHealth.ONLINE);
+        act(() => root.render(<ScriptDetails sessionScripts={sessionScripts} modifySessionScripts={modify}
+            connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
+        const rerun = React.Children.toArray(state.outputProps.statusActions.props.children)
+            .find((child: any) => child.type === QueryResultRerunButton) as React.ReactElement<{ onRerun?: () => void }>;
+        act(() => rerun.props.onRerun!());
+        expect(state.runSessionScript).toHaveBeenCalledExactlyOnceWith(sessionScripts, sessionScripts.scripts[2], state.executeQuery, modify, expect.anything(), { refresh: true });
+    });
+
+    it('blocks pinned Ctrl+E and refreshes while main is offline', async () => {
         const request = vi.fn();
-        state.deleteCache.mockReset().mockResolvedValue(undefined);
         const connection = connectionState('main', ConnectionHealth.FAILED);
         act(() => root.render(<SessionConnectionAttentionContext.Provider value={{ sessionId: 'session', active: false, request }}>
             <ScriptDetails sessionScripts={scripts()} modifySessionScripts={vi.fn()}
@@ -125,41 +133,11 @@ describe('ScriptDetails V2 flat scripts', () => {
         const handler = state.keyHandlers.find(value => value.key === 'e' && value.ctrlKey === true);
         act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
         expect(request).toHaveBeenCalledExactlyOnceWith('session');
-        expect(state.executeQuery).not.toHaveBeenCalled();
+        expect(state.runSessionScript).not.toHaveBeenCalled();
         const rerun = React.Children.toArray(state.outputProps.statusActions.props.children)
             .find((child: any) => child.type === QueryResultRerunButton) as React.ReactElement<{ onRerun?: () => void }>;
         expect(rerun).toBeDefined();
         expect(rerun.props.onRerun).toBeUndefined();
-        expect(state.deleteCache).not.toHaveBeenCalled();
-    });
-
-    it('executes unparseable remote SQL from Ctrl+E without caching', () => {
-        const sessionScripts = scripts();
-        const sql = 'SELECT * FROM t QUALIFY row_number() OVER (ORDER BY id) = 1';
-        sessionScripts.scripts[2].scriptSession = {
-            getText: () => sql,
-            compileQuery: () => ({
-                read: () => ({
-                    errorsLength: () => 1,
-                    errors: () => ({ message: () => 'syntax error' }),
-                    sql: () => sql,
-                    cacheSignature: () => '',
-                    cacheable: () => false,
-                }),
-                destroy: () => {},
-            }),
-            startExecution: () => ({}),
-        } as any;
-        const connection = connectionState('database', ConnectionHealth.ONLINE);
-        act(() => root.render(<ScriptDetails sessionScripts={sessionScripts} modifySessionScripts={vi.fn()}
-            connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
-
-        const handler = state.keyHandlers.find(value => value.key === 'e' && value.ctrlKey === true);
-        expect(handler).toBeDefined();
-        act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
-        expect(state.executeQuery).toHaveBeenCalledWith('database', expect.objectContaining({
-            query: sql, cacheable: false, cacheSignature: '',
-        }));
     });
 
     it('offers pretty and compact formatting modes', () => {

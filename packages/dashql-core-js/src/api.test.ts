@@ -110,8 +110,16 @@ describe('DashQL planner', () => {
         return session;
     }
 
+    /// Plan scripts of one catalog as the session of one connection
+    function plan(catalog: dashql.DashQLCatalog, sessions: readonly dashql.DashQLScriptSession[]) {
+        return dql!.planSession({
+            connections: [{ id: 'c', local: false, catalog }],
+            scripts: sessions.map(session => ({ name: '', connection: 0, session })),
+        });
+    }
+
     it('returns an owned empty graph', () => {
-        const result = dql!.plan([]);
+        const result = dql!.planSession({ connections: [], scripts: [] });
         const reader = result.read(new execution.ExecutionGraph());
         expect(reader.valid()).toBe(true);
         expect(reader.nodesLength()).toBe(0);
@@ -134,7 +142,7 @@ describe('DashQL planner', () => {
         second.analyze();
         const version = first.getCatalogRevision();
         const state = first.getStateRevision();
-        const result = dql!.plan([second, first]);
+        const result = plan(catalog, [second, first]);
         const graph = result.read().unpack();
         expect(graph.valid).toBe(true);
         expect(graph.diagnostics).toEqual([]);
@@ -179,7 +187,7 @@ describe('DashQL planner', () => {
         }
         expect(first.getCatalogRevision()).toBe(version);
         expect(first.getStateRevision()).toBe(state);
-        expect(dql!.plan([second, first]).unpack()).toEqual(graph);
+        expect(plan(catalog, [second, first]).unpack()).toEqual(graph);
     });
 
     it('packs DDL and read/write conflicts across sessions', () => {
@@ -191,7 +199,7 @@ describe('DashQL planner', () => {
         create.analyze();
         const [table] = resolvedTables(reads);
         writes.analyze();
-        const graph = dql!.plan([create, reads, writes]).unpack() as
+        const graph = plan(catalog, [create, reads, writes]).unpack() as
             dashql.buffers.execution.ExecutionGraphT;
         expect(graph.valid).toBe(true);
         expect(graph.nodes).toHaveLength(6);
@@ -235,7 +243,7 @@ describe('DashQL planner', () => {
         const [oldTable] = resolvedTables(create);
         const tables = resolvedTables(use);
         const newTable = tables[tables.length - 1];
-        const graph = dql!.plan(participating ? [create, use] : [use]).unpack() as
+        const graph = plan(catalog, participating ? [create, use] : [use]).unpack() as
             dashql.buffers.execution.ExecutionGraphT;
         expect(graph.valid).toBe(true);
         expect(graph.diagnostics).toEqual([]);
@@ -284,9 +292,9 @@ describe('DashQL planner', () => {
     });
 
     it('uses unresolved references and barrier sentinels without synthetic entities', () => {
-        const session = prepare(dql!.createCatalog(),
-            'select 1; select * from db.s.missing; drop table db.s.missing; select 2');
-        const result = dql!.plan([session]);
+        const catalog = dql!.createCatalog();
+        const session = prepare(catalog, 'select 1; select * from db.s.missing; drop table db.s.missing; select 2');
+        const result = plan(catalog, [session]);
         const reader = result.read();
         expect(reader.entitiesLength()).toBe(0);
         expect(reader.unresolvedReferencesLength()).toBe(1);
@@ -325,7 +333,7 @@ describe('DashQL planner', () => {
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'select 1');
         const version = session.getCatalogRevision();
-        const missing = dql!.plan([session]).unpack();
+        const missing = plan(catalog, [session]).unpack();
         expect(missing.valid).toBe(false);
         expect(missing.nodes).toEqual([]);
         expect(missing.diagnostics[0].message).toContain('missing or stale');
@@ -334,24 +342,81 @@ describe('DashQL planner', () => {
         session.analyze();
         session.loadIntoCatalog();
         session.replaceText(1n, 'select 2');
-        const stale = dql!.plan([session]).unpack();
+        const stale = plan(catalog, [session]).unpack();
         expect(stale.valid).toBe(false);
         expect(stale.nodes).toEqual([]);
         session.analyze();
-        const refreshed = dql!.plan([session]).unpack();
+        const refreshed = plan(catalog, [session]).unpack();
         expect(refreshed.valid).toBe(true);
         expect(refreshed.scripts[0].textVersion).toBe(2n);
         expect(refreshed.scripts[0].analyzedTextVersion).toBe(refreshed.scripts[0].textVersion);
         expect(refreshed.nodes[0].sql).toBe('select 2');
     });
 
-    it('reports mixed native catalogs and duplicates as graph diagnostics', () => {
-        const first = prepare(dql!.createCatalog(), 'select 1');
+    it('plans script references across connections', () => {
+        const trino = dql!.createCatalog();
+        const local = dql!.createCatalog();
+        const foo = prepare(trino, 'select 1 as a');
+        const same = prepare(local, 'select 2 as b');
+        const bar = prepare(local, 'select * from :foo, :same');
+        // Publishing and dropping the scripts moved the catalog revision past the earlier analyses
+        for (const session of [foo, same, bar]) session.analyze();
+        const request = {
+            connections: [{ id: 'trino', local: false, catalog: trino }, { id: 'local', local: true, catalog: local }],
+            scripts: [{ name: 'foo', connection: 0, session: foo }, { name: 'same', connection: 1, session: same }, { name: 'bar', connection: 1, session: bar }],
+            mountPrefix: '/mnt/external/run',
+        };
+        const graph = dql!.planSession(request).unpack();
+        expect(graph.diagnostics.map(d => d.message)).toEqual([]);
+        expect(graph.valid).toBe(true);
+        expect(graph.connections.map(c => [c.connectionId, c.kind])).toEqual([
+            ['trino', execution.ExecutionGraphConnectionKind.REMOTE], ['local', execution.ExecutionGraphConnectionKind.LOCAL]]);
+        expect(graph.materializations.map(m => [m.script, m.node, m.path])).toEqual([[0, 0, '/mnt/external/run/s0.parquet']]);
+        const consumer = graph.nodes[2];
+        expect(consumer.sql).toBe(
+            "with foo as (select * from external('/mnt/external/run/s0.parquet', format => 'parquet')),\nsame as (\nselect 2 as b\n)\nselect * from foo, same");
+        expect(consumer.inputs).toEqual([0]);
+        expect(consumer.scriptResult).toBe(true);
+        expect(graph.scripts[2].referencedScripts).toEqual([0, 1]);
+        expect(graph.edges.map(e => [e.from, e.to, e.reason])).toEqual([[0, 2, execution.ExecutionGraphEdgeReason.MATERIALIZATION]]);
+
+        // A plan of the target with a provided materialization runs the target only
+        // The host names the file of a materialized result
+        const named = dql!.planSession({ ...request, scripts: request.scripts.map((script, index) => index === 0 ? { ...script, materializationFile: 'key.0123.parquet' } : script) }).unpack();
+        expect(named.materializations.map(m => m.path)).toEqual(['/mnt/external/run/key.0123.parquet']);
+
+        const targeted = dql!.planSession({ ...request, targets: [2], materialized: [0] }).unpack();
+        expect(targeted.valid).toBe(true);
+        expect(targeted.nodes.map(n => n.script)).toEqual([2]);
+        expect(targeted.materializations[0].node).toBe(absent);
+        expect(targeted.scripts.map(s => s.planned)).toEqual([true, true, true]);
+        expect(targeted.scripts.map(s => s.target)).toEqual([false, false, true]);
+    });
+
+    it('reports script reference errors with their text', () => {
+        const remote = dql!.createCatalog();
+        const other = dql!.createCatalog();
+        const foo = prepare(remote, 'select 1 as a');
+        const bar = prepare(other, 'select * from :foo');
+        for (const session of [foo, bar]) session.analyze();
+        const graph = dql!.planSession({
+            connections: [{ id: 'trino', local: false, catalog: remote }, { id: 'salesforce', local: false, catalog: other }],
+            scripts: [{ name: 'foo', connection: 0, session: foo }, { name: 'bar', connection: 1, session: bar }],
+        }).unpack();
+        expect(graph.valid).toBe(false);
+        expect(graph.nodes).toEqual([]);
+        expect(graph.diagnostics.map(d => [d.script, d.error, d.textSpan?.offset, d.textSpan?.length, d.message])).toEqual([
+            [1, true, 14, 4, 'bar.sql runs on the connection salesforce and cannot read foo.sql of the connection trino']]);
+    });
+
+    it('reports scripts of other catalogs and duplicates as graph diagnostics', () => {
+        const catalog = dql!.createCatalog();
+        const first = prepare(catalog, 'select 1');
         const second = prepare(dql!.createCatalog(), 'select 2');
         for (const [sessions, message] of [
-            [[first, second], 'different catalogs'], [[first, first], 'duplicate'],
+            [[first, second], 'another catalog'], [[first, first], 'duplicate'],
         ] as const) {
-            const graph = dql!.plan(sessions).unpack();
+            const graph = plan(catalog, sessions).unpack();
             expect(graph.valid).toBe(false);
             expect(graph.nodes).toEqual([]);
             expect(graph.diagnostics.some((diagnostic: dashql.buffers.execution.ExecutionGraphDiagnosticT) =>
@@ -365,7 +430,7 @@ describe('DashQL planner', () => {
         prepare(catalog, 'create table added (id int)', true);
         const revision = session.getCatalogRevision();
         const state = session.getStateRevision();
-        const stale = dql!.plan([session]).unpack();
+        const stale = plan(catalog, [session]).unpack();
         expect(stale.valid).toBe(false);
         expect(stale.nodes).toEqual([]);
         expect(stale.diagnostics.some((diagnostic: dashql.buffers.execution.ExecutionGraphDiagnosticT) =>
@@ -373,18 +438,19 @@ describe('DashQL planner', () => {
         expect(session.getCatalogRevision()).toBe(revision);
         expect(session.getStateRevision()).toBe(state);
         session.analyze();
-        const refreshed = dql!.plan([session]).unpack();
+        const refreshed = plan(catalog, [session]).unpack();
         expect(refreshed.valid).toBe(true);
         expect(refreshed.scripts[0].analyzedCatalogRevision).toBe(revision);
         expect(refreshed.nodes[0].sql).toBe('select 1');
     });
 
-    it('plans large session arrays and frees the native session list', () => {
-        const session = prepare(dql!.createCatalog(), 'select 1');
+    it('plans large script arrays and frees the native request', () => {
+        const catalog = dql!.createCatalog();
+        const session = prepare(catalog, 'select 1');
         const baseline = dql!.registeredMemory.size;
-        const free = vi.spyOn(dql!.bindings.SessionList.prototype, 'free');
+        const free = vi.spyOn(dql!.bindings.SessionPlanRequest.prototype, 'free');
         try {
-            const result = dql!.plan(new Array(300000).fill(session));
+            const result = plan(catalog, new Array(300000).fill(session));
             expect(result.read().valid()).toBe(false);
             expect(result.read().nodesLength()).toBe(0);
             expect(result.read().diagnostics(0)?.message()).toContain('duplicate');
@@ -396,21 +462,23 @@ describe('DashQL planner', () => {
     });
 
     it('rejects foreign, destroyed, null, and non-session inputs before entering native code', () => {
-        const session = prepare(dql!.createCatalog(), 'select 1');
+        const catalog = dql!.createCatalog();
+        const session = prepare(catalog, 'select 1');
         const other = new dashql.DashQL(dql!.bindings);
         expect(other).not.toBe(dql);
         const foreign = other.createScriptSession(other.createCatalog());
-        const plan = vi.spyOn(dql!.bindings, 'plan');
+        const planSession = vi.spyOn(dql!.bindings, 'planSession');
         try {
-            expect(() => dql!.plan([session, foreign])).toThrow('different DashQL instance');
+            expect(() => plan(catalog, [session, foreign])).toThrow('different DashQL instance');
+            expect(() => plan(other.createCatalog(), [session])).toThrow('different DashQL instance');
             session.destroy();
-            expect(() => dql!.plan([session])).toThrow(dashql.NULL_POINTER_EXCEPTION);
+            expect(() => plan(catalog, [session])).toThrow(dashql.NULL_POINTER_EXCEPTION);
             for (const input of [null, undefined, {}, [null], [undefined], [{}], new Array(1)]) {
-                expect(() => dql!.plan(input as any)).toThrow(TypeError);
+                expect(() => dql!.planSession({ connections: [{ id: 'c', local: false, catalog }], scripts: input as any })).toThrow(TypeError);
             }
-            expect(plan).not.toHaveBeenCalled();
+            expect(planSession).not.toHaveBeenCalled();
         } finally {
-            plan.mockRestore();
+            planSession.mockRestore();
             other.resetUnsafe();
         }
     });
@@ -418,8 +486,8 @@ describe('DashQL planner', () => {
     it('owns detached graph bytes and preserves unpacked data after release', () => {
         const catalog = dql!.createCatalog();
         const session = prepare(catalog, 'select 1');
-        const first = dql!.plan([session]);
-        const second = dql!.plan([session]);
+        const first = plan(catalog, [session]);
+        const second = plan(catalog, [session]);
         expect(first.equals(second)).toBe(false);
         expect(dql!.registeredMemory.size).toBe(2);
         session.replaceText(1n, 'select 2');
@@ -436,19 +504,20 @@ describe('DashQL planner', () => {
         expect(unpacked.scripts[0].analyzedTextVersion).toBe(unpacked.scripts[0].textVersion);
     });
 
-    it('frees the native session list when planning throws', () => {
-        const session = prepare(dql!.createCatalog(), 'select 1');
+    it('frees the native request when planning throws', () => {
+        const catalog = dql!.createCatalog();
+        const session = prepare(catalog, 'select 1');
         const baseline = dql!.registeredMemory.size;
-        const plan = vi.spyOn(dql!.bindings, 'plan').mockImplementation(() => {
+        const planSession = vi.spyOn(dql!.bindings, 'planSession').mockImplementation(() => {
             throw new Error('test failure');
         });
-        const free = vi.spyOn(dql!.bindings.SessionList.prototype, 'free');
+        const free = vi.spyOn(dql!.bindings.SessionPlanRequest.prototype, 'free');
         try {
-            expect(() => dql!.plan([session])).toThrow('test failure');
+            expect(() => plan(catalog, [session])).toThrow('test failure');
             expect(free).toHaveBeenCalledTimes(1);
             expect(dql!.registeredMemory.size).toBe(baseline);
         } finally {
-            plan.mockRestore();
+            planSession.mockRestore();
             free.mockRestore();
         }
     });
@@ -672,8 +741,6 @@ describe('DashQL editor sessions', () => {
         const compilation = session.compileQuery(config);
         expect(compilation.read().sql()).toBe('select 1 as value');
         expect(compilation.read().errorsLength()).toBe(0);
-        expect(compilation.read().cacheable()).toBe(true);
-        expect(compilation.read().cacheSignature()).toMatch(/^[0-9a-f]{32}$/);
 
         expect(session.isFullyFormattable(config)).toBe(true);
         const formatted = session.format(config);

@@ -15,6 +15,8 @@ const LOG_CTX = "connection_restore";
 export type StoredConnection = Pick<SessionConnection, 'params' | 'paramsDraft'> & {
     /// The name of the connection, the app manifest keeps it, an imported session brings it along
     name?: string;
+    /// Does the connection cache query results? The app manifest keeps it, absent for the default of the connector.
+    cacheQueryResults?: boolean;
 };
 
 /// Create the state of a connection from its stored params.
@@ -22,7 +24,11 @@ export type StoredConnection = Pick<SessionConnection, 'params' | 'paramsDraft'>
 export function connectionStateFromStorage(core: DashQL, connectionId: string, stored: StoredConnection): ConnectionState {
     const [connectorInfo, details] = decodeConnectionFromProto(stored.params as any, connectionId);
     const state = restoreConnectionState(core, connectionId, connectorInfo, details, stored.paramsDraft);
-    return stored.name == null ? state : { ...state, name: stored.name };
+    return {
+        ...state,
+        ...(stored.name == null ? {} : { name: stored.name }),
+        ...(stored.cacheQueryResults == null ? {} : { cacheQueryResults: stored.cacheQueryResults }),
+    };
 }
 
 /// Destroy a connection that was created but never registered

@@ -1,0 +1,218 @@
+planner-snapshots:
+  # The LOCAL connection scans the result of a script of another connection as Parquet file
+  - name: LocalReadsRemote
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+
+  # The query of the materialized script runs after the script that writes its relations, before the scan
+  - name: MaterializeProducerOfTable
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: setup
+        connection: trino
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: foo
+        connection: trino
+        input: |
+          select a from t;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+
+  # Two statements scan one materialization
+  - name: SharedMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+      - name: baz
+        connection: local
+        input: |
+          select sum(amount) from :foo;
+
+  # A fused script of the LOCAL connection scans a materialized script, the scan goes into the statement
+  - name: FusedScanOfMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: baz
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: foo
+        connection: local
+        input: |
+          select * from :baz where amount > 1;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+
+  # A materialized script fuses its own references of its connection
+  - name: MaterializeFusedProducer
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: foo
+        connection: trino
+        input: |
+          select * from :base where amount > 1;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+
+  # CREATE TABLE AS copies a materialized result
+  - name: MaterializeIntoTable
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: bar
+        connection: local
+        input: |
+          create table snapshot as select * from :foo;
+
+  # A REMOTE connection cannot read a script of another REMOTE connection
+  - name: RemoteReadsRemote
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: salesforce
+        kind: REMOTE
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: salesforce
+        input: |
+          select * from :foo;
+
+  # A REMOTE connection cannot read a script of the LOCAL connection
+  - name: RemoteReadsLocal
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: local
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: trino
+        input: |
+          select * from :foo;
+
+  # A view cannot read a materialized result, the result exists only while the statement runs
+  - name: ViewOfMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: local
+        input: |
+          create view v as select * from :foo;
+
+  # A view cannot read a materialized result through a fused query either
+  - name: ViewOfFusedMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: baz
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: foo
+        connection: local
+        input: |
+          select * from :baz;
+      - name: bar
+        connection: local
+        input: |
+          create view v as select * from :foo;
+
+  # A materialized script must run before the statement that scans it
+  - name: MaterializedProducerBelow
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;

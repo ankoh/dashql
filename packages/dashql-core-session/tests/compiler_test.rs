@@ -1,14 +1,10 @@
-//! Tests of the script compiler: the executable SQL of a script, its statements and the compiled
-//! visualization of a terminal VISUALIZE statement.
+//! Tests of the script compiler: the terminal statement of a script, its SQL and the compiled
+//! visualization of a terminal VISUALIZE statement, and the output of statements.
 
-use dashql_buffers::execution::{
-    CompiledScriptStatementKind as CompiledKind, ScriptCompilationErrorCode as ErrorCode, ScriptCompilationResultT,
-    ScriptCompilationStatementKind as StatementKind,
-};
+use dashql_buffers::execution::{ScriptCompilationErrorCode as ErrorCode, ScriptCompilationResultT, ScriptCompilationStatementKind as StatementKind};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
-use dashql_buffers::parser::StatementType;
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
-use dashql_core_session::compiler::{compile, read_executable_text, CompilationOptions};
+use dashql_core_session::compiler::{compile, produces_output, read_executable_text, CompilationOptions};
 use dashql_core::script::Script;
 use dashql_parser::span::TextSpan;
 
@@ -34,8 +30,15 @@ fn error_codes(result: &ScriptCompilationResultT) -> Vec<ErrorCode> {
     result.errors.as_ref().unwrap().iter().map(|e| e.code).collect()
 }
 
-fn statement_sqls(result: &ScriptCompilationResultT) -> Vec<&str> {
-    result.statements.as_ref().unwrap().iter().map(|s| s.sql.as_deref().unwrap()).collect()
+/// Does every statement of a script produce output?
+fn outputs(text: &str) -> Vec<bool> {
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text(text);
+    script.parse();
+    let parsed = script.parsed.as_ref().unwrap();
+    assert!(parsed.errors.is_empty(), "{text}");
+    parsed.statements.iter().map(|statement| produces_output(parsed, statement)).collect()
 }
 
 #[test]
@@ -51,7 +54,6 @@ fn empty_script_is_an_error() {
     assert_eq!(error_codes(&result), vec![ErrorCode::EMPTY_SCRIPT]);
     assert_eq!(result.terminal_statement_id, PROTO_NULL_U32);
     assert_eq!(result.sql.as_deref(), Some(""));
-    assert!(result.statements.as_ref().unwrap().is_empty());
 }
 
 #[test]
@@ -79,13 +81,7 @@ fn single_query() {
     assert!(result.errors.as_ref().unwrap().is_empty());
     assert_eq!(result.kind, StatementKind::QUERY);
     assert_eq!(result.terminal_statement_id, 0);
-    assert!(result.cacheable);
     assert_eq!(result.sql.as_deref(), Some("select 1"));
-    let statements = result.statements.as_ref().unwrap();
-    assert_eq!(statements.len(), 1);
-    assert_eq!(statements[0].kind, CompiledKind::OUTPUT);
-    assert_eq!(statements[0].statement_type, StatementType::SELECT);
-    assert!(!result.cache_signature.as_deref().unwrap().is_empty());
 }
 
 #[test]
@@ -94,75 +90,25 @@ fn commands_precede_the_terminal_query() {
     assert!(result.errors.as_ref().unwrap().is_empty());
     assert_eq!(result.terminal_statement_id, 2);
     assert_eq!(result.sql.as_deref(), Some("select a from t"));
-    let kinds: Vec<_> = result.statements.as_ref().unwrap().iter().map(|s| s.kind).collect();
-    assert_eq!(kinds, vec![CompiledKind::COMMAND, CompiledKind::COMMAND, CompiledKind::OUTPUT]);
-    let types: Vec<_> = result.statements.as_ref().unwrap().iter().map(|s| s.statement_type).collect();
-    assert_eq!(types, vec![StatementType::CREATE_TABLE, StatementType::INSERT, StatementType::SELECT]);
-    assert_eq!(statement_sqls(&result)[0], "create table t (a int)");
 }
 
 #[test]
-fn commands_before_the_terminal_query_are_not_cacheable() {
-    // A cache hit would skip the commands
-    for text in ["create table t as select 1 as a; select a from t", "set search_path = x; select 1"] {
-        let result = compile_text(text);
-        assert!(result.errors.as_ref().unwrap().is_empty(), "{text}");
-        assert!(!result.cacheable, "{text}");
-    }
-}
-
-#[test]
-fn script_of_commands_is_not_cacheable() {
-    let result = compile_text("create table t (a int)");
+fn outputs_before_the_terminal_statement_are_no_error() {
+    // A run returns the last output, the terminal statement is the last statement
+    let result = compile_text("select 1; create table t (a int);");
     assert!(result.errors.as_ref().unwrap().is_empty());
-    assert!(!result.cacheable);
-    assert_eq!(result.statements.as_ref().unwrap()[0].kind, CompiledKind::COMMAND);
-}
-
-#[test]
-fn returning_statements_produce_output() {
-    let result = compile_text("create table t (a int); insert into t values (1) returning a;");
-    assert!(result.errors.as_ref().unwrap().is_empty());
-    assert_eq!(result.statements.as_ref().unwrap()[1].kind, CompiledKind::OUTPUT);
-
-    let result = compile_text("create table t (a int); delete from t where a = 1 returning a;");
-    assert!(result.errors.as_ref().unwrap().is_empty());
-    assert_eq!(result.statements.as_ref().unwrap()[1].kind, CompiledKind::OUTPUT);
-
-    // Without RETURNING they are commands
-    let result = compile_text("create table t (a int); insert into t values (1); delete from t");
-    let kinds: Vec<_> = result.statements.as_ref().unwrap().iter().map(|s| s.kind).collect();
-    assert_eq!(kinds, vec![CompiledKind::COMMAND; 3]);
-}
-
-#[test]
-fn select_into_is_a_command() {
-    // The table of a SELECT INTO can be read by a later statement
-    let result = compile_text("select 1 as a into t; select a from t");
-    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
-    let kinds: Vec<_> = result.statements.as_ref().unwrap().iter().map(|s| s.kind).collect();
-    assert_eq!(kinds, vec![CompiledKind::COMMAND, CompiledKind::OUTPUT]);
-}
-
-#[test]
-fn output_statement_must_be_last() {
-    let result = compile_text("select 1; select 2;");
-    assert_eq!(error_codes(&result), vec![ErrorCode::OUTPUT_STATEMENT_NOT_LAST]);
-    let error = &result.errors.as_ref().unwrap()[0];
-    assert_eq!(error.statement_id, 0);
-    assert!(error.text_span.is_some());
-    // The offending statement is dropped, the terminal one is kept
     assert_eq!(result.terminal_statement_id, 1);
-    assert_eq!(result.statements.as_ref().unwrap().len(), 1);
+    assert_eq!(result.sql.as_deref(), Some("create table t (a int)"));
 }
 
 #[test]
-fn explain_produces_output() {
-    let result = compile_text("explain select 1; select 2");
-    assert_eq!(error_codes(&result), vec![ErrorCode::OUTPUT_STATEMENT_NOT_LAST]);
-    let result = compile_text("explain select 1");
-    assert!(result.errors.as_ref().unwrap().is_empty());
-    assert!(result.cacheable);
+fn queries_and_returning_statements_produce_output() {
+    assert_eq!(outputs("select 1; explain select 1"), vec![true, true]);
+    assert_eq!(outputs("create table t (a int); insert into t values (1) returning a; delete from t where a = 1 returning a"), vec![false, true, true]);
+    // Without RETURNING they are commands
+    assert_eq!(outputs("create table t (a int); insert into t values (1); delete from t"), vec![false; 3]);
+    // The table of a SELECT INTO can be read by a later statement
+    assert_eq!(outputs("select 1 as a into t; select a from t"), vec![false, true]);
 }
 
 #[test]
@@ -172,10 +118,6 @@ fn parser_errors_keep_the_original_text() {
     assert!(result.errors.as_ref().unwrap()[0].text_span.is_some());
     assert_eq!(result.sql.as_deref(), Some("select 1 +;"));
     assert_eq!(result.terminal_statement_id, 0);
-    let statements = result.statements.as_ref().unwrap();
-    assert_eq!(statements.len(), 1);
-    assert_eq!(statements[0].kind, CompiledKind::OUTPUT);
-    assert!(!result.cacheable);
 }
 
 #[test]
@@ -198,14 +140,10 @@ fn vis_tag_table() {
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     assert_eq!(result.kind, StatementKind::VISUALIZE);
     assert_eq!(result.sql.as_deref(), Some("select 1 as a"));
-    assert!(result.cacheable);
     let visualization = result.visualization.as_ref().unwrap();
     assert_eq!(visualization.renderer.as_deref(), Some("table"));
     let dashboard = visualization.dashboard.as_ref().unwrap();
     assert_eq!((dashboard.row, dashboard.column, dashboard.width, dashboard.height), (Some(2), Some(3), 4, 5));
-    let terminal = result.statements.as_ref().unwrap().last().unwrap();
-    assert_eq!(terminal.kind, CompiledKind::VISUALIZE);
-    assert_eq!(terminal.sql.as_deref(), Some("select 1 as a"));
 }
 
 #[test]

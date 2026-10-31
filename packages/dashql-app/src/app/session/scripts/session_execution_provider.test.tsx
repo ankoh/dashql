@@ -64,13 +64,13 @@ function fixture(sessionId: string, deferStream = false) {
     };
     const plan = vi.fn(() => ({ unpack: () => ({
         valid: true,
-        scripts: [{ scriptId: 1, textVersion: 1n, analyzedTextVersion: 1n, analyzedCatalogRevision: 1n }],
+        scripts: [{ scriptId: 1, textVersion: 1n, analyzedTextVersion: 1n, analyzedCatalogRevision: 1n, planned: true }],
         // Command-only nodes avoid exercising result computation in provider lifecycle tests.
-        nodes: [0, 1].map(statementId => ({ script: 0, statementId, producesOutput: false, sql: `command ${statementId}` })),
-        edges: [], diagnostics: [],
+        nodes: [0, 1].map(statementId => ({ script: 0, statementId, producesOutput: false, sql: `command ${statementId}`, connection: 0, materialization: 0xffffffff })),
+        edges: [], diagnostics: [], materializations: [],
     }) }));
     const session = {
-        sessionId, pendingConnection: null, instance: { plan },
+        sessionId, pendingConnection: null, instance: { planSession: plan },
         scriptRefs: { '1_commands.sql': { scriptId: 1, fileName: '1_commands.sql' } },
         scriptOrder: ['1_commands.sql'],
         scripts: { 1: { scriptKey: 1, fileName: '1_commands.sql', scriptSession, latestQueryId: null,

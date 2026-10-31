@@ -9,7 +9,7 @@ import { SessionImportCard, type SessionImportCardDependencies } from './session
 
 const FILE_BUNDLE: SessionBundle = {
     session: {
-        formatVersion: 8,
+        formatVersion: 9,
         sessionId: '11111111-2222-4333-8444-555555555555',
         name: 'Local session',
         connections: [{

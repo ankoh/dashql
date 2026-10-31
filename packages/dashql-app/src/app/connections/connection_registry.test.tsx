@@ -103,6 +103,15 @@ describe('session manifest persistence', () => {
         expect(connectionEntryFromState(next).name).toBe('Production');
         expect('name' in connectionEntryFromState(prev)).toBe(false);
     });
+
+    it('persists the choice whether the connection caches query results in the app manifest entry', () => {
+        const prev = state(true, 'https://db.example.com');
+        const next = { ...prev, cacheQueryResults: false };
+        expect(didPersistedConnectionChange(prev, next)).toBe(true);
+        expect(connectionEntryFromState(next).cacheQueryResults).toBe(false);
+        // A connection without a choice keeps the default of its connector
+        expect('cacheQueryResults' in connectionEntryFromState(prev)).toBe(false);
+    });
 });
 
 describe('catalog refresh persistence', () => {

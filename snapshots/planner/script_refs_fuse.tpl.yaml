@@ -1,0 +1,350 @@
+planner-snapshots:
+  # A query reads the result of a script of the same connection as common table expression
+  - name: FusePlain
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+
+  # The alias of the table parameter names the common table expression
+  - name: FuseAlias
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select f.id from :foo f where f.amount > 1;
+
+  # Without alias, columns are qualified with the script name
+  - name: FuseQualifiedColumns
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select foo.id from :foo where foo.amount > 1;
+
+  # The script goes before the common table expressions of the statement
+  - name: FuseIntoWith
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          with big as (select * from :foo where amount > 10) select count(*) from big;
+
+  # A recursive WITH takes the script as first, non-recursive common table expression
+  - name: FuseIntoWithRecursive
+    scripts:
+      - name: seeds
+        input: |
+          select 1 as n;
+      - name: bar
+        input: |
+          with recursive r(n) as (select n from :seeds union all select n + 1 from r where n < 3) select * from r;
+
+  # INSERT ... SELECT takes the common table expression in its query
+  - name: FuseInsertSelect
+    catalog: |
+      create table orders (id int, amount int);
+      create table archive (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          insert into archive select * from :foo;
+
+  # CREATE TABLE AS takes the common table expression in its query
+  - name: FuseCreateTableAs
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          create table snapshot as select * from :foo;
+
+  # SELECT INTO takes the common table expression in front of the statement. Hyper rejects SELECT INTO as deprecated.
+  - name: FuseSelectInto
+    hyper: skip
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select * into snapshot from :foo;
+
+  # EXPLAIN takes the common table expression in its query
+  - name: FuseExplain
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          explain select * from :foo;
+
+  # References in subqueries take the common table expression in the outermost query
+  - name: FuseSubqueries
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders where amount > 10;
+      - name: bar
+        input: |
+          select * from orders where id in (select id from :foo) and exists (select 1 from :foo f where f.id = orders.id) and (select count(*) from :foo) > 0;
+
+  # A reference in a subquery of a DELETE takes the common table expression in the subquery
+  - name: FuseDeleteSubquery
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders where amount > 10;
+      - name: bar
+        input: |
+          delete from orders where id in (select id from :foo);
+
+  # Two statements with references have a common table expression each
+  - name: FuseTwoStatements
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+          select sum(amount) from :foo;
+
+  # A chain: the references of a fused query become common table expressions of the statement
+  - name: FuseChain
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          select id, amount from orders;
+      - name: b
+        input: |
+          select * from :a where amount > 1;
+      - name: c
+        input: |
+          select count(*) from :b;
+
+  # A diamond: every script is one common table expression, after the scripts it references
+  - name: FuseDiamond
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: base
+        input: |
+          select id, amount from orders;
+      - name: small
+        input: |
+          select * from :base where amount < 10;
+      - name: large
+        input: |
+          select * from :base where amount >= 10;
+      - name: report
+        input: |
+          select (select count(*) from :small) as s, (select count(*) from :large) as l;
+
+  # A script with its own common table expressions stays one query
+  - name: FuseProducerWithCtes
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          with o as (select * from orders) select id from o;
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # A line comment at the end of the referenced query does not swallow the closing parenthesis
+  - name: FuseProducerTrailingComment
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders -- the large ones
+          where amount > 10;
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # The statement reads the relations of the fused query, it runs after the script that writes them
+  - name: FuseProducerOfTable
+    scripts:
+      - name: setup
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # A query of a script below its reference is fused all the same
+  - name: FuseProducerBelow
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: bar
+        input: |
+          select count(*) from :foo;
+      - name: foo
+        input: |
+          select id from orders;
+
+  # Script names that are no plain identifiers are quoted
+  - name: FuseQuotedNames
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: brave_otter-2
+        input: |
+          select id from orders;
+      - name: Mixed Case
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :"brave_otter-2" a, :"Mixed Case" b where a.id = b.id;
+
+  # A name that differs in case only references the script
+  - name: FuseCaseInsensitiveName
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: Foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :foo f;
+
+  # A relation or common table expression of the same name is not shadowed, the script gets another name
+  - name: FuseNameCollisions
+    catalog: |
+      create table foo (id int);
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :foo f join foo using (id);
+      - name: baz
+        input: |
+          with foo_2 as (select 1 as id) select * from :foo f join foo_2 using (id);
+      - name: qux
+        input: |
+          select * from :foo;
+
+  # A renamed common table expression keeps no alias that the statement reads as relation
+  - name: FuseRenamedWithoutAlias
+    catalog: |
+      create table foo (id int);
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from :foo join foo using (id);
+
+  # A relation of a fused query must not resolve to a common table expression that the statement defines there
+  - name: FuseShadowedByCte
+    catalog: |
+      create table orders (id int, amount int);
+      create table t (id int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      # A WITH that is not recursive comes after the fused query, the fused query reads the table
+      - name: plain
+        input: |
+          with orders as (select 1 as id) select * from orders, :foo f;
+      # The fused query would see a recursive common table expression of the same name
+      - name: recursive
+        input: |
+          with recursive orders(id) as (select 1 union all select id + 1 from orders where id < 3) select * from orders, :foo f;
+      # The fused query would see the common table expressions of an INSERT around it
+      - name: inserts
+        input: |
+          with orders as (select 1 as id) insert into t select id from :foo;
+
+  # A query with @vis tags keeps its visualization
+  - name: FuseVisualization
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          /* @vis table */
+          select * from :foo;
+
+  # The statement reads the relations of the fused query, it runs after their writers
+  - name: FuseAccesses
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: load
+        input: |
+          insert into orders values (1, 10);
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+
+  # A scalar parameter is no script reference
+  - name: ScalarParameter
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id from orders;
+      - name: bar
+        input: |
+          select * from orders where amount > :foo;

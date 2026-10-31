@@ -1,39 +1,16 @@
-import { STORAGE_CACHE_EXTENSION, type StorageBackend } from '../../storage/storage_backend.js';
 import { QUERY_CACHE_DELETED } from '../../../query/query_execution_state.js';
-import {
-    resolveSessionConnections,
-    type ConnectionReferences,
-    type ConnectionRegistry,
-    type DynamicConnectionDispatch,
-} from '../../connections/connection_registry.js';
+import type { ConnectionRegistry, DynamicConnectionDispatch } from '../../connections/connection_registry.js';
 
-/// The content hash of a cached query result file
-export function cacheFileHash(name: string): string {
-    return name.endsWith(STORAGE_CACHE_EXTENSION) ? name.slice(0, -STORAGE_CACHE_EXTENSION.length) : name;
-}
-
-/// Delete every cached query result of a session, returns the content hashes of the deleted entries
-export async function clearQueryResultCache(backend: StorageBackend, sessionId: string): Promise<string[]> {
-    const hashes = (await backend.listQueryResultCache(sessionId)).map(file => cacheFileHash(file.name));
-    for (const hash of hashes) {
-        await backend.deleteQueryResultCache(sessionId, hash);
-    }
-    return hashes;
-}
-
-/// Mark the finished queries of a session whose cached results were deleted, their results no longer advertise
-/// a cache entry. Returns the number of marked queries.
+/// Mark the finished queries whose cached results were deleted, their results no longer advertise a cache entry. The
+/// cache belongs to the app, the queries of every connection may advertise a key. Returns the number of marked queries.
 export function markDeletedQueryResults(
     registry: ConnectionRegistry,
-    references: ConnectionReferences,
     dispatch: DynamicConnectionDispatch,
-    sessionId: string,
-    hashes: Iterable<string>,
+    keys: Iterable<string>,
 ): number {
-    const deleted = new Set(hashes);
-    const databases = resolveSessionConnections(registry, references, sessionId);
+    const deleted = new Set(keys);
     let marked = 0;
-    for (const database of databases ?? []) {
+    for (const database of registry.connections.values()) {
         for (const query of database.queriesFinished.values()) {
             if (query.cacheKey != null && deleted.has(query.cacheKey) && !query.cacheDeleted) {
                 dispatch(database.connectionId, { type: QUERY_CACHE_DELETED, value: [query.queryId] });

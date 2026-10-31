@@ -51,7 +51,7 @@ function messyStorage() {
         'sessions/s2', 'sessions/s2/attachments', 'sessions/gone',
         'connections', 'connections/c1', 'connections/c2',
         'instances', `instances/${LIVE}`, `instances/${CLOSED}`,
-        'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests',
+        'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests', 'cache',
         `dashql-session-${LEGACY}`,
     ]);
 }
@@ -68,6 +68,7 @@ describe('findOPFSCleanupCandidates', () => {
             'logs',
             'notebooks',
             'sessions/gone',
+            'sessions/s1/cache',
             'sessions/s1/dashql-session-index.json',
             'sessions/s1/scripts/page',
             'sessions/s2/dashql-session.json',

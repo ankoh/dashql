@@ -175,7 +175,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
                             data-connect={!execution.busy && disconnected ? '' : undefined}
                             disabled={execution.busy ? run?.phase === 'stopping' : !disconnected && (!scriptConnectionsIdle
-                                || props.sessionScripts.scriptOrder.length === 0)}
+                                || execution.runActive || props.sessionScripts.scriptOrder.length === 0)}
                             onClick={() => execution.busy ? execution.stop()
                                 // The connections that are not connected yet pulse in the bar, nothing opens by itself
                                 : disconnected ? connectionAttention.request(props.sessionScripts.sessionId)

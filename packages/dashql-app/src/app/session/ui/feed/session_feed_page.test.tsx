@@ -156,6 +156,12 @@ describe('SessionFeedPage', () => {
         render([main, online, unused]);
         expect(state.connectionButtonsProps.connections).toEqual([online]);
         expect(button.getAttribute('aria-label')).toBe('Execute All');
+        // While a script of the session runs, the session doesn't run
+        state.execution = { ...state.execution, runActive: true };
+        render([main, online, unused]);
+        expect(button.disabled).toBe(true);
+        state.execution = { ...state.execution, runActive: false };
+        render([main, online, unused]);
         act(() => button.click());
         expect(state.execution.start).toHaveBeenCalledWith(modify);
     });

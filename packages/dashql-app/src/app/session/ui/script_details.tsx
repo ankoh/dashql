@@ -207,9 +207,8 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     }, []);
     const cancelQuery = dependencies.useCancelQuery();
 
-    // Refresh: drop the stale cache entry for this result, then re-execute — a plain cacheable run
-    // then misses the cache and re-populates it. Surfaced on the Data/Chart tab headers when the
-    // current result was served from cache.
+    // Refresh: run the script and the scripts it references without reading cached results, their results become the
+    // newest files of their keys.
     const executeQuery = dependencies.useQueryExecutor();
     const storageReader = dependencies.useStorageReader();
     const sessionId = props.sessionScripts.sessionId;
@@ -223,22 +222,15 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             connectionAttention?.request(props.sessionScripts.sessionId);
             return;
         }
-        if (scriptData == null || sessionExecution.busy) return;
+        if (scriptData == null || sessionExecution.runActive) return;
         dependencies.runSessionScript(props.sessionScripts, scriptData, executeQuery, props.modifySessionScripts, logger);
-    }, [connection, props.sessionScripts, props.modifySessionScripts, scriptData, executeQuery, logger, sessionExecution.busy, connectionAttention]);
-    const handleRerun = React.useCallback(async (cacheKey: string | null) => {
-        if (scriptData == null || connection?.connectionHealth !== ConnectionHealth.ONLINE || sessionExecution.busy) {
+    }, [connection, props.sessionScripts, props.modifySessionScripts, scriptData, executeQuery, logger, sessionExecution.runActive, connectionAttention]);
+    const handleRerun = React.useCallback(() => {
+        if (scriptData == null || connection?.connectionHealth !== ConnectionHealth.ONLINE || sessionExecution.runActive) {
             return;
         }
-        // Best-effort delete of the stale cache entry first; the re-execution then misses and
-        // re-populates the cache (the executor's write path overwrites it either way).
-        if (cacheKey != null) {
-            await storageReader.backend.deleteQueryResultCache(props.sessionScripts.sessionId, cacheKey).catch(() => { });
-        }
-        if (connection != null) {
-            dependencies.runSessionScript(props.sessionScripts, scriptData, executeQuery, props.modifySessionScripts, logger);
-        }
-    }, [connection, props.sessionScripts, props.modifySessionScripts, scriptData, executeQuery, storageReader, logger, sessionExecution.busy]);
+        dependencies.runSessionScript(props.sessionScripts, scriptData, executeQuery, props.modifySessionScripts, logger, { refresh: true });
+    }, [connection, props.sessionScripts, props.modifySessionScripts, scriptData, executeQuery, logger, sessionExecution.runActive]);
 
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
 
@@ -315,7 +307,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             scriptData={scriptData}
                             scriptDisplay={scriptDisplay}
                             scriptDebugMode={scriptDebugMode}
-                            executeDisabled={sessionExecution.busy || connection?.connectionHealth !== ConnectionHealth.ONLINE}
+                            executeDisabled={sessionExecution.runActive || connection?.connectionHealth !== ConnectionHealth.ONLINE}
                             connectionBlocked={connection?.connectionHealth !== ConnectionHealth.ONLINE}
                             connection={connectionView}
                             connectionPickDisabled={sessionExecution.busy || (activeQueryState != null && !queryIsDone(activeQueryState.status))}
@@ -358,7 +350,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             statusActions={(
                                 <>
                                     <QueryResultCacheLabel query={activeQueryState} />
-                                    <QueryResultRerunButton query={activeQueryState} onRerun={connection?.connectionHealth === ConnectionHealth.ONLINE && !sessionExecution.busy ? handleRerun : undefined} />
+                                    <QueryResultRerunButton query={activeQueryState} onRerun={connection?.connectionHealth === ConnectionHealth.ONLINE && !sessionExecution.runActive ? handleRerun : undefined} />
                                 </>
                             )}
                         />

@@ -137,6 +137,7 @@ export function connectionEntryFromState(database: ConnectionState): ConnectionE
         params: database.params,
         ...(database.paramsDraft == null ? {} : { paramsDraft: database.paramsDraft }),
         ...(database.name == null ? {} : { name: database.name }),
+        ...(database.cacheQueryResults == null ? {} : { cacheQueryResults: database.cacheQueryResults }),
     };
 }
 
@@ -157,7 +158,7 @@ export function didConnectionParamsChange(prev: ConnectionState, next: Connectio
 /// Did the persisted connection entry change?
 export function didPersistedConnectionChange(prev: ConnectionState, next: ConnectionState): boolean {
     if (!prev.active && next.active) return true;
-    return didConnectionParamsChange(prev, next) || !connectionParamsEqual(prev.paramsDraft, next.paramsDraft) || prev.name !== next.name;
+    return didConnectionParamsChange(prev, next) || !connectionParamsEqual(prev.paramsDraft, next.paramsDraft) || prev.name !== next.name || prev.cacheQueryResults !== next.cacheQueryResults;
 }
 
 /// Write the saved params of a connection into the app manifest and into every session that
@@ -325,7 +326,7 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
             // Saved params are replicated into every session that references the connection
             scheduleConnectionParamsWrites(references, next, storageWriter);
         } else if (didPersistedConnectionChange(prev, next)) {
-            // Drafts and names only live in the app manifest
+            // Drafts, names and the caching choice only live in the app manifest
             void storageWriter.write(
                 groupConnectionEntryWrites(connectionId),
                 { type: WRITE_CONNECTION_ENTRY, value: connectionEntryFromState(next) },

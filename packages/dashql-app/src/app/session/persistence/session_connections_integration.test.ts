@@ -109,7 +109,10 @@ describe('Session connections', () => {
         for (const name of session.scriptOrder) analyzeScriptData(scriptOf(session, name), logger);
         const script = scriptOf(session, fileName);
         script.scriptSession.analyze();
-        return dql.plan([script.scriptSession]).unpack().unresolvedReferences.length;
+        return dql.planSession({
+            connections: [{ id: script.connection.connectionId, local: false, catalog: script.connection.catalog }],
+            scripts: [{ name: '', connection: 0, session: script.scriptSession }],
+        }).unpack().unresolvedReferences.length;
     };
 
     /// Run a script on another connection the way the connection picker of the feed does

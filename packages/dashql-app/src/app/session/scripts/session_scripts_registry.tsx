@@ -199,7 +199,6 @@ export function sessionReplacement(scripts: SessionScripts): SessionReplacement 
         }),
         connection: sessionScriptListWrite(scripts).connections[0] ?? null,
         originalFileName: scripts.sessionMetadata.originalFileName,
-        settings: scripts.settings,
     };
 }
 

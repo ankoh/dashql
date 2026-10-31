@@ -1,76 +1,12 @@
 import * as core from '@ankoh/dashql-core';
 
 import { ConnectorType } from '../../connections/connector_info.js';
-import { LoggerLike, LoggableException } from '../../../platform/logger/logger.js';
-import type { ScriptData } from './session_scripts.js';
+import type { LoggerLike } from '../../../platform/logger/logger.js';
 import type { ResolvedVisualizeQuery } from './script_types.js';
 
 const LOG_CTX = 'script_compilation';
 
-export interface CompiledSessionQuery {
-    sql: string;
-    cacheSignature: string;
-    cacheable: boolean;
-}
-
-/// Compile a script into executable SQL and cache metadata.
-///
-/// Statement classification, executable SQL extraction, and the visualization
-/// of `@vis` tags all happen in dashql-core.
-export function compileSessionQuery(
-    scriptData: ScriptData,
-    connectorType: ConnectorType,
-    logger?: LoggerLike,
-): CompiledSessionQuery {
-    logger?.debug('Compiling script for query execution', {
-        scriptKey: scriptData.scriptKey.toString(),
-        fileName: scriptData.fileName,
-        textVersion: scriptData.editorUpdate?.textVersion.toString(),
-        stateRevision: scriptData.editorUpdate?.stateRevision.toString(),
-        nativeTextVersion: scriptData.scriptSession.getTextVersion?.().toString(),
-        analysisOutdated: scriptData.analysisOutdated.toString(),
-        analysisAvailable: scriptData.editorUpdate?.analysisAvailable.toString(),
-        textLength: scriptData.scriptSession.getText?.().length.toString(),
-    }, LOG_CTX);
-    const compiled = scriptData.scriptSession.compileQuery(executionFormattingConfig(connectorType));
-    const reader = compiled.read();
-    const sql = reader.sql() ?? '';
-    if (reader.errorsLength() > 0 && sql.length > 0) {
-        logger?.warn('Passing unparseable SQL through to the remote database', {
-            scriptKey: scriptData.scriptKey.toString(),
-            fileName: scriptData.fileName,
-            diagnostic: reader.errors(0)?.message() ?? '',
-        }, LOG_CTX);
-    } else if (reader.errorsLength() > 0) {
-        const error = reader.errors(0);
-        throw new LoggableException(error?.message() ?? 'Could not compile query', {
-            scriptKey: scriptData.scriptKey.toString(),
-            fileName: scriptData.fileName,
-            errorCode: error?.code().toString(),
-        }, LOG_CTX);
-    }
-    if (sql.trim().length == 0) {
-        throw new LoggableException('Compile query is empty', {
-            scriptKey: scriptData.scriptKey.toString(),
-            fileName: scriptData.fileName,
-            script: scriptData.scriptSession.getText(),
-        }, LOG_CTX);
-    }
-    logger?.debug('Compiled script for query execution', {
-        scriptKey: scriptData.scriptKey.toString(),
-        sqlLength: sql.length.toString(),
-    }, LOG_CTX);
-    return {
-        sql,
-        cacheSignature: reader.cacheSignature() ?? '',
-        cacheable: reader.cacheable(),
-    };
-}
-
-export function createScriptExecution(scriptData: ScriptData, connectorType: ConnectorType): core.DashQLScriptExecution {
-    return scriptData.scriptSession.startExecution(executionFormattingConfig(connectorType));
-}
-
+/// The formatting of compiled queries in the dialect of the connector
 function executionFormattingConfig(connectorType: ConnectorType): core.buffers.formatting.FormattingConfigT {
     return new core.buffers.formatting.FormattingConfigT(
         connectorType === ConnectorType.TRINO

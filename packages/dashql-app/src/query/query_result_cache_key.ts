@@ -36,7 +36,7 @@ function toHex(buffer: ArrayBuffer): string {
 /// versioned semantic signature emitted by dashql-core.
 export async function computeQueryResultCacheKey(paramsSignature: unknown, scriptSignature: string): Promise<string> {
     const connectionSignature = stableStringify(paramsSignature);
-    const input = `dashql-query-cache-v2\n${connectionSignature.length}:${connectionSignature}${scriptSignature.length}:${scriptSignature}`;
+    const input = `dashql-query-cache-v3\n${connectionSignature.length}:${connectionSignature}${scriptSignature.length}:${scriptSignature}`;
     const encoded = new TextEncoder().encode(input);
     const digest = await crypto.subtle.digest('SHA-256', encoded);
     return toHex(digest);

@@ -2,13 +2,11 @@ import { HyperDatabaseChannel } from "./hyper/hyperdb_grpc_client.js";
 import { QueryMetadata } from "../../query/query_execution_state.js";
 import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";
 import { TrinoChannelInterface } from "./trino/trino_channel.js";
-import type { DashQLScriptExecution, buffers } from '@ankoh/dashql-core';
+import type { buffers } from '@ankoh/dashql-core';
 
 /// The query executor args
 export interface QueryExecutionArgs {
     query: string;
-    /// Core-owned execution workflow for a multi-statement session script.
-    scriptExecution?: DashQLScriptExecution;
     /// Optional caller-owned cancellation signal. The executor links this to its
     /// own query cancellation controller without taking ownership of it.
     abortSignal?: AbortSignal;
@@ -23,7 +21,6 @@ export interface QueryExecutionArgs {
     /// Reports labeled query lifecycle timings before the complete execution promise resolves.
     onTiming?: (label: string, elapsedMs: number) => void;
     /// The catalog changes of the statement, applied to the catalog of the connection once it succeeded.
-    /// A script execution reports the changes of its statements itself.
     catalogChanges?: buffers.catalog.CatalogChangeT[];
     /// Called after a statement changed the catalog of the connection, e.g. to re-analyze the scripts
     /// that reference it.
@@ -32,11 +29,20 @@ export interface QueryExecutionArgs {
     /// The normal execution promise still resolves only after postprocessing completes.
     onResultsReady?: () => void;
     metadata: QueryMetadata;
+    /// Record the query as failed with this error instead of executing it, e.g. a script whose plan failed. The result
+    /// of the owner of the query then shows the error like the error of a failed statement.
+    failure?: Error;
     /// When true, the executor consults the file-based query result cache: it serves a matching
-    /// cached `.arrow` result instead of hitting the backend, and stores the result after a miss.
+    /// cached Parquet result instead of hitting the backend, and stores the result after a miss.
     /// Only user-provided queries should set this; catalog/health-check queries leave it unset so
     /// they never touch the cache. Cache failures are always non-fatal (fall back to execution).
     cacheable?: boolean;
+    /// With `cacheable`, run the query on the backend instead of serving a cached result and store the result as the
+    /// newest file of its key, e.g. a refresh or a run of the session.
+    refreshCache?: boolean;
+    /// With `cacheable`, serve the cached result or fail with a `QueryCacheMissError` instead of running the query,
+    /// e.g. a query whose text only holds without the statements before it.
+    cacheOnly?: boolean;
     /// Versioned semantic AST signature for the complete script. Required for cacheable session
     /// queries so preceding statements affect identity without making formatting or comments do so.
     cacheSignature?: string;

@@ -1,13 +1,12 @@
-import { type StorageBackend, type SessionData, type ScriptData, type SessionEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
-import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
+import { type StorageBackend, type SessionData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
 import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
 
 import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile, type FileStamp } from '../../platform/electron_fs.js';
 
 /// The name of the session-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';
-/// The entries of the session-level .gitignore: the query result cache and Hyper database files.
-const GITIGNORE_ENTRIES = [`${STORAGE_CACHE_FOLDER}/`, '*.hyper'];
+/// The entries of the session-level .gitignore: the former query result cache of the session and Hyper database files.
+const GITIGNORE_ENTRIES = ['cache/', '*.hyper'];
 
 /// A file of a session folder with its stamp
 export type NamedFileStamp = FileStamp & { name: string };
@@ -258,20 +257,6 @@ export class NativeStorageBackend implements StorageBackend {
         }
     }
 
-    async loadQueryResultCache(_sessionId: string, hash: string): Promise<CachedQueryResult | null> {
-        const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
-        if (!(await exists(file))) {
-            return null;
-        }
-        const bytes = await readFile(file);
-        // Read the file's write time so the UI can show how old the cached result is.
-        const meta = await stat(file);
-        return {
-            bytes,
-            cachedAtMs: meta.mtime ? meta.mtime.getTime() : 0,
-        };
-    }
-
     async listDataFiles(_sessionId: string): Promise<DataFile[]> {
         const dir = await this.abs(STORAGE_ATTACHMENTS_FOLDER);
         if (!(await exists(dir))) return [];
@@ -313,108 +298,6 @@ export class NativeStorageBackend implements StorageBackend {
         const oldPath = await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${oldName}`);
         if (!(await exists(oldPath))) return;
         await rename(oldPath, await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${newName}`));
-    }
-
-    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
-        await this.ensureDir(STORAGE_CACHE_FOLDER);
-        await this.ensureGitignore();
-
-        const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
-        await evictToFit(this.cacheStoreForDir(cacheDir), sessionId, bytes.byteLength);
-
-        const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
-        await writeFile(file, bytes);
-        // Seed the access marker so a freshly written (never-hit) entry has a last-access time.
-        await writeFile(await join(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`), new Uint8Array(0));
-    }
-
-    /// Build the eviction store over the cache directory. The native readDir entry carries no
-    /// size/mtime, so eviction has to `stat()` each file. Pairs each `<hash>.arrow` payload with its
-    /// `<hash>.arrow.last_access` marker (an empty file whose mtime is the last access time), falling
-    /// back to the payload's own mtime when the marker is absent. Marker files are skipped by the
-    /// listing and removed alongside their `.arrow` sibling on delete.
-    ///
-    /// The listing also reaps orphaned markers — a marker whose payload no longer exists. Deletion is
-    /// payload-then-marker, so a crash in between (or any external cache tampering) can strand a
-    /// zero-byte marker; folding the reap into this scan (which runs on every save, before eviction)
-    /// cleans them up with no extra directory walk and no background timer. Orphan reaping is
-    /// best-effort: a failed delete is ignored (the marker is harmless and will be retried next save).
-    private cacheStoreForDir(cacheDir: string): QueryResultCacheStore {
-        return {
-            listCacheFiles: async (): Promise<CacheFileStat[]> => {
-                const entries = await readDir(cacheDir);
-                // First pass: collect marker mtimes keyed by their payload name, and payload stats.
-                const accessMs = new Map<string, number>();
-                const payloads: { name: string; size: number; mtimeMs: number }[] = [];
-                for (const entry of entries) {
-                    if (!entry.isFile) {
-                        continue;
-                    }
-                    if (entry.name.endsWith(STORAGE_CACHE_ACCESS_SUFFIX)) {
-                        const meta = await stat(await join(cacheDir, entry.name));
-                        accessMs.set(entry.name.slice(0, -STORAGE_CACHE_ACCESS_SUFFIX.length), meta.mtime ? meta.mtime.getTime() : 0);
-                    } else if (entry.name.endsWith(STORAGE_CACHE_EXTENSION)) {
-                        const meta = await stat(await join(cacheDir, entry.name));
-                        payloads.push({ name: entry.name, size: meta.size, mtimeMs: meta.mtime ? meta.mtime.getTime() : 0 });
-                    }
-                }
-                // Reap markers whose payload is gone (best-effort).
-                const payloadNames = new Set(payloads.map(p => p.name));
-                for (const payloadName of accessMs.keys()) {
-                    if (!payloadNames.has(payloadName)) {
-                        try {
-                            await remove(await join(cacheDir, `${payloadName}${STORAGE_CACHE_ACCESS_SUFFIX}`));
-                        } catch {
-                            // Ignore: a harmless empty file; retried on the next save.
-                        }
-                    }
-                }
-                return payloads.map(p => ({
-                    ...p,
-                    lastAccessMs: accessMs.get(p.name) ?? p.mtimeMs,
-                }));
-            },
-            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
-                // Drop the payload and its access marker together; tolerate either being gone.
-                for (const entry of [name, `${name}${STORAGE_CACHE_ACCESS_SUFFIX}`]) {
-                    const path = await join(cacheDir, entry);
-                    if (await exists(path)) {
-                        await remove(path);
-                    }
-                }
-            },
-        };
-    }
-
-    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
-        const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
-        if (!(await exists(cacheDir))) {
-            // No cache folder yet — nothing cached.
-            return [];
-        }
-        return this.cacheStoreForDir(cacheDir).listCacheFiles(sessionId);
-    }
-
-    async touchQueryResultCacheAccess(_sessionId: string, hash: string): Promise<void> {
-        // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
-        // result size and leaves the payload's "cached at" write time intact.
-        const marker = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
-        await writeFile(marker, new Uint8Array(0));
-    }
-
-    async hasCachedQueryResult(_sessionId: string, hash: string): Promise<boolean> {
-        const marker = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
-        return await exists(marker);
-    }
-
-    async deleteQueryResultCache(_sessionId: string, hash: string): Promise<void> {
-        // Remove the payload and its access marker together.
-        for (const suffix of ['', STORAGE_CACHE_ACCESS_SUFFIX]) {
-            const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}${suffix}`);
-            if (await exists(file)) {
-                await remove(file);
-            }
-        }
     }
 
     async clearAllStorage(): Promise<void> {

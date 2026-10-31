@@ -55,7 +55,7 @@ bazel build //...
 | `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) shipped by `dashql-core-js` |
 | `//packages/dashql-shell-wasm:shell_wasm` | Shell Wasm module (Rust, includes the core bindings) shipped by the app |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
-| `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation and execution, planner, batch, catalog changes, visualizations |
+| `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, catalog changes, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
 | `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
@@ -100,7 +100,7 @@ bazel test //...
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
-| `//packages/dashql-core-session:all` | Session, execution, compiler, batch and catalog change tests, the planner and visualize snapshot tests |
+| `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
 | `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
@@ -108,6 +108,7 @@ bazel test //...
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
+| `//packages/dashql-core-session:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
 | `//packages/dashql-core-js:all` | Core Node unit, assembled-runtime, and tarball consumer tests |
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |

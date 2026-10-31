@@ -6,27 +6,24 @@ import type { RowComponentProps } from 'react-window';
 import { XIcon, TrashIcon, SyncIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, ButtonSize, IconButton } from '../../../../ui/foundations/button.js';
-import { CacheFileStat } from '../../../storage/query_result_cache_eviction.js';
-import { cacheFileHash, clearQueryResultCache, markDeletedQueryResults } from '../query_result_cache_clear.js';
-import { useConnectionReferences, useDynamicConnectionDispatch } from '../../../connections/connection_registry.js';
+import type { QueryResultCacheEntry } from '../../../../query/query_result_cache.js';
+import { markDeletedQueryResults } from '../query_result_cache_clear.js';
+import { useDynamicConnectionDispatch } from '../../../connections/connection_registry.js';
 import { formatBytes } from '../../../../utils/format.js';
 import { formatRelativeTime } from '../../../../utils/time_format.js';
 import { observeSize } from '../../../../ui/foundations/size_observer.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
-import { useStorageReader } from '../../../storage/storage_provider.js';
+import { useQueryResultCache } from '../../../storage/query_result_cache_provider.js';
 import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
-import { ToggleSwitch } from '../../../../ui/foundations/toggle_switch.js';
-import { useSessionScripts } from '../../scripts/session_scripts_registry.js';
-import { UPDATE_SESSION_SETTINGS } from '../../scripts/session_scripts.js';
 
 const LOG_CTX = 'query_cache_view';
 
 export const ROW_HEIGHT = 32;
 
-/// Strip the `.arrow` extension so the row shows the bare content hash (the cache key).
+/// The rows show the cached results of the app by their cache keys
 export interface QueryCacheRowProps {
-    entries: CacheFileStat[];
-    deleteEntry: (name: string) => void;
+    entries: QueryResultCacheEntry[];
+    deleteEntry: (key: string) => void;
 }
 
 export const QueryCacheRow = (props: RowComponentProps<QueryCacheRowProps>) => {
@@ -37,7 +34,7 @@ export const QueryCacheRow = (props: RowComponentProps<QueryCacheRowProps>) => {
         return <div style={props.style} />;
     }
 
-    const hash = cacheFileHash(entry.name);
+    const hash = entry.key;
     return (
         <div className={styles.stat_row} style={props.style}>
             <div className={styles.stat_row_main}>
@@ -47,8 +44,8 @@ export const QueryCacheRow = (props: RowComponentProps<QueryCacheRowProps>) => {
                 <div className={styles.stat_cell_size}>
                     {formatBytes(entry.size)}
                 </div>
-                <div className={styles.stat_cell_cached} title={new Date(entry.mtimeMs).toISOString()}>
-                    {formatRelativeTime(new Date(entry.mtimeMs))}
+                <div className={styles.stat_cell_cached} title={new Date(entry.cachedAtMs).toISOString()}>
+                    {formatRelativeTime(new Date(entry.cachedAtMs))}
                 </div>
                 <div className={styles.stat_cell_accessed} title={new Date(entry.lastAccessMs).toISOString()}>
                     {formatRelativeTime(new Date(entry.lastAccessMs))}
@@ -58,7 +55,7 @@ export const QueryCacheRow = (props: RowComponentProps<QueryCacheRowProps>) => {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="Delete cache entry"
-                        onClick={() => deleteEntry(entry.name)}
+                        onClick={() => deleteEntry(entry.key)}
                     >
                         <TrashIcon />
                     </IconButton>
@@ -69,81 +66,69 @@ export const QueryCacheRow = (props: RowComponentProps<QueryCacheRowProps>) => {
 };
 
 /// Sort by cached (write) time descending — most recent entries first.
-function sortEntries(entries: CacheFileStat[]): CacheFileStat[] {
-    return [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs);
+function sortEntries(entries: QueryResultCacheEntry[]): QueryResultCacheEntry[] {
+    return [...entries].sort((a, b) => b.cachedAtMs - a.cachedAtMs);
 }
 
-export function QueryCacheView(props: { sessionId: string | null; onClose: () => void; }) {
+export function QueryCacheView(props: { onClose: () => void; }) {
     const logger = useLogger();
-    const storageReader = useStorageReader();
-    const { sessionId } = props;
-    // The finished queries of the session learn about deleted results, the registry is read after the delete
+    const cache = useQueryResultCache();
+    // The finished queries learn about deleted results, the registry is read after the delete
     const [databaseRegistry, databaseDispatch] = useDynamicConnectionDispatch();
-    const references = useConnectionReferences();
     const databaseRegistryRef = React.useRef(databaseRegistry);
     databaseRegistryRef.current = databaseRegistry;
 
-    // Whether the session caches query results at all
-    const [sessionScripts, modifySessionScripts] = useSessionScripts(sessionId);
-    const cachingEnabled = sessionScripts?.settings.cacheQueryResults ?? false;
-    const toggleCaching = React.useCallback(() => {
-        void modifySessionScripts({ type: UPDATE_SESSION_SETTINGS, value: { cacheQueryResults: !cachingEnabled } });
-    }, [modifySessionScripts, cachingEnabled]);
-    const cachingLabelId = React.useId();
 
-    const [entries, setEntries] = React.useState<CacheFileStat[]>([]);
+    const [entries, setEntries] = React.useState<QueryResultCacheEntry[]>([]);
 
-    // Load (and reload) the session's cache listing. Best-effort: a failure leaves the list empty and
-    // is logged, mirroring how the cache itself treats every access as best-effort.
+    // Load (and reload) the cache listing of the app. Best-effort: a failure leaves the list empty and is logged,
+    // mirroring how the cache itself treats every access as best-effort.
     const refresh = React.useCallback(async () => {
-        if (sessionId == null) {
+        if (cache == null) {
             setEntries([]);
             return;
         }
         try {
-            const files = await storageReader.backend.listQueryResultCache(sessionId);
-            setEntries(sortEntries(files));
+            setEntries(sortEntries(await cache.list()));
         } catch (e: any) {
             logger.warn('failed to list query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
             setEntries([]);
         }
-    }, [sessionId, storageReader, logger]);
+    }, [cache, logger]);
 
     React.useEffect(() => {
         void refresh();
     }, [refresh]);
 
-    const deleteEntry = React.useCallback(async (name: string) => {
-        if (sessionId == null) {
+    const deleteEntry = React.useCallback(async (key: string) => {
+        if (cache == null) {
             return;
         }
         try {
-            const hash = cacheFileHash(name);
-            await storageReader.backend.deleteQueryResultCache(sessionId, hash);
-            markDeletedQueryResults(databaseRegistryRef.current, references, databaseDispatch, sessionId, [hash]);
+            // A file that is read right now stays, the key is still cached
+            if (await cache.delete(key)) markDeletedQueryResults(databaseRegistryRef.current, databaseDispatch, [key]);
         } catch (e: any) {
             logger.warn('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
         }
         await refresh();
-    }, [sessionId, storageReader, logger, refresh, databaseDispatch, references]);
+    }, [cache, logger, refresh, databaseDispatch]);
 
     const clearAll = React.useCallback(async () => {
-        if (sessionId == null) {
+        if (cache == null) {
             return;
         }
         try {
-            const hashes = await clearQueryResultCache(storageReader.backend, sessionId);
-            const queries = markDeletedQueryResults(databaseRegistryRef.current, references, databaseDispatch, sessionId, hashes);
+            const keys = await cache.clear();
+            const queries = markDeletedQueryResults(databaseRegistryRef.current, databaseDispatch, keys);
             logger.info('cleared the query result cache', {
-                sessionId,
-                entries: String(hashes.length),
+                entries: String(keys.length),
                 queries: String(queries),
             }, LOG_CTX);
         } catch (e: any) {
             logger.warn('failed to clear the query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
         }
         await refresh();
-    }, [sessionId, storageReader, logger, refresh, databaseDispatch, references]);
+    }, [cache, logger, refresh, databaseDispatch]);
 
     // Aggregate totals for the header summary.
     const totalBytes = React.useMemo(() => entries.reduce((sum, e) => sum + e.size, 0), [entries]);
@@ -173,14 +158,6 @@ export function QueryCacheView(props: { sessionId: string | null; onClose: () =>
                     )}
                 </div>
                 <div className={styles.header_right_container}>
-                    <div id={cachingLabelId} className={styles.caching_label}>Caching</div>
-                    <ToggleSwitch
-                        size="small"
-                        checked={cachingEnabled}
-                        disabled={sessionScripts == null}
-                        onClick={toggleCaching}
-                        aria-labelledby={cachingLabelId}
-                    />
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="Refresh cache listing"
@@ -217,7 +194,7 @@ export function QueryCacheView(props: { sessionId: string | null; onClose: () =>
             <div className={styles.stat_grid_container} ref={containerRef}>
                 {entries.length === 0 ? (
                     <div className={styles.empty_state}>
-                        {sessionId == null ? 'Select a session to see its cached results' : 'Nothing to see here'}
+                        Nothing to see here
                     </div>
                 ) : (
                     <List

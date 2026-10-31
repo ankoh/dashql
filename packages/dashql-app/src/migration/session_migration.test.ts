@@ -203,4 +203,13 @@ describe('session migration', () => {
         expect([...folder.files.keys()]).toEqual(['dashql-session.json']);
         expect(JSON.parse(folder.files.get('dashql-session.json')!).formatVersion).toBe(7);
     });
+
+    it('removes the settings of a version 8 session, connections decide about caching', async () => {
+        const session = { sessionId: SESSION_ID, connections: [], scripts: [{ name: 'a.sql', connectionId: 'x' }], attachments: [], metadata: {} };
+        const folder = new MemoryFolder([
+            ['dashql-session.json', JSON.stringify({ formatVersion: 8, ...session, settings: { cacheQueryResults: true } })],
+        ]);
+        expect(await migrateSessionFolder(folder)).toBe(SessionMigrationResult.Migrated);
+        expect(JSON.parse(folder.files.get('dashql-session.json')!)).toEqual({ formatVersion: SESSION_FORMAT_VERSION, ...session });
+    });
 });

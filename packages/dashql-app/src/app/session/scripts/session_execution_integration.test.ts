@@ -5,9 +5,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Logger } from '../../../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
+import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
-import { runSessionExecution, type SessionExecutionState } from './session_execution.js';
+import { runSessionExecution, type ExecutionMounts, type SessionExecutionState } from './session_execution.js';
 import {
     APPLY_PLANNER_ANALYSIS,
     createEmptyScriptData,
@@ -49,7 +50,7 @@ function fixture(entries: Array<[string, string]>) {
         scriptRefs[fileName] = createScriptRef(scriptKey, fileName);
     }
     let live: SessionScripts = {
-        instance: dql, sessionId: crypto.randomUUID(), name: 'Execution integration', settings: { cacheQueryResults: false },
+        instance: dql, sessionId: crypto.randomUUID(), name: 'Execution integration',
         pendingConnection: entries.length === 0 ? connection : null, sessionMetadata: createEmptyMetadata(),
         scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), scriptFocus: { fileName: entries[0]?.[0] ?? '' }, semanticUserFocus: null,
     };
@@ -71,8 +72,8 @@ function fixture(entries: Array<[string, string]>) {
     const states: SessionExecutionState[] = [];
     const controller = new AbortController();
     const graphs: core.buffers.execution.ExecutionGraphT[] = [];
-    const nativePlan = dql.plan.bind(dql);
-    const plan = vi.spyOn(dql, 'plan').mockImplementation(input => {
+    const nativePlan = dql.planSession.bind(dql);
+    const plan = vi.spyOn(dql, 'planSession').mockImplementation(input => {
         const buffer = nativePlan(input);
         const unpack = buffer.unpack.bind(buffer);
         vi.spyOn(buffer, 'unpack').mockImplementation(() => {
@@ -82,9 +83,10 @@ function fixture(entries: Array<[string, string]>) {
         });
         return buffer;
     });
-    const run = () => runSessionExecution({
+    const run = (options: Partial<Parameters<typeof runSessionExecution>[0]> = {}) => runSessionExecution({
         session: live, getSession: () => live, executeQuery, cancelQuery, modifySessionScripts,
         signal: controller.signal, onState: state => { states.push(state); },
+        ...options,
     });
     const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
     const lastState = () => states[states.length - 1];
@@ -93,7 +95,7 @@ function fixture(entries: Array<[string, string]>) {
 }
 
 describe('session execution with real core planning', () => {
-    it('plans and runs the scripts of each connection in their own catalog, block after block', async () => {
+    it('plans the scripts of every connection at once and runs them in the catalogs of their connections', async () => {
         const f = fixture([
             ['1_create.sql', 'create table items (id int);'],
             ['2_remote.sql', 'select 42;'],
@@ -106,17 +108,97 @@ describe('session execution with real core planning', () => {
         await f.run();
         expect(f.lastState()?.error).toBeNull();
         const main = f.script('1_create.sql').connection.connectionId;
-        expect(f.plan.mock.calls.map(([input]) => input.map(session => session.getCatalogEntryId()))).toEqual([
-            [f.script('1_create.sql').scriptKey], [remoteKey], [f.script('3_query.sql').scriptKey],
-        ]);
+        expect(f.plan).toHaveBeenCalledOnce();
+        expect(f.plan.mock.calls[0][0].connections.map(connection => connection.id)).toEqual([main, remote.connectionId]);
+        expect(f.plan.mock.calls[0][0].scripts.map(script => [script.name, script.connection])).toEqual([['1_create', 0], ['2_remote', 1], ['3_query', 0]]);
         expect(f.calls.map(call => [call.databaseId, call.sql])).toEqual([
             [main, 'create table items (id int)'],
             [remote.connectionId, 'select 42'],
             [main, 'select id from items'],
         ]);
-        // The last block resolves the table that the first block created in the same catalog
-        expect(f.graphs[2].unresolvedReferences).toEqual([]);
-        expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalBlocks: 3, completedBlocks: 3, completedScripts: 3 });
+        // The query resolves the table that the first script created in the same catalog
+        expect(f.graphs[0].unresolvedReferences).toEqual([]);
+        expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
+    });
+
+    it('fuses a script reference of the same connection into the query', async () => {
+        const f = fixture([
+            ['0_setup.sql', 'create table items (id int);'],
+            ['1_foo.sql', 'select id from items where id > 1;'],
+            ['2_bar.sql', 'select count(*) from :"1_foo";'],
+        ]);
+        await f.run();
+        expect(f.lastState()?.error).toBeNull();
+        const main = f.script('1_foo.sql').connection.connectionId;
+        expect(f.calls.map(call => [call.databaseId, call.sql])).toEqual([
+            [main, 'create table items (id int)'],
+            [main, 'select id from items where id > 1'],
+            [main, 'with "1_foo" as (\nselect id from items where id > 1\n)\nselect count(*) from "1_foo"'],
+        ]);
+        expect(f.graphs[0].references.map(reference => reference.cteName)).toEqual(['1_foo']);
+    });
+
+    it.each([false, true])('materializes a script of another connection for the embedded database and mounts it before the scan (caching %s)', async caching => {
+        const f = fixture([
+            ['1_foo.sql', 'select 1 as a;'],
+            ['2_bar.sql', 'select count(*) from :"1_foo";'],
+        ]);
+        const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+        f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '1_foo.sql', connection: remote } });
+        const main = f.script('2_bar.sql').connection.connectionId;
+        const events: string[] = [];
+        const cacheArgs: Array<Partial<QueryExecutionArgs>> = [];
+        f.executeQuery.mockImplementation((connectionId, args) => {
+            events.push(`query:${connectionId === main ? 'local' : 'remote'}`);
+            cacheArgs.push({ cacheable: args.cacheable, refreshCache: args.refreshCache, cacheSignature: args.cacheSignature });
+            f.calls.push({ databaseId: connectionId, queryId: f.calls.length + 1, sql: args.query });
+            return [f.calls.length, Promise.resolve(tableFromArrays({ a: [1] }))];
+        });
+        const run = crypto.randomUUID();
+        const mounts: ExecutionMounts = {
+            prefix: '/mnt/external/cache',
+            fileName: (key: string | null) => `${key ?? 'transient'}.${run}.parquet`,
+            writeTable: vi.fn(async (path: string) => { events.push(`mount:${path.slice(path.lastIndexOf('/') + 1)}`); return new Blob(); }),
+            use: vi.fn(async () => {}),
+            release: vi.fn(async () => { events.push('release'); }),
+        };
+        await f.run({
+            isLocalConnection: connectionId => connectionId === main, mounts,
+            resultKey: async (connectionId, signature) => `${connectionId === main ? 'local' : 'remote'}:${signature}`,
+            cachesResults: () => caching,
+        });
+        expect(f.lastState()?.error).toBeNull();
+        // The remote query runs first, its result is mounted, the embedded database scans it
+        const graph = f.graphs[f.graphs.length - 1];
+        const fooKey = `remote:${graph.scripts[0].signature}`;
+        // A result with a reusable key is a new file of its key, any other one a transient file
+        const file = `${caching ? fooKey : 'transient'}.${run}.parquet`;
+        expect(events).toEqual(['query:remote', `mount:${file}`, 'query:local', 'release']);
+        const path = graph.materializations[0].path!;
+        expect(path).toBe(`/mnt/external/cache/${file}`);
+        expect(f.calls.map(call => call.sql)).toEqual([
+            'select 1 as a',
+            `with "1_foo" as (select * from external('${path}', format => 'parquet'))\nselect count(*) from "1_foo"`,
+        ]);
+        // The run reads no cached result. The materialized result is the file of its key already, the result of bar
+        // becomes the newest file of its key if it is reusable.
+        expect(cacheArgs[0]).toEqual({ cacheable: false });
+        expect(cacheArgs[1]).toEqual(caching
+            ? { cacheable: true, refreshCache: true, cacheSignature: `${graph.scripts[1].signature}\n${fooKey}` }
+            : { cacheable: false });
+    });
+
+    it('fails a run in which a remote connection reads a script of another connection', async () => {
+        const f = fixture([
+            ['1_foo.sql', 'select 1 as a;'],
+            ['2_bar.sql', 'select count(*) from :"1_foo";'],
+        ]);
+        const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+        f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '2_bar.sql', connection: remote } });
+        await f.run({ isLocalConnection: () => false });
+        expect(f.executeQuery).not.toHaveBeenCalled();
+        expect(f.lastState()).toMatchObject({ phase: 'failed' });
+        expect(f.lastState()?.error).toContain('2_bar.sql runs on the connection');
     });
 
     it('executes create, insert, and select across scripts in natural order with real dependencies', async () => {
@@ -128,7 +210,8 @@ describe('session execution with real core planning', () => {
         await f.run();
         expect(f.lastState()?.error).toBeNull();
 
-        expect(f.plan).toHaveBeenCalledExactlyOnceWith([
+        expect(f.plan).toHaveBeenCalledOnce();
+        expect(f.plan.mock.calls[0][0].scripts.map(script => script.session)).toEqual([
             f.script('1_create.sql').scriptSession,
             f.script('2_insert.sql').scriptSession,
             f.script('10_query.sql').scriptSession,
@@ -150,7 +233,7 @@ describe('session execution with real core planning', () => {
         ]));
         expect(f.lastState()).toEqual({
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
-            totalStatements: 3, completedStatements: 3, totalBlocks: 1, completedBlocks: 1, activeConnectionId: null,
+            totalStatements: 3, completedStatements: 3, activeConnectionId: null,
             activeScriptKey: null, activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null,
         });
         expect(f.cancelQuery).not.toHaveBeenCalled();

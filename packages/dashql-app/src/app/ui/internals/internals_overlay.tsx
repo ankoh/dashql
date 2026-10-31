@@ -113,7 +113,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     <StorageBrowserView onClose={props.onClose} />
                 ),
                 [TabKey.QueryCache]: _props => (
-                    <QueryCacheView sessionId={props.sessionId} onClose={props.onClose} />
+                    <QueryCacheView onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />

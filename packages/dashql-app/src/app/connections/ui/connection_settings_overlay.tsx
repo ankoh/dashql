@@ -10,7 +10,8 @@ import { ConnectorType } from '../connector_info.js';
 import { useConnectionById, useConnectionDraft, useConnectionReferencesSelector } from '../connection_registry.js';
 import { connectionSaveSucceeded, failedSessionCopies, useConnectionSave, type ConnectionSaveResult } from '../connection_persistence.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
-import { ConnectionHealth, type ConnectionState } from '../connection_state.js';
+import { ConnectionHealth, connectionCachesQueryResults, SET_CONNECTION_QUERY_RESULT_CACHING, type ConnectionState } from '../connection_state.js';
+import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
@@ -31,7 +32,7 @@ interface Props {
 }
 
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
-    const [conn, _modifyConn] = useConnectionById(props.connectionId);
+    const [conn, modifyConn] = useConnectionById(props.connectionId);
     const { paramsDraft, discard } = useConnectionDraft(props.connectionId);
     const { saving, result: saveResult, save, retry } = useConnectionSave(props.connectionId);
     const connecting = conn?.connectionHealth === ConnectionHealth.CONNECTING;
@@ -92,6 +93,13 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
                     {currentConnectorType === ConnectorType.SALESFORCE_DATA_CLOUD && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.SALESFORCE_DATA_CLOUD} onClose={saving ? undefined : props.onClose} />}
                     {currentConnectorType === ConnectorType.SIDB && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.SIDB} onClose={saving ? undefined : props.onClose} />}
                 </div>
+                <QueryResultCachingRow
+                    caching={conn != null && connectionCachesQueryResults(conn)}
+                    disabled={conn == null}
+                    toggle={() => {
+                        if (conn != null) modifyConn({ type: SET_CONNECTION_QUERY_RESULT_CACHING, value: !connectionCachesQueryResults(conn) });
+                    }}
+                />
                 <ConnectionSaveBar
                     dirty={paramsDraft != null}
                     saving={saving}
@@ -108,6 +116,20 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         </AnchoredOverlay>
     );
 };
+
+/// Does the connection cache query results? The choice applies right away, it is no connection parameter.
+function QueryResultCachingRow(props: { caching: boolean; disabled: boolean; toggle: () => void }) {
+    const labelId = React.useId();
+    return (
+        <div className={styles.caching}>
+            <div className={styles.caching_text}>
+                <div id={labelId} className={styles.caching_label}>Cache query results</div>
+                <div className={styles.caching_caption}>Reuse the results of unchanged scripts instead of querying the connection again</div>
+            </div>
+            <ToggleSwitch size="small" checked={props.caching} disabled={props.disabled} onClick={props.toggle} aria-labelledby={labelId} />
+        </div>
+    );
+}
 
 export interface CloseOnConnectProps {
     /// Is the overlay open?

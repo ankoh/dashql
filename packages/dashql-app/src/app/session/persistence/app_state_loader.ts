@@ -18,7 +18,6 @@ import { sanitizeSessionFiles, sessionConnectionIdsOf, withSessionScripts } from
 import { resolveSessionScripts, sessionScriptsResolutionChanged, type SessionConnectionResolver } from './session_script_connections.js';
 import { validateSessionData, describeInvalidSession, isLocalHyperWasmParams, isValidUuid, SessionValidationError, type InvalidSession } from '../../storage/session_validation.js';
 import type { BatchProcessor } from '../../connections/catalog_batch.js';
-import { readSessionSettings, type SessionSettings } from '../scripts/session_settings.js';
 
 const LOG_CTX = "app_state_loader";
 
@@ -77,7 +76,6 @@ async function restoreSessionScripts(
     backend: StorageBackend,
     sessionId: string,
     name: string | null,
-    settings: SessionSettings,
     sessionData: SessionData,
     fallbackConnection: () => ConnectionState,
     resolveConnection: SessionConnectionResolver,
@@ -117,7 +115,6 @@ async function restoreSessionScripts(
             instance: core,
             sessionId,
             name,
-            settings,
             pendingConnection: resolved.pendingConnection == null ? null : scriptConnectionOf(resolved.pendingConnection),
             sessionMetadata: sessionData.metadata,
             scripts,
@@ -347,7 +344,6 @@ async function restoreSessionEntry(
             backend,
             sessionId,
             sessionData.name?.trim() || null,
-            readSessionSettings(sessionData.settings, connectorInfo),
             sessionData,
             () => resolveEmbeddedConnection(ctx, sessionId, sessionData.connections),
             resolveScriptConnection,

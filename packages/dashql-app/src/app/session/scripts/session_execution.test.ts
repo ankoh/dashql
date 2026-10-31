@@ -34,32 +34,34 @@ function fixture(entries: Array<{ file: string; outputs: boolean[]; connection?:
             preparation.push(`load:${entry.file}`);
             catalogRevision++;
         }),
-        startExecution: vi.fn(() => { throw new Error('Must not start core script execution'); }),
     }));
     const ordered = entries.map((entry, index) => ({ ...entry, index }))
         .sort((a, b) => a.file.localeCompare(b.file, undefined, { numeric: true }));
     const graph = {
         valid: true,
-        scripts: [] as Array<{ scriptId: number; textVersion: bigint; analyzedTextVersion: bigint; analyzedCatalogRevision: bigint }>,
+        scripts: [] as Array<{ scriptId: number; textVersion: bigint; analyzedTextVersion: bigint; analyzedCatalogRevision: bigint; planned: boolean }>,
         nodes: ordered.flatMap((entry, script) => entry.outputs.map((producesOutput, statementId) => ({
-            script, statementId, producesOutput, sql: `${entry.file}:${statementId + 1}`,
+            script, statementId, producesOutput, sql: `${entry.file}:${statementId + 1}`, connection: 0, materialization: 0xffffffff,
         }))),
         edges: [] as Array<{ from: number; to: number }>,
         diagnostics: [] as Array<{ message: string }>,
+        materializations: [],
     };
     // Most lifecycle tests model a sequential script. Parallel-scheduler tests replace these
     // explicit planner dependencies with the graph shape they need to exercise.
     graph.edges.push(...graph.nodes.slice(1).map((_node, index) => ({ from: index, to: index + 1 })));
     const unpack = vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT);
-    const plan = vi.fn((input: core.DashQLScriptSession[]) => {
-        graph.scripts = input.map(scriptSession => ({
+    // The plan of the session covers the scripts of every connection
+    const plan = vi.fn((request: core.SessionPlanRequest) => {
+        graph.scripts = request.scripts.map(({ session: scriptSession }) => ({
             scriptId: scriptSession.getCatalogEntryId(), textVersion: scriptSession.getTextVersion(),
-            analyzedTextVersion: scriptSession.getTextVersion(), analyzedCatalogRevision: scriptSession.getCatalogRevision(),
+            analyzedTextVersion: scriptSession.getTextVersion(), analyzedCatalogRevision: scriptSession.getCatalogRevision(), planned: true,
         }));
+        for (const node of graph.nodes) node.connection = request.scripts[node.script].connection;
         return { unpack };
     });
     const session = {
-        sessionId: 'session', connectionId: 'connection', instance: { plan }, connectionCatalog: {},
+        sessionId: 'session', connectionId: 'connection', instance: { planSession: plan }, connectionCatalog: {},
         scriptRefs: Object.fromEntries(entries.map((entry, index) => [entry.file, { scriptId: index + 100 }])),
         scriptOrder: ordered.map(entry => entry.file),
         scripts: Object.fromEntries(entries.map((entry, index) => [index + 100, {
@@ -97,15 +99,15 @@ describe('runSessionExecution', () => {
             'analyze:10_last.sql', 'load:10_last.sql',
             'analyze:1_empty.sql', 'analyze:2_commands.sql', 'analyze:10_last.sql',
         ]);
-        expect(f.plan).toHaveBeenCalledWith([f.scriptSessions[2], f.scriptSessions[1], f.scriptSessions[0]]);
+        expect(f.plan.mock.calls[0][0].scripts.map(script => script.session)).toEqual([f.scriptSessions[2], f.scriptSessions[1], f.scriptSessions[0]]);
+        expect(f.plan.mock.calls[0][0].scripts.map(script => script.name)).toEqual(['1_empty', '2_commands', '10_last']);
         expect(f.executeQuery.mock.calls.map(([connection, args]) => [connection, args.query])).toEqual([
             ['connection', '2_commands.sql:1'], ['connection', '2_commands.sql:2'],
             ['connection', '2_commands.sql:3'], ['connection', '10_last.sql:1'],
         ]);
         expect(f.lastState()).toEqual({
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
-            totalStatements: 4, completedStatements: 4,
-            totalBlocks: 1, completedBlocks: 1, activeConnectionId: null,
+            totalStatements: 4, completedStatements: 4, activeConnectionId: null,
             activeScriptKey: null, activeFileName: null,
             activeStatementIndex: null, activeStatementCount: null, error: null,
         });
@@ -113,7 +115,6 @@ describe('runSessionExecution', () => {
         expect(f.states.filter(state => state.activeScriptKey === 101).map(state => state.activeStatementIndex))
             .toEqual(expect.arrayContaining([1, 2, 3]));
         expect(f.unpack).toHaveBeenCalledOnce();
-        f.scriptSessions.forEach(scriptSession => expect(scriptSession.startExecution).not.toHaveBeenCalled());
     });
 
     it('passes the catalog changes of planned statements to the executor', async () => {
@@ -256,7 +257,6 @@ describe('runSessionExecution', () => {
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([false, false, true, false]);
         for (const [, args] of f.executeQuery.mock.calls) {
             expect(args).toMatchObject({ cacheable: false, throwOnError: true, abortSignal: f.controller.signal });
-            expect(args.scriptExecution).toBeUndefined();
         }
         expect(f.modifySessionScripts.mock.calls.filter(([action]) => action.type === REGISTER_QUERY).map(([action]) => action.value)).toEqual([
             [100, 1], [100, 2], [100, 3], [100, 4], [100, 3],
@@ -400,40 +400,34 @@ describe('runSessionExecution', () => {
         expect(completed.cancelQuery).not.toHaveBeenCalled();
     });
 
-    it('runs consecutive scripts on the same connection as blocks, one block after another', async () => {
+    it('runs the scripts of every connection in one plan, one statement of a connection at a time', async () => {
         const f = fixture([
             { file: '1_a.sql', outputs: [true], connection: 'a' },
             { file: '2_a.sql', outputs: [true], connection: 'a' },
             { file: '3_b.sql', outputs: [false, true], connection: 'b' },
             { file: '4_a.sql', outputs: [true], connection: 'a' },
         ]);
-        // Every block is planned on its own, the graph covers the scripts of the block
-        f.plan.mockImplementation((input: core.DashQLScriptSession[]) => {
-            const files = input.map(scriptSession => f.session.scripts[scriptSession.getCatalogEntryId()].fileName);
-            const graph = {
-                valid: true,
-                scripts: input.map(scriptSession => ({
-                    scriptId: scriptSession.getCatalogEntryId(), textVersion: scriptSession.getTextVersion(),
-                    analyzedTextVersion: scriptSession.getTextVersion(), analyzedCatalogRevision: scriptSession.getCatalogRevision(),
-                })),
-                nodes: files.flatMap((file, script) => (file === '3_b.sql' ? [false, true] : [true]).map((producesOutput, statementId) => ({
-                    script, statementId, producesOutput, sql: `${file}:${statementId + 1}`,
-                }))),
-                edges: [] as Array<{ from: number; to: number }>,
-                diagnostics: [],
-            };
-            return { unpack: vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT) };
+        // Independent statements: the connections run side by side
+        f.graph.edges.length = 0;
+        const running = new Map<string, number>();
+        let overlap = false;
+        f.executeQuery.mockImplementation((connection: string) => {
+            running.set(connection, (running.get(connection) ?? 0) + 1);
+            if (running.get(connection)! > 1) overlap = true;
+            if ([...running.values()].filter(count => count > 0).length > 1) running.set('both', 1);
+            const done = Promise.resolve(null).then(result => { running.set(connection, running.get(connection)! - 1); return result; });
+            return [f.executeQuery.mock.calls.length, done];
         });
         await runSessionExecution(f.args);
-        expect(f.plan.mock.calls.map(([input]) => input.map(session => session.getCatalogEntryId()))).toEqual([
-            [100, 101], [102], [103],
-        ]);
-        expect(f.executeQuery.mock.calls.map(([connection, args]) => [connection, args.query])).toEqual([
-            ['a', '1_a.sql:1'], ['a', '2_a.sql:1'], ['b', '3_b.sql:1'], ['b', '3_b.sql:2'], ['a', '4_a.sql:1'],
-        ]);
-        expect(f.lastState()).toMatchObject({
-            phase: 'succeeded', totalBlocks: 3, completedBlocks: 3, totalStatements: 5, completedStatements: 5, completedScripts: 4,
-        });
+        expect(f.plan).toHaveBeenCalledOnce();
+        expect(f.plan.mock.calls[0][0].connections.map(connection => connection.id)).toEqual(['a', 'b']);
+        const calls = f.executeQuery.mock.calls.map(([connection, args]) => [connection, args.query]);
+        expect(calls.filter(([connection]) => connection === 'a')).toEqual([['a', '1_a.sql:1'], ['a', '2_a.sql:1'], ['a', '4_a.sql:1']]);
+        expect(calls.filter(([connection]) => connection === 'b')).toEqual([['b', '3_b.sql:1'], ['b', '3_b.sql:2']]);
+        // A connection runs one statement at a time, the other connection runs meanwhile
+        expect(overlap).toBe(false);
+        expect(running.has('both')).toBe(true);
+        expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalStatements: 5, completedStatements: 5, completedScripts: 4 });
     });
 
     it('cancels a query on the connection that runs it', async () => {

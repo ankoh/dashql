@@ -1,10 +1,7 @@
 import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
 import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 
-import type { CacheFileStat } from './query_result_cache_eviction.js';
-import type { CachedQueryResult } from '../../query/query_result_cache.js';
 import { hyperOPFSRoot } from '../../platform/opfs_root.js';
-export type { CachedQueryResult } from '../../query/query_result_cache.js';
 
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
@@ -12,14 +9,6 @@ export const STORAGE_SESSIONS_FOLDER = 'sessions';
 export const STORAGE_SESSION_FILE = 'dashql-session.json';
 export const STORAGE_SCRIPTS_FOLDER = 'scripts';
 export const STORAGE_ATTACHMENTS_FOLDER = 'attachments';
-export const STORAGE_CACHE_FOLDER = 'cache';
-export const STORAGE_CACHE_EXTENSION = '.arrow';
-/// Suffix of the empty "last access" marker that sits beside each cached `.arrow` file, e.g.
-/// `<hash>.arrow.last_access`. Its own mtime is the entry's last-access time and is bumped (by
-/// rewriting the empty file) on every cache hit — this is how the FIFO-by-write-time cache is turned
-/// into an LRU without rewriting the (potentially large) payload. The marker is advisory: the
-/// `.arrow` files are authoritative, so a missing marker just falls back to the payload's own mtime.
-export const STORAGE_CACHE_ACCESS_SUFFIX = '.last_access';
 export const STORAGE_SHELL_FOLDER = 'shell';
 /// The folder that holds the files of the connections, e.g. `connections/<uuid>/…`
 export const STORAGE_CONNECTIONS_FOLDER = 'connections';
@@ -67,7 +56,6 @@ export type AppSettings = app_manifest.AppSettings;
 export type ConnectionEntry = app_manifest.ConnectionEntry;
 export type SessionData = app_session.SessionData;
 export type SessionMetadata = app_session.SessionMetadata;
-export type SessionSettings = app_session.SessionSettings;
 export type SessionScript = app_session.SessionScript;
 export type SessionAttachment = app_session.SessionAttachment;
 export type SessionConnection = app_session.SessionConnection;
@@ -129,33 +117,6 @@ export interface StorageBackend {
     saveDataFile(sessionId: string, name: string, content: DataFileContent): Promise<void>;
     deleteDataFile(sessionId: string, name: string): Promise<void>;
     renameDataFile(sessionId: string, oldName: string, newName: string): Promise<void>;
-
-    /// Load a cached query result by content hash, or null on a cache miss.
-    ///
-    /// The cache lives in a `cache/` folder inside the session's storage; entries are named
-    /// `<hash>.arrow`. This is a best-effort cache: callers must treat any failure as a miss and fall
-    /// back to normal execution (the executor never lets a cache error surface into the query path).
-    /// On a hit the returned entry carries both the Arrow IPC bytes and the file's write time
-    /// (`cachedAt`), so the UI can show how old the cached result is.
-    loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null>;
-    /// Record a cache access by bumping the entry's `<hash>.arrow.last_access` marker's mtime (an
-    /// empty file, rewritten so its mtime advances). This is the LRU signal consumed by eviction; it
-    /// deliberately does *not* re-touch the payload `.arrow`, so the payload's mtime stays meaningful
-    /// as the "cached at" timestamp. Best-effort: callers invoke this on a cache hit and ignore
-    /// failures (a missing marker degrades eviction to write-time/FIFO for that entry).
-    touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void>;
-    /// Store a query result (Arrow IPC bytes) under `<hash>.arrow` in the session's `cache/` folder,
-    /// evicting least-recently-used entries first to stay under the size and count thresholds.
-    saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void>;
-    /// List the session's cached query results with their size and recency metadata (one entry per
-    /// `<hash>.arrow` payload; the `.last_access` markers are folded in as `lastAccessMs`). Returns an
-    /// empty array when the session has no cache folder yet. This is the read side of the same
-    /// listing the eviction policy walks, exposed for the internals cache inspector.
-    listQueryResultCache(sessionId: string): Promise<CacheFileStat[]>;
-    /// Query result is cached
-    hasCachedQueryResult(sessionId: string, hash: string): Promise<boolean>;
-    /// Delete a single cached query result by content hash. A no-op when the entry is already gone.
-    deleteQueryResultCache(sessionId: string, hash: string): Promise<void>;
 
     /// Clear all storage (delete all sessions and reset manifest)
     clearAllStorage?(): Promise<void>;

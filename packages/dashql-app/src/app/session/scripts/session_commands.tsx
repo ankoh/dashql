@@ -52,11 +52,12 @@ export interface SessionCommandsDependencies {
     useCatalogLoaderQueue: typeof useCatalogLoaderQueue;
     useLogger: typeof useLogger;
     useSessionViewMode: typeof useSessionViewMode;
+    runSessionScript: typeof runSessionScript;
 }
 
 const DEFAULT_DEPENDENCIES: SessionCommandsDependencies = {
     useSessionScripts, useSessionConnections, useConnectionRegistryStore,
-    useQueryExecutor, useCatalogLoaderQueue, useLogger, useSessionViewMode,
+    useQueryExecutor, useCatalogLoaderQueue, useLogger, useSessionViewMode, runSessionScript,
 };
 
 const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(null);
@@ -118,7 +119,7 @@ export const SessionCommands: React.FC<Props> = (props: Props) => {
                                 scriptKey: entry.scriptId.toString(),
                             }, LOG_CTX);
                         } else {
-                            await runSessionScript(
+                            await dependencies.runSessionScript(
                                 sessionScripts,
                                 scriptData,
                                 executeQuery,

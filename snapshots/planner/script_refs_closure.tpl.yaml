@@ -1,0 +1,157 @@
+planner-snapshots:
+  # A target without references is planned alone, its statements run in order
+  - name: TargetAlone
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: other
+        input: |
+          select 1;
+      - name: bar
+        input: |
+          create table t as select * from orders;
+          select count(*) from t;
+    targets: [bar]
+
+  # A fused reference adds no statement, the scripts that write the relations of the fused query are no part of the
+  # plan, the target reads them as the backend has them
+  - name: TargetFusesProducer
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: setup
+        input: |
+          insert into t values (1);
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          select * from :foo;
+    targets: [bar]
+
+  # A materialized reference needs the referenced script and what it references
+  - name: TargetMaterializes
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select * from orders where amount > 0;
+      - name: foo
+        connection: trino
+        input: |
+          select * from :base where amount > 1;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    targets: [bar]
+
+  # The host provides the materialized result, the referenced script does not run
+  - name: TargetReusesMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    targets: [bar]
+    materialized: [foo]
+
+  # The host provides the materialized result of a script that fuses the query of another script
+  - name: TargetReusesMaterializationWithReferences
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: foo
+        connection: trino
+        input: |
+          select id from :base;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    targets: [bar]
+    materialized: [foo]
+
+  # A target that does not parse runs as written
+  - name: TargetWithSyntaxErrors
+    scripts:
+      - name: bar
+        input: |
+          select from where;
+    targets: [bar]
+
+  # Statements of every kind keep their SQL in a plan of targets
+  - name: TargetWithUnsupportedStatement
+    scripts:
+      - name: bar
+        input: |
+          set search_path = foo;
+          select 1;
+    targets: [bar]
+
+  # A stale script that the targets do not need does not invalidate the plan
+  - name: TargetWithStaleOtherScript
+    scripts:
+      - name: stale
+        input: |
+          select 1;
+        stale-prepend: "select 2; "
+      - name: bar
+        input: |
+          select 3;
+    targets: [bar]
+
+  # A stale referenced script invalidates the plan
+  - name: TargetWithStaleProducer
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a;
+        stale-prepend: "select 2 as a; "
+      - name: bar
+        input: |
+          select * from :foo;
+    targets: [bar]
+
+  # A script with statements other than queries is not cacheable, a referenced script always is
+  - name: TargetCacheability
+    scripts:
+      - name: reads
+        input: |
+          select 1 as a;
+      - name: bar
+        input: |
+          create table t as select * from :reads;
+          select a from t;
+      - name: baz
+        input: |
+          select * from :reads;
+    targets: [bar, baz]

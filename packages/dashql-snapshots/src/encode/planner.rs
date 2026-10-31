@@ -54,44 +54,110 @@ fn prepare(catalog: &Catalog, text: &str) -> Result<Script, String> {
     Ok(script)
 }
 
+/// A connection of a planner fixture
+pub struct FixtureConnection {
+    /// The connection name, scripts reference it
+    pub name: String,
+    /// Is the connection the LOCAL one?
+    pub local: bool,
+    /// The catalog script of the connection
+    pub catalog: Option<String>,
+}
+
+/// A script of a planner fixture
+pub struct FixtureScript {
+    /// The script name, table parameters reference it
+    pub name: String,
+    /// The script text
+    pub input: String,
+    /// The text to prepend after the analysis, which makes the analysis stale (`stale-prepend`)
+    pub stale_prepend: Option<String>,
+    /// The connection name, the implicit connection if absent
+    pub connection: Option<String>,
+}
+
 /// The texts of a planner fixture
 pub struct Fixture {
-    /// The catalog script
+    /// The catalog script of the implicit connection
     pub catalog: Option<String>,
-    /// The scripts: name, input and the text to prepend after the analysis (`stale-prepend`)
-    pub scripts: Vec<(String, String, Option<String>)>,
+    /// The connections, an implicit REMOTE connection with `catalog` if empty
+    pub connections: Vec<FixtureConnection>,
+    /// The scripts
+    pub scripts: Vec<FixtureScript>,
+    /// The target scripts of a plan of targets, a plan of the session if absent
+    pub targets: Option<Vec<String>>,
+    /// The scripts whose materialized results the host provides
+    pub materialized: Vec<String>,
 }
+
+/// The directory of the materialized results in planner snapshots
+pub const PLANNER_MOUNT_PREFIX: &str = "/mnt/external/dashql-run-test";
 
 impl Fixture {
     /// Read a fixture of a snapshot file
     pub fn from_yaml(fixture: &Yaml) -> Self {
         let text = |node: &Yaml| node.as_str().unwrap_or("").to_string();
+        let present = |node: &Yaml| !matches!(node, Yaml::BadValue);
+        let names = |node: &Yaml| node.as_vec().into_iter().flatten().map(text).collect::<Vec<_>>();
         Self {
-            catalog: (!matches!(fixture["catalog"], Yaml::BadValue)).then(|| text(&fixture["catalog"])),
+            catalog: present(&fixture["catalog"]).then(|| text(&fixture["catalog"])),
+            connections: fixture["connections"]
+                .as_vec()
+                .into_iter()
+                .flatten()
+                .map(|c| FixtureConnection {
+                    name: text(&c["name"]),
+                    local: c["kind"].as_str() == Some("LOCAL"),
+                    catalog: present(&c["catalog"]).then(|| text(&c["catalog"])),
+                })
+                .collect(),
             scripts: fixture["scripts"]
                 .as_vec()
                 .into_iter()
                 .flatten()
-                .map(|s| (text(&s["name"]), text(&s["input"]), s["stale-prepend"].as_str().map(str::to_string)))
+                .map(|s| FixtureScript {
+                    name: text(&s["name"]),
+                    input: text(&s["input"]),
+                    stale_prepend: s["stale-prepend"].as_str().map(str::to_string),
+                    connection: s["connection"].as_str().map(str::to_string),
+                })
                 .collect(),
+            targets: present(&fixture["targets"]).then(|| names(&fixture["targets"])),
+            materialized: names(&fixture["materialized"]),
         }
     }
 
     /// Read a fixture of a template
     pub fn from_node(fixture: &Node) -> Self {
         let text = |node: Option<&Node>| node.and_then(Node::val).unwrap_or("").to_string();
+        let names = |node: Option<&Node>| node.map(Node::children).unwrap_or_default().into_iter().map(|n| text(Some(n))).collect::<Vec<_>>();
         Self {
             catalog: fixture.get("catalog").map(|c| text(Some(c))),
+            connections: fixture
+                .get("connections")
+                .map(Node::children)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|c| FixtureConnection {
+                    name: text(c.get("name")),
+                    local: c.get("kind").and_then(Node::val) == Some("LOCAL"),
+                    catalog: c.get("catalog").map(|c| text(Some(c))),
+                })
+                .collect(),
             scripts: fixture
                 .get("scripts")
                 .map(Node::children)
                 .unwrap_or_default()
                 .into_iter()
-                .map(|s| {
-                    let prepend = s.get("stale-prepend").map(|p| text(Some(p)));
-                    (text(s.get("name")), text(s.get("input")), prepend)
+                .map(|s| FixtureScript {
+                    name: text(s.get("name")),
+                    input: text(s.get("input")),
+                    stale_prepend: s.get("stale-prepend").map(|p| text(Some(p))),
+                    connection: s.get("connection").map(|c| text(Some(c))),
                 })
                 .collect(),
+            targets: fixture.get("targets").map(|t| names(Some(t))),
+            materialized: names(fixture.get("materialized")),
         }
     }
 }
@@ -103,63 +169,170 @@ pub fn encode_fixture(fixture: &Yaml) -> Result<Yaml, String> {
 
 /// Plan a fixture and encode the execution graph as a styled tree
 pub fn encode_planner_fixture(fixture: &Fixture) -> Result<Node, String> {
-    let mut catalog = Catalog::new();
-    let mut catalog_script = None;
-    if let Some(text) = &fixture.catalog {
-        let script = prepare(&catalog, &crate::trim_input(text))?;
-        if !publishable(&script) {
-            return Err("invalid planner fixture catalog".into());
+    let planned = plan_fixture(fixture)?;
+    let inputs: Vec<&Script> = planned.scripts.iter().collect();
+    let connection_names: Vec<String> = planned.connections.iter().map(|c| c.name.clone()).collect();
+    let declared = !fixture.connections.is_empty();
+    Ok(encode_graph(&planned.graph, &inputs, &planned.names, declared.then_some(&connection_names[..]), fixture.targets.is_some()))
+}
+
+/// A planned fixture
+pub struct PlannedFixture {
+    /// The execution graph
+    pub graph: ExecutionGraphT,
+    /// The connections, the implicit one of a fixture without connections
+    pub connections: Vec<FixtureConnection>,
+    /// The script names
+    pub names: Vec<String>,
+    /// The planned scripts
+    pub scripts: Vec<Script>,
+}
+
+/// Plan a fixture
+pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
+    use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
+    // The connections and their catalogs, an implicit connection without connections
+    let declared = !fixture.connections.is_empty();
+    let connections: Vec<FixtureConnection> = if declared {
+        fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone() }).collect()
+    } else {
+        vec![FixtureConnection { name: "default".into(), local: false, catalog: fixture.catalog.clone() }]
+    };
+    let mut catalogs: Vec<Catalog> = Vec::new();
+    let mut catalog_scripts = Vec::new();
+    for connection in &connections {
+        let mut catalog = Catalog::new();
+        if let Some(text) = &connection.catalog {
+            let script = prepare(&catalog, &crate::trim_input(text))?;
+            if !publishable(&script) {
+                return Err("invalid planner fixture catalog".into());
+            }
+            catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
+            catalog_scripts.push(script);
         }
-        catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
-        catalog_script = Some(script);
+        catalogs.push(catalog);
     }
+    let connection_of = |script: &FixtureScript| -> Result<usize, String> {
+        match &script.connection {
+            None if !declared => Ok(0),
+            None => Err(format!("planner fixture script {} needs a connection", script.name)),
+            Some(name) => connections.iter().position(|c| &c.name == name).ok_or_else(|| format!("unknown planner fixture connection {name}")),
+        }
+    };
     let mut names = Vec::new();
     let mut scripts = Vec::new();
-    for (name, input, prepend) in &fixture.scripts {
-        if name.is_empty() || names.contains(name) {
+    for script in &fixture.scripts {
+        if script.name.is_empty() || names.contains(&script.name) {
             return Err("planner fixture script names must be nonempty and unique".into());
         }
-        names.push(name.clone());
-        scripts.push((prepare(&catalog, &crate::trim_input(input))?, prepend));
+        names.push(script.name.clone());
+        let connection = connection_of(script)?;
+        scripts.push((prepare(&catalogs[connection], &crate::trim_input(&script.input))?, script.stale_prepend.clone(), connection));
     }
-    // Publish the complete definition set before resolving any cross-script references
-    let definitions: Vec<_> = scripts
-        .iter()
-        .enumerate()
-        .filter(|(_, (s, _))| publishable(s) && !s.analyzed.as_ref().unwrap().entry.table_declarations.is_empty())
-        .map(|(_, (s, _))| (s.analyzed.clone().unwrap(), CatalogLayer::SESSION))
-        .collect();
-    catalog.load_scripts(&definitions).map_err(|e| e.message)?;
-    for (script, _) in scripts.iter_mut() {
-        script.analyze(&catalog, false).map_err(|e| e.message)?;
+    // Publish the complete definition set of every connection before resolving any cross-script references
+    for (ci, catalog) in catalogs.iter_mut().enumerate() {
+        let definitions: Vec<_> = scripts
+            .iter()
+            .filter(|(s, _, c)| *c == ci && publishable(s) && !s.analyzed.as_ref().unwrap().entry.table_declarations.is_empty())
+            .map(|(s, _, _)| (s.analyzed.clone().unwrap(), CatalogLayer::SESSION))
+            .collect();
+        catalog.load_scripts(&definitions).map_err(|e| e.message)?;
     }
-    for (script, source) in scripts.iter_mut() {
-        if let Some(prepend) = source {
+    for (script, _, connection) in scripts.iter_mut() {
+        script.analyze(&catalogs[*connection], false).map_err(|e| e.message)?;
+    }
+    for (script, prepend, _) in scripts.iter_mut() {
+        if let Some(prepend) = prepend {
             script.insert_text_at(0, prepend);
         }
     }
-    let inputs: Vec<&Script> = scripts.iter().map(|(s, _)| s).collect();
-    let planner_inputs: Vec<_> =
-        inputs.iter().map(|&script| dashql_core_session::planner::PlannerInput { script, catalog: &catalog }).collect();
-    let graph = dashql_core_session::planner::plan(&planner_inputs);
-    drop(catalog_script);
-    Ok(encode_graph(&graph, &inputs, &names))
+    let index_of = |name: &String| names.iter().position(|n| n == name).map(|i| i as u32).ok_or_else(|| format!("unknown planner fixture script {name}"));
+    let targets = fixture.targets.as_ref().map(|t| t.iter().map(index_of).collect::<Result<Vec<_>, _>>()).transpose()?;
+    let materialized = fixture.materialized.iter().map(index_of).collect::<Result<Vec<_>, _>>()?;
+    let planner_connections: Vec<PlannerConnection> = connections
+        .iter()
+        .zip(&catalogs)
+        .map(|(c, catalog)| PlannerConnection {
+            id: &c.name,
+            kind: if c.local { ConnectionKind::Local } else { ConnectionKind::Remote },
+            catalog,
+        })
+        .collect();
+    let planner_scripts: Vec<PlannerScript> =
+        scripts.iter().zip(&names).map(|((script, _, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None }).collect();
+    let graph = plan_session(&SessionPlanRequest {
+        connections: &planner_connections,
+        scripts: &planner_scripts,
+        scope: match &targets {
+            Some(t) => PlanScope::Targets(t),
+            None => PlanScope::Session,
+        },
+        materialized: &materialized,
+        mount_prefix: PLANNER_MOUNT_PREFIX,
+    });
+    drop(planner_scripts);
+    drop(planner_connections);
+    drop(catalog_scripts);
+    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _, _)| s).collect() })
 }
 
-fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String]) -> Node {
+/// Encode an execution graph. `connections` are the names of the declared connections, a fixture without them
+/// leaves the connections out.
+fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String], connections: Option<&[String]>, targets: bool) -> Node {
+    let none = u32::MAX;
     let mut out = Map::new();
     out.boolean("valid", graph.valid);
+    if let Some(connections) = connections {
+        let list = graph
+            .connections
+            .iter()
+            .flatten()
+            .zip(connections)
+            .map(|(c, name)| {
+                let mut m = Map::new();
+                m.plain("name", name);
+                m.plain("kind", c.kind.variant_name().unwrap_or(""));
+                m.into_node()
+            })
+            .collect();
+        out.insert("connections", Node::seq(list));
+    }
+    let connection_name = |c: u32| connections.and_then(|names| names.get(c as usize)).cloned().unwrap_or_default();
     let scripts = graph
         .scripts
         .iter()
         .flatten()
-        .map(|s| {
+        .enumerate()
+        .map(|(index, s)| {
             let mut m = Map::new();
-            let index = inputs.iter().position(|i| i.catalog_entry_id() == s.script_id).unwrap();
+            // The scripts of the graph are the scripts of the request
+            debug_assert_eq!(inputs[index].catalog_entry_id(), s.script_id);
             m.plain("name", &names[index]);
+            if connections.is_some() {
+                m.plain("connection", &connection_name(s.connection));
+            }
             m.int("text-version", s.text_version as i64);
             m.int("analyzed-text-version", s.analyzed_text_version as i64);
             m.int("analyzed-catalog-revision", s.analyzed_catalog_revision as i64);
+            if !s.planned {
+                m.boolean("planned", false);
+            }
+            if targets {
+                m.boolean("target", s.target);
+            }
+            if s.planned {
+                m.boolean("cacheable", s.cacheable);
+                if s.terminal_statement_id != none {
+                    m.int("terminal-statement-id", s.terminal_statement_id as i64);
+                }
+                if let Some(signature) = &s.signature {
+                    m.quoted("signature", signature);
+                }
+            }
+            let referenced: Vec<Node> = s.referenced_scripts.iter().flatten().map(|&r| plain(&names[r as usize])).collect();
+            if !referenced.is_empty() {
+                m.insert("references", Node::flow_seq(referenced));
+            }
             m.into_node()
         })
         .collect();
@@ -182,6 +355,10 @@ fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String]) -
         if id.object_type != ExecutionGraphEntityType::TABLE {
             text = format!("{}:{text}", id.object_type.variant_name().unwrap_or(""));
         }
+        // Catalog ids of different connections may be equal
+        if connections.is_some() {
+            text = format!("{}/{text}", connection_name(entity.connection));
+        }
         text
     };
     let entity_list = entities
@@ -203,15 +380,18 @@ fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String]) -
         .map(|r| {
             let mut m = Map::new();
             m.plain("name", &qualified_name(&r.database_name, &r.schema_name, &r.name));
+            if connections.is_some() {
+                m.plain("connection", &connection_name(r.connection));
+            }
             m.into_node()
         })
         .collect();
     out.insert("unresolved-references", Node::seq(unresolved));
     let target = |m: &mut Map, entity: u32, unresolved: u32| {
-        if entity != u32::MAX {
+        if entity != none {
             m.insert("entity", Node::squo(catalog_id(entity)));
         }
-        if unresolved != u32::MAX {
+        if unresolved != none {
             m.int("unresolved-reference", unresolved as i64);
         }
     };
@@ -224,11 +404,33 @@ fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String]) -
             let mut m = Map::new();
             m.int("id", i as i64);
             m.plain("script", &names[n.script as usize]);
+            if connections.is_some() {
+                m.plain("connection", &connection_name(n.connection));
+            }
             m.int("statement-id", n.statement_id as i64);
             m.plain("type", n.statement_type.variant_name().unwrap_or(""));
-            m.quoted("sql", n.sql.as_deref().unwrap_or(""));
+            let sql = n.sql.as_deref().unwrap_or("");
+            if sql.contains('\n') {
+                m.insert("sql", Node::literal(sql));
+            } else {
+                m.quoted("sql", sql);
+            }
             m.boolean("produces-output", n.produces_output);
             m.boolean("barrier", n.barrier);
+            if n.script_result {
+                m.boolean("script-result", true);
+            }
+            if n.materialization != none {
+                m.int("materialization", n.materialization as i64);
+            }
+            let inputs: Vec<Node> = n.inputs.iter().flatten().map(|&i| Node::int(i)).collect();
+            if !inputs.is_empty() {
+                m.insert("inputs", Node::flow_seq(inputs));
+            }
+            let fused: Vec<Node> = n.fused_scripts.iter().flatten().map(|&s| Node::int(s)).collect();
+            if !fused.is_empty() {
+                m.insert("fused-scripts", Node::flow_seq(fused));
+            }
             let accesses = n
                 .accesses
                 .iter()
@@ -259,15 +461,70 @@ fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String]) -
         })
         .collect();
     out.insert("edges", Node::seq(edges));
+    let span_text = |script: u32, span: &Option<dashql_buffers::parser::TextSpanT>| -> Option<String> {
+        let span = span.as_ref()?;
+        let text = &inputs.get(script as usize)?.scanned.as_ref()?.text;
+        Some(super::location_text(text, span.offset, span.length))
+    };
+    let materializations: Vec<Node> = graph
+        .materializations
+        .iter()
+        .flatten()
+        .map(|mat| {
+            let mut m = Map::new();
+            m.plain("script", &names[mat.script as usize]);
+            if mat.node != none {
+                m.int("node", mat.node as i64);
+            } else {
+                m.boolean("reused", true);
+            }
+            m.plain("path", mat.path.as_deref().unwrap_or(""));
+            m.into_node()
+        })
+        .collect();
+    if !materializations.is_empty() {
+        out.insert("materializations", Node::seq(materializations));
+    }
+    let references: Vec<Node> = graph
+        .references
+        .iter()
+        .flatten()
+        .map(|r| {
+            let mut m = Map::new();
+            m.int("node", r.node as i64);
+            m.plain("script", &names[r.consumer_script as usize]);
+            if let Some(text) = span_text(r.consumer_script, &r.text_span) {
+                m.quoted("text", &text);
+            }
+            m.plain("target", &names[r.script as usize]);
+            m.plain("cte", r.cte_name.as_deref().unwrap_or(""));
+            if r.materialization != none {
+                m.int("materialization", r.materialization as i64);
+            }
+            m.into_node()
+        })
+        .collect();
+    if !references.is_empty() {
+        out.insert("references", Node::seq(references));
+    }
     let diagnostics = graph
         .diagnostics
         .iter()
         .flatten()
         .map(|d| {
             let mut m = Map::new();
-            if d.node != u32::MAX {
+            if d.node != none {
                 m.int("node", d.node as i64);
             }
+            if d.script != none {
+                if let Some(name) = names.get(d.script as usize) {
+                    m.plain("script", name);
+                }
+                if let Some(text) = span_text(d.script, &d.text_span) {
+                    m.quoted("text", &text);
+                }
+            }
+            m.boolean("error", d.error);
             m.insert("message", plain(d.message.as_deref().unwrap_or("")));
             m.into_node()
         })

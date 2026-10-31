@@ -1,0 +1,123 @@
+planner-snapshots:
+  # A table parameter that names no script
+  - name: UnknownScript
+    scripts:
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # Two scripts whose names differ in case only, neither has the exact name
+  - name: AmbiguousScriptName
+    scripts:
+      - name: Foo
+        input: |
+          select 1 as a;
+      - name: FOO
+        input: |
+          select 2 as a;
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # Positional table parameters reference no script
+  - name: PositionalTableParameter
+    scripts:
+      - name: bar
+        input: |
+          select * from $1;
+          select * from ?;
+
+  # A script is no table that a statement could write
+  - name: WriteTarget
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a;
+      - name: bar
+        input: |
+          insert into :foo values (1);
+          delete from :foo;
+
+  # A script reference outside of a query
+  - name: ReferenceOutsideOfQuery
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: foo
+        input: |
+          select 1 as id;
+      - name: bar
+        input: |
+          delete from orders using :foo f where f.id = orders.id;
+
+  # A referenced script must end with a query
+  - name: ProducerWithoutQuery
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: inserts
+        input: |
+          insert into orders values (1);
+      - name: creates
+        input: |
+          create table t (a int);
+      - name: explains
+        input: |
+          explain select 1;
+      - name: empty
+        input: |
+          -- nothing
+      - name: bar
+        input: |
+          select * from :inserts, :creates, :explains, :empty;
+
+  # A referenced script that does not parse
+  - name: ProducerWithSyntaxErrors
+    scripts:
+      - name: foo
+        input: |
+          select from where;
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # A script that references itself
+  - name: SelfReference
+    scripts:
+      - name: foo
+        input: |
+          select * from :foo;
+
+  # Scripts that reference each other
+  - name: Cycles
+    scripts:
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+      - name: c
+        input: |
+          select * from :d;
+      - name: d
+        input: |
+          select * from :e;
+      - name: e
+        input: |
+          select * from :c;
+
+  # A referenced script is a single SELECT, neither commands nor further queries precede it
+  - name: ProducerOfSeveralStatements
+    scripts:
+      - name: foo
+        input: |
+          create table t (a int);
+          select a from t;
+      - name: two
+        input: |
+          select 1 as a;
+          select 2 as a;
+      - name: bar
+        input: |
+          select * from :foo, :two;

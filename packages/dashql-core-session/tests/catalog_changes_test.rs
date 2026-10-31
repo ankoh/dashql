@@ -6,15 +6,13 @@ use dashql_buffers::analyzer::{QualifiedTableNameT, TableColumnT, TableT};
 use dashql_buffers::catalog::CatalogDescriptorT;
 use dashql_core::catalog::changes::{CatalogChange, CatalogChangeKind};
 use dashql_buffers::editor::EditorOffsetUnit;
-use dashql_buffers::execution::{StatementResultStatus, StatementResultT};
-use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core_session::catalog_changes::{
     append_catalog_changes_sql, compact_catalog_changes, derive_catalog_change, parse_catalog_changes_sql, qualify_catalog_changes,
     render_catalog_changes_sql, CatalogChangeOptions, CatalogNameDefaults,
 };
 use dashql_core::catalog::{Catalog, CatalogEntryId};
 use dashql_core::script::Script;
-use dashql_core_session::script_execution::ScriptExecution;
+use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
 use dashql_core_session::script_session::ScriptSession;
 
 fn defaults() -> CatalogNameDefaults {
@@ -315,32 +313,20 @@ fn applying_changes_creates_an_unknown_entry() {
 }
 
 #[test]
-fn execution_reports_the_changes_of_succeeded_statements() {
+fn a_plan_of_a_script_carries_the_changes_of_its_statements() {
     let catalog = Catalog::new();
     let mut session = ScriptSession::new(&catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
     session.replace_text(&catalog, 0, "create table t (v int); drop table u; select * from t;");
-    let mut config = FormattingConfigT::default();
-    config.mode = FormattingMode::INLINE;
-    config.dialect = FormattingDialect::HYPER;
-    let mut execution = ScriptExecution::new(&mut session, &catalog, config);
-
-    let succeed = |execution: &mut ScriptExecution, id: u64| {
-        let mut result = StatementResultT::default();
-        result.pending_statement_id = id;
-        result.status = StatementResultStatus::SUCCEEDED;
-        execution.resume(&result)
-    };
-    let operation = execution.start();
-    assert!(operation.catalog_changes.is_none());
-    let operation = succeed(&mut execution, operation.pending_statement.as_ref().unwrap().id);
-    let changes: Vec<String> =
-        operation.catalog_changes.iter().flatten().filter_map(CatalogChange::unpack).map(|c| describe(&c)).collect();
-    assert_eq!(changes, vec!["create ..t(v)"]);
-
-    // A failed statement changes nothing
-    let mut failed = StatementResultT::default();
-    failed.pending_statement_id = operation.pending_statement.as_ref().unwrap().id;
-    failed.status = StatementResultStatus::FAILED;
-    let operation = execution.resume(&failed);
-    assert!(operation.catalog_changes.is_none());
+    session.analyze(&catalog);
+    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog }];
+    let scripts = [PlannerScript { script: session.script(), name: "", connection: 0, materialization_file: None }];
+    let graph = plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Targets(&[0]), materialized: &[], mount_prefix: "" });
+    assert!(graph.valid);
+    let changes: Vec<Vec<String>> = graph
+        .nodes
+        .iter()
+        .flatten()
+        .map(|node| node.catalog_changes.iter().flatten().filter_map(CatalogChange::unpack).map(|c| describe(&c)).collect())
+        .collect();
+    assert_eq!(changes, vec![vec!["create ..t(v)".to_string()], vec!["drop ..u".to_string()], vec![]]);
 }

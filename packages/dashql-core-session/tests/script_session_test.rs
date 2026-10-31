@@ -14,14 +14,21 @@ use dashql_buffers::parser::{ScannerTokenType, StatementType};
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::pack_completion;
 use dashql_core::vis_rewrite::VisCard;
-use dashql_core_session::planner::{plan, PlannerInput};
+use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
 use dashql_core::script::Script;
 use dashql_core_session::script_session::ScriptSession;
 use dashql_buffers::catalog::CatalogChangeType;
 use dashql_buffers::completion::CompletionT;
-use dashql_buffers::execution::ScriptCompilationResultT;
+use dashql_buffers::execution::{ExecutionGraphT, ScriptCompilationResultT};
 use std::cell::RefCell;
 use std::rc::Rc;
+
+/// Plan scripts of one catalog as the session of one connection
+fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
+    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog }];
+    let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None }).collect();
+    plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "" })
+}
 
 /// The catalog shared by the sessions of a test
 type CatalogHandle = Rc<RefCell<Catalog>>;
@@ -511,10 +518,7 @@ fn published_sessions_refresh_at_final_catalog_revision_before_planning() {
     }
 
     let catalog_ref = catalog.borrow();
-    let graph = plan(&[
-        PlannerInput { script: schema.script(), catalog: &catalog_ref },
-        PlannerInput { script: query.script(), catalog: &catalog_ref },
-    ]);
+    let graph = plan_scripts(&catalog_ref, &[schema.script(), query.script()]);
     assert!(graph.valid);
     assert!(graph.diagnostics.as_ref().is_none_or(|d| d.is_empty()));
     assert!(graph.unresolved_references.as_ref().is_none_or(|r| r.is_empty()));
@@ -537,7 +541,7 @@ fn planned_statements_carry_their_catalog_changes() {
     session.analyze();
 
     let catalog_ref = catalog.borrow();
-    let graph = plan(&[PlannerInput { script: session.script(), catalog: &catalog_ref }]);
+    let graph = plan_scripts(&catalog_ref, &[session.script()]);
     assert!(graph.valid);
     let nodes = graph.nodes.as_ref().unwrap();
     assert_eq!(nodes.len(), 3);

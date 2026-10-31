@@ -7,7 +7,6 @@ import {
     type DataFileContent,
     type SessionEntry,
     type AppSettings,
-    type CachedQueryResult,
     type ConnectionEntry,
     type StorageManifest,
     StorageBackendType,
@@ -15,7 +14,6 @@ import {
     validateDataFileName,
 } from './storage_backend.js';
 import { type FileStamp } from '../../platform/electron_fs.js';
-import { type CacheFileStat } from './query_result_cache_eviction.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { type SessionLocation, locationFromEntry } from './session_locator.js';
 import { copySession, verifySession } from './session_transfer.js';
@@ -301,9 +299,6 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async renameScript(sessionId: string, oldScriptName: string, newScriptName: string): Promise<void> {
         return (await this.backendFor(sessionId)).renameScript(sessionId, oldScriptName, newScriptName);
     }
-    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
-        return (await this.backendFor(sessionId)).loadQueryResultCache(sessionId, hash);
-    }
     async listDataFiles(sessionId: string): Promise<DataFile[]> {
         return (await this.backendFor(sessionId)).listDataFiles(sessionId);
     }
@@ -325,22 +320,6 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         await backend.renameDataFile(sessionId, oldName, newName);
         await this.syncNativeAttachments(sessionId);
     }
-    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
-        return (await this.backendFor(sessionId)).saveQueryResultCache(sessionId, hash, bytes);
-    }
-    async touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void> {
-        return (await this.backendFor(sessionId)).touchQueryResultCacheAccess(sessionId, hash);
-    }
-    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
-        return (await this.backendFor(sessionId)).listQueryResultCache(sessionId);
-    }
-    async hasCachedQueryResult(sessionId: string, hash: string): Promise<boolean> {
-        return (await this.backendFor(sessionId)).hasCachedQueryResult(sessionId, hash);
-    }
-    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
-        return (await this.backendFor(sessionId)).deleteQueryResultCache(sessionId, hash);
-    }
-
     async clearAllStorage(): Promise<void> {
         // Only the OPFS root is wiped (registry + OPFS-backed sessions). Native sessions live in
         // user-owned folders on disk that we never delete; they're simply unregistered when the

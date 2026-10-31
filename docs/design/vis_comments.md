@@ -135,9 +135,10 @@ A renderer with an invalid body leaves the query a plain query.
 
 ## Compilation and rendering
 
-The compiler (`dashql-core-session/src/compiler.rs`) compiles a terminal query with a visualization as
-`VISUALIZE`, the planner attaches the visualization to the node of any visualized query. The executed
-SQL is the statement, the tags are comments. In the shell, the tags are plain comments.
+The compiler (`dashql-core-session/src/compiler.rs`) describes a terminal query with a visualization as
+`VISUALIZE` for the editor, the planner attaches the visualization to the node of any visualized query, and
+runs execute the plan. The executed SQL is the statement as written, the tags are comments. In the shell,
+the tags are plain comments.
 
 - `vegalite`: the Vega-Lite spec of the tag is passed through, with `$schema` and the statement as
   `data.$sql` (`visualize/vegalite_generator.rs`). Every Vega-Lite property works, DashQL does not need

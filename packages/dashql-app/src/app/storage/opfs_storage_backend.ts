@@ -1,5 +1,4 @@
-import { type SessionRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type SessionData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX, STORAGE_SHELL_FOLDER } from './storage_backend.js';
-import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
+import { type SessionRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type SessionData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from './storage_backend.js';
 import { STORAGE_VERSION } from '../../migration/versions.js';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
 import { sleep } from '../../utils/sleep.js';
@@ -287,11 +286,6 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await this.moveFile(scriptsDir, oldScriptName, scriptsDir, newScriptName);
     }
 
-    /// The relative folder that holds a session's cached query results, e.g. "sessions/<uuid>/cache"
-    private cacheRelPath(sessionId: string): string {
-        return `${this.sessionRelPath(sessionId)}/${STORAGE_CACHE_FOLDER}`;
-    }
-
     private async dataDir(sessionId: string, create: boolean): Promise<FileSystemDirectoryHandle | null> {
         const root = this.ensureInitialized();
         try {
@@ -363,159 +357,12 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await this.moveFile(dir, oldName, dir, newName);
     }
 
-    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
-        try {
-            const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
-            const fileHandle = await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}`, { create: false });
-            const file = await fileHandle.getFile();
-            return {
-                bytes: new Uint8Array(await file.arrayBuffer()),
-                cachedAtMs: file.lastModified,
-            };
-        } catch {
-            // Missing cache folder or entry — a plain miss.
-            return null;
-        }
-    }
-
-    /// Build the eviction store over an already-resolved cache directory. Pairs each `<hash>.arrow`
-    /// payload with its `<hash>.arrow.last_access` marker (an empty file whose mtime is the last
-    /// access time), falling back to the payload's own mtime when the marker is absent. The marker
-    /// files are not themselves cache entries, so they are skipped by the listing and their `.arrow`
-    /// sibling is removed alongside them on delete.
-    ///
-    /// The listing also reaps orphaned markers — a marker whose payload no longer exists. Deletion is
-    /// payload-then-marker, so a crash in between (or any external cache tampering) can strand a
-    /// zero-byte marker; folding the reap into this scan (which runs on every save, before eviction)
-    /// cleans them up with no extra directory walk and no background timer. Orphan reaping is
-    /// best-effort: a failed delete is ignored (the marker is harmless and will be retried next save).
-    private cacheStoreForDir(cacheDir: FileSystemDirectoryHandle): QueryResultCacheStore {
-        return {
-            listCacheFiles: async (): Promise<CacheFileStat[]> => {
-                // First pass: collect marker mtimes keyed by their payload name, and payload stats.
-                const accessMs = new Map<string, number>();
-                const payloads: { name: string; size: number; mtimeMs: number }[] = [];
-                for await (const [name, handle] of cacheDir.entries()) {
-                    if (handle.kind !== 'file') {
-                        continue;
-                    }
-                    if (name.endsWith(STORAGE_CACHE_ACCESS_SUFFIX)) {
-                        const file = await (handle as FileSystemFileHandle).getFile();
-                        accessMs.set(name.slice(0, -STORAGE_CACHE_ACCESS_SUFFIX.length), file.lastModified);
-                    } else if (name.endsWith(STORAGE_CACHE_EXTENSION)) {
-                        const file = await (handle as FileSystemFileHandle).getFile();
-                        payloads.push({ name, size: file.size, mtimeMs: file.lastModified });
-                    }
-                }
-                // Reap markers whose payload is gone (best-effort).
-                const payloadNames = new Set(payloads.map(p => p.name));
-                for (const payloadName of accessMs.keys()) {
-                    if (!payloadNames.has(payloadName)) {
-                        try {
-                            await cacheDir.removeEntry(`${payloadName}${STORAGE_CACHE_ACCESS_SUFFIX}`);
-                        } catch {
-                            // Ignore: a harmless empty file; retried on the next save.
-                        }
-                    }
-                }
-                return payloads.map(p => ({
-                    ...p,
-                    lastAccessMs: accessMs.get(p.name) ?? p.mtimeMs,
-                }));
-            },
-            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
-                // Drop the payload and its access marker together; tolerate either being gone.
-                for (const entry of [name, `${name}${STORAGE_CACHE_ACCESS_SUFFIX}`]) {
-                    try {
-                        await cacheDir.removeEntry(entry);
-                    } catch (error) {
-                        if ((error as any).name !== 'NotFoundError') {
-                            throw error;
-                        }
-                    }
-                }
-            },
-        };
-    }
-
     /// Write an empty file (creating or truncating it), which advances its mtime.
     private async writeEmptyFile(dir: FileSystemDirectoryHandle, name: string): Promise<void> {
         const handle = await dir.getFileHandle(name, { create: true });
         const writable = await handle.createWritable();
         await writable.write(new ArrayBuffer(0));
         await writable.close();
-    }
-
-    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
-        const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), true);
-
-        // Evict least-recently-used entries first so the new file fits under the thresholds.
-        await evictToFit(this.cacheStoreForDir(cacheDir), sessionId, bytes.byteLength);
-
-        const fileHandle = await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}`, { create: true });
-        const writable = await fileHandle.createWritable();
-        // Copy into a plain ArrayBuffer to write binary bytes (a Uint8Array's backing buffer may be
-        // typed as SharedArrayBuffer, which the write chunk type rejects).
-        const buffer = new ArrayBuffer(bytes.byteLength);
-        new Uint8Array(buffer).set(bytes);
-        await writable.write(buffer);
-        await writable.close();
-
-        // Seed the access marker so a freshly written (never-hit) entry has a last-access time.
-        await this.writeEmptyFile(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
-    }
-
-    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
-        let cacheDir: FileSystemDirectoryHandle;
-        try {
-            cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
-        } catch {
-            // No cache folder yet — nothing cached.
-            return [];
-        }
-        return this.cacheStoreForDir(cacheDir).listCacheFiles(sessionId);
-    }
-
-    async touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void> {
-        // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
-        // result size and leaves the payload's "cached at" write time intact.
-        const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
-        await this.writeEmptyFile(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
-    }
-
-    async hasCachedQueryResult(sessionId: string, hash: string): Promise<boolean> {
-        try {
-            const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
-            await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`, {
-                create: false
-            });
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
-        let cacheDir: FileSystemDirectoryHandle;
-        try {
-            cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
-        } catch (error) {
-            // Missing cache folder — nothing to delete.
-            if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
-                return;
-            }
-            throw error;
-        }
-        // Remove the payload and its access marker together; tolerate either being gone.
-        for (const entry of [`${hash}${STORAGE_CACHE_EXTENSION}`, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`]) {
-            try {
-                await cacheDir.removeEntry(entry);
-            } catch (error) {
-                if ((error as any).name !== 'NotFoundError') {
-                    throw error;
-                }
-            }
-        }
     }
 
     async clearAllStorage(): Promise<void> {

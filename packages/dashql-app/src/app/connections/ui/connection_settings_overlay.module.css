@@ -20,6 +20,27 @@
     overflow-y: auto;
 }
 
+.caching {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px 8px 20px;
+    border-top: 1px solid var(--border_color_primary);
+    font-size: 0.8rem;
+}
+
+.caching_label {
+    font-weight: 600;
+    color: var(--base_color_neutral_8);
+}
+
+.caching_caption {
+    margin-top: 2px;
+    color: var(--base_color_neutral_6);
+}
+
 .footer {
     display: flex;
     flex-direction: row;

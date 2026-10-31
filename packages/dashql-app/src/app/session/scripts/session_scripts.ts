@@ -23,7 +23,6 @@ import {
     WRITE_SCRIPT,
     type SessionScriptList,
 } from '../../storage/storage_writer.js';
-import type { SessionSettings } from './session_settings.js';
 import type { ConnectionParams, SessionConnection, SessionScript } from '../../storage/storage_backend.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { Logger, LoggerLike, stringifyError } from '../../../platform/logger/logger.js';
@@ -57,8 +56,6 @@ export interface SessionScripts {
     sessionId: string;
     /// The user-supplied session name, independent from the identity of its connections.
     name: string | null;
-    /// The session settings.
-    settings: SessionSettings;
     /// The connection that the next appended script runs on when no script determines it: the
     /// connection of a session without scripts, or the connection picked for the next script.
     /// A session has no default connection, its scripts name their connections.
@@ -231,7 +228,6 @@ export const SET_SCRIPT_VIS_SPEC = Symbol('SET_SCRIPT_VIS_SPEC');
 export const ACCEPT_PENDING_DIFF = Symbol('ACCEPT_PENDING_DIFF');
 export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
-export const UPDATE_SESSION_SETTINGS = Symbol('UPDATE_SESSION_SETTINGS');
 export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
 export const SET_PENDING_CONNECTION = Symbol('SET_PENDING_CONNECTION');
 export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
@@ -257,7 +253,6 @@ export type SessionScriptsAction =
     | VariantKind<typeof ACCEPT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof REJECT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof RENAME_SESSION, string | null>
-    | VariantKind<typeof UPDATE_SESSION_SETTINGS, Partial<SessionSettings>>
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
     | VariantKind<typeof SET_PENDING_CONNECTION, ScriptConnection>
     | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
@@ -388,7 +383,7 @@ function writeSessionScriptList(state: SessionScripts, storage: SessionScriptsSt
 function writeSessionProperties(state: SessionScripts, storage: SessionScriptsStorage) {
     void storage.write(
         groupSessionManifestWrites(state.sessionId),
-        { type: WRITE_SESSION_PROPERTIES, value: [state.sessionId, { name: state.name, settings: state.settings }] },
+        { type: WRITE_SESSION_PROPERTIES, value: [state.sessionId, { name: state.name }] },
         DEBOUNCE_DURATION_SESSION_WRITE,
     );
 }
@@ -400,13 +395,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             const name = trimmed.length > 0 ? trimmed : null;
             if (name === state.name) return state;
             const next = { ...state, name };
-            writeSessionProperties(next, storage);
-            return next;
-        }
-        case UPDATE_SESSION_SETTINGS: {
-            const settings = { ...state.settings, ...action.value };
-            if (Object.entries(settings).every(([key, value]) => state.settings[key as keyof SessionSettings] === value)) return state;
-            const next = { ...state, settings };
             writeSessionProperties(next, storage);
             return next;
         }
