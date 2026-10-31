@@ -153,10 +153,16 @@
 /* The builder */
 
 .builder {
+    display: flex;
     flex: 1 1 auto;
+    flex-direction: column;
     min-height: 0;
     overflow-y: auto;
-    padding: 4px 0 12px;
+    padding-top: 4px;
+}
+
+.builder > * {
+    flex-shrink: 0;
 }
 
 .builder_unsupported {
@@ -199,6 +205,51 @@
     text-transform: uppercase;
 }
 
+/* A heading that opens and closes its section, the caret sits on the right */
+.builder_heading_toggle {
+    margin: 0;
+}
+
+.section_toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 28px;
+    padding: 0;
+    gap: 8px;
+    border: none;
+    background: none;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    cursor: pointer;
+    text-align: left;
+}
+
+.section_toggle:focus-visible {
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.section_toggle > .builder_heading {
+    flex: 0 0 auto;
+}
+
+.section_summary {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 45%);
+    font-size: var(--font_size_compact);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.section_toggle > svg {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
 .builder_hint {
     margin: 0;
     color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 45%);
@@ -211,11 +262,7 @@
     display: flex;
     align-items: center;
     min-width: 0;
-    padding: 6px 12px;
     gap: 8px;
-    border-top: 1px solid var(--border_color_primary);
-    border-bottom: 1px solid var(--border_color_primary);
-    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98%);
 }
 
 .layer_list {
@@ -295,8 +342,12 @@
     color: #0969da;
 }
 
-.layer_panel + .builder_section {
+/* The mark and the encoding of the selected layer, the grey sets them apart from what the layers share */
+.layer_panel {
+    flex-grow: 1;
+    padding-bottom: 12px;
     border-top: 1px solid var(--border_color_primary);
+    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98%);
 }
 
 /* The marks */

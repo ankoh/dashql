@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
-import { PlusIcon, SymbolIcon, XIcon, type Icon } from '../../../../ui/foundations/symbol_icon.js';
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon, SymbolIcon, XIcon, type Icon } from '../../../../ui/foundations/symbol_icon.js';
 import { TextInput } from '../../../../ui/foundations/text_input.js';
 import { classNames } from '../../../../utils/classnames.js';
 import type { ChartColumn } from './chart_columns.js';
@@ -90,8 +90,8 @@ interface Props {
     onEditJson: () => void;
 }
 
-/// The visual editor of a Vega-Lite spec: the columns of the result, the layers of the chart with a mark and a row per
-/// encoding channel each, and the view. The columns can be dragged onto a channel, or picked in the dropdown of the
+/// The visual editor of a Vega-Lite spec: the view, the columns of the result, and the layers of the chart with a mark
+/// and a row per encoding channel each. The columns can be dragged onto a channel, or picked in the dropdown of the
 /// channel. Dropping a column onto the layers adds a layer that shows the column.
 export function ChartSpecBuilder(props: Props): React.ReactElement {
     const { spec, onChange } = props;
@@ -160,6 +160,8 @@ export function ChartSpecBuilder(props: Props): React.ReactElement {
     return (
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragColumn(null)}>
             <div className={styles.builder} data-testid="chart-builder">
+                {/* The view is shared by the layers */}
+                <ViewSection spec={spec} onChange={onChange} />
                 <section className={styles.builder_section} aria-labelledby="chart-builder-columns">
                     <h3 id="chart-builder-columns" className={styles.builder_heading}>Columns</h3>
                     {props.columns.length === 0 ? (
@@ -232,10 +234,6 @@ export function ChartSpecBuilder(props: Props): React.ReactElement {
                         </div>
                     </section>
                 </div>
-                <section className={styles.builder_section} aria-labelledby="chart-builder-view">
-                    <h3 id="chart-builder-view" className={styles.builder_heading}>View</h3>
-                    <ViewSettings spec={spec} onChange={onChange} />
-                </section>
             </div>
             <DragOverlay dropAnimation={null}>
                 {dragColumn != null ? <ColumnChip column={dragColumn} dragging /> : null}
@@ -256,40 +254,43 @@ interface LayerBarProps {
 function LayerBar(props: LayerBarProps) {
     const count = layerCount(props.spec);
     return (
-        <div className={styles.layer_bar}>
-            <div className={styles.layer_list} role="group" aria-label="Layers" data-testid="chart-layers">
-                {Array.from({ length: count }, (_, index) => {
-                    const mark = getMarkType(getLayer(props.spec, index));
-                    const MarkIcon = mark != null ? MARK_ICONS.get(mark) : undefined;
-                    return (
-                        <button
-                            key={index}
-                            type="button"
-                            className={styles.layer_button}
-                            aria-pressed={index === props.selected}
-                            aria-label={`Layer ${index + 1}: ${mark ?? 'no mark'}`}
-                            data-testid={`chart-layer-${index}`}
-                            onClick={() => props.onSelect(index)}
-                        >
-                            {MarkIcon != null && <MarkIcon size={16} aria-hidden="true" />}
-                            <span className={styles.layer_name}>{mark ?? 'layer'}</span>
-                        </button>
-                    );
-                })}
-                <AddLayerTarget onAdd={props.onAdd} />
+        <section className={styles.builder_section} aria-labelledby="chart-builder-layers">
+            <h3 id="chart-builder-layers" className={styles.builder_heading}>Layers</h3>
+            <div className={styles.layer_bar}>
+                <div className={styles.layer_list} role="group" aria-labelledby="chart-builder-layers" data-testid="chart-layers">
+                    {Array.from({ length: count }, (_, index) => {
+                        const mark = getMarkType(getLayer(props.spec, index));
+                        const MarkIcon = mark != null ? MARK_ICONS.get(mark) : undefined;
+                        return (
+                            <button
+                                key={index}
+                                type="button"
+                                className={styles.layer_button}
+                                aria-pressed={index === props.selected}
+                                aria-label={`Layer ${index + 1}: ${mark ?? 'no mark'}`}
+                                data-testid={`chart-layer-${index}`}
+                                onClick={() => props.onSelect(index)}
+                            >
+                                {MarkIcon != null && <MarkIcon size={16} aria-hidden="true" />}
+                                <span className={styles.layer_name}>{mark ?? 'layer'}</span>
+                            </button>
+                        );
+                    })}
+                    <AddLayerTarget onAdd={props.onAdd} />
+                </div>
+                {count > 1 && (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={`Remove layer ${props.selected + 1}`}
+                        data-testid="chart-layer-remove"
+                        onClick={props.onRemove}
+                    >
+                        <TrashIcon size={16} />
+                    </IconButton>
+                )}
             </div>
-            {count > 1 && (
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    size={ButtonSize.Small}
-                    aria-label={`Remove layer ${props.selected + 1}`}
-                    data-testid="chart-layer-remove"
-                    onClick={props.onRemove}
-                >
-                    <TrashIcon size={16} />
-                </IconButton>
-            )}
-        </div>
+        </section>
     );
 }
 
@@ -548,6 +549,46 @@ function ChannelOptions(props: ChannelOptionsProps) {
     );
 }
 
+/// The title of the chart, a string or the text of a title object
+function chartTitle(spec: ChartSpec): string {
+    const title = spec.title;
+    if (typeof title === 'string') return title;
+    if (title != null && typeof title === 'object' && typeof (title as Record<string, unknown>).text === 'string') {
+        return (title as Record<string, unknown>).text as string;
+    }
+    return '';
+}
+
+/// The settings of the whole chart, collapsed until the user opens them. Collapsed, the heading shows the title.
+function ViewSection(props: { spec: ChartSpec; onChange: (spec: ChartSpec) => void }) {
+    const [open, setOpen] = React.useState(false);
+    const title = chartTitle(props.spec);
+    return (
+        <section className={styles.builder_section} aria-labelledby="chart-builder-view">
+            <h3 className={styles.builder_heading_toggle}>
+                <button
+                    type="button"
+                    id="chart-builder-view"
+                    className={styles.section_toggle}
+                    aria-expanded={open}
+                    aria-controls="chart-builder-view-settings"
+                    data-testid="chart-view-toggle"
+                    onClick={() => setOpen(o => !o)}
+                >
+                    <span className={styles.builder_heading}>View</span>
+                    {!open && title.length > 0 && <span className={styles.section_summary}>{title}</span>}
+                    {open ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+                </button>
+            </h3>
+            {open && (
+                <div id="chart-builder-view-settings">
+                    <ViewSettings spec={props.spec} onChange={props.onChange} />
+                </div>
+            )}
+        </section>
+    );
+}
+
 /// A size of the view: a number of pixels or `container`
 function parseViewSize(text: string): number | 'container' | undefined | null {
     const trimmed = text.trim();
@@ -560,10 +601,7 @@ function parseViewSize(text: string): number | 'container' | undefined | null {
 function ViewSettings(props: { spec: ChartSpec; onChange: (spec: ChartSpec) => void }) {
     const { spec, onChange } = props;
     const title = spec.title;
-    const titleText = typeof title === 'string' ? title
-        : title != null && typeof title === 'object' && typeof (title as Record<string, unknown>).text === 'string'
-            ? (title as Record<string, unknown>).text as string
-            : '';
+    const titleText = chartTitle(spec);
     const setTitle = (text: string) => {
         if (title != null && typeof title === 'object' && !Array.isArray(title)) {
             onChange(setTopLevel(spec, 'title', { ...(title as Record<string, unknown>), text }));

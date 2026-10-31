@@ -148,6 +148,20 @@ describe('ChartBuilderOverlay', () => {
         expect(byTestId('chart-layer-1')?.textContent).toContain('line');
     });
 
+    it('opens the collapsed view settings of the chart', () => {
+        const onChange = vi.fn();
+        render({ onChange, visualizeQuery: vegaLite({ mark: 'bar', title: 'Revenue' }) });
+        const toggle = byTestId('chart-view-toggle')!;
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(byTestId('chart-title')).toBeNull();
+        // Collapsed, the heading shows the title
+        expect(toggle.textContent).toContain('Revenue');
+
+        act(() => toggle.click());
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect((byTestId('chart-title') as HTMLInputElement).value).toBe('Revenue');
+    });
+
     it('adds and removes layers', () => {
         const onChange = vi.fn();
         render({ onChange, visualizeQuery: vegaLite({ mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' } } }) });
