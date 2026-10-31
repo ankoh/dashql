@@ -121,8 +121,8 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                 data-expanded={expanded || undefined}
                 data-testid="chart-builder-overlay"
             >
-                <header className={styles.header}>
-                    <div className={styles.header_editor}>
+                <section className={styles.editor_pane} aria-label="Chart spec">
+                    <header className={styles.pane_header}>
                         <h2 className={styles.title}>Visualize as Chart</h2>
                         <div className={styles.spacer} />
                         <SegmentedControl
@@ -143,8 +143,22 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                                 data-testid="chart-mode-json"
                             />
                         </SegmentedControl>
+                    </header>
+                    <div className={styles.editor_content}>
+                        {mode === ChartBuilderMode.Builder ? (
+                            <ChartSpecBuilder
+                                spec={spec}
+                                columns={columns}
+                                onChange={updateSpec}
+                                onEditJson={() => setMode(ChartBuilderMode.Json)}
+                            />
+                        ) : (
+                            <ChartSpecJsonEditor initialSpec={spec} onChange={updateSpec} />
+                        )}
                     </div>
-                    <div className={styles.header_preview}>
+                </section>
+                <section className={styles.preview_pane} aria-label="Chart preview">
+                    <header className={styles.pane_header}>
                         {problems.length > 0 && (
                             <div className={styles.diagnostic} role="status" title={problems.join('\n')} data-testid="chart-problems">
                                 <AlertIcon size={16} aria-hidden="true" />
@@ -170,31 +184,15 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                         >
                             <XIcon size={16} />
                         </IconButton>
-                    </div>
-                </header>
-                <div className={styles.body}>
-                    <div className={styles.editor_pane}>
-                        <div className={styles.editor_content}>
-                            {mode === ChartBuilderMode.Builder ? (
-                                <ChartSpecBuilder
-                                    spec={spec}
-                                    columns={columns}
-                                    onChange={updateSpec}
-                                    onEditJson={() => setMode(ChartBuilderMode.Json)}
-                                />
-                            ) : (
-                                <ChartSpecJsonEditor initialSpec={spec} onChange={updateSpec} />
-                            )}
-                        </div>
-                    </div>
-                    <div className={styles.preview_pane} data-testid="chart-preview">
+                    </header>
+                    <div className={styles.preview_content} data-testid="chart-preview">
                         {resultTable != null ? (
                             <dependencies.VegaLiteView query={query} vegaLiteSpec={previewSpec} />
                         ) : (
                             <p className={styles.preview_empty}>Run the query to preview the chart.</p>
                         )}
                     </div>
-                </div>
+                </section>
             </section>
         </Overlay>
     );

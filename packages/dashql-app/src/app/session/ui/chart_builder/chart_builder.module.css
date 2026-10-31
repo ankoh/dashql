@@ -1,7 +1,8 @@
-/* The overlay sizes the dialog, also when expanded to fill the window */
+/* The overlay sizes the dialog, also when expanded to fill the window.
+   The dialog splits into the editor of the spec on the left and the preview of the chart on the right. */
 .dialog {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
     width: 100%;
     height: 100%;
     min-width: 0;
@@ -9,33 +10,38 @@
     overflow: hidden;
     background: #ffffff;
     outline: none;
-    /* The header and the body share the columns, the editor switch ends where the builder content ends */
-    --chart_builder_columns: minmax(300px, 380px) minmax(0, 1fr);
 }
 
-.header {
-    display: grid;
+.editor_pane,
+.preview_pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* The border splits the panes from the header down */
+.editor_pane {
+    border-right: 1px solid var(--border_color_primary);
+}
+
+.pane_header {
+    display: flex;
     flex: 0 0 auto;
-    grid-template-columns: var(--chart_builder_columns);
+    align-items: center;
     min-width: 0;
     height: 44px;
+    gap: 8px;
     border-bottom: 1px solid var(--border_color_primary);
 }
 
-.header_editor,
-.header_preview {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    gap: 8px;
+/* The padding of the builder sections */
+.editor_pane > .pane_header {
+    padding: 0 12px;
 }
 
-/* The padding of the builder sections, and the border of the editor pane on the right */
-.header_editor {
-    padding: 0 13px 0 12px;
-}
-
-.header_preview {
+.preview_pane > .pane_header {
     padding: 0 8px 0 12px;
 }
 
@@ -74,23 +80,6 @@
     white-space: nowrap;
 }
 
-.body {
-    display: grid;
-    flex: 1 1 auto;
-    grid-template-columns: var(--chart_builder_columns);
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.editor_pane {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    border-right: 1px solid var(--border_color_primary);
-}
-
 .editor_content {
     display: flex;
     flex: 1 1 auto;
@@ -100,15 +89,16 @@
     overflow: hidden;
 }
 
-.preview_pane {
+.preview_content {
     display: flex;
+    flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
     background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98%);
 }
 
-.preview_pane > * {
+.preview_content > * {
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -427,13 +417,9 @@
     min-width: 0;
 }
 
+/* Narrow, the editor sits above the preview */
 @media (max-width: 720px) {
-    /* The editor is above the preview, the header keeps the controls of both in one row */
-    .header {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .body {
+    .dialog {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr) minmax(200px, 40%);
     }
