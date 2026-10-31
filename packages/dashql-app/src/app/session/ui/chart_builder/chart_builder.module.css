@@ -204,9 +204,12 @@
     text-transform: uppercase;
 }
 
-/* A collapsed section is a single row */
-.builder_section_collapsed {
+/* A section that opens and closes keeps its heading in place, collapsed it is a single row */
+.builder_section_toggled {
     padding-top: 4px;
+}
+
+.builder_section_collapsed {
     padding-bottom: 4px;
 }
 

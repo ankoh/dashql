@@ -565,7 +565,7 @@ function ViewSection(props: { spec: ChartSpec; onChange: (spec: ChartSpec) => vo
     const title = chartTitle(props.spec);
     return (
         <section
-            className={classNames(styles.builder_section, { [styles.builder_section_collapsed]: !open })}
+            className={classNames(styles.builder_section, styles.builder_section_toggled, { [styles.builder_section_collapsed]: !open })}
             aria-labelledby="chart-builder-view"
         >
             <h3 className={styles.builder_heading_toggle}>
