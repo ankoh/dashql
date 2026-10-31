@@ -1,7 +1,8 @@
--- @description
--- Filter rows with like patterns, case-insensitively.
--- In a pattern, % matches any sequence of characters, _ a single one.
--- @end
+/**
+ * @description
+ * Filter rows with like patterns, case-insensitively.
+ * In a pattern, % matches any sequence of characters, _ a single one.
+ */
 
 with products(name) as (
     values ('Dark Roast Coffee'), ('Green Tea'), ('Iced coffee'), ('Hot Chocolate')

@@ -1,7 +1,8 @@
--- @description
--- Fill missing readings with the last known value.
--- A running count of the known values groups every gap with the value before it.
--- @end
+/**
+ * @description
+ * Fill missing readings with the last known value.
+ * A running count of the known values groups every gap with the value before it.
+ */
 
 with readings(measured_at, temperature) as (
     values

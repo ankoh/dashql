@@ -1,6 +1,7 @@
--- @description
--- Turn the elements of a list into rows, with their position in the list.
--- @end
+/**
+ * @description
+ * Turn the elements of a list into rows, with their position in the list.
+ */
 
 with posts(post_id, tags) as (
     values (1, array['sql', 'graphs', 'hyper']), (2, array['json'])

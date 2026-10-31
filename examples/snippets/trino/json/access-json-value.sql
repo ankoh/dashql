@@ -1,6 +1,7 @@
--- @description
--- Read nested fields of a JSON document with JSON paths.
--- @end
+/**
+ * @description
+ * Read nested fields of a JSON document with JSON paths.
+ */
 
 with events(payload) as (
     values

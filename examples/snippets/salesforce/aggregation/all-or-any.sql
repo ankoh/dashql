@@ -1,6 +1,7 @@
--- @description
--- Check conditions over all rows of a group with `bool_and` and `bool_or`.
--- @end
+/**
+ * @description
+ * Check conditions over all rows of a group with `bool_and` and `bool_or`.
+ */
 
 with orders(customer_id, order_id, shipped, returned) as (
     values ('C-1', 'O-1', true, false), ('C-1', 'O-2', true, true),

@@ -1,6 +1,7 @@
--- @description
--- Compare every row with the one before it using lag.
--- @end
+/**
+ * @description
+ * Compare every row with the one before it using lag.
+ */
 
 with revenue(month, amount) as (
     values (date '2026-01-01', 1000.0), (date '2026-02-01', 1200.0), (date '2026-03-01', 900.0)

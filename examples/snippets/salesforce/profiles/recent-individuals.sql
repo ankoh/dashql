@@ -1,6 +1,7 @@
--- @description
--- The newest individuals with their email addresses, also those without one.
--- @end
+/**
+ * @description
+ * The newest individuals with their email addresses, also those without one.
+ */
 
 with individuals(individual_id, first_name, last_name, created_at) as (
     values ('I-1', 'Ada', 'Lovelace', timestamp '2026-03-01 09:00:00'),

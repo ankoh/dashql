@@ -1,7 +1,8 @@
--- @description
--- Add subtotals and a grand total to a grouped result with rollup.
--- grouping() tells the total rows apart from groups whose key is null.
--- @end
+/**
+ * @description
+ * Add subtotals and a grand total to a grouped result with rollup.
+ * grouping() tells the total rows apart from groups whose key is null.
+ */
 
 with sales(region, country, revenue) as (
     values ('Europe', 'Germany', 420), ('Europe', 'France', 310),

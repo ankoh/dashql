@@ -1,6 +1,7 @@
--- @description
--- Keep the two best-selling products of every category with a ranking window function.
--- @end
+/**
+ * @description
+ * Keep the two best-selling products of every category with a ranking window function.
+ */
 
 with sales(category, product, revenue) as (
     values

@@ -1,6 +1,7 @@
--- @description
--- Collect the values of a group into an ordered list and a comma-separated string.
--- @end
+/**
+ * @description
+ * Collect the values of a group into an ordered list and a comma-separated string.
+ */
 
 with team_members(team, member, joined) as (
     values ('core', 'Ada', 2019), ('core', 'Alan', 2021), ('web', 'Grace', 2020),

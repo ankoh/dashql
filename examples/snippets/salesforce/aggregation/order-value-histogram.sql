@@ -1,7 +1,8 @@
--- @description
--- Count the orders in equally wide value buckets with `width_bucket`.
--- Values below the range land in bucket 0, values above it in bucket 6.
--- @end
+/**
+ * @description
+ * Count the orders in equally wide value buckets with `width_bucket`.
+ * Values below the range land in bucket 0, values above it in bucket 6.
+ */
 
 with orders(order_id, amount) as (
     values ('O-1', 12.00), ('O-2', 18.50), ('O-3', 25.00), ('O-4', 40.00), ('O-5', 55.00),

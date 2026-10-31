@@ -1,6 +1,7 @@
--- @description
--- Collect the products of each order into a JSON array with the aggregate `json_arrayagg`.
--- @end
+/**
+ * @description
+ * Collect the products of each order into a JSON array with the aggregate `json_arrayagg`.
+ */
 
 with order_items(order_id, product, quantity) as (
     values ('O-1', 'Mouse', 1), ('O-1', 'Laptop', 1), ('O-1', 'Sleeve', 2),

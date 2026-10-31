@@ -1,6 +1,7 @@
--- @description
--- Show the optimized plan of a query as an operator tree without running it.
--- @end
+/**
+ * @description
+ * Show the optimized plan of a query as an operator tree without running it.
+ */
 
 explain
 with orders(customer, amount) as (

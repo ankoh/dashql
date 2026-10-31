@@ -1,6 +1,7 @@
--- @description
--- Count the individuals per email domain with `split_part`, the fields count from 1.
--- @end
+/**
+ * @description
+ * Count the individuals per email domain with `split_part`, the fields count from 1.
+ */
 
 with emails(individual_id, email) as (
     values ('I-1', 'ada@example.com'), ('I-2', 'alan@Example.com'), ('I-3', 'grace@navy.mil'),

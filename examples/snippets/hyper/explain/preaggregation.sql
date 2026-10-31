@@ -1,6 +1,7 @@
--- @description
--- Split an aggregation into a pre-aggregation that runs at the source and its stages.
--- @end
+/**
+ * @description
+ * Split an aggregation into a pre-aggregation that runs at the source and its stages.
+ */
 
 explain (format sql_stages, sql_dialect internal_spark_2025_12, preaggregation)
 with orders(customer, amount) as (

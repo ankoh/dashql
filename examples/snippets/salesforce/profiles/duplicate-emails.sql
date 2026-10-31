@@ -1,7 +1,8 @@
--- @description
--- Email addresses shared by several individuals, ignoring case and surrounding spaces.
--- Candidates for the match rules of identity resolution.
--- @end
+/**
+ * @description
+ * Email addresses shared by several individuals, ignoring case and surrounding spaces.
+ * Candidates for the match rules of identity resolution.
+ */
 
 with emails(individual_id, email) as (
     values ('I-1', 'ada@example.com'), ('I-2', ' Ada@Example.com'), ('I-3', 'grace@example.com'),

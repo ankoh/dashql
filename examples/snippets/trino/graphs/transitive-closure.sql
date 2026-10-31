@@ -1,6 +1,7 @@
--- @description
--- Expand a taxonomy into all ancestors of every class with a recursive query.
--- @end
+/**
+ * @description
+ * Expand a taxonomy into all ancestors of every class with a recursive query.
+ */
 
 with recursive
     subclass_of(class, parent) as (

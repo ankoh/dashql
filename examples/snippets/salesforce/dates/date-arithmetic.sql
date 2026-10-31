@@ -1,7 +1,8 @@
--- @description
--- Add to and subtract from timestamps and measure the distance between them.
--- There is no `date_sub`, `date_add` with a negative amount goes back in time.
--- @end
+/**
+ * @description
+ * Add to and subtract from timestamps and measure the distance between them.
+ * There is no `date_sub`, `date_add` with a negative amount goes back in time.
+ */
 
 with subscriptions(subscription_id, started_at, ended_at) as (
     values ('S-1', timestamp '2025-01-15 09:00:00', timestamp '2026-01-14 09:00:00'),

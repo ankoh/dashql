@@ -1,6 +1,7 @@
--- @description
--- Orders, revenue and the average order value per month.
--- @end
+/**
+ * @description
+ * Orders, revenue and the average order value per month.
+ */
 
 with orders(order_id, ordered_at, amount) as (
     values ('O-1', timestamp '2026-01-05 10:00:00', 120.00), ('O-2', timestamp '2026-01-19 16:20:00', 80.50),

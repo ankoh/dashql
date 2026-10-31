@@ -1,6 +1,7 @@
--- @description
--- Rank documents by the cosine similarity of their embeddings to a query embedding.
--- @end
+/**
+ * @description
+ * Rank documents by the cosine similarity of their embeddings to a query embedding.
+ */
 
 with documents(title, embedding) as (
     values

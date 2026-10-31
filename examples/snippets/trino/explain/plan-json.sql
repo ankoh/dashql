@@ -1,6 +1,7 @@
--- @description
--- Show the distributed plan of a query as JSON.
--- @end
+/**
+ * @description
+ * Show the distributed plan of a query as JSON.
+ */
 
 explain (format json)
 with orders(customer, amount) as (

@@ -1,6 +1,7 @@
--- @description
--- Individuals that can be reached neither by email nor by phone.
--- @end
+/**
+ * @description
+ * Individuals that can be reached neither by email nor by phone.
+ */
 
 with individuals(individual_id, first_name, last_name) as (
     values ('I-1', 'Ada', 'Lovelace'), ('I-2', 'Alan', 'Turing'),

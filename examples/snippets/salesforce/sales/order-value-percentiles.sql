@@ -1,6 +1,7 @@
--- @description
--- The spread of the order values with exact percentiles and an approximate customer count.
--- @end
+/**
+ * @description
+ * The spread of the order values with exact percentiles and an approximate customer count.
+ */
 
 with orders(customer_id, amount) as (
     values ('C-1', 12.00), ('C-2', 18.50), ('C-1', 25.00), ('C-3', 40.00), ('C-4', 55.00),

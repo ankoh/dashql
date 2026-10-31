@@ -1,7 +1,8 @@
--- @description
--- Truncate timestamps to the first day of their month and aggregate per month.
--- Use 'week', 'quarter' or 'year' for other granularities.
--- @end
+/**
+ * @description
+ * Truncate timestamps to the first day of their month and aggregate per month.
+ * Use 'week', 'quarter' or 'year' for other granularities.
+ */
 
 with orders(ordered_at, amount) as (
     values

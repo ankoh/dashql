@@ -1,6 +1,7 @@
--- @description
--- Show the distributed plan of a query without running it.
--- @end
+/**
+ * @description
+ * Show the distributed plan of a query without running it.
+ */
 
 explain
 with orders(customer, amount) as (

@@ -1,7 +1,8 @@
--- @description
--- Find streaks of consecutive days.
--- Consecutive days minus their row number land on the same date, which identifies the streak.
--- @end
+/**
+ * @description
+ * Find streaks of consecutive days.
+ * Consecutive days minus their row number land on the same date, which identifies the streak.
+ */
 
 with logins(user_name, day) as (
     values ('ada', date '2026-01-01'), ('ada', date '2026-01-02'), ('ada', date '2026-01-03'),

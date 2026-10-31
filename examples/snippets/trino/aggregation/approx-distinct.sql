@@ -1,6 +1,7 @@
--- @description
--- Estimate the number of distinct values, much cheaper than an exact count on large tables.
--- @end
+/**
+ * @description
+ * Estimate the number of distinct values, much cheaper than an exact count on large tables.
+ */
 
 select
     approx_distinct(visitor_id) as approx_visitors,

@@ -1,6 +1,7 @@
--- @description
--- Find accounts by a part of their name, ignoring case with `ilike`.
--- @end
+/**
+ * @description
+ * Find accounts by a part of their name, ignoring case with `ilike`.
+ */
 
 with accounts(account_id, name) as (
     values ('A-1', 'Acme Corporation'), ('A-2', 'ACME Logistics'), ('A-3', 'Globex'), ('A-4', 'Initech Acme Labs')

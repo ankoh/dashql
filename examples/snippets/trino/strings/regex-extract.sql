@@ -1,6 +1,7 @@
--- @description
--- Extract, replace and match text with regular expressions.
--- @end
+/**
+ * @description
+ * Extract, replace and match text with regular expressions.
+ */
 
 with log_lines(line) as (
     values ('2026-01-01 ERROR order 4711 failed after 3 retries'),

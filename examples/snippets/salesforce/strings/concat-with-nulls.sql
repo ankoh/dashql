@@ -1,6 +1,7 @@
--- @description
--- Build display names from optional parts: `||` returns null if one part is null, `concat` skips the nulls.
--- @end
+/**
+ * @description
+ * Build display names from optional parts: `||` returns null if one part is null, `concat` skips the nulls.
+ */
 
 with individuals(individual_id, salutation, first_name, middle_name, last_name) as (
     values ('I-1', 'Dr.', 'Grace', 'Brewster', 'Hopper'), ('I-2', null, 'Alan', 'Mathison', 'Turing'),

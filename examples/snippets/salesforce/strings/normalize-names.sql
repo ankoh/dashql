@@ -1,6 +1,7 @@
--- @description
--- Normalize names from different sources: trim, collapse inner spaces and capitalize every word with `initcap`.
--- @end
+/**
+ * @description
+ * Normalize names from different sources: trim, collapse inner spaces and capitalize every word with `initcap`.
+ */
 
 with individuals(individual_id, first_name, last_name) as (
     values ('I-1', '  ada ', 'LOVELACE'), ('I-2', 'alan  mathison', 'turing'),

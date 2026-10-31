@@ -1,7 +1,8 @@
--- @description
--- The customers with the highest revenue.
--- Joining on the key qualifier as well keeps equal ids of different data sources apart.
--- @end
+/**
+ * @description
+ * The customers with the highest revenue.
+ * Joining on the key qualifier as well keeps equal ids of different data sources apart.
+ */
 
 with individuals(individual_id, key_qualifier, name) as (
     values ('C-1', 'CRM', 'Ada Lovelace'), ('C-1', 'Commerce', 'Alan Turing'), ('C-2', 'CRM', 'Grace Hopper')

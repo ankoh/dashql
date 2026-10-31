@@ -1,6 +1,7 @@
--- @description
--- Group timestamps into 15-minute buckets.
--- @end
+/**
+ * @description
+ * Group timestamps into 15-minute buckets.
+ */
 
 with events(happened_at) as (
     values (timestamp '2026-01-01 10:02:00'), (timestamp '2026-01-01 10:14:59'),

@@ -1,6 +1,7 @@
--- @description
--- Convert untyped text from a source system, casting only the values that match the expected format.
--- @end
+/**
+ * @description
+ * Convert untyped text from a source system, casting only the values that match the expected format.
+ */
 
 with raw_orders(order_id, amount_text, ordered_text) as (
     values ('O-1', '120.50', '2026-03-01'), ('O-2', 'n/a', '2026-03-02'),

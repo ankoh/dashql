@@ -1,6 +1,7 @@
--- @description
--- Extract the UTM campaign from landing page URLs with `regexp_substr`, it returns null without a match.
--- @end
+/**
+ * @description
+ * Extract the UTM campaign from landing page URLs with `regexp_substr`, it returns null without a match.
+ */
 
 with page_views(view_id, url) as (
     values ('V-1', 'https://example.com/shoes?utm_source=mail&utm_campaign=spring_sale'),

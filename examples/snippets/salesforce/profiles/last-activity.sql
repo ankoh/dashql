@@ -1,7 +1,8 @@
--- @description
--- The latest activity of each individual over all channels with `greatest`, which skips the nulls,
--- and the best way to reach them with `coalesce`, which takes the first value that is not null.
--- @end
+/**
+ * @description
+ * The latest activity of each individual over all channels with `greatest`, which skips the nulls,
+ * and the best way to reach them with `coalesce`, which takes the first value that is not null.
+ */
 
 with individuals(individual_id, mobile, phone, email, last_email_open, last_web_visit, last_purchase) as (
     values ('I-1', null, '+1 555 0100', 'ada@example.com',

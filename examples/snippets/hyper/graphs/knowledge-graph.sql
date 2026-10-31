@@ -1,7 +1,8 @@
--- @description
--- Query a small knowledge graph with a property graph and a MATCH pattern.
--- Finds who knows someone working at a company in Berlin.
--- @end
+/**
+ * @description
+ * Query a small knowledge graph with a property graph and a MATCH pattern.
+ * Finds who knows someone working at a company in Berlin.
+ */
 
 with
     people(id, name) as (

@@ -1,6 +1,7 @@
--- @description
--- Concatenate the products of each order into one sorted, comma-separated text with `listagg`.
--- @end
+/**
+ * @description
+ * Concatenate the products of each order into one sorted, comma-separated text with `listagg`.
+ */
 
 with order_items(order_id, product) as (
     values ('O-1', 'Mouse'), ('O-1', 'Laptop'), ('O-1', 'Sleeve'),

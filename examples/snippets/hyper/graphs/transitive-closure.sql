@@ -1,7 +1,8 @@
--- @description
--- Expand a taxonomy into all ancestors of every class with a recursive query.
--- Graph patterns need an upper bound, a recursive query follows paths of any length.
--- @end
+/**
+ * @description
+ * Expand a taxonomy into all ancestors of every class with a recursive query.
+ * Graph patterns need an upper bound, a recursive query follows paths of any length.
+ */
 
 with recursive
     subclass_of(class, parent) as (

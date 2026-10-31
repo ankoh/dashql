@@ -1,6 +1,7 @@
--- @description
--- Get the names and types of the result columns of a query without running it.
--- @end
+/**
+ * @description
+ * Get the names and types of the result columns of a query without running it.
+ */
 
 explain (format schema)
 with orders(customer, amount, ordered_at) as (

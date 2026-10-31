@@ -1,6 +1,7 @@
--- @description
--- Check that a query is valid without planning or running it.
--- @end
+/**
+ * @description
+ * Check that a query is valid without planning or running it.
+ */
 
 explain (type validate)
 with orders(customer, amount) as (

@@ -1,7 +1,8 @@
--- @description
--- Load the TPC-H tables at scale factor 0.1.
--- Existing tables are kept, drop them to load another scale factor.
--- @end
+/**
+ * @description
+ * Load the TPC-H tables at scale factor 0.1.
+ * Existing tables are kept, drop them to load another scale factor.
+ */
 
 create table if not exists region as
 select * from external('https://data.dashql.app/tpch-0.1/v1/region.parquet', format => 'parquet');

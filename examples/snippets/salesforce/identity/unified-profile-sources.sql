@@ -1,6 +1,7 @@
--- @description
--- Compare the unified profiles with the source records that identity resolution merged into them.
--- @end
+/**
+ * @description
+ * Compare the unified profiles with the source records that identity resolution merged into them.
+ */
 
 with unified_individuals(unified_id, first_name, last_name) as (
     values ('U-1', 'Ada', 'Lovelace'), ('U-2', 'Alan', 'Turing')

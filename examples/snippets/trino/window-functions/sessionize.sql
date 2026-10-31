@@ -1,7 +1,8 @@
--- @description
--- Split a click stream into sessions that end after 30 minutes without a click.
--- A running sum over the session starts numbers the sessions.
--- @end
+/**
+ * @description
+ * Split a click stream into sessions that end after 30 minutes without a click.
+ * A running sum over the session starts numbers the sessions.
+ */
 
 with clicks(user_name, clicked_at) as (
     values

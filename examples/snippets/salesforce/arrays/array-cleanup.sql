@@ -1,7 +1,8 @@
--- @description
--- Clean up arrays: drop the nulls with `array_compact`, the duplicates with `array_distinct`, sort them and take
--- the first elements with a slice. Arrays count from 1, both bounds of a slice are inclusive.
--- @end
+/**
+ * @description
+ * Clean up arrays: drop the nulls with `array_compact`, the duplicates with `array_distinct`, sort them and take
+ * the first elements with a slice. Arrays count from 1, both bounds of a slice are inclusive.
+ */
 
 with carts(cart_id, products) as (
     values ('K-1', array['Mouse', null, 'Laptop', 'Mouse', 'Sleeve']),

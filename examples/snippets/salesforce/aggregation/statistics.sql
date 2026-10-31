@@ -1,7 +1,8 @@
--- @description
--- Describe two measures with their spread and how strongly they move together.
--- `percentile_disc` returns an actual input value, `percentile_cont` interpolates.
--- @end
+/**
+ * @description
+ * Describe two measures with their spread and how strongly they move together.
+ * `percentile_disc` returns an actual input value, `percentile_cont` interpolates.
+ */
 
 with customers(customer_id, web_visits, revenue) as (
     values ('C-1', 3, 40.00), ('C-2', 8, 120.00), ('C-3', 12, 180.00), ('C-4', 5, 75.00),

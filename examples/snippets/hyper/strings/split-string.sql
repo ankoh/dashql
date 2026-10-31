@@ -1,6 +1,7 @@
--- @description
--- Pick the parts of a delimited string by position.
--- @end
+/**
+ * @description
+ * Pick the parts of a delimited string by position.
+ */
 
 with paths(path) as (
     values ('2026/01/report.csv'), ('2026/02/summary.parquet')

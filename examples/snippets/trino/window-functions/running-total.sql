@@ -1,6 +1,7 @@
--- @description
--- Accumulate a measure over time with a cumulative window sum.
--- @end
+/**
+ * @description
+ * Accumulate a measure over time with a cumulative window sum.
+ */
 
 with deposits(day, amount) as (
     values (date '2026-01-01', 100), (date '2026-01-02', 50),

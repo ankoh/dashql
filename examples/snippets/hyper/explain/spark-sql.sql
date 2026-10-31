@@ -1,6 +1,7 @@
--- @description
--- Translate a query into the SQL dialect of Spark.
--- @end
+/**
+ * @description
+ * Translate a query into the SQL dialect of Spark.
+ */
 
 explain (format sql, sql_dialect internal_spark_2025_12)
 with orders(customer, amount, ordered_at) as (

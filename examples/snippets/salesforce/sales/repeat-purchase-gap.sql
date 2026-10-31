@@ -1,6 +1,7 @@
--- @description
--- The days between two orders of the same customer.
--- @end
+/**
+ * @description
+ * The days between two orders of the same customer.
+ */
 
 with orders(customer_id, ordered_at) as (
     values ('C-1', timestamp '2026-01-03 10:00:00'), ('C-1', timestamp '2026-01-20 10:00:00'),

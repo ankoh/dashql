@@ -1,6 +1,7 @@
--- @description
--- Parse dates and timestamps in other formats with `to_date` and `to_timestamp`, and format them with `to_char`.
--- @end
+/**
+ * @description
+ * Parse dates and timestamps in other formats with `to_date` and `to_timestamp`, and format them with `to_char`.
+ */
 
 with imports(record_id, date_text, timestamp_text) as (
     values ('R-1', '03/15/2026', '15.03.2026 14:30'), ('R-2', '12/01/2025', '01.12.2025 08:05')

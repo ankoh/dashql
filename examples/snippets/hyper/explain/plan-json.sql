@@ -1,6 +1,7 @@
--- @description
--- Show the optimized plan of a query as JSON, with the estimated rows of every operator.
--- @end
+/**
+ * @description
+ * Show the optimized plan of a query as JSON, with the estimated rows of every operator.
+ */
 
 explain (format json)
 with orders(customer, amount) as (

@@ -1,7 +1,8 @@
--- @description
--- The share of profiles with a value in each field, a quick data quality check of a mapping.
--- `count` of a column skips the nulls.
--- @end
+/**
+ * @description
+ * The share of profiles with a value in each field, a quick data quality check of a mapping.
+ * `count` of a column skips the nulls.
+ */
 
 with individuals(individual_id, first_name, last_name, birth_date, city) as (
     values ('I-1', 'Ada', 'Lovelace', date '1815-12-10', 'London'),

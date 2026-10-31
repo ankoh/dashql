@@ -1,6 +1,7 @@
--- @description
--- Turn columns into rows, one row per quarter instead of one column per quarter.
--- @end
+/**
+ * @description
+ * Turn columns into rows, one row per quarter instead of one column per quarter.
+ */
 
 with revenue(product, q1, q2, q3, q4) as (
     values ('books', 120, 150, 90, 200), ('games', 80, 60, 110, 140)

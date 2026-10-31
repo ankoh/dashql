@@ -1,7 +1,8 @@
--- @description
--- The first and the last marketing touch before each conversion, for first- and last-touch attribution.
--- `first_value` and `last_value` read the window frame, which ends at the current row unless it spans the partition.
--- @end
+/**
+ * @description
+ * The first and the last marketing touch before each conversion, for first- and last-touch attribution.
+ * `first_value` and `last_value` read the window frame, which ends at the current row unless it spans the partition.
+ */
 
 with touches(customer_id, touched_at, channel) as (
     values ('C-1', timestamp '2026-03-01 09:00:00', 'Paid Search'), ('C-1', timestamp '2026-03-04 12:00:00', 'Email'),

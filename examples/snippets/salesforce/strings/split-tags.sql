@@ -1,6 +1,7 @@
--- @description
--- Split a text of tags into an array with `regexp_split_to_array`, ignoring the spaces around the separators.
--- @end
+/**
+ * @description
+ * Split a text of tags into an array with `regexp_split_to_array`, ignoring the spaces around the separators.
+ */
 
 with accounts(account_id, tags) as (
     values ('A-1', 'enterprise, emea;priority'), ('A-2', 'smb'), ('A-3', 'enterprise ; amer , renewal')

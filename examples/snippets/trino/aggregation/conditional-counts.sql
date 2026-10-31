@@ -1,6 +1,7 @@
--- @description
--- Count rows per condition in one pass, turning categories into columns.
--- @end
+/**
+ * @description
+ * Count rows per condition in one pass, turning categories into columns.
+ */
 
 with tickets(team, status) as (
     values ('core', 'open'), ('core', 'closed'), ('core', 'open'),

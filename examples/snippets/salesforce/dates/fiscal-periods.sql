@@ -1,6 +1,7 @@
--- @description
--- Truncate dates to the fiscal month, quarter and year of the fiscal calendar configured in the org.
--- @end
+/**
+ * @description
+ * Truncate dates to the fiscal month, quarter and year of the fiscal calendar configured in the org.
+ */
 
 with orders(order_id, ordered_on) as (
     values ('O-1', date '2026-01-15'), ('O-2', date '2026-02-03'), ('O-3', date '2026-04-28'),

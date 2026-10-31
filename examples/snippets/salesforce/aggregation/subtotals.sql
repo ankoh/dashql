@@ -1,7 +1,8 @@
--- @description
--- Revenue per region and channel with the subtotals of every combination using `cube`.
--- `grouping` tells the subtotal rows apart, it is 1 for a column that is summed up.
--- @end
+/**
+ * @description
+ * Revenue per region and channel with the subtotals of every combination using `cube`.
+ * `grouping` tells the subtotal rows apart, it is 1 for a column that is summed up.
+ */
 
 with orders(region, channel, amount) as (
     values ('EMEA', 'Web', 120.00), ('EMEA', 'Store', 80.00), ('EMEA', 'Web', 45.00),

@@ -1,7 +1,8 @@
--- @description
--- Find every destination that is reachable with at most two stopovers.
--- The recursion stops after three flights.
--- @end
+/**
+ * @description
+ * Find every destination that is reachable with at most two stopovers.
+ * The recursion stops after three flights.
+ */
 
 with recursive
     flights(origin, destination) as (

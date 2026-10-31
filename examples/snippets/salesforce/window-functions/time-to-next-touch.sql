@@ -1,6 +1,7 @@
--- @description
--- The hours until the next engagement of the same individual with `lead`.
--- @end
+/**
+ * @description
+ * The hours until the next engagement of the same individual with `lead`.
+ */
 
 with engagements(individual_id, engaged_at, action) as (
     values ('I-1', timestamp '2026-03-01 09:00:00', 'Email Open'), ('I-1', timestamp '2026-03-01 09:05:00', 'Email Click'),

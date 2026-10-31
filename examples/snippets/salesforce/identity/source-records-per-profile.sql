@@ -1,7 +1,8 @@
--- @description
--- The distribution of the number of source records per unified profile.
--- Profiles with very many source records hint at match rules that are too loose.
--- @end
+/**
+ * @description
+ * The distribution of the number of source records per unified profile.
+ * Profiles with very many source records hint at match rules that are too loose.
+ */
 
 with identity_links(source_record_id, unified_id) as (
     values ('crm-1', 'U-1'), ('web-7', 'U-1'), ('shop-3', 'U-1'), ('web-8', 'U-1'),

@@ -1,6 +1,7 @@
--- @description
--- Compute the median and the 90th percentile of a measure per group.
--- @end
+/**
+ * @description
+ * Compute the median and the 90th percentile of a measure per group.
+ */
 
 with requests(endpoint, latency_ms) as (
     values ('/home', 12), ('/home', 18), ('/home', 25), ('/home', 140),

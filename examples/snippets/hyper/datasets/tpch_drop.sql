@@ -1,6 +1,7 @@
--- @description
--- Drop any TPC-H tables.
--- @end
+/**
+ * @description
+ * Drop any TPC-H tables.
+ */
 
 drop table if exists region;
 drop table if exists nation;

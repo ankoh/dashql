@@ -1,7 +1,8 @@
--- @description
--- Sum a measure over the last seven days of every row, even when days are missing.
--- A range frame counts in days, a rows frame would count in rows.
--- @end
+/**
+ * @description
+ * Sum a measure over the last seven days of every row, even when days are missing.
+ * A range frame counts in days, a rows frame would count in rows.
+ */
 
 with sales(day, revenue) as (
     values (date '2026-01-01', 100), (date '2026-01-02', 80), (date '2026-01-05', 120),

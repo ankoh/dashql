@@ -1,6 +1,7 @@
--- @description
--- The product pairs that appear together in the most orders.
--- @end
+/**
+ * @description
+ * The product pairs that appear together in the most orders.
+ */
 
 with order_items(order_id, product) as (
     values ('O-1', 'Laptop'), ('O-1', 'Mouse'), ('O-1', 'Sleeve'),

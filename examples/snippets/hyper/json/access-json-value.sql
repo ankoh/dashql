@@ -1,7 +1,8 @@
--- @description
--- Read nested fields of a JSON document with the -> and ->> operators.
--- The operator -> returns json, ->> returns text.
--- @end
+/**
+ * @description
+ * Read nested fields of a JSON document with the -> and ->> operators.
+ * The operator -> returns json, ->> returns text.
+ */
 
 with events(payload) as (
     values

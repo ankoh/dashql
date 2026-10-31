@@ -1,7 +1,8 @@
--- @description
--- Count the values of a measure in equally wide buckets.
--- Values below the range land in bucket 0, values above it in bucket 6.
--- @end
+/**
+ * @description
+ * Count the values of a measure in equally wide buckets.
+ * Values below the range land in bucket 0, values above it in bucket 6.
+ */
 
 with requests(latency_ms) as (
     values (12), (18), (25), (40), (55), (61), (75), (140), (300)

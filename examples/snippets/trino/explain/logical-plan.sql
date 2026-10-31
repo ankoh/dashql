@@ -1,6 +1,7 @@
--- @description
--- Show the logical plan of a query before it is split into distributed fragments.
--- @end
+/**
+ * @description
+ * Show the logical plan of a query before it is split into distributed fragments.
+ */
 
 explain (type logical)
 with orders(customer, amount) as (

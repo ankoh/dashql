@@ -1,6 +1,7 @@
--- @description
--- Email addresses that do not look like `name@domain.tld`, e.g. typos or placeholders of a source system.
--- @end
+/**
+ * @description
+ * Email addresses that do not look like `name@domain.tld`, e.g. typos or placeholders of a source system.
+ */
 
 with emails(individual_id, email) as (
     values ('I-1', 'ada@example.com'), ('I-2', 'alan@example'), ('I-3', 'grace.example.com'),

@@ -1,6 +1,7 @@
--- @description
--- Score customers by recency, frequency and monetary value and segment them.
--- @end
+/**
+ * @description
+ * Score customers by recency, frequency and monetary value and segment them.
+ */
 
 with orders(customer_id, ordered_at, amount) as (
     values ('C-1', timestamp '2026-03-20 10:00:00', 120.00), ('C-1', timestamp '2026-03-01 10:00:00', 90.00),

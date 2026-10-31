@@ -1,6 +1,7 @@
--- @description
--- How many source records identity resolution merged into how many unified profiles, per data source.
--- @end
+/**
+ * @description
+ * How many source records identity resolution merged into how many unified profiles, per data source.
+ */
 
 with identity_links(source_record_id, unified_id, data_source) as (
     values ('crm-1', 'U-1', 'CRM'), ('web-7', 'U-1', 'Web'), ('shop-3', 'U-1', 'Commerce'),
