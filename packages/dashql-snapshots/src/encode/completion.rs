@@ -167,8 +167,7 @@ pub fn complete_case(
     let completion = Completion::compute(&cursor, limit);
     let mut out = Map::new();
     out.int("limit", limit as i64);
-    // Completions inside comments have no target symbol (see docs/design/core_quirks.md), only those
-    // of comment tags have candidates
+    // Completions inside comments have no target symbol, only those of comment tags have candidates
     if completion.target_symbol.is_none() {
         out.int("no-target", 1);
         if !completion.top_candidates.is_empty() {

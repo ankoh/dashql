@@ -1,20 +1,12 @@
 # Quirks inherited from the C++ core
 
-The Rust core was ported from the former C++ core **bug for bug**, so that the snapshots and a
-differential oracle against the C++ core could demand zero differences. The C++ core and the oracle
-are deleted, but the Rust core still behaves as listed here: every entry looks wrong but was kept on
-purpose. Entries marked **Not reproduced** describe C++ behavior the port dropped; they record where
-the Rust core differs from the former C++ core.
+The Rust core was ported bug for bug from the former C++ core. Every entry below looks wrong but was
+kept on purpose, so that the snapshots did not change.
 
-Parity covered semantics, not incidental text: output that was an artifact of a C++ library (number
-formatting of rapidjson, c4 or `%g`) was not reproduced. The Rust core writes doubles with the shortest
-round-trip digits, and the snapshot tests compare numbers by value.
+Each quirk can be fixed as an ordinary change with a snapshot update; remove its entry then. Add an
+entry when you find another one. The headings name where the behavior lives.
 
-Each quirk can now be fixed as an ordinary change with a snapshot update; remove its entry then. Add an
-entry when you find another inherited quirk. The headings name where the behavior lives in the Rust
-core; C++ function names refer to the original implementation.
-
-## Scanner (`packages/dashql-parser/src/scanner.rs`, ported from `grammar/scanner.l`)
+## Scanner (`packages/dashql-parser/src/scanner.rs`)
 
 - **`DOT_DOT` and `RAW_CHAR` are emitted, but no rule uses them.** They always end up as syntax
   errors.
@@ -29,8 +21,11 @@ core; C++ function names refer to the original implementation.
 ## Parser (`grammar/rules/`, `packages/dashql-parser/src/parser/`)
 
 - **Keyword names carry token indexes as byte spans.** `name_from_keyword` and `name_from_string_literal`
-  (C++ `NameFromKeyword`, `NameFromStringLiteral`) register names with `TextSpan(symbol.offset, ...)`,
-  which is a token index stored in a byte-span field. Scanner-registered names carry real byte offsets.
+  register names with `TextSpan::new(loc.offset(), ...)` of a `SymbolSpan`, which is a token index
+  stored in a byte-span field. Scanner-registered names carry real byte offsets.
+- **Names from string literals keep their single quotes.** `name_from_string_literal` trims only double
+  quotes, so the parameter `:'mode'` is named `'mode'`. The analyzer strips the quotes of parameter
+  names (`unquote` in `analyzer/parameters.rs`).
 - **Lenient incomplete statements.** `SELECT * FROM A WHERE` parses without an error, because
   `sql_where_clause: WHERE` accepts a bare keyword. A bare `FROM` keeps the lenient tree, but reports
   "expected a table reference after FROM" unless the input ends right after it.
@@ -45,189 +40,97 @@ core; C++ function names refer to the original implementation.
 
 ## Analyzer (`packages/dashql-core/src/analyzer/`)
 
-- **The analyzer modifies the scanned script.** `AnalysisState` registers an empty name in the
-  scanner's name registry and writes analyzer tags and resolved objects into the scanned names, which
-  forces `Script::AnalyzeInternal` to rescan before reanalyzing. The Rust analyzed script owns a copy
-  of the names (`AnalyzedScript::names`, `name_tags`, `name_objects`) and leaves the scan untouched.
-- **CREATE TABLE columns are sorted with the unstable `std::sort`.** Duplicate column names in tables
-  with more than 16 columns could be ordered differently in C++. **Not reproduced:** Rust sorts stably.
 - **`AND`/`OR` over constants become binary expressions with function `UNKNOWN`**, because
-  `ReadBinaryExpressionFunction` has no mapping for them.
+  `binary_function` (`constants.rs`) has no mapping for them.
 - **Function calls without arguments are constant but never constant roots.** Only calls with
   arguments are added to the constant list.
-- **Unreadable qualified function names throw.** `IdentifyFunctionCallsPass` calls `value()` on the
-  empty optional of a function name path it cannot read, which throws `std::bad_optional_access` out
-  of the analysis. Rust returns an error.
-- **Root scopes iterate like `ankerl::unordered_dense::set`**: in insertion order, and erasing moves
-  the last element into the hole. Name resolution visits the roots in that order.
+- **Unreadable qualified function names fail the analysis** with the error "bad optional access"
+  (`function_calls.rs`).
+- **Root scopes iterate in insertion order, and erasing moves the last element into the hole**
+  (`RootScopes`). Name resolution visits the roots in that order.
 
 ## Completion (`packages/dashql-core/src/completion.rs`)
 
-- **Candidates are ranked with the unstable `std::sort`.** `TopKHeap` sorts the candidates (score,
-  then case-insensitive name) and the catalog objects of a candidate (score only), so ties come out
-  in introsort order, and libc++ (the C++ wasm build) orders them differently than libstdc++. Rust
-  does not reproduce this: candidates of equal score and case-insensitive name are ranked by byte
-  order, keywords before names that spell the same, and catalog objects of equal score keep the
-  order in which they were found.
-- **A candidate scores with its lowest top object.** `SelectTopCandidates` takes the score of the
+- **A candidate scores with its lowest top object.** `select_top_candidates` takes the score of the
   last of the descending top 24 catalog objects.
 - **Spans mix text offsets and token indexes.** Candidate target locations are `SymbolSpan`s holding
   text offsets, and keyword-registered names keep token indexes in their text location, which the
   "is it the cursor symbol" check compares with text offsets.
-- **A dot at the begin of the cursor symbol never completes.** The switch in `Compute` falls through
-  from `BEGIN_OF_SYMBOL` into the `return`.
-- **The analysis of one script can attach objects to the names of another one.** Derived tables
+- **A dot at the begin of the cursor symbol never completes.** At `BEGIN_OF_SYMBOL`, `compute` returns
+  without completing.
+- **The analysis of one script records objects for the names of another one.** Derived tables
   (`CREATE VIEW v AS SELECT * FROM t`) push their columns into the resolved objects of the names they
-  copy, which can be names of a catalog entry. The Rust analyzer only records objects for the name
-  index of its own script.
-- **Table refs are promoted through the catalog only.** `PromoteIdentifiersInScope` resolves the
-  tables of the scope with `Catalog::ResolveTable`, so tables of the script being edited are only
+  copy, which can be names of a catalog entry. The analyzer records them for every entry, but only
+  applies those of its own script to its name index.
+- **Table refs are promoted through the catalog only.** `promote_identifiers_in_scope` looks up the
+  resolved tables of the scope in the catalog by id, so tables of the script being edited are only
   promoted once that script is loaded into the catalog.
-- **The C++ snapshot encoder read the target symbol unconditionally**, which completions inside
-  comments do not have. The Rust encoder writes `no-target` for them.
-
-## Visualize (`packages/dashql-core-session/src/visualize/`)
-
-**Markdown** (C++: `markdown.cc` and md4c 0.5.2). **Not reproduced:** the Rust core parses templates
-with pulldown-cmark (CommonMark, no extensions) instead of a port of md4c. Adjacent text is one text
-node, list tightness is derived from the item paragraphs, the last line of a code block keeps no line
-break that is not in the template, and trailing whitespace at the end of the template is dropped.
-md4c behavior that is gone:
-- Text nodes are cut at every resolved mark and never merged.
-- `md_text_with_null_replacement` does not advance past a NUL, which also starts the next text node.
-- The empty-list-item check reads the last 8 bytes of the block stream as a block header, so a list
-  item paragraph whose last line starts at offset 4 (mod 256) followed by two blank lines ends the
-  list (`-   a\n\n\n    b`).
-- A fence closes the fenced code block of a list item even if it is indented less than the item
-  content (`` - ```\n  a\n ```\n- b ``).
-- Tabs in indented code blocks are expanded to spaces.
-- A code span that starts in a link destination wins over the link (`` [a](`b)` ``).
-- The trailing whitespace of a paragraph at the end of the document is kept.
-- `md_line_contains` misses an HTML end marker that ends at the end of the document.
-- HTML block type 4 starts with `<!` and any ASCII character; `<header>` matches `head` first, fails,
-  and becomes type 7, which cannot interrupt a paragraph.
-- An autolink scheme only needs an ASCII first character.
-- An empty ordered list item interrupts a paragraph.
 
 ## Formatter (`packages/dashql-core/src/formatter/`)
 
-- **Attribute lookup picks different duplicates** (`attrs!` in `dashql_parser::attributes`, C++
-  `LookupAttributes`). With one key it returns the first matching child; with several keys it returns
-  the last match of each. The analyzer relies on the same helper.
-- **Comment wrapping splits words at byte offsets** (`AppendWrappedCommentParagraph`) and can cut a
+- **Attribute lookup picks different duplicates** (`attrs!` in `dashql_parser::attributes`). With one
+  key it returns the first matching child; with several keys it returns the last match of each. The
+  analyzer relies on the same helper.
+- **Comment wrapping splits words at byte offsets** (`append_wrapped_comment_paragraph`) and can cut a
   UTF-8 character in half. `Formatter::format_bytes` returns the raw bytes.
-- **Two whitespace sets in comments.** Trimming uses C `isspace` (including `\v`), word splitting
-  uses `" \t\r\n\f"`.
-- **Keyword upper-casing** (`AppendGeneratedText`) only touches exact lower-case keywords in
+- **Three whitespace sets in comments.** Trimming uses C `isspace` (including `\v`), word splitting
+  uses `" \t\r\n\f"`, and the words of `@vis` tags are split at `" \t\r\f\v"` (`split_word`).
+- **Keyword upper-casing** (`append_generated_text`) only touches exact lower-case keywords in
   generated text, so source `TRUE` or `Select` stay as written. Line widths count bytes.
-- **`FormatNodeAt` does not mark statement roots**, so a CREATE TABLE formatted that way renders
+- **`format_node_at` does not mark statement roots**, so a CREATE TABLE formatted that way renders
   `'<OBJECT_SQL_CREATE>'`.
 - **An empty property graph** formats as `Text("")`, a non-empty document.
 - **Unformattable nodes** are recorded in visit order and can repeat.
-- **Unknown enum values** are unformattable. `GetOperatorPrecedence` has no default case (undefined
-  behavior); Rust returns precedence 0, non-associative.
-- **Text past the end of the input.** C++ read into the two padding NUL bytes after the text, Rust
-  stops at the end. No differential input hit a difference.
+- **Unknown enum values** are unformattable, and unknown operators get precedence 0, non-associative
+  (`get_operator_precedence`).
 
 ## Plan view model (`packages/dashql-core-view/src/`)
 
-- **Root order follows heap addresses** (`FlattenOperators`): roots are placed in the iteration order
-  of an `std::unordered_map` keyed by node address. Rust uses reverse plan order, which matches
-  libstdc++ for up to two roots and unless hash buckets collide.
-- **Fragment order.** Execution-target fragments come in reverse root order, before federate fragments.
-- **Lookups.** `FindNumber` stops at the first existing name even if it is not a number, a non-array
+- **Roots are placed in reverse plan order** (`flatten_operators`).
+- **Fragment order.** Execution-target fragments come in reverse root order, before federate fragments
+  (`identify_fragments`).
+- **Lookups.** `find_number` stops at the first existing name even if it is not a number, a non-array
   `earlyProbes` blocks the `early-probes` fallback, pipeline operator lists keep duplicates, and
   pipeline edge ids count across pipelines.
-
-**Not reproduced.** The Rust core reads plans as standard JSON with serde_json. The C++ core parsed
-them with rapidjson (comments, NaN and infinity, trailing commas, imprecise number parsing):
-- Comments, `NaN`/`Inf`/`Infinity`, trailing commas and input after a NUL byte are parse errors.
-  Lone surrogates (`\uDC00`) are parse errors; C++ decoded lone low surrogates into invalid UTF-8.
-- Strings keep NUL characters; C++ read attribute names, operator types and labels as C strings, so
-  `"operator\u0000x"` counted as `operator`.
-- Duplicate keys keep the last value; C++ kept all members and looked up the first.
-- Numbers are read with full precision, `-0` is the double -0.0 (C++: integer 0).
-- Counts in the runtime statistics that are not unsigned integers are ignored, `sqlpos` entries that
-  are not unsigned 32-bit integers are 0. C++ asserted, release builds read the raw number storage.
 
 ## Script session (`packages/dashql-core-session/src/script_session.rs`)
 
 - **Offset projection.** In UTF-8 mode, offsets are projected without checks. In UTF-16 mode, spans
   that are not on a code point boundary are dropped, including keyword names whose byte-span fields
   hold token indexes.
-- **Field presence differs by offset unit.** In UTF-16 mode, completions and diffs go through an
-  object API round trip, so empty strings and vectors are left out; in UTF-8 mode they are not.
-- **Stale spans.** `PackDiff` and `RewriteDashboard` apply the spans of a possibly outdated parse to
-  the current text. A diff span that is then not on a boundary is an error.
-- **Table definitions** are sorted by name with the unstable `std::sort`. Rust sorts by name and
-  statement id; packed table and column references with equal catalog ids are ordered by their own id.
-- **Cursor bookkeeping.** `Analyze()` stamps the cursor versions even when placing the cursor failed;
-  `Apply` does not.
-- **`Format` allocates the entry id** before rejecting output that is not valid UTF-8 (comment
+- **Field presence differs by offset unit.** In UTF-16 mode, completions leave out empty strings and
+  vectors, and a diff without operations has no `ops`; in UTF-8 mode they are kept.
+- **Stale spans.** `ScriptSession::diff` and the rewrites of `Script::parsed_for_rewrite`
+  (`rewrite_annotation`, `rewrite_vis_renderer`, `rewrite_vis_card`, ...) apply the spans of a possibly
+  outdated parse to the current text, unless `parse_if_outdated` is set. In UTF-16 mode, a diff span
+  that is then not on a boundary is an error.
+- **Cursor bookkeeping.** `analyze` stamps the cursor versions even when placing the cursor failed;
+  `apply` does not.
+- **`format` allocates the entry id** before rejecting output that is not valid UTF-8 (comment
   wrapping can cut a character).
-- **Text padding.** Spans that end past the text read the two NUL padding bytes of the text buffer.
-  The Rust `script_diff` reads them the same way instead of panicking.
+- **Text padding.** Spans that end past the text read two NUL padding bytes after the text
+  (`padded_text` in `dashql-core/src/script_diff.rs`).
 
 ## Shell (`packages/dashql-core-shell/src/`)
 
-- **Arrow values print like Arrow C++ 19 `Scalar::ToString`.** **Not reproduced:** the Rust shell
-  formats cells with arrow-cast (`ArrayFormatter`). C++ prints binaries as raw bytes, embeds
-  `DataType::ToString` in nested values (`list<item: int32>[…]`, `{name:type = v}`), pretty-prints the
-  whole dictionary of a dictionary cell followed by `[index]`, prints durations as raw counts, floats
-  with double-conversion (`1e+10`, `inf`) and timestamps with a time zone with a trailing `Z` without
-  conversion. Rust prints binaries in hex, nested values as `[1, null, 3]` and `{x: 1, y: a}`, the
-  dictionary value, durations in ISO 8601, floats with ryu (`10000000000.0`, `inf`) and timestamps in
-  their time zone (named zones in UTC, chrono-tz is not linked). Columns that arrow-cast cannot format
-  show their type.
-- **Sliced sparse unions.** `IsNullSparseUnion` ignores the slice offset, so union elements inside
-  lists, maps and structs take the null flag of another row. **Not reproduced.**
 - **Stale cursor row.** After prompt edits outside the terminal the cursor row is stale, and the
-  cursor-down count of a submit wraps like `size_t`.
-- **`\r\n` is one grapheme of width 0** in the prompt layout. Rust keeps this: clusters that start with a
-  control character take no columns.
-- **utf8proc 2.4** measures text with the grapheme rules of Unicode 12.1 and the width of the first code
-  point of a cluster. Rust measures with `unicode-segmentation` and `unicode-width` and does not
-  reproduce this.
-- **Completion limit 0** tripped an assertion in the C++ `TopKHeap`.
-- **Up/Down at a CR LF line break** dereferenced an empty `std::optional` in C++ (undefined
-  behavior); Rust takes the boundary before it.
-- **Invalid UTF-8 queries.** `StartQuery` returns `INTERNAL_ERROR` "rope input must contain valid
-  UTF-8" after allocating a catalog entry id.
+  cursor-down count of a submit wraps around.
+- **`\r\n` is one grapheme of width 0** in the prompt layout: clusters that start with a control
+  character take no columns.
+- **Completion limit 0.** SQL completion returns no candidates, but dot-command completion checks the
+  limit only after adding a candidate and returns every matching command.
+- **Invalid UTF-8 queries.** `start_query` returns `INTERNAL_ERROR` "rope input must contain valid
+  UTF-8".
 
-## Fixed in C++ before porting
+## Deterministic order
 
-Two bugs of the C++ analyzer snapshot encoder (`src/testing/analyzer_snapshot_test.cc`) were fixed.
-Neither changed a checked-in snapshot:
+The snapshots pin these orders:
 
-- **Binary expression names were off by one.** The encoder looked up names by indexing the dense
-  type table names with the enum value, but `BinaryExpressionFunction` skips the value 3. `MULTIPLY`
-  printed as `DIVIDE`, `DIVIDE` as `MODULUS`, and `XOR` read past the end. It now uses
-  `EnumNameBinaryExpressionFunction` (and `EnumNameComparisonFunction`).
-- **Warnings without a symbol span crashed the encoder.** `MALFORMED_COMMENT_TAG` warnings only have
-  a text span, and the encoder dereferenced the null symbol span.
-
-The packed name scopes of `AnalyzedScript::Pack` carried corrupted id lists and were fixed: the
-lists were built with `PushElement` of the `size_t` field `buffer_index` into `uint32` vectors, so the
-readers saw the first half of the reversed 64-bit values, and `NameScope::buffer_index` was never
-set, so child scopes were all 0. They are now the scope, expression and table reference ids in list
-order. No TypeScript code read them.
-
-**Removing an empty range at the end of a text with several leaves aborted the process.**
-`Rope::Remove` descended into a leaf that does not contain the end of the text, and the `noexcept`
-`LeafNode::RemoveCharRange` threw "UTF-8 codepoint index exceeds buffer". `ScriptSession::Apply`
-removes an empty range before every insert, so typing at the end of a pure ASCII document of about
-1 KB or more terminated the core. Empty removals became a no-op. Found by the session differential
-test.
-
-Behavior that depended on the hash table implementation was made deterministic in the C++ core first,
-because native builds (libstdc++) and wasm builds (libc++) could disagree, and a port cannot reproduce
-it. This changed one snapshot (`analyzer/names.yaml`):
-
-- **Ambiguous column candidates are listed in FROM order.** `NameScope::referenced_tables_by_name` and
-  `NameScope::cte_definitions` are `ankerl::unordered_dense::map`s, which iterate in insertion order.
+- **Ambiguous column candidates are listed in FROM order** (`NameScope::sources`, and
+  `NameScope::cte_definitions` is an ordered map).
 - **Duplicate unqualified names resolve in declaration order.** `CatalogEntry::tables_by_unqualified_name`,
-  `table_columns_by_name` and `functions_by_unqualified_name` are btree multimaps that keep the insertion
-  order of equal keys.
-- **Catalog-wide column lookups visit entries in resolution order** (`ResolveTableColumnsWithCatalog`), by
-  layer and then entry id since ranks were replaced by catalog layers.
-- **The `FlatCatalog` name dictionary is built in resolution order** (`Catalog::Flatten`).
+  `table_columns_by_name` and `functions_by_unqualified_name` are btree maps of lists that keep the
+  insertion order of equal keys.
+- **Catalog-wide column lookups visit entries in resolution order** (`resolve_table_columns_with_catalog`),
+  by layer and then entry id.
+- **The `FlatCatalog` name dictionary is built in resolution order** (`Catalog::flatten`).
