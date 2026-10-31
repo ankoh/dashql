@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_rust//rust:defs.bzl", "rust_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -72,12 +73,22 @@ cc_binary(
 )
 
 # A never-throwing C ABI over the Hyper API for the Rust tests
-# (//packages/dashql-core:formatter_validation_hyper_test).
+# (//packages/dashql-core:formatter_validation_hyper_test, //packages/dashql-core-session:planner_validation_hyper_test).
 cc_library(
     name = "hyper_ffi",
     srcs = ["hyper_ffi.cc"],
     hdrs = ["hyper_ffi.h"],
     deps = [":hyperapi"],
+)
+
+# The Rust side of the C ABI: a Hyper process, connections and temporary databases of the tests
+rust_library(
+    name = "hyper_ffi_rs",
+    testonly = True,
+    srcs = ["hyper_ffi.rs"],
+    crate_name = "hyper_ffi",
+    edition = "2021",
+    deps = [":hyper_ffi"],
 )
 
 cc_test(
