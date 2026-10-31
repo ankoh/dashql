@@ -19,7 +19,7 @@ planner-snapshots:
           select count(*) from :foo;
 
   # The query of the materialized script runs after the script that writes its relations, before the scan
-  - name: MaterializeProducerOfTable
+  - name: ScanProducerOfTable
     connections:
       - name: trino
         kind: REMOTE
@@ -63,8 +63,8 @@ planner-snapshots:
         input: |
           select sum(amount) from :foo;
 
-  # A fused script of the LOCAL connection scans a materialized script, the scan goes into the statement
-  - name: FusedScanOfMaterialization
+  # An inlined script of the LOCAL connection scans a materialized script, the scan goes into the statement
+  - name: InlinedScanOfMaterialization
     connections:
       - name: trino
         kind: REMOTE
@@ -86,8 +86,8 @@ planner-snapshots:
         input: |
           select count(*) from :foo;
 
-  # A materialized script fuses its own references of its connection
-  - name: MaterializeFusedProducer
+  # A materialized script inlines its own references of its connection
+  - name: ScanProducerWithInlined
     connections:
       - name: trino
         kind: REMOTE
@@ -110,7 +110,7 @@ planner-snapshots:
           select count(*) from :foo;
 
   # CREATE TABLE AS copies a materialized result
-  - name: MaterializeIntoTable
+  - name: ScanIntoTable
     connections:
       - name: trino
         kind: REMOTE
@@ -179,8 +179,8 @@ planner-snapshots:
         input: |
           create view v as select * from :foo;
 
-  # A view cannot read a materialized result through a fused query either
-  - name: ViewOfFusedMaterialization
+  # A view cannot read a materialized result through an inlined query either
+  - name: ViewOfInlinedMaterialization
     connections:
       - name: trino
         kind: REMOTE
@@ -201,7 +201,7 @@ planner-snapshots:
           create view v as select * from :foo;
 
   # A materialized script must run before the statement that scans it
-  - name: MaterializedProducerBelow
+  - name: ScannedProducerBelow
     connections:
       - name: trino
         kind: REMOTE

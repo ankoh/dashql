@@ -121,7 +121,7 @@ describe('session execution with real core planning', () => {
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
     });
 
-    it('fuses a script reference of the same connection into the query', async () => {
+    it('inlines a script reference of the same connection into the query', async () => {
         const f = fixture([
             ['0_setup.sql', 'create table items (id int);'],
             ['1_foo.sql', 'select id from items where id > 1;'],

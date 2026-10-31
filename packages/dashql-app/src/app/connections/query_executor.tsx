@@ -201,7 +201,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 traced.info("Executing query", {
                     sessionId,
                     "query": queryId.toString(),
-                    // Where a statement of a plan of session scripts comes from, e.g. `bar.sql 2/3 · fuses foo.sql`
+                    // Where a statement of a plan of session scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
                     ...(args.metadata.planned != null ? { "planned": args.metadata.title ?? '', "node": args.metadata.planned.node.toString() } : {}),
                     "text": args.query
                 }, LOG_CTX);

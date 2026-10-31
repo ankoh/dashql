@@ -7,13 +7,13 @@
 //!
 //! Scripts run on connections, every connection has its own catalog. Relations of different connections
 //! never conflict. A script references the result of another script with a table parameter, `:foo` reads
-//! the terminal query of `foo.sql` (see `script_references`). A reference within one connection fuses the
+//! the terminal query of `foo.sql` (see `script_references`). A reference within one connection inlines the
 //! query into the statement as a common table expression, a reference of the LOCAL connection to another
 //! connection scans the result as Parquet file that the host materializes, a reference of a REMOTE
 //! connection to another connection is an error.
 //!
-//! A plan covers the whole session or the target scripts and what they need: the statements that a fused
-//! reference needs before it, and the scripts that a materialized reference scans unless the host provides
+//! A plan covers the whole session or the target scripts and what they need: the statements that an inlined
+//! reference needs before it, and the scripts that a scan reference scans unless the host provides
 //! their results. A plan of targets treats statements like a run of a single script: statements of every
 //! kind keep their SQL, and the statements of a script run in their order.
 
@@ -393,13 +393,13 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 continue;
             }
             include[i as usize] = level;
-            // The references of the included statements and of the terminal query, which a fused reference inlines
+            // The references of the included statements and of the terminal query, which an inline reference inlines
             for r in references.of(i) {
                 let Some(producer) = r.producer else { continue };
                 match r.kind {
-                    ReferenceKind::Fuse => pending.push((producer, Include::Inlined)),
-                    ReferenceKind::Materialize if lenient && request.materialized.contains(&producer) => {}
-                    ReferenceKind::Materialize => pending.push((producer, Include::All)),
+                    ReferenceKind::Inline => pending.push((producer, Include::Inlined)),
+                    ReferenceKind::Scan if lenient && request.materialized.contains(&producer) => {}
+                    ReferenceKind::Scan => pending.push((producer, Include::All)),
                     ReferenceKind::Invalid => {}
                 }
             }
@@ -480,7 +480,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             if include[i as usize] == Include::None {
                 continue;
             }
-            let (ReferenceKind::Materialize, Some(producer)) = (r.kind, r.producer) else { continue };
+            let (ReferenceKind::Scan, Some(producer)) = (r.kind, r.producer) else { continue };
             materialization_of.entry(producer).or_insert_with(|| {
                 let mut m = ExecutionGraphMaterializationT::default();
                 m.script = producer;
@@ -556,9 +556,9 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 }
             }
             // The SQL of the statement as written, with the script references spliced in
-            let fused = script_references::splice_statement(request, &prepared, &references, si as u32, statement_id as u32, &materialization_of, &materializations);
-            let mut sql = if fused.edits.is_empty() { read_executable_text(scanned, span) } else { read_executable_text_with(scanned, span, &fused.edits) };
-            for r in &fused.references {
+            let spliced = script_references::splice_statement(request, &prepared, &references, si as u32, statement_id as u32, &materialization_of, &materializations);
+            let mut sql = if spliced.edits.is_empty() { read_executable_text(scanned, span) } else { read_executable_text_with(scanned, span, &spliced.edits) };
+            for r in &spliced.references {
                 let mut reference = ExecutionGraphScriptReferenceT::default();
                 reference.node = node_id;
                 reference.consumer_script = si as u32;
@@ -761,8 +761,8 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     }
                 }
             }
-            // A fused script reference reads the relations of the terminal query of the referenced script
-            for &(producer, producer_statement) in &fused.inlined {
+            // An inline script reference reads the relations of the terminal query of the referenced script
+            for &(producer, producer_statement) in &spliced.inlined {
                 let producer_analyzed = prepared[producer as usize].as_ref().unwrap().analyzed;
                 for table_ref in &producer_analyzed.table_references {
                     if table_ref.ast_statement_id != Some(producer_statement)
@@ -785,14 +785,14 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     }
                 }
             }
-            for &m in &fused.inputs {
+            for &m in &spliced.inputs {
                 let producer_node = materializations[m as usize].node;
                 if producer_node != NONE {
                     reference_edges.push((producer_node, node_id, Reason::MATERIALIZATION, materializations[m as usize].script));
                 }
             }
-            node.inputs = (!fused.inputs.is_empty()).then(|| fused.inputs.clone());
-            node.fused_scripts = (!fused.inlined.is_empty()).then(|| fused.inlined.iter().map(|&(producer, _)| producer).collect());
+            node.inputs = (!spliced.inputs.is_empty()).then(|| spliced.inputs.clone());
+            node.inlined_scripts = (!spliced.inlined.is_empty()).then(|| spliced.inlined.iter().map(|&(producer, _)| producer).collect());
             let drop = matches!(ty, Type::DROP_TABLE | Type::DROP_VIEW);
             let ddl = drop || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
             if ddl {
@@ -962,7 +962,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             }
         }
     }
-    // A materialized reference needs the result of the referenced script before it in the session
+    // A scan reference needs the result of the referenced script before it in the session
     for (from, to, reason, producer) in reference_edges {
         if from < to {
             edge(Some(from), to, NONE, NONE, reason);

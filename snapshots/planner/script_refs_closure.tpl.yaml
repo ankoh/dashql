@@ -13,9 +13,9 @@ planner-snapshots:
           select count(*) from t;
     targets: [bar]
 
-  # A fused reference adds no statement, the scripts that write the relations of the fused query are no part of the
+  # An inline reference adds no statement, the scripts that write the relations of the inlined query are no part of the
   # plan, the target reads them as the backend has them
-  - name: TargetFusesProducer
+  - name: TargetInlinesProducer
     catalog: |
       create table t (a int);
     scripts:
@@ -30,8 +30,8 @@ planner-snapshots:
           select * from :foo;
     targets: [bar]
 
-  # A materialized reference needs the referenced script and what it references
-  - name: TargetMaterializes
+  # A scan reference needs the referenced script and what it references
+  - name: TargetScans
     connections:
       - name: trino
         kind: REMOTE
@@ -75,7 +75,7 @@ planner-snapshots:
     targets: [bar]
     materialized: [foo]
 
-  # The host provides the materialized result of a script that fuses the query of another script
+  # The host provides the materialized result of a script that inlines the query of another script
   - name: TargetReusesMaterializationWithReferences
     connections:
       - name: trino

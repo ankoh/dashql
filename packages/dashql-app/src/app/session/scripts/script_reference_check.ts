@@ -7,10 +7,10 @@ const NONE = 0xFFFFFFFF;
 
 /// What a script reference reads
 export enum ScriptReferenceKind {
-    /// The query of the referenced script is fused into the statement, both run on one connection
-    Fused = 'fused',
+    /// The query of the referenced script is inlined into the statement, both run on one connection
+    Inline = 'inline',
     /// The statement scans the result of a script of another connection, materialized as Parquet file
-    Scanned = 'scanned',
+    Scan = 'scan',
     /// The reference has errors
     Invalid = 'invalid',
 }
@@ -81,9 +81,9 @@ export function computeScriptReferenceReports(
             const from = span?.offset ?? 0;
             const kind = reference.errors.length > 0 || reference.kind === core.buffers.execution.ScriptReferenceKind.INVALID
                 ? ScriptReferenceKind.Invalid
-                : reference.kind === core.buffers.execution.ScriptReferenceKind.MATERIALIZED
-                    ? ScriptReferenceKind.Scanned
-                    : ScriptReferenceKind.Fused;
+                : reference.kind === core.buffers.execution.ScriptReferenceKind.SCAN
+                    ? ScriptReferenceKind.Scan
+                    : ScriptReferenceKind.Inline;
             return {
                 from,
                 to: from + (span?.length ?? 0),
