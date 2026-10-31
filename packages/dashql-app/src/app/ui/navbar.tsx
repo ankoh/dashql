@@ -141,7 +141,7 @@ const BrandIdentity = () => {
 /// The height of a wordmark in the stripe at the top, a bit smaller than in the compact navbar
 const TOP_BAR_WORDMARK_HEIGHT = 14;
 
-/// The brand in the stripe at the top, the logo and the name without the tagline.
+/// The brand in the stripe at the top, only the logo without the name.
 /// A square logo is a bit larger without the traffic lights of macOS next to it.
 const TopBarBrand = (props: { mac: boolean }) => {
     const flavor = useAppFlavor();
@@ -149,10 +149,7 @@ const TopBarBrand = (props: { mac: boolean }) => {
         <div className={styles.brand_identity} data-electron-drag-region>
             {flavor.logo.wordmark
                 ? <FlavorLogo height={TOP_BAR_WORDMARK_HEIGHT} ariaHidden />
-                : <>
-                    <FlavorLogo height={props.mac ? 22 : 24} ariaHidden />
-                    <span>{flavor.displayName}</span>
-                </>}
+                : <FlavorLogo height={props.mac ? 22 : 24} ariaHidden />}
         </div>
     );
 };
