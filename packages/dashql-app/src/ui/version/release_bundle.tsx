@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
-import { Button } from '../foundations/button.js';
+import { Button, ButtonSize } from '../foundations/button.js';
 import { ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useCanaryReleaseManifest, useStableReleaseManifest } from '../../platform/version/version_check.js';
@@ -32,7 +32,7 @@ const ReleaseBundle: React.FC<ReleaseBundleProps> = (props: ReleaseBundleProps) 
                 </div>
             </div>
             <div className={styles.native_app_platform_bundle_download}>
-                <Button onClick={() => {
+                <Button size={ButtonSize.Small} onClick={() => {
                     logger.info("Prompting user to download", { "name": props.name, "version": props.version });
                     const link = document.createElement('a');
                     link.href = props.url.toString();

@@ -19,7 +19,7 @@
 }
 
 .restart_text {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.4;
     color: var(--text_color_secondary, hsl(var(--neutral_hue), calc(9.8% * var(--neutral_tint)), 37.8%));
 }
@@ -59,7 +59,7 @@
 }
 
 .title {
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
 .version_info_container {
@@ -68,7 +68,7 @@
     grid-column-gap: 40px;
     grid-row-gap: 16px;
     padding: 12px 16px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .version_info_key {
@@ -85,7 +85,7 @@
     column-gap: 8px;
 }
 .version_info_latest {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     padding: 1px 6px;
     border-radius: 8px;
     color: var(--text_color_secondary, hsl(var(--neutral_hue), calc(9.8% * var(--neutral_tint)), 37.8%));
@@ -95,7 +95,7 @@
 
 .update_channels_container {
     border-top: 1px solid var(--border_color_primary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     padding: 12px 12px 12px 16px;
     display: flex;
     flex-direction: column;

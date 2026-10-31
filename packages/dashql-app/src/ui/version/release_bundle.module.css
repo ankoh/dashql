@@ -1,5 +1,5 @@
 .native_apps_container {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     flex-direction: column;
     row-gap: 8px;

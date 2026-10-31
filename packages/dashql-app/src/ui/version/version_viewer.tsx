@@ -18,7 +18,7 @@ import {
     useVersionCheckRefresh,
     VersionCheckStatusCode,
 } from '../../platform/version/version_check.js';
-import { Button, ButtonVariant, IconButton } from '../foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { canInstallReleaseVersion, detectReleaseChannel, ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../../utils/result.js';
@@ -71,7 +71,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
                 } else if (props.updateManifest.value != null) {
                     // The upgrade is installable, render a button to trigger installation.
                     const installable = props.updateManifest.value;
-                    status = <Button onClick={() => props.onInstall(props.channel, installable)}>Install</Button>;
+                    status = <Button size={ButtonSize.Small} onClick={() => props.onInstall(props.channel, installable)}>Install</Button>;
                 } else {
                     // The manifest advertises a newer version but no installable update was returned.
                     // update yet (e.g. the check is still in flight or failed). Surface it without an action.
