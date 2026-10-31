@@ -56,7 +56,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
-    "react-window": "^2.5.0",
+    "react-window": "^2.5.1",
     "style-mod": "^4.1.4",
     "three": "^0.186.1",
     "typescript": "^6.0.3",
