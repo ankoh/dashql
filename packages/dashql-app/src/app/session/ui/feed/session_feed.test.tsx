@@ -18,7 +18,7 @@ import { ComposerInputMode } from '../../ai/input_mode.js';
 import type { AgentTurnListener } from '../../../agent/agent_bridge.js';
 import { AgentQuestionStore } from '../../ai/agent_question_store.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
-import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../../scripts/session_scripts.js';
+import { CREATE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_TEXT, type SessionScripts } from '../../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../../connections/connector_info.js';
 import { hyperOPFSRoot } from '../../../../platform/opfs_root.js';
 
@@ -830,6 +830,35 @@ describe('Session feed composer', () => {
         expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'select 2;', withDiff: true } });
         await act(async () => feedState.rowProps.onApplySnippet(2, 'select 3;'));
         expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
+    });
+
+    it('leaves Enter and Escape to an open modal dialog instead of a staged rewrite', () => {
+        const modify = vi.fn(() => Promise.resolve(session(['1_alpha.sql'])));
+        const current = session(['1_alpha.sql']);
+        current.scripts[1] = { ...current.scripts[1], pendingDiff: { priorText: '', diffBuffer: {} } } as any;
+        render(current, modify);
+        const press = (key: string) => {
+            const event = new KeyboardEvent('keydown', { key, cancelable: true });
+            feedState.keyHandlers.filter(handler => handler.key === key).forEach(handler => handler.callback(event));
+            return event.defaultPrevented;
+        };
+
+        // The chart builder stages its diff while it is open, Escape closes the builder
+        const dialog = document.createElement('section');
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        document.body.appendChild(dialog);
+        try {
+            expect(press('Escape')).toBe(false);
+            expect(press('Enter')).toBe(false);
+            expect(modify).not.toHaveBeenCalled();
+        } finally {
+            dialog.remove();
+        }
+
+        // Without the dialog, Escape rejects the staged rewrite
+        expect(press('Escape')).toBe(true);
+        expect(modify).toHaveBeenLastCalledWith({ type: REJECT_PENDING_DIFF, value: 1 });
     });
 
     it('keeps the question with the error when the agent fails', async () => {

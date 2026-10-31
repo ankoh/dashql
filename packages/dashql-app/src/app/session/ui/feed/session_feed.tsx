@@ -420,6 +420,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
     // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.
     const feedActive = props.active;
+    // A modal dialog keeps Enter and Escape, e.g. Escape closes the chart builder instead of rejecting the diff that
+    // the builder stages behind it
+    const modalDialogOpen = () => document.querySelector('[aria-modal="true"]') != null;
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
             // Plain Enter, while browsing the feed with nothing focused, accepts a staged
@@ -429,7 +432,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             ctrlKey: false,
             capture: true,
             callback: (event: KeyboardEvent) => {
-                if (!feedActive) {
+                if (!feedActive || modalDialogOpen()) {
                     return;
                 }
                 const active = document.activeElement as HTMLElement | null;
@@ -454,7 +457,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             ctrlKey: false,
             capture: true,
             callback: (event: KeyboardEvent) => {
-                if (!feedActive) {
+                if (!feedActive || modalDialogOpen()) {
                     return;
                 }
                 const active = document.activeElement as HTMLElement | null;
