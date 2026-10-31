@@ -1494,14 +1494,14 @@ analyzer-snapshots:
   - name: malformed_comment_tag
     script:
       input: |-
-        -- @description
+        -- @end
         select 1
       catalog-id: 1
       errors:
         - type: MALFORMED_COMMENT_TAG
           severity: WARNING
-          message: '@description is not closed by a -- @end line'
-          text: "-- @description"
+          message: '@end without an opening tag'
+          text: "-- @end"
       expressions:
         - expression-idx: 0
           type: literal/integer

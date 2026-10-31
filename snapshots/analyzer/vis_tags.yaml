@@ -183,7 +183,6 @@ analyzer-snapshots:
       input: |
         -- @description Revenue per region.
         -- @vis table
-        -- @end
         select * from sales;
       catalog-id: 2
       errors: []

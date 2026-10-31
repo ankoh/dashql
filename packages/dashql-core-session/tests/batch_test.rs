@@ -221,13 +221,13 @@ fn analyzer_errors_are_diagnostics() {
 
 #[test]
 fn analyzer_warnings_are_diagnostics() {
-    let result = run_one("-- @description\nselect 1", ANALYZED, vec![]);
+    let result = run_one("-- @end\nselect 1", ANALYZED, vec![]);
     let diagnostics = diagnostics(&result);
     assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
     assert_eq!((diagnostics[0].0, diagnostics[0].1), (ProcessingStage::ANALYZE, DiagnosticSeverity::WARNING));
-    assert!(diagnostics[0].2.contains("not closed"));
+    assert!(diagnostics[0].2.contains("without an opening tag"));
     // Warnings don't block the catalog descriptor
-    let result = run_one("-- @description\ncreate table t (a int)", ANALYZED | DESCRIPTOR, vec![]);
+    let result = run_one("-- @end\ncreate table t (a int)", ANALYZED | DESCRIPTOR, vec![]);
     assert!(result.catalog_descriptor.is_some());
 }
 

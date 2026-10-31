@@ -1073,6 +1073,61 @@ parser-snapshots:
             - "First query."
       comment-warnings: []
 
+  - name: description_line_form_without_end
+    input: |-
+      -- @description
+      -- Revenue per segment.
+      -- @vis table
+      select 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 3
+            description-blocks: [0,2]
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [15,16]
+        - text: [39,40]
+        - text: [53,54]
+      comments:
+        - text: "-- @description"
+        - text: "-- Revenue..r segment."
+        - text: "-- @vis table"
+      comment-blocks:
+        - type: DASHQL_TAG
+          text: "-- @descri..r segment."
+          tag: "description"
+          comments: [0,2]
+          lines:
+            - "Revenue per segment."
+        - type: DASHQL_TAG
+          text: "-- @vis table"
+          tag: "vis"
+          comments: [2,1]
+          lines:
+            - "table"
+      comment-warnings: []
+
   - name: description_unterminated
     input: |-
       -- @description
@@ -1116,11 +1171,11 @@ parser-snapshots:
         - text: "-- Revenue..r segment."
         - text: "-- @end"
       comment-blocks:
-        - type: COMMENT
+        - type: DASHQL_TAG
           text: "-- @descri..r segment."
+          tag: "description"
           comments: [0,2]
           lines:
-            - "@description"
             - "Revenue per segment."
         - type: COMMENT
           text: "-- @end"
@@ -1128,8 +1183,6 @@ parser-snapshots:
           lines:
             - "@end"
       comment-warnings:
-        - message: '@description is not closed by a -- @end line'
-          text: "-- @description"
         - message: '@end without an opening tag'
           text: "-- @end"
 
@@ -1590,14 +1643,13 @@ parser-snapshots:
           comments: [0,1]
           lines:
             - "Revenue per region."
-        - type: COMMENT
+        - type: DASHQL_TAG
           text: "-- @vis table"
+          tag: "vis"
           comments: [1,1]
           lines:
-            - "@vis table"
-      comment-warnings:
-        - message: '@vis is not closed by a -- @end line'
-          text: "-- @vis table"
+            - "table"
+      comment-warnings: []
 
   - name: metadata_line_form
     input: |-

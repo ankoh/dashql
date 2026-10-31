@@ -34,7 +34,6 @@ analyzer-snapshots:
       input: |
         -- @description Revenue per region.
         -- @vis table
-        -- @end
         select * from sales;
 
   # A Markdown row template keeps its indentation

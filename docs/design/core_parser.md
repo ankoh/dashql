@@ -300,14 +300,17 @@ The scanner collects comments as trivia. After parsing, `comment_blocks.rs` grou
 a block comment, or a run of line comments on consecutive lines. Blocks are split at every line whose
 first text is a known tag, `@<tag>`. The known tags are `metadata`, `description`, `vis` and `end`
 (`COMMENT_TAGS`), any other `@word` (`@todo`, `@param`) is ordinary text. A tag runs to the next tag
-line. In a run of line comments, the last region closes with `-- @end`. In a block comment, the comment
-end closes it, and text before the first tag is an ordinary block.
+line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
+closes the last tag, in a run of line comments the end of the run. Text before the first tag of a block
+comment is an ordinary block. Older scripts close the last region of line comments with `-- @end`, the
+line is still accepted and ends the region, comments after it are ordinary comments.
 
 ```sql
--- @metadata
--- {"owner": "finance"}
--- @description Revenue per segment.
--- @end
+/**
+ * @metadata
+ * {"owner": "finance"}
+ * @description Revenue per segment.
+ */
 select 1;
 
 /* Revenue dashboard.
@@ -315,6 +318,9 @@ select 1;
    @vis table
 */
 select 2;
+
+-- @description Revenue per market.
+select 3;
 ```
 
 The parser does not interpret the content. Every tag is a `DASHQL_TAG` block with its tag name
@@ -324,8 +330,8 @@ content line. The blocks of one block comment share the comment and cover it wit
 `parseCommentTagObject` in `dashql-core-js/src/comment_tags.ts`, e.g. `readMetadata` reads the first
 `metadata` tag as a JSON object. A statement points to the blocks of its description comments
 (`description_blocks_begin` / `description_blocks_count`). Only structural problems are warnings
-(`MALFORMED_COMMENT_TAG`): a last region of line comments without `-- @end`, or an `@end` without an
-opening tag. The formatter keeps tagged regions of line comments verbatim.
+(`MALFORMED_COMMENT_TAG`): an `@end` without an opening tag. The formatter keeps tagged regions of line
+comments verbatim.
 
 ## Parameters
 

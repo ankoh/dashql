@@ -59,19 +59,13 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: end
-          candidate-tags: [PREFIX_MATCH]
-          location: "e"
-          location-qualified: "e"
-          objects: []
-        - score: 3
+        - score: 2
           value: metadata
           candidate-tags: [SUBSTRING_MATCH]
           location: "e"
           location-qualified: "e"
           objects: []
-        - score: 2
+        - score: 1
           value: description
           candidate-tags: [SUBSTRING_MATCH]
           location: "e"

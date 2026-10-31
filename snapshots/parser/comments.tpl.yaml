@@ -138,7 +138,14 @@ parser-snapshots:
       -- First query.
       -- @end
       select 1; select 2
-  # A blank line ends the region, an unterminated region stays an ordinary comment
+  # A region of line comments ends with the run, it needs no end line
+  - name: description_line_form_without_end
+    input: |
+      -- @description
+      -- Revenue per segment.
+      -- @vis table
+      select 1
+  # A blank line ends the run and the region, the end line after it closes nothing
   - name: description_unterminated
     input: |
       -- @description

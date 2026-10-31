@@ -12,7 +12,7 @@ completion-snapshots:
         index: 2
     completions:
       limit: 3
-  # Line comments also complete the end tag
+  # Line comments do not complete the end tag, it is never needed
   - name: vis_tag_name_line_comment
     catalog: {}
     editor:

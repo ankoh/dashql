@@ -4,9 +4,11 @@
 //! consecutive lines. A trailing line comment (`select 1; -- note`) is a block of its own.
 //!
 //! Comments are split into tagged blocks at every line whose first text is a known tag, `@<tag>`
-//! (see [`COMMENT_TAGS`]). Any other `@word` is ordinary text. A tag runs to the next tag line. In a
-//! run of line comments, the last region closes with `-- @end`, in a block comment the comment end
-//! closes it. Text before the first tag of a block comment is an ordinary block.
+//! (see [`COMMENT_TAGS`]). Any other `@word` is ordinary text. A tag runs to the next tag line or to
+//! the end of the comment, like the block tags of Javadoc: in a block comment the comment end closes the
+//! last tag, in a run of line comments the end of the run. Text before the first tag of a block comment
+//! is an ordinary block. Older scripts close the last region of line comments with `-- @end`, the line is
+//! still accepted and ends the region, comments after it are ordinary comments.
 //!
 //! The content lines omit comment markers, block comment gutters (` * `), tag lines and leading or
 //! trailing empty lines. Text following the opening tag on the same line is content. The parser does
@@ -18,7 +20,7 @@ pub use dashql_buffers::parser::CommentBlockType;
 
 /// The prefix of comment tags, e.g. `-- @description`
 pub const COMMENT_TAG_PREFIX: &str = "@";
-/// The tag that closes a tagged region of line comments
+/// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
 pub const COMMENT_TAG_END: &str = "end";
 /// The known tags, any other `@word` is ordinary text
 pub const COMMENT_TAGS: &[&str] = &["metadata", "description", "vis", COMMENT_TAG_END];
@@ -121,10 +123,6 @@ struct Grouper<'a> {
 impl<'a> Grouper<'a> {
     fn slice(&self, r: Range) -> &'a [u8] {
         &self.text[r.begin..r.end.max(r.begin)]
-    }
-
-    fn string(&self, r: Range) -> String {
-        String::from_utf8_lossy(self.slice(r)).into_owned()
     }
 
     /// Trim horizontal whitespace on both sides
@@ -369,7 +367,7 @@ impl<'a> Grouper<'a> {
                 i += 1;
                 continue;
             }
-            // A region ends at the next tag line or at an end line
+            // A region ends at the next tag line, at an end line or at the end of the run
             let mut close = i + 1;
             let mut closed_by_end = false;
             while close < run_end {
@@ -383,13 +381,6 @@ impl<'a> Grouper<'a> {
                     }
                 }
                 close += 1;
-            }
-            if close == run_end {
-                // An unterminated region stays an ordinary comment
-                let message = format!("@{} is not closed by a -- @end line", self.string(tag.name));
-                self.warn(self.comments[i], message);
-                i += 1;
-                continue;
             }
             if pending < i {
                 self.emit(CommentBlockType::COMMENT, pending, i, Range::default(), &lines[pending - run_begin..i - run_begin]);
@@ -554,25 +545,31 @@ mod tests {
     }
 
     #[test]
-    fn warns_about_malformed_tags() {
-        let blocks = group("-- @description\n-- x\n\n-- @end\n/* @end */");
+    fn warns_about_end_tags_without_a_region() {
+        // A blank line ends the run of line comments and the region, the end line after it closes nothing
+        let text = "-- @description\n-- x\n\n-- @end\n/* @end */";
+        let blocks = group(text);
         let warnings: Vec<&str> = blocks.warnings.iter().map(|w| w.1.as_str()).collect();
+        assert_eq!(warnings, vec!["@end without an opening tag", "@end without an opening tag"]);
         assert_eq!(
-            warnings,
-            vec![
-                "@description is not closed by a -- @end line",
-                "@end without an opening tag",
-                "@end without an opening tag",
-            ]
+            tags(text, &blocks),
+            vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::COMMENT, ""), (CommentBlockType::COMMENT, "")]
         );
-        assert!(blocks.blocks.iter().all(|b| b.block_type == CommentBlockType::COMMENT));
     }
 
     #[test]
-    fn warns_about_an_unterminated_last_region() {
-        let text = "-- @description Revenue.\n-- @vis table";
+    fn closes_the_last_region_at_the_end_of_the_run() {
+        let text = "-- @description Revenue.\n-- per region\n-- @vis table\nselect 1";
+        let blocks = group(text);
+        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::DASHQL_TAG, "vis")]);
+        assert_eq!(line_texts(text, &blocks, 0), vec!["Revenue.", "per region"]);
+        assert_eq!(line_texts(text, &blocks, 1), vec!["table"]);
+        assert!(blocks.warnings.is_empty());
+        // An end line still closes the region, comments after it are ordinary
+        let text = "-- @description Revenue.\n-- @end\n-- note";
         let blocks = group(text);
         assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::COMMENT, "")]);
-        assert_eq!(blocks.warnings.len(), 1);
+        assert_eq!(block_texts(text, &blocks), vec!["-- @description Revenue.\n-- @end", "-- note"]);
+        assert!(blocks.warnings.is_empty());
     }
 }

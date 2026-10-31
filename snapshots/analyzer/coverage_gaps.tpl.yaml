@@ -92,5 +92,5 @@ analyzer-snapshots:
   - name: malformed_comment_tag
     script:
       input: |-
-        -- @description
+        -- @end
         select 1

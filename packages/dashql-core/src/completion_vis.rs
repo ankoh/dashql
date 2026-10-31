@@ -200,8 +200,8 @@ fn complete_tag_name(text: &[u8], comments: &[TextSpan], offset: usize, k: usize
     let target = TextSpan::new(name_begin as u32, (name_end - name_begin) as u32);
     let mut candidates = Candidates::new(target, &text[name_begin..offset]);
     for &tag in COMMENT_TAGS {
-        // Only regions of line comments are closed
-        if tag != COMMENT_TAG_END || is_line_comment {
+        // The end tag is never needed, it is only accepted for older scripts
+        if tag != COMMENT_TAG_END {
             candidates.add(tag, tag.to_string());
         }
     }
