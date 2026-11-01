@@ -312,6 +312,14 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
     );
 };
 
+// React bubbles the events of the portaled row menu overlays (storage, share, export) through the row.
+// A row drag starts only from the row itself, never from those overlays or from a text field.
+function startsRowDrag(event: React.SyntheticEvent<HTMLElement>): boolean {
+    const target = event.target;
+    if (!(target instanceof Element) || !event.currentTarget.contains(target)) return false;
+    return target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') == null;
+}
+
 interface SessionRowProps {
     item: SessionItem;
     selected: boolean;
@@ -337,10 +345,20 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDupli
         void modifySessionScripts({ type: RENAME_SESSION, value: name });
     }, [modifySessionScripts]);
     const cancelRename = React.useCallback(() => setRenaming(false), []);
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.sessionId });
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: item.sessionId });
+    const rowRef = React.useCallback((node: HTMLLIElement | null) => {
+        setNodeRef(node);
+        // The keyboard sensor only lifts the row when the row itself has the focus
+        setActivatorNodeRef(node);
+    }, [setNodeRef, setActivatorNodeRef]);
+    const rowListeners = React.useMemo(() => listeners == null ? undefined : Object.fromEntries(
+        Object.entries(listeners).map(([eventName, handler]) => [eventName, (event: React.SyntheticEvent<HTMLElement>) => {
+            if (startsRowDrag(event)) handler(event);
+        }]),
+    ), [listeners]);
     return (
         <li
-            ref={setNodeRef}
+            ref={rowRef}
             className={classNames(
                 styles.entry_surface,
                 styles.entry_interactive,
@@ -352,7 +370,7 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDupli
             )}
             style={{ transform: CSS.Translate.toString(transform), transition }}
             {...attributes}
-            {...listeners}
+            {...rowListeners}
         >
             {renaming ? (
                 <div className={styles.session_rename}>
