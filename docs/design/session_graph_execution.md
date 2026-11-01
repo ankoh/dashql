@@ -71,7 +71,10 @@ The app would keep the async loop around these calls.
 
 Leave the scheduler in the app for now. Revisit if one of these happens:
 
-- a second consumer of planned runs appears (the shell, a CLI or the agent bridge)
+- a second consumer of planned runs appears outside the app's TypeScript (the shell or a CLI). The agent bridge
+  does not count: its `run` command already goes through `runPlannedScript`
+  (`packages/dashql-app/src/agent/agent_commands.ts` → `runSessionScriptForResult` in
+  `packages/dashql-app/src/session/scripts/rerun_query.ts`), so it shares the app's scheduler.
 - the scheduler grows features such as retries, partial reruns or resuming a failed run
 
 ## Possible small step

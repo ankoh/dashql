@@ -7,7 +7,7 @@
   `vis image`. Agents learn these commands from the skill in `skill/dashql/SKILL.md`.
 - **`dashql agent serve`** runs that agent server: DashQL clients connect over WebSocket, the agent commands call it
   over HTTP, and it runs harnesses (Claude Code, Codex, opencode) headless for questions asked in DashQL. See
-  `docs/wip/agent_bridge.md`.
+  `docs/design/agent_bridge.md`.
 - **`dashql lint`** lints SQL files on disk without DashQL.
 
 ```
