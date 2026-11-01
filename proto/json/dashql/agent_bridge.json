@@ -132,6 +132,11 @@
         "focused": {
           "type": ["string", "null"],
           "description": "The session that the user looks at, null if it has no agent access"
+        },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The features of the client, identifiers like \"attachments\". The agent server picks the notes of its guide for the ones it knows and ignores the others; a client without them is older than the guide"
         }
       },
       "required": ["protocol", "client", "sessions", "focused"],
@@ -271,9 +276,14 @@
         "kind": { "type": "string" },
         "origin": { "type": "string" },
         "sessions": { "type": "array", "items": { "$ref": "#/definitions/AgentClientSession" } },
-        "focused": { "type": ["string", "null"] }
+        "focused": { "type": ["string", "null"] },
+        "features": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "The features of the client that the server knows, null if the client announced none"
+        }
       },
-      "required": ["id", "kind", "origin", "sessions", "focused"],
+      "required": ["id", "kind", "origin", "sessions", "focused", "features"],
       "additionalProperties": false
     },
     "AgentTurnState": {

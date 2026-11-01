@@ -20,7 +20,7 @@ const INFO: AgentServerInfo = {
         { name: 'codex', command: ['codex', 'exec', '{prompt}'], adapter: 'codex', program: '/usr/local/bin/codex', models: [], efforts: ['low', 'medium', 'high'] },
         { name: 'opencode', command: ['opencode', 'run', '{prompt}'], adapter: 'opencode', program: null, models: [], efforts: [] },
     ],
-    clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1' }],
+    clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1', features: null }],
     turns: [{ turnId: 't', session: 's1', harness: 'claude', model: 'opus', effort: null, state: 'running', status: 'dashql agent catalog' }],
 };
 

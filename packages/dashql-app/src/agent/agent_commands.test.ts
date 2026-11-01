@@ -62,6 +62,7 @@ describe('agent commands', () => {
             connectionHealth: ConnectionHealth.ONLINE,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             details: { type: HYPER_CONNECTOR, value: { proto: {} } },
+            catalogRelationScript: '',
             queriesActive: new Map(),
             queriesFinished: new Map(),
         }]]);
@@ -89,7 +90,7 @@ describe('agent commands', () => {
         const result = await run('scripts');
         expect(result.text).toBe([
             'Session "Revenue" (s1)',
-            'Connections: db (Hyper, read-write, online)',
+            'Connections: db (embedded Hyper, read-write, online)',
             'Scripts:',
             '  orders  1 line  (focused)',
             '  Customers  2 lines',
@@ -115,12 +116,36 @@ describe('agent commands', () => {
     it('marks read-only connections', async () => {
         useLake();
         const result = await run('scripts');
-        expect(result.text).toContain('Connections: db (Hyper, read-write, online), lake (Trino, read-only, online)');
+        expect(result.text).toContain('Connections: db (embedded Hyper, read-write, online), lake (Trino, read-only, online)');
         expect(result.text).toContain('  events  1 line  on lake');
         expect((result.data as any).connections).toEqual([
-            { id: 'db', connector: 'Hyper', readOnly: false, online: true },
-            { id: 'lake', connector: 'Trino', readOnly: true, online: true },
+            { id: 'db', connector: 'Hyper', embedded: true, readOnly: false, online: true },
+            { id: 'lake', connector: 'Trino', embedded: false, readOnly: true, online: true },
         ]);
+    });
+
+    it('offers the embedded Hyper to a session that does not use it', async () => {
+        state = session([onLake(script(3, 'events.sql', 'select 3'))]);
+        connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR } });
+        const result = await run('scripts');
+        expect(result.text).toContain('Connections: lake (Trino, read-only, online), db (embedded Hyper, read-write, online)');
+        expect((await run('catalog', { connection: 'db' })).data).toMatchObject({ connection: 'db' });
+    });
+
+    it('lists the attachments of the session', async () => {
+        state.attachments = [
+            { fileName: 'sales.parquet', name: 'sales', sizeBytes: 2000, mtimeMs: 0, columns: ['region', 'amount'] },
+            { fileName: 'events.parquet', name: 'events', sizeBytes: 12, mtimeMs: 0, columns: null },
+        ];
+        const result = await run('scripts');
+        expect(result.text).toContain([
+            'Attachments:',
+            '  sales.parquet  2 kB  :sales (region, amount)',
+            '  events.parquet  12 bytes  :events',
+        ].join('\n'));
+        expect((result.data as any).attachments[0]).toEqual({ fileName: 'sales.parquet', name: 'sales', sizeBytes: 2000, columns: ['region', 'amount'] });
+        const catalog = await run('catalog', { connection: 'db' });
+        expect(catalog.text).toContain('-- The attachments of the session, read them as table parameters\n-- :sales (region, amount)');
     });
 
     it('reads a script', async () => {

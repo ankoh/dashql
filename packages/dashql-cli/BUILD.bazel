@@ -12,6 +12,11 @@ rust_binary(
     crate_name = "dashql_cli",
     crate_root = "src/main.rs",
     edition = "2021",
+    # Release builds accept no origins of the dev server (agent/config.rs)
+    rustc_flags = select({
+        "//bazel/config:release": ["--cfg=dashql_release"],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
     deps = [
         "//packages/dashql-core:dashql_core",

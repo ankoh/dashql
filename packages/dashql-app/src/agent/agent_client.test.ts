@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentClient, AgentCommandError, AgentConnectionStatus, type AgentSocket } from './agent_client.js';
-import { AGENT_PROTOCOL_VERSION, type AgentCommandParams, type AgentCommandResult } from './agent_protocol.js';
+import { AGENT_FEATURES, AGENT_PROTOCOL_VERSION, type AgentCommandParams, type AgentCommandResult } from './agent_protocol.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 
 /// Run the pending promise callbacks, the commands answer asynchronously
@@ -72,7 +72,7 @@ describe('AgentClient', () => {
         expect(sockets[0].sent).toEqual([{
             id: 1,
             method: 'client/sessions',
-            params: { protocol: AGENT_PROTOCOL_VERSION, client: 'web', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1' },
+            params: { protocol: AGENT_PROTOCOL_VERSION, client: 'web', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1', features: AGENT_FEATURES },
         }]);
         // Connected once the server took the sessions
         expect(client.status).toBe(AgentConnectionStatus.Connecting);

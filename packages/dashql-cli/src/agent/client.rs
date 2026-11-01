@@ -3,6 +3,7 @@
 use crate::agent::commands::{usage_lines, vis_commands};
 use crate::agent::config::AgentConfig;
 use crate::agent::http;
+use crate::agent::instructions::{cli_guide, known_features, Page};
 use crate::agent::protocol::ErrorCode;
 use base64::Engine;
 use serde_json::{json, Map, Value};
@@ -266,6 +267,17 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         }
         _ => (command.clone(), rest),
     };
+    // The guide is the text of this binary, for the features of the page that holds the session
+    if command == "guide" {
+        if !rest.is_empty() {
+            return CliOutput::usage("guide takes no arguments");
+        }
+        let session = options.session.clone().or(cli.session.clone()).filter(|s| !s.is_empty());
+        let status = (cli.request)("GET", "/v1/status", None).filter(|body| body["ok"] == true);
+        let features = status.and_then(|body| page_features(&body["status"], session.as_deref()));
+        let text = cli_guide(features.as_deref().map_or(Page::Unknown, Page::Features));
+        return CliOutput::ok(if options.json { pretty(&json!({ "text": text })) } else { text });
+    }
     if command == "status" {
         let Some(body) = (cli.request)("GET", "/v1/status", None) else {
             return CliOutput::error(NOT_RUNNING_MESSAGE, EXIT_USAGE);
@@ -300,6 +312,18 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         return CliOutput::ok(pretty(&data));
     }
     CliOutput::ok(result["text"].as_str().unwrap_or_default().to_string())
+}
+
+/// The features of the page that holds the session, or of a page with a focused session, None without one
+fn page_features(status: &Value, session: Option<&str>) -> Option<Vec<String>> {
+    let clients = status["clients"].as_array()?;
+    let client = match session {
+        Some(session) => clients
+            .iter()
+            .find(|client| client["sessions"].as_array().is_some_and(|s| s.iter().any(|s| s["id"] == session))),
+        None => clients.iter().find(|client| !client["focused"].is_null()),
+    }?;
+    Some(known_features(client["features"].as_array().into_iter().flatten().filter_map(Value::as_str)))
 }
 
 /// Write the PNG of a vis image call to --out, default: <script>.png
@@ -462,6 +486,37 @@ mod tests {
         let no_png = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered" } })));
         assert_eq!(no_png.run(&["vis", "image", "q1"], None, "").exit_code, EXIT_FAILED);
         assert_eq!(fake.run(&["vis", "image", "q1", "--height", "0"], None, "").exit_code, EXIT_USAGE);
+    }
+
+    #[test]
+    fn prints_the_guide_for_the_features_of_the_page() {
+        let status = |features: Value| {
+            let client = json!({ "id": "1", "kind": "web", "origin": "https://dashql.app", "sessions": [{ "id": "s1", "name": "S" }], "focused": "s1", "features": features });
+            Some(json!({ "ok": true, "status": { "port": 1, "clients": [client], "turns": [] } }))
+        };
+        let current = Fake::new(status(json!(["attachments", "embedded-hyper", "manual-scripts"])));
+        let output = current.run(&["guide"], None, "");
+        assert_eq!(output.exit_code, EXIT_OK);
+        assert!(output.stdout.contains("- Attachments are Parquet files of the session"));
+        assert!(!output.stdout.contains("No DashQL is connected"));
+        assert!(!output.stdout.contains("The open DashQL is older"));
+        assert_eq!(current.requests.borrow()[0].1, "/v1/status");
+        // A page without features is older than the guide
+        let old = Fake::new(status(Value::Null)).run(&["guide", "--session", "s1"], None, "");
+        assert!(old.stdout.contains("The open DashQL is older"));
+        assert!(!old.stdout.contains("Attachments are Parquet files"));
+        // Another session has no page
+        let other = Fake::new(status(Value::Null)).run(&["guide"], Some("s2"), "");
+        assert!(other.stdout.contains("No DashQL is connected"));
+        assert_eq!(current.run(&["guide", "x"], None, "").exit_code, EXIT_USAGE);
+    }
+
+    #[test]
+    fn prints_the_guide_without_the_server() {
+        let output = Fake::new(None).run(&["guide"], None, "");
+        assert_eq!(output, CliOutput::ok(cli_guide(Page::Unknown)));
+        assert!(output.stdout.contains("No DashQL is connected"));
+        assert!(output.stdout.contains("- Attachments are Parquet files of the session"));
     }
 
     #[test]

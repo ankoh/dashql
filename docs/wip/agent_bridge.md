@@ -26,9 +26,9 @@ and the open checks.
   prompt).
 - **Install agent skill…** links `~/.codex/skills/dashql` and `~/.claude/skills/dashql` to the skill in the bundle
   (`Contents/Resources/skill/dashql`) after confirming. The skill is not bundled yet:
-  `packages/dashql-native/electron-builder.yml` has no extra resource for `packages/dashql-cli/skill/dashql`. A link,
-  not a copy: a copy would keep the commands of the version it came from, and agents that the user starts would
-  call commands that the updated `dashql` no longer has.
+  `packages/dashql-native/electron-builder.yml` has no extra resource for `packages/dashql-cli/skill/dashql`. A copy
+  would do as well: the skill names no command but `dashql agent guide`, which prints the guide of the installed
+  `dashql`.
 - **Removal:** deleting DashQL.app removes its `SMAppService` registration. Settings has "Remove command line tool and
   skill", which deletes the symlinks.
 - **Stop per turn** in the menu needs a cancel call on the HTTP API (today only `GET /v1/status` and

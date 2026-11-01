@@ -1,5 +1,5 @@
-//! The commands of `dashql agent` that agents call. The table makes the usage of the command line tool, the
-//! instructions of harness runs and the command table of the skill.
+//! The commands of `dashql agent` that agents call. The table makes the usage of the command line tool and the
+//! command table of the guide and of the instructions of harness runs.
 
 /// A command of `dashql agent` for the open DashQL session
 pub struct AgentCommand {
@@ -12,9 +12,10 @@ pub struct AgentCommand {
 }
 
 impl AgentCommand {
-    /// The command of a call to the session, e.g. `vis.edit`. None for `status`, the server answers it itself.
+    /// The command of a call to the session, e.g. `vis.edit`. None for `status`, which the server answers, and for
+    /// `guide`, which the command line tool answers.
     pub fn call(&self) -> Option<String> {
-        (self.name != "status").then(|| self.name.replace(' ', "."))
+        (self.name != "status" && self.name != "guide").then(|| self.name.replace(' ', "."))
     }
 
     fn synopsis(&self) -> String {
@@ -22,9 +23,10 @@ impl AgentCommand {
     }
 }
 
-pub const AGENT_COMMANDS: [AgentCommand; 11] = [
+pub const AGENT_COMMANDS: [AgentCommand; 12] = [
     AgentCommand { name: "status", args: "", does: "Connected clients, sessions, the focused session" },
-    AgentCommand { name: "scripts", args: "", does: "Scripts of the session with their connections" },
+    AgentCommand { name: "guide", args: "", does: "The commands and how DashQL works, read it first" },
+    AgentCommand { name: "scripts", args: "", does: "Scripts of the session with their connections and attachments" },
     AgentCommand { name: "read", args: "<script>", does: "Script text" },
     AgentCommand {
         name: "edit",
@@ -70,7 +72,7 @@ pub fn vis_commands() -> impl Iterator<Item = &'static str> {
     AGENT_COMMANDS.iter().filter_map(|command| command.name.strip_prefix("vis "))
 }
 
-/// The commands as a Markdown table, for the instructions and the skill
+/// The commands as a Markdown table, for the guide and the instructions
 pub fn command_table() -> String {
     let mut lines = vec!["| Command | Does |".to_string(), "|---|---|".to_string()];
     lines.extend(AGENT_COMMANDS.iter().map(|command| format!("| `dashql agent {}` | {} |", command.synopsis(), command.does)));
@@ -104,6 +106,7 @@ mod tests {
     fn names_the_calls_of_the_commands() {
         assert!(is_session_command("vis.edit"));
         assert!(is_session_command("catalog"));
+        assert!(!is_session_command("guide"));
         assert!(!is_session_command("status"));
         assert!(!is_session_command("vis edit"));
         assert_eq!(vis_commands().collect::<Vec<_>>(), ["read", "edit", "image"]);

@@ -3,8 +3,9 @@
 `dashql`, the command line tool of DashQL, one Rust binary built on the native dashql-core:
 
 - **`dashql agent`** reaches the DashQL session that is open in the browser or the desktop app through the local agent
-  server: `status`, `scripts`, `read`, `edit`, `catalog`, `lint`, `run`, `result` and `vis read`, `vis edit`,
-  `vis image`. Agents learn these commands from the skill in `skill/dashql/SKILL.md`.
+  server: `status`, `guide`, `scripts`, `read`, `edit`, `catalog`, `lint`, `run`, `result` and `vis read`,
+  `vis edit`, `vis image`. The skill in `skill/dashql/SKILL.md` sends agents to `dashql agent guide`, which prints
+  these commands and how DashQL works.
 - **`dashql agent serve`** runs that agent server: DashQL clients connect over WebSocket, the agent commands call it
   over HTTP, and it runs harnesses (Claude Code, Codex, opencode) headless for questions asked in DashQL. See
   `docs/design/agent_bridge.md`.

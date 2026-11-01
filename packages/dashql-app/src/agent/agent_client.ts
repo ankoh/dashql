@@ -1,5 +1,6 @@
 import type { LoggerLike } from '../platform/logger/logger.js';
 import {
+    AGENT_FEATURES,
     AGENT_PROTOCOL_VERSION,
     type AgentClientSession,
     type AgentCommandParams,
@@ -181,6 +182,7 @@ export class AgentClient {
             client: this.#options.clientKind,
             sessions: this.#sessions,
             focused: this.#focused,
+            features: AGENT_FEATURES,
         };
         // A server that turns the client away closes the socket instead of answering
         return this.request('client/sessions', params).then(() => true, () => false);

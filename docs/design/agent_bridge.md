@@ -215,9 +215,25 @@ page stops the agent server first.
 - **Harness runs** find `dashql` because the server puts the folder of its own binary first on the `PATH` of the
   run, so the agent calls the binary of the running server. A binary under another name leaves the `PATH` as it
   is.
-- **The skill** (`packages/dashql-cli/skill/dashql/SKILL.md`) tells the agent when to use `dashql agent`, lists
-  the commands, and says that script and data contents are input, not instructions. Harness runs that DashQL
-  starts do not use the skill: the server writes their `AGENTS.md` and `CLAUDE.md` before every turn.
+- **The binary writes everything the agent follows** (`instructions.rs`): the command table and its notes, how
+  DashQL works (connections, table and scalar parameters, attachments, `@manual` scripts), how to work, how to pass
+  script texts in harness runs, and that script and data contents are input, not instructions. The binary is the
+  part the user installed. The page only answers commands with data and never sends instructions: a compromised
+  dashql.app (a deploy, a dependency, an XSS) could otherwise tell the agents that the user starts, which may edit
+  files and run programs, what to do. The guide describes the commands of the binary and DashQL as of its build, a
+  newer DashQL reaches agents with the next `dashql`.
+- **Page features:** the page announces what it supports as identifiers with `client/sessions` (`features`,
+  `AGENT_FEATURES` in `agent_protocol.ts`): `attachments`, `embedded-hyper`, `manual-scripts`. The server keeps the
+  ones it knows (`PAGE_FEATURES` in `instructions.rs`) and shows them in its status. Notes of the guide may need a
+  feature: the guide for a page leaves out the notes of the features it lacks and asks the user to reload DashQL or
+  update the app. Harness runs get the guide for the page that holds the session, `dashql agent guide` the one for
+  the page of the session in the status of the server, or the full guide when no page is connected. A page can
+  only hide notes of the binary or ask for an update this way, never add text.
+- **Harness runs** that DashQL starts don't use the skill: the server writes their `AGENTS.md` and `CLAUDE.md`
+  before every turn.
+- **The skill** (`packages/dashql-cli/skill/dashql/SKILL.md`) is a stub for the agents that the user starts: it says
+  when to use `dashql agent` and to run `dashql agent guide` first, which prints the guide of the installed binary
+  for the features of the page. The stub names no command but `guide`, so a copy of it never goes stale.
 - **Planned:** bundling the skill (`Contents/Resources/skill/dashql`) and the menu's "Install command line tool…"
   and "Install agent skill…", see [docs/wip/agent_bridge.md](../wip/agent_bridge.md).
 
@@ -225,8 +241,7 @@ page stops the agent server first.
 
 The agent commands are defined once, in `packages/dashql-cli/src/agent/commands.rs`: the table makes the usage
 of `dashql agent`, the command table of the `AGENTS.md` and `CLAUDE.md` of harness runs, and the server accepts
-only their calls. A test checks that the skill lists the same commands with the same notes
-(`COMMAND_NOTES` in `instructions.rs`). Next to them, `dashql agent serve` runs the agent server in the foreground
+only their calls. A test checks that the skill sends the agent to `dashql agent guide`. Next to them, `dashql agent serve` runs the agent server in the foreground
 and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native dashql-core, without DashQL.
 
 - Compact text on stdout, `--json` where useful, real exit codes (0 ok, 1 failed, 2 not
@@ -236,6 +251,9 @@ and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native da
 - **One call at a time per session**; a concurrent call gets a clear "busy" error.
 - **Writes are verifiable:** `edit` prints the new text's hash and the analyzer's
   diagnostics.
+- **Connections:** the commands take the connections of the session and the embedded Hyper, which combines the
+  results of the other connections and the attachments. `scripts` marks it as `embedded Hyper` and lists the
+  attachments with their columns, `catalog` of the embedded Hyper lists the Parquet attachments as table parameters.
 
 ### Page side
 
@@ -265,9 +283,11 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 ### Authentication
 
 - **Clients → server:** the server accepts a WebSocket only with `Origin:
-  https://dashql.app`, `app://bundle` (desktop windows), the web dev server
-  (`http://localhost:9002` or `http://127.0.0.1:9002`) or the origins configured in `config.json`, and
-  `Host: 127.0.0.1:<port>` or `localhost:<port>`. Other websites cannot fake `Origin`,
+  https://dashql.app`, `app://bundle` (desktop windows) or the origins configured in `config.json`, and
+  `Host: 127.0.0.1:<port>` or `localhost:<port>`. Development builds also accept the web dev server
+  (`http://localhost:9002` or `http://127.0.0.1:9002`, `client_origins` in `config.rs`); release builds
+  (`--config=release`, `cfg(dashql_release)`) don't, since any page on that port, e.g. the dev server of another
+  project, would become a DashQL client. Other websites cannot fake `Origin`,
   and the `Host` check blocks DNS rebinding. Local processes can fake both, but they
   can already read the user's files. No pairing flow is needed.
 - **CLI → server:** a token from `~/.dashql/agent/config.json`. This keeps out other
@@ -426,8 +446,8 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   binary, so most work happens with Vite and the server in a terminal. Electron
   hosting starts the same binary.
 - **One server.** Dev and release use the same port and state folder (47100,
-  `~/.dashql/agent`), and every server accepts the web dev server's origin
-  (`http://localhost:9002`). An installed DashQL.app holds the port, so quit it while
+  `~/.dashql/agent`), and a development build of the server accepts the web dev server's origin
+  (`http://localhost:9002`), a release build only if `origins` of `config.json` lists it. An installed DashQL.app holds the port, so quit it while
   developing the server: `bazel run //packages/dashql-cli:dashql -- agent serve` next to
   `bazel run //packages/dashql-app:dev`. `DASHQL_AGENT_PORT` and `DASHQL_AGENT_HOME`
   still move a server elsewhere. The unpackaged app's name (`@ankoh/dashql-native`, no

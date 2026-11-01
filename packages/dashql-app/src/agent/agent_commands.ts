@@ -7,6 +7,8 @@ import type { AgentCommandParams, AgentCommandResult } from './agent_protocol.js
 import { AgentCommandError } from './agent_client.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { isHyperWasmConnection } from '../connections/connection_label.js';
+import { findEmbeddedConnection } from '../connections/embedded_connection.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
     CREATE_SCRIPT,
@@ -31,6 +33,7 @@ import { checkVegaLiteSpec } from '../ui/vegalite/vegalite_check.js';
 import { arrowTableToRows } from '../ui/vegalite/vegalite_rows.js';
 import { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH, renderVegaLitePng, type ChartImage } from '../ui/vegalite/vegalite_image.js';
 import { DEFAULT_RUN_ROWS, RESULT_PAGE_ROWS, formatResultSlice, sliceResult } from './agent_result_format.js';
+import { formatBytes } from '../utils/format.js';
 
 /// What the commands of the agent work with
 export interface AgentCommandEnvironment {
@@ -100,24 +103,36 @@ function requireScript(state: SessionScripts, name: string): ScriptData {
 interface AgentConnection {
     id: string;
     connector: string | null;
+    /// Is it the embedded Hyper, which reads the attachments and the results of scripts of other connections?
+    embedded: boolean;
     readOnly: boolean | null;
     online: boolean;
 }
 
 function describeConnection(env: AgentCommandEnvironment, connectionId: string): AgentConnection {
     const conn = env.connections().connections.get(connectionId);
-    if (conn == null) return { id: connectionId, connector: null, readOnly: null, online: false };
+    if (conn == null) return { id: connectionId, connector: null, embedded: false, readOnly: null, online: false };
     return {
         id: connectionId,
         connector: conn.connectorInfo.names.displayShort,
+        embedded: isHyperWasmConnection(conn),
         readOnly: conn.connectorInfo.features.readOnly,
         online: conn.connectionHealth === ConnectionHealth.ONLINE,
     };
 }
 
-/// A connection that the session uses
-function requireSessionConnection(state: SessionScripts, connectionId: string): void {
+/// The connections that the agent may use: the connections of the session and the embedded Hyper, which joins the
+/// attachments and the results of the other connections
+function agentConnectionIds(env: AgentCommandEnvironment, state: SessionScripts): string[] {
     const ids = sessionConnectionIds(state);
+    const embedded = findEmbeddedConnection(env.connections().connections.values());
+    if (embedded != null && !ids.includes(embedded.connectionId)) ids.push(embedded.connectionId);
+    return ids;
+}
+
+/// A connection that the agent may use
+function requireSessionConnection(env: AgentCommandEnvironment, state: SessionScripts, connectionId: string): void {
+    const ids = agentConnectionIds(env, state);
     if (!ids.includes(connectionId)) fail(`The session does not use the connection ${connectionId}. Connections: ${ids.join(', ')}`);
 }
 
@@ -126,7 +141,7 @@ function pickedScriptConnection(env: AgentCommandEnvironment, state: SessionScri
     const connectionId = args.connection;
     if (connectionId == null) return null;
     if (typeof connectionId !== 'string' || connectionId.length === 0) usage('invalid connection');
-    requireSessionConnection(state, connectionId);
+    requireSessionConnection(env, state, connectionId);
     const conn = env.connections().connections.get(connectionId);
     if (conn == null) fail(`The connection ${connectionId} is not set up in DashQL, ask the user to connect it`);
     return scriptConnectionOf(conn);
@@ -134,7 +149,8 @@ function pickedScriptConnection(env: AgentCommandEnvironment, state: SessionScri
 
 function connectionLabel(conn: AgentConnection): string {
     if (conn.connector == null) return conn.id;
-    return `${conn.id} (${conn.connector}, ${conn.readOnly ? 'read-only' : 'read-write'}, ${conn.online ? 'online' : 'offline'})`;
+    const connector = conn.embedded ? 'embedded Hyper' : conn.connector;
+    return `${conn.id} (${connector}, ${conn.readOnly ? 'read-only' : 'read-write'}, ${conn.online ? 'online' : 'offline'})`;
 }
 
 /// The SHA-256 of a text as hex
@@ -202,7 +218,13 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
             focused: fileName === focused,
         };
     });
-    const connections = sessionConnectionIds(state).map(id => describeConnection(env, id));
+    const connections = agentConnectionIds(env, state).map(id => describeConnection(env, id));
+    const attachments = (state.attachments ?? []).map(attachment => ({
+        fileName: attachment.fileName,
+        name: attachment.name,
+        sizeBytes: attachment.sizeBytes,
+        columns: attachment.columns,
+    }));
     const lines = [
         `Session ${JSON.stringify(state.name ?? '')} (${state.sessionId})`,
         `Connections: ${connections.map(connectionLabel).join(', ')}`,
@@ -214,7 +236,13 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
         const connection = several && script.connectionId != null ? `  on ${script.connectionId}` : '';
         lines.push(`  ${script.name}  ${script.lines} line${script.lines === 1 ? '' : 's'}${connection}${script.focused ? '  (focused)' : ''}`);
     }
-    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, connections, scripts } };
+    // The attachments are table parameters of the scripts of the embedded Hyper
+    if (attachments.length > 0) lines.push('Attachments:');
+    for (const attachment of attachments) {
+        const what = attachment.columns == null ? `:${attachment.name}` : `:${attachment.name} (${attachment.columns.join(', ')})`;
+        lines.push(`  ${attachment.fileName}  ${formatBytes(attachment.sizeBytes)}  ${what}`);
+    }
+    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, connections, scripts, attachments } };
 }
 
 async function editScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
@@ -331,9 +359,15 @@ async function editVis(env: AgentCommandEnvironment, sessionId: string, state: S
 function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
     const connectionId = typeof args.connection === 'string' ? args.connection : newScriptConnection(state, null)?.connectionId;
     if (connectionId == null) fail('The session has no connection');
-    requireSessionConnection(state, connectionId);
+    requireSessionConnection(env, state, connectionId);
     const conn: ConnectionState | null = env.connections().connections.get(connectionId) ?? null;
-    const schema = buildSchemaContext(connectionId, conn, state, env.logger);
+    let schema = buildSchemaContext(connectionId, conn, state, env.logger);
+    // The embedded Hyper reads the Parquet attachments as table parameters
+    const attachments = conn != null && isHyperWasmConnection(conn) ? state.attachments ?? [] : [];
+    if (attachments.length > 0) {
+        const lines = attachments.map(a => `-- :${a.name}${a.columns == null ? '' : ` (${a.columns.join(', ')})`}`);
+        schema = [schema, '-- The attachments of the session, read them as table parameters', ...lines].filter(s => s.length > 0).join('\n');
+    }
     const text = schema.length > 0 ? schema : '-- The catalog is empty';
     return { text, data: { connection: connectionId, schema } };
 }
@@ -351,7 +385,7 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     const name = scriptDisplayName(script.fileName);
     // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
     if (script.annotations.manual && !booleanArg(args, 'force')) {
-        fail(`${name} runs only on request (@manual), it is too expensive without a filter. Query :${name} with a filter from another script of its connection, or ask the user and run it with --force.`);
+        fail(`${name} runs only on request (@manual), it is too expensive without a filter. Query :${name} with a filter from another script of its connection, or ask the user whether to run it in full.`);
     }
     const conn = env.connections().connections.get(script.connection.connectionId);
     if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {

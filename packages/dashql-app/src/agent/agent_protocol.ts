@@ -9,6 +9,11 @@ export type * from '@ankoh/dashql-jsonschema/agent_bridge.js';
 /// The version of the protocol, the server turns away other versions
 export const AGENT_PROTOCOL_VERSION: ClientSessionsParams['protocol'] = 2;
 
+/// The features of this page, announced with client/sessions. The agent server picks the notes of its guide for the
+/// ones it knows (FEATURE_* in dashql-cli/src/agent/instructions.rs) and asks for a newer DashQL when one lacks.
+/// Identifiers only: the agent follows the text of the binary, never text of the page.
+export const AGENT_FEATURES: NonNullable<ClientSessionsParams['features']> = ['attachments', 'embedded-hyper', 'manual-scripts'];
+
 /// The path of the WebSocket endpoint
 export const AGENT_WEBSOCKET_PATH = '/v1/ws';
 

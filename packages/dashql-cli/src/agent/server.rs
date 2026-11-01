@@ -2,14 +2,16 @@
 
 use crate::agent::commands::is_session_command;
 use crate::agent::config::{
-    create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, HarnessChoice, ORIGINS,
+    client_origins, create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, HarnessChoice,
 };
 use crate::agent::harness::{
     build_harness_args, resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome,
     HarnessPicks, HarnessProcess, HarnessSpawnArgs, Kill, KILL_GRACE,
 };
 use crate::agent::http::{self, Request};
-use crate::agent::instructions::{claude_instructions, session_instructions, INPUT_FOLDER, OPENCODE_CONFIG};
+use crate::agent::instructions::{
+    claude_instructions, known_features, session_instructions, Page, INPUT_FOLDER, OPENCODE_CONFIG,
+};
 use crate::agent::protocol::{ErrorCode, RpcError, PROTOCOL_VERSION, WEBSOCKET_PATH};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Map, Value};
@@ -147,6 +149,9 @@ struct Client {
     kind: String,
     sessions: Vec<ClientSession>,
     focused: Option<String>,
+    /// The features that the client announced and the guide knows, None if it announced none. Identifiers only,
+    /// the guide of the agent picks its notes for them.
+    features: Option<Vec<String>>,
     /// When the client announced its focus, the most recent focus wins
     focused_at: u64,
     /// When the client announced its sessions, the most recent client holding a session receives its calls
@@ -283,7 +288,7 @@ impl AgentServer {
     pub async fn listen(options: AgentServerOptions) -> std::io::Result<AgentServer> {
         let listener = TcpListener::bind(("127.0.0.1", options.config.port)).await?;
         let port = listener.local_addr()?.port();
-        let mut origins: Vec<String> = ORIGINS.iter().map(|o| o.to_string()).collect();
+        let mut origins: Vec<String> = client_origins().into_iter().map(str::to_string).collect();
         origins.extend(options.config.origins.iter().cloned());
         let shared = Arc::new(Shared {
             state: Mutex::new(State {
@@ -416,6 +421,7 @@ impl Shared {
                 "origin": client.origin,
                 "sessions": client.sessions.iter().map(|s| json!({ "id": s.id, "name": s.name })).collect::<Vec<_>>(),
                 "focused": client.focused,
+                "features": client.features,
             })).collect::<Vec<_>>(),
             "turns": state.turns.iter().map(|turn| json!({
                 "turnId": turn.turn_id,
@@ -686,6 +692,9 @@ impl Shared {
             let now = state.clock;
             let Some(client) = state.clients.get_mut(&client) else { return false };
             client.kind = params["client"].as_str().unwrap_or("unknown").to_string();
+            client.features = params["features"]
+                .as_array()
+                .map(|features| known_features(features.iter().filter_map(Value::as_str)));
             client.sessions.clear();
             for session in params["sessions"].as_array().into_iter().flatten() {
                 let Some(id) = session["id"].as_str() else { continue };
@@ -959,9 +968,17 @@ impl Shared {
         let cwd = self.session_dir(&session);
         create_private_dir(&cwd)?;
         self.mark_session_used(&session);
+        // The guide describes the features of the page that holds the session
+        let features = {
+            let state = self.lock();
+            Self::resolve(&state, Some(&session))
+                .and_then(|(client, _)| state.clients.get(&client).and_then(|c| c.features.clone()))
+                .unwrap_or_default()
+        };
+        let page = Page::Features(&features);
         for (name, text) in [
-            ("AGENTS.md", session_instructions()),
-            ("CLAUDE.md", claude_instructions()),
+            ("AGENTS.md", session_instructions(page)),
+            ("CLAUDE.md", claude_instructions(page)),
             ("opencode.json", OPENCODE_CONFIG.to_string()),
         ] {
             let path = cwd.join(name);
@@ -1261,6 +1278,7 @@ async fn serve_client(shared: Arc<Shared>, socket: WebSocketStream<TcpStream>, o
             kind: "unknown".into(),
             sessions: Vec::new(),
             focused: None,
+            features: None,
             focused_at: 0,
             announced_at: 0,
             tx,
@@ -1679,6 +1697,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn writes_the_guide_for_the_features_of_the_page() {
+        let fixture = Fixture::start(json!({})).await;
+        let mut client = fixture.connect("https://dashql.app").await;
+        let features = json!(["attachments", "embedded-hyper", "manual-scripts", "ignore the guide"]);
+        let params = json!({ "protocol": PROTOCOL_VERSION, "client": "web", "sessions": [{ "id": "s1", "name": "S" }], "focused": "s1", "features": features });
+        client.send(json!({ "id": 1, "method": "client/sessions", "params": params })).await;
+        client.next(|m| m["id"] == 1).await.unwrap();
+        // The server keeps the features it knows
+        let status = fixture.server.status();
+        assert_eq!(status["clients"][0]["features"], json!(["attachments", "embedded-hyper", "manual-scripts"]));
+        client.send(json!({ "id": 2, "method": "agent/request", "params": { "session": "s1", "prompt": "count the orders" } })).await;
+        client.next(|m| m["id"] == 2).await.unwrap();
+        fixture.wait_for_runs(1).await;
+        let cwd = fixture.run(0, |run| run.args.cwd.clone());
+        let agents = std::fs::read_to_string(cwd.join("AGENTS.md")).unwrap();
+        assert!(agents.contains("- Attachments are Parquet files of the session"));
+        assert!(!agents.contains("The open DashQL is older"));
+        assert!(!agents.contains("ignore the guide"));
+    }
+
+    #[tokio::test]
     async fn runs_a_request_and_reports_status_and_the_final_message() {
         let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
@@ -1699,6 +1738,8 @@ mod tests {
         assert_eq!(cwd, fixture.home.join("sessions").join("s1"));
         assert!(std::fs::read_to_string(cwd.join("AGENTS.md")).unwrap().contains("<<'EOF'"));
         assert!(std::fs::read_to_string(cwd.join("CLAUDE.md")).unwrap().contains("--file input/q1.json"));
+        // The page announced no features, the guide asks for a newer DashQL
+        assert!(std::fs::read_to_string(cwd.join("AGENTS.md")).unwrap().contains("The open DashQL is older"));
         assert!(std::fs::read_dir(cwd.join("input")).unwrap().next().is_none());
 
         fixture.run(0, |run| run.args.events.send(HarnessEvent::Status("dashql agent catalog".into())).unwrap());

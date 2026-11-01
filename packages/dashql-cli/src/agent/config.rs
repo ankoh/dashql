@@ -7,8 +7,19 @@ use std::time::Duration;
 /// The default port of the agent server
 pub const DEFAULT_PORT: u16 = 47100;
 
-/// The origins of DashQL clients: the web app, desktop windows and the dev server of the web app
-pub const ORIGINS: [&str; 4] = ["https://dashql.app", "app://bundle", "http://localhost:9002", "http://127.0.0.1:9002"];
+/// The origins of DashQL clients: the web app and desktop windows
+const RELEASE_ORIGINS: [&str; 2] = ["https://dashql.app", "app://bundle"];
+
+/// The origins of the dev server of the web app. Only development builds accept them: in a release, any page on
+/// that port, e.g. the dev server of another project, would be a DashQL client. A release that should accept them
+/// lists them in `origins` of config.json.
+const DEV_ORIGINS: [&str; 2] = ["http://localhost:9002", "http://127.0.0.1:9002"];
+
+/// The origins of DashQL clients that this build accepts, release builds (`--config=release`) set `dashql_release`
+pub fn client_origins() -> Vec<&'static str> {
+    let dev: &[&str] = if cfg!(dashql_release) { &[] } else { &DEV_ORIGINS };
+    RELEASE_ORIGINS.iter().chain(dev).copied().collect()
+}
 
 /// How long a call waits for DashQL to hold its session, unless `callWaitMs` says otherwise
 const DEFAULT_CALL_WAIT: Duration = Duration::from_secs(30);
@@ -315,6 +326,14 @@ pub fn write_private_file(path: &Path, text: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accepts_the_dev_server_only_in_development_builds() {
+        let origins = client_origins();
+        assert!(origins.contains(&"https://dashql.app") && origins.contains(&"app://bundle"));
+        assert_eq!(origins.contains(&"http://localhost:9002"), !cfg!(dashql_release));
+        assert_eq!(origins.contains(&"http://127.0.0.1:9002"), !cfg!(dashql_release));
+    }
 
     pub fn temp_dir(name: &str) -> PathBuf {
         let base = std::env::var_os("TEST_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
