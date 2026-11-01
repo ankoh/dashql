@@ -6,7 +6,7 @@ use dashql_buffers::execution::{ExecutionGraphEntityType, ExecutionGraphT};
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core::utils::quote_identifier;
-use dashql_core_session::script_references::{CheckedReferenceKind, CheckedScript};
+use dashql_core_session::script_references::{ReferenceKind, CheckedScript};
 use dashql_parser::keywords::Keyword;
 use yaml_rust2::Yaml;
 
@@ -607,9 +607,9 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
                     rm.plain(
                         "kind",
                         match r.kind {
-                            CheckedReferenceKind::Inline => "inline",
-                            CheckedReferenceKind::Scan => "scan",
-                            CheckedReferenceKind::Invalid => "invalid",
+                            ReferenceKind::Inline => "inline",
+                            ReferenceKind::Scan => "scan",
+                            ReferenceKind::Invalid => "invalid",
                         },
                     );
                     if !r.errors.is_empty() {

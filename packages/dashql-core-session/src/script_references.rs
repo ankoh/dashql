@@ -37,12 +37,12 @@ pub(crate) trait ReferenceErrors {
 
 /// What a script reference becomes
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum ReferenceKind {
+pub enum ReferenceKind {
     /// The terminal query of the referenced script is inlined into the statement
     Inline,
     /// The statement scans the materialized result of the referenced script
     Scan,
-    /// The reference cannot be planned, an error was reported
+    /// The reference has errors, it cannot be planned
     Invalid,
 }
 
@@ -90,15 +90,13 @@ impl ScriptReferences {
         out
     }
 
-    /// Unlink the references that a plan cannot splice: invalid references, references with errors (by script, offset
-    /// and length of the parameter) and references of scripts that were not prepared. A tolerant plan keeps going
-    /// after their errors.
-    pub(crate) fn unlink_unplannable(&mut self, prepared: &[Option<Prepared>], errors: &BTreeSet<(u32, u32, u32)>) {
-        for (script, references) in self.by_script.iter_mut().enumerate() {
+    /// Unlink the references that a plan cannot splice: invalid references and references of scripts that were not
+    /// prepared. A tolerant plan keeps going after their errors.
+    pub(crate) fn unlink_unplannable(&mut self, prepared: &[Option<Prepared>]) {
+        for references in self.by_script.iter_mut() {
             for r in references.iter_mut() {
                 let unprepared = r.producer.is_some_and(|p| prepared[p as usize].is_none());
-                let failed = errors.contains(&(script as u32, r.text_span.offset, r.text_span.length));
-                if r.kind == ReferenceKind::Invalid || unprepared || failed {
+                if r.kind == ReferenceKind::Invalid || unprepared {
                     r.producer = None;
                     r.kind = ReferenceKind::Invalid;
                 }
@@ -224,11 +222,17 @@ impl ScriptReferences {
     }
 
     /// Check the referenced scripts: they are a single query, references form no cycle, and a view does not scan a
-    /// materialized result, neither directly nor through the queries it inlines
-    pub(crate) fn check(&self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, prepared: &[Option<Prepared>]) {
+    /// materialized result, neither directly nor through the queries it inlines. A reference with errors becomes
+    /// invalid.
+    pub(crate) fn check(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, prepared: &[Option<Prepared>]) {
+        // The references with errors: (script, index)
+        let mut failed: BTreeSet<(u32, usize)> = BTreeSet::new();
+        let mut reporter = FailedReferences { reporter, failed: &mut failed, current: (0, 0) };
+        let reporter = &mut reporter;
         for (script, references) in self.by_script.iter().enumerate() {
             let Some(consumer) = prepared[script].as_ref() else { continue };
-            for r in references {
+            for (index, r) in references.iter().enumerate() {
+                reporter.current = (script as u32, index);
                 let Some(producer) = r.producer else { continue };
                 let Some(p) = prepared[producer as usize].as_ref() else { continue };
                 let query = p.parses() && matches!(&p.parsed.statements[..], [statement] if statement.statement_type == StatementType::SELECT);
@@ -284,15 +288,16 @@ impl ScriptReferences {
         }
         let mut colors = vec![Color::White; self.by_script.len()];
         let mut path: Vec<u32> = Vec::new();
-        fn visit(this: &ScriptReferences, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, colors: &mut [Color], path: &mut Vec<u32>) {
+        fn visit(this: &ScriptReferences, reporter: &mut FailedReferences, request: &SessionPlanRequest, script: u32, colors: &mut [Color], path: &mut Vec<u32>) {
             colors[script as usize] = Color::Gray;
             path.push(script);
-            for r in this.of(script) {
+            for (index, r) in this.of(script).iter().enumerate() {
                 let Some(producer) = r.producer else { continue };
                 match colors[producer as usize] {
                     Color::Gray => {
                         let begin = path.iter().position(|&s| s == producer).unwrap();
                         let cycle: Vec<String> = path[begin..].iter().chain(std::iter::once(&producer)).map(|&s| script_label(request, s)).collect();
+                        reporter.current = (script, index);
                         reporter.error(script, Some(r.text_span), format!("cyclic script reference: {}", cycle.join(" -> ")));
                     }
                     Color::White => visit(this, reporter, request, producer, colors, path),
@@ -307,18 +312,25 @@ impl ScriptReferences {
                 visit(self, reporter, request, script, &mut colors, &mut path);
             }
         }
+        for (script, index) in failed {
+            self.by_script[script as usize][index].kind = ReferenceKind::Invalid;
+        }
     }
 }
 
-/// What a checked script reference reads
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum CheckedReferenceKind {
-    /// The query of the referenced script is inlined into the statement
-    Inline,
-    /// The statement scans the materialized result of the referenced script
-    Scan,
-    /// The reference has errors
-    Invalid,
+/// Passes the errors of the checked reference on and remembers that it failed
+struct FailedReferences<'r> {
+    reporter: &'r mut dyn ReferenceErrors,
+    failed: &'r mut BTreeSet<(u32, usize)>,
+    /// The checked reference: (script, index)
+    current: (u32, usize),
+}
+
+impl ReferenceErrors for FailedReferences<'_> {
+    fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
+        self.failed.insert(self.current);
+        self.reporter.error(script, text_span, message);
+    }
 }
 
 /// A checked table parameter that references a script
@@ -333,7 +345,7 @@ pub struct CheckedReference {
     /// The referenced script, if the name finds one
     pub script: Option<u32>,
     /// What the reference reads
-    pub kind: CheckedReferenceKind,
+    pub kind: ReferenceKind,
     /// The errors of the reference, the messages of the planner
     pub errors: Vec<String>,
 }
@@ -389,20 +401,13 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
             .of(i as u32)
             .iter()
             .map(|r| {
-                let errors = errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default();
-                let kind = match r.kind {
-                    _ if !errors.is_empty() => CheckedReferenceKind::Invalid,
-                    ReferenceKind::Inline => CheckedReferenceKind::Inline,
-                    ReferenceKind::Scan => CheckedReferenceKind::Scan,
-                    ReferenceKind::Invalid => CheckedReferenceKind::Invalid,
-                };
                 CheckedReference {
                     statement_id: Some(r.statement_id),
                     text_span: r.text_span,
                     parameter: r.name.clone(),
                     script: r.producer,
-                    kind,
-                    errors,
+                    kind: r.kind,
+                    errors: errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default(),
                 }
             })
             .collect();
@@ -415,7 +420,7 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
                 text_span: TextSpan { offset, length },
                 parameter: String::new(),
                 script: None,
-                kind: CheckedReferenceKind::Invalid,
+                kind: ReferenceKind::Invalid,
                 errors: errors.errors.remove(&key).unwrap_or_default(),
             });
         }

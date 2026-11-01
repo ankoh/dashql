@@ -19,7 +19,7 @@
 //! materializations, which the references stand for, are no dataflow.
 
 use crate::planner::{plan_session, PlanScope, Prepared, SessionPlanRequest};
-use crate::script_references::{check_script_references, CheckedReferenceKind};
+use crate::script_references::{check_script_references, ReferenceKind};
 use crate::session_inputs::{collect_session_inputs, InputTypeSource};
 use dashql_core::analyzer::SqlType;
 use dashql_core::sql_literal::SqlLiteral;
@@ -213,7 +213,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         });
     }
     for (consumer, checked) in check_script_references(request).into_iter().enumerate() {
-        for reference in checked.references.into_iter().filter(|r| r.kind == CheckedReferenceKind::Invalid) {
+        for reference in checked.references.into_iter().filter(|r| r.kind == ReferenceKind::Invalid) {
             let (Some(producer), Some(statement)) = (reference.script, reference.statement_id) else { continue };
             let Some(from) = terminal_of(producer) else { continue };
             if !node_of.contains_key(&(consumer as u32, statement)) {

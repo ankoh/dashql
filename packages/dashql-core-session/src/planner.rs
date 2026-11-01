@@ -176,8 +176,6 @@ struct PlanState {
     tolerant: bool,
     /// Did a tolerant plan leave something out?
     partial: bool,
-    /// The script references with errors: (script, offset, length) of the parameter
-    reference_errors: BTreeSet<(u32, u32, u32)>,
     /// The inputs of the session, the scalar parameters that the statements bind
     inputs: SessionInputs,
 }
@@ -342,7 +340,6 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         diagnostics: Vec::new(),
         tolerant,
         partial: false,
-        reference_errors: BTreeSet::new(),
         inputs: collect_session_inputs(request),
     };
     state.graph.valid = true;
@@ -406,7 +403,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     }
     references.check(&mut state_reporter(&mut state), request, &prepared);
     if tolerant {
-        references.unlink_unplannable(&prepared, &state.reference_errors);
+        references.unlink_unplannable(&prepared);
     }
     if !state.graph.valid {
         return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
@@ -1074,9 +1071,6 @@ struct Reporter<'s> {
 
 impl ReferenceErrors for Reporter<'_> {
     fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
-        if let Some(span) = text_span {
-            self.state.reference_errors.insert((script, span.offset, span.length));
-        }
         self.state.report(NONE, script, text_span, message, true);
     }
 }

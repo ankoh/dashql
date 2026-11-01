@@ -901,7 +901,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
 #[wasm_bindgen(js_name = checkScriptReferences)]
 pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
     use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind};
-    use dashql_core_session::script_references::CheckedReferenceKind;
+    use dashql_core_session::script_references::ReferenceKind;
     with_session_plan_request(request, |core, sessions| {
         let checked = dashql_core_session::script_references::check_script_references(core);
         let mut out = ScriptReferenceCheckT::default();
@@ -927,9 +927,9 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
                         t.parameter = Some(r.parameter);
                         t.script = r.script.unwrap_or(u32::MAX);
                         t.kind = match r.kind {
-                            CheckedReferenceKind::Inline => ScriptReferenceKind::INLINE,
-                            CheckedReferenceKind::Scan => ScriptReferenceKind::SCAN,
-                            CheckedReferenceKind::Invalid => ScriptReferenceKind::INVALID,
+                            ReferenceKind::Inline => ScriptReferenceKind::INLINE,
+                            ReferenceKind::Scan => ScriptReferenceKind::SCAN,
+                            ReferenceKind::Invalid => ScriptReferenceKind::INVALID,
                         };
                         t.errors = (!r.errors.is_empty()).then_some(r.errors);
                         Some(t)
