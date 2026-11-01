@@ -37,6 +37,7 @@ import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/sc
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
+import { FEED_TOP_PADDING } from './session_feed_layout.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
@@ -66,6 +67,10 @@ export interface ScriptCardProps {
     active: boolean;
     canMoveUp: boolean;
     canMoveDown: boolean;
+    /// The position of the script in the feed
+    index: number;
+    /// Add a script at a position of the feed
+    onCreate: (index: number) => void;
     onFocus: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
@@ -408,6 +413,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         onFormat={handleFormat}
                         onDelete={() => props.onDelete(props.scriptFileName)}
                         onRename={() => setRenaming(true)}
+                        onAddAbove={() => props.onCreate(props.index)}
+                        onAddBelow={() => props.onCreate(props.index + 1)}
                         storage={storage}
                         iconSize={14}
                     />
@@ -579,7 +586,6 @@ export interface ScriptFeedRowProps {
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
-    topPadding: number;
     onCreate: (index: number) => void;
     onEditorView: (scriptKey: number, view: EditorView) => void;
     onRowHeightChange: (index: number, height: number) => void;
@@ -600,17 +606,17 @@ const DEFAULT_SCRIPT_FEED_ROW_DEPENDENCIES: ScriptFeedRowDependencies = {
 
 export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const dependencies = props.dependencies ?? DEFAULT_SCRIPT_FEED_ROW_DEPENDENCIES;
-    const isSeparator = props.index % 2 === 0;
-    const entryIndex = Math.floor(props.index / 2);
-    const entry = !isSeparator ? props.entries[entryIndex] : undefined;
+    const entryIndex = props.index;
+    const entry = props.entries[entryIndex];
     const scriptData = entry != null ? props.scripts[entry.scriptId] : undefined;
     const scriptFileName = entry?.fileName ?? 'script.sql';
+    const displayName = scriptDisplayName(scriptFileName);
     // Every script runs on its own connection
     const connection = scriptData != null ? props.connections.get(scriptData.connection.connectionId) ?? null : null;
 
     // Entries are in feed order, so the index drives the movement buttons
-    const canMoveUp = !isSeparator && entryIndex > 0;
-    const canMoveDown = !isSeparator && entryIndex < props.entries.length - 1;
+    const canMoveUp = entryIndex > 0;
+    const canMoveDown = entryIndex < props.entries.length - 1;
     const {
         attributes,
         listeners,
@@ -619,8 +625,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         transition,
         isDragging,
     } = dependencies.useSortable({
-        id: entry?.scriptId ?? `separator-${entryIndex}`,
-        disabled: { draggable: isSeparator, droppable: isSeparator },
+        id: entry?.scriptId ?? `missing-${entryIndex}`,
         // The optimistic order is already the final dropped layout. Suppress dnd-kit's derived
         // post-drop FLIP transform, which otherwise briefly animates the card back toward its old row.
         animateLayoutChanges: () => false,
@@ -631,7 +636,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         setNodeRef(node);
     }, [setNodeRef]);
     React.useLayoutEffect(() => {
-        if (isSeparator) return;
         const row = rowRef.current;
         if (row == null) return;
         const syncHeight = () => {
@@ -642,35 +646,14 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         const observer = new ResizeObserver(syncHeight);
         observer.observe(row);
         return () => observer.disconnect();
-    }, [isSeparator, props.index, props.onRowHeightChange]);
+    }, [props.index, props.onRowHeightChange]);
 
-    if (isSeparator) {
-        return (
-            <div
-                className={styles.feed_cell_separator}
-                data-testid="script-insert-row"
-                style={{
-                    ...props.style,
-                    paddingTop: props.index === 0 ? props.topPadding : undefined,
-                }}
-            >
-                <span className={styles.feed_cell_separator_line} aria-hidden="true" />
-                <button
-                    type="button"
-                    className={styles.feed_cell_add}
-                    aria-label={`Add script at position ${entryIndex + 1}`}
-                    data-testid="script-insert"
-                    onClick={() => props.onCreate(entryIndex)}
-                >
-                    <PlusIcon size={16} />
-                </button>
-            </div>
-        );
-    }
-
+    // The row holds the card and the space below it, the first row also the space above the feed.
+    // The add buttons sit in these spaces, a button between two scripts shows while either one is hovered.
     return (
         <div
-            style={props.style}
+            className={styles.feed_row}
+            style={{ ...props.style, paddingTop: props.index === 0 ? FEED_TOP_PADDING : undefined }}
             data-testid="script-feed-row"
         >
             <div
@@ -688,8 +671,18 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             >
                 <button
                     type="button"
+                    className={styles.feed_entry_insert}
+                    data-edge="above"
+                    aria-label={`Add script above ${displayName}`}
+                    data-testid="script-insert-above"
+                    onClick={() => props.onCreate(entryIndex)}
+                >
+                    <PlusIcon size={12} />
+                </button>
+                <button
+                    type="button"
                     className={styles.feed_entry_drag_handle}
-                    aria-label={`Drag ${scriptDisplayName(scriptFileName)} script to reorder`}
+                    aria-label={`Drag ${displayName} script to reorder`}
                     data-testid="script-drag-handle"
                     {...attributes}
                     {...listeners}
@@ -717,6 +710,8 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     active={props.active}
                     canMoveUp={canMoveUp}
                     canMoveDown={canMoveDown}
+                    index={entryIndex}
+                    onCreate={props.onCreate}
                     onFocus={props.onFocus}
                     onDelete={props.onDelete}
                     onRename={props.onRename}
@@ -744,6 +739,16 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onEditorView={props.onEditorView}
                     dependencies={dependencies.scriptCard}
                 />
+                <button
+                    type="button"
+                    className={styles.feed_entry_insert}
+                    data-edge="below"
+                    aria-label={`Add script below ${displayName}`}
+                    data-testid="script-insert-below"
+                    onClick={() => props.onCreate(entryIndex + 1)}
+                >
+                    <PlusIcon size={12} />
+                </button>
             </div>
         </div>
     );

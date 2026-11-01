@@ -10,9 +10,18 @@ interface FeedLayoutEntry {
     estimatedHeight: number;
 }
 
-const SEPARATOR_HEIGHT = 40;
-const FIRST_SEPARATOR_HEIGHT = 48;
+/// The space above the first script
+export const FEED_TOP_PADDING = 32;
+/// The space between two scripts, the add buttons of the scripts sit in it
+export const FEED_GAP = 32;
+/// The space below the last script, it holds the add button below the last script
+export const FEED_END_PADDING = 32;
+/// The height of a script that is not measured yet, at least its header
+const MIN_ENTRY_HEIGHT = 40;
 
+/// The heights of the rows of the feed, one row per script.
+/// A row is the card of the script and the space that follows it, the first row also holds the space above the feed.
+/// The rows measure the cards only, the spaces are added here.
 export class FeedRowHeightCache {
     private readonly measuredHeights = new Map<number, number>();
     /// The mean amount that the measured scripts exceed their estimates by.
@@ -25,15 +34,13 @@ export class FeedRowHeightCache {
     constructor(
         private entries: FeedLayoutEntry[],
         private readonly onChange: (index: number, previousHeight: number, height: number) => void = () => {},
-        private firstSeparatorHeight = FIRST_SEPARATOR_HEIGHT,
     ) {}
 
-    updateEntries(entries: FeedLayoutEntry[], firstSeparatorHeight = this.firstSeparatorHeight) {
+    updateEntries(entries: FeedLayoutEntry[]) {
         if (entries !== this.entries) {
             this.entries = entries;
             this.updateEstimateCorrection();
         }
-        this.firstSeparatorHeight = firstSeparatorHeight;
     }
 
     private updateEstimateCorrection() {
@@ -50,22 +57,30 @@ export class FeedRowHeightCache {
 
     private getEntryHeight(entry: FeedLayoutEntry) {
         return this.measuredHeights.get(entry.scriptId)
-            ?? Math.max(SEPARATOR_HEIGHT, Math.round(entry.estimatedHeight + this.estimateCorrection));
+            ?? Math.max(MIN_ENTRY_HEIGHT, Math.round(entry.estimatedHeight + this.estimateCorrection));
+    }
+
+    /// The space of a row above its card
+    private getLeadingSpace(index: number) {
+        return index === 0 ? FEED_TOP_PADDING : 0;
+    }
+
+    /// The space of a row below its card
+    private getTrailingSpace(index: number) {
+        return index === this.entries.length - 1 ? FEED_END_PADDING : FEED_GAP;
     }
 
     getAverageRowHeight() {
-        if (this.entries.length === 0) return SEPARATOR_HEIGHT;
-        const totalEntryHeight = this.entries.reduce((total, entry) => total + this.getEntryHeight(entry), 0);
-        const totalSeparatorHeight = this.firstSeparatorHeight + this.entries.length * SEPARATOR_HEIGHT;
-        return (totalEntryHeight + totalSeparatorHeight) / (this.entries.length * 2 + 1);
+        if (this.entries.length === 0) return MIN_ENTRY_HEIGHT;
+        let total = FEED_TOP_PADDING + FEED_END_PADDING + (this.entries.length - 1) * FEED_GAP;
+        for (const entry of this.entries) total += this.getEntryHeight(entry);
+        return total / this.entries.length;
     }
 
     getRowHeight(index: number) {
-        if (index % 2 === 0) {
-            return index === 0 ? this.firstSeparatorHeight : SEPARATOR_HEIGHT;
-        }
-        const entry = this.entries[Math.floor(index / 2)];
-        return entry == null ? undefined : this.getEntryHeight(entry);
+        const entry = this.entries[index];
+        if (entry == null) return undefined;
+        return this.getLeadingSpace(index) + this.getEntryHeight(entry) + this.getTrailingSpace(index);
     }
 
     /// The offset of a row from the top of the list, the sum of the rows above it
@@ -77,8 +92,16 @@ export class FeedRowHeightCache {
         return offset;
     }
 
+    /// The top and the bottom of the card of a script in the list, without the spaces around it
+    getEntrySpan(index: number): [number, number] {
+        const top = this.getRowOffset(index) + this.getLeadingSpace(index);
+        const entry = this.entries[index];
+        return [top, top + (entry != null ? this.getEntryHeight(entry) : 0)];
+    }
+
+    /// Store the measured height of the card of a row
     setRowHeight = (index: number, height: number) => {
-        const entry = index % 2 === 1 ? this.entries[Math.floor(index / 2)] : null;
+        const entry = this.entries[index];
         if (entry == null) return;
         if (this.measuredHeights.get(entry.scriptId) === height) return;
         const previousHeight = this.getEntryHeight(entry);
@@ -105,7 +128,7 @@ export function revealScrollOffset(spanTop: number, spanBottom: number, scrollTo
     return Math.abs(target - scrollTop) < 1 ? null : target;
 }
 
-export function useSessionFeedLayout(entries: FeedLayoutEntry[], firstSeparatorHeight = FIRST_SEPARATOR_HEIGHT) {
+export function useSessionFeedLayout(entries: FeedLayoutEntry[]) {
     const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listRef = useListRef(null);
     const [heightsVersion, setHeightsVersion] = React.useState(0);
@@ -113,17 +136,17 @@ export function useSessionFeedLayout(entries: FeedLayoutEntry[], firstSeparatorH
     if (rowHeightsRef.current == null) {
         rowHeightsRef.current = new FeedRowHeightCache(entries, () => {
             setHeightsVersion(version => version + 1);
-        }, firstSeparatorHeight);
+        });
     }
-    rowHeightsRef.current.updateEntries(entries, firstSeparatorHeight);
+    rowHeightsRef.current.updateEntries(entries);
     const rowHeightCache = rowHeightsRef.current;
     const rowHeights = React.useMemo(() => ({
         getAverageRowHeight: () => rowHeightCache.getAverageRowHeight(),
         getRowHeight: (index: number) => rowHeightCache.getRowHeight(index),
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
-    }), [rowHeightCache, heightsVersion, firstSeparatorHeight]);
-    const getRowOffset = React.useCallback((index: number) => rowHeightCache.getRowOffset(index), [rowHeightCache]);
+    }), [rowHeightCache, heightsVersion]);
+    const getEntrySpan = React.useCallback((index: number) => rowHeightCache.getEntrySpan(index), [rowHeightCache]);
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
@@ -134,7 +157,7 @@ export function useSessionFeedLayout(entries: FeedLayoutEntry[], firstSeparatorH
         listRef,
         rowHeights,
         rowHeightsVersion: heightsVersion,
-        getRowOffset,
+        getEntrySpan,
         listWidth,
         listHeight,
         listScrollbarInset,

@@ -65,7 +65,7 @@ function baseProps() {
         onRename: vi.fn(), onPickConnection: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
          onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
         onFormat: vi.fn(), onApplySnippet: vi.fn(), onSetVisSpec: vi.fn(), canTarget: true, onTarget: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
-        onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(), topPadding: 16,
+        onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(),
         onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
     };
 }
@@ -159,25 +159,22 @@ describe('V2 session feed rows', () => {
         }
     });
 
-    it('renders insertion separators before, between, and after flat scripts', () => {
+    it('adds scripts above and below a script without separator rows', () => {
         const props = baseProps();
-        act(() => root.render(<>{[0, 2, 4].map(index => <ScriptFeedRow key={index} {...({ ...props, index, style: {} } as any)} />)}</>));
-        const separators = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-testid="script-insert"]'));
-        expect(separators).toHaveLength(3);
-        expect(container.querySelector<HTMLDivElement>('[data-testid="script-insert-row"]')!.style.paddingTop).toBe('16px');
-        act(() => separators[0].click());
-        expect(props.onCreate).toHaveBeenCalledWith(0);
-        act(() => separators[1].click());
-        expect(props.onCreate).toHaveBeenCalledWith(1);
-        act(() => separators[2].click());
-        expect(props.onCreate).toHaveBeenCalledWith(2);
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+        // The first row holds the space above the feed
+        expect(container.querySelector<HTMLDivElement>('[data-testid="script-feed-row"]')!.style.paddingTop).toBe('32px');
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-above"]')!.click());
+        expect(props.onCreate).toHaveBeenLastCalledWith(0);
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-below"]')!.click());
+        expect(props.onCreate).toHaveBeenLastCalledWith(1);
     });
 
     it('focuses on pointer entry and exposes integrated execution footer', () => {
         const props = baseProps();
         props.scripts[1] = { ...props.scripts[1], latestQueryId: 42 } as any;
         state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {} };
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         const article = container.querySelector('[data-testid="script-cell"]')!;
         act(() => article.dispatchEvent(new MouseEvent('pointerover', { bubbles: true })));
         expect(props.onFocus).toHaveBeenCalledWith('01_alpha.sql');
@@ -201,7 +198,7 @@ describe('V2 session feed rows', () => {
         );
         expect(props.onFormat).toHaveBeenCalledWith(1, 'SELECT 1;');
         props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-accept"]')!.click());
         expect(props.onAcceptDiff).toHaveBeenCalledWith(1);
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-reject"]')!.click());
@@ -219,13 +216,13 @@ describe('V2 session feed rows', () => {
 
     it('offers snippets next to the delete button unless a rewrite is pending', () => {
         const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         const snippets = container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!;
         expect(snippets.disabled).toBe(false);
         const deleteButton = container.querySelector('[data-testid="script-delete"]')!;
         expect(snippets.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         expect(container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!.disabled).toBe(true);
     });
 
@@ -235,7 +232,7 @@ describe('V2 session feed rows', () => {
             connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: null, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             label: 'Trino Http', labelParts: { name: 'Trino', detail: 'Http' },
         }]]) });
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         // The connection takes the place of the file name
         const picker = container.querySelector('[data-testid="script-connection-picker"]')!;
         expect(picker.textContent).toContain('Trino');
@@ -258,7 +255,7 @@ describe('V2 session feed rows', () => {
 
     it('mentions the script with a tag that shows its current name', () => {
         const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
         expect(mention.textContent).toBe(':01_alpha');
         act(() => mention.click());
@@ -267,13 +264,13 @@ describe('V2 session feed rows', () => {
         // A rename shows the new name right away
         props.entries[0] = { scriptId: 1, fileName: 'report.sql' };
         props.scripts[1] = script(1, 'report.sql');
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':report');
     });
 
     it('renames the script in the tag with the edit button and from the action menu', async () => {
         const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         const setInputValue = (input: HTMLInputElement, value: string) => {
             Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
             input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -331,7 +328,7 @@ describe('V2 session feed rows', () => {
         }]]) });
         props.scripts[1] = { ...props.scripts[1], analysisOutdated: false,
             editorUpdate: { analysisAvailable: true }, scriptSession: { getText: () => 'SELECT * FROM t QUALIFY x = 1' } } as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
 
         const play = container.querySelector('[data-testid="script-execute"]') as HTMLButtonElement;
         expect(play.disabled).toBe(false);
@@ -342,9 +339,9 @@ describe('V2 session feed rows', () => {
     it('lets the virtual list observe the row content height', () => {
         const props = baseProps();
         const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         expect(container.querySelector<HTMLElement>('[data-testid="script-feed-row"]')!.style.height).toBe('');
-        expect(props.onRowHeightChange).toHaveBeenCalledWith(1, 312);
+        expect(props.onRowHeightChange).toHaveBeenCalledWith(0, 312);
         rect.mockRestore();
     });
 
@@ -352,7 +349,7 @@ describe('V2 session feed rows', () => {
         const props = baseProps();
         const request = vi.fn();
         act(() => root.render(<SessionConnectionAttentionContext.Provider value={{ sessionId: 'session', active: false, request }}>
-            <ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />
+            <ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />
         </SessionConnectionAttentionContext.Provider>));
         const play = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
         // The button stays a greyed play button that does not run the script
@@ -378,7 +375,7 @@ describe('V2 session feed rows', () => {
     it('translates a dragged card without applying dnd-kit scale distortion', () => {
         const props = baseProps();
         state.sortableTransform = { x: 0, y: 120, scaleX: 0.8, scaleY: 0.4 };
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
 
         const item = container.querySelector<HTMLElement>('[data-testid="script-feed-item"]')!;
         expect(item.style.transform).toBe('translate3d(0px, 120px, 0px)');
@@ -421,7 +418,7 @@ describe('Session feed composer', () => {
         },
         ScriptFeedRow: (props: any) => {
             feedState.rowProps = props;
-            const entry = props.index % 2 === 1 ? props.entries[Math.floor(props.index / 2)] : undefined;
+            const entry = props.entries[props.index];
             const layout = entry != null ? feedState.rowLayouts.get(entry.scriptId) : undefined;
             if (layout == null) return <div />;
             return (
@@ -719,7 +716,7 @@ describe('Session feed composer', () => {
             feedState.agentListener = listener;
             return Promise.resolve('turn-1');
         });
-        feedState.rowLayouts.set(1, { text: 250, result: 150 });
+        feedState.rowLayouts.set(2, { text: 250, result: 150 });
         const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
         const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
             const top = typeof options === 'object' ? options.top ?? 0 : 0;
@@ -729,14 +726,15 @@ describe('Session feed composer', () => {
         try {
             render(withCatalog(session(['1_alpha.sql', '2_beta.sql']), emptyCatalog), vi.fn());
             await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+            act(() => feedState.rowProps.onRowHeightChange(0, 400));
             act(() => feedState.rowProps.onRowHeightChange(1, 400));
 
-            // An edit shows the text of a script taller than the viewport, below the first separator
-            await act(async () => feedState.agentListener!.edited(1));
-            await vi.waitFor(() => expect(lastTop()).toBe(48 - 16));
+            // An edit shows the text of a script taller than the viewport, below the first script and the gap
+            await act(async () => feedState.agentListener!.edited(2));
+            await vi.waitFor(() => expect(lastTop()).toBe(32 + 400 + 32 - 16));
             // A run shows its results
-            await act(async () => feedState.agentListener!.ran(1));
-            await vi.waitFor(() => expect(lastTop()).toBe(48 + 250 - 16));
+            await act(async () => feedState.agentListener!.ran(2));
+            await vi.waitFor(() => expect(lastTop()).toBe(32 + 400 + 32 + 250 - 16));
         } finally {
             scrollTo.mockRestore();
             clientHeight.mockRestore();

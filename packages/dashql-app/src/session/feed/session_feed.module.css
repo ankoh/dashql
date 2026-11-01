@@ -246,6 +246,11 @@
     color: var(--status_color_error, #cf222e);
 }
 
+/* A row of the feed, the card of a script and the space below it */
+.feed_row {
+    box-sizing: border-box;
+}
+
 .feed_list_item {
     position: relative;
     display: flex;
@@ -254,43 +259,75 @@
     padding: 0 calc(16px + var(--feed-scrollbar-inset, 0px)) 0 16px;
 }
 
-.feed_cell_separator {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px calc(16px + var(--feed-scrollbar-inset, 0px)) 8px 16px;
-    box-sizing: border-box;
+/* The spaces above and below the card keep it hovered, the add buttons in them stay visible.
+   Between two scripts the spaces overlap, the later script shows its button above, in the same place. */
+.feed_list_item::before,
+.feed_list_item::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--feed-gap, 32px);
 }
 
-.feed_cell_separator_line {
-    height: 1px;
-    flex: 1;
-    background-color: var(--border_color_primary);
+.feed_list_item::before {
+    bottom: 100%;
 }
 
-.feed_cell_add {
+.feed_list_item::after {
+    top: 100%;
+}
+
+/* The add buttons of a script, at the right edge of the card in the spaces above and below it.
+   The button below a script and the one above the next script share their place, the hovered row shows its own. */
+.feed_entry_insert {
     appearance: none;
-    width: 24px;
-    height: 24px;
-    flex: 0 0 24px;
+    position: absolute;
+    /* Lines up with the right border of the card, the card ends before the scrollbar inset */
+    right: calc(16px + var(--feed-scrollbar-inset, 0px));
+    z-index: 3;
+    width: 22px;
+    height: 22px;
     display: grid;
     place-items: center;
     padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--border_radius);
+    /* A grey tag like the mention tags of the scripts */
+    border: 1px solid var(--base_color_neutral_2);
+    border-radius: 6px;
     color: var(--base_color_neutral_6);
-    background-color: transparent;
+    background-color: var(--base_color_neutral_1);
     cursor: pointer;
+    /* Hidden but clickable, a pointer on the button hovers its card and shows it */
+    opacity: 0;
+    transition: opacity 80ms ease-out;
 }
 
-.feed_cell_add:hover {
-    color: var(--base_color_neutral_9);
-    border-color: var(--border_color_primary);
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
+.feed_entry_insert[data-edge="above"] {
+    top: calc(var(--feed-gap, 32px) / -2);
+    transform: translateY(-50%);
 }
 
-.feed_cell_add:focus-visible {
+.feed_entry_insert[data-edge="below"] {
+    top: calc(100% + var(--feed-gap, 32px) / 2);
+    transform: translateY(-50%);
+}
+
+.feed_list_item:hover > .feed_entry_insert,
+.feed_entry_insert:focus-visible {
+    opacity: 1;
+}
+
+.feed_entry_insert:hover {
+    color: var(--base_color_neutral_8);
+    background-color: color-mix(in srgb, var(--base_color_neutral_2) 50%, var(--base_color_neutral_1));
+}
+
+.feed_entry_insert:active {
+    background-color: var(--base_color_neutral_2);
+    border-color: var(--base_color_neutral_3);
+}
+
+.feed_entry_insert:focus-visible {
     outline: 2px solid var(--focus_outline_color);
     outline-offset: 2px;
 }

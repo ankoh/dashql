@@ -25,6 +25,9 @@ interface Props {
     onDelete: () => void;
     /// Edit the name of the script in place, the menu offers a rename action
     onRename?: () => void;
+    /// Add a script above or below the script, the menu offers the add actions
+    onAddAbove?: () => void;
+    onAddBelow?: () => void;
     /// The storage of the script, the menu offers its storage view
     storage?: ScriptStorage;
     /// The size of the icon of the trigger, 16 by default
@@ -32,6 +35,7 @@ interface Props {
 }
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
+const AddIcon = SymbolIcon('plus_16');
 const FormatIcon = SymbolIcon('pencil_ai_16');
 const RenameIcon = SymbolIcon('pencil_16');
 const TrashIcon = SymbolIcon('trash_16');
@@ -76,6 +80,19 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
             ) : (
             <div className={styles.menu} role="dialog" aria-label={`Actions for ${props.scriptName} script`}>
                 <ActionList.List aria-label={`Actions for ${props.scriptName} script`}>
+                    {/* The list takes elements only, the fragments wrap the optional items */}
+                    <>{props.onAddAbove != null && (
+                        <ActionList.ListItem data-testid="script-menu-item" data-action="add-above" onClick={() => run(props.onAddAbove!)}>
+                            <ActionList.Leading><AddIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Add Script Above</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
+                    <>{props.onAddBelow != null && (
+                        <ActionList.ListItem data-testid="script-menu-item" data-action="add-below" onClick={() => run(props.onAddBelow!)}>
+                            <ActionList.Leading><AddIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Add Script Below</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     <ActionList.ListItem
                         data-testid="script-menu-item"
                         data-action="format-pretty"
@@ -94,7 +111,6 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                         <ActionList.Leading><FormatIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Format Compact</ActionList.ItemText>
                     </ActionList.ListItem>
-                    {/* The list takes elements only, the fragments wrap the optional items */}
                     <>{props.onRename != null && (
                         <ActionList.ListItem data-testid="script-menu-item" data-action="rename" onClick={() => run(props.onRename!)}>
                             <ActionList.Leading><RenameIcon size={16} /></ActionList.Leading>

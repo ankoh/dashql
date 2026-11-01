@@ -43,7 +43,7 @@ import { useStorageReader, useStorageWriter } from '../../storage/storage_provid
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '../../storage/storage_writer.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.js';
+import { FEED_GAP, revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './session_feed_row.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './session_feed_drag.js';
@@ -118,10 +118,6 @@ const DEFAULT_DEPENDENCIES: SessionFeedDependencies = {
 
 const LOG_CTX = 'session_feed';
 const OVERSCAN_ROW_COUNT = 16;
-const FEED_TOP_PADDING = 16;
-const COMPACT_FEED_TOP_PADDING = 8;
-const FIRST_SEPARATOR_HEIGHT = 48;
-const COMPACT_FIRST_SEPARATOR_HEIGHT = 40;
 const FEED_ENTRY_CHROME_HEIGHT = 50;
 const FEED_EDITOR_LINE_HEIGHT = 18;
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
@@ -146,20 +142,6 @@ function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
 
-function useCompactFeedLayout() {
-    const [compact, setCompact] = React.useState(() => (
-        typeof window !== 'undefined' && window.matchMedia('(max-width: 799px)').matches
-    ));
-    React.useEffect(() => {
-        const media = window.matchMedia('(max-width: 799px)');
-        const update = () => setCompact(media.matches);
-        update();
-        media.addEventListener('change', update);
-        return () => media.removeEventListener('change', update);
-    }, []);
-    return compact;
-}
-
 export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const config = useAppConfig();
@@ -168,7 +150,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const attachmentsVisible = config?.settings?.experimental_file_attachments === true;
     const keywordCase = getKeywordCase(config?.settings);
-    const compactLayout = useCompactFeedLayout();
     const scriptRefs = props.sessionScripts.scriptRefs;
     const scriptOrder = props.sessionScripts.scriptOrder;
     // The estimated heights only matter until a row is measured.
@@ -562,10 +543,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     ], [feedActive, composerView, handleAcceptDiff, handleRejectDiff]);
     dependencies.useKeyEvents(keyHandlers);
 
-    const feedLayout = useSessionFeedLayout(
-        entries,
-        compactLayout ? COMPACT_FIRST_SEPARATOR_HEIGHT : FIRST_SEPARATOR_HEIGHT,
-    );
+    const feedLayout = useSessionFeedLayout(entries);
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
         editorViewsRef.current.set(scriptKey, view);
@@ -621,8 +599,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         const index = entries.findIndex(entry => entry.scriptId === scriptKey);
         const element = feedLayout.listRef.current?.element;
         if (index < 0 || element == null) return;
-        let top = feedLayout.getRowOffset(index * 2 + 1);
-        const bottom = feedLayout.getRowOffset(index * 2 + 2);
+        const span = feedLayout.getEntrySpan(index);
+        let top = span[0];
+        const bottom = span[1];
         const viewportHeight = element.clientHeight;
         if (target === 'result' && bottom - top > viewportHeight) {
             const item = element.querySelector(`[data-script-key="${scriptKey}"]`);
@@ -633,7 +612,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         }
         const offset = revealScrollOffset(top, bottom, element.scrollTop, viewportHeight);
         if (offset != null) element.scrollTo({ top: offset });
-    }, [entries, feedLayout.listRef, feedLayout.getRowOffset]);
+    }, [entries, feedLayout.listRef, feedLayout.getEntrySpan]);
 
     // The feed follows the agent to the scripts it edits and runs in a question of the composer, also while the
     // agent still works. The followed script stays in view as it is measured and its results arrive.
@@ -693,7 +672,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
-        feedLayout.listRef.current?.scrollToRow({ index: entries.length * 2 - 1, align: 'end' });
+        feedLayout.listRef.current?.scrollToRow({ index: entries.length - 1, align: 'end' });
     }, [entries.length]);
 
     // The checked script references of every script, the check runs again only when a script changes
@@ -735,11 +714,10 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
-        topPadding: compactLayout ? COMPACT_FEED_TOP_PADDING : FEED_TOP_PADDING,
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
@@ -825,8 +803,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                                 overflowX: 'hidden',
                                 scrollbarGutter: 'stable',
                                 '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
+                                '--feed-gap': `${FEED_GAP}px`,
                             } as React.CSSProperties}
-                            rowCount={entries.length * 2 + 1}
+                            rowCount={entries.length}
                             overscanCount={OVERSCAN_ROW_COUNT}
                             rowHeight={feedLayout.rowHeights}
                             rowComponent={dependencies.ScriptFeedRow}
