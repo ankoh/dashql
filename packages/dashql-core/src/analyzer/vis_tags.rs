@@ -343,10 +343,14 @@ fn is_query(statement_type: StatementType) -> bool {
     matches!(statement_type, StatementType::SELECT)
 }
 
-/// The `@vis`, `@board` and `@flow` tags among the description comments of a statement, with their names
-fn statement_tags<'p>(
+/// The tags of the visualization of a statement
+const VIS_FAMILY: &[&str] = &[VIS_TAG, BOARD_TAG, FLOW_TAG];
+
+/// The tags of some names among the description comments of a statement, with their names
+pub(super) fn statement_tags<'p>(
     parsed: &'p dashql_parser::parser::ParsedScript,
     description: &dashql_parser::parser::StatementDescription,
+    names: &'static [&'static str],
 ) -> impl Iterator<Item = (&'p CommentBlock, &'p str)> {
     let script = parsed.scanned.text.as_str();
     let begin = description.description_blocks_begin as usize;
@@ -354,7 +358,7 @@ fn statement_tags<'p>(
         .iter()
         .filter(|b| b.block_type == CommentBlockType::DASHQL_TAG)
         .map(move |b| (b, &script[b.tag_span.offset as usize..b.tag_span.end() as usize]))
-        .filter(|(_, name)| matches!(*name, VIS_TAG | BOARD_TAG | FLOW_TAG))
+        .filter(move |(_, name)| names.contains(name))
 }
 
 /// The `@vis` tags among the description comments of a statement
@@ -362,7 +366,7 @@ fn statement_vis_tags<'p>(
     parsed: &'p dashql_parser::parser::ParsedScript,
     description: &dashql_parser::parser::StatementDescription,
 ) -> impl Iterator<Item = &'p CommentBlock> {
-    statement_tags(parsed, description).filter(|(_, name)| *name == VIS_TAG).map(|(b, _)| b)
+    statement_tags(parsed, description, VIS_FAMILY).filter(|(_, name)| *name == VIS_TAG).map(|(b, _)| b)
 }
 
 /// The kind of a `@vis` tag, the first word of its content
@@ -380,7 +384,7 @@ fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &Comment
 pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> bool {
     let descriptions = parsed.associate_descriptions();
     descriptions.get(statement_id).is_some_and(|d| {
-        statement_tags(parsed, d).any(|(block, name)| match name {
+        statement_tags(parsed, d, VIS_FAMILY).any(|(block, name)| match name {
             VIS_TAG => tag_kind(parsed, block) != "flow",
             BOARD_TAG => true,
             _ => false,
@@ -422,7 +426,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     let descriptions = parsed.associate_descriptions();
     for (statement_id, statement) in parsed.statements.iter().enumerate() {
         let Some(description) = descriptions.get(statement_id) else { continue };
-        let tags: Vec<(&CommentBlock, &str)> = statement_tags(parsed, description).collect();
+        let tags: Vec<(&CommentBlock, &str)> = statement_tags(parsed, description, VIS_FAMILY).collect();
         if tags.is_empty() {
             continue;
         }

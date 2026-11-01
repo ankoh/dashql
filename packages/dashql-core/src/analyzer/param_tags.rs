@@ -18,7 +18,6 @@ use super::types::*;
 use crate::sql_literal::SqlLiteral;
 use crate::vis_text::TagText;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_buffers::parser::CommentBlockType;
 use dashql_parser::span::TextSpan;
 use std::ops::Range;
 use std::sync::Arc;
@@ -82,16 +81,8 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     let script = parsed.scanned.text.as_str();
     let blocks = &parsed.comment_blocks;
     let descriptions = parsed.associate_descriptions();
-    for statement_id in 0..parsed.statements.len() {
-        let Some(description) = descriptions.get(statement_id) else { continue };
-        let begin = description.description_blocks_begin as usize;
-        let count = description.description_blocks_count as usize;
-        for block in &blocks.blocks[begin..begin + count] {
-            if block.block_type != CommentBlockType::DASHQL_TAG
-                || &script[block.tag_span.offset as usize..block.tag_span.end() as usize] != PARAM_TAG
-            {
-                continue;
-            }
+    for (statement_id, description) in descriptions.iter().enumerate() {
+        for (block, _) in super::vis_tags::statement_tags(parsed, description, &[PARAM_TAG]) {
             let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
             let tag = TagText::new(script, lines, block.text_span);
             // A Javadoc `@param x ...` is a comment, not a value
