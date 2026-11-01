@@ -574,6 +574,25 @@ describe('Session feed composer', () => {
         expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
     });
 
+    it('keeps the greeting hidden while the composer shows an agent turn', async () => {
+        feedState.agent = connectedAgent(() => new Promise<string>(() => {}));
+        render(withCatalog(session(), emptyCatalog), vi.fn());
+        const title = () => container.querySelector('[data-testid="feed-landing-title"]')!.parentElement!;
+        act(() => feedState.composerProps!.onDraftEmptyChange!(false));
+        expect(title().hasAttribute('data-hidden')).toBe(true);
+
+        // Sending clears the draft, the waiting turn keeps the greeting hidden
+        await act(async () => {
+            feedState.composerProps!.onDraftEmptyChange!(true);
+            void feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai);
+        });
+        expect(feedState.composerProps?.agent?.turns).toHaveLength(1);
+        expect(title().hasAttribute('data-hidden')).toBe(true);
+
+        await act(async () => feedState.composerProps!.agent!.onDismiss(1));
+        expect(title().hasAttribute('data-hidden')).toBe(false);
+    });
+
     it('offers AI only with agent access and a connected agent server', () => {
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(false);

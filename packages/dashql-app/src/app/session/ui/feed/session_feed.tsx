@@ -716,6 +716,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // An empty session greets the user with the composer in place of the feed.
     // The composer stays at the same position in the tree so it keeps focus when the first script lands.
     const landing = entries.length === 0;
+    // The draft and the agent turns grow the composer, the greeting stays hidden while either is shown.
+    // Sending clears the draft before the agent writes the first script, the turn keeps the greeting away.
+    const greetingHidden = !composerDraftEmpty || (composerAgent.agent?.turns.length ?? 0) > 0;
     return (
         <div
             className={styles.feed_body_container}
@@ -760,7 +763,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
             </section>}
             {landing && (
-                <div className={styles.feed_landing_header} data-hidden={composerDraftEmpty ? undefined : ''}>
+                <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
                     <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
                 </div>
             )}
