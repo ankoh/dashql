@@ -1,0 +1,187 @@
+dataflow-snapshots:
+  # A chain flows from left to right, a box is aligned with the row it reads
+  - name: LayoutChain
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, amount int);
+          create table regions (id int);
+          insert into orders values (1, 10);
+      - name: report
+        input: |
+          select sum(amount) as total from orders;
+      - name: chart
+        input: |
+          select total * 2 from :report;
+
+  # The chart of a visualized terminal statement follows its row
+  - name: LayoutChart
+    scripts:
+      - name: sales
+        input: |
+          create table sales (region text, amount int);
+      - name: by_region
+        input: |
+          /** @vis table */
+          select region, sum(amount) as amount from sales group by region;
+      - name: top
+        input: |
+          select * from :by_region;
+
+  # Two consumers of one producer stack in the next layer
+  - name: LayoutFanout
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int);
+      - name: by_id
+        input: |
+          select id from orders;
+      - name: count
+        input: |
+          select count(*) from orders;
+
+  # A source sits right before its consumer, not in the first layer
+  - name: LayoutLateSource
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, region int);
+      - name: filtered
+        input: |
+          select id, region from orders where id > 1;
+      - name: regions
+        input: |
+          create table regions (id int, name text);
+      - name: report
+        input: |
+          select f.id, r.name from :filtered f, regions r where f.region = r.id;
+
+  # The order of the second layer avoids the crossing of the session order
+  - name: LayoutCrossing
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: from_a
+        input: |
+          select x from a;
+
+  # The back edge of a cycle is reversed
+  - name: LayoutCycle
+    scripts:
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+
+  # Connected parts stack, boxes without edges go into rows of four below them
+  - name: LayoutPartsAndIsolatedBoxes
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: from_a
+        input: |
+          select x from a;
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: alone_1
+        input: |
+          select 1;
+          select 2;
+      - name: alone_2
+        input: |
+          select 3;
+      - name: alone_3
+        input: |
+          select 4;
+      - name: alone_4
+        input: |
+          select 5;
+      - name: alone_5
+        input: |
+          select 6;
+
+  # A collapsed box is its header, edges attach to it
+  - name: LayoutCollapsed
+    collapsed: [schema]
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+          create table c (x int);
+          create table t (x int);
+      - name: report
+        input: |
+          select x from t;
+
+  # Boxes with @vis flow tags stay, a consumer goes right of its producers at the median of their rows
+  - name: LayoutRightOfFixedProducers
+    scripts:
+      - name: orders
+        input: |
+          /** @vis flow x=400 y=800 */
+          create table orders (id int);
+      - name: regions
+        input: |
+          /** @vis flow x=400 y=100 */
+          create table regions (id int);
+      - name: report
+        input: |
+          select o.id from orders o, regions r where o.id = r.id;
+
+  # A producer without placed producers goes left of its consumer
+  - name: LayoutLeftOfFixedConsumer
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int);
+      - name: report
+        input: |
+          create table ids (id int);
+          /** @vis flow x=600 y=40 */
+          select id from orders;
+
+  # Two consumers that want the same slot, the second one moves to the nearest free slot
+  - name: LayoutFreeSlot
+    scripts:
+      - name: orders
+        input: |
+          /** @vis flow x=0 y=0 */
+          create table orders (id int);
+      - name: by_id
+        input: |
+          select id from orders;
+      - name: count
+        input: |
+          select count(*) from orders;
+
+  # A box without edges goes below the fixed boxes, at their left edge
+  - name: LayoutBelowFixedBoxes
+    scripts:
+      - name: orders
+        input: |
+          /** @vis flow x=120 y=0 */
+          create table orders (id int);
+          create table regions (id int);
+      - name: report
+        input: |
+          /** @vis flow x=480 y=200 */
+          select 1;
+      - name: alone
+        input: |
+          select 2;

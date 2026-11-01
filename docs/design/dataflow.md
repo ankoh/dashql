@@ -28,8 +28,9 @@ which the scan references stand for, are no dataflow. A relation that a statemen
 creates it in session order has no edge, a run would read it before it is written.
 
 The snapshots in `snapshots/dataflow/` have cases of their own, they describe a session like the planner snapshots
-(`connections`, `catalog`, `scripts`, `stale-prepend`) and expect the statements of every script and the edges
-(`bazel run //snapshots/dataflow:update`).
+(`connections`, `catalog`, `scripts`, `stale-prepend`, and `collapsed` for the scripts whose boxes are collapsed) and
+expect the statements of every script, the box of every script on the canvas (`box: [x, y, width, height]`, see
+Layout) and the edges (`bazel run //snapshots/dataflow:update`).
 
 ## Layout
 
@@ -51,8 +52,8 @@ others. The layout has two levels:
   moved to the nearest free slot.
 
 Boxes that are not fixed snap to an 8px grid. With the default sizes every row center is a multiple of the grid,
-so edges between snapped boxes stay straight. The snapshots in `snapshots/dataflow_layout/` name the boxes and the
-edges between their rows and expect the geometry of every box (`bazel run //snapshots/dataflow_layout:update`).
+so edges between snapped boxes stay straight. The dataflow snapshots lay out their boxes like the first render of
+the canvas: `@vis flow` tags fix boxes, a visualized terminal statement gets its chart.
 
 ## The canvas
 

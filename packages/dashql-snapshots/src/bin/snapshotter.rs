@@ -1,12 +1,11 @@
 //! Regenerates the snapshot files `snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
 //!
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
-//! dataflow, dataflow_layout, completion, formatter, hyper_plan, visualize, diff. An empty filter updates all of them.
+//! dataflow, completion, formatter, hyper_plan, visualize, diff. An empty filter updates all of them.
 //!
 //! The output keeps the format of the checked-in snapshot files (the emitter style of rapidyaml):
 //! - parser, formatter, diff and hyper_plan build new files from the inputs of the templates,
-//! - analyzer, completion, planner, dataflow, dataflow_layout and visualize write the templates back with the results
-//!   appended,
+//! - analyzer, completion, planner, dataflow and visualize write the templates back with the results appended,
 //! - comments of the templates are dropped,
 //! - a blank line separates the cases and no line ends with a space.
 
@@ -27,7 +26,7 @@ use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
 use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
 use dashql_snapshots::encode::visualize::encode_markdown_spec;
-use dashql_snapshots::encode::{analyzer, dataflow, dataflow_layout, diff, encode_location_text, parser, planner, Map};
+use dashql_snapshots::encode::{analyzer, dataflow, diff, encode_location_text, parser, planner, Map};
 use dashql_snapshots::ryml::{self, Node};
 use dashql_snapshots::trim_input;
 use std::fs;
@@ -370,40 +369,8 @@ fn generate_dataflow_snapshots(dir: &Path) -> Result<(), String> {
         for fixture in fixtures.children_mut() {
             println!("  TEST {}", fixture.get("name").and_then(Node::val).unwrap_or(""));
             fixture.remove("expected");
-            let expected = dataflow::encode_dataflow_fixture(&planner::Fixture::from_node(fixture))?;
+            let expected = dataflow::encode_dataflow_fixture(&planner::Fixture::from_node(fixture), &dataflow::collapsed_of(fixture))?;
             fixture.push("expected", expected);
-        }
-        write_snapshot(&out, ryml::emit_root(&template));
-    }
-    Ok(())
-}
-
-fn generate_dataflow_layout_snapshots(dir: &Path) -> Result<(), String> {
-    use dashql_core_view::dataflow_layout::{compute_dataflow_layout, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
-    for path in templates(dir) {
-        let text =
-            fs::read_to_string(&path).map_err(|e| format!("cannot read dataflow layout template {}: {e}", path.display()))?;
-        let mut template = ryml::parse(&text)?.unwrap_or_else(Node::map);
-        let out = output_path(&path);
-        println!("FILE {}", out.display());
-        let fixtures = template.get_mut("dataflow_layout-snapshots").ok_or("missing dataflow_layout-snapshots")?;
-        for fixture in fixtures.children_mut() {
-            println!("  TEST {}", fixture.get("name").and_then(Node::val).unwrap_or(""));
-            fixture.remove("expected");
-            let input = dataflow_layout::LayoutFixture::from_node(fixture)?;
-            let boxes: Vec<DataflowLayoutBox> = input
-                .boxes
-                .iter()
-                .map(|b| DataflowLayoutBox { statements: b.rows, chart_statement: b.chart, collapsed: b.collapsed, fixed: b.fixed })
-                .collect();
-            let edges: Vec<DataflowLayoutEdge> = input
-                .edges
-                .iter()
-                .map(|&(from_box, from_statement, to_box, to_statement)| DataflowLayoutEdge { from_box, from_statement, to_box, to_statement })
-                .collect();
-            let layout = compute_dataflow_layout(&boxes, &edges, &DataflowLayoutConfig::default());
-            let boxes: Vec<_> = layout.iter().map(|g| (g.x, g.y, g.width, g.height)).collect();
-            fixture.push("expected", input.encode(&boxes));
         }
         write_snapshot(&out, ryml::emit_root(&template));
     }
@@ -599,7 +566,7 @@ fn main() -> ExitCode {
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!("Usage: snapshotter --source_dir <dir> [--filter <category>]");
         println!(
-            "Categories: parser, analyzer, planner, dataflow, dataflow_layout, completion, formatter, hyper_plan, visualize, diff. Empty = all."
+            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_plan, visualize, diff. Empty = all."
         );
         return ExitCode::SUCCESS;
     }
@@ -625,12 +592,6 @@ fn main() -> ExitCode {
     }
     if selected("dataflow") {
         if let Err(e) = generate_dataflow_snapshots(&snapshots.join("dataflow")) {
-            println!("ERROR {e}");
-            return ExitCode::FAILURE;
-        }
-    }
-    if selected("dataflow_layout") {
-        if let Err(e) = generate_dataflow_layout_snapshots(&snapshots.join("dataflow_layout")) {
             println!("ERROR {e}");
             return ExitCode::FAILURE;
         }

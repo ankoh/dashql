@@ -12,7 +12,6 @@ snapshot_library(
         "//snapshots/analyzer:files",
         "//snapshots/completion:files",
         "//snapshots/dataflow:files",
-        "//snapshots/dataflow_layout:files",
         "//snapshots/diff:files",
         "//snapshots/formatter:files",
         "//snapshots/parser:files",

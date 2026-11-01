@@ -39,17 +39,3 @@ rust_test(
         "//packages/dashql-snapshots:dashql_snapshots",
     ],
 )
-
-# The dataflow layout snapshots (snapshots/dataflow_layout/*.yaml)
-rust_test(
-    name = "dataflow_layout_snapshot_test",
-    size = "small",
-    srcs = ["tests/dataflow_layout_snapshots.rs"],
-    data = ["//snapshots/dataflow_layout:files"],
-    edition = "2021",
-    use_libtest_harness = False,
-    deps = [
-        ":dashql_core_view",
-        "//packages/dashql-snapshots:dashql_snapshots",
-    ],
-)

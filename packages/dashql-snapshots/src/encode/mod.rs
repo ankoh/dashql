@@ -7,7 +7,6 @@
 pub mod analyzer;
 pub mod completion;
 pub mod dataflow;
-pub mod dataflow_layout;
 pub mod diff;
 pub mod parser;
 pub mod plan_view_model;

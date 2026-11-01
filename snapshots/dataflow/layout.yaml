@@ -1,0 +1,543 @@
+dataflow-snapshots:
+
+  - name: LayoutChain
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, amount int);
+          create table regions (id int);
+          insert into orders values (1, 10);
+      - name: report
+        input: |
+          select sum(amount) as total from orders;
+      - name: chart
+        input: |
+          select total * 2 from :report;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..mount int)"
+            - type: CREATE_TABLE
+              target: regions
+              text: "create tab..s (id int)"
+            - type: INSERT
+              target: orders
+              text: "insert int..es (1, 10)"
+          box: [0,0,280,144]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select sum..rom orders"
+          box: [376,64,280,80]
+        - name: chart
+          statements:
+            - type: SELECT
+              text: "select tot..om :report"
+          box: [752,64,280,80]
+      edges:
+        - from: orders.0
+          to: orders.2
+          kind: table
+          name: orders
+        - from: orders.2
+          to: report.0
+          kind: table
+          name: orders
+        - from: report.0
+          to: chart.0
+          kind: inline
+          name: report
+
+  - name: LayoutChart
+    scripts:
+      - name: sales
+        input: |
+          create table sales (region text, amount int);
+      - name: by_region
+        input: |
+          /** @vis table */
+          select region, sum(amount) as amount from sales group by region;
+      - name: top
+        input: |
+          select * from :by_region;
+    expected:
+      scripts:
+        - name: sales
+          statements:
+            - type: CREATE_TABLE
+              target: sales
+              text: "create tab..mount int)"
+          box: [0,0,280,80]
+        - name: by_region
+          statements:
+            - type: SELECT
+              text: "select reg.. by region"
+          box: [376,0,280,288]
+        - name: top
+          statements:
+            - type: SELECT
+              text: "select * f..:by_region"
+          box: [752,0,280,80]
+      edges:
+        - from: sales.0
+          to: by_region.0
+          kind: table
+          name: sales
+        - from: by_region.0
+          to: top.0
+          kind: inline
+          name: by_region
+
+  - name: LayoutFanout
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int);
+      - name: by_id
+        input: |
+          select id from orders;
+      - name: count
+        input: |
+          select count(*) from orders;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+          box: [0,56,280,80]
+        - name: by_id
+          statements:
+            - type: SELECT
+              text: "select id ..rom orders"
+          box: [376,0,280,80]
+        - name: count
+          statements:
+            - type: SELECT
+              text: "select cou..rom orders"
+          box: [376,112,280,80]
+      edges:
+        - from: orders.0
+          to: by_id.0
+          kind: table
+          name: orders
+        - from: orders.0
+          to: count.0
+          kind: table
+          name: orders
+
+  - name: LayoutLateSource
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, region int);
+      - name: filtered
+        input: |
+          select id, region from orders where id > 1;
+      - name: regions
+        input: |
+          create table regions (id int, name text);
+      - name: report
+        input: |
+          select f.id, r.name from :filtered f, regions r where f.region = r.id;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..egion int)"
+          box: [0,0,280,80]
+        - name: filtered
+          statements:
+            - type: SELECT
+              text: "select id,..ere id > 1"
+          box: [376,0,280,80]
+        - name: regions
+          statements:
+            - type: CREATE_TABLE
+              target: regions
+              text: "create tab..name text)"
+          box: [376,112,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select f.i..ion = r.id"
+          box: [752,0,280,80]
+      edges:
+        - from: orders.0
+          to: filtered.0
+          kind: table
+          name: orders
+        - from: filtered.0
+          to: report.0
+          kind: inline
+          name: filtered
+        - from: regions.0
+          to: report.0
+          kind: table
+          name: regions
+
+  - name: LayoutCrossing
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: from_a
+        input: |
+          select x from a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [0,144,280,80]
+        - name: from_b
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [376,144,280,80]
+        - name: from_a
+          statements:
+            - type: SELECT
+              text: "select x from a"
+          box: [376,0,280,80]
+      edges:
+        - from: a.0
+          to: from_a.0
+          kind: table
+          name: a
+        - from: b.0
+          to: from_b.0
+          kind: table
+          name: b
+
+  - name: LayoutCycle
+    scripts:
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :b"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [376,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: invalid
+          name: a
+        - from: b.0
+          to: a.0
+          kind: inline
+          name: b
+
+  - name: LayoutPartsAndIsolatedBoxes
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: from_a
+        input: |
+          select x from a;
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: alone_1
+        input: |
+          select 1;
+          select 2;
+      - name: alone_2
+        input: |
+          select 3;
+      - name: alone_3
+        input: |
+          select 4;
+      - name: alone_4
+        input: |
+          select 5;
+      - name: alone_5
+        input: |
+          select 6;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [0,0,280,80]
+        - name: from_a
+          statements:
+            - type: SELECT
+              text: "select x from a"
+          box: [376,0,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [0,144,280,80]
+        - name: from_b
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [376,144,280,80]
+        - name: alone_1
+          statements:
+            - type: SELECT
+              text: "select 1"
+            - type: SELECT
+              text: "select 2"
+          box: [0,288,280,112]
+        - name: alone_2
+          statements:
+            - type: SELECT
+              text: "select 3"
+          box: [312,288,280,80]
+        - name: alone_3
+          statements:
+            - type: SELECT
+              text: "select 4"
+          box: [624,288,280,80]
+        - name: alone_4
+          statements:
+            - type: SELECT
+              text: "select 5"
+          box: [936,288,280,80]
+        - name: alone_5
+          statements:
+            - type: SELECT
+              text: "select 6"
+          box: [0,432,280,80]
+      edges:
+        - from: a.0
+          to: from_a.0
+          kind: table
+          name: a
+        - from: b.0
+          to: from_b.0
+          kind: table
+          name: b
+
+  - name: LayoutCollapsed
+    collapsed: [schema]
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+          create table c (x int);
+          create table t (x int);
+      - name: report
+        input: |
+          select x from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+            - type: CREATE_TABLE
+              target: c
+              text: "create tab.. c (x int)"
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (x int)"
+          box: [0,40,280,32]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select x from t"
+          box: [376,0,280,80]
+      edges:
+        - from: schema.3
+          to: report.0
+          kind: table
+          name: t
+
+  - name: LayoutRightOfFixedProducers
+    scripts:
+      - name: orders
+        input: |
+          /** @vis flow x=400 y=800 */
+          create table orders (id int);
+      - name: regions
+        input: |
+          /** @vis flow x=400 y=100 */
+          create table regions (id int);
+      - name: report
+        input: |
+          select o.id from orders o, regions r where o.id = r.id;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+          box: [400,800,280,80]
+        - name: regions
+          statements:
+            - type: CREATE_TABLE
+              target: regions
+              text: "create tab..s (id int)"
+          box: [400,100,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select o.i...id = r.id"
+          box: [776,448,280,80]
+      edges:
+        - from: orders.0
+          to: report.0
+          kind: table
+          name: orders
+        - from: regions.0
+          to: report.0
+          kind: table
+          name: regions
+
+  - name: LayoutLeftOfFixedConsumer
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int);
+      - name: report
+        input: |
+          create table ids (id int);
+          /** @vis flow x=600 y=40 */
+          select id from orders;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+          box: [224,72,280,80]
+        - name: report
+          statements:
+            - type: CREATE_TABLE
+              target: ids
+              text: "create tab..s (id int)"
+            - type: SELECT
+              text: "select id ..rom orders"
+          box: [600,40,280,112]
+      edges:
+        - from: orders.0
+          to: report.1
+          kind: table
+          name: orders
+
+  - name: LayoutFreeSlot
+    scripts:
+      - name: orders
+        input: |
+          /** @vis flow x=0 y=0 */
+          create table orders (id int);
+      - name: by_id
+        input: |
+          select id from orders;
+      - name: count
+        input: |
+          select count(*) from orders;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+          box: [0,0,280,80]
+        - name: by_id
+          statements:
+            - type: SELECT
+              text: "select id ..rom orders"
+          box: [376,0,280,80]
+        - name: count
+          statements:
+            - type: SELECT
+              text: "select cou..rom orders"
+          box: [376,96,280,80]
+      edges:
+        - from: orders.0
+          to: by_id.0
+          kind: table
+          name: orders
+        - from: orders.0
+          to: count.0
+          kind: table
+          name: orders
+
+  - name: LayoutBelowFixedBoxes
+    scripts:
+      - name: orders
+        input: |
+          /** @vis flow x=120 y=0 */
+          create table orders (id int);
+          create table regions (id int);
+      - name: report
+        input: |
+          /** @vis flow x=480 y=200 */
+          select 1;
+      - name: alone
+        input: |
+          select 2;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+            - type: CREATE_TABLE
+              target: regions
+              text: "create tab..s (id int)"
+          box: [120,0,280,112]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select 1"
+          box: [480,200,280,80]
+        - name: alone
+          statements:
+            - type: SELECT
+              text: "select 2"
+          box: [120,312,280,80]
+      edges: []
