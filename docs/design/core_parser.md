@@ -306,8 +306,12 @@ a block comment, or a run of line comments on consecutive lines. Blocks are spli
 first text is a known tag, `@<tag>`. The known tags are `vis`, `board`, `flow`, `param`, `manual` and `end`
 (`COMMENT_TAGS`), any other `@word` (`@todo`, `@see`) is ordinary text. A tag runs to the next tag
 line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
-closes the last tag, in a run of line comments the end of the run. Text before the first tag of a block
-comment is an ordinary block. Older scripts close the last region of line comments with `-- @end`, the
+closes the last tag, in a run of line comments the end of the run. Tags whose content is one line end at
+their line if it has content: `@board` and `@flow` with their args, `@vis table` (and the `@vis board`, `card`
+and `flow` of older scripts) and `@param :name = <literal>`. The Javadoc `@param x ...`, `@vis vegalite`,
+`@vis markdown` and the free text of `@manual` run to the next tag. Text before the first tag of a block
+comment and the lines after a tag that ends at its line are ordinary blocks, the description of the
+statement. Older scripts close the last region of line comments with `-- @end`, the
 line is still accepted and ends the region, comments after it are ordinary comments. DashQL writes
 Javadoc-style comments (see `vis_comments.md`).
 

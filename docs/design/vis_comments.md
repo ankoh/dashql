@@ -25,7 +25,8 @@ SELECT region, revenue FROM sales;
 
 The tags are comment tags (see `core_parser.md`): a line whose first text is `@vis`, `@board` or `@flow`
 starts a tag that runs to the next tag line or the end of the comment, like the block tags of Javadoc, so one
-comment can hold several tags.
+comment can hold several tags. `@vis table`, `@board` and `@flow` with content on their line end at their line,
+the lines after them are ordinary text.
 
 | Tag | Content |
 |---|---|
@@ -59,7 +60,8 @@ A statement has at most one renderer (`@vis vegalite`, `markdown` or `table`) an
 The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. A `@flow` tag may
 annotate any statement, it places the whole script; see Dataflow placement.
 
-Like in Javadoc, the text before the first tag describes the statement, it is an ordinary comment. DashQL
+Like in Javadoc, the text before the first tag describes the statement, it is an ordinary comment, and so is
+text after a tag that ends at its line. DashQL
 writes the Javadoc-style form, but any block comment and runs of line comments work too. The last
 tag of a run of line comments ends with the run; older scripts close it with `-- @end`, which is still
 accepted:

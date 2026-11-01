@@ -530,6 +530,9 @@ fn rewrite_vegalite_puts_the_description_on_top() {
         // A description below the tags moves on top of them
         ("/** @param :min = 10 */\n/* Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
         ("/* @flow x=1 y=2 */\n-- Monthly revenue\nselect 1".to_string(), format!("/**\n * Monthly revenue\n *\n * {vis}\n * @flow x=1 y=2\n */\nselect 1")),
+        // Text after a tag that ends at its line is description, e.g. after the value of a parameter
+        ("/* @param :min = 10\n   Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
+        ("-- @param :min = 10\n-- Monthly revenue\nselect 1".to_string(), format!("/**\n * Monthly revenue\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
         // The descriptions keep their order, the blank lines between them go
         ("-- Monthly revenue\n\n/* @vis table */\n/* by region */\nselect 1".to_string(), format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1")),
     ];
@@ -541,6 +544,21 @@ fn rewrite_vegalite_puts_the_description_on_top() {
         parsed_script("select 1; -- one\n-- Two.\nselect 2").rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
         format!("select 1; -- one\n/**\n * Two.\n *\n * {vis}\n */\nselect 2")
     );
+}
+
+#[test]
+fn param_values_end_at_their_line() {
+    // The text after the value is a description, not a part of the literal
+    for text in ["/* @param :min = 10\n   Minimum revenue. */\nselect :min", "-- @param :min = 10\n-- Minimum revenue\nselect :min"] {
+        let catalog = Catalog::new();
+        let mut script = Script::new(&catalog);
+        script.replace_text(text);
+        script.analyze(&catalog, true).unwrap();
+        let analyzed = script.analyzed.as_ref().unwrap();
+        assert_eq!(analyzed.param_values.len(), 1, "{text}");
+        assert!(analyzed.param_values[0].literal.is_some(), "{text}");
+        assert!(analyzed.errors.is_empty(), "{text}");
+    }
 }
 
 #[test]

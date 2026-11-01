@@ -6,9 +6,11 @@
 //! Comments are split into tagged blocks at every line whose first text is a known tag, `@<tag>`
 //! (see [`COMMENT_TAGS`]). Any other `@word` is ordinary text. A tag runs to the next tag line or to
 //! the end of the comment, like the block tags of Javadoc: in a block comment the comment end closes the
-//! last tag, in a run of line comments the end of the run. Text before the first tag of a block comment
-//! is an ordinary block. Older scripts close the last region of line comments with `-- @end`, the line is
-//! still accepted and ends the region, comments after it are ordinary comments.
+//! last tag, in a run of line comments the end of the run. Tags whose content is one line end at their line
+//! if it has content (see [`Grouper::ends_at_its_line`]): the args of `@board`, `@flow` and `@vis table`, and
+//! the value of `@param :name = <literal>`. Text before the first tag of a block comment and the lines after a
+//! tag that ends at its line are ordinary blocks. Older scripts close the last region of line comments with
+//! `-- @end`, the line is still accepted and ends the region, comments after it are ordinary comments.
 //!
 //! The content lines omit comment markers, block comment gutters (` * `), tag lines and leading or
 //! trailing empty lines. Text following the opening tag on the same line is content. The parser does
@@ -161,6 +163,29 @@ impl<'a> Grouper<'a> {
             name: Range::new(name_begin, name_end),
             rest: self.trim(Range::new(name_end, line.end)),
         })
+    }
+
+    /// Does a tag end at its line? Tags whose content is one line end there if their line has content, the lines
+    /// after them are ordinary text: `@board` and `@flow` with their args, `@vis table` and the `@vis board`,
+    /// `@vis card` and `@vis flow` of older scripts, and `@param :name = <literal>`. The Javadoc `@param x ...`,
+    /// `@vis vegalite`, `@vis markdown` and the free text of `@manual` run to the next tag.
+    fn ends_at_its_line(&self, tag: &Tag) -> bool {
+        let rest = self.slice(tag.rest);
+        match self.slice(tag.name) {
+            _ if rest.is_empty() => false,
+            b"board" | b"flow" => true,
+            b"param" => rest.starts_with(b":"),
+            b"vis" => {
+                let kind = rest.split(|c| is_horizontal_space(*c)).next().unwrap_or_default();
+                matches!(kind, b"table" | b"board" | b"card" | b"flow")
+            }
+            _ => false,
+        }
+    }
+
+    /// The offset of the line break after an offset, `limit` if there is none before it
+    fn line_end(&self, offset: usize, limit: usize) -> usize {
+        self.text[offset..limit].iter().position(|&c| c == b'\n').map_or(limit, |i| offset + i)
     }
 
     /// Is a comment the first text on its line?
@@ -344,9 +369,21 @@ impl<'a> Grouper<'a> {
                 None => (lines.len(), comment.end() as usize),
             };
             let name = tag.name;
-            lines[line] = tag.rest;
-            let span = Range::new(span_begin, span_end).span();
-            self.emit_span(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, span, name, &lines[line..lines_end]);
+            let rest = tag.rest;
+            // The lines after a tag that ends at its line are ordinary text
+            let after = lines[line + 1..lines_end].iter().any(|l| !l.is_empty());
+            let (tag_lines_end, tag_end) = if after && self.ends_at_its_line(tag) {
+                (line + 1, self.line_end(rest.end, span_end))
+            } else {
+                (lines_end, span_end)
+            };
+            lines[line] = rest;
+            let span = Range::new(span_begin, tag_end).span();
+            self.emit_span(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, span, name, &lines[line..tag_lines_end]);
+            if tag_end < span_end {
+                let span = Range::new(tag_end, span_end).span();
+                self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), &lines[tag_lines_end..lines_end]);
+            }
             span_begin = span_end;
         }
     }
@@ -367,9 +404,11 @@ impl<'a> Grouper<'a> {
                 i += 1;
                 continue;
             }
-            // A region ends at the next tag line, at an end line or at the end of the run
+            // A region ends at the next tag line, at an end line or at the end of the run, a tag that ends at its
+            // line at the end line that follows it
             let mut close = i + 1;
             let mut closed_by_end = false;
+            let ends_at_its_line = self.ends_at_its_line(&tag);
             while close < run_end {
                 if let Some(next) = self.read_tag(self.trim(line(close))) {
                     if !self.is_end(&next) {
@@ -379,6 +418,9 @@ impl<'a> Grouper<'a> {
                         closed_by_end = true;
                         break;
                     }
+                }
+                if ends_at_its_line {
+                    break;
                 }
                 close += 1;
             }
@@ -571,5 +613,51 @@ mod tests {
         assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::COMMENT, "")]);
         assert_eq!(block_texts(text, &blocks), vec!["-- @param Revenue.\n-- @end", "-- note"]);
         assert!(blocks.warnings.is_empty());
+    }
+
+    #[test]
+    fn ends_one_line_tags_at_their_line() {
+        // The lines after a value, args or `@vis table` are ordinary text
+        let text = "/* @param :min = 10\n   Monthly revenue.\n   @board width=6\n   per region\n   @vis table\n   note */";
+        let blocks = group(text);
+        assert_eq!(
+            tags(text, &blocks),
+            vec![
+                (CommentBlockType::DASHQL_TAG, "param"),
+                (CommentBlockType::COMMENT, ""),
+                (CommentBlockType::DASHQL_TAG, "board"),
+                (CommentBlockType::COMMENT, ""),
+                (CommentBlockType::DASHQL_TAG, "vis"),
+                (CommentBlockType::COMMENT, ""),
+            ]
+        );
+        assert_eq!(line_texts(text, &blocks, 0), vec![":min = 10"]);
+        assert_eq!(line_texts(text, &blocks, 1), vec!["Monthly revenue."]);
+        assert_eq!(line_texts(text, &blocks, 5), vec!["note"]);
+        assert_eq!(block_texts(text, &blocks).concat(), text);
+        let text = "-- @param :min = 10\n-- Monthly revenue\n-- @vis table\n-- @end\n-- @flow x=1 y=2\nselect 1";
+        let blocks = group(text);
+        assert_eq!(
+            tags(text, &blocks),
+            vec![
+                (CommentBlockType::DASHQL_TAG, "param"),
+                (CommentBlockType::COMMENT, ""),
+                (CommentBlockType::DASHQL_TAG, "vis"),
+                (CommentBlockType::DASHQL_TAG, "flow"),
+            ]
+        );
+        assert_eq!(block_texts(text, &blocks), vec!["-- @param :min = 10", "-- Monthly revenue", "-- @vis table\n-- @end", "-- @flow x=1 y=2"]);
+        assert!(blocks.warnings.is_empty());
+        // Multi-line tags and tags without content on their line run to the next tag
+        for (text, last) in [
+            ("/* @param Revenue.\n   per region */", "per region"),
+            ("/* @vis markdown\n   ### {{a}} */", "### {{a}}"),
+            ("/* @manual\n   expensive */", "expensive"),
+            ("/* @board\n   width=6 */", "width=6"),
+        ] {
+            let blocks = group(text);
+            assert_eq!(blocks.blocks.len(), 1, "{text}");
+            assert_eq!(line_texts(text, &blocks, 0).last().map(String::as_str), Some(last), "{text}");
+        }
     }
 }
