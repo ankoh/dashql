@@ -100,15 +100,31 @@ export function scriptConnectionOf(connection: ConnectionState): ScriptConnectio
     };
 }
 
-/// The scripts of a session in feed order
-function scriptsInFeedOrder(state: SessionScripts): ScriptData[] {
-    return state.scriptOrder.flatMap(name => state.scripts[state.scriptRefs[name]?.scriptId] ?? []);
+/// The scripts of a session in session order, the order of the feed
+export function orderedSessionScripts(state: SessionScripts): ScriptData[] {
+    return (state.scriptOrder ?? []).flatMap(name => state.scripts[state.scriptRefs[name]?.scriptId] ?? []);
+}
+
+/// What the views that the core derives from a session read: the names, connections and analyses of its scripts.
+/// The dataflow, the inputs and the checks of script references derive again when it changes.
+export function sessionAnalysisSignature(state: SessionScripts): string {
+    return orderedSessionScripts(state).map(script => [
+        script.scriptKey,
+        script.fileName,
+        script.connection.connectionId,
+        script.connection.local ? 'L' : 'R',
+        script.scriptSession.getTextVersion(),
+        // The analyzed text, not the cursor: the views read the text and its analysis only
+        script.editorUpdate?.textVersion ?? '',
+        script.editorUpdate?.catalogRevision ?? '',
+        script.editorUpdate?.analysisAvailable ? 'A' : '',
+    ].join('\u0001')).join('\u0002');
 }
 
 /// The ids of the connections that the scripts of a session run on, in the order the scripts first
 /// use them. A session run takes exactly these connections.
 export function scriptConnectionIds(state: SessionScripts): string[] {
-    return [...new Set(scriptsInFeedOrder(state).map(script => script.connection.connectionId))];
+    return [...new Set(orderedSessionScripts(state).map(script => script.connection.connectionId))];
 }
 
 /// The ids of the connections that a session uses: the connections of its scripts and the pending
@@ -126,7 +142,7 @@ export function sessionConnectionIds(state: SessionScripts): string[] {
 /// script that of the script after it. An appended script takes the pending connection, otherwise the
 /// connection of the last script.
 export function newScriptConnection(state: SessionScripts, index: number | null): ScriptConnection | null {
-    const scripts = scriptsInFeedOrder(state);
+    const scripts = orderedSessionScripts(state);
     if (index == null || scripts.length === 0) {
         return state.pendingConnection ?? scripts[scripts.length - 1]?.connection ?? null;
     }

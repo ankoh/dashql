@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 
 import { scriptDisplayName } from './script_types.js';
-import type { ScriptData, SessionScripts } from './session_scripts.js';
+import { orderedSessionScripts, type SessionScripts } from './session_scripts.js';
 
 /// The results of the scripts of every session, by session id
 const RESULTS = new Map<string, core.DashQLScriptResults>();
@@ -33,11 +33,7 @@ export function publishScriptResults(prev: SessionScripts, next: SessionScripts)
     try {
         const results = sessionScriptResults(next);
         if (results == null) return next;
-        const scripts: ScriptData[] = [];
-        for (const file of next.scriptOrder) {
-            const script = next.scripts[next.scriptRefs[file]?.scriptId ?? -1];
-            if (script != null) scripts.push(script);
-        }
+        const scripts = orderedSessionScripts(next);
         const outdated = results.publish(scripts.map(script => ({ name: scriptDisplayName(script.fileName), session: script.scriptSession })));
         if (outdated.length === 0) return next;
         const marked = { ...next.scripts };

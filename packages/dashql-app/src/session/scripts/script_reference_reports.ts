@@ -1,5 +1,5 @@
 import { computeScriptReferenceReports, type ScriptReferenceReport } from './script_reference_check.js';
-import type { SessionScripts } from './session_scripts.js';
+import { sessionAnalysisSignature, type SessionScripts } from './session_scripts.js';
 
 function sameReport(l: ScriptReferenceReport, r: ScriptReferenceReport): boolean {
     return l.textVersion === r.textVersion
@@ -19,20 +19,6 @@ interface CachedCheck {
 /// The last check of every session, by session id
 const CHECKS = new Map<string, CachedCheck>();
 
-/// What the check of a session depends on: the names, connections and analyses of its scripts
-function checkSignature(session: SessionScripts): string {
-    return session.scriptOrder.map(file => session.scripts[session.scriptRefs[file]?.scriptId ?? -1]).filter(script => script != null).map(script => [
-        script.scriptKey,
-        script.fileName,
-        script.connection.connectionId,
-        script.connection.local ? 'L' : 'R',
-        script.scriptSession.getTextVersion(),
-        // The analyzed text, not the cursor: the check reads the text and its analysis only
-        script.editorUpdate?.textVersion ?? '',
-        script.editorUpdate?.analysisAvailable ? 'A' : '',
-    ].join('\u0001')).join('\u0002');
-}
-
 /// The checked script references of the scripts of a session, by script key. Checks again only when a name, a
 /// connection or an analysis of a script changed, a report that did not change keeps its identity.
 export function checkSessionScriptReferences(session: SessionScripts): Map<number, ScriptReferenceReport> {
@@ -51,7 +37,7 @@ function checkSessionScriptReferencesOrThrow(session: SessionScripts): Map<numbe
     if (session.scriptOrder == null || session.scriptOrder.length === 0 || typeof session.instance?.checkScriptReferences !== 'function') {
         return NO_REPORTS;
     }
-    const signature = checkSignature(session);
+    const signature = sessionAnalysisSignature(session);
     const cached = CHECKS.get(session.sessionId);
     if (cached?.signature === signature) return cached.reports;
     const reports = computeScriptReferenceReports(session);

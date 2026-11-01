@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 
 import { scriptDisplayName } from '../scripts/script_types.js';
 import { formattingDialectForConnector } from '../scripts/script_format.js';
-import type { ScriptData, SessionScripts } from '../scripts/session_scripts.js';
+import { orderedSessionScripts, sessionAnalysisSignature, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
 
 const SqlTypeKind = core.buffers.analyzer.SqlTypeKind;
 const EdgeKind = core.buffers.execution.DataflowEdgeKind;
@@ -53,17 +53,6 @@ export interface SessionInput {
 }
 
 const NO_INPUTS: SessionInput[] = [];
-
-/// The scripts of a session in session order
-export function orderedSessionScripts(session: SessionScripts): ScriptData[] {
-    const out: ScriptData[] = [];
-    for (const file of session.scriptOrder ?? []) {
-        const ref = session.scriptRefs[file];
-        const script = ref == null ? undefined : session.scripts[ref.scriptId];
-        if (script != null) out.push(script);
-    }
-    return out;
-}
 
 /// The request of the core for the scripts of a session, connections in the order of their first script. A
 /// connection speaks the dialect of its connector, the planner prints the values of inputs in it.
@@ -133,16 +122,6 @@ interface CachedInputs {
 /// The last inputs of every session, by session id
 const INPUTS = new Map<string, CachedInputs>();
 
-/// What the inputs of a session depend on: the scripts and their analyses
-function inputsSignature(session: SessionScripts): string {
-    return orderedSessionScripts(session).map(script => [
-        script.scriptKey,
-        script.scriptSession.getTextVersion(),
-        script.editorUpdate?.textVersion ?? '',
-        script.editorUpdate?.analysisAvailable ? 'A' : '',
-    ].join('\u0001')).join('\u0002');
-}
-
 function sameInputs(l: SessionInput[], r: SessionInput[]): boolean {
     return JSON.stringify(l) === JSON.stringify(r);
 }
@@ -152,7 +131,7 @@ function sameInputs(l: SessionInput[], r: SessionInput[]): boolean {
 export function deriveSessionInputs(session: SessionScripts): SessionInput[] {
     // Sessions without the core, e.g. of tests, have no inputs
     if (session.scriptOrder == null || session.scriptOrder.length === 0 || typeof session.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
-    const signature = inputsSignature(session);
+    const signature = sessionAnalysisSignature(session);
     const cached = INPUTS.get(session.sessionId);
     if (cached?.signature === signature) return cached.inputs;
     let inputs: SessionInput[];

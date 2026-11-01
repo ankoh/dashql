@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 
 import { scriptDisplayName } from '../scripts/script_types.js';
-import type { ScriptData, SessionScripts } from '../scripts/session_scripts.js';
+import { orderedSessionScripts, sessionAnalysisSignature, type SessionScripts } from '../scripts/session_scripts.js';
 import { readSessionInputType, sessionPlanRequest, type SessionInputType } from '../inputs/session_inputs.js';
 
 const StatementType = core.buffers.parser.StatementType;
@@ -129,21 +129,10 @@ function edgeKey(from: DataflowPort, to: DataflowPort, kind: DataflowEdgeKind, n
     return `${from.scriptKey}.${from.statementId}>${to.scriptKey}.${to.statementId}:${kind}:${name}`;
 }
 
-/// The scripts of a session in session order
-function orderedScripts(session: SessionScripts): ScriptData[] {
-    const out: ScriptData[] = [];
-    for (const file of session.scriptOrder) {
-        const ref = session.scriptRefs[file];
-        const script = ref == null ? undefined : session.scripts[ref.scriptId];
-        if (script != null) out.push(script);
-    }
-    return out;
-}
-
 /// Derive the dataflow of the scripts of a session with the core. A script without a current analysis has no
 /// statements and no edges.
 export function computeDataflowGraph(session: SessionScripts): DataflowGraph {
-    const scripts = orderedScripts(session);
+    const scripts = orderedSessionScripts(session);
     if (scripts.length === 0) return EMPTY_GRAPH;
     const dataflow: core.buffers.execution.SessionDataflowT = session.instance.deriveSessionDataflow(
         sessionPlanRequest(scripts, scripts.map(script => script.fileName)),
@@ -263,20 +252,6 @@ interface CachedGraph {
 /// The last dataflow of every session, by session id
 const GRAPHS = new Map<string, CachedGraph>();
 
-/// What the dataflow of a session depends on: the names, connections and analyses of its scripts
-function graphSignature(session: SessionScripts): string {
-    return orderedScripts(session).map(script => [
-        script.scriptKey,
-        script.fileName,
-        script.connection.connectionId,
-        script.connection.local ? 'L' : 'R',
-        script.scriptSession.getTextVersion(),
-        script.editorUpdate?.textVersion ?? '',
-        script.editorUpdate?.catalogRevision ?? '',
-        script.editorUpdate?.analysisAvailable ? 'A' : '',
-    ].join('\u0001')).join('\u0002');
-}
-
 /// The dataflow of the scripts of a session. Derives it again only when a name, a connection or an analysis of a
 /// script changed, see `mergeDataflowGraph` for what stays.
 export function deriveDataflowGraph(session: SessionScripts): DataflowGraph {
@@ -284,7 +259,7 @@ export function deriveDataflowGraph(session: SessionScripts): DataflowGraph {
     if (session.scriptOrder == null || session.scriptOrder.length === 0 || typeof session.instance?.deriveSessionDataflow !== 'function') {
         return EMPTY_GRAPH;
     }
-    const signature = graphSignature(session);
+    const signature = sessionAnalysisSignature(session);
     const cached = GRAPHS.get(session.sessionId);
     if (cached?.signature === signature) return cached.graph;
     let graph: DataflowGraph;

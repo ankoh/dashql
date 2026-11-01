@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 
 import { sessionPlanRequest } from '../inputs/session_inputs.js';
-import type { ScriptData, SessionScripts } from './session_scripts.js';
+import { orderedSessionScripts, type SessionScripts } from './session_scripts.js';
 
 const NONE = 0xFFFFFFFF;
 
@@ -39,21 +39,10 @@ export interface ScriptReferenceReport {
     marks: ScriptReferenceMark[];
 }
 
-/// The scripts of a session in session order
-function orderedScripts(session: SessionScripts): ScriptData[] {
-    const out: ScriptData[] = [];
-    for (const file of session.scriptOrder) {
-        const ref = session.scriptRefs[file];
-        const script = ref == null ? undefined : session.scripts[ref.scriptId];
-        if (script != null) out.push(script);
-    }
-    return out;
-}
-
 /// Check the script references of every script of a session, by script key. A script whose analysis is not current
 /// with its text has no report.
 export function computeScriptReferenceReports(session: SessionScripts): Map<number, ScriptReferenceReport> {
-    const scripts = orderedScripts(session);
+    const scripts = orderedSessionScripts(session);
     const reports = new Map<number, ScriptReferenceReport>();
     if (scripts.length === 0) return reports;
     const check: core.buffers.execution.ScriptReferenceCheckT = session.instance.checkScriptReferences(
