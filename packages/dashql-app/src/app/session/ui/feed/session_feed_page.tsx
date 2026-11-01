@@ -36,10 +36,10 @@ import type { RenameDraftReferences } from '../../scripts/script_rename.js';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const CloseIcon = SymbolIcon('x_16');
-// The views of the session view switch, the 24px octicons drawn at the size of the switch
-const FeedViewIcon = SymbolIcon('rows');
-const DashboardViewIcon = SymbolIcon('dashboard_24');
-const DataflowViewIcon = SymbolIcon('workflow_24');
+// The views of the session view switch, octicons
+const FeedViewIcon = SymbolIcon('rows_16');
+const DashboardViewIcon = SymbolIcon('dashboard_16');
+const DataflowViewIcon = SymbolIcon('workflow_16');
 
 export interface SessionFeedPageDependencies {
     SessionFeed: typeof SessionFeed;
@@ -185,8 +185,9 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         {views.map(([view, label, Icon]) => (
                             <dependencies.SegmentedControl.IconButton
                                 key={view}
+                                className={styles.view_switch_button}
                                 aria-label={label}
-                                icon={<Icon size={16} />}
+                                icon={<Icon size={14} />}
                                 selected={activeView === view}
                             />
                         ))}

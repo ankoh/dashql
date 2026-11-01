@@ -87,6 +87,15 @@
     flex-shrink: 0;
 }
 
+/* The icons of the view switch are muted like the leading visuals of segmented controls, the current view is not */
+.view_bar .view_switch_button {
+    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+}
+
+.view_bar .view_switch_button[aria-current='true'] {
+    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+}
+
 .view_bar > [aria-label='Session view'] {
     flex-shrink: 0;
 }
