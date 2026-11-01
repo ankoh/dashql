@@ -263,9 +263,9 @@ pub fn parse_sql_type(text: &str) -> Option<SqlType> {
     }
 }
 
-/// The name of an interval field
-fn interval_fields(fields: IntervalTypeEnum) -> &'static str {
-    match fields {
+/// The keywords of interval fields, `day` or `day to second`
+pub fn interval_keyword(fields: IntervalTypeEnum) -> Option<&'static str> {
+    Some(match fields {
         IntervalTypeEnum::YEAR => "year",
         IntervalTypeEnum::MONTH => "month",
         IntervalTypeEnum::DAY => "day",
@@ -279,8 +279,8 @@ fn interval_fields(fields: IntervalTypeEnum) -> &'static str {
         IntervalTypeEnum::HOUR_TO_MINUTE => "hour to minute",
         IntervalTypeEnum::HOUR_TO_SECOND => "hour to second",
         IntervalTypeEnum::MINUTE_TO_SECOND => "minute to second",
-        _ => "",
-    }
+        _ => return None,
+    })
 }
 
 fn with_length(f: &mut fmt::Formatter<'_>, name: &str, length: Option<u32>) -> fmt::Result {
@@ -321,7 +321,7 @@ impl fmt::Display for SqlType {
             SqlTypeKind::Interval { fields, precision } => {
                 f.write_str("interval")?;
                 if let Some(fields) = fields {
-                    write!(f, " {}", interval_fields(*fields))?;
+                    write!(f, " {}", interval_keyword(*fields).unwrap_or(""))?;
                 }
                 if let Some(precision) = precision {
                     write!(f, "({precision})")?;

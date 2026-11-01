@@ -13,7 +13,7 @@
 //! several units or without one, `interval '1 day 2 hours'` or `interval '3 days'`, is no literal: Trino has no form of
 //! it, and DashQL doesn't read the text of intervals.
 
-use crate::analyzer::sql_types::{generic_kind, read_sql_type};
+use crate::analyzer::sql_types::{generic_kind, interval_keyword, read_sql_type};
 use crate::analyzer::{SqlType, SqlTypeKind};
 use crate::formatter::Formatter;
 use crate::utils::{quote_string_literal, unquote_string_literal};
@@ -146,18 +146,12 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
 }
 
 /// The units of an interval literal
-const INTERVAL_UNITS: [(&str, IntervalTypeEnum); 6] = [
-    ("year", IntervalTypeEnum::YEAR),
-    ("month", IntervalTypeEnum::MONTH),
-    ("day", IntervalTypeEnum::DAY),
-    ("hour", IntervalTypeEnum::HOUR),
-    ("minute", IntervalTypeEnum::MINUTE),
-    ("second", IntervalTypeEnum::SECOND),
-];
+const INTERVAL_UNITS: [IntervalTypeEnum; 6] =
+    [IntervalTypeEnum::YEAR, IntervalTypeEnum::MONTH, IntervalTypeEnum::DAY, IntervalTypeEnum::HOUR, IntervalTypeEnum::MINUTE, IntervalTypeEnum::SECOND];
 
 /// The keyword of the unit of an interval literal, None for ranges like `day to second`
 fn interval_unit(unit: IntervalTypeEnum) -> Option<&'static str> {
-    INTERVAL_UNITS.iter().find(|(_, u)| *u == unit).map(|(keyword, _)| *keyword)
+    INTERVAL_UNITS.contains(&unit).then(|| interval_keyword(unit)).flatten()
 }
 
 /// Is the text the amount of an interval literal of a unit? An integer, seconds may have a fraction, `1.5`.
@@ -242,7 +236,7 @@ impl SqlLiteral {
                 let mut words = value.split_whitespace();
                 let (Some(amount), Some(unit), None) = (words.next(), words.next(), words.next()) else { return Err(invalid()) };
                 let unit = unit.to_ascii_lowercase();
-                let Some((keyword, _)) = INTERVAL_UNITS.iter().find(|(keyword, _)| *keyword == unit) else { return Err(invalid()) };
+                let Some(keyword) = INTERVAL_UNITS.into_iter().filter_map(interval_keyword).find(|keyword| *keyword == unit) else { return Err(invalid()) };
                 SqlLiteral::parse(&format!("interval {} {keyword}", quote_string_literal(amount))).map_err(|_| invalid())
             }
             _ => string(),

@@ -1012,23 +1012,10 @@ impl<'a> Formatter<'a> {
         if node.node_type() != NodeType::ENUM_SQL_INTERVAL_TYPE {
             return self.format_unimplemented(node);
         }
-        let text = match IntervalType(value_u8(node)) {
-            IntervalType::YEAR => "year",
-            IntervalType::MONTH => "month",
-            IntervalType::DAY => "day",
-            IntervalType::HOUR => "hour",
-            IntervalType::MINUTE => "minute",
-            IntervalType::SECOND | IntervalType::INTERVAL_SECOND => "second",
-            IntervalType::YEAR_TO_MONTH => "year to month",
-            IntervalType::DAY_TO_HOUR => "day to hour",
-            IntervalType::DAY_TO_MINUTE => "day to minute",
-            IntervalType::DAY_TO_SECOND => "day to second",
-            IntervalType::HOUR_TO_MINUTE => "hour to minute",
-            IntervalType::HOUR_TO_SECOND => "hour to second",
-            IntervalType::MINUTE_TO_SECOND => "minute to second",
-            _ => return self.format_unimplemented(node),
-        };
-        self.fmt.text(text)
+        match crate::analyzer::sql_types::interval_keyword(IntervalType(value_u8(node))) {
+            Some(text) => self.fmt.text(text),
+            None => self.format_unimplemented(node),
+        }
     }
 
     /// The type of `interval '1' day` is the interval qualifier alone, a type name needs the keyword
