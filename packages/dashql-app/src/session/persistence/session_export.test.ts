@@ -33,7 +33,7 @@ describe('V2 session export', () => {
         input.file('attachments/2_payload.bin', bytes);
         const backend = new SessionTestBackend();
         await importSessionFromZip(await input.generateAsync({ type: 'blob' }), backend);
-        expect(await backend.listDataFiles(TEST_SESSION_ID)).toEqual([{ name: '2_payload.bin', sizeBytes: bytes.length }]);
+        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: '2_payload.bin', sizeBytes: bytes.length }]);
         expect(await backend.loadDataFile(TEST_SESSION_ID, '2_payload.bin')).toEqual(bytes);
 
         const archive = await JSZip.loadAsync(await exportSessionAsZip(TEST_SESSION_ID, backend));

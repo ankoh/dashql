@@ -50,7 +50,7 @@ export function computeScriptReferenceReports(session: SessionScripts): Map<numb
     const reports = new Map<number, ScriptReferenceReport>();
     if (scripts.length === 0) return reports;
     const check: core.buffers.execution.ScriptReferenceCheckT = session.instance.checkScriptReferences(
-        sessionPlanRequest(scripts, scripts.map(script => script.fileName)),
+        sessionPlanRequest(scripts, scripts.map(script => script.fileName), session),
     ).unpack();
     check.scripts.forEach((checked, index) => {
         if (!checked.checked) return;

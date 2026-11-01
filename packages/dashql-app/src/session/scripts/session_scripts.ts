@@ -31,6 +31,9 @@ import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, R
 
 import { chartStatementId, compileVisualizeQuery } from './script_compilation.js';
 import { dropSessionTableParameters, publishTableParameters } from './table_parameters_publisher.js';
+import { attachmentStamp, readSessionAttachments, sameSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
+import { unmountSessionAttachments } from '../attachments/attachment_mounts.js';
+import type { DataFile } from '../../storage/storage_backend.js';
 import { applyScriptTextChanges, computeScriptReferenceReports, renameScriptReferenceChanges, type ScriptTextChange } from './script_reference_check.js';
 
 const LOG_CTX = 'session_scripts';
@@ -75,6 +78,9 @@ export interface SessionScripts {
     scriptFocus: ScriptFocus;
     /// The semantic user focus info (if any)
     semanticUserFocus: SemanticUserFocus | null;
+    /// The attachments of the session, a Parquet attachment is a table parameter of the scripts. Absent until the
+    /// files of the session were listed.
+    attachments?: SessionAttachment[];
 }
 
 /// The connection that a script is analyzed and executed with
@@ -105,8 +111,8 @@ export function orderedSessionScripts(state: SessionScripts): ScriptData[] {
     return (state.scriptOrder ?? []).flatMap(name => state.scripts[state.scriptRefs[name]?.scriptId] ?? []);
 }
 
-/// What the views that the core derives from a session read: the names, connections and analyses of its scripts.
-/// The dataflow, the inputs and the checks of script references derive again when it changes.
+/// What the views that the core derives from a session read: the names, connections and analyses of its scripts and
+/// its attachments. The dataflow, the inputs and the checks of script references derive again when it changes.
 export function sessionAnalysisSignature(state: SessionScripts): string {
     return orderedSessionScripts(state).map(script => [
         script.scriptKey,
@@ -118,7 +124,11 @@ export function sessionAnalysisSignature(state: SessionScripts): string {
         script.editorUpdate?.textVersion ?? '',
         script.editorUpdate?.catalogRevision ?? '',
         script.editorUpdate?.analysisAvailable ? 'A' : '',
-    ].join('\u0001')).join('\u0002');
+    ].join('\u0001')).concat((state.attachments ?? []).map(attachment => [
+        attachment.fileName,
+        attachmentStamp(attachment),
+        attachment.columns?.join(',') ?? '',
+    ].join('\u0001'))).join('\u0002');
 }
 
 /// The ids of the connections that the scripts of a session run on, in the order the scripts first
@@ -260,6 +270,8 @@ export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
 export const SET_PENDING_CONNECTION = Symbol('SET_PENDING_CONNECTION');
 export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
 export const DETACH_CONNECTION = Symbol('DETACH_CONNECTION');
+export const SET_SESSION_ATTACHMENTS = Symbol('SET_SESSION_ATTACHMENTS');
+export const SET_ATTACHMENT_COLUMNS = Symbol('SET_ATTACHMENT_COLUMNS');
 
 export type SessionScriptsAction =
     | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
@@ -286,6 +298,10 @@ export type SessionScriptsAction =
     | VariantKind<typeof SET_PENDING_CONNECTION, ScriptConnection>
     | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
     | VariantKind<typeof DETACH_CONNECTION, { from: string, into: ScriptConnection }>
+    /// The data files of the session as the storage lists them
+    | VariantKind<typeof SET_SESSION_ATTACHMENTS, DataFile[]>
+    /// The columns of an attachment, read from the file with the stamp
+    | VariantKind<typeof SET_ATTACHMENT_COLUMNS, { fileName: string, stamp: string, columns: string[] }>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -424,6 +440,19 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
 
 function reduceScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
     switch (action.type) {
+        case SET_SESSION_ATTACHMENTS: {
+            const attachments = readSessionAttachments(action.value, state.attachments);
+            if (state.attachments != null && sameSessionAttachments(state.attachments, attachments)) return state;
+            return { ...state, attachments };
+        }
+        case SET_ATTACHMENT_COLUMNS: {
+            const { fileName, stamp, columns } = action.value;
+            const index = state.attachments?.findIndex(a => a.fileName === fileName && attachmentStamp(a) === stamp) ?? -1;
+            if (index < 0) return state;
+            const attachments = [...state.attachments!];
+            attachments[index] = { ...attachments[index], columns };
+            return { ...state, attachments };
+        }
         case RENAME_SESSION: {
             const trimmed = action.value?.trim() ?? '';
             const name = trimmed.length > 0 ? trimmed : null;
@@ -1294,6 +1323,7 @@ export function destroySessionScripts(state: SessionScripts): SessionScripts {
         destroyScriptData(script);
     }
     dropSessionTableParameters(state.sessionId);
+    void unmountSessionAttachments(state.sessionId);
     return state;
 }
 

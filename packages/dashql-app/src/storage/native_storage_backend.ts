@@ -1,7 +1,7 @@
 import { type StorageBackend, type SessionData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
 import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
 
-import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile, type FileStamp } from '../platform/electron_fs.js';
+import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile, type FileStamp } from '../platform/electron_fs.js';
 
 /// The name of the session-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';
@@ -265,8 +265,8 @@ export class NativeStorageBackend implements StorageBackend {
             validateDataFileName(entry.name);
             if (entry.isDirectory) throw new Error(`Invalid session layout: nested data directory ${entry.name}`);
             if (entry.isFile) {
-                const meta = await stat(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${entry.name}`));
-                files.push({ name: entry.name, sizeBytes: meta.size });
+                const stamp = await fileStamp(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${entry.name}`));
+                if (stamp != null) files.push({ name: entry.name, sizeBytes: stamp.size, mtimeMs: stamp.mtimeMs });
             }
         }
         return files.sort((a, b) => this.naturalSort(a.name, b.name));

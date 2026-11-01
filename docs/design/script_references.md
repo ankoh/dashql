@@ -62,6 +62,14 @@ with sales as (select * from external('/mnt/external/attachments/<session>/sales
 select region, sum(amount) from sales group by region
 ```
 
+The app lists the attachments of a session when it loads the session, after the feed adds or removes one, and when a
+native folder changed (`SessionScripts.attachments`, `SET_SESSION_ATTACHMENTS`). The stamp of an attachment is the
+size and the modification time of its file. The app reads the columns of a new or changed Parquet attachment with the
+embedded Hyper (`readAttachmentColumns`, `SET_ATTACHMENT_COLUMNS`). Until then completion doesn't offer it and its
+columns stay unresolved, a plan scans it all the same.
+The plan requests of a session hold its Parquet attachments and the mount of its attachments as prefix
+(`/mnt/external/attachments/<session>`, `storage_layout.md`), a run mounts them before a statement scans one.
+
 An attachment is a file, not a query: it is no single SELECT and no part of a cycle, and a view may read it since the
 file outlives the statement. An inlined query that reads an attachment brings its common table expression along,
 before the ones of the scripts. The signature of a script covers the stamps of the attachments it reads
@@ -154,7 +162,7 @@ resolves a named table parameter that finds a table as a FROM source with its co
 parameter name. The source yields its name to the other FROM items, like the planner renames its common table
 expression. A table parameter that is the target of a write, positional, ambiguous or names nothing with a table
 resolves nothing. An analysis that reads table parameters is current only with the table parameters it was analyzed
-with: the app publishes them after every change of the scripts and analyzes the scripts again
+with: the app publishes them after every change of the scripts and the attachments and analyzes the scripts again
 whose analysis they outdate. The results of a script follow the results of the scripts it reads, they converge
 along the references.
 

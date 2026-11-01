@@ -24,6 +24,8 @@ import type { LoggerLike } from '../../platform/logger/logger.js';
 export interface ScriptRunServices {
     /// The mounts of the materialized results, null without a compute database
     createMounts: () => ExecutionMounts | null;
+    /// Mount the attachments of a session in the embedded Hyper, absent without a compute database
+    mountAttachments?: (sessionId: string) => Promise<void>;
     /// The result key of a script on a connection, null if the connection has no key
     cacheKey: (connectionId: string, signature: string) => Promise<string | null>;
     /// Does a connection cache query results? Runs reuse the cached results of its scripts only then.
@@ -107,7 +109,8 @@ export async function runPlannedScript(
             targets: [targetIndex], run: { kind: 'script', target: files[targetIndex] },
             executeQuery: executeNode, modifySessionScripts, signal: cancellation.signal, queries,
             cancelActive: () => cancellation.abort(), cooperate: () => yieldToBrowser(), emit: () => {},
-            mounts: services.createMounts(), resultKey: services.cacheKey, cachesResults: services.cachesResults,
+            mounts: services.createMounts(), mountAttachments: services.mountAttachments,
+            resultKey: services.cacheKey, cachesResults: services.cachesResults,
             cache: services.cache, refresh: options.refresh ?? false,
             maxConcurrentQueries: services.maxConcurrentQueries, logger: options.logger,
         });
@@ -157,7 +160,7 @@ export async function computeScriptResultCacheKey(
     const { files, scripts, targetIndex } = sessionScriptsOf(session, target);
     const { graph } = planSessionScripts({
         instance: session.instance, scripts, files,
-        mountPrefix: createMountPrefix(), targets: [targetIndex],
+        mountPrefix: createMountPrefix(), targets: [targetIndex], session,
     });
     if (!graph.valid) return null;
     const connectionOf = (index: number) => scripts[index].connection.connectionId;

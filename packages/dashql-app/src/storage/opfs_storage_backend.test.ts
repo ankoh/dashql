@@ -43,7 +43,7 @@ describe('OPFSStorageBackend V2 flat storage', () => {
     it('preserves binary data through rename fallback and deletion', async () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40]);
         await backend.saveDataFile(TEST_SESSION_ID, 'payload.bin', bytes);
-        expect(await backend.listDataFiles(TEST_SESSION_ID)).toEqual([{ name: 'payload.bin', sizeBytes: 5 }]);
+        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'payload.bin', sizeBytes: 5 }]);
         expect(await backend.loadDataFile(TEST_SESSION_ID, 'payload.bin')).toEqual(bytes);
         await backend.renameDataFile(TEST_SESSION_ID, 'payload.bin', 'renamed.bin');
         expect(await backend.loadDataFile(TEST_SESSION_ID, 'renamed.bin')).toEqual(bytes);

@@ -102,7 +102,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
         const before = { files: new Map(fsStore.files), bytes: new Map(fsStore.binFiles), dirs: new Set(fsStore.dirs), mtimes: new Map(fsStore.mtimes) };
         await backend.loadSession(TEST_SESSION_ID);
-        expect(await registry.listDataFiles(TEST_SESSION_ID)).toEqual([{ name: 'first.bin', sizeBytes: 1 }, { name: 'second.bin', sizeBytes: 1 }]);
+        expect((await registry.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'first.bin', sizeBytes: 1 }, { name: 'second.bin', sizeBytes: 1 }]);
         expect(await registry.loadDataFile(TEST_SESSION_ID, 'first.bin')).toEqual(new Uint8Array([1]));
         expect(await registry.loadDataFile(TEST_SESSION_ID, 'second.bin')).toEqual(new Uint8Array([2]));
         expect({ files: fsStore.files, bytes: fsStore.binFiles, dirs: fsStore.dirs, mtimes: fsStore.mtimes }).toEqual(before);
@@ -154,8 +154,8 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
         await backend.renameDataFile(TEST_SESSION_ID, 'old.bin', 'new.bin');
         await expect(registry.loadDataFile(TEST_SESSION_ID, 'new.bin')).resolves.toEqual(bytes);
-        expect(await registry.listDataFiles(TEST_SESSION_ID)).toEqual([{ name: 'new.bin', sizeBytes: 2 }]);
-        expect(await native.listDataFiles(TEST_SESSION_ID)).toEqual([{ name: 'new.bin', sizeBytes: 2 }]);
+        expect((await registry.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'new.bin', sizeBytes: 2 }]);
+        expect((await native.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'new.bin', sizeBytes: 2 }]);
     });
 
     it('routes flat CRUD to a registered native directory and preserves files on unregister', async () => {

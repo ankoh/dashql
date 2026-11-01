@@ -23,7 +23,9 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../connections/connection_state.js';
-import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../scripts/session_scripts.js';
+import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SESSION_ATTACHMENTS } from '../scripts/session_scripts.js';
+import { markSessionAttachmentsChanged } from '../attachments/attachment_mounts.js';
+import { readSessionAttachments, sameSessionAttachments } from '../attachments/session_attachments.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
@@ -210,8 +212,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const [attachmentsExpanded, setAttachmentsExpanded] = React.useState(false);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     const attachmentInputRef = React.useRef<HTMLInputElement>(null);
-    // The session file lists the attachments, a changed attachment updates the list
+    const latestAttachments = React.useRef(props.sessionScripts.attachments);
+    latestAttachments.current = props.sessionScripts.attachments;
+    // The session file lists the attachments, a changed attachment updates the list and the mount of the attachments
     const refreshDataFiles = React.useCallback(() => {
+        markSessionAttachmentsChanged(sessionId);
         setDataFilesVersion(version => version + 1);
         void storageWriter.write(groupSessionAttachmentListWrites(sessionId), { type: REFRESH_SESSION_ATTACHMENTS, value: sessionId });
     }, [sessionId, storageWriter]);
@@ -219,6 +224,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         const cancel = new AbortController();
         storageReader.backend.listDataFiles(sessionId).then(files => {
             if (!cancel.signal.aborted) {
+                // The scripts read the Parquet attachments as table parameters
+                const known = latestAttachments.current ?? [];
+                if (!sameSessionAttachments(known, readSessionAttachments(files, known))) {
+                    void props.modifySessionScripts({ type: SET_SESSION_ATTACHMENTS, value: files });
+                }
                 setDataFiles({
                     sessionId, files: [...files].sort((a, b) => (
                         a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
@@ -231,7 +241,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             }
         });
         return () => cancel.abort();
-    }, [sessionId, storageReader.backend, dataFilesVersion, logger]);
+    }, [sessionId, storageReader.backend, dataFilesVersion, logger, props.modifySessionScripts]);
     const pinnedDataFiles = dataFiles?.sessionId === sessionId ? dataFiles.files : [];
     const attachmentsEnabled = connectionReadsAttachments(props.conn?.details);
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {

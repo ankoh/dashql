@@ -4,16 +4,21 @@ import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } 
 import { connectorOfDetails } from '../../connections/connector_descriptor.js';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
-import { useSessionScriptsRegistry, useSessionScriptsRegistryReader, type ModifySessionScripts } from './session_scripts_registry.js';
+import { useSessionScriptsDispatch, useSessionScriptsRegistry, useSessionScriptsRegistryReader, type ModifySessionScripts } from './session_scripts_registry.js';
 import { createExecutionMounts, isSessionExecutionRunning, runSessionExecution, subscribeSessionExecutions, type SessionExecutionState } from './session_execution.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { supportsParquet } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import { registerScriptRunServices, type ScriptRunServices } from './script_run.js';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { scriptConnectionIds } from './session_scripts.js';
+import { scriptConnectionIds, SET_ATTACHMENT_COLUMNS } from './session_scripts.js';
 import { QueryType } from '../../query/query_execution_state.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
+import { mountSessionAttachments, readAttachmentColumns } from '../attachments/attachment_mounts.js';
+import { attachmentStamp } from '../attachments/session_attachments.js';
+import { stringifyError } from '../../platform/logger/logger.js';
+
+const LOG_CTX = 'session_execution';
 
 /// The options of a run of a session
 export interface SessionExecutionOptions {
@@ -109,6 +114,27 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
     React.useEffect(() => () => {
         for (const controller of runs.current.values()) controller.abort();
     }, []);
+
+    // The columns of the Parquet attachments, read once per file and stamp with the compute database
+    const dispatchSessionScripts = useSessionScriptsDispatch();
+    const describedAttachments = React.useRef(new Set<string>());
+    React.useEffect(() => {
+        if (!supportsParquet(computeDb)) return;
+        for (const session of registry.sessionScriptsMap.values()) {
+            for (const attachment of session.attachments ?? []) {
+                if (attachment.name == null || attachment.columns != null) continue;
+                const stamp = attachmentStamp(attachment);
+                const key = `${session.sessionId}/${attachment.fileName}@${stamp}`;
+                if (describedAttachments.current.has(key)) continue;
+                describedAttachments.current.add(key);
+                const { sessionId } = session;
+                const fileName = attachment.fileName;
+                readAttachmentColumns(computeDb, sessionId, fileName)
+                    .then(columns => dispatchSessionScripts(sessionId, { type: SET_ATTACHMENT_COLUMNS, value: { fileName, stamp, columns } }))
+                    .catch(error => logger.warn('Reading the columns of an attachment failed', { sessionId, fileName, error: stringifyError(error) }, LOG_CTX));
+            }
+        }
+    }, [registry, computeDb, dispatchSessionScripts, logger]);
     React.useEffect(() => {
         for (const [id, controller] of runs.current) {
             const session = registry.sessionScriptsMap.get(id);
@@ -129,6 +155,11 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         createMounts: () => {
             const { computeDb, queryResultCache } = latest.current;
             return queryResultCache != null && supportsParquet(computeDb) ? createExecutionMounts(queryResultCache, computeDb) : null;
+        },
+        mountAttachments: async sessionId => {
+            const { computeDb } = latest.current;
+            if (!supportsParquet(computeDb)) throw new Error('Scripts that read attachments need the compute database');
+            await mountSessionAttachments(computeDb, sessionId);
         },
         cacheKey: async (connectionId, signature) => {
             const connection = latest.current.connections.connections.get(connectionId);
@@ -198,6 +229,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
             maxConcurrentQueries: connectionId => maxConcurrentQueries(connections.connections.get(connectionId)),
             // The embedded Hyper scans the results of the scripts of other connections, mounted from the compute database
             mounts: queryResultCache != null && supportsParquet(computeDb) ? createExecutionMounts(queryResultCache, computeDb) : null,
+            mountAttachments: runServices.mountAttachments,
             resultKey: runServices.cacheKey,
             cachesResults: runServices.cachesResults,
             cache: queryResultCache,

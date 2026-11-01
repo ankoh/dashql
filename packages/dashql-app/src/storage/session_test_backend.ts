@@ -15,6 +15,9 @@ export class SessionTestBackend implements StorageBackend {
     readonly sessions = new Map<string, SessionData>();
     readonly scripts = new Map<string, Map<string, string>>();
     readonly data = new Map<string, Map<string, Uint8Array>>();
+    /// The modification times of the data files, a counter that every save advances
+    private readonly dataModified = new Map<string, number>();
+    private dataClock = 0;
     readonly calls: string[] = [];
     appSettings: AppSettings | null = null;
     /// The connections of the manifest, undefined before the connections were migrated
@@ -102,7 +105,7 @@ export class SessionTestBackend implements StorageBackend {
     }
     async listDataFiles(sessionId: string): Promise<DataFile[]> {
         return [...(this.data.get(sessionId) ?? new Map<string, Uint8Array>())]
-            .map(([name, bytes]) => ({ name, sizeBytes: bytes.byteLength }))
+            .map(([name, bytes]) => ({ name, sizeBytes: bytes.byteLength, mtimeMs: this.dataModified.get(`${sessionId}/${name}`) ?? 0 }))
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     }
     async loadDataFile(sessionId: string, name: string): Promise<Uint8Array> {
@@ -117,6 +120,7 @@ export class SessionTestBackend implements StorageBackend {
         const bytes = content instanceof Blob ? new Uint8Array(await content.arrayBuffer()) : content;
         data.set(name, bytes.slice());
         this.data.set(sessionId, data);
+        this.dataModified.set(`${sessionId}/${name}`, ++this.dataClock);
     }
     async deleteDataFile(sessionId: string, name: string): Promise<void> {
         validateDataFileName(name);

@@ -23,6 +23,7 @@ import {
     SET_SCRIPT_CONNECTION,
     SET_SCRIPT_EXECUTION_VISUALIZATION,
     SET_SCRIPT_TEXT,
+    SET_SESSION_ATTACHMENTS,
 } from './session_scripts.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
 import { createEmptyMetadata, createScriptRef } from './script_types.js';
@@ -613,5 +614,27 @@ describe('session execution with real core planning', () => {
         expect(f.script('1_query.sql').latestQueryId).toBeNull();
         expect(f.lastState()).toMatchObject({ phase: 'failed', completedStatements: 0, completedScripts: 0 });
         expect(f.lastState().error).toMatch(/stale execution plan|session changed while planning/i);
+    });
+
+    it('scans a Parquet attachment of the session from the mount of its attachments', async () => {
+        const f = fixture([['bar.sql', 'select count(*) from :sales;']]);
+        f.apply({ type: SET_SESSION_ATTACHMENTS, value: [{ name: 'sales.parquet', sizeBytes: 10, mtimeMs: 1 }, { name: 'notes.txt', sizeBytes: 3 }] });
+        const mountAttachments = vi.fn(async () => {});
+        await f.run({ mountAttachments });
+        expect(f.lastState()?.error).toBeNull();
+        const sessionId = f.getSession().sessionId;
+        expect(mountAttachments).toHaveBeenCalledWith(sessionId);
+        expect(f.plan.mock.calls[0][0].attachments).toEqual([{ name: 'sales', file: 'sales.parquet', stamp: '10-1', columns: null }]);
+        expect(f.calls.map(call => call.sql)).toEqual([
+            `with sales as (select * from external('/mnt/external/attachments/${sessionId}/sales.parquet', format => 'parquet'))\nselect count(*) from sales`,
+        ]);
+    });
+
+    it('fails a plan that scans an attachment without the compute database', async () => {
+        const f = fixture([['bar.sql', 'select count(*) from :sales;']]);
+        f.apply({ type: SET_SESSION_ATTACHMENTS, value: [{ name: 'sales.parquet', sizeBytes: 10, mtimeMs: 1 }] });
+        await f.run();
+        expect(f.calls).toEqual([]);
+        expect(f.lastState()).toMatchObject({ phase: 'failed', error: 'Scripts that read attachments need the compute database' });
     });
 });

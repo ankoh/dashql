@@ -2,6 +2,7 @@ import * as core from '@ankoh/dashql-core';
 
 import { scriptDisplayName } from '../scripts/script_types.js';
 import { formattingDialectForConnector } from '../scripts/script_format.js';
+import { attachmentPrefix, planAttachments } from '../attachments/session_attachments.js';
 import { orderedSessionScripts, sessionAnalysisSignature, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
 
 const SqlTypeKind = core.buffers.analyzer.SqlTypeKind;
@@ -55,8 +56,13 @@ export interface SessionInput {
 const NO_INPUTS: SessionInput[] = [];
 
 /// The request of the core for the scripts of a session, connections in the order of their first script. A
-/// connection speaks the dialect of its connector, the planner prints the values of inputs in it.
-export function sessionPlanRequest(scripts: readonly ScriptData[], files: readonly string[]): core.SessionPlanRequest {
+/// connection speaks the dialect of its connector, the planner prints the values of inputs in it. With the session,
+/// the request holds its attachments and the directory the embedded Hyper mounts them in.
+export function sessionPlanRequest(
+    scripts: readonly ScriptData[],
+    files: readonly string[],
+    session?: Pick<SessionScripts, 'sessionId' | 'attachments'>,
+): core.SessionPlanRequest {
     const connections: ScriptData['connection'][] = [];
     for (const script of scripts) {
         if (connections.some(c => c.connectionId === script.connection.connectionId)) continue;
@@ -75,6 +81,8 @@ export function sessionPlanRequest(scripts: readonly ScriptData[], files: readon
             connection: connectionIds.indexOf(script.connection.connectionId),
             session: script.scriptSession,
         })),
+        attachments: planAttachments(session?.attachments),
+        attachmentPrefix: session == null ? undefined : attachmentPrefix(session.sessionId),
     };
 }
 
@@ -94,7 +102,7 @@ export function readSessionInputType(type: core.buffers.analyzer.SqlTypeT | null
 function collectSessionInputs(session: SessionScripts): SessionInput[] {
     const scripts = orderedSessionScripts(session);
     if (scripts.length === 0 || typeof session.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
-    const request = sessionPlanRequest(scripts, scripts.map(s => s.fileName));
+    const request = sessionPlanRequest(scripts, scripts.map(s => s.fileName), session);
     const collected = session.instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT;
     return collected.inputs.map(input => ({
         name: String(input.name ?? ''),

@@ -75,7 +75,7 @@ describe('NativeStorageBackend V2 flat storage', () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40]);
         await backend.saveDataFile(TEST_SESSION_ID, '10_payload.bin', bytes);
         await backend.saveDataFile(TEST_SESSION_ID, '2_payload.bin', new Uint8Array());
-        expect(await backend.listDataFiles(TEST_SESSION_ID)).toEqual([
+        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([
             { name: '2_payload.bin', sizeBytes: 0 }, { name: '10_payload.bin', sizeBytes: 5 },
         ]);
         await backend.renameDataFile(TEST_SESSION_ID, '10_payload.bin', '1_renamed.bin');

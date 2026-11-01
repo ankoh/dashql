@@ -223,8 +223,10 @@ export function planSessionScripts(args: {
     materialized?: number[];
     /// The name of the file of the materialized result of a script below the mount prefix
     materializationFile?: (scriptIndex: number) => string | undefined;
+    /// The session, its attachments are table parameters of the scripts
+    session?: Pick<SessionScripts, 'sessionId' | 'attachments'>;
 }): SessionScriptsPlan {
-    const request = sessionPlanRequest(args.scripts, args.files);
+    const request = sessionPlanRequest(args.scripts, args.files, args.session);
     const graph = args.instance.planSession({
         ...request,
         scripts: request.scripts.map((script, index) => ({ ...script, materializationFile: args.materializationFile?.(index) })),
@@ -401,6 +403,8 @@ export async function runExecutionGraph(args: {
     /// Throws if the session or a planned script changed, `checkVersions` compares the text versions too
     validate: (checkVersions: boolean) => void;
     mounts: ExecutionMounts | null;
+    /// Mount the attachments of a session in the embedded Hyper, absent without a compute database
+    mountAttachments?: (sessionId: string) => Promise<void>;
     cooperate: () => Promise<void>;
     emit: (update: Partial<SessionExecutionState>, increment?: { statements?: number; scripts?: number }) => void;
     maxConcurrentQueries?: (connectionId: string) => number;
@@ -420,6 +424,11 @@ export async function runExecutionGraph(args: {
     const materializations = graph.materializations ?? [];
     if (materializations.length > 0 && args.mounts == null) {
         throw new Error('Scripts of other connections need the compute database to scan their results');
+    }
+    // The statements that scan attachments read them from the mount of the session
+    if (graph.nodes.some(node => (node.attachments?.length ?? 0) > 0)) {
+        if (args.mountAttachments == null) throw new Error('Scripts that read attachments need the compute database');
+        await args.mountAttachments(sessionId);
     }
     logPlan(logger, sessionId, graph, files, args.run, plannedStatements);
     // The results that the host provides, e.g. cached results, are read in place
@@ -684,6 +693,8 @@ export async function runSessionPlan(args: {
     emit: (update: Partial<SessionExecutionState>, increment?: { statements?: number; scripts?: number }) => void;
     /// The mounts of the materialized script results of the run, null without a compute database
     mounts: ExecutionMounts | null;
+    /// Mount the attachments of a session in the embedded Hyper, absent without a compute database
+    mountAttachments?: (sessionId: string) => Promise<void>;
     /// The result key of a script on a connection, names the files of the materialized results
     resultKey: (connectionId: string, signature: string) => Promise<string | null>;
     /// Does a connection cache query results? The run reuses and writes the results of the scripts with reusable keys.
@@ -715,7 +726,7 @@ export async function runSessionPlan(args: {
         // A change of inputs runs the scripts that it affects, with what they read
         let targets = args.targets;
         if (args.inputs != null) {
-            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files)).unpack() as core.buffers.execution.SessionDataflowT;
+            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files, session)).unpack() as core.buffers.execution.SessionDataflowT;
             targets = affectedScriptIndices(dataflow, args.inputs);
             emit({ totalScripts: targets.length });
             if (targets.length === 0) {
@@ -726,7 +737,7 @@ export async function runSessionPlan(args: {
         const mountPrefix = mounts?.prefix ?? createMountPrefix();
         const planWith = (provided: number[] = [], names: Map<number, string> = new Map()) => {
             const plan = planSessionScripts({
-                instance, scripts, files, mountPrefix, targets, materialized: provided, materializationFile: index => names.get(index),
+                instance, scripts, files, mountPrefix, targets, materialized: provided, materializationFile: index => names.get(index), session,
             });
             if (!plan.graph.valid) throw new ScriptPlanError(describePlanErrors(plan.graph, files));
             return plan;
@@ -825,7 +836,7 @@ export async function runSessionPlan(args: {
             executeQuery: args.executeQuery, modifySessionScripts: args.modifySessionScripts,
             signal, queries, cancelActive: args.cancelActive,
             validate: sessionPlanValidator({ graph, session, getSession: args.getSession, scripts, files }),
-            mounts, cooperate, emit,
+            mounts, mountAttachments: args.mountAttachments, cooperate, emit,
             maxConcurrentQueries: args.maxConcurrentQueries,
             run, logger: args.logger,
             // The cached results were read already, a script that runs replaces the result of its key
@@ -851,6 +862,8 @@ export async function runSessionExecution(args: {
     onState: (state: SessionExecutionState) => void;
     /// The mounts of the materialized script results of the run, null without a compute database
     mounts?: ExecutionMounts | null;
+    /// Mount the attachments of a session in the embedded Hyper, absent without a compute database
+    mountAttachments?: (sessionId: string) => Promise<void>;
     /// The result key of a script on a connection, names the files of the materialized results
     resultKey?: (connectionId: string, signature: string) => Promise<string | null>;
     /// Does a connection cache query results? The run reuses and writes the results of the scripts with reusable keys.
@@ -910,7 +923,8 @@ export async function runSessionExecution(args: {
             session, getSession: args.getSession, inputs: args.inputs, run: { kind: 'session', target: null },
             executeQuery: args.executeQuery, modifySessionScripts: args.modifySessionScripts,
             signal, queries, cancelActive, cooperate, emit,
-            mounts: args.mounts ?? null, resultKey: args.resultKey ?? (async () => null), cachesResults: args.cachesResults ?? (() => false),
+            mounts: args.mounts ?? null, mountAttachments: args.mountAttachments,
+            resultKey: args.resultKey ?? (async () => null), cachesResults: args.cachesResults ?? (() => false),
             cache: args.cache ?? null, refresh: args.refresh ?? false,
             maxConcurrentQueries: args.maxConcurrentQueries, logger: args.logger,
         });

@@ -2,7 +2,8 @@
 
 DashQL stores its data in the Origin Private File System (OPFS) of the app origin, and native sessions in
 directories that the user owns. hyperdb-wasm mounts the OPFS root at `/mnt/fs`, so every OPFS path below is also
-a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attachments/a.csv` in SQL.
+a Hyper path. Scripts don't name these paths: a Parquet attachment `sessions/<id>/attachments/a.parquet` is the table
+parameter `:a`, which the embedded Hyper reads from the mount of the attachments of the session (see Attachments).
 
 ## OPFS root
 
@@ -64,7 +65,7 @@ the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format
 whether their results are cached.
 
 - `scripts/` holds one file per script, named by the script.
-- `attachments/` holds data files that queries read in place, e.g. `external('/mnt/fs/sessions/<id>/attachments/a.csv')`.
+- `attachments/` holds data files that queries read in place, a Parquet file `a.parquet` is the table parameter `:a`.
   Session bundles rebase these paths when a session is imported under a new id.
 
 ### The query result cache
@@ -128,10 +129,18 @@ and `nativePath`. The directory has the layout of an OPFS session folder (`dashq
 `attachments/`), and users may edit its files, see [native file synchronization](native_file_sync.md).
 
 hyperdb-wasm can only read OPFS. When a native session loads, its attachments are mirrored into
-`sessions/<id>/attachments/` in OPFS, so the attachment paths of the session work in both storage types.
+`sessions/<id>/attachments/` in OPFS, so the attachments of the session read the same in both storage types.
 The app remembers the stamp (size and modification time) that each attachment was mirrored with and copies a
 file again only when its stamp changed, so the first load of a session in an app run copies every attachment.
 Connections, the manifest, the shell files and the instances stay in OPFS.
+
+## Attachments
+
+The embedded Hyper reads the attachments of a session from its OPFS folder `sessions/<id>/attachments/` (of a
+native session, the mirror), mounted read-only at `/mnt/external/attachments/<id>`
+(`session/attachments/attachment_mounts.ts`). The app mounts the folder before a plan scans an attachment and before it
+reads the columns of a Parquet attachment. A change of the attachments, in the app or in a native folder, marks the
+mount stale, its next use refreshes it so Hyper looks up the files again. Closing the session removes the mount.
 
 ## Hyper paths
 

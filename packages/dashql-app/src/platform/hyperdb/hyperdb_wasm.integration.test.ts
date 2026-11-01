@@ -13,6 +13,7 @@ import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_p
 import { createExecutionMounts } from '../../session/scripts/session_execution.js';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
 import { getOPFSRoot, hyperOPFSRoot } from '../opfs_root.js';
+import { markSessionAttachmentsChanged, readAttachmentColumns, unmountSessionAttachments } from '../../session/attachments/attachment_mounts.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
@@ -350,6 +351,30 @@ describe('HyperDB embedded database integration', () => {
             if (path != null) await ignoreCleanupFailure(() => database!.removeExternalDirectory(path!));
             await ignoreCleanupFailure(() => root.removeEntry(name, { recursive: true }));
             await connection.close();
+        }
+    }, 60_000);
+
+    it('reads the columns of a session attachment through the mount of the session', async () => {
+        const root = await getOPFSRoot();
+        const sessions = await root.getDirectoryHandle('sessions', { create: true });
+        const sessionId = crypto.randomUUID();
+        const write = async (table: arrow.Table) => {
+            const bytes = await exportArrowTableAsParquet(database!, table);
+            const folder = await (await sessions.getDirectoryHandle(sessionId, { create: true })).getDirectoryHandle('attachments', { create: true });
+            const writer = await (await folder.getFileHandle('sales.parquet', { create: true })).createWritable();
+            await writer.write(bytes as BlobPart);
+            await writer.close();
+        };
+        try {
+            await write(arrow.tableFromArrays({ region: ['eu'], amount: Int32Array.from([1]) }));
+            expect(await readAttachmentColumns(database!, sessionId, 'sales.parquet')).toEqual(['region', 'amount']);
+            // A changed attachment is read again once the mount is marked stale
+            await write(arrow.tableFromArrays({ id: Int32Array.from([1]) }));
+            markSessionAttachmentsChanged(sessionId);
+            expect(await readAttachmentColumns(database!, sessionId, 'sales.parquet')).toEqual(['id']);
+        } finally {
+            await unmountSessionAttachments(sessionId);
+            await ignoreCleanupFailure(() => sessions.removeEntry(sessionId, { recursive: true }));
         }
     }, 60_000);
 

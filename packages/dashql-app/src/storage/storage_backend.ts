@@ -32,6 +32,8 @@ export const STORAGE_SCRIPT_EXTENSION = '.sql';
 export interface DataFile {
     name: string;
     sizeBytes: number;
+    /// The time of the last modification in milliseconds since the epoch, 0 if the backend doesn't know it
+    mtimeMs?: number;
 }
 
 export interface DataFileData {

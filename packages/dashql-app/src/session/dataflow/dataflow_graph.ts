@@ -135,7 +135,7 @@ function computeDataflowGraph(session: SessionScripts): DataflowGraph {
     const scripts = orderedSessionScripts(session);
     if (scripts.length === 0) return EMPTY_GRAPH;
     const dataflow: core.buffers.execution.SessionDataflowT = session.instance.deriveSessionDataflow(
-        sessionPlanRequest(scripts, scripts.map(script => script.fileName)),
+        sessionPlanRequest(scripts, scripts.map(script => script.fileName), session),
     ).unpack();
     const out: DataflowScript[] = scripts.map((script, index) => {
         const derived = dataflow.scripts[index];

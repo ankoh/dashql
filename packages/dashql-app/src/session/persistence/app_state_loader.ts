@@ -7,6 +7,7 @@ import { registerConnection, sessionConnectionFromState, type ConnectionRegistry
 import type { SessionScripts, ScriptData } from '../scripts/session_scripts.js';
 import { addSessionScriptsForConnection, copySessionScriptsRegistry, type SessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
 import { createEmptyScriptData, destroySessionScripts, replaceScriptSessionText, scriptConnectionOf, sessionConnectionIds } from '../scripts/session_scripts.js';
+import { readSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection, restoreConnectionCatalog } from '../../connections/connection_restore.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '../../connections/connector_info.js';
 import type { StorageBackend, SessionEntry, SessionData, SessionRegistryBackend, ConnectionEntry, SessionConnection, SessionScript } from '../../storage/storage_backend.js';
@@ -110,6 +111,13 @@ async function restoreSessionScripts(
             };
         }
         const scriptOrder = resolved.scripts.map(entry => entry.name);
+        // The attachments of the session, a Parquet attachment is a table parameter of the scripts
+        let attachments: SessionAttachment[] = [];
+        try {
+            attachments = readSessionAttachments(await backend.listDataFiles(sessionId));
+        } catch (error) {
+            logger.warn("Listing the attachments failed", { sessionId, error: stringifyError(error) }, LOG_CTX);
+        }
 
         const sessionScripts: SessionScripts = {
             instance: core,
@@ -122,6 +130,7 @@ async function restoreSessionScripts(
             scriptOrder,
             scriptFocus: { fileName: scriptOrder[0] ?? '' },
             semanticUserFocus: null,
+            attachments,
         };
 
         return { sessionScripts, session: resolved.session };

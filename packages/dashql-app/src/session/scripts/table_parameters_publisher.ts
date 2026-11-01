@@ -1,6 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 
 import { scriptDisplayName } from './script_types.js';
+import { planAttachments } from '../attachments/session_attachments.js';
 import { orderedSessionScripts, type SessionScripts } from './session_scripts.js';
 
 /// The table parameters of every session, by session id
@@ -24,17 +25,21 @@ export function dropSessionTableParameters(sessionId: string): void {
     REGISTRIES.delete(sessionId);
 }
 
-/// Publish the table parameters of a session after its scripts changed. The scripts whose analysis is outdated by
+/// Publish the table parameters of a session after its scripts or attachments changed. The scripts whose analysis is outdated by
 /// them, e.g. those that read a script whose columns changed, are marked outdated and analyzed again.
 export function publishTableParameters(prev: SessionScripts, next: SessionScripts): SessionScripts {
-    if (prev.scripts === next.scripts && prev.scriptOrder === next.scriptOrder && prev.scriptRefs === next.scriptRefs) {
+    if (prev.scripts === next.scripts && prev.scriptOrder === next.scriptOrder && prev.scriptRefs === next.scriptRefs
+        && prev.attachments === next.attachments) {
         return next;
     }
     try {
         const registry = sessionTableParameters(next);
         if (registry == null) return next;
         const scripts = orderedSessionScripts(next);
-        const outdated = registry.publish(scripts.map(script => ({ name: scriptDisplayName(script.fileName), session: script.scriptSession })));
+        const outdated = registry.publish(
+            scripts.map(script => ({ name: scriptDisplayName(script.fileName), session: script.scriptSession })),
+            planAttachments(next.attachments),
+        );
         if (outdated.length === 0) return next;
         const marked = { ...next.scripts };
         for (const index of outdated) {

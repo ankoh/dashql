@@ -306,7 +306,7 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             validateDataFileName(name);
             if (handle.kind === 'directory') throw new Error(`Invalid session layout: nested data directory ${name}`);
             const file = await (handle as FileSystemFileHandle).getFile();
-            files.push({ name, sizeBytes: file.size });
+            files.push({ name, sizeBytes: file.size, mtimeMs: file.lastModified });
         }
         return files.sort((a, b) => this.naturalSort(a.name, b.name));
     }

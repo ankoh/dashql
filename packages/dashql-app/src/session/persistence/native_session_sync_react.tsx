@@ -1,8 +1,9 @@
 import * as React from 'react';
 
 import { connectionEntryFromState, registerConnection, useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
-import { replaceSessionScriptsInRegistry, useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
-import { sessionScriptsMatchStorageSnapshot, replaceSessionScriptsFromStorage, scriptConnectionOf } from '../scripts/session_scripts.js';
+import { replaceSessionScriptsInRegistry, useSessionScriptsDispatch, useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
+import { sessionScriptsMatchStorageSnapshot, replaceSessionScriptsFromStorage, scriptConnectionOf, SET_SESSION_ATTACHMENTS } from '../scripts/session_scripts.js';
+import { markSessionAttachmentsChanged } from '../attachments/attachment_mounts.js';
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../platform/logger/logger.js';
@@ -132,6 +133,7 @@ export const NativeSessionSync: React.FC = () => {
     const [reader, writer] = useStorage();
     const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
     const [sessionScriptsRegistry, setSessionScriptsRegistry] = useSessionScriptsRegistry();
+    const dispatchSessionScripts = useSessionScriptsDispatch();
     const connectionRegistryRef = React.useRef(connectionRegistry);
     const sessionScriptsRegistryRef = React.useRef(sessionScriptsRegistry);
     connectionRegistryRef.current = connectionRegistry;
@@ -165,6 +167,11 @@ export const NativeSessionSync: React.FC = () => {
             attachmentsRef.current.set(sessionId, attachments);
             if (previousAttachments !== undefined && previousAttachments !== attachments) {
                 sessionFile = await reader.backend.loadSession(sessionId);
+                // The scripts read the mirrored attachments, the mount looks them up again
+                markSessionAttachmentsChanged(sessionId);
+                void reader.backend.listDataFiles(sessionId)
+                    .then(files => dispatchSessionScripts(sessionId, { type: SET_SESSION_ATTACHMENTS, value: files }))
+                    .catch(error => logger.warn('Listing the attachments failed', { sessionId, error: stringifyError(error) }, LOG_CTX));
                 // The session file lists the attachments, the write runs once the session resumes
                 void writer.write(groupSessionAttachmentListWrites(sessionId), { type: REFRESH_SESSION_ATTACHMENTS, value: sessionId });
             }
