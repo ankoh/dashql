@@ -29,14 +29,12 @@ import { RouterReset } from './router/router_reset.js';
 import { SalesforceConnector } from '../connections/salesforce/salesforce_connector.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TrinoConnector } from '../connections/trino/trino_connector.js';
-import { UI_DEMO_PATH, UIExperimentPage } from './ui_demo.js';
 import { VersionCheck } from '../platform/version/version_check.js';
 import { SessionCommands } from '../session/scripts/session_commands.js';
 import { SessionViewModeProvider } from '../session/session_view_mode.js';
 import { SessionPage } from '../session/session_page.js';
 import { SessionScriptsRegistryProvider } from '../session/scripts/session_scripts_registry.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
-import { isDebugBuild } from '../globals.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
@@ -170,32 +168,6 @@ function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
 
 }
 
-/// The UI demo of debug builds renders without the app providers, the app loader only renders a session
-const AppRoot = (): React.ReactElement => {
-    const location = useLocation();
-    if (isDebugBuild() && location.pathname === UI_DEMO_PATH) {
-        return (
-            <GitHubTheme>
-                <UIExperimentPage />
-            </GitHubTheme>
-        );
-    }
-    return (
-        <AppProviders>
-            <FileDropzone>
-                <NavBarContainer>
-                    <Routes>
-                        <Route index Component={SessionPage} />
-                        <Route path="/session" Component={SessionPage} />
-                        <Route path="/sessions/:sessionId" Component={SessionPage} />
-                        <Route path="*" element={<NavigateWithState to="/" />} />
-                    </Routes>
-                </NavBarContainer>
-            </FileDropzone>
-        </AppProviders>
-    );
-};
-
 const element = document.getElementById('root');
 const root = createRoot(element!, {
     onRecoverableError: logRecoverableReactError
@@ -205,7 +177,18 @@ root.render(
         <Router>
             <RouterReset />
             <FlavorUrlKeeper />
-            <AppRoot />
+            <AppProviders>
+                <FileDropzone>
+                    <NavBarContainer>
+                        <Routes>
+                            <Route index Component={SessionPage} />
+                            <Route path="/session" Component={SessionPage} />
+                            <Route path="/sessions/:sessionId" Component={SessionPage} />
+                            <Route path="*" element={<NavigateWithState to="/" />} />
+                        </Routes>
+                    </NavBarContainer>
+                </FileDropzone>
+            </AppProviders>
         </Router>
     </FlavorProvider>
 );

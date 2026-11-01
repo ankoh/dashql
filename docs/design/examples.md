@@ -2,7 +2,7 @@
 
 DashQL shows its examples as **demos** (`packages/dashql-app/src/demos/<name>/`), pages of their own served
 by `demos.html`. They show what the app cannot do yet, such as a dashboard that refreshes live while a feed
-writes into Hyper. Each page brings its own TypeScript and SQL.
+writes into Hyper, and the components of the UI foundations. Each page brings its own TypeScript and SQL.
 
 ## Demos
 
@@ -21,6 +21,8 @@ packages/dashql-app/
     stock_analysis/              # one folder per demo
       stock_analysis_page.tsx    # the default export is the page
       sql/*.sql                  # the queries of the page, imported with ?raw
+    ui/
+      ui_page.tsx                # the components of src/ui/foundations
 ```
 
 The routes are hashes, `demos.html#/<id>`, so the vite dev server, Cloudflare Pages and the app protocol of
@@ -74,3 +76,8 @@ connections. `useLiveQuery` opens one connection per query.
   - the tickers every 500ms (`live_board.sql`, last 24 hours; the retention cuts this to 30 minutes);
   - the price of the selected symbol per second, and the trades per second, every 1s.
   - Each card and the table show the time of their latest query.
+
+## UI Foundations
+
+`#/ui` shows the components of `src/ui/foundations` in their variants and sizes: segmented controls, text
+inputs with actions and validation states, buttons and action lists. It runs no queries.

@@ -20,4 +20,10 @@ export const DEMOS: readonly DemoEntry[] = [
         description: 'A live board of trades, fed by a generator or the public feeds of Coinbase or Binance.',
         load: () => import('./stock_analysis/stock_analysis_page.js'),
     },
+    {
+        id: 'ui',
+        title: 'UI Foundations',
+        description: 'The buttons, text inputs, segmented controls and action lists of the app in their variants and sizes.',
+        load: () => import('./ui/ui_page.js'),
+    },
 ];

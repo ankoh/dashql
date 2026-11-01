@@ -1,18 +1,16 @@
 import * as React from 'react';
-import * as ActionList from '../ui/foundations/action_list.js'
-import * as styles from './ui_demo.module.css';
+import * as ActionList from '../../ui/foundations/action_list.js'
+import * as styles from './ui_page.module.css';
 
-import { ChecklistIcon, CopyIcon, EyeIcon, HeartIcon, PaperAirplaneIcon, TriangleDownIcon, ListUnorderedIcon, TableIcon, ProjectIcon, CodeIcon, FileIcon, GraphIcon } from '../ui/foundations/symbol_icon.js';
+import { ChecklistIcon, CopyIcon, EyeIcon, HeartIcon, PaperAirplaneIcon, TriangleDownIcon, ListUnorderedIcon, TableIcon, ProjectIcon, CodeIcon, FileIcon, GraphIcon } from '../../ui/foundations/symbol_icon.js';
 
-import { TextInput, TextInputValidationStatus } from '../ui/foundations/text_input.js';
-import { TextInputAction } from '../ui/foundations/text_input_action.js';
-import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
+import { TextInput, TextInputValidationStatus } from '../../ui/foundations/text_input.js';
+import { TextInputAction } from '../../ui/foundations/text_input_action.js';
+import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
+import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 
-/// The path of the UI demo, served in debug builds
-export const UI_DEMO_PATH = '/demo/ui';
-
-export function UIExperimentPage(): React.ReactElement {
+/// The components of the UI foundations in their variants and sizes
+function UIPage(): React.ReactElement {
     const [selectedView, setSelectedView] = React.useState(0);
     const [selectedTab, setSelectedTab] = React.useState(0);
 
@@ -225,3 +223,5 @@ export function UIExperimentPage(): React.ReactElement {
     </div>;
 
 }
+
+export default UIPage;
