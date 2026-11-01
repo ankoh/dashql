@@ -28,16 +28,21 @@ in a run, from the analysis of every script:
 - **Inputs**: a named scalar parameter `:min` is an input of the session (`session_inputs.md`), the inputs follow the
   scripts in the order of their first use. An `INPUT` edge starts at an input, its `from_script` is the index of the
   input, and ends at every statement that uses it.
+- **Attachments**: a table parameter `:sales` that scans the attachment `sales.parquet` (`script_references.md`) flows
+  from the attachment to the statement of the parameter, also when an inlined query reads it. The attachments of the
+  session follow the inputs, an `ATTACHMENT` edge starts at an attachment, its `from_script` is the index of the
+  attachment. The canvas of the app draws no attachments yet, it leaves these edges out.
 
 Edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of materializations,
 which the scan references stand for, are no dataflow. A relation that a statement reads before another statement
 creates it in session order has no edge, a run would read it before it is written.
 
 The snapshots in `snapshots/dataflow/` have cases of their own, they describe a session like the planner snapshots
-(`connections`, `catalog`, `scripts`, `stale-prepend`, and `collapsed` for the scripts whose boxes are collapsed,
-`targets` and `materialized` are ignored) and
+(`connections`, `catalog`, `scripts`, `stale-prepend`, `attachments`, and `collapsed` for the scripts whose boxes are
+collapsed, `targets` and `materialized` are ignored) and
 expect the statements of every script, the box of every script on the canvas (`box: [x, y, width, height]`, see
-Layout), the inputs with their type, value and box, and the edges, an input edge from `":min"`
+Layout), the inputs with their type, value and box, the attachments with their file and box, and the edges, an input
+edge from `":min"`, an attachment edge from its file
 (`bazel run //snapshots/dataflow:update`).
 
 ## Layout

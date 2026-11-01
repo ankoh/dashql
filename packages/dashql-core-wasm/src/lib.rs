@@ -1045,6 +1045,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
                     Kind::InvalidReference => DataflowEdgeKind::INVALID_REFERENCE,
                     Kind::Table => DataflowEdgeKind::TABLE,
                     Kind::Input => DataflowEdgeKind::INPUT,
+                    Kind::Attachment => DataflowEdgeKind::ATTACHMENT,
                 };
                 t.name = Some(e.name);
                 t
@@ -1057,6 +1058,17 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
             .map(|input| pack_session_input(&input))
             .collect();
         out.inputs = (!inputs.is_empty()).then_some(inputs);
+        let attachments: Vec<_> = dataflow
+            .attachments
+            .into_iter()
+            .map(|a| {
+                let mut t = dashql_buffers::execution::DataflowAttachmentT::default();
+                t.name = Some(a.name);
+                t.file = Some(a.file);
+                t
+            })
+            .collect();
+        out.attachments = (!attachments.is_empty()).then_some(attachments);
         finish!(out)
     })
 }

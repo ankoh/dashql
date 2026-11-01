@@ -1,0 +1,84 @@
+dataflow-snapshots:
+
+  - name: AttachmentsFlowIntoStatements
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+      - file: unused.parquet
+        stamp: 1
+    scripts:
+      - name: foo
+        connection: local
+        input: |
+          select region, amount from :sales where amount > 5;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+          select * from :sales s, :foo f where s.region = f.region;
+    expected:
+      scripts:
+        - name: foo
+          statements:
+            - type: SELECT
+              text: "select reg..amount > 5"
+          box: [296,16,280,80]
+        - name: bar
+          statements:
+            - type: SELECT
+              text: "select cou.. from :foo"
+            - type: SELECT
+              text: "select * f..= f.region"
+          box: [672,0,280,112]
+      attachments:
+        - name: sales
+          file: sales.parquet
+          box: [0,24,200,80]
+        - name: unused
+          file: unused.parquet
+          box: [0,176,200,80]
+      edges:
+        - from: sales.parquet
+          to: foo.0
+          kind: attachment
+          name: sales
+        - from: foo.0
+          to: bar.0
+          kind: inline
+          name: foo
+        - from: foo.0
+          to: bar.1
+          kind: inline
+          name: foo
+        - from: sales.parquet
+          to: bar.1
+          kind: attachment
+          name: sales
+
+  - name: RemoteReadsAttachment
+    connections:
+      - name: trino
+        kind: REMOTE
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: bar
+        connection: trino
+        input: |
+          select * from :sales;
+    expected:
+      scripts:
+        - name: bar
+          statements:
+            - type: SELECT
+              text: "select * f..rom :sales"
+          box: [0,0,280,80]
+      attachments:
+        - name: sales
+          file: sales.parquet
+          box: [312,0,200,80]
+      edges: []

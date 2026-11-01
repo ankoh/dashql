@@ -220,7 +220,16 @@ table ScriptReferenceCheck {
 
 /// What carries the data of a dataflow edge
 /// An INPUT edge starts at an input, its from_script is the index of the input
-enum DataflowEdgeKind: uint8 { INLINE_REFERENCE, SCAN_REFERENCE, INVALID_REFERENCE, TABLE, INPUT }
+/// An ATTACHMENT edge starts at an attachment, its from_script is the index of the attachment
+enum DataflowEdgeKind: uint8 { INLINE_REFERENCE, SCAN_REFERENCE, INVALID_REFERENCE, TABLE, INPUT, ATTACHMENT }
+
+/// An attachment in the dataflow of a session
+table DataflowAttachment {
+    /// The name of the table parameter, `sales` for `sales.parquet`
+    name: string;
+    /// The file name
+    file: string;
+}
 
 /// A statement of a script in the dataflow of a session
 table DataflowStatement {
@@ -296,4 +305,6 @@ table SessionDataflow {
     inputs: [SessionInput];
     /// The edges, sorted and without duplicates
     edges: [DataflowEdge];
+    /// The attachments of the session, the sources of the ATTACHMENT edges
+    attachments: [DataflowAttachment];
 }

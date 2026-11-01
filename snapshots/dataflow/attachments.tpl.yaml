@@ -1,0 +1,35 @@
+dataflow-snapshots:
+  # An attachment flows into the statements that scan it, also through an inlined query
+  - name: AttachmentsFlowIntoStatements
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+      - file: unused.parquet
+        stamp: 1
+    scripts:
+      - name: foo
+        connection: local
+        input: |
+          select region, amount from :sales where amount > 5;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+          select * from :sales s, :foo f where s.region = f.region;
+
+  # A REMOTE statement that reads an attachment has no edge, the editor reports the error
+  - name: RemoteReadsAttachment
+    connections:
+      - name: trino
+        kind: REMOTE
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: bar
+        connection: trino
+        input: |
+          select * from :sales;

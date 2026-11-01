@@ -3,7 +3,8 @@
 //!
 //! The boxes are laid out like the app lays them out on its first render: a script with a `@flow` tag is fixed
 //! at its position, the chart of a visualized terminal statement follows its row, and the scripts of `collapsed` are
-//! collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide.
+//! collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide, the
+//! attachments follow the inputs the same way.
 
 use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
@@ -49,13 +50,19 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
             }
         })
         .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), ..Default::default() }))
+        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), ..Default::default() }))
         .collect();
     let scripts = dataflow.scripts.len() as u32;
+    let inputs = dataflow.inputs.len() as u32;
     let edges: Vec<DataflowLayoutEdge> = dataflow
         .edges
         .iter()
         .map(|e| {
-            let from_box = if e.kind == DataflowEdgeKind::Input { scripts + e.from.script } else { e.from.script };
+            let from_box = match e.kind {
+                DataflowEdgeKind::Input => scripts + e.from.script,
+                DataflowEdgeKind::Attachment => scripts + inputs + e.from.script,
+                _ => e.from.script,
+            };
             DataflowLayoutEdge { from_box, from_statement: e.from.statement, to_box: e.to.script, to_statement: e.to.statement }
         })
         .filter(|e| e.from_box != e.to_box)
@@ -114,6 +121,8 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
             let mut m = Map::new();
             if e.kind == DataflowEdgeKind::Input {
                 m.quoted("from", &format!(":{}", dataflow.inputs[e.from.script as usize].name));
+            } else if e.kind == DataflowEdgeKind::Attachment {
+                m.plain("from", &dataflow.attachments[e.from.script as usize].file);
             } else {
                 m.plain("from", &port(e.from.script, e.from.statement));
             }
@@ -126,6 +135,7 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
                     DataflowEdgeKind::InvalidReference => "invalid",
                     DataflowEdgeKind::Table => "table",
                     DataflowEdgeKind::Input => "input",
+                    DataflowEdgeKind::Attachment => "attachment",
                 },
             );
             m.plain("name", &e.name);
@@ -152,10 +162,26 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
             m.into_node()
         })
         .collect();
+    let attachment_nodes: Vec<Node> = dataflow
+        .attachments
+        .iter()
+        .enumerate()
+        .map(|(i, attachment)| {
+            let mut m = Map::new();
+            m.plain("name", &attachment.name);
+            m.plain("file", &attachment.file);
+            let (x, y, w, h) = boxes[script_count + dataflow.inputs.len() + i];
+            m.insert("box", Node::flow_seq([x, y, w, h].iter().map(|v| Node::int(v.round() as i64)).collect()));
+            m.into_node()
+        })
+        .collect();
     let mut out = Map::new();
     out.insert("scripts", Node::seq(scripts));
     if !input_nodes.is_empty() {
         out.insert("inputs", Node::seq(input_nodes));
+    }
+    if !attachment_nodes.is_empty() {
+        out.insert("attachments", Node::seq(attachment_nodes));
     }
     out.insert("edges", Node::seq(edges));
     Ok(out.into_node())

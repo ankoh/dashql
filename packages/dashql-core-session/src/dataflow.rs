@@ -14,6 +14,8 @@
 //!
 //! - A statement uses an input, a named scalar parameter `:min` (`session_inputs`). The inputs are nodes of their own,
 //!   an input edge starts at the input and ends at every statement that uses it.
+//! - A statement scans an attachment of the session with a table parameter `:sales`. The attachments are nodes of
+//!   their own, an attachment edge starts at the attachment and ends at the statement of the parameter.
 //!
 //! The planner edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of
 //! materializations, which the references stand for, are no dataflow.
@@ -41,6 +43,17 @@ pub enum DataflowEdgeKind {
     Table,
     /// A statement uses an input, the script of the source port is the index of the input
     Input,
+    /// A statement scans an attachment, the script of the source port is the index of the attachment
+    Attachment,
+}
+
+/// An attachment of the session
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DataflowAttachment {
+    /// The name of the table parameter, `sales` for `sales.parquet`
+    pub name: String,
+    /// The file name
+    pub file: String,
 }
 
 /// A statement of a script
@@ -95,6 +108,8 @@ pub struct Dataflow {
     pub scripts: Vec<DataflowScript>,
     /// The inputs in the order of their first use
     pub inputs: Vec<SessionInput>,
+    /// The attachments of the request, the sources of the attachment edges
+    pub attachments: Vec<DataflowAttachment>,
     /// The edges, sorted and without duplicates
     pub edges: Vec<DataflowEdge>,
 }
@@ -164,8 +179,18 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         node_of.get(&(script, meta.terminal_statement_id)).copied()
     };
 
-    // Script references
+    // Script references and attachments
     for reference in graph.references.iter().flatten() {
+        if reference.attachment != NONE {
+            let Some(to) = nodes.get(reference.node as usize) else { continue };
+            edges.insert(DataflowEdge {
+                from: DataflowPort { script: reference.attachment, statement: 0 },
+                to: port(to),
+                kind: DataflowEdgeKind::Attachment,
+                name: reference.parameter.clone().unwrap_or_default(),
+            });
+            continue;
+        }
         let (Some(from), Some(to)) = (terminal_of(reference.script), nodes.get(reference.node as usize)) else { continue };
         edges.insert(DataflowEdge {
             from: port(&nodes[from as usize]),
@@ -238,5 +263,6 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
     }
 
-    Dataflow { scripts, inputs: plan.inputs.inputs, edges: edges.into_iter().collect() }
+    let attachments = request.attachments.iter().map(|a| DataflowAttachment { name: a.name.to_string(), file: a.file.to_string() }).collect();
+    Dataflow { scripts, inputs: plan.inputs.inputs, attachments, edges: edges.into_iter().collect() }
 }

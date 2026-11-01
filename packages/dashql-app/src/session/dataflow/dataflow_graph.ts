@@ -168,6 +168,8 @@ function computeDataflowGraph(session: SessionScripts): DataflowGraph {
         value: input.hasValue ? String(input.value ?? '') : null,
     }));
     const edges: DataflowEdge[] = dataflow.edges.flatMap(edge => {
+        // The canvas draws no attachments yet
+        if (edge.kind === core.buffers.execution.DataflowEdgeKind.ATTACHMENT) return [];
         const kind = edgeKind(edge.kind);
         const toScript = scripts[edge.toScript];
         const source = kind === DataflowEdgeKind.Input ? inputs[edge.fromScript] : null;
