@@ -84,6 +84,21 @@ fn is_leading_description_comment_gap(text: &[u8], previous_end: usize, comment:
 }
 
 impl ParsedScript {
+    /// The children of a node
+    pub fn children(&self, node: &Node) -> &[Node] {
+        let begin = node.children_begin_or_value() as usize;
+        self.nodes.get(begin..begin + node.children_count() as usize).unwrap_or_default()
+    }
+
+    /// The text of a node
+    pub fn node_text(&self, node: &Node) -> &str {
+        let scanned = &*self.scanned;
+        let span = context::resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
+        let begin = (span.offset as usize).min(scanned.text.len());
+        let end = (begin + span.length as usize).min(scanned.text.len());
+        &scanned.text[begin..end]
+    }
+
     /// Derive source spans and contiguous description comment blocks
     pub fn associate_descriptions(&self) -> Vec<StatementDescription> {
         let scanned = &*self.scanned;

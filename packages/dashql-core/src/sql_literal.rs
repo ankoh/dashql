@@ -20,7 +20,6 @@ use crate::utils::{quote_string_literal, unquote_string_literal};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_buffers::parser::{AttributeKey as K, ExpressionOperator, IntervalType as IntervalTypeEnum, Node, NodeType};
 use dashql_parser::attrs;
-use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::scan;
 use std::fmt;
@@ -58,24 +57,10 @@ impl fmt::Debug for SqlLiteral {
     }
 }
 
-/// The text of a node of a parsed script
-fn node_text<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
-    let scanned = &parsed.scanned;
-    let span = resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
-    let begin = (span.offset as usize).min(scanned.text.len());
-    let end = (begin + span.length as usize).min(scanned.text.len());
-    &scanned.text[begin..end]
-}
-
-fn children<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a [Node] {
-    let begin = node.children_begin_or_value() as usize;
-    &parsed.nodes[begin..begin + node.children_count() as usize]
-}
-
 /// The content of the string of a typed literal, e.g. `2024-01-01` of `date '2024-01-01'`
 fn string_content(parsed: &ParsedScript, node: Option<&Node>) -> Result<String, String> {
     let node = node.ok_or("a typed literal needs a string")?;
-    let text = node_text(parsed, node);
+    let text = parsed.node_text(node);
     match node.node_type() {
         NodeType::LITERAL_STRING => unquote_string_literal(text).ok_or_else(|| format!("{text} is no plain string")),
         _ => Err(format!("{text} is no string")),
@@ -84,7 +69,7 @@ fn string_content(parsed: &ParsedScript, node: Option<&Node>) -> Result<String, 
 
 /// The type and the value of a literal node, an error if the node is no literal
 fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, String), String> {
-    let text = node_text(parsed, node);
+    let text = parsed.node_text(node);
     let scalar = |kind| Some(SqlType::scalar(kind));
     match node.node_type() {
         NodeType::LITERAL_INTEGER => Ok((scalar(SqlTypeKind::Int8), text.to_string())),
@@ -94,9 +79,9 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
         NodeType::LITERAL_STRING => Ok((scalar(SqlTypeKind::Text), string_content(parsed, Some(node))?)),
         // -2.5
         NodeType::OBJECT_SQL_NARY_EXPRESSION => {
-            let [op, args] = attrs!(children(parsed, node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
+            let [op, args] = attrs!(parsed.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
             let negate = op.is_some_and(|o| ExpressionOperator(o.children_begin_or_value() as _) == ExpressionOperator::NEGATE);
-            match (negate, args.map(|a| children(parsed, a)).unwrap_or(&[])) {
+            match (negate, args.map(|a| parsed.children(a)).unwrap_or(&[])) {
                 (true, [arg]) if matches!(arg.node_type(), NodeType::LITERAL_INTEGER | NodeType::LITERAL_FLOAT) => {
                     let (sql_type, value) = read_literal(parsed, arg)?;
                     Ok((sql_type, format!("-{value}")))
@@ -106,28 +91,28 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
         }
         // timestamp '...', numeric(10,2) '1.5'
         NodeType::OBJECT_SQL_CONST_TYPE_CAST => {
-            let [ty, value] = attrs!(children(parsed, node), [K::SQL_CONST_CAST_TYPE, K::SQL_CONST_CAST_VALUE]);
+            let [ty, value] = attrs!(parsed.children(node), [K::SQL_CONST_CAST_TYPE, K::SQL_CONST_CAST_VALUE]);
             let sql_type = ty.and_then(|t| read_sql_type(parsed, t)).ok_or_else(|| format!("{text} has no type"))?;
             Ok((Some(sql_type), string_content(parsed, value)?))
         }
         // date '...', timestamptz '...', json '...'
         NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
             let [args, name, value] =
-                attrs!(children(parsed, node), [K::SQL_CONST_CAST_FUNC_ARGS_LIST, K::SQL_CONST_CAST_FUNC_NAME, K::SQL_CONST_CAST_VALUE]);
+                attrs!(parsed.children(node), [K::SQL_CONST_CAST_FUNC_ARGS_LIST, K::SQL_CONST_CAST_FUNC_NAME, K::SQL_CONST_CAST_VALUE]);
             if args.is_some() {
                 return Err(format!("{text} is no literal"));
             }
-            let name = name.map(|n| node_text(parsed, n).to_ascii_lowercase()).unwrap_or_default();
+            let name = name.map(|n| parsed.node_text(n).to_ascii_lowercase()).unwrap_or_default();
             let kind = generic_kind(&name).unwrap_or(SqlTypeKind::Generic { name: name.into(), modifiers: Vec::new() });
             Ok((scalar(kind), string_content(parsed, value)?))
         }
         // interval '3' day
         NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
-            let [interval, value] = attrs!(children(parsed, node), [K::SQL_CONST_CAST_INTERVAL, K::SQL_CONST_CAST_VALUE]);
+            let [interval, value] = attrs!(parsed.children(node), [K::SQL_CONST_CAST_INTERVAL, K::SQL_CONST_CAST_VALUE]);
             let invalid = || format!("{text} is no interval literal, an interval is a number and a unit, e.g. interval '3' day");
             let [fields, precision] = match interval {
                 Some(i) if i.node_type() == NodeType::OBJECT_SQL_INTERVAL_TYPE => {
-                    attrs!(children(parsed, i), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION])
+                    attrs!(parsed.children(i), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION])
                 }
                 _ => return Err(invalid()),
             };
@@ -190,7 +175,7 @@ impl SqlLiteral {
         // The value of the one result target of the select, which is the whole text, `1 from t` is no literal
         let mut values = parsed.nodes.iter().enumerate().filter(|(_, n)| n.attribute_key() == K::SQL_RESULT_TARGET_VALUE);
         let (Some((node, value)), None) = (values.next(), values.next()) else { return Err(invalid()) };
-        if node_text(&parsed, value) != text {
+        if parsed.node_text(value) != text {
             return Err(invalid());
         }
         let (sql_type, display) = read_literal(&parsed, value).map_err(|e| format!("{e}, {hint}"))?;

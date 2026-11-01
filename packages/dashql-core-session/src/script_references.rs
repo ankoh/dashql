@@ -19,7 +19,7 @@
 use crate::compiler::read_executable_text_with;
 use crate::planner::{script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
-use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType};
+use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
 use dashql_core::script_results::{find_script, ScriptLookup};
 use dashql_core::utils::quote_identifier;
@@ -441,12 +441,6 @@ pub(crate) struct SplicedStatement {
     pub input_errors: Vec<(u32, TextSpan, String)>,
 }
 
-/// The children of a node
-fn children<'a>(nodes: &'a [Node], node: &Node) -> &'a [Node] {
-    let begin = node.children_begin_or_value() as usize;
-    &nodes[begin..begin + node.children_count() as usize]
-}
-
 /// The text of a CTE name or a script name as identifier
 fn identifier(name: &str) -> String {
     let quoted = quote_identifier(name);
@@ -476,7 +470,7 @@ fn ctes<'a>(prepared: &'a Prepared, statement_id: u32) -> impl Iterator<Item = (
         if node.node_type() != NodeType::OBJECT_SQL_CTE {
             return None;
         }
-        let [name] = attrs!(children(&parsed.nodes, node), [Key::SQL_CTE_NAME]);
+        let [name] = attrs!(parsed.children(node), [Key::SQL_CTE_NAME]);
         let span = resolve_text_span(&scanned.text, &scanned.symbols, *name?.symbol_span());
         let text = &scanned.text[span.offset as usize..span.end() as usize];
         Some((ni, text.trim_matches('"').to_lowercase()))
@@ -518,7 +512,7 @@ fn visible_ctes(prepared: &Prepared, statement_id: u32, anchor: u32) -> BTreeSet
         // The common table expression is an element of the WITH array of its owner
         let owner = nodes[nodes[cte as usize].parent() as usize].parent();
         let visible = if owner == anchor {
-            let [recursive] = attrs!(children(nodes, &nodes[owner as usize]), [Key::SQL_SELECT_WITH_RECURSIVE]);
+            let [recursive] = attrs!(prepared.parsed.children(&nodes[owner as usize]), [Key::SQL_SELECT_WITH_RECURSIVE]);
             recursive.is_some()
         } else {
             encloses(owner)
@@ -671,7 +665,7 @@ pub(crate) fn splice_statement(
             let Some(producer) = r.producer else { continue };
             let cte = &cte_names[&producer];
             let tableref = &p.parsed.nodes[p.parsed.nodes[r.ast_node_id as usize].parent() as usize];
-            let [alias] = attrs!(children(&p.parsed.nodes, tableref), [Key::SQL_TABLEREF_ALIAS]);
+            let [alias] = attrs!(p.parsed.children(tableref), [Key::SQL_TABLEREF_ALIAS]);
             let has_alias = alias.is_some_and(|a| a.node_type() != NodeType::NONE);
             let script_name = request.scripts[producer as usize].name;
             let keeps_name = has_alias || cte == script_name || relations.contains(&script_name.to_lowercase());
@@ -721,8 +715,8 @@ pub(crate) fn splice_statement(
     }
     for &anchor in anchors.keys() {
         let node = &parsed.nodes[anchor as usize];
-        let [with] = attrs!(children(&parsed.nodes, node), [Key::SQL_SELECT_WITH_CTES]);
-        let first_cte = with.filter(|w| w.node_type() == NodeType::ARRAY && w.children_count() > 0).map(|w| children(&parsed.nodes, w)[0]);
+        let [with] = attrs!(parsed.children(node), [Key::SQL_SELECT_WITH_CTES]);
+        let first_cte = with.filter(|w| w.node_type() == NodeType::ARRAY && w.children_count() > 0).map(|w| parsed.children(w)[0]);
         match first_cte {
             Some(first) => {
                 let at = resolve_text_span(&scanned.text, &scanned.symbols, *first.symbol_span()).offset;

@@ -598,10 +598,6 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             String::from_utf8_lossy(&text[begin..end]).into_owned()
         };
         let descriptions = parsed.associate_descriptions();
-        let children = |n: &Node| -> &[Node] {
-            let begin = n.children_begin_or_value() as usize;
-            &parsed.nodes[begin..begin + n.children_count() as usize]
-        };
         let terminal = p.terminal();
         for (statement_id, statement) in parsed.statements.iter().enumerate() {
             if !included(si) {
@@ -712,7 +708,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 }
             }
             if ty == Type::EXPLAIN {
-                let [body, options] = attrs!(children(root), [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
+                let [body, options] = attrs!(parsed.children(root), [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
                 let option_text = |n: Option<&Node>| -> String {
                     let Some(n) = n.filter(|n| n.node_type() != NodeType::NONE) else { return String::new() };
                     let ts = resolve_text_span(&scanned.text, &scanned.symbols, *n.symbol_span());
@@ -724,11 +720,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                     text
                 };
                 if let Some(options) = options.filter(|o| o.node_type() == NodeType::ARRAY) {
-                    for option in children(options) {
+                    for option in parsed.children(options) {
                         if option.node_type() != NodeType::OBJECT_SQL_GENERIC_OPTION {
                             continue;
                         }
-                        let [key, value] = attrs!(children(option), [Key::SQL_GENERIC_OPTION_KEY, Key::SQL_GENERIC_OPTION_VALUE]);
+                        let [key, value] = attrs!(parsed.children(option), [Key::SQL_GENERIC_OPTION_KEY, Key::SQL_GENERIC_OPTION_VALUE]);
                         let name = option_text(key);
                         if name == "analyze" || name == "analyse" {
                             // Unknown arguments are execution-enabled, not proof of read-only behavior

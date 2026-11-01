@@ -35,15 +35,9 @@ pub struct CatalogNameDefaults {
     pub schema_name: String,
 }
 
-/// The children of a node
-fn children<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a [Node] {
-    let begin = node.children_begin_or_value() as usize;
-    &parsed.nodes[begin..begin + node.children_count() as usize]
-}
-
 /// The child of a node with an attribute key
 fn attribute<'a>(parsed: &'a ParsedScript, node: &Node, key: AttributeKey) -> Option<&'a Node> {
-    children(parsed, node).iter().find(|c| c.attribute_key() == key)
+    parsed.children(node).iter().find(|c| c.attribute_key() == key)
 }
 
 /// Is an attribute a `true` bool node?
