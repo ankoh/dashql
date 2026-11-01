@@ -353,12 +353,9 @@ impl ScriptSession {
         use dashql_buffers::parser::AttributeKey;
         use dashql_core::analyzer::ParameterKind;
         use dashql_core::script_results::{find_script, ScriptLookup};
-        let (Some(scanned), Some(parsed), Some(analyzed)) = (&self.script.scanned, &self.script.parsed, &self.script.analyzed) else {
+        let Some((scanned, parsed, analyzed)) = self.script.current_analysis() else {
             return Vec::new();
         };
-        if !Arc::ptr_eq(&analyzed.parsed, parsed) || !Arc::ptr_eq(&parsed.scanned, scanned) || scanned.text_version != self.text_version() {
-            return Vec::new();
-        }
         let mut found = Vec::new();
         for parameter in analyzed.parameters.iter().filter(|p| p.kind == ParameterKind::Table) {
             let Some(name) = parameter.name.as_deref() else { continue };
@@ -399,14 +396,7 @@ impl ScriptSession {
     /// The analysis is current if it was analyzed from the current text, and against a snapshot of
     /// the catalog that is still current.
     fn is_analysis_current(&self, catalog: &Catalog) -> bool {
-        let Some(analyzed) = self.script.analyzed.as_ref() else {
-            return false;
-        };
-        catalog.is_current(&analyzed.snapshot)
-            && self.script.script_results_current()
-            && self.script.parsed.as_ref().is_some_and(|p| Arc::ptr_eq(p, &analyzed.parsed))
-            && self.script.scanned.as_ref().is_some_and(|s| Arc::ptr_eq(s, &analyzed.parsed.scanned))
-            && analyzed.parsed.scanned.text_version == self.text_version()
+        self.script.current_analysis().is_some_and(|(_, _, analyzed)| catalog.is_current(&analyzed.snapshot)) && self.script.script_results_current()
     }
 
     /// The revision and selection part of an update

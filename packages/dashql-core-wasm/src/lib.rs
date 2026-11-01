@@ -1122,8 +1122,7 @@ impl ScriptResults {
                 .zip(&sessions)
                 .map(|((name, _, _, _), session)| {
                     let script = session.script();
-                    let current = script.analyzed.as_ref().filter(|a| a.parsed.scanned.text_version == script.text_version());
-                    (name.as_str(), current.map(|a| a.as_ref()))
+                    (name.as_str(), script.current_analysis().map(|(_, _, analyzed)| analyzed.as_ref()))
                 })
                 .collect();
             CoreResults::derive(&inputs, previous.as_deref())

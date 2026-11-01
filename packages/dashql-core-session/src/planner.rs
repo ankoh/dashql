@@ -133,11 +133,7 @@ impl<'a> Prepared<'a> {
     /// The analysis of a script if it is current with the text, whatever catalog it was analyzed with. Script
     /// references depend on the text only.
     pub(crate) fn lenient(script: &'a Script) -> Option<Self> {
-        let (Some(scanned), Some(parsed), Some(analyzed)) = (&script.scanned, &script.parsed, &script.analyzed) else {
-            return None;
-        };
-        let current = Arc::ptr_eq(&analyzed.parsed, parsed) && Arc::ptr_eq(&parsed.scanned, scanned) && scanned.text_version == script.text_version();
-        current.then_some(Prepared { scanned, parsed, analyzed })
+        script.current_analysis().map(|(scanned, parsed, analyzed)| Prepared { scanned, parsed, analyzed })
     }
 
     /// Does the script parse without errors?
@@ -278,14 +274,11 @@ struct ConnectionState<'a> {
 
 /// Validate the analysis of a script against the catalog of its connection
 fn prepare<'a>(state: &mut PlanState, index: u32, script: &'a Script, catalog: &Catalog) -> Option<Prepared<'a>> {
-    let (Some(scanned), Some(parsed), Some(analyzed)) = (&script.scanned, &script.parsed, &script.analyzed) else {
+    let Some(prepared) = Prepared::lenient(script) else {
         state.report(NONE, index, None, "missing or stale script analysis".into(), true);
         return None;
     };
-    if !Arc::ptr_eq(&analyzed.parsed, parsed) || !Arc::ptr_eq(&parsed.scanned, scanned) || scanned.text_version != script.text_version() {
-        state.report(NONE, index, None, "missing or stale script analysis".into(), true);
-        return None;
-    }
+    let analyzed = prepared.analyzed;
     if analyzed.snapshot.id() != catalog.id() {
         state.report(NONE, index, None, "script was analyzed with another catalog than the one of its connection".into(), true);
         return None;
@@ -295,7 +288,7 @@ fn prepare<'a>(state: &mut PlanState, index: u32, script: &'a Script, catalog: &
         state.report(NONE, index, None, "stale catalog analysis".into(), true);
         return None;
     }
-    Some(Prepared { scanned, parsed, analyzed })
+    Some(prepared)
 }
 
 /// Report the syntax errors of a script, they invalidate a plan of the session

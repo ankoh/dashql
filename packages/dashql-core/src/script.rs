@@ -244,6 +244,14 @@ impl Script {
         Ok(())
     }
 
+    /// The scanned, parsed and analyzed script if the analysis is current with the text, whatever catalog it was
+    /// analyzed with
+    pub fn current_analysis(&self) -> Option<(&Arc<ScannedScript>, &Arc<ParsedScript>, &Arc<AnalyzedScript>)> {
+        let (scanned, parsed, analyzed) = (self.scanned.as_ref()?, self.parsed.as_ref()?, self.analyzed.as_ref()?);
+        let current = Arc::ptr_eq(&analyzed.parsed, parsed) && Arc::ptr_eq(&parsed.scanned, scanned) && scanned.text_version == self.text_version;
+        current.then_some((scanned, parsed, analyzed))
+    }
+
     /// Is the analysis current with the script results of the script? An analysis without table parameters reads
     /// no results, any other was analyzed with the same results.
     pub fn script_results_current(&self) -> bool {
