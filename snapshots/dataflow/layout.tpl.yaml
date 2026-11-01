@@ -57,8 +57,8 @@ dataflow-snapshots:
         input: |
           select f.id, r.name from :filtered f, regions r where f.region = r.id;
 
-  # The order of the second layer avoids the crossing of the session order
-  - name: LayoutCrossing
+  # Two separate parts stack, the session order of their consumers does not matter
+  - name: LayoutSeparateParts
     scripts:
       - name: a
         input: |
@@ -185,3 +185,32 @@ dataflow-snapshots:
       - name: alone
         input: |
           select 2;
+
+  # The order of the second layer avoids the crossing of the session order in one connected part
+  - name: LayoutCrossing
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: from_a
+        input: |
+          select a.x from a, b;
+
+  # An edge across a layer, the dummy node that it passes orders the layer between
+  - name: LayoutLongEdge
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          select x from a;
+      - name: c
+        input: |
+          select * from a, :b;

@@ -1,0 +1,37 @@
+planner-snapshots:
+  # A tolerant plan leaves out what it can't plan and keeps going: a script without a current analysis, a reference
+  # to it and a reference with errors. Their diagnostics keep the error flag and the plan is not valid.
+  - name: TolerantLeavesOutWhatItCannotPlan
+    scope: tolerant
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: stale
+        input: |
+          select a from t;
+        stale-prepend: "select 2; "
+      - name: reads_stale
+        input: |
+          select * from :stale;
+      - name: unknown
+        input: |
+          select * from :nope;
+      - name: report
+        input: |
+          select count(*) from t;
+
+  # Without problems a tolerant plan is valid and plans every statement of every script
+  - name: TolerantWithoutProblems
+    scope: tolerant
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: report
+        input: |
+          select a from t;
+      - name: chart
+        input: |
+          select * from :report;

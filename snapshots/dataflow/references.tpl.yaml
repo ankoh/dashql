@@ -72,7 +72,7 @@ dataflow-snapshots:
         input: |
           select count(*) from :filtered;
 
-  # A cycle of references is invalid, the edges stay
+  # A cycle of references: the reference that closes the cycle is invalid, as the editor reports it
   - name: ReferenceCycle
     scripts:
       - name: a
@@ -81,3 +81,27 @@ dataflow-snapshots:
       - name: b
         input: |
           select * from :a;
+
+  # A reference to a script whose analysis is behind its text reads nothing until it is analyzed again
+  - name: ReferenceToStaleScript
+    scripts:
+      - name: report
+        input: |
+          select 1 as x;
+        stale-prepend: "select 2 as y;\n"
+      - name: chart
+        input: |
+          select * from :report;
+
+  # A statement that reads a table itself and through an inlined script reads it twice
+  - name: InlinedAndDirectRead
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: filtered
+        input: |
+          select a from t where a > 1;
+      - name: report
+        input: |
+          select * from t, :filtered f where t.a = f.a;

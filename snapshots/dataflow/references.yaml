@@ -208,3 +208,67 @@ dataflow-snapshots:
           to: a.0
           kind: inline
           name: b
+
+  - name: ReferenceToStaleScript
+    scripts:
+      - name: report
+        input: |
+          select 1 as x;
+        stale-prepend: "select 2 as y;\n"
+      - name: chart
+        input: |
+          select * from :report;
+    expected:
+      scripts:
+        - name: report
+          analyzed: false
+          box: [0,0,280,32]
+        - name: chart
+          statements:
+            - type: SELECT
+              text: "select * f..om :report"
+          box: [312,0,280,80]
+      edges: []
+
+  - name: InlinedAndDirectRead
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: filtered
+        input: |
+          select a from t where a > 1;
+      - name: report
+        input: |
+          select * from t, :filtered f where t.a = f.a;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: filtered
+          statements:
+            - type: SELECT
+              text: "select a f..here a > 1"
+          box: [376,0,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select * f.. t.a = f.a"
+          box: [752,0,280,80]
+      edges:
+        - from: schema.0
+          to: filtered.0
+          kind: table
+          name: t
+        - from: schema.0
+          to: report.0
+          kind: table
+          name: t
+        - from: filtered.0
+          to: report.0
+          kind: inline
+          name: filtered

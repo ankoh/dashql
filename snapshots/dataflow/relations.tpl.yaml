@@ -91,3 +91,28 @@ dataflow-snapshots:
       - name: other
         input: |
           select a from t;
+
+  # A drop neither produces nor reads data, a read after it reads nothing of the dropped table
+  - name: ReadAfterDrop
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+          drop table t;
+          select * from t;
+
+  # A writer whose analysis is behind its text is left out, the reader reads from the writer before it
+  - name: StaleWriter
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: more
+        input: |
+          insert into t values (2);
+        stale-prepend: "select 1;\n"
+      - name: read
+        input: |
+          select count(*) from t;

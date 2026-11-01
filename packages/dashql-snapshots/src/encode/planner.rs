@@ -89,6 +89,8 @@ pub struct Fixture {
     pub targets: Option<Vec<String>>,
     /// The scripts whose materialized results the host provides
     pub materialized: Vec<String>,
+    /// Is the plan tolerant (`scope: tolerant`), the plan of the dataflow?
+    pub tolerant: bool,
 }
 
 /// The directory of the materialized results in planner snapshots
@@ -125,6 +127,7 @@ impl Fixture {
                 .collect(),
             targets: present(&fixture["targets"]).then(|| names(&fixture["targets"])),
             materialized: names(&fixture["materialized"]),
+            tolerant: fixture["scope"].as_str() == Some("tolerant"),
         }
     }
 
@@ -159,6 +162,7 @@ impl Fixture {
                 .collect(),
             targets: fixture.get("targets").map(|t| names(Some(t))),
             materialized: names(fixture.get("materialized")),
+            tolerant: fixture.get("scope").and_then(Node::val) == Some("tolerant"),
         }
     }
 }
@@ -313,7 +317,8 @@ pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
     use dashql_core_session::planner::plan_session;
     use dashql_core_session::script_references::check_script_references;
     let prepared = prepare_fixture(fixture)?;
-    let (graph, checks) = prepared.with_request(None, |request| (plan_session(request), check_script_references(request)));
+    let scope = fixture.tolerant.then_some(dashql_core_session::planner::PlanScope::Tolerant);
+    let (graph, checks) = prepared.with_request(scope, |request| (plan_session(request), check_script_references(request)));
     let PreparedFixture { connections, names, scripts, .. } = prepared;
     Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _)| s).collect(), checks })
 }

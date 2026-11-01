@@ -283,6 +283,13 @@ fn rewrite_vis_flow_places_the_script() {
     // Removing the position removes the comment it was alone in
     let mut script = parsed_script("/* @vis flow x=1 y=2 */\ncreate table t (a int);\n/* @vis table */\nselect a from t");
     assert_eq!(script.rewrite_vis_flow(None, false).unwrap(), "create table t (a int);\n/* @vis table */\nselect a from t");
+    // A script has one position: setting it keeps the first tag, removing it removes every tag
+    let two = "/* @vis flow x=1 y=1 */\nselect 1;\n/* @vis table\n   @vis flow x=5 y=5 */\nselect 2";
+    assert_eq!(
+        parsed_script(two).rewrite_vis_flow(Some(&flow), false).unwrap(),
+        "/** @vis flow x=-16 y=240 */\nselect 1;\n/** @vis table */\nselect 2"
+    );
+    assert_eq!(parsed_script(two).rewrite_vis_flow(None, false).unwrap(), "select 1;\n/** @vis table */\nselect 2");
     // Without a position, removing it leaves the text alone
     let mut script = parsed_script("select 1");
     assert_eq!(script.rewrite_vis_flow(None, false).unwrap(), "select 1");

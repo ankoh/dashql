@@ -6,8 +6,9 @@
 //!
 //! - Without fixed boxes it arranges all of them in layers (Sugiyama): back edges of cycles are reversed, a box is
 //!   one layer right of its rightmost producer and a box without producers sits right before its leftmost consumer,
-//!   barycenter sweeps order the boxes of a layer, and a box is moved to the median of the rows it is connected
-//!   to, so that edges between statement rows run straight where they can. The connected parts of the graph are
+//!   barycenter sweeps order the boxes of a layer, and alternating sweeps move a box to the median of the rows it
+//!   is connected to in the layer before or after it, so that edges between statement rows run straight where
+//!   they can. The connected parts of the graph are
 //!   stacked, boxes without edges go into rows below them.
 //! - With fixed boxes, e.g. the positions of `@vis flow` tags, only the others are placed, one at a time in
 //!   topological order: right of their producers, left of their consumers, or below everything, at the median of
@@ -161,22 +162,33 @@ pub fn compute_dataflow_layout(boxes: &[DataflowLayoutBox], edges: &[DataflowLay
     geometry
 }
 
-/// The boxes in topological order, cycles are broken in session order
+/// The boxes in topological order. A cycle is broken at the pending box with the most pending consumers over pending
+/// producers, a box on the cycle rather than one of its consumers, the first one in session order among equals.
 fn topological_order(count: usize, edges: &[DataflowLayoutEdge]) -> Vec<usize> {
     let mut indegree = vec![0usize; count];
+    let mut outdegree = vec![0usize; count];
     for e in edges {
         indegree[e.to_box as usize] += 1;
+        outdegree[e.from_box as usize] += 1;
     }
     let mut done = vec![false; count];
     let mut order = Vec::with_capacity(count);
     while order.len() < count {
-        // The first box without pending producers, or the first pending box of a cycle
-        let next = (0..count).find(|&i| !done[i] && indegree[i] == 0).or_else(|| (0..count).find(|&i| !done[i])).unwrap();
+        let next = (0..count).find(|&i| !done[i] && indegree[i] == 0).unwrap_or_else(|| {
+            (0..count)
+                .filter(|&i| !done[i])
+                .max_by_key(|&i| (outdegree[i] as i64 - indegree[i] as i64, std::cmp::Reverse(i)))
+                .unwrap()
+        });
         done[next] = true;
         order.push(next);
         for e in edges.iter().filter(|e| e.from_box as usize == next) {
             let to = e.to_box as usize;
             indegree[to] = indegree[to].saturating_sub(1);
+        }
+        for e in edges.iter().filter(|e| e.to_box as usize == next) {
+            let from = e.from_box as usize;
+            outdegree[from] = outdegree[from].saturating_sub(1);
         }
     }
     order
@@ -406,8 +418,7 @@ fn arrange_component(
                     median(rows).unwrap_or(geometry[b].y)
                 })
                 .collect();
-            // Keep the order and the gaps: push boxes down that would overlap the box above them, then pull the
-            // boxes of the layer up again as a block if all of them are below where they want to be
+            // Keep the order and the gaps: push boxes down that would overlap the box above them
             for i in 1..wanted.len() {
                 let above = order[l][i - 1];
                 wanted[i] = wanted[i].max(wanted[i - 1] + geometry[above].height + config.box_gap);
@@ -547,6 +558,15 @@ mod tests {
         let config = DataflowLayoutConfig::default();
         let g = compute_dataflow_layout(&[data(1), data(1)], &[edge(0, 0, 1, 0), edge(1, 0, 0, 0)], &config);
         assert!(g[0].x < g[1].x);
+        assert_no_overlaps(&g);
+    }
+
+    #[test]
+    fn arrange_breaks_cycles_on_the_cycle() {
+        let config = DataflowLayoutConfig::default();
+        // 0 reads 1, 1 and 2 read each other: 0 is no part of the cycle and stays right of its producer
+        let g = compute_dataflow_layout(&[data(1), data(1), data(1)], &[edge(1, 0, 0, 0), edge(2, 0, 1, 0), edge(1, 0, 2, 0)], &config);
+        assert!(g[0].x > g[1].x);
         assert_no_overlaps(&g);
     }
 

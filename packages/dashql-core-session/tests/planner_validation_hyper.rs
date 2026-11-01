@@ -51,6 +51,7 @@ fn provide(connections: &mut [HyperConnection], fixture: &Fixture, planned: &Pla
         scripts: fixture.scripts.iter().map(|s| FixtureScript { name: s.name.clone(), input: s.input.clone(), stale_prepend: None, connection: s.connection.clone() }).collect(),
         targets: Some(vec![name.clone()]),
         materialized: Vec::new(),
+        tolerant: false,
     };
     let sub = plan_fixture(&target).map_err(|e| format!("plan of the provided result of {name}: {e}"))?;
     if !sub.graph.valid {

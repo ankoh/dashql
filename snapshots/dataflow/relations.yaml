@@ -241,3 +241,75 @@ dataflow-snapshots:
           to: other.0
           kind: table
           name: t
+
+  - name: ReadAfterDrop
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+          drop table t;
+          select * from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+            - type: DROP_TABLE
+              target: t
+              text: "drop table t"
+            - type: SELECT
+              text: "select * from t"
+          box: [0,0,280,176]
+      edges:
+        - from: schema.0
+          to: schema.1
+          kind: table
+          name: t
+
+  - name: StaleWriter
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: more
+        input: |
+          insert into t values (2);
+        stale-prepend: "select 1;\n"
+      - name: read
+        input: |
+          select count(*) from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+          box: [0,0,280,112]
+        - name: more
+          analyzed: false
+          box: [0,176,280,32]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select cou..(*) from t"
+          box: [376,32,280,80]
+      edges:
+        - from: schema.0
+          to: schema.1
+          kind: table
+          name: t
+        - from: schema.1
+          to: read.0
+          kind: table
+          name: t

@@ -117,6 +117,24 @@ fn writes(node: &ExecutionGraphNodeT) -> impl Iterator<Item = Relation> + '_ {
         .filter_map(|a| relation_of(a.entity, a.unresolved_reference))
 }
 
+/// Does the statement of a node read a relation itself, not only through the query of an inlined script? The table
+/// references of its analysis are those of its own text.
+fn reads_directly(request: &SessionPlanRequest, graph: &ExecutionGraphT, node: &ExecutionGraphNodeT, (entity, unresolved): Relation) -> bool {
+    let Some(analyzed) = request.scripts.get(node.script as usize).and_then(|s| s.script.analyzed.as_ref()) else { return false };
+    let entity_id = graph.entities.as_ref().and_then(|e| e.get(entity as usize)).map(|e| e.catalog_object_id.object_id);
+    let unresolved_name = graph.unresolved_references.as_ref().and_then(|r| r.get(unresolved as usize)).and_then(|r| r.name.clone());
+    analyzed
+        .table_references
+        .iter()
+        .filter(|r| r.ast_statement_id == Some(node.statement_id) && !r.reads_script_result())
+        .filter_map(|r| r.inner.as_ref())
+        .any(|relation| match (&relation.resolved_table, entity_id) {
+            (Some(resolved), Some(id)) => resolved.catalog_table_id.unpack_table_id().pack() == id,
+            (None, None) => unresolved_name.as_deref() == Some(&*relation.table_name.table_name.text),
+            _ => false,
+        })
+}
+
 /// Derive the dataflow of the scripts of a session. Ignores the scope and the materializations of the request.
 pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
     let tolerant = SessionPlanRequest { scope: PlanScope::Tolerant, materialized: &[], ..*request };
@@ -128,12 +146,14 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
 
     // The statements, from the nodes of the plan
     let mut scripts: Vec<DataflowScript> = vec![DataflowScript::default(); request.scripts.len()];
+    let spans: Vec<Vec<TextSpan>> = request
+        .scripts
+        .iter()
+        .map(|s| Prepared::lenient(s.script).map(|p| p.parsed.associate_descriptions().iter().map(|d| d.statement_span).collect()).unwrap_or_default())
+        .collect();
     for node in nodes {
         let Some(script) = scripts.get_mut(node.script as usize) else { continue };
-        let input = request.scripts[node.script as usize].script;
-        let text_span = Prepared::lenient(input)
-            .and_then(|p| p.parsed.associate_descriptions().get(node.statement_id as usize).map(|d| d.statement_span))
-            .unwrap_or_default();
+        let text_span = spans[node.script as usize].get(node.statement_id as usize).copied().unwrap_or_default();
         script.analyzed = true;
         script.statements.push(DataflowStatement {
             statement_type: node.statement_type,
@@ -193,21 +213,24 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
         let Some(relation) = relation_of(e.entity, e.unresolved_reference) else { continue };
         let (from, to) = (&nodes[e.from as usize], &nodes[e.to as usize]);
-        if !writes(from).any(|r| r == relation) || matches!(to.statement_type, StatementType::DROP_TABLE | StatementType::DROP_VIEW) {
+        // A drop neither produces nor reads data
+        let drop = |node: &ExecutionGraphNodeT| matches!(node.statement_type, StatementType::DROP_TABLE | StatementType::DROP_VIEW);
+        if !writes(from).any(|r| r == relation) || drop(from) || drop(to) {
             continue;
         }
         table_edges.entry((e.from, relation)).or_default().insert(e.to);
     }
     for (&(from, relation), targets) in &table_edges {
         for &to in targets {
-            // A read through the query of an inlined script flows through that script
-            let through_inlined = nodes[to as usize]
+            // A read only through the query of an inlined script flows through that script
+            let node = &nodes[to as usize];
+            let through_inlined = node
                 .inlined_scripts
                 .iter()
                 .flatten()
                 .filter_map(|&script| terminal_of(script))
                 .any(|terminal| terminal != to && targets.contains(&terminal));
-            if through_inlined {
+            if through_inlined && !writes(node).any(|r| r == relation) && !reads_directly(request, &graph, node, relation) {
                 continue;
             }
             edges.insert(DataflowEdge {

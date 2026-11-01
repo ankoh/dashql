@@ -73,11 +73,11 @@ tag of the statement it shows (see Rewriting tags).
 
 ## Dataflow placement
 
-The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@vis flow x=.. y=..` is the position of the
-top left corner of the box in canvas pixels, negative coordinates are fine. A script has one position: the
-first `flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or missing
-coordinate is ignored. Unlike `board`, it needs no renderer and may annotate a statement that is no query,
-so a script that only creates a table is placed too. A `flow` tag alone does not make a query a
+The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@vis flow x=.. y=..` is the
+position of the top left corner of the box in canvas pixels, negative coordinates are fine. A script has one
+position: the first `flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or
+missing coordinate is ignored. Unlike `board`, it needs no renderer and may annotate a statement that is no
+query, so a script that only creates a table is placed too. A `flow` tag alone does not make a query a
 visualization. A script without a position is placed automatically.
 
 ```sql
@@ -96,8 +96,9 @@ statement id, from the compiler for the terminal query and from the planner for 
 a card moves also when a statement follows the query.
 
 `Script::rewrite_vis_flow` sets or removes the position of a script (`VisFlow`), addressed by the script
-instead of a statement: it replaces the first `flow` tag where it is and puts a new one after the `@vis`
-tags of the terminal statement (`rewriteVisFlow` and `removeVisFlow` of the script session).
+instead of a statement: it replaces the first `flow` tag where it is and removes the others, a new one goes after
+the `@vis` tags of the terminal statement, and removing the position removes every `flow` tag (`rewriteVisFlow`
+and `removeVisFlow` of the script session).
 
 The tags are edited in the annotation of the statement (`annotation.rs`): its comment tags
 (`@description`, `@metadata`, `@vis`) as one list, the `Annotation` with the text before the first tag

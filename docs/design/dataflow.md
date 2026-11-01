@@ -19,16 +19,18 @@ in a run, from the analysis of every script:
   reference check of the planner (`check_script_references`); the editor reports the errors.
 - **Relations**: the planner edges `READ_AFTER_WRITE`, `WRITE_AFTER_WRITE` and `DDL` of a relation whose source wrote
   the relation are `TABLE` edges, labeled with the relation name. A write continues the flow, so the `create`,
-  `insert` and `select` of a table form a chain, also within one script. A drop reads no data. A statement that
-  reads a relation only through the query of an inlined script reads it through that script: the edge into the
-  statement is left out, the edge into the script stays.
+  `insert` and `select` of a table form a chain, also within one script. A drop neither produces nor reads data, it
+  ends no edge and starts none. A statement that reads a relation only through the query of an inlined script reads
+  it through that script: the edge into the statement is left out, the edge into the script stays. A statement that
+  also reads or writes the relation itself keeps its edge.
 
 Edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of materializations,
 which the scan references stand for, are no dataflow. A relation that a statement reads before another statement
 creates it in session order has no edge, a run would read it before it is written.
 
 The snapshots in `snapshots/dataflow/` have cases of their own, they describe a session like the planner snapshots
-(`connections`, `catalog`, `scripts`, `stale-prepend`, and `collapsed` for the scripts whose boxes are collapsed) and
+(`connections`, `catalog`, `scripts`, `stale-prepend`, and `collapsed` for the scripts whose boxes are collapsed,
+`targets` and `materialized` are ignored) and
 expect the statements of every script, the box of every script on the canvas (`box: [x, y, width, height]`, see
 Layout) and the edges (`bazel run //snapshots/dataflow:update`).
 
@@ -44,9 +46,10 @@ others. The layout has two levels:
 - **Between boxes**, without fixed boxes, every box is arranged in layers from left to right (Sugiyama): back edges
   of cycles are reversed, a box is one layer right of its rightmost producer, and a box without producers sits
   right before its leftmost consumer. Barycenter sweeps order the boxes of a layer, edges spanning layers pass
-  through dummy nodes, and the order with the fewest crossings wins. Then every box moves to the median of the rows
-  it is connected to, so edges between statement rows run straight where they can. Connected parts are stacked,
-  boxes without edges go into rows of four below them.
+  through dummy nodes, and the order with the fewest crossings wins. Then alternating sweeps move every box to the
+  median of the rows it is connected to in the layer before or after it, so edges between statement rows run straight
+  where they can. The dummy nodes only order the layers, an edge across a layer may pass behind a box of a layer in
+  between. Connected parts are stacked, boxes without edges go into rows of four below them.
 - **With fixed boxes**, the others are placed one at a time in topological order: right of their placed producers,
   left of their placed consumers, or below everything at the left edge, at the median of their connected rows, then
   moved to the nearest free slot.

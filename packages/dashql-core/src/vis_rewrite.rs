@@ -208,43 +208,44 @@ pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize,
     Ok(text)
 }
 
-/// Set or remove the flow position of a script. The position is a tag of any statement: an existing
-/// `@vis flow` tag is replaced where it is, the first one in statement order, a new one goes after the
-/// `@vis` tags of the terminal statement.
+/// Set or remove the flow position of a script. The position is a tag of any statement: the first `@vis flow` tag in
+/// statement order is replaced where it is, the others are removed, and a new one goes after the `@vis` tags of the
+/// terminal statement. Removing the position removes every `@vis flow` tag.
 pub fn rewrite_vis_flow(text: &str, parsed: &ParsedScript, flow: Option<&VisFlow>) -> Result<String> {
     if !parsed.errors.is_empty() {
         return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
     }
-    let mut tagged = None;
+    let mut tagged = Vec::new();
     for statement_id in 0..parsed.statements.len() {
         if crate::annotation::read_annotation(parsed, statement_id)?.tags.iter().any(is_flow) {
-            tagged = Some(statement_id);
-            break;
+            tagged.push(statement_id);
         }
     }
-    let statement_id = match (tagged, flow) {
-        (Some(statement_id), _) => statement_id,
+    let target = match (tagged.first(), flow) {
+        (Some(&first), _) => Some(first),
         (None, None) => return Ok(text.to_string()),
-        (None, Some(_)) => parsed.statements.len().checked_sub(1).ok_or_else(|| Error::invalid_argument("the script has no statement"))?,
+        (None, Some(_)) => Some(parsed.statements.len().checked_sub(1).ok_or_else(|| Error::invalid_argument("the script has no statement"))?),
     };
-    let (text, _) = crate::annotation::rewrite(text, parsed, statement_id, |annotation| {
-        let tags = &mut annotation.tags;
-        Ok(match (flow, tags.iter().position(is_flow)) {
-            (Some(flow), Some(i)) => {
-                tags[i] = flow.tag();
-                Some(i)
-            }
-            (Some(flow), None) => {
-                let i = tags.iter().rposition(is_vis).map_or(tags.len(), |i| i + 1);
+    let mut statements: Vec<usize> = tagged;
+    if let Some(target) = target.filter(|t| !statements.contains(t)) {
+        statements.push(target);
+    }
+    // Back to front, an edit leaves the spans of the statements before it alone
+    statements.sort_unstable();
+    let mut text = text.to_string();
+    for &statement_id in statements.iter().rev() {
+        let place = if Some(statement_id) == target { flow } else { None };
+        text = crate::annotation::rewrite(&text, parsed, statement_id, |annotation| {
+            let tags = &mut annotation.tags;
+            let first = tags.iter().position(is_flow);
+            tags.retain(|t| !is_flow(t));
+            Ok(place.map(|flow| {
+                let i = first.unwrap_or_else(|| tags.iter().rposition(is_vis).map_or(tags.len(), |i| i + 1)).min(tags.len());
                 tags.insert(i, flow.tag());
-                Some(i)
-            }
-            (None, Some(i)) => {
-                tags.remove(i);
-                None
-            }
-            (None, None) => None,
-        })
-    })?;
+                i
+            }))
+        })?
+        .0;
+    }
     Ok(text)
 }

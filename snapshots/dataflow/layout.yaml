@@ -182,7 +182,7 @@ dataflow-snapshots:
           kind: table
           name: regions
 
-  - name: LayoutCrossing
+  - name: LayoutSeparateParts
     scripts:
       - name: a
         input: |
@@ -541,3 +541,98 @@ dataflow-snapshots:
               text: "select 2"
           box: [120,312,280,80]
       edges: []
+
+  - name: LayoutCrossing
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: from_a
+        input: |
+          select a.x from a, b;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [0,112,280,80]
+        - name: from_b
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [376,112,280,80]
+        - name: from_a
+          statements:
+            - type: SELECT
+              text: "select a.x.. from a, b"
+          box: [376,0,280,80]
+      edges:
+        - from: a.0
+          to: from_a.0
+          kind: table
+          name: a
+        - from: b.0
+          to: from_b.0
+          kind: table
+          name: b
+        - from: b.0
+          to: from_a.0
+          kind: table
+          name: b
+
+  - name: LayoutLongEdge
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          select x from a;
+      - name: c
+        input: |
+          select * from a, :b;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select x from a"
+          box: [376,0,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select * from a, :b"
+          box: [752,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: table
+          name: a
+        - from: a.0
+          to: c.0
+          kind: table
+          name: a
+        - from: b.0
+          to: c.0
+          kind: inline
+          name: b

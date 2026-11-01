@@ -1,0 +1,250 @@
+planner-snapshots:
+
+  - name: TolerantLeavesOutWhatItCannotPlan
+    scope: tolerant
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: stale
+        input: |
+          select a from t;
+        stale-prepend: "select 2; "
+      - name: reads_stale
+        input: |
+          select * from :stale;
+      - name: unknown
+        input: |
+          select * from :nope;
+      - name: report
+        input: |
+          select count(*) from t;
+    expected:
+      valid: false
+      scripts:
+        - name: schema
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "9b8f55ee6edc5cf21b08b8d7f51d46bb"
+        - name: stale
+          text-version: 2
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+        - name: reads_stale
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "88510ebcc83d1da84e0cf24522a94111"
+        - name: unknown
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "816e8b5a55d7ac42afb04ff9a267afcf"
+        - name: report
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "64b8b806199305b633e3b7711681e1cf"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: schema
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: reads_stale
+          statement-id: 0
+          type: SELECT
+          sql: "select * from :stale"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 2
+          script: unknown
+          statement-id: 0
+          type: SELECT
+          sql: "select * from :nope"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 3
+          script: report
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 3
+          reason: DDL
+          entity: '256.65536.4294967296'
+      diagnostics:
+        - script: unknown
+          text: ":nope"
+          error: true
+          message: 'unknown script :nope'
+        - script: stale
+          error: true
+          message: missing or stale script analysis
+      checked-references:
+        - script: stale
+          checked: false
+        - script: reads_stale
+          references:
+            - text: ":stale"
+              target: stale
+              kind: inline
+        - script: unknown
+          references:
+            - text: ":nope"
+              kind: invalid
+              errors:
+                - 'unknown script :nope'
+
+  - name: TolerantWithoutProblems
+    scope: tolerant
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: report
+        input: |
+          select a from t;
+      - name: chart
+        input: |
+          select * from :report;
+    expected:
+      valid: true
+      scripts:
+        - name: schema
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "52b2239ad9a3680b850299642993492d"
+        - name: report
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a2a3c8a2261b895606b724ae6948ae57"
+        - name: chart
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "240c95ec5cfa215fa37aacb108a1ce10"
+          references: [report]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: schema
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: schema
+          statement-id: 1
+          type: INSERT
+          sql: "insert into t values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: report
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: chart
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with report as (
+            select a from t
+            )
+            select * from report
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: SEQUENCE
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      references:
+        - node: 3
+          script: chart
+          text: ":report"
+          target: report
+          cte: report
+      diagnostics: []
+      checked-references:
+        - script: chart
+          references:
+            - text: ":report"
+              target: report
+              kind: inline

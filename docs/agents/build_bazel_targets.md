@@ -157,7 +157,7 @@ These targets regenerate `/snapshots/*.yaml` from `/snapshots/*.tpl.yaml` templa
   `ryml::emit` ports the rapidyaml 0.12.1 emitter, quirks included (flow sequences without spaces like
   `[0,2]`, `|2` for block literals with leading spaces). Regenerating unchanged snapshots gives
   byte-identical files.
-- Analyzer, completion, planner and visualize write their templates back with the results appended, so
+- Analyzer, completion, planner, dataflow and visualize write their templates back with the results appended, so
   `ryml::parse` keeps the template styles (scalar styles, flow and multi-line flow containers).
 
 ### Benchmarks
