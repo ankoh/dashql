@@ -38,7 +38,9 @@ The scope is the whole session (`PlanScope::Session`) or target scripts (`PlanSc
 session includes every statement of the scripts whose materialized results the host doesn't provide, it checks every
 script. A plan of targets includes every statement of the targets and the queries of the scripts that they materialize, unless the
 host provides the materialized result. The targets, the scripts they reference and the scripts those reference must
-have a current analysis, `ExecutionGraphScript.planned` marks them. A plan of targets runs like a
+have a current analysis, `ExecutionGraphScript.planned` marks them. `ExecutionGraphScript.target` marks the scripts
+a plan includes in full: the targets, in a plan of the session the scripts whose results the host doesn't provide, in a
+tolerant plan every script. A plan of targets runs like a
 single script: statements keep their SQL whatever their kind, the statements of a script are chained with
 SEQUENCE edges, a target that does not parse becomes one barrier node with its text as written, and the
 diagnostics of statements are warnings. Diagnostics of script references, stale analysis, visualizations that fail
@@ -247,8 +249,8 @@ Planner snapshots contain ordered named scripts, optional external catalog SQL,
 and expected native text versions, catalog revisions, entities, unresolved
 references, nodes, accesses, edges, and diagnostics. A fixture may declare
 connections (`connections: [{name, kind, catalog}]`, every script then names its
-`connection`), target scripts (`targets: [bar]`) and provided materializations
-(`materialized: [foo]`); without connections the scripts run on one implicit
+`connection`), target scripts (`targets: [bar]`), provided materializations
+(`materialized: [foo]`) and a tolerant plan (`scope: tolerant`); without connections the scripts run on one implicit
 REMOTE connection with the top-level `catalog`. The mount prefix of snapshots is
 `/mnt/external/dashql-run-test`. Fixtures with connections print the connection of
 scripts, nodes and unresolved references, and prefix entity ids with the

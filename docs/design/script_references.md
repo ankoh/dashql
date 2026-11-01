@@ -76,7 +76,7 @@ newest file of its key.
 
 ## Running a Script
 
-A run of one script (`runSessionScript`, `runPlannedScript` in `script_run.ts`) analyzes every script, publishes the
+A run of one script (`runSessionScript` in `rerun_query.ts`, `runPlannedScript` in `script_run.ts`) analyzes every script, publishes the
 declarations and plans the script as the target: the plan holds the statements of the script, with the queries it
 inlines spliced in, and the queries of the scripts it materializes. The scripts that write the relations these queries
 read are no part of the plan, the run reads the relations as the backend has them. A script that references no

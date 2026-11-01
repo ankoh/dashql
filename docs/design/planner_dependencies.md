@@ -48,12 +48,15 @@ that are written, the cached results that a run reads instead of running a scrip
 
 ## Scopes
 
-A plan of the session (`PlanScope::Session`) has a node for every statement of every script. Every script must have
-a current analysis and parse, syntax errors invalidate the plan. The scripts that the host provides as materialized
-(`SessionPlanRequest.materialized`) are ignored, every materialized result is computed by the node of its
-script.
+A plan of the session (`PlanScope::Session`) prepares and checks every script, also those whose materialized results
+the host provides (`SessionPlanRequest.materialized`). Every script must have a current analysis and parse, syntax
+errors invalidate the plan. It includes every statement of the scripts whose results the host doesn't provide; a
+scan of a provided script reads its file, an inline reference to it still splices its query.
 
-A plan of targets (`PlanScope::Targets`) decides per script how much it includes (`Include`):
+A plan decides per script how much it includes (`Include`), starting from the scripts it includes in full (`seeds`,
+`ExecutionGraphScript.target`): the targets of a plan of targets (`PlanScope::Targets`), the scripts without provided
+results of a plan of the session, every script of a tolerant plan (`PlanScope::Tolerant`, the plan of the dataflow,
+see `planner.md`).
 
 | Include | Statements |
 |---|---|
@@ -61,13 +64,13 @@ A plan of targets (`PlanScope::Targets`) decides per script how much it includes
 | `Inlined` | none, the query of the script is inlined into its consumers |
 | `None` | none |
 
-The targets are `All`. A script that is `Inlined` or `All` passes its references on: an inline reference makes the
+These scripts are `All`. A script that is `Inlined` or `All` passes its references on: an inline reference makes the
 referenced script at least `Inlined`, a scan reference makes it `All` unless the host provides its result. A
 referenced script is a single SELECT, so `All` adds one node to the plan. Levels only grow, so a script that is inlined
 by one script and materialized by another is `All`. Every other script is `None`: it has no node, even if it writes
 relations that an included statement reads.
 
-The scripts that must have a current analysis are the targets and every script they reference, transitively and
+In a plan of targets, the scripts that must have a current analysis are the targets and every script they reference, transitively and
 whatever the reference becomes (`ExecutionGraphScript.planned`), so a script whose provided result is scanned needs a
 current analysis and its references are checked, although it has no nodes. A plan of targets runs like a single
 script: a target that does not parse is one barrier node with its text as written, `produces_output` and

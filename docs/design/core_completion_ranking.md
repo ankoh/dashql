@@ -9,7 +9,7 @@ There are two fundamentally different kinds of candidates, and they enter the sc
 
 ### Name-index candidates
 
-Identifiers (table names, column names, function names, schema names, etc.) are discovered through the `NameSearchIndex`, a suffix-indexed btree over all registered names.
+Identifiers (table names, column names, function names, schema names, etc.) are discovered through the `NameSearchIndex`, which holds every suffix of every registered name, sorted case-insensitively on the first search (`catalog/names.rs`).
 The search walks the index with a case-insensitive prefix of the text under the cursor.
 
 These candidates receive a **base score** determined by the completion strategy and the name's coarse analyzer tag:
@@ -24,7 +24,7 @@ The base score is the maximum across all name tags the candidate carries (a name
 
 ### Keyword candidates
 
-Expected grammar symbols at the cursor position are extracted by `Parser::ParseUntilWithSnapshot`.
+Expected grammar symbols at the cursor position are extracted by `probe::parse_until_with_snapshot`.
 Keywords have no base score from the name-scoring table.
 Instead, they receive an extra +20 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set — i.e. the user is typing toward a keyword the grammar accepts here. This levels the playing field with name-index candidates.
 
@@ -66,19 +66,22 @@ The bonus on `MANY` is intentionally small (+1) so that legitimately-fitting key
 
 ## Final score
 
-For name-index candidates with catalog objects:
+`select_top_candidates` scores every name candidate:
 
 ```
-candidate_score = base_score + max(object_scores)
+candidate_score = base_score + object_score
 ```
 
-where each object score is `computeCandidateScore(object.candidate_tags)`.
+The object score is `compute_candidate_score(object.candidate_tags)` of the *lowest* of the candidate's top 24 catalog objects, which keep the descending order of their own scores (see the completion quirks in [core_quirks.md](core_quirks.md)).
+A candidate without catalog objects, e.g. a CTE from the name scopes, uses `compute_candidate_score(candidate.candidate_tags)` instead.
 
-For keywords (no catalog objects):
+Keywords skip this step: `add_expected_keywords_as_candidates` inserts them into the heap with
 
 ```
-candidate_score = computeCandidateScore(candidate.candidate_tags)
+candidate_score = compute_candidate_score(candidate.candidate_tags)
 ```
+
+The identity candidate enters the heap with its fixed score (see Identity candidate).
 
 ## Tiebreaking
 
@@ -87,7 +90,7 @@ This is implemented via the min-heap comparator: lower score OR same score with 
 
 ## Design invariants
 
-These are enforced at compile time via `static_assert`:
+The constants are chosen so that these relations hold; nothing in the code asserts them:
 
 - An unlikely name that is a substring match outweighs a likely name that isn't (`10 + 30 > 20`).
 - Being in scope outweighs being a prefix (`10 > 5`).
@@ -96,14 +99,17 @@ These are enforced at compile time via `static_assert`:
 
 ## Worked examples
 
-### `select count` with column `row_count` in scope
+### `select amo| from orders` with catalog tables `orders(amount)` and `amounts`
 
-| Candidate       | Base | SUBSTRING | PREFIX | EXACT | IN_SCOPE | Total |
-|-----------------|------|-----------|--------|-------|----------|-------|
-| `count` (func)  | 20   | 30        | 5      | 15    | 10       | **80**|
-| `row_count` (col)| 20  | 30        | 0      | 0     | 10       | **60**|
+The cursor is in a column reference, so the strategy is `COLUMN_REF`. Both names are found through the catalog, and `amount` is a column of the table `orders` in scope.
 
-The function `count` ranks first because it is an exact match.
+| Candidate          | Base | SUBSTRING | PREFIX | THROUGH_CATALOG | IN_SCOPE | Total  |
+|--------------------|------|-----------|--------|-----------------|----------|--------|
+| `amount` (col)     | 20   | 30        | 5      | 2               | 10       | **67** |
+| `amo` (identity)   |      |           |        |                 |          | **59** |
+| `amounts` (table)  | 10   | 30        | 5      | 2               | 0        | **47** |
+
+The in-scope column ranks first. The table ranks below the identity candidate because tables are unlikely in a column reference.
 
 ### `select * fr` with column `from_sql` in scope
 
@@ -141,7 +147,7 @@ The identity candidate's score varies by context to avoid suppressing strong con
 | Definition position  | max   | User is naming something new — always preserve their text        |
 | DEFAULT strategy     | max   | Context is ambiguous — play it safe                              |
 | TABLE_REF strategy   | 50    | Any substring-matching catalog table (≥52) wins                  |
-| TABLE_REF_ALIAS      | 50    | Prefix-matching keywords (e.g. WHERE=58) win over alias text     |
+| TABLE_REF_ALIAS      | 50    | Prefix-matching keywords (e.g. WHERE=59) win over alias text     |
 | COLUMN_REF strategy  | 59    | In-scope substring-matching columns (≥60) win                    |
 
 At **definition positions** (detected via AST attribute keys like `SQL_CREATE_TABLE_NAME`, `SQL_RESULT_TARGET_NAME`, `SQL_CTE_NAME`, etc.), name-index search is also suppressed entirely — no catalog suggestions appear.
@@ -177,16 +183,17 @@ Table aliases (`FROM t AS alias`) are handled separately by the `TABLE_REF_ALIAS
 
 ## Pipeline
 
-The full completion pipeline in `Completion::Compute`:
+The full completion pipeline in `Completion::compute`:
 
 1. Determine cursor context (dot-completion, table ref, column ref, default).
-2. If dot-completing: `FindCandidatesForNamePath` — restrict to the resolved dot context.
+2. If dot-completing: `find_candidates_for_name_path` — restrict to the resolved dot context.
 3. Otherwise:
-   a. `AddExpectedKeywordsAsCandidates` — insert scored keywords into the heap.
+   a. `add_expected_keywords_as_candidates` — insert scored keywords into the heap.
    b. Insert identity candidate (score depends on strategy and definition context).
-   c. `FindCandidatesInIndexes` — find all name-index matches (skipped at definition positions).
-4. `PromoteTablesAndPeersForUnresolvedColumns` — boost tables that resolve missing columns.
-5. `PromoteIdentifiersInScope` — tag candidates reachable through naming scopes.
-6. `SelectTopCandidates` — compute final scores, select top-k via a min-heap.
-7. `QualifyTopCandidates` — derive qualified names for the winners.
-8. `DeriveKeywordContinuationsForTopCandidates` — attach keyword continuations, suffix-checked mid-statement (see `core_completion.md`).
+   c. `find_candidates_in_indexes` — find all name-index matches (skipped at definition positions and alias positions).
+   d. `find_candidates_in_scope` — add CTEs and script-local relations and their columns from the name scopes.
+   e. `promote_tables_and_peers_for_unresolved_columns` — boost tables that resolve missing columns.
+4. `promote_identifiers_in_scope` — tag candidates reachable through naming scopes (not between symbols).
+5. `select_top_candidates` — compute final scores, select top-k via a min-heap.
+6. `qualify_top_candidates` — derive qualified names for the winners (not between symbols).
+7. `derive_keyword_continuations` — attach keyword continuations, suffix-checked mid-statement (see `core_completion.md`).
