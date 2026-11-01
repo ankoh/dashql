@@ -205,11 +205,6 @@ export function scriptResultSignature(graph: core.buffers.execution.ExecutionGra
     return [String(script.signature ?? ''), ...(script.referencedScripts ?? []).map(r => keys[r]?.key ?? '')].join('\n');
 }
 
-/// The name of the file of a materialized script result, a new file of its key if the key is reusable
-export function materializationFileName(mounts: ExecutionMounts, key: ScriptResultKey | null): string {
-    return mounts.fileName(key?.reusable ? key.key : null);
-}
-
 /// The mount prefix of a plan without the mounts of the query result cache. Its materializations can't run, the plan
 /// fails if it has any.
 export function createMountPrefix(): string {
@@ -392,7 +387,7 @@ async function checkExecutionGraph(plan: SessionScriptsPlan, scriptCount: number
 }
 
 /// The shared state of a run: the running queries and their cancellations
-interface RunQueries {
+export interface RunQueries {
     /// The running queries with their connections
     active: Map<number, { connectionId: string; execution: Promise<unknown> }>;
     /// The cancellations of the queries
@@ -425,8 +420,6 @@ export async function runExecutionGraph(args: {
     /// Adjust the execution of the result node of a script, e.g. to cache it
     resultQueryArgs?: (scriptIndex: number) => Partial<QueryExecutionArgs>;
 
-    /// Called once the plan was checked, before the first node starts, e.g. to apply the analysis of the plan
-    beforeRun?: () => Promise<void>;
     /// The run of the plan, the logs and the query history show where the statements come from
     run: PlanRun;
     logger?: LoggerLike;
@@ -437,12 +430,6 @@ export async function runExecutionGraph(args: {
     const visualizations = await checkExecutionGraph(args.plan, scripts.length, args.cooperate);
     // Validate after notifications, but before the first backend call. Later edits belong to the next run.
     args.validate(true);
-    if (args.beforeRun) {
-        signal.throwIfAborted();
-        await args.beforeRun();
-        signal.throwIfAborted();
-        args.validate(true);
-    }
     const materializations = graph.materializations ?? [];
     if (materializations.length > 0 && args.mounts == null) {
         throw new Error('Scripts of other connections need the compute database to scan their results');
@@ -675,6 +662,198 @@ export async function prepareSessionScripts(
     return updates;
 }
 
+/// A script that can't be planned, e.g. one that references an unknown script
+export class ScriptPlanError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'ScriptPlanError';
+    }
+}
+
+/// Run a plan of the scripts of a session: analyze the scripts, plan the targets with what they need, every script
+/// without targets, serve the cached results and run the rest.
+///
+/// A script with a reusable cached result doesn't run if no script runs that it follows in the plan: its result is
+/// served from the cache, a script that scans it reads the cached file. A refresh reads no cached results. A script
+/// that runs replaces the result of its reusable key. Releases the mounts and the cached files once the run settled.
+/// Returns the queries of the outputs of the scripts.
+export async function runSessionPlan(args: {
+    session: SessionScripts;
+    getSession: () => SessionScripts | null;
+    /// The scripts of the plan with what they need, every script if absent
+    targets?: number[];
+    /// Plan the scripts that the change of these inputs affects instead: the scripts that use them and the scripts
+    /// downstream of them (docs/design/session_inputs.md)
+    inputs?: readonly string[];
+    /// The run of the plan, a run of a script needs a statement of its target
+    run: PlanRun;
+    executeQuery: QueryExecutor;
+    modifySessionScripts: ModifySessionScripts;
+    signal: AbortSignal;
+    queries: RunQueries;
+    /// Cancel the running queries, e.g. once a statement failed
+    cancelActive: () => void;
+    cooperate: () => Promise<void>;
+    emit: (update: Partial<SessionExecutionState>, increment?: { statements?: number; scripts?: number }) => void;
+    /// The mounts of the materialized script results of the run, null without a compute database
+    mounts: ExecutionMounts | null;
+    /// The result key of a script on a connection, names the files of the materialized results
+    resultKey: (connectionId: string, signature: string) => Promise<string | null>;
+    /// Does a connection cache query results? The run reuses and writes the results of the scripts with reusable keys.
+    cachesResults: (connectionId: string) => boolean;
+    /// The query result cache of the app, null if results aren't cached
+    cache: QueryResultCache | null;
+    /// Read no cached results: the scripts run, the results with reusable keys become the newest files of their keys
+    refresh: boolean;
+    maxConcurrentQueries?: (connectionId: string) => number;
+    logger?: LoggerLike;
+}): Promise<Array<number | null>> {
+    const { session, signal, queries, cooperate, emit, mounts, cache, run } = args;
+    const { sessionId, instance } = session;
+    // The cached files that the run serves or scans, pinned from the lookup on
+    const retained: Array<() => Promise<void>> = [];
+    try {
+        const files = [...session.scriptOrder];
+        emit({ totalScripts: files.length });
+        // Let React commit the running state and the browser paint its spinner before synchronous
+        // analysis and planning work starts.
+        await cooperate();
+        const scripts = files.map(file => {
+            const script = session.scripts[session.scriptRefs[file].scriptId];
+            if (!script) throw new Error(`Missing script: ${file}`);
+            return script;
+        });
+        const updates = await prepareSessionScripts(scripts, cooperate);
+        await cooperate();
+        // A change of inputs runs the scripts that it affects, with what they read
+        let targets = args.targets;
+        if (args.inputs != null) {
+            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files)).unpack() as core.buffers.execution.SessionDataflowT;
+            targets = affectedScriptIndices(dataflow, args.inputs);
+            emit({ totalScripts: targets.length });
+            if (targets.length === 0) {
+                await args.modifySessionScripts({ type: APPLY_PLANNER_ANALYSIS, value: updates });
+                return files.map(() => null);
+            }
+        }
+        const mountPrefix = mounts?.prefix ?? createMountPrefix();
+        const planWith = (provided: number[] = [], names: Map<number, string> = new Map()) => {
+            const plan = planSessionScripts({
+                instance, scripts, files, mountPrefix, targets, materialized: provided, materializationFile: index => names.get(index),
+            });
+            if (!plan.graph.valid) throw new ScriptPlanError(describePlanErrors(plan.graph, files));
+            return plan;
+        };
+        // The plan of the targets checks the session and gives the result keys
+        let plan = planWith();
+        if (run.kind === 'script' && targets?.every(target => !plan.graph.nodes.some(node => node.script === target))) {
+            throw new ScriptPlanError(`${run.target} holds no statement`);
+        }
+        const keys = await computeScriptResultKeys(plan.graph,
+            (index, signature) => args.resultKey(scripts[index].connection.connectionId, signature),
+            index => args.cachesResults(scripts[index].connection.connectionId));
+        const visualizations = await checkExecutionGraph(plan, scripts.length, cooperate);
+        const validate = sessionPlanValidator({ graph: plan.graph, session, getSession: args.getSession, scripts, files });
+        validate(true);
+        await args.modifySessionScripts({ type: APPLY_PLANNER_ANALYSIS, value: updates });
+        signal.throwIfAborted();
+        validate(true);
+        // The scripts whose cached results are served, with their files
+        const cachedFiles = new Map<number, string>();
+        if (!args.refresh && cache != null) {
+            const statements = describePlannedStatements(plan.graph, files, run);
+            // The scripts of the nodes that the nodes of a script follow, edges go from earlier to later scripts
+            const follows = scripts.map(() => new Set<number>());
+            for (const edge of plan.graph.edges) {
+                const from = plan.graph.nodes[edge.from].script, to = plan.graph.nodes[edge.to].script;
+                if (from !== to) follows[to].add(from);
+            }
+            const runs = scripts.map(() => true);
+            for (const [index, script] of scripts.entries()) {
+                const key = keys[index];
+                const resultNodeIndex = plan.graph.nodes.findIndex(node => node.script === index && node.scriptResult);
+                if (!key?.reusable || resultNodeIndex < 0 || [...follows[index]].some(earlier => runs[earlier])) continue;
+                const file = await cache.retain(key.key).catch(() => null);
+                signal.throwIfAborted();
+                if (file == null) continue;
+                retained.push(file.release);
+                const resultNode = plan.graph.nodes[resultNodeIndex];
+                const statement = { ...statements[resultNodeIndex], cached: true };
+                const visualization = visualizations.get(resultNodeIndex) ?? null;
+                const connectionId = script.connection.connectionId;
+                const [queryId, execution] = args.executeQuery(connectionId, {
+                    query: String(resultNode.sql ?? ''), analyzeResults: true, publishResults: true, throwOnError: true, abortSignal: signal,
+                    cacheable: true, cacheOnly: true, cacheSignature: scriptResultSignature(plan.graph, keys, index),
+                    metadata: {
+                        queryType: QueryType.USER_PROVIDED, userProvided: true, sessionId, resultOwner: scriptResultOwner(sessionId, script.scriptKey),
+                        ...plannedStatementMetadata(statement),
+                    },
+                });
+                args.logger?.info('Serving the cached result of a script', {
+                    sessionId, query: queryId.toString(), key: key.key, ...plannedStatementLogFields(statement),
+                }, LOG_CTX);
+                queries.active.set(queryId, { connectionId, execution });
+                const served = await execution.then(table => ({ table }), async (error: unknown) => {
+                    if (!isQueryCacheMiss(error)) {
+                        // The script shows the error of the query
+                        await args.modifySessionScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
+                        throw error;
+                    }
+                    args.logger?.info('The cached result of a script is gone, running it', { sessionId, query: queryId.toString(), script: files[index], key: key.key }, LOG_CTX);
+                    return null;
+                }).finally(() => queries.active.delete(queryId));
+                if (served == null) continue;
+                runs[index] = false;
+                cachedFiles.set(index, file.entry.name);
+                await args.modifySessionScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
+                await args.modifySessionScripts({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [script.scriptKey, visualization] });
+                if (served.table != null) await args.modifySessionScripts({ type: REGISTER_SCRIPT_RESULT, value: [script.scriptKey, queryId] });
+                await cooperate();
+            }
+        }
+        // Scripts without statements are done right away, so are the scripts with cached results
+        const counted = targets ?? scripts.map((_script, index) => index);
+        // A plan of targets leaves out the targets with cached results
+        if (targets != null) targets = targets.filter(target => !cachedFiles.has(target));
+        if (targets?.length === 0) {
+            emit({}, { scripts: counted.length });
+            return files.map(() => null);
+        }
+        // The plan of the scripts that run, it scans the cached results. A result that the run materializes is a new
+        // file of its key if the key is reusable, a transient file otherwise.
+        if (cachedFiles.size > 0 || (mounts != null && plan.graph.materializations.length > 0)) {
+            const names = new Map(cachedFiles);
+            for (const m of mounts != null ? plan.graph.materializations : []) {
+                if (!names.has(m.script)) names.set(m.script, mounts!.fileName(keys[m.script]?.reusable ? keys[m.script]!.key : null));
+            }
+            plan = planWith([...cachedFiles.keys()], names);
+        }
+        // A materialized result is the file of its key already
+        const materialized = new Set(plan.graph.materializations.map(m => m.script));
+        const graph = plan.graph;
+        const done = counted.filter(index => !graph.nodes.some(node => node.script === index)).length;
+        if (done > 0) emit({}, { scripts: done });
+        const outputs = await runExecutionGraph({
+            plan, scripts, files, sessionId,
+            executeQuery: args.executeQuery, modifySessionScripts: args.modifySessionScripts,
+            signal, queries, cancelActive: args.cancelActive,
+            validate: sessionPlanValidator({ graph, session, getSession: args.getSession, scripts, files }),
+            mounts, cooperate, emit,
+            maxConcurrentQueries: args.maxConcurrentQueries,
+            run, logger: args.logger,
+            // The cached results were read already, a script that runs replaces the result of its key
+            resultQueryArgs: index => keys[index]?.reusable && !materialized.has(index)
+                ? { cacheable: true, refreshCache: true, cacheSignature: scriptResultSignature(graph, keys, index) }
+                : {},
+        });
+        return outputs;
+    } finally {
+        await mounts?.release();
+        await Promise.all(retained.map(release => release().catch(() => {})));
+    }
+}
+
+/// Run every script of a session, or the scripts that a change of inputs affects, and report the state of the run
 export async function runSessionExecution(args: {
     session: SessionScripts;
     getSession: () => SessionScripts | null;
@@ -693,8 +872,7 @@ export async function runSessionExecution(args: {
     cache?: QueryResultCache | null;
     /// Read no cached results: every script runs, the results with reusable keys become the newest files of their keys
     refresh?: boolean;
-    /// Run only the scripts that the change of these inputs affects: the scripts that use them and the scripts
-    /// downstream of them (docs/design/session_inputs.md)
+    /// Run only the scripts that the change of these inputs affects
     inputs?: readonly string[];
     /// Allows tests to control cooperative scheduling without relying on timer timing.
     yieldToBrowser?: () => Promise<void>;
@@ -704,7 +882,6 @@ export async function runSessionExecution(args: {
     logger?: LoggerLike;
 }): Promise<void> {
     const { session, signal } = args;
-    const { sessionId, instance } = session;
     if (!acquireSessionExecution(session, 'session')) return;
     let state: SessionExecutionState = {
         phase: 'planning', totalScripts: 0, completedScripts: 0,
@@ -743,150 +920,14 @@ export async function runSessionExecution(args: {
     };
     signal.addEventListener('abort', stop, { once: true });
     try {
-        const files = [...session.scriptOrder];
-        emit({ totalScripts: files.length });
-        // Let React commit the running state and the browser paint its spinner before synchronous
-        // analysis and planning work starts.
-        await cooperate();
-        const scripts = files.map(file => {
-            const script = session.scripts[session.scriptRefs[file].scriptId];
-            if (!script) throw new Error(`Missing script: ${file}`);
-            return script;
+        await runSessionPlan({
+            session, getSession: args.getSession, inputs: args.inputs, run: { kind: 'session', target: null },
+            executeQuery: args.executeQuery, modifySessionScripts: args.modifySessionScripts,
+            signal, queries, cancelActive, cooperate, emit,
+            mounts: args.mounts ?? null, resultKey: args.resultKey ?? (async () => null), cachesResults: args.cachesResults ?? (() => false),
+            cache: args.cache ?? null, refresh: args.refresh ?? false,
+            maxConcurrentQueries: args.maxConcurrentQueries, logger: args.logger,
         });
-        const updates = await prepareSessionScripts(scripts, cooperate);
-        await cooperate();
-        // A change of inputs runs the scripts that it affects, with what they read
-        let targets: number[] | undefined;
-        if (args.inputs != null) {
-            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files)).unpack() as core.buffers.execution.SessionDataflowT;
-            targets = affectedScriptIndices(dataflow, args.inputs);
-            emit({ totalScripts: targets.length });
-            if (targets.length === 0) {
-                await args.modifySessionScripts({ type: APPLY_PLANNER_ANALYSIS, value: updates });
-                signal.removeEventListener('abort', stop);
-                emit({ phase: 'succeeded' });
-                return;
-            }
-        }
-        const mountPrefix = args.mounts?.prefix ?? createMountPrefix();
-        const planWith = (provided: number[] = [], names: Map<number, string> = new Map()) => planSessionScripts({
-            instance, scripts, files,
-            mountPrefix,
-            targets,
-            materialized: provided,
-            materializationFile: index => names.get(index),
-        });
-        // The plan of every script checks the session and gives the result keys
-        let plan = planWith();
-        if (!plan.graph.valid) throw new Error(describePlanErrors(plan.graph, files));
-        const run: PlanRun = { kind: 'session', target: null };
-        const mounts = args.mounts ?? null;
-        const cache = args.cache ?? null;
-        const resultKey = args.resultKey ?? (async () => null);
-        const cachesResults = args.cachesResults ?? (() => false);
-        const keys = await computeScriptResultKeys(plan.graph,
-            (index, signature) => resultKey(scripts[index].connection.connectionId, signature),
-            index => cachesResults(scripts[index].connection.connectionId));
-        // The cached files that the run serves or scans, pinned from the lookup on
-        const retained: Array<() => Promise<void>> = [];
-        try {
-            const visualizations = await checkExecutionGraph(plan, scripts.length, cooperate);
-            const validate = sessionPlanValidator({ graph: plan.graph, session, getSession: args.getSession, scripts, files });
-            validate(true);
-            await args.modifySessionScripts({ type: APPLY_PLANNER_ANALYSIS, value: updates });
-            signal.throwIfAborted();
-            validate(true);
-            // Like a run of a script, a script with a reusable cached result doesn't run: its result is served from the
-            // cache, a script that scans it reads the cached file. Unlike a run of a script, a run of the session runs the
-            // scripts that write what a script reads, a script runs if a script it follows in the plan runs. A refresh
-            // reads no cached results.
-            const cachedFiles = new Map<number, string>();
-            if (!args.refresh && cache != null) {
-                const statements = describePlannedStatements(plan.graph, files, run);
-                // The scripts of the nodes that the nodes of a script follow, edges go from earlier to later scripts
-                const follows = scripts.map(() => new Set<number>());
-                for (const edge of plan.graph.edges) {
-                    const from = plan.graph.nodes[edge.from].script, to = plan.graph.nodes[edge.to].script;
-                    if (from !== to) follows[to].add(from);
-                }
-                const runs = scripts.map(() => true);
-                for (const [index, script] of scripts.entries()) {
-                    const key = keys[index];
-                    const resultNodeIndex = plan.graph.nodes.findIndex(node => node.script === index && node.scriptResult);
-                    if (!key?.reusable || resultNodeIndex < 0 || [...follows[index]].some(earlier => runs[earlier])) continue;
-                    const file = await cache.retain(key.key).catch(() => null);
-                    signal.throwIfAborted();
-                    if (file == null) continue;
-                    retained.push(file.release);
-                    const resultNode = plan.graph.nodes[resultNodeIndex];
-                    const statement = { ...statements[resultNodeIndex], cached: true };
-                    const visualization = visualizations.get(resultNodeIndex) ?? null;
-                    const connectionId = script.connection.connectionId;
-                    const [queryId, execution] = args.executeQuery(connectionId, {
-                        query: String(resultNode.sql ?? ''), analyzeResults: true, publishResults: true, throwOnError: true, abortSignal: signal,
-                        cacheable: true, cacheOnly: true, cacheSignature: scriptResultSignature(plan.graph, keys, index),
-                        metadata: {
-                            queryType: QueryType.USER_PROVIDED, userProvided: true, sessionId, resultOwner: scriptResultOwner(sessionId, script.scriptKey),
-                            ...plannedStatementMetadata(statement),
-                        },
-                    });
-                    args.logger?.info('Serving the cached result of a script', {
-                        sessionId, query: queryId.toString(), key: key.key, ...plannedStatementLogFields(statement),
-                    }, LOG_CTX);
-                    queries.active.set(queryId, { connectionId, execution });
-                    const served = await execution.then(table => ({ table }), async (error: unknown) => {
-                        if (!isQueryCacheMiss(error)) {
-                            // The script shows the error of the query
-                            await args.modifySessionScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
-                            throw error;
-                        }
-                        args.logger?.info('The cached result of a script is gone, running it', { sessionId, query: queryId.toString(), script: files[index], key: key.key }, LOG_CTX);
-                        return null;
-                    }).finally(() => queries.active.delete(queryId));
-                    if (served == null) continue;
-                    runs[index] = false;
-                    cachedFiles.set(index, file.entry.name);
-                    await args.modifySessionScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
-                    await args.modifySessionScripts({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [script.scriptKey, visualization] });
-                    if (served.table != null) await args.modifySessionScripts({ type: REGISTER_SCRIPT_RESULT, value: [script.scriptKey, queryId] });
-                    await cooperate();
-                }
-            }
-            // The plan of the scripts that run, it scans the cached results. A result that the run materializes is a new
-            // file of its key if the key is reusable, a transient file otherwise.
-            // Leaving out scripts only drops materializations, the plan of every script names all of them.
-            if (cachedFiles.size > 0 || (mounts != null && (plan.graph.materializations ?? []).length > 0)) {
-                const names = new Map(cachedFiles);
-                for (const m of mounts != null ? plan.graph.materializations ?? [] : []) {
-                    if (!names.has(m.script)) names.set(m.script, materializationFileName(mounts!, keys[m.script]));
-                }
-                plan = planWith([...cachedFiles.keys()], names);
-                if (!plan.graph.valid) throw new Error(describePlanErrors(plan.graph, files));
-            }
-            // A materialized result is the file of its key already
-            const materialized = new Set((plan.graph.materializations ?? []).map(m => m.script));
-            const graph = plan.graph;
-            // Scripts without statements are done right away, so are the scripts with cached results
-            const counted = targets ?? scripts.map((_script, index) => index);
-            const done = counted.filter(index => !graph.nodes.some(node => node.script === index)).length;
-            if (done > 0) emit({}, { scripts: done });
-            await runExecutionGraph({
-                plan, scripts, files, sessionId,
-                executeQuery: args.executeQuery, modifySessionScripts: args.modifySessionScripts,
-                signal, queries, cancelActive,
-                validate: sessionPlanValidator({ graph, session, getSession: args.getSession, scripts, files }),
-                mounts, cooperate, emit,
-                maxConcurrentQueries: args.maxConcurrentQueries,
-                run, logger: args.logger,
-                // The cached results were read already, a script that runs replaces the result of its key
-                resultQueryArgs: index => keys[index]?.reusable && !materialized.has(index)
-                    ? { cacheable: true, refreshCache: true, cacheSignature: scriptResultSignature(graph, keys, index) }
-                    : {},
-            });
-        } finally {
-            await mounts?.release();
-            await Promise.all(retained.map(release => release().catch(() => {})));
-        }
         signal.throwIfAborted();
         signal.removeEventListener('abort', stop);
         emit({ phase: 'succeeded', activeConnectionId: null, activeScriptKey: null, activeFileName: null,

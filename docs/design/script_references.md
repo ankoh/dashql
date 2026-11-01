@@ -54,14 +54,15 @@ already has their results; the queries it inlines are part of its statements.
 
 ## Running a Session
 
-A run of the session (`runSessionExecution`) analyzes every script, publishes the declarations into the catalogs of
-their connections and plans all scripts at once. The plan checks the whole session and gives the result keys. Like a
-run of a script, a script with a reusable cached result doesn't run: its result is served from the cache and the run
-plans the other scripts again with the served scripts as `materialized`, a plan of the session leaves them out. A
-script that inlines a served script still runs its query, a script that scans it reads the cached file. Unlike a run
-of a script, a run of the session runs the scripts that write what a script reads: a script whose nodes follow a node
-of a script that runs, by an edge of the plan, runs too, whether its result is cached or not. A refresh of
-the session (`refresh` of `runSessionExecution`) reads no cached results and runs every script. `runExecutionGraph` starts a node once its predecessors are done,
+A run of the session (`runSessionExecution`) and a run of a script run a plan the same way (`runSessionPlan`): they
+analyze every script, publish the declarations into the catalogs of their connections and plan every script, or the
+target with what it needs. The plan checks the scripts and gives the result keys. A script with a reusable cached
+result doesn't run unless it follows a script that runs: a script whose nodes follow a node of a script that runs, by
+an edge of the plan, runs too, whether its result is cached or not. Otherwise its result is served from the cache and
+the run plans the other scripts again with the served scripts as `materialized`: a plan of the session leaves them
+out, a plan of targets drops the served targets. A script that inlines a served script still runs its query, a script
+that scans it reads the cached file. A refresh (`refresh` of `runSessionExecution`, `ScriptRunOptions.refresh`)
+reads no cached results and runs every script of the plan. `runExecutionGraph` starts a node once its predecessors are done,
 at most `maxConcurrentQueries` nodes of a connection run at once, and nodes of different connections run side by
 side. The files of a run (`ExecutionMounts`, `createExecutionMounts`) are files of the query result cache of the app
 (`query_cache.md`), the mount prefix of the plan is the mount of the cache. The host names the file of every
@@ -85,17 +86,18 @@ the last output of the script is its result and a query with `@vis` tags runs as
 run with its errors, e.g. an unknown script, and so does a script without statements. The script records them as a
 failed query (`ScriptPlanError`, `QueryExecutionArgs.failure`), so they show where its result would be, like the
 error of a failed statement. The session execution provider registers the services of the runs for its core
-(`registerScriptRunServices`): which connection is the embedded Hyper, the mounts of the compute database and the
-query result cache. Without the provider, a run mounts no results of other connections and caches nothing.
+(`registerScriptRunServices`): the mounts of the compute database and the query result cache. Without the provider, a
+run mounts no results of other connections and caches nothing. A script connection knows whether it is the embedded
+Hyper (`ScriptConnection.local`).
 
 The result key of a script covers the keys of the scripts it references (`computeScriptResultKeys`, see
 `query_cache.md`). When the key is reusable, i.e. the connections of the script and of the scripts it references
-cache results, a cached result of the script is served without running the scripts it references, and a materialized
-script with a reusable cached key is scanned from the cache instead of running (`materialized` of the plan): the
-plan scans the newest file of its key. Every other materialized script runs and writes its result as a new file of
-its key if the key is reusable, as a transient file otherwise (`ExecutionMounts.fileName`). A refresh of a script
-(`ScriptRunOptions.refresh`) reads no cached results: the script and every script of its plan run, their results
-with reusable keys become the newest files of their keys. A run of the session reuses cached results the same way.
+cache results, a materialized script with a reusable cached key is served from the cache instead of running
+(`materialized` of the plan): the plan scans the newest file of its key. The cached result of the script is served
+when nothing it follows runs. Every other materialized script runs and writes its result as a new file of its key if
+the key is reusable, as a transient file otherwise (`ExecutionMounts.fileName`). A refresh of a script reads no cached
+results: the script and every script of its plan run, their results with reusable keys become the newest files of
+their keys.
 
 ## Editing
 

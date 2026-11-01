@@ -126,7 +126,8 @@ describe('script runs', () => {
         const table = await f.run('bar.sql');
         expect(table?.numRows).toBe(1);
         // The key of a script without references is the key of its AST signature
-        expect(f.calls).toEqual([{ connection: 'local', sql: "select ':foo' as text", cacheable: true, cacheSignature: graph.scripts[1].signature }]);
+        // The cache was read already, the executor writes the result of the key
+        expect(f.calls).toEqual([{ connection: 'local', sql: "select ':foo' as text", cacheable: true, cacheSignature: graph.scripts[1].signature, refreshCache: true }]);
         expect(await computeScriptResultCacheKey(f.services, f.session(), f.script('bar.sql'))).toBe(`local:${graph.scripts[1].signature}`);
     });
 
@@ -201,18 +202,17 @@ describe('script runs', () => {
         expect(f.calls[1].sql).toContain(`external('/mnt/external/cache/${entry!.name}', format => 'parquet')`);
         expect(f.mounts[0].release).toHaveBeenCalledOnce();
 
-        // Without a cached result of bar, the second run scans the cached result of foo
+        // Without a cached result of bar, the second run serves the cached result of foo and bar scans it
         f.calls.length = 0;
         // The executor caches the result of bar, the fake executor doesn't
         expect(await f.cache.has(`local:${graph.scripts[1].signature}\n${fooKey}`)).toBe(false);
         await f.run('bar.sql');
-        expect(f.calls.map(call => call.connection)).toEqual(['local']);
+        expect(f.calls.map(call => [call.connection, call.sql])).toEqual([['remote', 'select 1 as a'], ['local', expect.stringContaining(entry!.name)]]);
         expect(f.mounts[1].use).toHaveBeenCalledWith(`/mnt/external/cache/${entry!.name}`);
         // The file is pinned from the lookup on
         expect(f.cache.retain).toHaveBeenCalledWith(fooKey);
         expect(f.mounts[1].writeTable).not.toHaveBeenCalled();
-        expect(f.calls[0]).toMatchObject({ cacheable: true });
-        expect(f.calls[0].sql).toContain(entry!.name);
+        expect(f.calls[1]).toMatchObject({ cacheable: true });
     });
 
     it('writes a materialized result that is not reused as a transient file and removes it once the run ended', async () => {
@@ -252,34 +252,49 @@ describe('script runs', () => {
         expect(f.calls[1]).toMatchObject({ cacheable: true, refreshCache: true, cacheSignature: `${graph.scripts[1].signature}\n${fooKey}` });
     });
 
-    it('serves a cached result of the script without running the scripts it references', async () => {
+    it('serves the cached results of the script and of the scripts it references', async () => {
         const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
         // The key of bar covers the remote key of foo
-        const key = `local:${graph.scripts[1].signature}\nremote:${graph.scripts[0].signature}`;
+        const fooKey = `remote:${graph.scripts[0].signature}`;
+        const key = `local:${graph.scripts[1].signature}\n${fooKey}`;
         expect(await computeScriptResultCacheKey(f.services, f.session(), f.script('bar.sql'))).toBe(key);
+        f.cache.put(fooKey);
         f.cache.put(key);
-        await f.run('bar.sql');
-        expect(f.calls).toEqual([expect.objectContaining({ connection: 'local', cacheable: true })]);
+        const table = await f.run('bar.sql');
+        expect(table?.numRows).toBe(1);
+        // Nothing runs, both results are read from the cache
+        expect(f.calls).toEqual([expect.objectContaining({ connection: 'remote', cacheable: true }), expect.objectContaining({ connection: 'local', cacheable: true })]);
+        expect(f.executeQuery.mock.calls.every(([, args]) => args.cacheOnly)).toBe(true);
         expect(f.cache.writeTable).not.toHaveBeenCalled();
+    });
+
+    it('runs the script if a script it references runs', async () => {
+        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const graph = await f.planOf('bar.sql');
+        // Only the result of bar is cached, foo runs and so does bar
+        f.cache.put(`local:${graph.scripts[1].signature}\nremote:${graph.scripts[0].signature}`);
+        await f.run('bar.sql');
+        expect(f.calls.map(call => call.connection)).toEqual(['remote', 'local']);
+        expect(f.executeQuery.mock.calls.some(([, args]) => args.cacheOnly)).toBe(false);
     });
 
     it('runs the plan if the cached result of the script is gone', async () => {
         const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
-        f.cache.put(`local:${graph.scripts[1].signature}\nremote:${graph.scripts[0].signature}`);
-        // The file is evicted before the executor reads it, the query of bar never runs without its materialization
+        const fooKey = `remote:${graph.scripts[0].signature}`;
+        const fooFile = f.cache.put(fooKey);
+        f.cache.put(`local:${graph.scripts[1].signature}\n${fooKey}`);
+        // The file of bar is evicted before the executor reads it, the query of bar runs and scans the file of foo
         const fallback = f.executeQuery.getMockImplementation()!;
-        f.executeQuery.mockImplementationOnce((_connectionId, args) => {
-            expect(args.cacheOnly).toBe(true);
-            return [99, Promise.reject(new QueryCacheMissError())];
+        f.executeQuery.mockImplementation((connectionId, args) => {
+            if (args.cacheOnly && connectionId === f.script('bar.sql').connection.connectionId) return [99, Promise.reject(new QueryCacheMissError())];
+            return fallback(connectionId, args);
         });
-        f.executeQuery.mockImplementation(fallback);
         const table = await f.run('bar.sql');
         expect(table?.numRows).toBe(1);
         expect(f.calls.map(call => call.connection)).toEqual(['remote', 'local']);
-        const [path] = vi.mocked(f.mounts[0].writeTable).mock.calls[0];
-        expect(f.calls[1].sql).toContain(`external('${path}', format => 'parquet')`);
+        expect(f.calls[1].sql).toContain(`external('/mnt/external/cache/${fooFile}', format => 'parquet')`);
         // The script shows the result of the plan, not the miss
         expect(f.modifySessionScripts).not.toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [f.script('bar.sql').scriptKey, 99] });
         expect(f.script('bar.sql').latestResultQueryId).toBe(2);

@@ -255,7 +255,7 @@ have no side effects.
 A plan of targets orders its nodes by conflicts, barriers and MATERIALIZATION edges, and SEQUENCE edges within each
 script. A run of a script whose plan has materializations plans twice when the host mounts results: once without
 provided results, to compute the result keys, and again with the cached results of reusable keys as provided
-(`runPlannedScript`).
+(`runSessionPlan`).
 
 One run holds a session at a time (`acquireSessionExecution`), a run of the whole session or of one of its scripts.
 The app disables the runs of a held session, a run that starts meanwhile fails. A run of the agent can't see that
