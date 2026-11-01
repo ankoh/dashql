@@ -18,6 +18,8 @@ import type { PlanNavigationDirection } from './plan_navigation.js';
 import { getPlanOperatorSymbol, PLAN_OPERATOR_SYMBOL_SIZE, shouldRenderPlanOperatorSymbol } from './plan_operator_symbol.js';
 import { estimateRelativeDifference, materializePlanScene, PLAN_OPERATOR_PORT_INPUT, PLAN_OPERATOR_PORT_OUTPUT, PlanScene, PlanSceneEdge, PlanSceneOperator } from './plan_scene.js';
 import * as styles from './plan_view.module.css';
+import * as graphStyles from '../graph/graph.module.css';
+import { GraphPort } from '../graph/graph_port.js';
 
 const FitIcon = SymbolIcon('graph_align');
 
@@ -396,7 +398,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                                     .join(', ')}`}
                             >
                                 <path
-                                    className={styles.fragment}
+                                    className={graphStyles.fragment}
                                     d={fragment.path}
                                     data-color={fragmentIndex % 6}
                                 />
@@ -418,7 +420,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                         {renderedEdges.map(rendered => (
                             <path
                                 key={rendered.edge.id.toString()}
-                                className={styles.edge}
+                                className={graphStyles.edge}
                                 d={rendered.edge.path}
                                 style={{ strokeWidth: EDGE_WIDTH }}
                                 data-plan-edge-id={rendered.edge.id.toString()}
@@ -429,17 +431,17 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                         {scene.crossEdges.map(edge => (
                             <path
                                 key={edge.id.toString()}
-                                className={styles.crossEdge}
+                                className={graphStyles.crossEdge}
                                 data-kind={edge.kind}
                                 d={edge.path}
                             />
                         ))}
                     </g>
-                    <g className={styles.edgeHighlightLayer} aria-hidden="true">
+                    <g className={graphStyles.edgeHighlightLayer} aria-hidden="true">
                         {highlightedEdges.map(edge => (
                             <path
                                 key={`edge-${edge.id}`}
-                                className={styles.edgeHighlight}
+                                className={graphStyles.edgeHighlight}
                                 d={edge.path}
                                 style={{ strokeWidth: EDGE_WIDTH }}
                                 data-plan-edge-highlight-id={edge.id.toString()}
@@ -448,17 +450,17 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                         {highlightedCrossEdges.map(edge => (
                             <path
                                 key={`cross-edge-${edge.id}`}
-                                className={styles.crossEdgeHighlight}
+                                className={graphStyles.crossEdgeHighlight}
                                 d={edge.path}
                                 data-plan-cross-edge-highlight-id={edge.id.toString()}
                             />
                         ))}
                     </g>
-                    <g className={styles.edgeBadgeLayer}>
+                    <g className={graphStyles.edgeBadgeLayer}>
                         {annotationMode !== 'plain' && renderedEdges.flatMap(rendered => rendered.badge == null ? [] : [(
                             <g
                                 key={rendered.edge.id.toString()}
-                                className={styles.edgeBadge}
+                                className={graphStyles.edgeBadge}
                                 transform={`translate(${rendered.badge.x}, ${rendered.badge.y})`}
                                 role="img"
                                 aria-label={rendered.badge.description}
@@ -635,7 +637,7 @@ const PlanOperatorNode = React.memo(function PlanOperatorNode(props: {
             onKeyDown={activate}
         >
             <rect
-                className={styles.operator_frame}
+                className={graphStyles.node_frame}
                 width={operator.rect.width}
                 height={operator.rect.height}
                 rx={6}
@@ -657,28 +659,10 @@ const PlanOperatorNode = React.memo(function PlanOperatorNode(props: {
                 // The label is truncated to maxLabelChars and the core sizes the operator for it, no clipping needed
                 : <text x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.displayLabel}</text>}
             {(operator.ports & PLAN_OPERATOR_PORT_OUTPUT) !== 0 && (
-                <g
-                    className={styles.operator_port}
-                    transform={`translate(${operator.rect.width / 2}, 0)`}
-                    data-plan-port="output"
-                    aria-hidden="true"
-                >
-                    <path className={styles.operator_port_border} d="M -5 0 A 5 5 0 0 1 5 0" />
-                    <circle className={styles.operator_port_mask} r={4} />
-                    <circle className={styles.operator_port_dot} r={2.5} />
-                </g>
+                <GraphPort x={operator.rect.width / 2} y={0} side="top" highlighted={props.highlightedOutputPort} data-plan-port="output" />
             )}
             {(operator.ports & PLAN_OPERATOR_PORT_INPUT) !== 0 && (
-                <g
-                    className={styles.operator_port}
-                    transform={`translate(${operator.rect.width / 2}, ${operator.rect.height})`}
-                    data-plan-port="input"
-                    aria-hidden="true"
-                >
-                    <path className={styles.operator_port_border} d="M -5 0 A 5 5 0 0 0 5 0" />
-                    <circle className={styles.operator_port_mask} r={4} />
-                    <circle className={styles.operator_port_dot} r={2.5} />
-                </g>
+                <GraphPort x={operator.rect.width / 2} y={operator.rect.height} side="bottom" highlighted={props.highlightedInputPort} data-plan-port="input" />
             )}
         </g>
     );

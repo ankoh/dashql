@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import { U32_MAX } from './numeric_limits.js';
-import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from './graph_edges.js';
+import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../graph/graph_edges.js';
 import { getPlanOperatorDisplayWidth } from './plan_operator_symbol.js';
 
 export interface PlanSceneRect {
