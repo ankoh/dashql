@@ -19,13 +19,13 @@ export interface ConnectionLabelParts {
     name: string;
     /// The name of the connector, e.g. "Hyper"
     connector: string;
-    /// The protocol, e.g. "Local" or "Http"
+    /// The protocol, e.g. "Wasm" or "Http"
     detail: string;
 }
 
 /// The protocol of a connection as the label shows it
 function protocolLabel(protocol: string | undefined): string {
-    return protocol === 'V3_GRPC' ? 'gRPC' : protocol === 'V3_HTTP' ? 'Http' : protocol === 'V3_HTTP_LINK' ? 'Link' : 'Local';
+    return protocol === 'V3_GRPC' ? 'gRPC' : protocol === 'V3_HTTP' ? 'Http' : protocol === 'V3_HTTP_LINK' ? 'Link' : 'Wasm';
 }
 
 /// The parts of the label of a connection.
@@ -40,7 +40,7 @@ export function connectionLabelParts(database: ConnectionState, ordinal: number 
     return { name: database.name ?? (ordinal == null ? connector : `${connector} #${ordinal}`), connector, detail };
 }
 
-/// The label of a connection as plain text, e.g. "Hyper #2 Local"
+/// The label of a connection as plain text, e.g. "Hyper #2 Wasm"
 export function connectionLabel(database: ConnectionState, ordinal: number | null = null): string {
     return connectionLabelText(connectionLabelParts(database, ordinal));
 }
@@ -72,7 +72,7 @@ export function connectionParamsLabel(params: ConnectionParams): string {
     const name = getConnectorInfoForParams(params)?.names.displayLong ?? 'Connection';
     if ('hyper' in params) {
         const protocol = params.hyper.protocol ?? 'WASM';
-        return protocol === 'WASM' ? `${name} Local` : `${name} / ${params.hyper.endpoint ?? ''}`;
+        return protocol === 'WASM' ? `${name} Wasm` : `${name} / ${params.hyper.endpoint ?? ''}`;
     }
     if ('trino' in params) return `${name} / ${params.trino.endpoint ?? ''}`;
     if ('salesforce' in params) return `${name} / ${params.salesforce.instanceUrl ?? ''}`;

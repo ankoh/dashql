@@ -25,7 +25,7 @@ describe('Connection status button', () => {
     function render(health: ConnectionHealth, options: { usedHere?: boolean; attention?: boolean; onOpenSettings?: (anchor: HTMLButtonElement) => void } = {}) {
         const database = { connectionId: 'main', connectionHealth: health } as ConnectionState;
         act(() => root.render(
-            <ConnectionStatusButton database={database} label="Hyper Local" usedHere={options.usedHere ?? true}
+            <ConnectionStatusButton database={database} label="Hyper Wasm" usedHere={options.usedHere ?? true}
                 attention={options.attention ?? false} onOpenSettings={options.onOpenSettings ?? vi.fn()} />,
         ));
         return container.querySelector<HTMLButtonElement>('button')!;
@@ -39,7 +39,7 @@ describe('Connection status button', () => {
         const onOpenSettings = vi.fn();
         const button = render(ConnectionHealth.NOT_STARTED, { onOpenSettings });
         const disconnectedLabel = button.getAttribute('aria-label');
-        expect(disconnectedLabel).toContain('Hyper Local');
+        expect(disconnectedLabel).toContain('Hyper Wasm');
         expect(button.textContent).toBe('');
         const disconnectedFill = dotFill(button);
         expect(disconnectedFill).not.toBeNull();
@@ -51,7 +51,7 @@ describe('Connection status button', () => {
         expect(new Set([disconnectedFill, onlineFill, failedFill]).size).toBe(3);
         // A connecting connection shows the running indicator instead of the dot
         const connecting = render(ConnectionHealth.CONNECTING);
-        expect(connecting.getAttribute('aria-label')).toContain('Hyper Local');
+        expect(connecting.getAttribute('aria-label')).toContain('Hyper Wasm');
         expect(connecting.getAttribute('aria-label')).not.toBe(disconnectedLabel);
         expect(connecting.querySelector('[data-testid="connection-health-dot"]')).toBeNull();
         expect(connecting.querySelector('svg')).not.toBeNull();

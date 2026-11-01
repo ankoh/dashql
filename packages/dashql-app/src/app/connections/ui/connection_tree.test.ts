@@ -13,7 +13,7 @@ import {
 } from './connection_tree.js';
 
 describe('connection labels', () => {
-    it('labels the mandatory local database by its connector and Local', () => {
+    it('labels the mandatory local database by its connector and Wasm', () => {
         const database = {
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             details: {
@@ -22,8 +22,8 @@ describe('connection labels', () => {
             },
         } as ConnectionState;
 
-        expect(connectionLabel(database)).toBe('Hyper Local');
-        expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Local' });
+        expect(connectionLabel(database)).toBe('Hyper Wasm');
+        expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Wasm' });
     });
 
     it('keeps the connector and protocol label for remote Hyper databases', () => {
