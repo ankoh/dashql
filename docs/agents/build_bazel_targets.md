@@ -57,7 +57,7 @@ bazel build //...
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, catalog changes, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
-| `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans |
+| `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans, the layout of the dataflow canvas |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
@@ -102,7 +102,7 @@ bazel test //...
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
 | `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
-| `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests |
+| `//packages/dashql-core-view:all` | Plan view model and dataflow layout unit and snapshot tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
@@ -141,6 +141,7 @@ bazel run //snapshots/formatter:update
 bazel run //snapshots/completion:update
 bazel run //snapshots/planner:update
 bazel run //snapshots/dataflow:update
+bazel run //snapshots/dataflow_layout:update
 bazel run //snapshots/visualize:update
 bazel run //snapshots/diff:update
 bazel run //snapshots/plans/hyper/tests:update

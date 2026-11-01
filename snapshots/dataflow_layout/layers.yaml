@@ -1,0 +1,135 @@
+dataflow_layout-snapshots:
+
+  - name: Chain
+    boxes:
+      - name: orders
+        rows: 3
+      - name: report
+      - name: chart
+    edges:
+      - from: orders.2
+        to: report
+      - from: report
+        to: chart
+    expected:
+      orders: [0,0,280,144]
+      report: [376,64,280,80]
+      chart: [752,64,280,80]
+
+  - name: Chart
+    boxes:
+      - name: sales
+        rows: 2
+        chart: 0
+      - name: report
+    edges:
+      - from: sales.1
+        to: report
+    expected:
+      sales: [0,0,280,320]
+      report: [376,240,280,80]
+
+  - name: Fanout
+    boxes:
+      - name: orders
+      - name: by_region
+      - name: by_month
+    edges:
+      - from: orders
+        to: by_region
+      - from: orders
+        to: by_month
+    expected:
+      orders: [0,56,280,80]
+      by_region: [376,0,280,80]
+      by_month: [376,112,280,80]
+
+  - name: LateSource
+    boxes:
+      - name: orders
+      - name: filtered
+      - name: report
+      - name: regions
+    edges:
+      - from: orders
+        to: filtered
+      - from: filtered
+        to: report
+      - from: regions
+        to: report
+    expected:
+      orders: [0,0,280,80]
+      filtered: [376,0,280,80]
+      report: [752,0,280,80]
+      regions: [376,112,280,80]
+
+  - name: Crossing
+    boxes:
+      - name: a
+      - name: b
+      - name: from_b
+      - name: from_a
+    edges:
+      - from: a
+        to: from_a
+      - from: b
+        to: from_b
+    expected:
+      a: [0,0,280,80]
+      b: [0,144,280,80]
+      from_b: [376,144,280,80]
+      from_a: [376,0,280,80]
+
+  - name: Cycle
+    boxes:
+      - name: a
+      - name: b
+    edges:
+      - from: a
+        to: b
+      - from: b
+        to: a
+    expected:
+      a: [0,0,280,80]
+      b: [376,0,280,80]
+
+  - name: PartsAndIsolatedBoxes
+    boxes:
+      - name: a
+      - name: from_a
+      - name: b
+      - name: from_b
+      - name: alone_1
+        rows: 2
+      - name: alone_2
+      - name: alone_3
+      - name: alone_4
+      - name: alone_5
+    edges:
+      - from: a
+        to: from_a
+      - from: b
+        to: from_b
+    expected:
+      a: [0,0,280,80]
+      from_a: [376,0,280,80]
+      b: [0,144,280,80]
+      from_b: [376,144,280,80]
+      alone_1: [0,288,280,112]
+      alone_2: [312,288,280,80]
+      alone_3: [624,288,280,80]
+      alone_4: [936,288,280,80]
+      alone_5: [0,432,280,80]
+
+  - name: Collapsed
+    boxes:
+      - name: schema
+        rows: 4
+        collapsed: true
+      - name: report
+    edges:
+      - from: schema.3
+        to: report
+    expected:
+      schema: [0,40,280,32]
+      report: [376,0,280,80]

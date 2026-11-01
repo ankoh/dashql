@@ -1105,6 +1105,76 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
     dashql_core_session::batch::process_batch(request).map_err(js_error)
 }
 
+/// The layout of the dataflow canvas (`dataflow_layout::compute_dataflow_layout`): boxes and edges in, the geometry
+/// of the boxes out
+#[wasm_bindgen]
+pub struct DataflowLayout {
+    config: dashql_core_view::dataflow_layout::DataflowLayoutConfig,
+    boxes: Vec<dashql_core_view::dataflow_layout::DataflowLayoutBox>,
+    edges: Vec<dashql_core_view::dataflow_layout::DataflowLayoutEdge>,
+    geometry: Vec<dashql_core_view::dataflow_layout::DataflowBoxGeometry>,
+}
+
+#[wasm_bindgen]
+impl DataflowLayout {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> DataflowLayout {
+        DataflowLayout { config: Default::default(), boxes: Vec::new(), edges: Vec::new(), geometry: Vec::new() }
+    }
+
+    /// Set the sizes of the canvas, the defaults of the core otherwise
+    #[wasm_bindgen(js_name = setConfig)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn set_config(&mut self, box_width: f64, header_height: f64, row_height: f64, row_padding: f64, chart_height: f64, layer_gap: f64, box_gap: f64, grid: f64) {
+        self.config = dashql_core_view::dataflow_layout::DataflowLayoutConfig {
+            box_width,
+            header_height,
+            row_height,
+            row_padding,
+            chart_height,
+            layer_gap,
+            box_gap,
+            grid,
+            ..self.config
+        };
+    }
+
+    /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position.
+    #[wasm_bindgen(js_name = addBox)]
+    pub fn add_box(&mut self, statements: u32, chart_statement: i32, collapsed: bool, fixed: bool, x: f64, y: f64) -> u32 {
+        self.boxes.push(dashql_core_view::dataflow_layout::DataflowLayoutBox {
+            statements,
+            chart_statement: u32::try_from(chart_statement).ok(),
+            collapsed,
+            fixed: fixed.then_some((x, y)),
+        });
+        (self.boxes.len() - 1) as u32
+    }
+
+    /// Add an edge between statements of two boxes
+    #[wasm_bindgen(js_name = addEdge)]
+    pub fn add_edge(&mut self, from_box: u32, from_statement: u32, to_box: u32, to_statement: u32) {
+        self.edges.push(dashql_core_view::dataflow_layout::DataflowLayoutEdge { from_box, from_statement, to_box, to_statement });
+    }
+
+    /// Lay out the boxes, returns x, y, width and height of every box
+    pub fn compute(&mut self) -> Vec<f64> {
+        self.geometry = dashql_core_view::dataflow_layout::compute_dataflow_layout(&self.boxes, &self.edges, &self.config);
+        self.geometry.iter().flat_map(|g| [g.x, g.y, g.width, g.height]).collect()
+    }
+
+    /// The tops of the statement rows of a box relative to the box, after `compute`
+    pub fn rows(&self, index: u32) -> Vec<f64> {
+        self.geometry.get(index as usize).map(|g| g.rows.clone()).unwrap_or_default()
+    }
+}
+
+impl Default for DataflowLayout {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A plan view model (`dashql_plan_view_model_*`)
 #[wasm_bindgen]
 pub struct PlanViewModel {

@@ -15,6 +15,7 @@ export type DashQLBindings = Pick<
     | 'ScriptBatch'
     | 'ScriptSession'
     | 'PlanViewModel'
+    | 'DataflowLayout'
     | 'SessionPlanRequest'
     | 'ScriptResults'
     | 'planSession'
@@ -26,6 +27,49 @@ export type DashQLBindings = Pick<
     | 'qualifyCatalogChanges'
     | 'installPanicHook'
 >;
+
+/// The sizes of the dataflow canvas, in canvas pixels
+export interface DataflowLayoutConfig {
+    boxWidth: number;
+    /// The height of the header of a box, a collapsed box is its header
+    headerHeight: number;
+    rowHeight: number;
+    /// The space between the header, the rows and the bottom of a box
+    rowPadding: number;
+    /// The height of the chart below a visualized statement
+    chartHeight: number;
+    layerGap: number;
+    boxGap: number;
+    grid: number;
+}
+
+/// A script box of the dataflow canvas
+export interface DataflowLayoutBox {
+    statements: number;
+    /// The statement whose chart follows its row
+    chartStatement?: number | null;
+    collapsed?: boolean;
+    /// The position of the box if it is fixed, e.g. by its `@vis flow` tag
+    fixed?: { x: number; y: number } | null;
+}
+
+/// An edge between statements of two boxes
+export interface DataflowLayoutEdge {
+    fromBox: number;
+    fromStatement: number;
+    toBox: number;
+    toStatement: number;
+}
+
+/// The geometry of a box
+export interface DataflowBoxGeometry {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /// The top of every statement row, relative to the box. The rows of a collapsed box are its header.
+    rows: number[];
+}
 
 /// A connection of a session plan
 export interface SessionPlanConnection {
@@ -333,6 +377,33 @@ export class DashQL {
     /// Quote an identifier if it would not read back unquoted, e.g. the name of a script reference `:"foo-2"`
     public quoteIdentifier(text: string): string {
         return this.bindings.quoteIdentifier(text);
+    }
+
+    /// Lay out the boxes of the dataflow canvas, see docs/design/dataflow.md. Without fixed boxes every box is
+    /// arranged in layers, otherwise the boxes that are not fixed are placed around the fixed ones.
+    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], config?: DataflowLayoutConfig): DataflowBoxGeometry[] {
+        const layout = new this.bindings.DataflowLayout();
+        try {
+            if (config) {
+                layout.setConfig(config.boxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid);
+            }
+            for (const box of boxes) {
+                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0);
+            }
+            for (const edge of edges) {
+                layout.addEdge(edge.fromBox, edge.fromStatement, edge.toBox, edge.toStatement);
+            }
+            const flat = layout.compute();
+            return boxes.map((_, i) => ({
+                x: flat[i * 4],
+                y: flat[i * 4 + 1],
+                width: flat[i * 4 + 2],
+                height: flat[i * 4 + 3],
+                rows: Array.from(layout.rows(i)),
+            }));
+        } finally {
+            layout.free();
+        }
     }
 
     public createPlanViewModel(layoutConfig: buffers.view.PlanLayoutConfigT): DashQLPlanViewModel {

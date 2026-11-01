@@ -102,6 +102,18 @@ describe('DashQL @vis tags', () => {
     });
 });
 
+describe('DashQL dataflow layout', () => {
+    it('places boxes around fixed ones', () => {
+        const layout = dql!.computeDataflowLayout(
+            [{ statements: 2, fixed: { x: 100, y: 40 } }, { statements: 1 }],
+            [{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0 }],
+        );
+        expect(layout[0]).toEqual({ x: 100, y: 40, width: 280, height: 112, rows: [40, 72] });
+        // Right of the producer on the grid, aligned with the row it reads
+        expect([layout[1].x, layout[1].y + layout[1].rows[0]]).toEqual([480, 40 + 72]);
+    });
+});
+
 describe('DashQL planner', () => {
     const execution = dashql.buffers.execution;
     const absent = 0xffffffff;

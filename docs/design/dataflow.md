@@ -27,9 +27,29 @@ Edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and
 which the scan references stand for, are no dataflow. A relation that a statement reads before another statement
 creates it in session order has no edge, a run would read it before it is written.
 
-The snapshots in `snapshots/dataflow/` use the fixtures of the planner snapshots (`bazel run //snapshots/dataflow:update`).
+The snapshots in `snapshots/dataflow/` have cases of their own, they describe a session like the planner snapshots
+(`connections`, `catalog`, `scripts`, `stale-prepend`) and expect the statements of every script and the edges
+(`bazel run //snapshots/dataflow:update`).
 
-## Positions
+## Layout
 
 The position of a script on the canvas is its `@vis flow x=.. y=..` tag, see [vis_comments.md](vis_comments.md).
-Scripts without a position are placed automatically.
+`dataflow_layout::compute_dataflow_layout` in `dashql-core-view` (core-js `computeDataflowLayout`) places the
+others. The layout has two levels:
+
+- **Inside a box** the statements are stacked in script order below a header. Every statement is a row of the same
+  height, and the chart of a visualized statement follows its row. A collapsed box is its header. The script fixes
+  the geometry of its box.
+- **Between boxes**, without fixed boxes, every box is arranged in layers from left to right (Sugiyama): back edges
+  of cycles are reversed, a box is one layer right of its rightmost producer, and a box without producers sits
+  right before its leftmost consumer. Barycenter sweeps order the boxes of a layer, edges spanning layers pass
+  through dummy nodes, and the order with the fewest crossings wins. Then every box moves to the median of the rows
+  it is connected to, so edges between statement rows run straight where they can. Connected parts are stacked,
+  boxes without edges go into rows of four below them.
+- **With fixed boxes**, the others are placed one at a time in topological order: right of their placed producers,
+  left of their placed consumers, or below everything at the left edge, at the median of their connected rows, then
+  moved to the nearest free slot.
+
+Boxes that are not fixed snap to an 8px grid. With the default sizes every row center is a multiple of the grid,
+so edges between snapped boxes stay straight. The snapshots in `snapshots/dataflow_layout/` name the boxes and the
+edges between their rows and expect the geometry of every box (`bazel run //snapshots/dataflow_layout:update`).
