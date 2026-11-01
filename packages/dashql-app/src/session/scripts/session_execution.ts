@@ -236,7 +236,7 @@ export function planSessionScripts(args: {
     return { graph, connectionIds };
 }
 
-/// The errors of an invalid plan, e.g. `bar.sql: unknown script :foo`
+/// The errors of an invalid plan, e.g. `bar.sql: unknown script or attachment :foo`
 export function describePlanErrors(graph: core.buffers.execution.ExecutionGraphT, files: readonly string[]): string {
     const diagnostics = graph.diagnostics.filter(diagnostic => diagnostic.error);
     const messages = (diagnostics.length > 0 ? diagnostics : graph.diagnostics).map(diagnostic => {

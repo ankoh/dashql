@@ -110,7 +110,7 @@ planner-snapshots:
         - script: unknown
           text: ":nope"
           error: true
-          message: 'unknown script :nope'
+          message: 'unknown script or attachment :nope'
         - script: stale
           error: true
           message: missing or stale script analysis
@@ -127,7 +127,7 @@ planner-snapshots:
             - text: ":nope"
               kind: invalid
               errors:
-                - 'unknown script :nope'
+                - 'unknown script or attachment :nope'
 
   - name: TolerantWithoutProblems
     scope: tolerant

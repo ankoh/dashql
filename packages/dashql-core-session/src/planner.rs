@@ -26,7 +26,7 @@ use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::execution::{
     ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphConnectionKind,
     ExecutionGraphConnectionT, ExecutionGraphDiagnosticT, ExecutionGraphEdgeReason as Reason, ExecutionGraphEdgeT, ExecutionGraphEntityT,
-    ExecutionGraphEntityType, ExecutionGraphMaterializationT, ExecutionGraphNodeT, ExecutionGraphScriptReferenceT, ExecutionGraphScriptT,
+    ExecutionGraphAttachmentT, ExecutionGraphEntityType, ExecutionGraphMaterializationT, ExecutionGraphNodeT, ExecutionGraphScriptReferenceT, ExecutionGraphScriptT,
     ExecutionGraphT, ExecutionGraphUnresolvedReferenceT,
 };
 use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType as Type, TempType, TextSpanT};
@@ -92,6 +92,18 @@ pub struct PlannerScript<'a> {
     pub materialization_file: Option<&'a str>,
 }
 
+/// An attachment of the session, a Parquet file that the table parameter `:name` reads
+#[derive(Clone, Copy)]
+pub struct PlannerAttachment<'a> {
+    /// The name, `foo` for `foo.parquet`
+    pub name: &'a str,
+    /// The file name below the attachment prefix
+    pub file: &'a str,
+    /// Changes when the file changes, e.g. its size and modification time. The signature of a script that reads the
+    /// attachment covers it.
+    pub stamp: &'a str,
+}
+
 /// What a plan covers
 #[derive(Clone, Copy)]
 pub enum PlanScope<'a> {
@@ -120,6 +132,10 @@ pub struct SessionPlanRequest<'a> {
     pub materialized: &'a [u32],
     /// The directory that the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
     pub mount_prefix: &'a str,
+    /// The attachments of the session
+    pub attachments: &'a [PlannerAttachment<'a>],
+    /// The directory that the host mounts the attachments in, e.g. `/mnt/external/attachments/<session>`
+    pub attachment_prefix: &'a str,
 }
 
 /// A script with a current analysis
@@ -409,6 +425,12 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             state.report(NONE, i as u32, None, format!("duplicate script name: {}", s.name), true);
         }
     }
+    let mut files: BTreeSet<&str> = BTreeSet::new();
+    for a in request.attachments {
+        if !files.insert(a.file) {
+            state.report(NONE, NONE, None, format!("duplicate attachment: {}", a.file), true);
+        }
+    }
     let targets = seeds(request);
     if targets.iter().chain(request.materialized).any(|&t| t as usize >= script_count) {
         state.report(NONE, NONE, None, "unknown planner script".into(), true);
@@ -468,7 +490,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                     ReferenceKind::Inline => pending.push((producer, Include::Inlined)),
                     ReferenceKind::Scan if request.materialized.contains(&producer) => {}
                     ReferenceKind::Scan => pending.push((producer, Include::All)),
-                    ReferenceKind::Invalid => {}
+                    ReferenceKind::Invalid | ReferenceKind::Attachment => {}
                 }
             }
         }
@@ -649,6 +671,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 reference.consumer_script = si as u32;
                 reference.text_span = Some(text_span_t(r.reference.text_span));
                 reference.script = r.reference.producer.unwrap_or(NONE);
+                reference.attachment = r.reference.attachment.unwrap_or(NONE);
                 reference.parameter = Some(r.reference.name.clone());
                 reference.cte_name = Some(r.cte_name.clone());
                 reference.materialization = r.materialization.unwrap_or(NONE);
@@ -858,6 +881,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             node.inputs = (!spliced.inputs.is_empty()).then(|| spliced.inputs.clone());
             node.inlined_scripts = (!spliced.inlined.is_empty()).then(|| spliced.inlined.iter().map(|&(producer, _)| producer).collect());
+            node.attachments = (!spliced.attachments.is_empty()).then(|| spliced.attachments.clone());
             let drop = matches!(ty, Type::DROP_TABLE | Type::DROP_VIEW);
             let ddl = drop || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
             if ddl {
@@ -1144,6 +1168,20 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
             })
             .collect(),
     );
+    graph.attachments = opt_vec(
+        request
+            .attachments
+            .iter()
+            .enumerate()
+            .map(|(i, a)| {
+                let mut out = ExecutionGraphAttachmentT::default();
+                out.name = opt(Some(a.name.to_string()));
+                out.file = opt(Some(a.file.to_string()));
+                out.path = opt(Some(script_references::attachment_path(request, i as u32)));
+                out
+            })
+            .collect(),
+    );
     graph.scripts = opt_vec(
         request
             .scripts
@@ -1163,11 +1201,23 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
                 meta.planned = planned.get(i).copied().unwrap_or(false);
                 meta.target = targets.contains(&(i as u32));
                 if let Some(p) = prepared.get(i).and_then(Option::as_ref) {
-                    // The signature of the AST and the values that the script binds, `:min=10` per line
+                    // The signature of the AST, the values that the script binds, `:min=10` per line, and the stamps of the
+                    // attachments it reads, `attachment sales.parquet=<stamp>` per line. The keys of the scripts it
+                    // references cover what they read.
                     meta.signature = opt(dashql_core::signature::compute_signature(p.parsed).ok().map(|signature| {
                         // The values in the Hyper dialect, the key covers the connection
                         let values = bind_inputs(&state.inputs, p, None, FormattingDialect::HYPER).values;
-                        std::iter::once(signature).chain(values.iter().map(|(name, value)| format!(":{name}={value}"))).collect::<Vec<_>>().join("\n")
+                        let attachments: BTreeSet<(&str, &str)> = references
+                            .of(i as u32)
+                            .iter()
+                            .filter_map(|r| request.attachments.get(r.attachment? as usize))
+                            .map(|a| (a.file, a.stamp))
+                            .collect();
+                        std::iter::once(signature)
+                            .chain(values.iter().map(|(name, value)| format!(":{name}={value}")))
+                            .chain(attachments.iter().map(|(file, stamp)| format!("attachment {file}={stamp}")))
+                            .collect::<Vec<_>>()
+                            .join("\n")
                     }));
                     // Queries only. The scripts that a script references are single queries, or the plan is invalid.
                     meta.cacheable = p.parses() && !p.parsed.statements.is_empty() && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN));
@@ -1204,7 +1254,7 @@ mod tests {
     }
 
     fn request<'a>(connections: &'a [PlannerConnection<'a>], scripts: &'a [PlannerScript<'a>]) -> SessionPlanRequest<'a> {
-        SessionPlanRequest { connections, scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "/mnt/external/test" }
+        SessionPlanRequest { connections, scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "/mnt/external/test", attachments: &[], attachment_prefix: "" }
     }
 
     #[test]

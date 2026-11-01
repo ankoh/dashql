@@ -27,7 +27,7 @@ use std::rc::Rc;
 fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
     let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER }];
     let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None }).collect();
-    plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "" })
+    plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "", attachments: &[], attachment_prefix: "" })
 }
 
 /// The catalog shared by the sessions of a test

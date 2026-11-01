@@ -1,0 +1,145 @@
+planner-snapshots:
+  # The LOCAL connection scans a Parquet attachment of the session
+  - name: LocalReadsAttachment
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 'eu' as region, 10 as amount union all select 'us', 20
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select region, sum(amount) from :sales group by region;
+
+  # An attachment keeps its name as alias when the statement reads a relation of that name
+  - name: AttachmentYieldsItsName
+    connections:
+      - name: local
+        kind: LOCAL
+        catalog: |
+          create table sales (id int);
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 1 as id
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales s, sales;
+
+  # A REMOTE connection cannot read an attachment
+  - name: RemoteReadsAttachment
+    connections:
+      - name: trino
+        kind: REMOTE
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: bar
+        connection: trino
+        input: |
+          select * from :sales;
+
+  # An attachment cannot be written
+  - name: AttachmentAsInsertTarget
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          insert into :sales values (1);
+
+  # A script and an attachment with one name collide, a table parameter with the name is ambiguous
+  - name: ScriptAttachmentCollision
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: sales
+        connection: local
+        input: |
+          select 1 as id;
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales;
+
+  # A name that differs in case finds the attachment
+  - name: CaseFoldedAttachment
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: Sales.parquet
+        stamp: 1
+        query: select 1 as id
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales;
+
+  # An inlined query reads an attachment, its common table expression goes first
+  - name: InlinedQueryReadsAttachment
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 'eu' as region, 10 as amount
+    scripts:
+      - name: foo
+        connection: local
+        input: |
+          select region, amount from :sales where amount > 5;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+
+  # A view reads an attachment, the file outlives the statement. The validation database disables views.
+  - name: ViewOverAttachment
+    hyper: skip
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 1 as id
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          create view v as select * from :sales;
+
+  # The signature of a script covers the stamps of the attachments it reads
+  - name: SignatureCoversStamp
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1700000000-42
+        query: select 1 as id
+      - file: other.parquet
+        stamp: 7
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales;

@@ -64,7 +64,7 @@ pub fn colliding_names<'a>(names: impl Iterator<Item = &'a str>) -> Vec<Vec<usiz
 }
 
 /// What a table parameter reads
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TableParameterSource {
     /// The result of the script with the index in session order
     Script(u32),

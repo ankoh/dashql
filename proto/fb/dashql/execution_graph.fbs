@@ -58,21 +58,33 @@ table ExecutionGraphMaterialization {
     path: string;
 }
 
-/// A table parameter that references a script
+/// An attachment of the session, a Parquet file that the table parameter `:name` reads
+table ExecutionGraphAttachment {
+    /// The name, `foo` for `foo.parquet`
+    name: string;
+    /// The file name below the attachment prefix
+    file: string;
+    /// The path that a statement scans
+    path: string;
+}
+
+/// A table parameter that references a script or an attachment
 table ExecutionGraphScriptReference {
     /// The node of the statement with the reference
     node: uint32 = 4294967295;
     /// The referencing script and the parameter in its text
     consumer_script: uint32;
     text_span: dashql.buffers.parser.TextSpan;
-    /// The referenced script
-    script: uint32;
+    /// The referenced script, absent for an attachment
+    script: uint32 = 4294967295;
     /// The parameter name
     parameter: string;
-    /// The name of the common table expression that stands for the referenced script
+    /// The name of the common table expression that stands for the referenced script or attachment
     cte_name: string;
     /// The materialization the reference scans, absent if the script is inlined
     materialization: uint32 = 4294967295;
+    /// The referenced attachment
+    attachment: uint32 = 4294967295;
 }
 
 table ExecutionGraphEntity {
@@ -122,6 +134,8 @@ table ExecutionGraphNode {
     /// The scripts whose queries the statement inlines, also those that inlined queries reference, in the order of
     /// their common table expressions
     inlined_scripts: [uint32];
+    /// The attachments that the statement scans, also those that inlined queries read
+    attachments: [uint32];
 }
 
 table ExecutionGraphEdge {
@@ -154,12 +168,15 @@ table ExecutionGraph {
     connections: [ExecutionGraphConnection];
     materializations: [ExecutionGraphMaterialization];
     references: [ExecutionGraphScriptReference];
+    /// The attachments of the request, in its order
+    attachments: [ExecutionGraphAttachment];
 }
 
-/// What a script reference reads, the check of the script references of a session
-enum ScriptReferenceKind: uint8 { INLINE, SCAN, INVALID }
+/// What a script reference reads, the check of the script references of a session. An ATTACHMENT reference scans an
+/// attachment of the session.
+enum ScriptReferenceKind: uint8 { INLINE, SCAN, INVALID, ATTACHMENT }
 
-/// A table parameter of a script that references a script
+/// A table parameter of a script that references a script or an attachment
 table CheckedScriptReference {
     /// The parameter, with the prefix, in the offset unit of the script session
     text_span: dashql.buffers.parser.TextSpan;
@@ -170,6 +187,18 @@ table CheckedScriptReference {
     kind: ScriptReferenceKind;
     /// The errors of the reference, the messages of the planner
     errors: [string];
+    /// The referenced attachment
+    attachment: uint32 = 4294967295;
+}
+
+/// Scripts and attachments whose names are equal in case, a table parameter with the name is ambiguous
+table TableParameterCollision {
+    /// The name of the first of them
+    name: string;
+    /// The scripts with the name
+    scripts: [uint32];
+    /// The attachments with the name
+    attachments: [uint32];
 }
 
 /// The checked script references of a script
@@ -185,6 +214,8 @@ table CheckedScript {
 /// The checked script references of the scripts of a session, in session order
 table ScriptReferenceCheck {
     scripts: [CheckedScript];
+    /// The names of table parameters that collide
+    collisions: [TableParameterCollision];
 }
 
 /// What carries the data of a dataflow edge

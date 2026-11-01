@@ -168,7 +168,7 @@ describe('DashQL planner', () => {
             expect(reference.textSpan!.length).toBe(4);
             const invalid = check.scripts[2].references;
             expect(invalid.map(r => r.kind)).toEqual([execution.ScriptReferenceKind.INVALID, execution.ScriptReferenceKind.INVALID]);
-            expect(invalid[1].errors).toEqual(['unknown script :nope']);
+            expect(invalid[1].errors).toEqual(['unknown script or attachment :nope']);
             expect(dql!.quoteIdentifier('foo-2')).toBe('"foo-2"');
             expect(dql!.quoteIdentifier('foo')).toBe('foo');
             for (const session of [foo, bar, baz]) session.destroy();

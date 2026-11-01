@@ -798,6 +798,8 @@ pub struct SessionPlanRequest {
     mount_prefix: String,
     /// The attachments: the name, the file name, the stamp of the file and its columns if the host read them
     attachments: Vec<(String, String, String, Option<Vec<std::sync::Arc<str>>>)>,
+    /// The directory the host mounts the attachments in
+    attachment_prefix: String,
 }
 
 #[wasm_bindgen]
@@ -811,6 +813,7 @@ impl SessionPlanRequest {
             materialized: Vec::new(),
             mount_prefix: String::new(),
             attachments: Vec::new(),
+            attachment_prefix: String::new(),
         }
     }
 
@@ -856,6 +859,12 @@ impl SessionPlanRequest {
     pub fn set_mount_prefix(&mut self, prefix: String) {
         self.mount_prefix = prefix;
     }
+
+    /// The directory the host mounts the attachments in
+    #[wasm_bindgen(js_name = setAttachmentPrefix)]
+    pub fn set_attachment_prefix(&mut self, prefix: String) {
+        self.attachment_prefix = prefix;
+    }
 }
 
 impl Default for SessionPlanRequest {
@@ -869,7 +878,7 @@ fn with_session_plan_request<R>(
     request: &SessionPlanRequest,
     f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
 ) -> R {
-    use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerConnection, PlannerScript};
+    use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript};
     let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog, _)| catalog.borrow()).collect();
     let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
     let connections: Vec<_> = request
@@ -894,6 +903,8 @@ fn with_session_plan_request<R>(
             materialization_file: file.as_deref(),
         })
         .collect();
+    let attachments: Vec<_> =
+        request.attachments.iter().map(|(name, file, stamp, _)| PlannerAttachment { name, file, stamp }).collect();
     let scope = match &request.targets {
         Some(targets) => PlanScope::Targets(targets),
         None => PlanScope::Session,
@@ -904,6 +915,8 @@ fn with_session_plan_request<R>(
         scope,
         materialized: &request.materialized,
         mount_prefix: &request.mount_prefix,
+        attachments: &attachments,
+        attachment_prefix: &request.attachment_prefix,
     };
     f(&core, &sessions)
 }
@@ -919,7 +932,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
 /// prefix.
 #[wasm_bindgen(js_name = checkScriptReferences)]
 pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
-    use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind};
+    use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT};
     use dashql_core_session::script_references::ReferenceKind;
     with_session_plan_request(request, |core, sessions| {
         let checked = dashql_core_session::script_references::check_script_references(core);
@@ -945,10 +958,12 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
                         t.text_span = Some(text_span);
                         t.parameter = Some(r.parameter);
                         t.script = r.script.unwrap_or(u32::MAX);
+                        t.attachment = r.attachment.unwrap_or(u32::MAX);
                         t.kind = match r.kind {
                             ReferenceKind::Inline => ScriptReferenceKind::INLINE,
                             ReferenceKind::Scan => ScriptReferenceKind::SCAN,
                             ReferenceKind::Invalid => ScriptReferenceKind::INVALID,
+                            ReferenceKind::Attachment => ScriptReferenceKind::ATTACHMENT,
                         };
                         t.errors = (!r.errors.is_empty()).then_some(r.errors);
                         Some(t)
@@ -959,6 +974,17 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
             })
             .collect();
         out.scripts = Some(scripts);
+        let collisions: Vec<_> = dashql_core_session::script_references::table_parameter_collisions(core)
+            .into_iter()
+            .map(|c| {
+                let mut t = TableParameterCollisionT::default();
+                t.name = Some(c.name);
+                t.scripts = Some(c.scripts);
+                t.attachments = Some(c.attachments);
+                t
+            })
+            .collect();
+        out.collisions = (!collisions.is_empty()).then_some(collisions);
         finish!(out)
     })
 }

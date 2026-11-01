@@ -6,7 +6,7 @@ use dashql_buffers::execution::{ExecutionGraphEntityType, ExecutionGraphT};
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core::utils::quote_identifier;
-use dashql_core_session::script_references::{ReferenceKind, CheckedScript};
+use dashql_core_session::script_references::{CheckedScript, ReferenceKind, TableParameterCollision};
 use dashql_parser::keywords::Keyword;
 use yaml_rust2::Yaml;
 
@@ -79,6 +79,23 @@ pub struct FixtureScript {
     pub connection: Option<String>,
 }
 
+/// An attachment of a planner fixture, a Parquet file of the session
+pub struct FixtureAttachment {
+    /// The file name, `sales.parquet` is the table parameter `:sales`
+    pub file: String,
+    /// The stamp of the file
+    pub stamp: String,
+    /// The query whose result the file holds, the validation in Hyper writes it (`query`)
+    pub query: Option<String>,
+}
+
+impl FixtureAttachment {
+    /// The name of the table parameter, the file name without `.parquet`
+    pub fn name(&self) -> &str {
+        self.file.strip_suffix(".parquet").unwrap_or(&self.file)
+    }
+}
+
 /// The texts of a planner fixture
 pub struct Fixture {
     /// The catalog script of the implicit connection
@@ -93,10 +110,15 @@ pub struct Fixture {
     pub materialized: Vec<String>,
     /// Is the plan tolerant (`scope: tolerant`), the plan of the dataflow?
     pub tolerant: bool,
+    /// The attachments of the session
+    pub attachments: Vec<FixtureAttachment>,
 }
 
 /// The directory of the materialized results in planner snapshots
 pub const PLANNER_MOUNT_PREFIX: &str = "/mnt/external/dashql-run-test";
+
+/// The directory of the attachments in planner snapshots
+pub const PLANNER_ATTACHMENT_PREFIX: &str = "/mnt/external/attachments/test";
 
 impl Fixture {
     /// Read a fixture of a snapshot file
@@ -131,6 +153,19 @@ impl Fixture {
             targets: present(&fixture["targets"]).then(|| names(&fixture["targets"])),
             materialized: names(&fixture["materialized"]),
             tolerant: fixture["scope"].as_str() == Some("tolerant"),
+            attachments: fixture["attachments"]
+                .as_vec()
+                .into_iter()
+                .flatten()
+                .map(|a| FixtureAttachment {
+                    file: text(&a["file"]),
+                    stamp: match &a["stamp"] {
+                        Yaml::Integer(i) => i.to_string(),
+                        stamp => text(stamp),
+                    },
+                    query: a["query"].as_str().map(str::to_string),
+                })
+                .collect(),
         }
     }
 
@@ -151,7 +186,7 @@ pub fn encode_planner_fixture(fixture: &Fixture) -> Result<Node, String> {
     let inputs: Vec<&Script> = planned.scripts.iter().collect();
     let connection_names: Vec<String> = planned.connections.iter().map(|c| c.name.clone()).collect();
     let declared = !fixture.connections.is_empty();
-    Ok(encode_graph(&planned.graph, &planned.checks, &inputs, &planned.names, declared.then_some(&connection_names[..]), fixture.targets.is_some()))
+    Ok(encode_graph(&planned.graph, &planned.checks, &planned.collisions, &inputs, &planned.names, declared.then_some(&connection_names[..]), fixture.targets.is_some()))
 }
 
 /// A planned fixture
@@ -166,6 +201,8 @@ pub struct PlannedFixture {
     pub scripts: Vec<Script>,
     /// The checked script references of the scripts
     pub checks: Vec<CheckedScript>,
+    /// The names of table parameters that collide
+    pub collisions: Vec<TableParameterCollision>,
 }
 
 /// The analyzed scripts and catalogs of a fixture
@@ -184,12 +221,14 @@ pub struct PreparedFixture {
     pub targets: Option<Vec<u32>>,
     /// The scripts whose materialized results the host provides
     pub materialized: Vec<u32>,
+    /// The attachments: the name, the file and the stamp
+    pub attachments: Vec<(String, String, String)>,
 }
 
 impl PreparedFixture {
     /// Pass the plan request of the fixture to `f`, with `scope` in place of the scope of the fixture if given
     pub fn with_request<R>(&self, scope: Option<dashql_core_session::planner::PlanScope>, f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest) -> R) -> R {
-        use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
+        use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
         let connections: Vec<PlannerConnection> = self
             .connections
             .iter()
@@ -207,6 +246,8 @@ impl PreparedFixture {
             .zip(&self.names)
             .map(|((script, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None })
             .collect();
+        let attachments: Vec<PlannerAttachment> =
+            self.attachments.iter().map(|(name, file, stamp)| PlannerAttachment { name, file, stamp }).collect();
         let request = SessionPlanRequest {
             connections: &connections,
             scripts: &scripts,
@@ -216,6 +257,8 @@ impl PreparedFixture {
             }),
             materialized: &self.materialized,
             mount_prefix: PLANNER_MOUNT_PREFIX,
+            attachments: &attachments,
+            attachment_prefix: PLANNER_ATTACHMENT_PREFIX,
         };
         f(&request)
     }
@@ -283,24 +326,36 @@ pub fn prepare_fixture(fixture: &Fixture) -> Result<PreparedFixture, String> {
     let targets = fixture.targets.as_ref().map(|t| t.iter().map(index_of).collect::<Result<Vec<_>, _>>()).transpose()?;
     let materialized = fixture.materialized.iter().map(index_of).collect::<Result<Vec<_>, _>>()?;
     let scripts = scripts.into_iter().map(|(s, _, c)| (s, c)).collect();
-    Ok(PreparedFixture { connections, catalogs, catalog_scripts, names, scripts, targets, materialized })
+    let attachments = fixture.attachments.iter().map(|a| (a.name().to_string(), a.file.clone(), a.stamp.clone())).collect();
+    Ok(PreparedFixture { connections, catalogs, catalog_scripts, names, scripts, targets, materialized, attachments })
 }
 
 /// Plan a fixture
 pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
     use dashql_core_session::planner::plan_session;
-    use dashql_core_session::script_references::check_script_references;
+    use dashql_core_session::script_references::{check_script_references, table_parameter_collisions};
     let prepared = prepare_fixture(fixture)?;
     let scope = fixture.tolerant.then_some(dashql_core_session::planner::PlanScope::Tolerant);
-    let (graph, checks) = prepared.with_request(scope, |request| (plan_session(request), check_script_references(request)));
+    let (graph, checks, collisions) =
+        prepared.with_request(scope, |request| (plan_session(request), check_script_references(request), table_parameter_collisions(request)));
     let PreparedFixture { connections, names, scripts, .. } = prepared;
-    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _)| s).collect(), checks })
+    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _)| s).collect(), checks, collisions })
 }
 
 /// Encode an execution graph. `connections` are the names of the declared connections, a fixture without them
 /// leaves the connections out.
-fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Script], names: &[String], connections: Option<&[String]>, targets: bool) -> Node {
+fn encode_graph(
+    graph: &ExecutionGraphT,
+    checks: &[CheckedScript],
+    collisions: &[TableParameterCollision],
+    inputs: &[&Script],
+    names: &[String],
+    connections: Option<&[String]>,
+    targets: bool,
+) -> Node {
     let none = u32::MAX;
+    let attachments = graph.attachments.as_deref().unwrap_or_default();
+    let attachment_file = |a: u32| attachments.get(a as usize).and_then(|a| a.file.clone()).unwrap_or_default();
     let mut out = Map::new();
     out.boolean("valid", graph.valid);
     if let Some(connections) = connections {
@@ -452,6 +507,10 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
             if !inlined.is_empty() {
                 m.insert("inlined-scripts", Node::flow_seq(inlined));
             }
+            let scanned: Vec<Node> = n.attachments.iter().flatten().map(|&a| plain(&attachment_file(a))).collect();
+            if !scanned.is_empty() {
+                m.insert("attachments", Node::flow_seq(scanned));
+            }
             let accesses = n
                 .accesses
                 .iter()
@@ -506,6 +565,18 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
     if !materializations.is_empty() {
         out.insert("materializations", Node::seq(materializations));
     }
+    let attachment_list: Vec<Node> = attachments
+        .iter()
+        .map(|a| {
+            let mut m = Map::new();
+            m.plain("name", a.name.as_deref().unwrap_or(""));
+            m.plain("path", a.path.as_deref().unwrap_or(""));
+            m.into_node()
+        })
+        .collect();
+    if !attachment_list.is_empty() {
+        out.insert("attachments", Node::seq(attachment_list));
+    }
     let references: Vec<Node> = graph
         .references
         .iter()
@@ -517,7 +588,11 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
             if let Some(text) = span_text(r.consumer_script, &r.text_span) {
                 m.quoted("text", &text);
             }
-            m.plain("target", &names[r.script as usize]);
+            if r.attachment != none {
+                m.plain("attachment", &attachment_file(r.attachment));
+            } else {
+                m.plain("target", &names[r.script as usize]);
+            }
             m.plain("cte", r.cte_name.as_deref().unwrap_or(""));
             if r.materialization != none {
                 m.int("materialization", r.materialization as i64);
@@ -573,12 +648,16 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
                     if let Some(target) = r.script {
                         rm.plain("target", &names[target as usize]);
                     }
+                    if let Some(attachment) = r.attachment {
+                        rm.plain("attachment", &attachment_file(attachment));
+                    }
                     rm.plain(
                         "kind",
                         match r.kind {
                             ReferenceKind::Inline => "inline",
                             ReferenceKind::Scan => "scan",
                             ReferenceKind::Invalid => "invalid",
+                            ReferenceKind::Attachment => "attachment",
                         },
                     );
                     if !r.errors.is_empty() {
@@ -595,6 +674,20 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
         .collect();
     if !checked.is_empty() {
         out.insert("checked-references", Node::seq(checked));
+    }
+    let collisions: Vec<Node> = collisions
+        .iter()
+        .map(|c| {
+            let mut m = Map::new();
+            m.plain("name", &c.name);
+            let mut members: Vec<Node> = c.scripts.iter().map(|&s| plain(&format!("{}.sql", names[s as usize]))).collect();
+            members.extend(c.attachments.iter().map(|&a| plain(&attachment_file(a))));
+            m.insert("members", Node::flow_seq(members));
+            m.into_node()
+        })
+        .collect();
+    if !collisions.is_empty() {
+        out.insert("collisions", Node::seq(collisions));
     }
     out.into_node()
 }

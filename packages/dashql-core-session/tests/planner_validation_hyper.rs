@@ -4,10 +4,13 @@
 //! connection runs first, then the SQL of the nodes in node order, which orders every edge. A materialization is
 //! written with `COPY (<query>) TO <file> WITH (format => 'parquet')` into a temporary directory, which stands for
 //! the mount prefix of the plan. The host computes a result it provides with a plan of its script as target, its
-//! references spliced in. A fixture with `hyper: skip` is left out.
+//! references spliced in. The query of an attachment of a fixture is written the same way, below the attachment prefix.
+//! A fixture with `hyper: skip` is left out.
 
 use dashql_buffers::execution::ExecutionGraphT;
-use dashql_snapshots::encode::planner::{plan_fixture, Fixture, FixtureConnection, FixtureScript, PlannedFixture, PLANNER_MOUNT_PREFIX};
+use dashql_snapshots::encode::planner::{
+    plan_fixture, Fixture, FixtureAttachment, FixtureConnection, FixtureScript, PlannedFixture, PLANNER_ATTACHMENT_PREFIX, PLANNER_MOUNT_PREFIX,
+};
 use dashql_snapshots::{load_category, run, Arguments, Failed, Trial};
 use hyper_ffi::{hyper_process, HyperConnection, HyperProcess, TemporaryDatabase};
 use std::sync::{Arc, OnceLock};
@@ -52,6 +55,7 @@ fn provide(connections: &mut [HyperConnection], fixture: &Fixture, planned: &Pla
         targets: Some(vec![name.clone()]),
         materialized: Vec::new(),
         tolerant: false,
+        attachments: fixture.attachments.iter().map(|a| FixtureAttachment { file: a.file.clone(), stamp: a.stamp.clone(), query: a.query.clone() }).collect(),
     };
     let sub = plan_fixture(&target).map_err(|e| format!("plan of the provided result of {name}: {e}"))?;
     if !sub.graph.valid {
@@ -66,7 +70,7 @@ fn check(process: &OnceLock<HyperProcess>, name: &str, fixture: &Fixture, planne
     let graph = &planned.graph;
     let directory = TemporaryDatabase::new(&format!("{name}.files"));
     let files = directory.path.parent().unwrap().to_string_lossy().into_owned();
-    let mount = |sql: &str| sql.replace(PLANNER_MOUNT_PREFIX, &files);
+    let mount = |sql: &str| sql.replace(PLANNER_MOUNT_PREFIX, &files).replace(PLANNER_ATTACHMENT_PREFIX, &files);
     // A database per connection with the catalog of the connection
     let mut databases = Vec::new();
     let mut connections: Vec<HyperConnection> = Vec::new();
@@ -78,6 +82,11 @@ fn check(process: &OnceLock<HyperProcess>, name: &str, fixture: &Fixture, planne
         }
         databases.push(database);
         connections.push(c);
+    }
+    // The attachments of the session
+    for attachment in &fixture.attachments {
+        let Some(query) = &attachment.query else { continue };
+        write(&mut connections, 0, query, &format!("{files}/{}", attachment.file))?;
     }
     let materializations = graph.materializations.as_deref().unwrap_or_default();
     // The host provides reused materializations

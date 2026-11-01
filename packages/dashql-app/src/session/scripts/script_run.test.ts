@@ -411,11 +411,11 @@ describe('script runs', () => {
 
     it('reports the errors of the plan of a script', async () => {
         const f = fixture([['bar.sql', 'select * from :missing;'], ['empty.sql', '-- nothing']]);
-        await expect(f.run('bar.sql')).rejects.toThrow('bar.sql: unknown script :missing');
+        await expect(f.run('bar.sql')).rejects.toThrow('bar.sql: unknown script or attachment :missing');
         await expect(f.run('empty.sql')).rejects.toThrow('empty.sql holds no statement');
         // Nothing runs, the scripts record the errors as failed queries that show where their results would be
         expect(f.executeQuery.mock.calls.map(([, args]) => [args.metadata.resultOwner, args.failure?.message])).toEqual([
-            [scriptResultOwner(f.session().sessionId, f.script('bar.sql').scriptKey), 'bar.sql: unknown script :missing'],
+            [scriptResultOwner(f.session().sessionId, f.script('bar.sql').scriptKey), 'bar.sql: unknown script or attachment :missing'],
             [scriptResultOwner(f.session().sessionId, f.script('empty.sql').scriptKey), 'empty.sql holds no statement'],
         ]);
         expect(f.modifySessionScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [f.script('bar.sql').scriptKey, 1] });

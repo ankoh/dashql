@@ -45,6 +45,28 @@ select count(*) from foo
 The host writes the result of foo.sql through hyperdb-wasm for every connection type, into the folder of the query
 result cache that is mounted read-write at `/mnt/external/cache`, not as a path below `/mnt/fs`.
 
+## Attachments
+
+A table parameter also reads the Parquet attachments of a session: `sales.parquet` is `:sales`. Scripts and
+attachments share one namespace, a name that a script and an attachment share is ambiguous: every table parameter
+with the name is an error ("the table parameter :sales matches sales.sql and sales.parquet") and the check lists
+the names that collide (`table_parameter_collisions`, `ScriptReferenceCheck.collisions`).
+
+| bar.sql runs on | `:sales` in bar.sql |
+|---|---|
+| LOCAL | **attachment**: the statement scans the file below the attachment prefix |
+| REMOTE | an error, only the embedded Hyper reads attachments |
+
+```sql
+with sales as (select * from external('/mnt/external/attachments/<session>/sales.parquet', format => 'parquet'))
+select region, sum(amount) from sales group by region
+```
+
+An attachment is a file, not a query: it is no single SELECT and no part of a cycle, and a view may read it since the
+file outlives the statement. An inlined query that reads an attachment brings its common table expression along,
+before the ones of the scripts. The signature of a script covers the stamps of the attachments it reads
+(`query_cache.md`).
+
 ## Planning
 
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
@@ -110,7 +132,7 @@ script whose analysis is current with its text, like a plan of the session would
 a referenced script that is no single SELECT, a reference outside of a query, the common table expressions of a
 inlined query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a
 referenced script without a current analysis is read as a single SELECT. It reports every table parameter with what
-it reads, `INLINE`, `SCAN` or `INVALID`, the referenced script and the messages of the planner, the text
+it reads, `INLINE`, `SCAN`, `ATTACHMENT` or `INVALID`, the referenced script or attachment and the messages of the planner, the text
 spans in the offset unit of the session of the script (`ScriptReferenceCheck` in `execution_graph.fbs`). The
 planner snapshots list the check under `checked-references`.
 

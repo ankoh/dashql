@@ -126,6 +126,8 @@ export interface SessionPlanRequest {
     mountPrefix?: string;
     /// The attachments of the session
     attachments?: SessionPlanAttachment[];
+    /// The directory the host mounts the attachments in, e.g. `/mnt/external/attachments/<session>`
+    attachmentPrefix?: string;
 }
 
 /// A listener for panics of the core
@@ -347,6 +349,7 @@ export class DashQL {
             }
             native.setMaterialized(Uint32Array.from(request.materialized ?? []));
             native.setMountPrefix(request.mountPrefix ?? '');
+            native.setAttachmentPrefix(request.attachmentPrefix ?? '');
             for (const attachment of request.attachments ?? []) {
                 native.addAttachment(attachment.name, attachment.file, attachment.stamp, attachment.columns ?? undefined);
             }

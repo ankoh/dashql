@@ -23,14 +23,14 @@ planner-snapshots:
         - script: bar
           text: ":foo"
           error: true
-          message: 'unknown script :foo'
+          message: 'unknown script or attachment :foo'
       checked-references:
         - script: bar
           references:
             - text: ":foo"
               kind: invalid
               errors:
-                - 'unknown script :foo'
+                - 'unknown script or attachment :foo'
 
   - name: AmbiguousScriptName
     scripts:
@@ -75,14 +75,17 @@ planner-snapshots:
         - script: bar
           text: ":foo"
           error: true
-          message: 'the script reference :foo matches several scripts'
+          message: 'the table parameter :foo matches Foo.sql and FOO.sql'
       checked-references:
         - script: bar
           references:
             - text: ":foo"
               kind: invalid
               errors:
-                - 'the script reference :foo matches several scripts'
+                - 'the table parameter :foo matches Foo.sql and FOO.sql'
+      collisions:
+        - name: Foo
+          members: [Foo.sql,FOO.sql]
 
   - name: PositionalTableParameter
     scripts:
@@ -108,22 +111,22 @@ planner-snapshots:
         - script: bar
           text: "$1"
           error: true
-          message: the positional table parameter $1 cannot reference a script
+          message: the positional table parameter $1 cannot reference a script or an attachment
         - script: bar
           text: "?"
           error: true
-          message: the positional table parameter ? cannot reference a script
+          message: the positional table parameter ? cannot reference a script or an attachment
       checked-references:
         - script: bar
           references:
             - text: "$1"
               kind: invalid
               errors:
-                - the positional table parameter $1 cannot reference a script
+                - the positional table parameter $1 cannot reference a script or an attachment
             - text: "?"
               kind: invalid
               errors:
-                - the positional table parameter ? cannot reference a script
+                - the positional table parameter ? cannot reference a script or an attachment
 
   - name: WriteTarget
     scripts:
@@ -159,22 +162,22 @@ planner-snapshots:
         - script: bar
           text: ":foo"
           error: true
-          message: 'the script reference :foo cannot be written'
+          message: 'the table parameter :foo cannot be written'
         - script: bar
           text: ":foo"
           error: true
-          message: 'the script reference :foo cannot be written'
+          message: 'the table parameter :foo cannot be written'
       checked-references:
         - script: bar
           references:
             - text: ":foo"
               kind: invalid
               errors:
-                - 'the script reference :foo cannot be written'
+                - 'the table parameter :foo cannot be written'
             - text: ":foo"
               kind: invalid
               errors:
-                - 'the script reference :foo cannot be written'
+                - 'the table parameter :foo cannot be written'
 
   - name: ReferenceOutsideOfQuery
     catalog: |
@@ -212,7 +215,7 @@ planner-snapshots:
         - script: bar
           text: ":foo"
           error: true
-          message: a script reference must be part of a query
+          message: a table parameter must be part of a query
       checked-references:
         - script: bar
           references:
@@ -220,7 +223,7 @@ planner-snapshots:
               target: foo
               kind: invalid
               errors:
-                - a script reference must be part of a query
+                - a table parameter must be part of a query
 
   - name: ProducerWithoutQuery
     catalog: |

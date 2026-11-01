@@ -320,7 +320,7 @@ fn a_plan_of_a_script_carries_the_changes_of_its_statements() {
     session.analyze(&catalog);
     let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER }];
     let scripts = [PlannerScript { script: session.script(), name: "", connection: 0, materialization_file: None }];
-    let graph = plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Targets(&[0]), materialized: &[], mount_prefix: "" });
+    let graph = plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Targets(&[0]), materialized: &[], mount_prefix: "", attachments: &[], attachment_prefix: "" });
     assert!(graph.valid);
     let changes: Vec<Vec<String>> = graph
         .nodes

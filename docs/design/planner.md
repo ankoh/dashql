@@ -27,11 +27,12 @@ declarations bumps the catalog revision, one with unchanged declarations does no
 The native API is `planner::plan_session(&SessionPlanRequest)` (`packages/dashql-core-session/src/planner.rs`).
 A request lists the connections (`PlannerConnection`: the host id, the kind and the catalog), the scripts in
 session order (`PlannerScript`: the live `Script`, its name and its connection index), the scope, the scripts
-whose materialized results the host provides, and the directory the host mounts materialized results in
-(`mount_prefix`, e.g. `/mnt/external/cache`). A script may name the file of its materialized result below the mount
+whose materialized results the host provides, the directory the host mounts materialized results in
+(`mount_prefix`, e.g. `/mnt/external/cache`), the attachments of the session (`PlannerAttachment`: the name, the file
+and its stamp) and the directory the host mounts them in (`attachment_prefix`). A script may name the file of its materialized result below the mount
 prefix (`PlannerScript.materialization_file`, e.g. the cache entry of the result), `s<index>.parquet` otherwise. There is no caller-supplied revision. A script
-analyzed with another catalog than the one of its connection, duplicate scripts or script names, connections
-that share a catalog and unknown indexes invalidate the plan. The connection kind comes from the host: LOCAL
+analyzed with another catalog than the one of its connection, duplicate scripts or script names, duplicate
+attachment files, connections that share a catalog and unknown indexes invalidate the plan. The connection kind comes from the host: LOCAL
 is the embedded Hyper, every other connection is REMOTE.
 
 The scope is the whole session (`PlanScope::Session`) or target scripts (`PlanScope::Targets`). A plan of the
@@ -144,15 +145,18 @@ database objects declared in the catalog already exist in the backend.
 
 ## Script References
 
-A table parameter `:foo` that is the table of a table reference references the script named `foo`, an exact
-name or the only name that differs in case (`table_parameters::find_table_parameter`, which the analyzer, completion and
-`check_script_references` share). The connections decide what it becomes:
+A table parameter `:foo` that is the table of a table reference references the script `foo.sql` or the attachment
+`foo.parquet`, an exact name or the only name that differs in case among the names of the scripts and the
+attachments (`table_parameters::find_table_parameter`, which the analyzer, completion and `check_script_references`
+share). The connections decide what it becomes:
 
-| Statement | Referenced script | Reference |
+| Statement | Referenced | Reference |
 |---|---|---|
-| same connection | | inline: `with foo as (<query of foo>)` |
-| LOCAL connection | other connection | scan: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (select * from external('<path>', format => 'parquet'))` |
-| REMOTE connection | other connection | error |
+| same connection | script | inline: `with foo as (<query of foo>)` |
+| LOCAL connection | script of another connection | scan: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (select * from external('<path>', format => 'parquet'))` |
+| REMOTE connection | script of another connection | error |
+| LOCAL connection | attachment | attachment: `with foo as (select * from external('<attachment_prefix>/<file>', format => 'parquet'))` |
+| REMOTE connection | attachment | error |
 
 A referenced script is a single SELECT, so a reference never runs commands of the referenced script. The common
 table expressions of a statement are flattened: the references of an inlined query are resolved in
@@ -162,11 +166,14 @@ expressions the SELECT already has, also under WITH RECURSIVE: at the statement 
 INSERT, CREATE TABLE AS and EXPLAIN, and into the subquery of a DELETE. The CTE is named after the script and
 quoted where needed (`"brave_otter-2"`); a name that a relation or common table expression of the statement or
 of an inlined query uses gets a suffix (`foo_2`), and the reference keeps the script name as alias
-(`foo_2 as foo`) unless the statement reads a relation of that name. A statement with inline references reads the relations of the inlined queries, so it is ordered after their
+(`foo_2 as foo`) unless the statement reads a relation of that name. The attachments that the statement or an inlined
+query reads come first, every attachment once (`ExecutionGraphNode.attachments`), an attachment is no node and adds
+no edge. The graph lists the attachments of the request with their paths (`ExecutionGraph.attachments`). A statement with inline references reads the relations of the inlined queries, so it is ordered after their
 writers.
 
-Errors, each with the text of the parameter except the one of a script that runs later: an unknown or ambiguous script name, a positional table
-parameter, a script as the target of INSERT or DELETE, a reference outside of a query (`delete ... using
+Errors, each with the text of the parameter except the one of a script that runs later: an unknown or ambiguous name
+("the table parameter :sales matches sales.sql and sales.parquet"), a positional table
+parameter, a script or attachment as the target of INSERT or DELETE, a REMOTE statement that reads an attachment, a reference outside of a query (`delete ... using
 :foo`), a referenced script that is no single SELECT or does not parse ("foo.sql is no single SELECT that bar.sql
 could read"), a cycle, a REMOTE statement that reads another connection, a view over a materialized result, also
 through an inlined query, an inlined query that reads a relation that the statement defines as common table expression

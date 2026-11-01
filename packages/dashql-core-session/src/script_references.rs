@@ -12,6 +12,10 @@
 //!   `with foo as (select * from external('<path>', format => 'parquet')) select * from foo`.
 //! - A statement of a REMOTE connection cannot read a script of another connection.
 //!
+//! A table parameter `:sales` can also read the attachment `sales.parquet` of the session. Only a statement of the
+//! LOCAL connection reads attachments, it scans the file below the attachment prefix that the host mounts:
+//! `with sales as (select * from external('<prefix>/sales.parquet', format => 'parquet')) select * from sales`.
+//!
 //! The common table expressions of a statement are flattened: the references of an inlined query are resolved
 //! in the context of the statement, every script appears once, after the scripts it references. They go into
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
@@ -21,7 +25,7 @@ use crate::planner::{script_label, ConnectionKind, Prepared, SessionPlanRequest}
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
-use dashql_core::table_parameters::{find_table_parameter, TableParameterLookup};
+use dashql_core::table_parameters::{colliding_names, find_table_parameter, TableParameterLookup, TableParameterSource};
 use dashql_core::utils::quote_identifier;
 use dashql_parser::attrs;
 use dashql_parser::keywords::Keyword;
@@ -44,9 +48,11 @@ pub enum ReferenceKind {
     Scan,
     /// The reference has errors, it cannot be planned
     Invalid,
+    /// The statement scans an attachment of the session
+    Attachment,
 }
 
-/// A table parameter that references a script
+/// A table parameter that references a script or an attachment
 #[derive(Clone, Debug)]
 pub(crate) struct Reference {
     /// The statement of the parameter
@@ -59,8 +65,50 @@ pub(crate) struct Reference {
     pub name: String,
     /// The referenced script
     pub producer: Option<u32>,
+    /// The referenced attachment
+    pub attachment: Option<u32>,
     /// What the reference becomes
     pub kind: ReferenceKind,
+}
+
+impl Reference {
+    /// What the reference reads
+    pub(crate) fn source(&self) -> Option<TableParameterSource> {
+        match (self.producer, self.attachment) {
+            (Some(producer), _) => Some(TableParameterSource::Script(producer)),
+            (None, Some(attachment)) => Some(TableParameterSource::Attachment(attachment)),
+            (None, None) => None,
+        }
+    }
+}
+
+/// The label of an attachment in messages, its file name
+pub(crate) fn attachment_label(request: &SessionPlanRequest, attachment: u32) -> String {
+    match request.attachments.get(attachment as usize) {
+        Some(a) => a.file.to_string(),
+        None => format!("attachment {attachment}"),
+    }
+}
+
+/// The label of what a table parameter reads in messages
+pub(crate) fn source_label(request: &SessionPlanRequest, source: TableParameterSource) -> String {
+    match source {
+        TableParameterSource::Script(script) => script_label(request, script),
+        TableParameterSource::Attachment(attachment) => attachment_label(request, attachment),
+    }
+}
+
+/// The source of the name `index` among the names of the scripts followed by the names of the attachments
+fn source_of(request: &SessionPlanRequest, index: usize) -> TableParameterSource {
+    match index.checked_sub(request.scripts.len()) {
+        None => TableParameterSource::Script(index as u32),
+        Some(attachment) => TableParameterSource::Attachment(attachment as u32),
+    }
+}
+
+/// The names of the table parameters of a request: the scripts in session order, then the attachments
+fn table_parameter_names<'a>(request: &'a SessionPlanRequest) -> impl Iterator<Item = &'a str> + Clone {
+    request.scripts.iter().map(|s| s.name).chain(request.attachments.iter().map(|a| a.name))
 }
 
 /// The script references of the scripts of a plan
@@ -100,7 +148,7 @@ impl ScriptReferences {
         }
     }
 
-    /// Resolve the table parameters of a script to the scripts they reference
+    /// Resolve the table parameters of a script to the scripts and attachments they reference
     pub(crate) fn resolve(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, prepared: &Prepared) {
         let (scanned, parsed, analyzed) = (prepared.scanned, prepared.parsed, prepared.analyzed);
         let consumer = &request.scripts[script as usize];
@@ -113,7 +161,7 @@ impl ScriptReferences {
             let name = match (&parameter.name, named) {
                 (Some(name), true) => name.to_string(),
                 _ => {
-                    reporter.error(script, Some(text_span), format!("the positional table parameter {label} cannot reference a script"));
+                    reporter.error(script, Some(text_span), format!("the positional table parameter {label} cannot reference a script or an attachment"));
                     continue;
                 }
             };
@@ -123,25 +171,49 @@ impl ScriptReferences {
                 text_span,
                 name: name.clone(),
                 producer: None,
+                attachment: None,
                 kind: ReferenceKind::Invalid,
             };
-            // The table reference of the parameter, a script cannot be the target of a write
+            // The table reference of the parameter, a table parameter cannot be the target of a write
             let tableref = &parsed.nodes[parsed.nodes[parameter.ast_node_id as usize].parent() as usize];
             if matches!(tableref.attribute_key(), Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET) {
-                reporter.error(script, Some(text_span), format!("the script reference {label} cannot be written"));
+                reporter.error(script, Some(text_span), format!("the table parameter {label} cannot be written"));
                 out.push(reference);
                 continue;
             }
-            // An exact name, or a single name that differs in case
-            let producer = match find_table_parameter(request.scripts.iter().map(|s| s.name), &name) {
-                TableParameterLookup::Found(i) => i,
+            // An exact name, or a single name that differs in case, among the scripts and the attachments
+            let producer = match find_table_parameter(table_parameter_names(request), &name) {
+                TableParameterLookup::Found(i) => match source_of(request, i) {
+                    TableParameterSource::Script(producer) => producer as usize,
+                    TableParameterSource::Attachment(attachment) => {
+                        reference.attachment = Some(attachment);
+                        reference.kind = if request.connections[consumer.connection as usize].kind == ConnectionKind::Local {
+                            ReferenceKind::Attachment
+                        } else {
+                            reporter.error(
+                                script,
+                                Some(text_span),
+                                format!(
+                                    "{} runs on the connection {} and cannot read the attachment {}, only the embedded Hyper reads attachments",
+                                    script_label(request, script),
+                                    request.connections[consumer.connection as usize].id,
+                                    attachment_label(request, attachment)
+                                ),
+                            );
+                            ReferenceKind::Invalid
+                        };
+                        out.push(reference);
+                        continue;
+                    }
+                },
                 TableParameterLookup::Unknown => {
-                    reporter.error(script, Some(text_span), format!("unknown script {label}"));
+                    reporter.error(script, Some(text_span), format!("unknown script or attachment {label}"));
                     out.push(reference);
                     continue;
                 }
-                TableParameterLookup::Ambiguous(_) => {
-                    reporter.error(script, Some(text_span), format!("the script reference {label} matches several scripts"));
+                TableParameterLookup::Ambiguous(matches) => {
+                    let labels: Vec<String> = matches.iter().map(|&i| source_label(request, source_of(request, i))).collect();
+                    reporter.error(script, Some(text_span), format!("the table parameter {label} matches {}", labels.join(" and ")));
                     out.push(reference);
                     continue;
                 }
@@ -207,20 +279,28 @@ impl ScriptReferences {
             let Some(consumer) = prepared[script].as_ref() else { continue };
             for (index, r) in references.iter().enumerate() {
                 reporter.current = (script as u32, index);
-                let Some(producer) = r.producer else { continue };
-                let Some(p) = prepared[producer as usize].as_ref() else { continue };
-                let query = p.parses() && matches!(&p.parsed.statements[..], [statement] if statement.statement_type == StatementType::SELECT);
-                if !query {
-                    reporter.error(
-                        script as u32,
-                        Some(r.text_span),
-                        format!("{} is no single SELECT that {} could read", script_label(request, producer), script_label(request, script as u32)),
-                    );
-                }
+                let producer = match r.source() {
+                    Some(TableParameterSource::Script(producer)) => {
+                        let Some(p) = prepared[producer as usize].as_ref() else { continue };
+                        let query = p.parses() && matches!(&p.parsed.statements[..], [statement] if statement.statement_type == StatementType::SELECT);
+                        if !query {
+                            reporter.error(
+                                script as u32,
+                                Some(r.text_span),
+                                format!("{} is no single SELECT that {} could read", script_label(request, producer), script_label(request, script as u32)),
+                            );
+                        }
+                        Some(producer)
+                    }
+                    // An attachment is a file, it is read like a table
+                    Some(TableParameterSource::Attachment(_)) => None,
+                    None => continue,
+                };
                 let anchor = anchor_of(consumer.parsed, r.ast_node_id);
                 if anchor.is_none() {
-                    reporter.error(script as u32, Some(r.text_span), "a script reference must be part of a query".into());
+                    reporter.error(script as u32, Some(r.text_span), "a table parameter must be part of a query".into());
                 }
+                let Some(producer) = producer else { continue };
                 // The scripts that the reference reads, the nearest first
                 let closure: Vec<(u32, ReferenceKind)> = self.closure(prepared, [r]).into_iter().rev().collect();
                 // A relation of an inlined query must not resolve to a common table expression of the statement
@@ -319,7 +399,7 @@ impl ReferenceErrors for FailedReferences<'_> {
     }
 }
 
-/// A checked table parameter that references a script
+/// A checked table parameter that references a script or an attachment
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CheckedReference {
     /// The statement of the parameter, absent for the errors of parameters that reference no script
@@ -330,6 +410,8 @@ pub struct CheckedReference {
     pub parameter: String,
     /// The referenced script, if the name finds one
     pub script: Option<u32>,
+    /// The referenced attachment, if the name finds one
+    pub attachment: Option<u32>,
     /// What the reference reads
     pub kind: ReferenceKind,
     /// The errors of the reference, the messages of the planner
@@ -392,6 +474,7 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
                     text_span: r.text_span,
                     parameter: r.name.clone(),
                     script: r.producer,
+                    attachment: r.attachment,
                     kind: r.kind,
                     errors: errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default(),
                 }
@@ -406,6 +489,7 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
                 text_span: TextSpan { offset, length },
                 parameter: String::new(),
                 script: None,
+                attachment: None,
                 kind: ReferenceKind::Invalid,
                 errors: errors.errors.remove(&key).unwrap_or_default(),
             });
@@ -414,6 +498,36 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
         out.push(CheckedScript { checked: true, text_version: p.scanned.text_version, references: checked });
     }
     out
+}
+
+/// Scripts and attachments whose names are equal in case
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TableParameterCollision {
+    /// The name of the first of them
+    pub name: String,
+    /// The scripts with the name
+    pub scripts: Vec<u32>,
+    /// The attachments with the name
+    pub attachments: Vec<u32>,
+}
+
+/// The names of the scripts and attachments of a session that collide. A table parameter with such a name is
+/// ambiguous, at least in case.
+pub fn table_parameter_collisions(request: &SessionPlanRequest) -> Vec<TableParameterCollision> {
+    let names: Vec<&str> = table_parameter_names(request).collect();
+    colliding_names(names.iter().copied())
+        .into_iter()
+        .map(|group| {
+            let mut collision = TableParameterCollision { name: names[group[0]].to_string(), scripts: Vec::new(), attachments: Vec::new() };
+            for i in group {
+                match source_of(request, i) {
+                    TableParameterSource::Script(s) => collision.scripts.push(s),
+                    TableParameterSource::Attachment(a) => collision.attachments.push(a),
+                }
+            }
+            collision
+        })
+        .collect()
 }
 
 /// A reference of a spliced statement
@@ -437,8 +551,15 @@ pub(crate) struct SplicedStatement {
     pub inlined: Vec<(u32, u32)>,
     /// The materializations that the statement scans
     pub inputs: Vec<u32>,
+    /// The attachments that the statement scans, also those that the inlined queries read
+    pub attachments: Vec<u32>,
     /// The values of inputs that the inlined queries don't read: (script, text span, message)
     pub input_errors: Vec<(u32, TextSpan, String)>,
+}
+
+/// The path of an attachment that a statement scans
+pub(crate) fn attachment_path(request: &SessionPlanRequest, attachment: u32) -> String {
+    format!("{}/{}", request.attachment_prefix, request.attachments[attachment as usize].file)
 }
 
 /// The text of a CTE name or a script name as identifier
@@ -634,11 +755,38 @@ pub(crate) fn splice_statement(
             }
         }
     }
+    // The attachments that the statement and the inlined queries scan, in the order of their first reference
+    let mut attachments: Vec<u32> = Vec::new();
+    {
+        let mut read = |r: &Reference| {
+            if let (ReferenceKind::Attachment, Some(a)) = (r.kind, r.attachment) {
+                if !attachments.contains(&a) {
+                    attachments.push(a);
+                }
+            }
+        };
+        direct.iter().for_each(|r| read(r));
+        for &(producer, kind) in &order {
+            let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
+            if kind == ReferenceKind::Inline && terminal.is_some() {
+                references.of(producer).iter().filter(|r| Some(r.statement_id) == terminal).for_each(&mut read);
+            }
+        }
+    }
+    // What the common table expressions stand for: the attachments first, the inlined queries may read them, then the
+    // scripts, every script after the scripts it references
+    let sources: Vec<TableParameterSource> =
+        attachments.iter().map(|&a| TableParameterSource::Attachment(a)).chain(order.iter().map(|&(p, _)| TableParameterSource::Script(p))).collect();
+    let name_of = |source: TableParameterSource| match source {
+        TableParameterSource::Script(script) => request.scripts[script as usize].name,
+        TableParameterSource::Attachment(attachment) => request.attachments[attachment as usize].name,
+    };
+
     // A table parameter is no relation of the statement, a relation of the same name as a script would be shadowed
-    let mut cte_names: BTreeMap<u32, String> = BTreeMap::new();
+    let mut cte_names: BTreeMap<TableParameterSource, String> = BTreeMap::new();
     let mut taken = used;
-    for &(producer, _) in &order {
-        let name = request.scripts[producer as usize].name;
+    for &source in &sources {
+        let name = name_of(source);
         let shadows = |candidate: &str| taken.contains(&candidate.to_lowercase());
         let mut candidate = name.to_string();
         if shadows(&candidate) {
@@ -652,7 +800,7 @@ pub(crate) fn splice_statement(
             }
         }
         taken.insert(candidate.to_lowercase());
-        cte_names.insert(producer, candidate);
+        cte_names.insert(source, candidate);
     }
 
     // The edits of the references of a statement text: the parameter becomes the name of the common table expression,
@@ -662,12 +810,12 @@ pub(crate) fn splice_statement(
         let mut relations = BTreeSet::new();
         relation_names(p, statement, &mut relations);
         for r in refs.iter().filter(|r| r.statement_id == statement && r.kind != ReferenceKind::Invalid) {
-            let Some(producer) = r.producer else { continue };
-            let cte = &cte_names[&producer];
+            let Some(source) = r.source() else { continue };
+            let cte = &cte_names[&source];
             let tableref = &p.parsed.nodes[p.parsed.nodes[r.ast_node_id as usize].parent() as usize];
             let [alias] = attrs!(p.parsed.children(tableref), [Key::SQL_TABLEREF_ALIAS]);
             let has_alias = alias.is_some_and(|a| a.node_type() != NodeType::NONE);
-            let script_name = request.scripts[producer as usize].name;
+            let script_name = name_of(source);
             let keeps_name = has_alias || cte == script_name || relations.contains(&script_name.to_lowercase());
             let text = if keeps_name { identifier(cte) } else { format!("{} as {}", identifier(cte), identifier(script_name)) };
             edits.push((r.text_span, text));
@@ -677,8 +825,14 @@ pub(crate) fn splice_statement(
 
     // The common table expressions in order
     let mut ctes: Vec<String> = Vec::new();
+    for &attachment in &attachments {
+        let cte = identifier(&cte_names[&TableParameterSource::Attachment(attachment)]);
+        let path = attachment_path(request, attachment);
+        ctes.push(format!("{cte} as (select * from external('{}', format => 'parquet'))", path.replace('\'', "''")));
+    }
+    out.attachments = attachments;
     for &(producer, kind) in &order {
-        let cte = identifier(&cte_names[&producer]);
+        let cte = identifier(&cte_names[&TableParameterSource::Script(producer)]);
         match kind {
             ReferenceKind::Inline => {
                 let p = prepared[producer as usize].as_ref().unwrap();
@@ -732,11 +886,14 @@ pub(crate) fn splice_statement(
     out.edits.extend(reference_edits(consumer, statement_id, references.of(script)));
     out.edits.sort_by_key(|(s, _)| (s.offset, s.length));
     for r in direct {
-        let producer = r.producer.unwrap();
+        let Some(source) = r.source() else { continue };
         out.references.push(SplicedReference {
             reference: r.clone(),
-            cte_name: cte_names[&producer].clone(),
-            materialization: if r.kind == ReferenceKind::Scan { materialization_of.get(&producer).copied() } else { None },
+            cte_name: cte_names[&source].clone(),
+            materialization: match (r.kind, r.producer) {
+                (ReferenceKind::Scan, Some(producer)) => materialization_of.get(&producer).copied(),
+                _ => None,
+            },
         });
     }
     out

@@ -1,0 +1,577 @@
+planner-snapshots:
+
+  - name: LocalReadsAttachment
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 'eu' as region, 10 as amount union all select 'us', 20
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select region, sum(amount) from :sales group by region;
+    expected:
+      valid: true
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "98580409e7b3a9b0f4647fa6e27b8a9d\nattachment sales.parquet=1"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with sales as (select * from external('/mnt/external/attachments/test/sales.parquet', format => 'parquet'))
+            select region, sum(amount) from sales group by region
+          produces-output: true
+          barrier: false
+          script-result: true
+          attachments: [sales.parquet]
+          accesses: []
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":sales"
+          attachment: sales.parquet
+          cte: sales
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              attachment: sales.parquet
+              kind: attachment
+
+  - name: AttachmentYieldsItsName
+    connections:
+      - name: local
+        kind: LOCAL
+        catalog: |
+          create table sales (id int);
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 1 as id
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales s, sales;
+    expected:
+      valid: true
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cd1394451a0eb868a2c214b222274a19\nattachment sales.parquet=1"
+      entities:
+        - catalog-id: 'local/256.65536.4294967296'
+          type: TABLE
+          name: sales
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with sales_2 as (select * from external('/mnt/external/attachments/test/sales.parquet', format => 'parquet'))
+            select * from sales_2 s, sales
+          produces-output: true
+          barrier: false
+          script-result: true
+          attachments: [sales.parquet]
+          accesses:
+            - entity: 'local/256.65536.4294967296'
+              mode: READ
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":sales"
+          attachment: sales.parquet
+          cte: sales_2
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              attachment: sales.parquet
+              kind: attachment
+
+  - name: RemoteReadsAttachment
+    connections:
+      - name: trino
+        kind: REMOTE
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: bar
+        connection: trino
+        input: |
+          select * from :sales;
+    expected:
+      valid: false
+      connections:
+        - name: trino
+          kind: REMOTE
+      scripts:
+        - name: bar
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "82df8d1f834302fe349f1efab32d41d7\nattachment sales.parquet=1"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      diagnostics:
+        - script: bar
+          text: ":sales"
+          error: true
+          message: 'bar.sql runs on the connection trino and cannot read the attachment sales.parquet, only the embedded Hyper reads attachments'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              attachment: sales.parquet
+              kind: invalid
+              errors:
+                - 'bar.sql runs on the connection trino and cannot read the attachment sales.parquet, only the embedded Hyper reads attachments'
+
+  - name: AttachmentAsInsertTarget
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          insert into :sales values (1);
+    expected:
+      valid: false
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "58907827de39ff274b1bc63d233649fc"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      diagnostics:
+        - script: bar
+          text: ":sales"
+          error: true
+          message: 'the table parameter :sales cannot be written'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              kind: invalid
+              errors:
+                - 'the table parameter :sales cannot be written'
+
+  - name: ScriptAttachmentCollision
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: sales
+        connection: local
+        input: |
+          select 1 as id;
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales;
+    expected:
+      valid: false
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: sales
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "1eb30f7c26bd60a8b4d4c790560f2a31"
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "82df8d1f834302fe349f1efab32d41d7"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      diagnostics:
+        - script: bar
+          text: ":sales"
+          error: true
+          message: 'the table parameter :sales matches sales.sql and sales.parquet'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              kind: invalid
+              errors:
+                - 'the table parameter :sales matches sales.sql and sales.parquet'
+      collisions:
+        - name: sales
+          members: [sales.sql,sales.parquet]
+
+  - name: CaseFoldedAttachment
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: Sales.parquet
+        stamp: 1
+        query: select 1 as id
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales;
+    expected:
+      valid: true
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "82df8d1f834302fe349f1efab32d41d7\nattachment Sales.parquet=1"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with "Sales" as (select * from external('/mnt/external/attachments/test/Sales.parquet', format => 'parquet'))
+            select * from "Sales"
+          produces-output: true
+          barrier: false
+          script-result: true
+          attachments: [Sales.parquet]
+          accesses: []
+      edges: []
+      attachments:
+        - name: Sales
+          path: /mnt/external/attachments/test/Sales.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":sales"
+          attachment: Sales.parquet
+          cte: Sales
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              attachment: Sales.parquet
+              kind: attachment
+
+  - name: InlinedQueryReadsAttachment
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 'eu' as region, 10 as amount
+    scripts:
+      - name: foo
+        connection: local
+        input: |
+          select region, amount from :sales where amount > 5;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: foo
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d474cae2ea3f28fc99536b09cc76fb51\nattachment sales.parquet=1"
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with sales as (select * from external('/mnt/external/attachments/test/sales.parquet', format => 'parquet'))
+            select region, amount from sales where amount > 5
+          produces-output: true
+          barrier: false
+          script-result: true
+          attachments: [sales.parquet]
+          accesses: []
+        - id: 1
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with sales as (select * from external('/mnt/external/attachments/test/sales.parquet', format => 'parquet')),
+            foo as (
+            select region, amount from sales where amount > 5
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          attachments: [sales.parquet]
+          accesses: []
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      references:
+        - node: 0
+          script: foo
+          text: ":sales"
+          attachment: sales.parquet
+          cte: sales
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: foo
+          references:
+            - text: ":sales"
+              attachment: sales.parquet
+              kind: attachment
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: ViewOverAttachment
+    hyper: skip
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+        query: select 1 as id
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          create view v as select * from :sales;
+    expected:
+      valid: true
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "b7b197bbc7be741327fe0ef31604780c\nattachment sales.parquet=1"
+      entities:
+        - catalog-id: 'local/256.65536.4294967296'
+          type: TABLE
+          name: v
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: CREATE_VIEW
+          sql: |-
+            create view v as with sales as (select * from external('/mnt/external/attachments/test/sales.parquet', format => 'parquet'))
+            select * from sales
+          produces-output: false
+          barrier: false
+          attachments: [sales.parquet]
+          accesses:
+            - entity: 'local/256.65536.4294967296'
+              mode: DDL
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":sales"
+          attachment: sales.parquet
+          cte: sales
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              attachment: sales.parquet
+              kind: attachment
+
+  - name: SignatureCoversStamp
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1700000000-42
+        query: select 1 as id
+      - file: other.parquet
+        stamp: 7
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :sales;
+    expected:
+      valid: true
+      connections:
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "82df8d1f834302fe349f1efab32d41d7\nattachment sales.parquet=1700000000-42"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with sales as (select * from external('/mnt/external/attachments/test/sales.parquet', format => 'parquet'))
+            select * from sales
+          produces-output: true
+          barrier: false
+          script-result: true
+          attachments: [sales.parquet]
+          accesses: []
+      edges: []
+      attachments:
+        - name: sales
+          path: /mnt/external/attachments/test/sales.parquet
+        - name: other
+          path: /mnt/external/attachments/test/other.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":sales"
+          attachment: sales.parquet
+          cte: sales
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":sales"
+              attachment: sales.parquet
+              kind: attachment

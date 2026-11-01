@@ -13,6 +13,8 @@ enum ScriptReferenceKind {
     Scan = 'scan',
     /// The reference has errors
     Invalid = 'invalid',
+    /// The statement scans an attachment of the session
+    Attachment = 'attachment',
 }
 
 /// A checked table parameter of a script, `:foo`
@@ -25,6 +27,8 @@ interface ScriptReferenceMark {
     parameter: string;
     /// The file name of the referenced script, null if the name finds none
     target: string | null;
+    /// The index of the referenced attachment, null if the name finds none
+    attachment: number | null;
     /// What the reference reads
     kind: ScriptReferenceKind;
     /// The errors of the reference
@@ -53,16 +57,22 @@ export function computeScriptReferenceReports(session: SessionScripts): Map<numb
         const marks = checked.references.map(reference => {
             const span = reference.textSpan;
             const from = span?.offset ?? 0;
-            const kind = reference.errors.length > 0 || reference.kind === core.buffers.execution.ScriptReferenceKind.INVALID
-                ? ScriptReferenceKind.Invalid
-                : reference.kind === core.buffers.execution.ScriptReferenceKind.SCAN
-                    ? ScriptReferenceKind.Scan
-                    : ScriptReferenceKind.Inline;
+            let kind: ScriptReferenceKind;
+            if (reference.errors.length > 0 || reference.kind === core.buffers.execution.ScriptReferenceKind.INVALID) {
+                kind = ScriptReferenceKind.Invalid;
+            } else if (reference.kind === core.buffers.execution.ScriptReferenceKind.SCAN) {
+                kind = ScriptReferenceKind.Scan;
+            } else if (reference.kind === core.buffers.execution.ScriptReferenceKind.ATTACHMENT) {
+                kind = ScriptReferenceKind.Attachment;
+            } else {
+                kind = ScriptReferenceKind.Inline;
+            }
             return {
                 from,
                 to: from + (span?.length ?? 0),
                 parameter: String(reference.parameter ?? ''),
                 target: reference.script !== NONE ? scripts[reference.script]?.fileName ?? null : null,
+                attachment: reference.attachment !== NONE ? reference.attachment : null,
                 kind,
                 errors: reference.errors.map(String),
             };
