@@ -5,7 +5,7 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::status::StatusCode;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
-use dashql_core::vis_rewrite::{VisBoard, VisRenderer};
+use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_parser::span::TextSpan;
 
 #[test]
@@ -260,6 +260,34 @@ fn rewrite_vis_board_replaces_or_inserts_the_placement() {
         script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
         "/**\n * @description Sales.\n * @vis table\n * @vis board width=6 height=3\n */\nselect 1"
     );
+}
+
+#[test]
+fn rewrite_vis_flow_places_the_script() {
+    let flow = VisFlow { x: -16, y: 240 };
+    // A new position goes on the terminal statement, after its `@vis` tags
+    let mut script = parsed_script("create table t (a int);\n/* @description Rows.\n   @vis table */\nselect a from t");
+    assert_eq!(
+        script.rewrite_vis_flow(Some(&flow), false).unwrap(),
+        "create table t (a int);\n/**\n * @description Rows.\n * @vis table\n * @vis flow x=-16 y=240\n */\nselect a from t"
+    );
+    // A statement that is no query gets a new comment
+    let mut script = parsed_script("create table t (a int)");
+    assert_eq!(script.rewrite_vis_flow(Some(&flow), false).unwrap(), "/** @vis flow x=-16 y=240 */\ncreate table t (a int)");
+    // An existing position is replaced where it is, the first one in statement order
+    let mut script = parsed_script("/* @vis flow x=1 y=2 */\ncreate table t (a int);\nselect a from t");
+    assert_eq!(
+        script.rewrite_vis_flow(Some(&flow), false).unwrap(),
+        "/** @vis flow x=-16 y=240 */\ncreate table t (a int);\nselect a from t"
+    );
+    // Removing the position removes the comment it was alone in
+    let mut script = parsed_script("/* @vis flow x=1 y=2 */\ncreate table t (a int);\n/* @vis table */\nselect a from t");
+    assert_eq!(script.rewrite_vis_flow(None, false).unwrap(), "create table t (a int);\n/* @vis table */\nselect a from t");
+    // Without a position, removing it leaves the text alone
+    let mut script = parsed_script("select 1");
+    assert_eq!(script.rewrite_vis_flow(None, false).unwrap(), "select 1");
+    // A script without statements has nothing to place
+    assert!(parsed_script("").rewrite_vis_flow(Some(&flow), false).is_err());
 }
 
 #[test]

@@ -25,7 +25,7 @@ use dashql_core::completion::is_symbol_kind_completable;
 use dashql_core::cursor::CursorContext;
 use dashql_core::error::{Error, Result};
 use dashql_core::annotation::Annotation;
-use dashql_core::vis_rewrite::{VisBoard, VisRenderer};
+use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::{Script, TextVersion};
 use dashql_core::script_results::ScriptResults;
@@ -39,6 +39,7 @@ use dashql_buffers::editor::{
     EditorCommentTagT, EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
     EditorDiagnosticSource, EditorDiagnosticT, EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin,
     EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorAnalysisVersionT, EditorScriptAnnotationsT,
+    EditorFlowPositionT,
     EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT,
     EditorStatementDescriptionT, EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT,
     EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
@@ -932,6 +933,13 @@ impl ScriptSession {
         referenced.dedup();
         annotations.referenced_table_names = non_empty(referenced);
         annotations.has_visualization_compilation = !analyzed.visualization_specs.is_empty();
+        annotations.flow_position = analyzed.flow.map(|flow| {
+            let mut position = EditorFlowPositionT::default();
+            position.statement_id = flow.statement_id;
+            position.x = flow.x;
+            position.y = flow.y;
+            Box::new(position)
+        });
         let mut statements = Vec::with_capacity(parsed.statements.len());
         let mut statement_descriptions = Vec::new();
         for (statement_id, (statement, metadata)) in
@@ -1146,6 +1154,12 @@ impl ScriptSession {
     /// Set or remove the dashboard placement of a query, its `@vis board` tag, returns the new text
     pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
         self.script.rewrite_vis_board(statement_id, board, parse_if_outdated)
+    }
+
+    /// Set or remove the position of the script on the dataflow canvas, its `@vis flow` tag, returns the new
+    /// text
+    pub fn rewrite_vis_flow(&mut self, flow: Option<&VisFlow>, parse_if_outdated: bool) -> Result<String> {
+        self.script.rewrite_vis_flow(flow, parse_if_outdated)
     }
 
     /// Can formatting represent every node?

@@ -11,8 +11,9 @@
 //! A tag starts with its kind. `vegalite` takes a Vega-Lite spec as JSON object without `data`,
 //! `markdown` takes a row template, `table` takes nothing, and `board` (or its alias `card`) takes the
 //! dashboard placement as `key=value` args. A statement has at most one renderer (`vegalite`, `markdown`
-//! or `table`) and at most one board placement, the first one wins. Problems are warnings with a span
-//! inside the comment.
+//! or `table`) and at most one board placement, the first one wins. `flow` takes the position of the
+//! script on the dataflow canvas as `x=.. y=..`, on any statement, and a script has at most one, the
+//! first one in statement order wins. Problems are warnings with a span inside the comment.
 
 use super::state::AnalysisState;
 use super::types::*;
@@ -201,36 +202,74 @@ impl StatementTags {
             warn(state, kind, "the statement already has a @vis board, this tag is ignored".into());
             return;
         }
-        let (mut row, mut column, mut width, mut height) = (None, None, None, None);
-        let mut at = args;
-        while at < tag.text.len() {
-            let (begin, end, next) = split_word(&tag.text, at);
-            if begin == end {
-                break;
-            }
-            at = next;
-            let arg = &tag.text[begin..end];
-            let span = tag.span(begin, end);
-            let Some((key, value)) = arg.split_once('=') else {
-                warn(state, span, format!("@vis board takes key=value args, not \"{arg}\""));
-                continue;
-            };
-            let slot = match key {
-                "row" => &mut row,
-                "column" => &mut column,
-                "width" => &mut width,
-                "height" => &mut height,
-                _ => {
-                    warn(state, span, format!("unknown @vis board arg \"{key}\", expected row, column, width or height"));
-                    continue;
-                }
-            };
-            match value.parse::<i64>() {
-                Ok(value) => *slot = Some((value, span)),
-                Err(_) => warn(state, span, format!("@vis board {key} must be an integer")),
-            }
-        }
+        let [row, column, width, height] = read_args(state, tag, args, "board", ["row", "column", "width", "height"]);
         self.board = Some((normalize_board(state, row, column, width, height), kind));
+    }
+}
+
+/// Read the `key=value` args of a `@vis` tag, the integer value of every key of `keys`
+fn read_args<const N: usize>(
+    state: &mut AnalysisState,
+    tag: &TagText,
+    args: usize,
+    kind: &str,
+    keys: [&str; N],
+) -> [Option<(i64, TextSpan)>; N] {
+    let mut values = [None; N];
+    let mut at = args;
+    while at < tag.text.len() {
+        let (begin, end, next) = split_word(&tag.text, at);
+        if begin == end {
+            break;
+        }
+        at = next;
+        let arg = &tag.text[begin..end];
+        let span = tag.span(begin, end);
+        let Some((key, value)) = arg.split_once('=') else {
+            warn(state, span, format!("@vis {kind} takes key=value args, not \"{arg}\""));
+            continue;
+        };
+        let Some(slot) = keys.iter().position(|k| *k == key) else {
+            let expected = match keys.split_last() {
+                Some((last, [])) => last.to_string(),
+                Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+                None => String::new(),
+            };
+            warn(state, span, format!("unknown @vis {kind} arg \"{key}\", expected {expected}"));
+            continue;
+        };
+        match value.parse::<i64>() {
+            Ok(value) => values[slot] = Some((value, span)),
+            Err(_) => warn(state, span, format!("@vis {kind} {key} must be an integer")),
+        }
+    }
+    values
+}
+
+/// Read a `@vis flow` tag, the position of the script on the dataflow canvas
+fn read_flow(state: &mut AnalysisState, tag: &TagText, args: usize, kind: TextSpan, statement_id: u32) {
+    if state.out.flow.is_some() {
+        warn(state, kind, "the script already has a @vis flow, this tag is ignored".into());
+        return;
+    }
+    let [x, y] = read_args(state, tag, args, "flow", ["x", "y"]);
+    let coordinate = |state: &mut AnalysisState, value: Option<(i64, TextSpan)>, key: &str| match value {
+        Some((value, span)) => match i32::try_from(value) {
+            Ok(value) => Some(value),
+            Err(_) => {
+                warn(state, span, format!("@vis flow {key} is out of range"));
+                None
+            }
+        },
+        None => {
+            warn(state, kind, format!("@vis flow needs {key}"));
+            None
+        }
+    };
+    let x = coordinate(state, x, "x");
+    let y = coordinate(state, y, "y");
+    if let (Some(x), Some(y)) = (x, y) {
+        state.out.flow = Some(FlowSpec { statement_id, x, y });
     }
 }
 
@@ -313,10 +352,22 @@ fn statement_vis_tags<'p>(
         })
 }
 
-/// Does a statement have `@vis` tags? The compiler visualizes such a query.
+/// The kind of a `@vis` tag, the first word of its content
+fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &CommentBlock) -> &'p str {
+    let script = parsed.scanned.text.as_str();
+    let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
+    let Some(line) = lines.first() else { return "" };
+    let text = &script[line.offset as usize..line.end() as usize];
+    let (begin, end, _) = split_word(text, 0);
+    &text[begin..end]
+}
+
+/// Does a statement have `@vis` tags besides its flow position? The compiler visualizes such a query.
 pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> bool {
     let descriptions = parsed.associate_descriptions();
-    descriptions.get(statement_id).is_some_and(|d| statement_vis_tags(parsed, d).next().is_some())
+    descriptions
+        .get(statement_id)
+        .is_some_and(|d| statement_vis_tags(parsed, d).any(|block| tag_kind(parsed, block) != "flow"))
 }
 
 /// The output column names of an analyzed statement, for the completion of fields
@@ -339,16 +390,9 @@ pub fn statement_output_columns(analyzed: &AnalyzedScript, statement_id: usize) 
 
 /// The first renderer tag (`vegalite`, `markdown` or `table`) of a statement, the one that wins
 pub fn vis_renderer_tag(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> Option<CommentBlock> {
-    let script = parsed.scanned.text.as_str();
     let descriptions = parsed.associate_descriptions();
     statement_vis_tags(parsed, descriptions.get(statement_id)?)
-        .find(|block| {
-            let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
-            let Some(line) = lines.first() else { return false };
-            let text = &script[line.offset as usize..line.end() as usize];
-            let (begin, end, _) = split_word(text, 0);
-            matches!(&text[begin..end], "vegalite" | "markdown" | "table")
-        })
+        .find(|block| matches!(tag_kind(parsed, block), "vegalite" | "markdown" | "table"))
         .copied()
 }
 
@@ -364,13 +408,9 @@ pub(super) fn analyze(state: &mut AnalysisState) {
         if tags.is_empty() {
             continue;
         }
-        if !is_query(statement.statement_type) {
-            for block in tags {
-                warn(state, block.tag_span, "@vis visualizes a query, this statement returns no rows".into());
-            }
-            continue;
-        }
-        let columns = statement_columns(state, statement.root);
+        // Any statement places its script on the dataflow canvas, only queries are visualized
+        let query = is_query(statement.statement_type);
+        let columns = if query { statement_columns(state, statement.root) } else { None };
         let mut out = StatementTags::default();
         for block in tags {
             let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
@@ -379,6 +419,14 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             let kind = &tag.text[kind_begin..kind_end];
             let kind_span = if kind.is_empty() { block.tag_span } else { tag.span(kind_begin, kind_end) };
             let body = tag.text[rest..].trim();
+            if kind == "flow" {
+                read_flow(state, &tag, rest, kind_span, statement_id as u32);
+                continue;
+            }
+            if !query {
+                warn(state, block.tag_span, "@vis visualizes a query, this statement returns no rows".into());
+                continue;
+            }
             match kind {
                 "vegalite" => {
                     if out.set_renderer(state, "vegalite", kind_span) {
@@ -399,9 +447,12 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                     }
                 }
                 "board" | "card" => out.read_board(state, &tag, rest, kind_span),
-                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown, table or board".into()),
-                _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected vegalite, markdown, table or board")),
+                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown, table, board or flow".into()),
+                _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected vegalite, markdown, table, board or flow")),
             }
+        }
+        if !query {
+            continue;
         }
         let Some((renderer, _)) = out.renderer else {
             if let Some((_, span)) = out.board {

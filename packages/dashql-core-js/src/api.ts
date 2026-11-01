@@ -627,6 +627,17 @@ export class DashQLScriptSession {
         return this.ptr.assertNotNull().rewriteVisBoard(statementId, row ?? -1, column ?? -1, width, height, parseIfOutdated);
     }
 
+    /// Set the position of the script on the dataflow canvas, its `@vis flow` tag. Returns the new text, the
+    /// script is not changed.
+    public rewriteVisFlow(x: number, y: number, parseIfOutdated: boolean = true): string {
+        return this.ptr.assertNotNull().rewriteVisFlow(Math.round(x), Math.round(y), parseIfOutdated);
+    }
+
+    /// Remove the `@vis flow` tag of the script. Returns the new text, the script is not changed.
+    public removeVisFlow(parseIfOutdated: boolean = true): string {
+        return this.ptr.assertNotNull().removeVisFlow(parseIfOutdated);
+    }
+
     /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template) or `table` tag.
     /// A null kind removes it. Returns the new text, the script is not changed.
     public rewriteVisRenderer(

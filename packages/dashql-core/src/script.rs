@@ -15,7 +15,7 @@ use crate::completion::Completion;
 use crate::cursor::{ScriptCursor, ScriptView};
 use crate::error::{Error, Result};
 use crate::formatter::Formatter;
-use crate::vis_rewrite::{VisBoard, VisRenderer};
+use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{Node, StatementType};
 use dashql_buffers::statistics::{ScriptMemoryStatisticsT, ScriptProcessingTimingsT, ScriptStatisticsT};
@@ -369,6 +369,13 @@ impl Script {
     pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
         crate::vis_rewrite::rewrite_vis_board(&self.text.to_string(), &parsed, statement_id, board)
+    }
+
+    /// Set or remove the position of the script on the dataflow canvas, its `@vis flow` tag. Returns the new
+    /// text like `rewrite_vis_renderer`.
+    pub fn rewrite_vis_flow(&mut self, flow: Option<&VisFlow>, parse_if_outdated: bool) -> Result<String> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        crate::vis_rewrite::rewrite_vis_flow(&self.text.to_string(), &parsed, flow)
     }
 
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,

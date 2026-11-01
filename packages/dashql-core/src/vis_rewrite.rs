@@ -1,4 +1,5 @@
-//! Rewrite the `@vis` tags of a query: set, replace or remove its renderer and its board placement.
+//! Rewrite the `@vis` tags of a query: set, replace or remove its renderer and its board placement, and
+//! the flow position of a script.
 //!
 //! The tags are edited in the annotation of the query (see `annotation`), so an edit leaves the annotation
 //! consolidated in one comment. The edited tag is printed anew, the other tags keep their content. A new
@@ -97,6 +98,21 @@ impl VisBoard {
     }
 }
 
+/// The position of a script on the dataflow canvas
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VisFlow {
+    /// The x coordinate of the left edge
+    pub x: i32,
+    /// The y coordinate of the top edge
+    pub y: i32,
+}
+
+impl VisFlow {
+    /// The `@vis flow` tag
+    pub fn tag(&self) -> AnnotationTag {
+        AnnotationTag::new(VIS_TAG, vec![format!("flow x={} y={}", self.x, self.y)])
+    }
+}
 
 /// Is a tag a `@vis` tag?
 fn is_vis(tag: &AnnotationTag) -> bool {
@@ -111,6 +127,11 @@ fn is_renderer(tag: &AnnotationTag) -> bool {
 /// Is a tag the dashboard placement of a visualization?
 fn is_board(tag: &AnnotationTag) -> bool {
     is_vis(tag) && matches!(tag.kind(), "board" | "card")
+}
+
+/// Is a tag the flow position of a script?
+fn is_flow(tag: &AnnotationTag) -> bool {
+    is_vis(tag) && tag.kind() == "flow"
 }
 
 /// Rewrite the annotation of a query
@@ -176,6 +197,47 @@ pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize,
                 let renderer = tags.iter().position(is_renderer).ok_or_else(|| Error::invalid_argument("the query has no @vis renderer"))?;
                 tags.insert(renderer + 1, board.tag());
                 Some(renderer + 1)
+            }
+            (None, Some(i)) => {
+                tags.remove(i);
+                None
+            }
+            (None, None) => None,
+        })
+    })?;
+    Ok(text)
+}
+
+/// Set or remove the flow position of a script. The position is a tag of any statement: an existing
+/// `@vis flow` tag is replaced where it is, the first one in statement order, a new one goes after the
+/// `@vis` tags of the terminal statement.
+pub fn rewrite_vis_flow(text: &str, parsed: &ParsedScript, flow: Option<&VisFlow>) -> Result<String> {
+    if !parsed.errors.is_empty() {
+        return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
+    }
+    let mut tagged = None;
+    for statement_id in 0..parsed.statements.len() {
+        if crate::annotation::read_annotation(parsed, statement_id)?.tags.iter().any(is_flow) {
+            tagged = Some(statement_id);
+            break;
+        }
+    }
+    let statement_id = match (tagged, flow) {
+        (Some(statement_id), _) => statement_id,
+        (None, None) => return Ok(text.to_string()),
+        (None, Some(_)) => parsed.statements.len().checked_sub(1).ok_or_else(|| Error::invalid_argument("the script has no statement"))?,
+    };
+    let (text, _) = crate::annotation::rewrite(text, parsed, statement_id, |annotation| {
+        let tags = &mut annotation.tags;
+        Ok(match (flow, tags.iter().position(is_flow)) {
+            (Some(flow), Some(i)) => {
+                tags[i] = flow.tag();
+                Some(i)
+            }
+            (Some(flow), None) => {
+                let i = tags.iter().rposition(is_vis).map_or(tags.len(), |i| i + 1);
+                tags.insert(i, flow.tag());
+                Some(i)
             }
             (None, Some(i)) => {
                 tags.remove(i);

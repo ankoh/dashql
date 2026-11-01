@@ -225,7 +225,7 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
             let compact = crate::compact_json::to_string_compact(&value, width);
             std::iter::once(kind.to_string()).chain(compact.lines().map(str::to_string)).collect()
         }
-        "table" | "board" | "card" => {
+        "table" | "board" | "card" | "flow" => {
             // Args are separated by single spaces
             let header = std::iter::once(kind).chain(rest.split_whitespace()).collect::<Vec<_>>().join(" ");
             std::iter::once(header).chain(body.iter().cloned()).collect()

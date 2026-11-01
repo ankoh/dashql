@@ -135,6 +135,36 @@ analyzer-snapshots:
         /* @vis board width=6 */
         select 1 as a;
 
+  # The flow position of a script, on a statement that is no query
+  - name: vis_tag_flow
+    script:
+      input: |
+        /* @vis flow x=-40 y=120 */
+        create table t (a int);
+        /* @vis table */
+        select a from t;
+
+  # A script has one flow position, the first in statement order wins
+  - name: vis_tag_flow_twice
+    script:
+      input: |
+        /* @vis flow x=1 y=2 */
+        create table t (a int);
+        /* @vis table
+           @vis flow x=3 y=4 */
+        select a from t;
+
+  # Invalid args leave the script without a position, a later valid tag places it
+  - name: vis_tag_flow_args
+    script:
+      input: |
+        /* @vis flow x=1 depth=3 z */
+        select 1;
+        /* @vis flow x=y y=99999999999 */
+        select 2;
+        /* @vis flow y=5 x=6 */
+        select 3;
+
   # A statement that returns no rows
   - name: vis_tag_not_a_query
     script:

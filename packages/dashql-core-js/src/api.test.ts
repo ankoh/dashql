@@ -85,6 +85,21 @@ describe('DashQL @vis tags', () => {
         session.destroy();
         catalog.destroy();
     });
+
+    it('places a script on the dataflow canvas', () => {
+        const catalog = dql!.createCatalog();
+        const session = dql!.createScriptSession(catalog);
+        session.replaceText(0n, 'create table t (a int);\nselect a from t');
+
+        const placed = session.rewriteVisFlow(-16.4, 240);
+        expect(placed).toBe('create table t (a int);\n/** @vis flow x=-16 y=240 */\nselect a from t');
+        session.replaceText(1n, placed);
+        const position = session.analyze().scriptAnnotations?.flowPosition;
+        expect([position?.statementId, position?.x, position?.y]).toEqual([1, -16, 240]);
+        expect(session.removeVisFlow()).toBe('create table t (a int);\nselect a from t');
+        session.destroy();
+        catalog.destroy();
+    });
 });
 
 describe('DashQL planner', () => {

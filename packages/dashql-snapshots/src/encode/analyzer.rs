@@ -373,6 +373,15 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
         out.insert("visualizations", Node::seq(items));
     }
 
+    // Flow position
+    if let Some(flow) = &script.flow {
+        let mut m = Map::new();
+        m.int("statement-id", flow.statement_id as i64);
+        m.int("x", flow.x as i64);
+        m.int("y", flow.y as i64);
+        out.insert("flow", m.into_node());
+    }
+
     // Inferred table schemas
     if !script.inferred_table_schemas.is_empty() {
         let confidence = |c: InferenceConfidence| match c {

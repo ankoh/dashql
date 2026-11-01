@@ -177,12 +177,22 @@ table EditorStatement {
     text_span: EditorTextSpan;
 }
 
+/// The position of the script on the dataflow canvas, its `@vis flow` tag
+table EditorFlowPosition {
+    /// The statement whose annotation holds the tag
+    statement_id: uint32;
+    x: int32;
+    y: int32;
+}
+
 table EditorScriptAnnotations {
     table_definitions: [EditorTableDefinition];
     has_visualization_compilation: bool;
     statement_descriptions: [EditorStatementDescription];
     referenced_table_names: [string];
     statements: [EditorStatement];
+    /// Absent if the script has no `@vis flow` tag
+    flow_position: EditorFlowPosition;
 }
 
 /// Plain processing values copied from ScriptStatistics.

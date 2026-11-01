@@ -64,6 +64,7 @@ impl<'a> AnalysisState<'a> {
             constant_expressions: Vec::new(),
             parameters: Vec::new(),
             visualization_specs: Vec::new(),
+            flow: None,
             inference_constraints: Vec::new(),
             inferred_table_schemas: Vec::new(),
             inferred_table_schemas_by_name: Default::default(),

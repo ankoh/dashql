@@ -15,7 +15,7 @@ use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
 use dashql_core::annotation::Annotation;
-use dashql_core::vis_rewrite::{VisBoard, VisRenderer};
+use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_core::script::Script as CoreScript;
 use dashql_core_session::script_session::ScriptSession as CoreScriptSession;
 use std::cell::{Ref, RefCell, RefMut};
@@ -713,6 +713,18 @@ impl ScriptSession {
     ) -> Result<String, JsError> {
         let board = VisBoard { row: (row >= 0).then_some(row), column: (column >= 0).then_some(column), width, height };
         self.inner.borrow_mut().rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Set the `@vis flow` tag of the script, its position on the dataflow canvas. Returns the new text.
+    #[wasm_bindgen(js_name = rewriteVisFlow)]
+    pub fn rewrite_vis_flow(&self, x: i32, y: i32, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.inner.borrow_mut().rewrite_vis_flow(Some(&VisFlow { x, y }), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Remove the `@vis flow` tag of the script. Returns the new text.
+    #[wasm_bindgen(js_name = removeVisFlow)]
+    pub fn remove_vis_flow(&self, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.inner.borrow_mut().rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
     }
 
     /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template or

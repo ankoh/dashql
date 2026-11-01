@@ -3,7 +3,7 @@
 //! Every tag, `@description`, `@metadata`, `@vis` and the `@end` that older scripts close a region of
 //! line comments with, is a keyword, so the tags of an annotation read alike. The JSON of `@metadata` and `@vis vegalite` is
 //! split into its tokens: keys are identifiers, strings, numbers and booleans are literals. In a `@vis`
-//! tag, the kind is a keyword, the keys of `board` args are identifiers and `{{field}}` placeholders of
+//! tag, the kind is a keyword, the keys of `board` and `flow` args are identifiers and `{{field}}` placeholders of
 //! Markdown templates are identifiers. The rest of the comment stays a comment, e.g. the prose of a
 //! `@description`.
 //!
@@ -166,7 +166,7 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             let begin = if i == 0 { kind_end } else { line.offset as usize };
             let end = line.end() as usize;
             match kind {
-                b"board" | b"card" if i == 0 => lines.args(begin, end),
+                b"board" | b"card" | b"flow" if i == 0 => lines.args(begin, end),
                 b"markdown" => lines.placeholders(begin, end),
                 _ => {}
             }

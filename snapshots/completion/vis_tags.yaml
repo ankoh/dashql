@@ -82,7 +82,7 @@ completion-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "ve", expected vegalite, markdown, table or board'
+          message: 'unknown @vis kind "ve", expected vegalite, markdown, table, board or flow'
           text: "ve"
       expressions:
         - expression-idx: 0
@@ -109,7 +109,7 @@ completion-snapshots:
           location-qualified: "ve"
           objects: []
 
-  - name: vis_card_arg
+  - name: vis_board_arg
     catalog: {}
     editor:
       input: |
@@ -152,6 +152,51 @@ completion-snapshots:
           candidate-tags: [PREFIX_MATCH]
           location: "h"
           location-qualified: "h"
+          objects: []
+
+  - name: vis_flow_arg
+    catalog: {}
+    editor:
+      input: |
+        /* @vis flow x=4 y */
+        create table t (a int)
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: t
+          text: "create tab.. t (a int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+              text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: t
+          columns: [a]
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow takes key=value args, not "y"'
+          text: "y"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow needs y'
+          text: "flow"
+    cursor:
+      search:
+        text: ' y '
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: y=
+          candidate-tags: [PREFIX_MATCH]
+          location: "y"
+          location-qualified: "y"
           objects: []
 
   - name: vis_vegalite_top_level_key

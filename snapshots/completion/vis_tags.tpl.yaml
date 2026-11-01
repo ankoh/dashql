@@ -38,8 +38,8 @@ completion-snapshots:
         index: 2
     completions:
       limit: 3
-  # The args of a card that are not used yet
-  - name: vis_card_arg
+  # The args of a board placement that are not used yet
+  - name: vis_board_arg
     catalog: {}
     editor:
       input: |
@@ -49,6 +49,19 @@ completion-snapshots:
     cursor:
       search:
         text: ' h '
+        index: 2
+    completions:
+      limit: 3
+  # The args of a flow position, on a statement that is no query
+  - name: vis_flow_arg
+    catalog: {}
+    editor:
+      input: |
+        /* @vis flow x=4 y */
+        create table t (a int)
+    cursor:
+      search:
+        text: ' y '
         index: 2
     completions:
       limit: 3

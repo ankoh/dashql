@@ -490,11 +490,11 @@ analyzer-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "chart", expected vegalite, markdown, table or board'
+          message: 'unknown @vis kind "chart", expected vegalite, markdown, table, board or flow'
           text: "chart"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis needs a kind: vegalite, markdown, table or board'
+          message: '@vis needs a kind: vegalite, markdown, table, board or flow'
           text: "vis"
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -646,6 +646,200 @@ analyzer-snapshots:
             - name: a
               expression: 0
           text: "select 1 as a"
+
+  - name: vis_tag_flow
+    script:
+      input: |
+        /* @vis flow x=-40 y=120 */
+        create table t (a int);
+        /* @vis table */
+        select a from t;
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: t
+          text: "create tab.. t (a int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+              text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: t
+          columns: [a]
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.4294967296.0"
+          statement-id: 1
+          text: "a"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a from t"
+      visualizations:
+        - statement-id: 1
+          source: "select a from t"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+      flow:
+        statement-id: 0
+        x: -40
+        y: 120
+
+  - name: vis_tag_flow_twice
+    script:
+      input: |
+        /* @vis flow x=1 y=2 */
+        create table t (a int);
+        /* @vis table
+           @vis flow x=3 y=4 */
+        select a from t;
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: t
+          text: "create tab.. t (a int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+              text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: t
+          columns: [a]
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'the script already has a @vis flow, this tag is ignored'
+          text: "flow"
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.4294967296.0"
+          statement-id: 1
+          text: "a"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a from t"
+      visualizations:
+        - statement-id: 1
+          source: "select a from t"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+      flow:
+        statement-id: 0
+        x: 1
+        y: 2
+
+  - name: vis_tag_flow_args
+    script:
+      input: |
+        /* @vis flow x=1 depth=3 z */
+        select 1;
+        /* @vis flow x=y y=99999999999 */
+        select 2;
+        /* @vis flow y=5 x=6 */
+        select 3;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown @vis flow arg "depth", expected x or y'
+          text: "depth=3"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow takes key=value args, not "z"'
+          text: "z"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow needs y'
+          text: "flow"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow x must be an integer'
+          text: "x=y"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow needs x'
+          text: "flow"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis flow y is out of range'
+          text: "y=99999999999"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 2
+          text: "3"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+        - expression: 2
+          text: "3"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: '?'
+              expression: 0
+          text: "select 1"
+        - scope-id: 1
+          columns:
+            - name: '?'
+              expression: 1
+          text: "select 2"
+        - scope-id: 2
+          columns:
+            - name: '?'
+              expression: 2
+          text: "select 3"
+      flow:
+        statement-id: 2
+        x: 6
+        y: 5
 
   - name: vis_tag_not_a_query
     script:

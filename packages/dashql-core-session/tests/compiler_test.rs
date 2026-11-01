@@ -181,6 +181,20 @@ fn invalid_vis_tags_run_the_query() {
 }
 
 #[test]
+fn a_flow_position_is_no_visualization() {
+    // The query keeps its text as written, it is not formatted like a visualized query
+    let result = compile_text("/* @vis flow x=1 y=2 */\nSELECT   1");
+    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
+    assert_eq!(result.kind, StatementKind::QUERY);
+    assert_eq!(result.sql.as_deref(), Some("SELECT   1"));
+    assert!(result.visualization.is_none());
+    // With a renderer, the flow position does not change the visualization
+    let result = compile_text("/* @vis table\n   @vis flow x=1 y=2 */\nselect 1 as a");
+    assert_eq!(result.kind, StatementKind::VISUALIZE);
+    assert_eq!(result.visualization.as_ref().unwrap().renderer.as_deref(), Some("table"));
+}
+
+#[test]
 fn vis_tags_are_plain_comments_in_the_shell() {
     let text = "/* @vis table */ select 1";
     let result = compile_with(text, CompilationOptions { allow_extensions: false, parse_if_outdated: true });

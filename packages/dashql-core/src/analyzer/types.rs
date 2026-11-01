@@ -676,6 +676,17 @@ impl Default for DashboardSpec {
     }
 }
 
+/// The position of a script on the dataflow canvas, its `@vis flow` tag
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FlowSpec {
+    /// The statement whose annotation holds the tag
+    pub statement_id: u32,
+    /// The x coordinate of the left edge of the script
+    pub x: i32,
+    /// The y coordinate of the top edge of the script
+    pub y: i32,
+}
+
 /// A Markdown spec
 #[derive(Clone, Debug, Default)]
 pub struct MarkdownSpec {

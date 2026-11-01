@@ -68,6 +68,8 @@ pub struct AnalyzedScript {
     pub parameters: Vec<Parameter>,
     /// The visualization specs
     pub visualization_specs: Vec<VisualizationSpec>,
+    /// The flow position of the script, the first `@vis flow` tag in statement order
+    pub flow: Option<FlowSpec>,
     /// The schema-inference constraints
     pub inference_constraints: Vec<InferenceConstraint>,
     /// The inferred schemas of tables that are not in the catalog
