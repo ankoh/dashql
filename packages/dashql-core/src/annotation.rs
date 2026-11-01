@@ -364,6 +364,56 @@ pub fn write_annotation(text: &str, parsed: &ParsedScript, statement_id: usize, 
     .0)
 }
 
+/// Set or remove a tag that a script holds once, in the annotation of any statement. The first tag that `is_tag`
+/// matches in statement order is replaced where it is, the others are removed. Without one, a new tag goes into the
+/// annotation of `target`, the last statement if None, at the index that `insert_at` picks among its tags. Removing the
+/// tag removes every match.
+pub(crate) fn rewrite_script_tag(
+    text: &str,
+    parsed: &ParsedScript,
+    is_tag: impl Fn(&AnnotationTag) -> bool,
+    tag: Option<AnnotationTag>,
+    target: Option<usize>,
+    insert_at: impl Fn(&[AnnotationTag]) -> usize,
+) -> Result<String> {
+    if !parsed.errors.is_empty() {
+        return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
+    }
+    let mut statements = Vec::new();
+    for statement_id in 0..parsed.statements.len() {
+        if read_annotation(parsed, statement_id)?.tags.iter().any(&is_tag) {
+            statements.push(statement_id);
+        }
+    }
+    let last = parsed.statements.len().checked_sub(1);
+    let target = match (statements.first(), &tag) {
+        (Some(&first), _) => first,
+        (None, None) => return Ok(text.to_string()),
+        (None, Some(_)) => target.filter(|&s| s < parsed.statements.len()).or(last).ok_or_else(|| Error::invalid_argument("the script has no statement"))?,
+    };
+    if !statements.contains(&target) {
+        statements.push(target);
+    }
+    // Back to front, an edit leaves the spans of the statements before it alone
+    statements.sort_unstable();
+    let mut text = text.to_string();
+    for &statement_id in statements.iter().rev() {
+        let write = if statement_id == target { tag.clone() } else { None };
+        text = rewrite(&text, parsed, statement_id, |annotation: &mut Annotation| {
+            let tags = &mut annotation.tags;
+            let first = tags.iter().position(&is_tag);
+            tags.retain(|t| !is_tag(t));
+            Ok(write.map(|tag| {
+                let i = first.unwrap_or_else(|| insert_at(tags)).min(tags.len());
+                tags.insert(i, tag);
+                i
+            }))
+        })?
+        .0;
+    }
+    Ok(text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

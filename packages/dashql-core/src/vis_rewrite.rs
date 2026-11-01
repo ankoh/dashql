@@ -124,7 +124,7 @@ fn is_vis(tag: &AnnotationTag) -> bool {
 }
 
 /// Is a tag a tag of the visualization: `@vis`, `@board` or `@flow`?
-fn is_vis_family(tag: &AnnotationTag) -> bool {
+pub(crate) fn is_vis_family(tag: &AnnotationTag) -> bool {
     matches!(tag.name.as_str(), VIS_TAG | BOARD_TAG | FLOW_TAG)
 }
 
@@ -221,40 +221,6 @@ pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize,
 /// statement order is replaced where it is, the others are removed, and a new one goes after the visualization tags of
 /// the terminal statement. Removing the position removes every `@flow` tag.
 pub fn rewrite_vis_flow(text: &str, parsed: &ParsedScript, flow: Option<&VisFlow>) -> Result<String> {
-    if !parsed.errors.is_empty() {
-        return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
-    }
-    let mut tagged = Vec::new();
-    for statement_id in 0..parsed.statements.len() {
-        if crate::annotation::read_annotation(parsed, statement_id)?.tags.iter().any(is_flow) {
-            tagged.push(statement_id);
-        }
-    }
-    let target = match (tagged.first(), flow) {
-        (Some(&first), _) => Some(first),
-        (None, None) => return Ok(text.to_string()),
-        (None, Some(_)) => Some(parsed.statements.len().checked_sub(1).ok_or_else(|| Error::invalid_argument("the script has no statement"))?),
-    };
-    let mut statements: Vec<usize> = tagged;
-    if let Some(target) = target.filter(|t| !statements.contains(t)) {
-        statements.push(target);
-    }
-    // Back to front, an edit leaves the spans of the statements before it alone
-    statements.sort_unstable();
-    let mut text = text.to_string();
-    for &statement_id in statements.iter().rev() {
-        let place = if Some(statement_id) == target { flow } else { None };
-        text = crate::annotation::rewrite(&text, parsed, statement_id, |annotation| {
-            let tags = &mut annotation.tags;
-            let first = tags.iter().position(is_flow);
-            tags.retain(|t| !is_flow(t));
-            Ok(place.map(|flow| {
-                let i = first.unwrap_or_else(|| tags.iter().rposition(is_vis_family).map_or(tags.len(), |i| i + 1)).min(tags.len());
-                tags.insert(i, flow.tag());
-                i
-            }))
-        })?
-        .0;
-    }
-    Ok(text)
+    let insert_at = |tags: &[AnnotationTag]| tags.iter().rposition(is_vis_family).map_or(tags.len(), |i| i + 1);
+    crate::annotation::rewrite_script_tag(text, parsed, is_flow, flow.map(VisFlow::tag), None, insert_at)
 }

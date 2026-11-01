@@ -6,10 +6,10 @@
 //! statement that uses the input first, before its `@vis` tags. Removing the value removes every tag of the name.
 
 use crate::analyzer::param_tags::{split_param_tag, PARAM_TAG};
-use crate::annotation::{Annotation, AnnotationTag};
+use crate::annotation::{rewrite_script_tag, AnnotationTag};
 use crate::error::{Error, Result};
 use crate::sql_literal::SqlLiteral;
-use dashql_buffers::status::StatusCode;
+use crate::vis_rewrite::is_vis_family;
 use dashql_parser::parser::ParsedScript;
 
 /// Is a tag the `@param` tag of a name?
@@ -35,53 +35,12 @@ pub fn param_tag(name: &str, literal: &SqlLiteral) -> AnnotationTag {
 /// input first, a new tag goes there, the last statement if unknown.
 pub fn rewrite_param_tag(text: &str, parsed: &ParsedScript, name: &str, literal: Option<&str>, first_use: Option<usize>) -> Result<String> {
     let literal = literal.map(SqlLiteral::parse).transpose().map_err(Error::invalid_argument)?;
-    let value = literal.as_ref();
-    if !parsed.errors.is_empty() {
-        return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
-    }
-    let mut tagged = Vec::new();
-    for statement_id in 0..parsed.statements.len() {
-        if crate::annotation::read_annotation(parsed, statement_id)?.tags.iter().any(|t| is_input(t, name)) {
-            tagged.push(statement_id);
-        }
-    }
-    let last = parsed.statements.len().checked_sub(1);
-    let target = match (tagged.first(), value) {
-        (Some(&first), _) => first,
-        (None, None) => return Ok(text.to_string()),
-        (None, Some(_)) => first_use.filter(|&s| s < parsed.statements.len()).or(last).ok_or_else(|| Error::invalid_argument("the script has no statement"))?,
+    let tag = literal.map(|literal| param_tag(name, &literal));
+    // After the other inputs, before the visualization
+    let insert_at = |tags: &[AnnotationTag]| {
+        tags.iter().rposition(|t| t.name == PARAM_TAG).map(|i| i + 1).or_else(|| tags.iter().position(is_vis_family)).unwrap_or(tags.len())
     };
-    let mut statements = tagged;
-    if !statements.contains(&target) {
-        statements.push(target);
-    }
-    // Back to front, an edit leaves the spans of the statements before it alone
-    statements.sort_unstable();
-    let mut text = text.to_string();
-    for &statement_id in statements.iter().rev() {
-        let write = if statement_id == target { value } else { None };
-        text = crate::annotation::rewrite(&text, parsed, statement_id, |annotation: &mut Annotation| {
-            let tags = &mut annotation.tags;
-            let first = tags.iter().position(|t| is_input(t, name));
-            tags.retain(|t| !is_input(t, name));
-            Ok(write.map(|literal| {
-                let i = first
-                    .unwrap_or_else(|| {
-                        // After the other inputs, before the visualization
-                        tags.iter()
-                            .rposition(|t| t.name == PARAM_TAG)
-                            .map(|i| i + 1)
-                            .or_else(|| tags.iter().position(|t| matches!(t.name.as_str(), "vis" | "board" | "flow")))
-                            .unwrap_or(tags.len())
-                    })
-                    .min(tags.len());
-                tags.insert(i, param_tag(name, literal));
-                i
-            }))
-        })?
-        .0;
-    }
-    Ok(text)
+    rewrite_script_tag(text, parsed, |t| is_input(t, name), tag, first_use, insert_at)
 }
 
 #[cfg(test)]
