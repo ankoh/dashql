@@ -243,7 +243,7 @@ A run of the session plans four nodes:
 | 3 | bar: `with foo as (select * from t) select count(*) from foo` | 1 (READ_AFTER_WRITE) |
 
 The run creates `t`, baz inserts a second row, foo returns two rows and bar counts 2. foo and bar both read after
-baz and run independently of each other.
+baz and run independently of each other. Neither of them serves a cached result: they follow baz, which runs.
 
 A run of bar plans one node, bar: `with foo as (select * from t) select count(*) from foo`. setup and baz are not
 part of the plan, the query of foo runs only inside bar. The run counts the rows of `t` as the backend has them,

@@ -128,7 +128,8 @@ reusable, a transient file otherwise:
   (`ExecutionMounts.fileName`, `QueryResultCache.newFileName`), the file replaces the older files of the key. A
   result whose key isn't reusable, or a script without a key, e.g. on a connection whose signature is unknown, is a
   transient file (`QueryResultCache.newTransientFileName`).
-- A refresh and a run of the session run every producer anew and write their results the same way.
+- A run of the session reuses a cached result the same way, unless the script follows a script of the plan that
+  runs (`script_references.md`). A refresh runs every producer anew and writes its result the same way.
 
 The run pins every file it writes or reads until it ends, then it removes its transient files. Transient files that a
 closed window left behind are nobody's pins any more, the next listing in any window removes them.

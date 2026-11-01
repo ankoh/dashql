@@ -153,6 +153,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
             mounts: queryResultCache != null && supportsParquet(computeDb) ? createExecutionMounts(queryResultCache, computeDb) : null,
             resultKey: runServices.cacheKey,
             cachesResults: runServices.cachesResults,
+            cache: queryResultCache,
             signal: controller.signal,
             logger,
             onState: state => setStates(previous => new Map(previous).set(sessionId, state)),

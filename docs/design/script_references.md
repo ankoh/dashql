@@ -49,13 +49,19 @@ result cache that is mounted read-write at `/mnt/external/cache`, not as a path 
 
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
 into the SQL of the nodes and orders the statements across connections. A run of the whole session plans every
-script. A run of one script plans the script and the queries of the scripts it materializes, unless the host
+script whose result the cache doesn't provide. A run of one script plans the script and the queries of the scripts it materializes, unless the host
 already has their results; the queries it inlines are part of its statements.
 
 ## Running a Session
 
 A run of the session (`runSessionExecution`) analyzes every script, publishes the declarations into the catalogs of
-their connections and plans all scripts at once. `runExecutionGraph` starts a node once its predecessors are done,
+their connections and plans all scripts at once. The plan checks the whole session and gives the result keys. Like a
+run of a script, a script with a reusable cached result doesn't run: its result is served from the cache and the run
+plans the other scripts again with the served scripts as `materialized`, a plan of the session leaves them out. A
+script that inlines a served script still runs its query, a script that scans it reads the cached file. Unlike a run
+of a script, a run of the session runs the scripts that write what a script reads: a script whose nodes follow a node
+of a script that runs, by an edge of the plan, runs too, whether its result is cached or not. A refresh of
+the session (`refresh` of `runSessionExecution`) reads no cached results and runs every script. `runExecutionGraph` starts a node once its predecessors are done,
 at most `maxConcurrentQueries` nodes of a connection run at once, and nodes of different connections run side by
 side. The files of a run (`ExecutionMounts`, `createExecutionMounts`) are files of the query result cache of the app
 (`query_cache.md`), the mount prefix of the plan is the mount of the cache. The host names the file of every
@@ -65,8 +71,8 @@ materialized script runs on its own connection, the host loads its result into t
 `COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`ExecutionMounts.writeTable`). A scan reads the
 byte ranges it needs from disk, nothing of a file is held in memory. The run pins every file it
 writes or reads, so eviction and other windows leave them alone. The files of keys stay in the cache when it ends,
-the transient files are removed. The terminal query of a script with a reusable key writes its result as the newest
-file of its key, the run reads no cached results.
+the transient files are removed. The terminal query of a script with a reusable key that runs writes its result as the
+newest file of its key.
 
 ## Running a Script
 
@@ -89,7 +95,7 @@ script with a reusable cached key is scanned from the cache instead of running (
 plan scans the newest file of its key. Every other materialized script runs and writes its result as a new file of
 its key if the key is reusable, as a transient file otherwise (`ExecutionMounts.fileName`). A refresh of a script
 (`ScriptRunOptions.refresh`) reads no cached results: the script and every script of its plan run, their results
-with reusable keys become the newest files of their keys. A run of the session runs every script anew too.
+with reusable keys become the newest files of their keys. A run of the session reuses cached results the same way.
 
 ## Editing
 

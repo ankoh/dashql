@@ -8,6 +8,8 @@ import type { CancelQuery, QueryExecutor } from '../../connections/query_executo
 import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
+import { QueryCacheMissError } from '../../../query/query_result_cache.js';
+import { memoryQueryResultCache } from '../../../tests/memory_query_result_cache.js';
 import { runSessionExecution, type ExecutionMounts, type SessionExecutionState } from './session_execution.js';
 import {
     APPLY_PLANNER_ANALYSIS,
@@ -186,6 +188,137 @@ describe('session execution with real core planning', () => {
         expect(cacheArgs[1]).toEqual(caching
             ? { cacheable: true, refreshCache: true, cacheSignature: `${graph.scripts[1].signature}\n${fooKey}` }
             : { cacheable: false });
+    });
+
+    describe('cached results', () => {
+        /// A session whose scripts read each other, the executor records the cache arguments of every query
+        const cachedFixture = () => {
+            const f = fixture([
+                ['0_setup.sql', 'create table items (id int);'],
+                ['1_foo.sql', 'select 1 as id;'],
+                ['2_bar.sql', 'select count(*) from :"1_foo";'],
+                ['3_qux.sql', 'select id from items;'],
+            ]);
+            const cache = memoryQueryResultCache();
+            const queries: Array<{ sql: string; cacheOnly: boolean; cacheable: boolean; refreshCache: boolean }> = [];
+            let miss = false;
+            f.executeQuery.mockImplementation((connectionId, args) => {
+                queries.push({ sql: args.query, cacheOnly: args.cacheOnly ?? false, cacheable: args.cacheable ?? false, refreshCache: args.refreshCache ?? false });
+                f.calls.push({ databaseId: connectionId, queryId: f.calls.length + 1, sql: args.query });
+                if (args.cacheOnly && miss) return [f.calls.length, Promise.reject(new QueryCacheMissError())];
+                return [f.calls.length, Promise.resolve(args.analyzeResults ? tableFromArrays({ value: [1] }) : null)];
+            });
+            const options = { cache, resultKey: async (_connectionId: string, signature: string) => `key:${signature}`, cachesResults: () => true };
+            const keyOf = (index: number): string => {
+                const graph = f.graphs[0];
+                const script = graph.scripts[index];
+                return `key:${[script.signature, ...(script.referencedScripts ?? []).map(r => keyOf(r))].join('\n')}`;
+            };
+            return { ...f, cache, queries, options, keyOf, missCachedResults: () => { miss = true; } };
+        };
+
+        const BAR = 'with "1_foo" as (\nselect 1 as id\n)\nselect count(*) from "1_foo"';
+
+        it('serves the cached results of scripts and runs the others', async () => {
+            const f = cachedFixture();
+            await f.run(f.options);
+            expect(f.lastState()?.error).toBeNull();
+            // Without cached results every script runs, the queries with reusable keys are cached
+            expect(f.queries.map(q => [q.sql, q.cacheOnly, q.cacheable])).toEqual([
+                ['create table items (id int)', false, false],
+                ['select 1 as id', false, true],
+                [BAR, false, true],
+                ['select id from items', false, true],
+            ]);
+
+            // foo is served, bar runs and still inlines the query of foo. qux reads what setup writes, it runs although
+            // its result is cached.
+            f.cache.put(f.keyOf(1));
+            f.cache.put(f.keyOf(3));
+            f.queries.length = 0;
+            f.graphs.length = 0;
+            await f.run(f.options);
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 4, error: null });
+            expect(f.queries.map(q => [q.sql, q.cacheOnly])).toEqual([
+                ['select 1 as id', true],
+                ['create table items (id int)', false],
+                [BAR, false],
+                ['select id from items', false],
+            ]);
+            // The served script registers its result
+            expect(f.script('1_foo.sql').latestQueryId).not.toBeNull();
+            // The plan of the scripts that run leaves out the served script
+            expect(f.graphs[f.graphs.length - 1].nodes.map(node => node.script)).toEqual([0, 2, 3]);
+        });
+
+        it('reads no cached results on a refresh', async () => {
+            const f = cachedFixture();
+            await f.run(f.options);
+            f.cache.put(f.keyOf(1));
+            f.queries.length = 0;
+            await f.run({ ...f.options, refresh: true });
+            expect(f.lastState()?.error).toBeNull();
+            expect(f.queries.map(q => q.cacheOnly)).toEqual([false, false, false, false]);
+            expect(f.queries.filter(q => q.cacheable).every(q => q.refreshCache)).toBe(true);
+        });
+
+        it('runs a script whose cached result is gone', async () => {
+            const f = cachedFixture();
+            await f.run(f.options);
+            f.cache.put(f.keyOf(1));
+            f.missCachedResults();
+            f.queries.length = 0;
+            await f.run(f.options);
+            expect(f.lastState()?.error).toBeNull();
+            expect(f.queries.map(q => [q.sql, q.cacheOnly])).toEqual([
+                ['select 1 as id', true],
+                ['create table items (id int)', false],
+                ['select 1 as id', false],
+                [BAR, false],
+                ['select id from items', false],
+            ]);
+        });
+
+        it('scans the cached result of a script of another connection instead of running it', async () => {
+            const f = fixture([
+                ['1_foo.sql', 'select 1 as a;'],
+                ['2_bar.sql', 'select count(*) from :"1_foo";'],
+            ]);
+            const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '1_foo.sql', connection: remote } });
+            const main = f.script('2_bar.sql').connection.connectionId;
+            const cache = memoryQueryResultCache();
+            const queries: Array<{ connection: string; sql: string; cacheOnly: boolean }> = [];
+            f.executeQuery.mockImplementation((connectionId, args) => {
+                queries.push({ connection: connectionId === main ? 'local' : 'remote', sql: args.query, cacheOnly: args.cacheOnly ?? false });
+                return [queries.length, Promise.resolve(tableFromArrays({ a: [1] }))];
+            });
+            const mounts: ExecutionMounts = {
+                prefix: '/mnt/external/cache',
+                fileName: (key: string | null) => `${key ?? 'transient'}.run.parquet`,
+                writeTable: vi.fn(async () => new Blob()),
+                use: vi.fn(async () => {}),
+                release: vi.fn(async () => {}),
+            };
+            // Plan once to learn the signature of foo
+            await f.run({ isLocalConnection: connectionId => connectionId === main, mounts });
+            const fooKey = `remote:${f.graphs[0].scripts[0].signature}`;
+            const file = cache.put(fooKey);
+            queries.length = 0;
+            await f.run({
+                isLocalConnection: connectionId => connectionId === main, mounts, cache,
+                resultKey: async (connectionId, signature) => `${connectionId === main ? 'local' : 'remote'}:${signature}`,
+                cachesResults: () => true,
+            });
+            expect(f.lastState()?.error).toBeNull();
+            // foo is served from the cache, bar scans the cached file, nothing runs remotely
+            expect(queries).toEqual([
+                { connection: 'remote', sql: 'select 1 as a', cacheOnly: true },
+                { connection: 'local', sql: `with "1_foo" as (select * from external('/mnt/external/cache/${file}', format => 'parquet'))\nselect count(*) from "1_foo"`, cacheOnly: false },
+            ]);
+            expect(mounts.use).toHaveBeenCalledWith(`/mnt/external/cache/${file}`);
+            expect(cache.retain).toHaveBeenCalledWith(fooKey);
+        });
     });
 
     it('fails a run in which a remote connection reads a script of another connection', async () => {
