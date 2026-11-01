@@ -15,7 +15,7 @@ use dashql_buffers::algebra::{
 use dashql_buffers::analyzer::{
     AnalyzedScriptT, AnalyzerErrorT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
     IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
-    ParameterKind as PackedParameterKind, ParameterT,
+    ParameterKind as PackedParameterKind, ParameterT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT,
     QualifiedColumnNameT, QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, TableColumnT,
     TableReferenceRole, TableReferenceT, TableT, VisualizationSpecT,
 };
@@ -658,6 +658,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
                     ParameterKind::Table => PackedParameterKind::TABLE,
                 },
                 name: p.name.as_deref().map(str::to_string),
+                cast_type: p.cast_type.as_ref().map(|t| Box::new(pack_sql_type(t))),
             })
         })
         .collect();
@@ -736,6 +737,64 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
         inferred_table_schemas: Some(inferred_table_schemas),
         parameters: non_empty(parameters),
     })
+}
+
+/// Pack a SQL type
+pub fn pack_sql_type(t: &SqlType) -> SqlTypeT {
+    let opt = |v: &Option<u32>| v.map_or(-1, |v| v as i32);
+    let mut out = SqlTypeT::default();
+    out.array_dimensions = t.array_dimensions;
+    out.sql = Some(t.to_string());
+    out.kind = match &t.kind {
+        SqlTypeKind::Bool => PackedSqlTypeKind::BOOL,
+        SqlTypeKind::Int1 => PackedSqlTypeKind::INT1,
+        SqlTypeKind::Int2 => PackedSqlTypeKind::INT2,
+        SqlTypeKind::Int4 => PackedSqlTypeKind::INT4,
+        SqlTypeKind::Int8 => PackedSqlTypeKind::INT8,
+        SqlTypeKind::Float4 => PackedSqlTypeKind::FLOAT4,
+        SqlTypeKind::Float8 => PackedSqlTypeKind::FLOAT8,
+        SqlTypeKind::Numeric { precision, scale } => {
+            out.precision = opt(precision);
+            out.scale = opt(scale);
+            PackedSqlTypeKind::NUMERIC
+        }
+        SqlTypeKind::Varchar { length } => {
+            out.length = opt(length);
+            PackedSqlTypeKind::VARCHAR
+        }
+        SqlTypeKind::Char { length } => {
+            out.length = opt(length);
+            PackedSqlTypeKind::CHAR
+        }
+        SqlTypeKind::Text => PackedSqlTypeKind::TEXT,
+        SqlTypeKind::Bit { length, varying } => {
+            out.length = opt(length);
+            out.varying = *varying;
+            PackedSqlTypeKind::BIT
+        }
+        SqlTypeKind::Date => PackedSqlTypeKind::DATE,
+        SqlTypeKind::Time { precision, with_time_zone } => {
+            out.precision = opt(precision);
+            out.with_time_zone = *with_time_zone;
+            PackedSqlTypeKind::TIME
+        }
+        SqlTypeKind::Timestamp { precision, with_time_zone } => {
+            out.precision = opt(precision);
+            out.with_time_zone = *with_time_zone;
+            PackedSqlTypeKind::TIMESTAMP
+        }
+        SqlTypeKind::Interval { fields, precision } => {
+            out.precision = opt(precision);
+            out.interval_fields = fields.map_or(-1, |f| f.0 as i16);
+            PackedSqlTypeKind::INTERVAL
+        }
+        SqlTypeKind::Generic { name, modifiers } => {
+            out.name = Some(name.to_string());
+            out.modifiers = non_empty(modifiers.iter().map(|m| m.to_string()).collect());
+            PackedSqlTypeKind::GENERIC
+        }
+    };
+    out
 }
 
 /// Pack a cursor

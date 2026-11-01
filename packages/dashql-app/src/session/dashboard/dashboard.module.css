@@ -8,6 +8,15 @@
     background: var(--stage_vignette), var(--stage_light), var(--stage_color);
 }
 
+/* The inputs stick to the top of the page, across its padding, the cards scroll underneath */
+.inputs {
+    position: sticky;
+    top: -20px;
+    margin: -20px -20px 6px -20px;
+    padding-left: max(20px, calc((100% - 1600px) / 2 + 20px));
+    padding-right: max(20px, calc((100% - 1600px) / 2 + 20px));
+}
+
 .grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -168,6 +177,13 @@
 @media only screen and (max-width: 799px) {
     .page {
         padding: 12px 8px;
+    }
+
+    .inputs {
+        top: -12px;
+        margin: -12px -8px 6px -8px;
+        padding-left: 8px;
+        padding-right: 8px;
     }
 
     .grid {

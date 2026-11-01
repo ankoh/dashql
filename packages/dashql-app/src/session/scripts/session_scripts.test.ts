@@ -33,6 +33,8 @@ import {
     replaceSessionScriptsFromStorage,
     SET_SCRIPT_TEXT,
     SET_SCRIPT_VIS_SPEC,
+    SET_SESSION_INPUT,
+    textChange,
     REJECT_PENDING_DIFF,
     replaceScriptSessionText,
 } from './session_scripts.js';
@@ -264,6 +266,31 @@ describe('V2 flat session script mutations', () => {
         // Other references keep their names
         expect(next.scripts[key('baz.sql')].scriptSession.getText()).toBe('select * from :bar, :foo_other');
         expect(writer.records).toContainEqual(expect.objectContaining({ value: [current.sessionId, 'bar.sql', bar.scriptSession.getText()] }));
+    });
+
+    it('writes the value of an input into the scripts that use it', () => {
+        let current = state(['a.sql', 'b.sql', 'c.sql']);
+        const key = (file: string) => current.scriptRefs[file].scriptId;
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('a.sql'), text: '/* @param :min = 1 */\nselect :min::int' } });
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('b.sql'), text: 'select :min' } });
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const next = reduce(current, { type: SET_SESSION_INPUT, value: { name: 'min', literal: '20', scriptKeys: [key('a.sql'), key('b.sql')] } }, writer);
+        const a = next.scripts[key('a.sql')];
+        const b = next.scripts[key('b.sql')];
+        expect(a.scriptSession.getText()).toBe('/** @param :min = 20 */\nselect :min::int');
+        expect(b.scriptSession.getText()).toBe('/** @param :min = 20 */\nselect :min');
+        expect(b.externalChanges).toEqual({ fromText: 'select :min', changes: [{ from: 0, to: 0, insert: '/** @param :min = 20 */\n' }] });
+        // A script that does not use the input stays
+        expect(next.scripts[key('c.sql')]).toBe(current.scripts[key('c.sql')]);
+        expect(writer.records).toContainEqual(expect.objectContaining({ value: [current.sessionId, 'b.sql', b.scriptSession.getText()] }));
+        // The same value changes nothing
+        expect(reduce(next, { type: SET_SESSION_INPUT, value: { name: 'min', literal: '20', scriptKeys: [key('a.sql'), key('b.sql')] } })).toBe(next);
+    });
+
+    it('describes a text change by its common prefix and suffix', () => {
+        expect(textChange('select 1', 'select 21')).toEqual({ from: 7, to: 7, insert: '2' });
+        expect(textChange('aaa', 'aa')).toEqual({ from: 2, to: 3, insert: '' });
+        expect(textChange('', 'x')).toEqual({ from: 0, to: 0, insert: 'x' });
     });
 
     it('renames in place without keeping the ordering prefix', () => {

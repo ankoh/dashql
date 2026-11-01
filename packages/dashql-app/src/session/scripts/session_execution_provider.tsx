@@ -16,9 +16,16 @@ import { scriptConnectionIds } from './session_scripts.js';
 import { QueryType } from '../../query/query_execution_state.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
+/// The options of a run of a session
+export interface SessionExecutionOptions {
+    /// Run the scripts that a change of these inputs affects. A run that holds the session stops, the run starts
+    /// once the session is free, with the inputs of every change since.
+    inputs?: readonly string[];
+}
+
 interface ExecutionContext {
     states: Map<string, SessionExecutionState>;
-    start: (sessionId: string, modify: ModifySessionScripts) => void;
+    start: (sessionId: string, modify: ModifySessionScripts, options?: SessionExecutionOptions) => void;
     stop: (sessionId: string) => void;
 }
 
@@ -36,6 +43,28 @@ function runsQueries(connection: ConnectionState): boolean {
         if (query.queryMetadata.queryType !== QueryType.INTERNAL_SQLFRAME) return true;
     }
     return false;
+}
+
+/// The attempts to wait for a run of a session to leave its connections
+const FREE_ATTEMPTS = 50;
+const FREE_INTERVAL_MS = 100;
+
+/// Wait until a session is free for a run: no run holds it and its connections are idle. Gives up after a while, a
+/// connection may stay busy.
+function whenSessionFree(isFree: () => boolean): Promise<boolean> {
+    return new Promise(resolve => {
+        let attempts = 0;
+        const check = () => {
+            if (isFree()) {
+                resolve(true);
+            } else if (++attempts > FREE_ATTEMPTS) {
+                resolve(false);
+            } else {
+                setTimeout(check, FREE_INTERVAL_MS);
+            }
+        };
+        check();
+    });
 }
 
 export function sessionExecutionIsBusy(state: SessionExecutionState | null | undefined): boolean {
@@ -56,7 +85,7 @@ export function useSessionExecution(sessionId: string) {
             state,
             busy,
             runActive: busy || held,
-            start: (modify: ModifySessionScripts) => start?.(sessionId, modify),
+            start: (modify: ModifySessionScripts, options?: SessionExecutionOptions) => start?.(sessionId, modify, options),
             stop: () => stop?.(sessionId),
         };
     }, [state, held, start, stop, sessionId]);
@@ -75,6 +104,8 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
     const [states, setStates] = React.useState(new Map<string, SessionExecutionState>());
     const runs = React.useRef(new Map<string, AbortController>());
     const runningDatabases = React.useRef(new Set<string>());
+    // The input changes that wait for the session, by session id
+    const pendingInputs = React.useRef(new Map<string, { modify: ModifySessionScripts; inputs: Set<string> }>());
 
     React.useEffect(() => () => {
         for (const controller of runs.current.values()) controller.abort();
@@ -124,25 +155,50 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         };
     }, [registry, runServices]);
 
-    const start = React.useCallback((sessionId: string, modifySessionScripts: ModifySessionScripts) => {
-        const { registry, connections, executeQuery, cancelQuery, computeDb, queryResultCache, logger } = latest.current;
+    const startRef = React.useRef<(sessionId: string, modify: ModifySessionScripts, options?: SessionExecutionOptions) => void>(() => {});
+    const start = React.useCallback((sessionId: string, modifySessionScripts: ModifySessionScripts, options?: SessionExecutionOptions) => {
+        const { connections, executeQuery, cancelQuery, computeDb, queryResultCache, logger } = latest.current;
+        // The registry as the last update left it, an input change starts its run right after writing its tags
+        const registry = readRegistry?.() ?? latest.current.registry;
         const session = registry.sessionScriptsMap.get(sessionId);
-        if (!session || runs.current.has(sessionId) || isSessionExecutionRunning(session) || session.scriptOrder.length === 0) return;
+        if (!session || session.scriptOrder.length === 0) return;
         // A run takes every connection of the session, all of them must be idle
         const connectionIds = scriptConnectionIds(session);
-        const idle = connectionIds.every(connectionId => {
-            const connection = connections.connections.get(connectionId);
-            return !runningDatabases.current.has(connectionId)
-                && connection?.connectionHealth === ConnectionHealth.ONLINE
-                && !runsQueries(connection);
-        });
-        if (!idle) return;
+        const isFree = () => {
+            const connections = latest.current.connections;
+            return !runs.current.has(sessionId) && !isSessionExecutionRunning(sessionId) && connectionIds.every(connectionId => {
+                const connection = connections.connections.get(connectionId);
+                return !runningDatabases.current.has(connectionId)
+                    && connection?.connectionHealth === ConnectionHealth.ONLINE
+                    && !runsQueries(connection);
+            });
+        };
+        if (options?.inputs != null) {
+            const pending = pendingInputs.current.get(sessionId);
+            const inputs = new Set([...(pending?.inputs ?? []), ...options.inputs]);
+            if (pending != null || !isFree()) {
+                // The latest values win: stop the run that holds the session and start once the session is free
+                pendingInputs.current.set(sessionId, { modify: modifySessionScripts, inputs });
+                runs.current.get(sessionId)?.abort();
+                if (pending == null) {
+                    void whenSessionFree(isFree).then(free => {
+                        const next = pendingInputs.current.get(sessionId);
+                        pendingInputs.current.delete(sessionId);
+                        if (next != null && free) startRef.current(sessionId, next.modify, { inputs: [...next.inputs] });
+                    });
+                }
+                return;
+            }
+            options = { inputs: [...inputs] };
+        }
+        if (!isFree()) return;
         const controller = new AbortController();
         runs.current.set(sessionId, controller);
         for (const connectionId of connectionIds) runningDatabases.current.add(connectionId);
         void runSessionExecution({
             session,
-            getSession: () => latest.current.registry.sessionScriptsMap.get(sessionId) ?? null,
+            getSession: () => (readRegistry?.() ?? latest.current.registry).sessionScriptsMap.get(sessionId) ?? null,
+            inputs: options?.inputs,
             executeQuery, cancelQuery, modifySessionScripts,
             maxConcurrentQueries: connectionId => maxConcurrentQueries(connections.connections.get(connectionId)),
             // The embedded Hyper scans the results of the scripts of other connections, mounted from the compute database
@@ -161,7 +217,8 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
             runs.current.delete(sessionId);
             for (const connectionId of connectionIds) runningDatabases.current.delete(connectionId);
         });
-    }, [runServices]);
+    }, [runServices, readRegistry]);
+    startRef.current = start;
     const stop = React.useCallback((id: string) => runs.current.get(id)?.abort(), []);
     const value = React.useMemo<ExecutionContext>(() => ({ states, start, stop }), [states, start, stop]);
 

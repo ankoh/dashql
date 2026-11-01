@@ -49,6 +49,7 @@ import { reorderFeedEntries } from './session_feed_drag.js';
 import type { DataFile } from '../../storage/storage_backend.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { SessionDataCard } from './session_data_card.js';
+import { SessionInputStrip } from '../inputs/session_input_strip.js';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
@@ -531,9 +532,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const composerSectionRef = React.useRef<HTMLDivElement>(null);
     const composerSectionSize = observeSize(composerSectionRef);
     const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
+    // The strip of the inputs and attachments floats over the top of the feed, the first script starts below it
+    const [topStripHeight, setTopStripHeight] = React.useState(0);
     const feedLayout = useSessionFeedLayout(
         entries,
-        compactLayout ? COMPACT_FIRST_SEPARATOR_HEIGHT : FIRST_SEPARATOR_HEIGHT,
+        (compactLayout ? COMPACT_FIRST_SEPARATOR_HEIGHT : FIRST_SEPARATOR_HEIGHT) + topStripHeight,
         bottomInset,
     );
 
@@ -705,12 +708,12 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
-        topPadding: compactLayout ? COMPACT_FEED_TOP_PADDING : FEED_TOP_PADDING,
+        topPadding: (compactLayout ? COMPACT_FEED_TOP_PADDING : FEED_TOP_PADDING) + topStripHeight,
         bottomPadding: bottomInset,
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset, topStripHeight]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.
@@ -723,45 +726,52 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         <div
             className={styles.feed_body_container}
             data-landing={landing ? '' : undefined}
-            data-attachments-visible={attachmentsVisible ? '' : undefined}
-            data-attachments-expanded={attachmentsExpanded ? '' : undefined}
             style={{ '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px` } as React.CSSProperties}
         >
-            {attachmentsVisible && <section className={styles.feed_data_section} aria-label="Session attachments">
-                <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple
-                    onChange={handleAttachmentInput} aria-label="Add session attachments" disabled={!attachmentsEnabled} />
-                <button type="button" className={styles.feed_data_toggle}
-                    aria-expanded={attachmentsExpanded}
-                    aria-controls="session-attachments"
-                    onClick={() => setAttachmentsExpanded(expanded => !expanded)}>
-                    <span className={styles.feed_data_toggle_title}>
+            {/* The inputs and the attachments float over the top of the feed, the scripts scroll underneath */}
+            <SessionInputStrip
+                className={styles.feed_top_strip}
+                sessionScripts={props.sessionScripts}
+                modifySessionScripts={props.modifySessionScripts}
+                onHeight={setTopStripHeight}
+                leading={attachmentsVisible ? (
+                    <button type="button" className={styles.feed_data_chip}
+                        aria-expanded={attachmentsExpanded}
+                        aria-controls="session-attachments"
+                        onClick={() => setAttachmentsExpanded(expanded => !expanded)}>
                         Attached Files
                         <span className={styles.feed_data_count}>{pinnedDataFiles.length}</span>
-                    </span>
-                    {attachmentsExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
-                </button>
-                {attachmentsExpanded && (
-                    <div id="session-attachments" className={styles.feed_data_drawer}
-                        onDragOver={event => event.preventDefault()} onDrop={handleAttachmentDrop}>
-                        <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
-                            aria-label="Add session attachments" disabled={!attachmentsEnabled}
-                            onClick={event => {
-                                event.stopPropagation();
-                                attachmentInputRef.current?.click();
-                            }}>
-                            <PlusIcon size={16} />
-                        </IconButton>
-                        <div className={styles.feed_data_cards}>
-                            {pinnedDataFiles.map(file => (
-                                <SessionDataCard key={`${sessionId}/${file.name}`} sessionId={sessionId}
-                                    file={file} conn={props.conn} storageReader={storageReader} onRemoved={refreshDataFiles} />
-                            ))}
-                            {pinnedDataFiles.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
-                        </div>
-                    </div>
-                )}
-                {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
-            </section>}
+                        {attachmentsExpanded ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+                    </button>
+                ) : undefined}
+                below={attachmentsVisible && (attachmentsExpanded || attachmentError != null) ? (
+                    <section className={styles.feed_data_section} aria-label="Session attachments">
+                        <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple
+                            onChange={handleAttachmentInput} aria-label="Add session attachments" disabled={!attachmentsEnabled} />
+                        {attachmentsExpanded && (
+                            <div id="session-attachments" className={styles.feed_data_drawer}
+                                onDragOver={event => event.preventDefault()} onDrop={handleAttachmentDrop}>
+                                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
+                                    aria-label="Add session attachments" disabled={!attachmentsEnabled}
+                                    onClick={event => {
+                                        event.stopPropagation();
+                                        attachmentInputRef.current?.click();
+                                    }}>
+                                    <PlusIcon size={16} />
+                                </IconButton>
+                                <div className={styles.feed_data_cards}>
+                                    {pinnedDataFiles.map(file => (
+                                        <SessionDataCard key={`${sessionId}/${file.name}`} sessionId={sessionId}
+                                            file={file} conn={props.conn} storageReader={storageReader} onRemoved={refreshDataFiles} />
+                                    ))}
+                                    {pinnedDataFiles.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
+                                </div>
+                            </div>
+                        )}
+                        {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
+                    </section>
+                ) : undefined}
+            />
             {landing && (
                 <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
                     <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
@@ -799,6 +809,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
                         portalContainer={props.scrollShadowContainer}
+                        topInset={topStripHeight}
                         prominent
                         refreshKey={`${props.sessionScripts.sessionId}:${entries.length}:${feedLayout.rowHeightsVersion}`}
                     />

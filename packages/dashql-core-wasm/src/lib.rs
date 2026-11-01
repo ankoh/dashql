@@ -727,6 +727,18 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
     }
 
+    /// Set the `@param` tag of an input of the script, its value. Returns the new text.
+    #[wasm_bindgen(js_name = rewriteParamTag)]
+    pub fn rewrite_param_tag(&self, name: &str, value: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.inner.borrow_mut().rewrite_param_tag(name, Some(value), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Remove the `@param` tags of an input of the script. Returns the new text.
+    #[wasm_bindgen(js_name = removeParamTag)]
+    pub fn remove_param_tag(&self, name: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.inner.borrow_mut().rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
+    }
+
     /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template or
     /// `table`), an empty kind removes it. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisRenderer)]
@@ -773,8 +785,8 @@ impl ScriptSession {
 /// A request to plan the scripts of a session across connections (`planner::SessionPlanRequest`)
 #[wasm_bindgen]
 pub struct SessionPlanRequest {
-    /// The connections: the host id, whether it is the LOCAL connection, and its catalog
-    connections: Vec<(String, bool, SharedCatalog)>,
+    /// The connections: the host id, whether it is the LOCAL connection, its catalog and its formatting dialect
+    connections: Vec<(String, bool, SharedCatalog, u8)>,
     /// The scripts in session order: the name, the connection index, the session and the name of the file of a
     /// materialized result
     scripts: Vec<(String, u32, Rc<RefCell<CoreScriptSession>>, Option<String>)>,
@@ -795,8 +807,8 @@ impl SessionPlanRequest {
 
     /// Add a connection, returns its index
     #[wasm_bindgen(js_name = addConnection)]
-    pub fn add_connection(&mut self, id: String, local: bool, catalog: &Catalog) -> u32 {
-        self.connections.push((id, local, catalog.inner.clone()));
+    pub fn add_connection(&mut self, id: String, local: bool, catalog: &Catalog, dialect: u8) -> u32 {
+        self.connections.push((id, local, catalog.inner.clone(), dialect));
         (self.connections.len() - 1) as u32
     }
 
@@ -839,16 +851,17 @@ fn with_session_plan_request<R>(
     f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
 ) -> R {
     use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerConnection, PlannerScript};
-    let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog)| catalog.borrow()).collect();
+    let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog, _)| catalog.borrow()).collect();
     let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
     let connections: Vec<_> = request
         .connections
         .iter()
         .zip(&catalogs)
-        .map(|((id, local, _), catalog)| PlannerConnection {
+        .map(|((id, local, _, dialect), catalog)| PlannerConnection {
             id,
             kind: if *local { ConnectionKind::Local } else { ConnectionKind::Remote },
             catalog,
+            dialect: dashql_buffers::formatting::FormattingDialect(*dialect),
         })
         .collect();
     let scripts: Vec<_> = request
@@ -986,12 +999,97 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
                     Kind::ScanReference => DataflowEdgeKind::SCAN_REFERENCE,
                     Kind::InvalidReference => DataflowEdgeKind::INVALID_REFERENCE,
                     Kind::Table => DataflowEdgeKind::TABLE,
+                    Kind::Input => DataflowEdgeKind::INPUT,
                 };
                 t.name = Some(e.name);
                 t
             })
             .collect();
         out.edges = (!edges.is_empty()).then_some(edges);
+        let inputs: Vec<_> = dataflow
+            .inputs
+            .into_iter()
+            .map(|input| pack_session_input(&input.name, &input.sql_type, input.type_source, input.literal.as_ref(), &[], &[]))
+            .collect();
+        out.inputs = (!inputs.is_empty()).then_some(inputs);
+        finish!(out)
+    })
+}
+
+/// Pack an input of a session
+fn pack_session_input(
+    name: &str,
+    sql_type: &dashql_core::analyzer::SqlType,
+    type_source: dashql_core_session::session_inputs::InputTypeSource,
+    literal: Option<&dashql_core::sql_literal::SqlLiteral>,
+    consumers: &[dashql_core_session::session_inputs::InputConsumer],
+    warnings: &[String],
+) -> dashql_buffers::execution::SessionInputT {
+    use dashql_buffers::execution::{SessionInputConsumerT, SessionInputT, SessionInputTypeSource};
+    use dashql_core_session::session_inputs::InputTypeSource;
+    let mut out = SessionInputT::default();
+    out.name = Some(name.to_string());
+    out.sql_type = Some(Box::new(dashql_core::pack::pack_sql_type(sql_type)));
+    out.type_source = match type_source {
+        InputTypeSource::Cast => SessionInputTypeSource::CAST,
+        InputTypeSource::Literal => SessionInputTypeSource::LITERAL,
+        InputTypeSource::None => SessionInputTypeSource::NONE,
+    };
+    out.has_value = literal.is_some();
+    out.literal = literal.map(|l| l.to_hyper());
+    out.value = literal.map(|l| l.display_value());
+    out.consumers = (!consumers.is_empty()).then(|| consumers
+            .iter()
+            .map(|c| {
+                let mut t = SessionInputConsumerT::default();
+                t.script = c.script;
+                t.statement = c.statement;
+                t
+            })
+            .collect());
+    out.warnings = (!warnings.is_empty()).then(|| warnings.to_vec());
+    out
+}
+
+/// The literal of the value of an input control, in the Hyper dialect: `kind` is the `SqlTypeKind` of the type of the
+/// input, negative without a type
+#[wasm_bindgen(js_name = inputLiteral)]
+pub fn input_literal(value: &str, kind: i32, with_time_zone: bool) -> Result<String, JsError> {
+    use dashql_core::analyzer::{SqlType, SqlTypeKind as Kind};
+    use dashql_buffers::analyzer::SqlTypeKind as Packed;
+    let kind = (kind >= 0).then(|| match Packed(kind as u8) {
+        Packed::BOOL => Kind::Bool,
+        Packed::INT1 => Kind::Int1,
+        Packed::INT2 => Kind::Int2,
+        Packed::INT4 => Kind::Int4,
+        Packed::INT8 => Kind::Int8,
+        Packed::FLOAT4 => Kind::Float4,
+        Packed::FLOAT8 => Kind::Float8,
+        Packed::NUMERIC => Kind::Numeric { precision: None, scale: None },
+        Packed::DATE => Kind::Date,
+        Packed::TIME => Kind::Time { precision: None, with_time_zone },
+        Packed::TIMESTAMP => Kind::Timestamp { precision: None, with_time_zone },
+        Packed::INTERVAL => Kind::Interval { fields: None, precision: None },
+        _ => Kind::Text,
+    });
+    let ty = kind.map(SqlType::scalar);
+    dashql_core::sql_literal::SqlLiteral::from_value(value, ty.as_ref()).map(|l| l.to_hyper()).map_err(|e| JsError::new(&e))
+}
+
+/// Collect the inputs of the scripts of a session (`session_inputs::collect_session_inputs`), returns the packed
+/// `SessionInputs`. Ignores the targets, the materialized scripts and the mount prefix.
+#[wasm_bindgen(js_name = collectSessionInputs)]
+pub fn collect_session_inputs(request: &SessionPlanRequest) -> Vec<u8> {
+    with_session_plan_request(request, |core, _| {
+        let inputs = dashql_core_session::session_inputs::collect_session_inputs(core);
+        let mut out = dashql_buffers::execution::SessionInputsT::default();
+        out.inputs = Some(
+            inputs
+                .inputs
+                .iter()
+                .map(|i| pack_session_input(&i.name, &i.sql_type, i.type_source, i.literal.as_ref(), &i.consumers, &i.warnings))
+                .collect(),
+        );
         finish!(out)
     })
 }
@@ -1141,12 +1239,13 @@ impl DataflowLayout {
 
     /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position.
     #[wasm_bindgen(js_name = addBox)]
-    pub fn add_box(&mut self, statements: u32, chart_statement: i32, collapsed: bool, fixed: bool, x: f64, y: f64) -> u32 {
+    pub fn add_box(&mut self, statements: u32, chart_statement: i32, collapsed: bool, fixed: bool, x: f64, y: f64, width: f64) -> u32 {
         self.boxes.push(dashql_core_view::dataflow_layout::DataflowLayoutBox {
             statements,
             chart_statement: u32::try_from(chart_statement).ok(),
             collapsed,
             fixed: fixed.then_some((x, y)),
+            width: (width > 0.0).then_some(width),
         });
         (self.boxes.len() - 1) as u32
     }

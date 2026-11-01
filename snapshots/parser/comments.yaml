@@ -1189,8 +1189,8 @@ parser-snapshots:
   - name: unknown_tag
     input: |-
       -- @todo fix this
-      -- @param x
-      /* @param x */
+      -- @see x
+      /* @see x */
       select 1
     expected:
       statements:
@@ -1220,24 +1220,24 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [17,18]
-        - text: [29,30]
-        - text: [44,45]
+        - text: [27,28]
+        - text: [40,41]
       comments:
         - text: "-- @todo fix this"
-        - text: "-- @param x"
-        - text: "/* @param x */"
+        - text: "-- @see x"
+        - text: "/* @see x */"
       comment-blocks:
         - type: COMMENT
-          text: "-- @todo f..- @param x"
+          text: "-- @todo f..\n-- @see x"
           comments: [0,2]
           lines:
             - "@todo fix this"
-            - "@param x"
+            - "@see x"
         - type: COMMENT
-          text: "/* @param x */"
+          text: "/* @see x */"
           comments: [2,1]
           lines:
-            - "@param x"
+            - "@see x"
       comment-warnings: []
 
   - name: end_tag_without_opening

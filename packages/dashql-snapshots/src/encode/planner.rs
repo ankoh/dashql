@@ -63,6 +63,8 @@ pub struct FixtureConnection {
     pub local: bool,
     /// The catalog script of the connection
     pub catalog: Option<String>,
+    /// Does the connection speak Trino? Hyper otherwise, `dialect: trino`.
+    pub trino: bool,
 }
 
 /// A script of a planner fixture
@@ -112,6 +114,7 @@ impl Fixture {
                     name: text(&c["name"]),
                     local: c["kind"].as_str() == Some("LOCAL"),
                     catalog: present(&c["catalog"]).then(|| text(&c["catalog"])),
+                    trino: c["dialect"].as_str() == Some("trino"),
                 })
                 .collect(),
             scripts: fixture["scripts"]
@@ -146,6 +149,7 @@ impl Fixture {
                     name: text(c.get("name")),
                     local: c.get("kind").and_then(Node::val) == Some("LOCAL"),
                     catalog: c.get("catalog").map(|c| text(Some(c))),
+                    trino: c.get("dialect").and_then(Node::val) == Some("trino"),
                 })
                 .collect(),
             scripts: fixture
@@ -225,6 +229,7 @@ impl PreparedFixture {
                 id: &c.name,
                 kind: if c.local { ConnectionKind::Local } else { ConnectionKind::Remote },
                 catalog,
+                dialect: if c.trino { dashql_buffers::formatting::FormattingDialect::TRINO } else { dashql_buffers::formatting::FormattingDialect::HYPER },
             })
             .collect();
         let scripts: Vec<PlannerScript> = self
@@ -253,9 +258,9 @@ pub fn prepare_fixture(fixture: &Fixture) -> Result<PreparedFixture, String> {
     // The connections and their catalogs, an implicit connection without connections
     let declared = !fixture.connections.is_empty();
     let connections: Vec<FixtureConnection> = if declared {
-        fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone() }).collect()
+        fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino }).collect()
     } else {
-        vec![FixtureConnection { name: "default".into(), local: false, catalog: fixture.catalog.clone() }]
+        vec![FixtureConnection { name: "default".into(), local: false, catalog: fixture.catalog.clone(), trino: false }]
     };
     let mut catalogs: Vec<Catalog> = Vec::new();
     let mut catalog_scripts = Vec::new();

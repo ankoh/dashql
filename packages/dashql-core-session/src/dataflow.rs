@@ -12,11 +12,17 @@
 //!   reads no data. A statement that reads a relation only through the query of an inlined script reads it through
 //!   that script, the edge into the statement is left out.
 //!
+//! - A statement uses an input, a named scalar parameter `:min` (`session_inputs`). The inputs are nodes of their own,
+//!   an input edge starts at the input and ends at every statement that uses it.
+//!
 //! The planner edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of
 //! materializations, which the references stand for, are no dataflow.
 
 use crate::planner::{plan_session, PlanScope, Prepared, SessionPlanRequest};
 use crate::script_references::{check_script_references, CheckedReferenceKind};
+use crate::session_inputs::{collect_session_inputs, InputTypeSource};
+use dashql_core::analyzer::SqlType;
+use dashql_core::sql_literal::SqlLiteral;
 use dashql_buffers::execution::{ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT};
 use dashql_buffers::parser::StatementType;
 use dashql_parser::span::TextSpan;
@@ -35,6 +41,8 @@ pub enum DataflowEdgeKind {
     InvalidReference,
     /// A statement reads or writes a relation that another statement created or wrote
     Table,
+    /// A statement uses an input, the script of the source port is the index of the input
+    Input,
 }
 
 /// A statement of a script
@@ -82,11 +90,26 @@ pub struct DataflowEdge {
     pub name: String,
 }
 
+/// An input of the session, a named scalar parameter
+#[derive(Clone, Debug, PartialEq)]
+pub struct DataflowInput {
+    /// The name of the parameter
+    pub name: String,
+    /// The type, of a cast or inferred from the value
+    pub sql_type: SqlType,
+    /// Where the type comes from
+    pub type_source: InputTypeSource,
+    /// The value of the session, None if no script has an `@param` tag with a value
+    pub literal: Option<SqlLiteral>,
+}
+
 /// The dataflow of a session
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Dataflow {
     /// The scripts in session order
     pub scripts: Vec<DataflowScript>,
+    /// The inputs in the order of their first use
+    pub inputs: Vec<DataflowInput>,
     /// The edges, sorted and without duplicates
     pub edges: Vec<DataflowEdge>,
 }
@@ -242,5 +265,28 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
     }
 
-    Dataflow { scripts, edges: edges.into_iter().collect() }
+    // Inputs
+    let session_inputs = collect_session_inputs(request);
+    let mut inputs = Vec::with_capacity(session_inputs.inputs.len());
+    for (i, input) in session_inputs.inputs.into_iter().enumerate() {
+        for consumer in &input.consumers {
+            if !node_of.contains_key(&(consumer.script, consumer.statement)) {
+                continue;
+            }
+            edges.insert(DataflowEdge {
+                from: DataflowPort { script: i as u32, statement: 0 },
+                to: DataflowPort { script: consumer.script, statement: consumer.statement },
+                kind: DataflowEdgeKind::Input,
+                name: input.name.to_string(),
+            });
+        }
+        inputs.push(DataflowInput {
+            name: input.name.to_string(),
+            sql_type: input.sql_type,
+            type_source: input.type_source,
+            literal: input.literal,
+        });
+    }
+
+    Dataflow { scripts, inputs, edges: edges.into_iter().collect() }
 }

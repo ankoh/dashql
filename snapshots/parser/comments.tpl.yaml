@@ -157,8 +157,8 @@ parser-snapshots:
   - name: unknown_tag
     input: |
       -- @todo fix this
-      -- @param x
-      /* @param x */
+      -- @see x
+      /* @see x */
       select 1
   # An end tag without an opening tag
   - name: end_tag_without_opening

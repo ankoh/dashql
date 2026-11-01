@@ -1,0 +1,104 @@
+planner-snapshots:
+  # The literals of the inputs, in the Hyper dialect
+  - name: InputLiterals
+    catalog: |
+      create table orders (id int, amount int, region text, open boolean, day date, ts timestamp);
+    scripts:
+      - name: foo
+        input: |
+          /** @param :min = 10
+           * @param :region = 'EU'
+           * @param :open = true
+           * @param :delta = -2
+           * @param :day = date '2024-01-01'
+           * @param :span = interval '3 days' */
+          select id from orders where amount > :min + :delta and region = :region and open = :open
+            and day >= :day and ts > timestamp '2024-02-01' - :span;
+
+  # A cast of the parameter reads the literal
+  - name: InputCast
+    catalog: |
+      create table orders (id int, amount int, day date);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = '10'
+             @param :day = '2024-01-01' */
+          select id from orders where amount > :min::int and day >= cast(:day as date);
+
+  # An input without a value and a value that is no literal fail the plan
+  - name: InputWithoutValue
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = now() */
+          select id from orders where amount > :min and id > :max;
+
+  # A script without a tag binds the value of the first tag in session order, a script with one binds its own
+  - name: InputSessionValue
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min;
+      - name: b
+        input: |
+          select id from orders where amount > :min;
+      - name: c
+        input: |
+          /* @param :min = 30 */
+          select id from orders where amount > :min;
+
+  # An inlined query binds the inputs of its script
+  - name: InputInlined
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = 10
+             @param :span = interval '3 days'
+             @param :day = date '2024-02-01' */
+          select id, amount from orders where amount > :min and :day - :span < date '2024-03-01';
+      - name: bar
+        input: |
+          /* @param :limit = 5 */
+          select count(*) from :foo where id < :limit;
+
+  # A Trino connection reads the literals in its dialect
+  - name: InputTrino
+    hyper: skip
+    connections:
+      - name: trino
+        kind: REMOTE
+        dialect: trino
+        catalog: |
+          create table events (id int, ts timestamp, day date);
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          /* @param :span = interval '1 day 2 hours'
+             @param :day = date '2024-01-01'
+             @param :name = 'it''s' */
+          select id from events where ts > now() - :span and day = :day and :name <> '';
+
+  # Trino has no interval of months and days
+  - name: InputTrinoUnsupported
+    hyper: skip
+    connections:
+      - name: trino
+        kind: REMOTE
+        dialect: trino
+        catalog: |
+          create table events (id int, ts timestamp);
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          /* @param :span = interval '1 month 2 days' */
+          select id from events where ts > now() - :span;

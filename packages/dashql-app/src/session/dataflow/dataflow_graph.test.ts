@@ -64,11 +64,12 @@ describe('dataflow graph merge', () => {
         to: { scriptKey: to, statementId: 0 },
         kind: DataflowEdgeKind.Table,
         name: 't',
+        input: null,
     });
 
     it('keeps the statements and the edges of a script that is being edited', () => {
-        const previous = { scripts: [script(1, 1), script(2, 1)], edges: [edge(1, 2)] };
-        const next = { scripts: [script(1, 1), { ...script(2, 0), current: false }], edges: [] };
+        const previous = { scripts: [script(1, 1), script(2, 1)], inputs: [], edges: [edge(1, 2)] };
+        const next = { scripts: [script(1, 1), { ...script(2, 0), current: false }], inputs: [], edges: [] };
         const merged = mergeDataflowGraph(previous, next);
         expect(merged.scripts[0]).toBe(previous.scripts[0]);
         expect(merged.scripts[1].statements).toBe(previous.scripts[1].statements);
@@ -77,9 +78,9 @@ describe('dataflow graph merge', () => {
     });
 
     it('drops the edges of scripts that are gone and keeps the identity of an unchanged graph', () => {
-        const previous = { scripts: [script(1, 1), script(2, 1)], edges: [edge(1, 2)] };
-        expect(mergeDataflowGraph(previous, { scripts: [script(1, 1), script(2, 1)], edges: [edge(1, 2)] })).toBe(previous);
-        const merged = mergeDataflowGraph(previous, { scripts: [{ ...script(1, 0), current: false }], edges: [] });
+        const previous = { scripts: [script(1, 1), script(2, 1)], inputs: [], edges: [edge(1, 2)] };
+        expect(mergeDataflowGraph(previous, { scripts: [script(1, 1), script(2, 1)], inputs: [], edges: [edge(1, 2)] })).toBe(previous);
+        const merged = mergeDataflowGraph(previous, { scripts: [{ ...script(1, 0), current: false }], inputs: [], edges: [] });
         expect(merged.edges).toEqual([]);
     });
 });

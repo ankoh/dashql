@@ -24,6 +24,10 @@ in a run, from the analysis of every script:
   it through that script: the edge into the statement is left out, the edge into the script stays. A statement that
   also reads or writes the relation itself keeps its edge.
 
+- **Inputs**: a named scalar parameter `:min` is an input of the session (`session_inputs.md`), the inputs follow the
+  scripts in the order of their first use. An `INPUT` edge starts at an input, its `from_script` is the index of the
+  input, and ends at every statement that uses it.
+
 Edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of materializations,
 which the scan references stand for, are no dataflow. A relation that a statement reads before another statement
 creates it in session order has no edge, a run would read it before it is written.
@@ -32,7 +36,8 @@ The snapshots in `snapshots/dataflow/` have cases of their own, they describe a 
 (`connections`, `catalog`, `scripts`, `stale-prepend`, and `collapsed` for the scripts whose boxes are collapsed,
 `targets` and `materialized` are ignored) and
 expect the statements of every script, the box of every script on the canvas (`box: [x, y, width, height]`, see
-Layout) and the edges (`bazel run //snapshots/dataflow:update`).
+Layout), the inputs with their type, value and box, and the edges, an input edge from `":min"`
+(`bazel run //snapshots/dataflow:update`).
 
 ## Layout
 
@@ -40,7 +45,8 @@ The position of a script on the canvas is its `@vis flow x=.. y=..` tag, see [vi
 `dataflow_layout::compute_dataflow_layout` in `dashql-core-view` (core-js `computeDataflowLayout`) places the
 others. The layout has two levels:
 
-- **Inside a box** the statements are stacked in script order below a header. Every statement is a row of the same
+- **Inside a box** the statements are stacked in script order below a header. The box of an input is one row below
+  its header, 200px wide, the other boxes have the width of the config. Every statement is a row of the same
   height, and the chart of a visualized statement follows its row. A collapsed box is its header. The script fixes
   the geometry of its box.
 - **Between boxes**, without fixed boxes, every box is arranged in layers from left to right (Sugiyama): back edges
@@ -77,6 +83,10 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   references and table edges are solid, scans and invalid references are dashed, the relation of a table edge is a
   badge, and a selection redraws its edges in the highlight layer and highlights their ports. Charts are
   `foreignObject`s below their statement. d3-zoom pans and zooms, below half the size every box is drawn collapsed.
+- The box of an input shows the name and the type in its header and the value in its row, the card of the feed
+  (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
+  change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,
+  the canvas remembers where the layout or a drag placed it while the canvas is open, Arrange places it again.
 - `dataflow_source.ts` writes the changes into the scripts: a dragged box writes its `@vis flow` tag, the `+` of a
   box creates `select * from :<script>` on its connection, New script creates a query, a double click on the canvas
   creates a query at that position, the trash button deletes the script, and Arrange removes every `@vis flow` tag

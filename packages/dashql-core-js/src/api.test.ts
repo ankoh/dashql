@@ -209,6 +209,45 @@ describe('DashQL planner', () => {
         }
     });
 
+    it('collects the inputs of a session and writes their values', () => {
+        const catalog = dql!.createCatalog();
+        try {
+            const a = prepare(catalog, "/* @param :min = 10\n   @param :span = interval '3 days' */\nselect * from (select 1 as x) t where x > :min::int and now() - :span < now()");
+            const b = prepare(catalog, "select :min, :region where :flag");
+            const request = {
+                connections: [{ id: 'c', local: false, catalog }],
+                scripts: [
+                    { name: 'a', connection: 0, session: a },
+                    { name: 'b', connection: 0, session: b },
+                ],
+            };
+            const inputs = dql!.collectSessionInputs(request).unpack() as execution.SessionInputsT;
+            expect(inputs.inputs.map(i => [i.name, i.literal, i.value, i.typeSource, i.sqlType?.sql])).toEqual([
+                ['min', '10', '10', execution.SessionInputTypeSource.CAST, 'integer'],
+                ['span', "interval '3 days'", '3 days', execution.SessionInputTypeSource.LITERAL, 'interval'],
+                ['region', null, null, execution.SessionInputTypeSource.NONE, 'text'],
+                ['flag', null, null, execution.SessionInputTypeSource.NONE, 'text'],
+            ]);
+            expect(inputs.inputs[0].consumers.map(c => [c.script, c.statement])).toEqual([[0, 0], [1, 0]]);
+            expect(b.rewriteParamTag('min', '20')).toBe('/** @param :min = 20 */\nselect :min, :region where :flag');
+            expect(() => b.rewriteParamTag('min', 'now()')).toThrow();
+            expect(a.removeParamTag('span')).toBe('/** @param :min = 10 */\nselect * from (select 1 as x) t where x > :min::int and now() - :span < now()');
+            // The literal of the value of a control follows the type of the input
+            const Kind = dashql.buffers.analyzer.SqlTypeKind;
+            expect(dql!.inputLiteral('3 days', { kind: Kind.INTERVAL })).toBe("interval '3 days'");
+            expect(dql!.inputLiteral("it's", null)).toBe("'it''s'");
+            expect(dql!.inputLiteral('10', null)).toBe('10');
+            expect(() => dql!.inputLiteral('ten', { kind: Kind.INT4 })).toThrow();
+            const dataflow = dql!.deriveSessionDataflow(request).unpack() as execution.SessionDataflowT;
+            expect(dataflow.inputs.map(i => i.name)).toEqual(['min', 'span', 'region', 'flag']);
+            const inputEdges = dataflow.edges.filter(e => e.kind === execution.DataflowEdgeKind.INPUT).map(e => [e.fromScript, e.toScript, e.name]);
+            expect(inputEdges).toEqual([[0, 0, 'min'], [0, 1, 'min'], [1, 0, 'span'], [2, 1, 'region'], [3, 1, 'flag']]);
+            for (const session of [a, b]) session.destroy();
+        } finally {
+            catalog.destroy();
+        }
+    });
+
     it('finds the script references of a session in its analysis', () => {
         const catalog = dql!.createCatalog();
         try {

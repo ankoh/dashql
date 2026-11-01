@@ -643,6 +643,8 @@ pub struct Parameter {
     pub kind: ParameterKind,
     /// The name without the prefix, `1` for `$1`, None for an unnamed `?`
     pub name: Option<Arc<str>>,
+    /// The type of the cast whose value is a scalar parameter, `:min::int`
+    pub cast_type: Option<super::sql_types::SqlType>,
 }
 
 /// A constant expression root
@@ -685,6 +687,19 @@ pub struct FlowSpec {
     pub x: i32,
     /// The y coordinate of the top edge of the script
     pub y: i32,
+}
+
+/// The value of an input of the script, its `@param :name = <literal>` tag
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParamTag {
+    /// The statement whose annotation holds the tag
+    pub statement_id: u32,
+    /// The name of the input, the scalar parameter `:name`
+    pub name: Arc<str>,
+    /// The value, a literal in the Hyper dialect, None if the input is unset or the value is no literal
+    pub literal: Option<crate::sql_literal::SqlLiteral>,
+    /// The tag block
+    pub text_span: TextSpan,
 }
 
 /// A Markdown spec

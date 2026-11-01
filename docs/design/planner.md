@@ -170,6 +170,16 @@ through an inlined query, an inlined query that reads a relation that the statem
 where the query goes (a recursive WITH, the WITH of an INSERT around it), and a materialized script that runs later in the session than the statement that scans it ("move foo.sql above bar.sql").
 An inlined script may be below its consumer.
 
+## Inputs
+
+A named scalar parameter `:min` is an input of the session (`session_inputs.md`). Its value is a literal in the Hyper
+dialect. The planner binds the inputs of every statement it plans and of every query it inlines: the text of the
+parameter becomes the literal printed in the dialect of the connection (`PlannerConnection.dialect`), `INTERVAL '3' DAY`
+on Trino for `interval '3 days'`. A script binds the value of its own `@param` tag and the value of the first tag in
+session order otherwise. An input without a value and a literal that the dialect can't express are errors with the
+span of the parameter, also in a plan of targets. The signature of a script is its AST signature followed by the
+literals it binds in the Hyper dialect, `:min=10` per line.
+
 ## Conflicts
 
 For each qualified relation name, the planner remembers its last writer and the

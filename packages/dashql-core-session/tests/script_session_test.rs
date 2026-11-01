@@ -25,7 +25,7 @@ use std::rc::Rc;
 
 /// Plan scripts of one catalog as the session of one connection
 fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
-    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog }];
+    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER }];
     let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None }).collect();
     plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "" })
 }

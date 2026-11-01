@@ -230,6 +230,7 @@ export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
 export const REORDER_SCRIPTS = Symbol('REORDER_SCRIPTS');
 export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
 export const SET_SCRIPT_VIS_SPEC = Symbol('SET_SCRIPT_VIS_SPEC');
+export const SET_SESSION_INPUT = Symbol('SET_SESSION_INPUT');
 export const ACCEPT_PENDING_DIFF = Symbol('ACCEPT_PENDING_DIFF');
 export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
@@ -255,6 +256,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof REORDER_SCRIPTS, string[]>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
     | VariantKind<typeof SET_SCRIPT_VIS_SPEC, { scriptKey: ScriptKey, spec: string }>
+    | VariantKind<typeof SET_SESSION_INPUT, { name: string, literal: string, scriptKeys: ScriptKey[] }>
     | VariantKind<typeof ACCEPT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof REJECT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof RENAME_SESSION, string | null>
@@ -1054,6 +1056,46 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
             return nextState;
         }
 
+        case SET_SESSION_INPUT: {
+            // The value of an input is the `@param :name = <literal>` tag of every script that uses it. The tags are
+            // rewritten as changes, a mounted editor keeps its cursor and undoes them as one step.
+            const { name, literal, scriptKeys } = action.value;
+            const scripts = { ...state.scripts };
+            const rewritten: ScriptData[] = [];
+            for (const scriptKey of scriptKeys) {
+                const script = scripts[scriptKey];
+                if (script == null) continue;
+                const fromText = script.scriptSession.getText();
+                let text: string;
+                try {
+                    text = script.scriptSession.rewriteParamTag(name, literal);
+                } catch (e: any) {
+                    logger.warn("Cannot write the value of an input", { input: name, fileName: script.fileName, error: stringifyError(e) }, LOG_CTX);
+                    continue;
+                }
+                if (text === fromText) continue;
+                replaceScriptSessionText(script.scriptSession, text);
+                const next = analyzeScriptData({ ...script, pendingDiff: null }, logger);
+                next.externalChanges = { fromText, changes: [textChange(fromText, text)] };
+                scripts[scriptKey] = next;
+                rewritten.push(next);
+            }
+            if (rewritten.length === 0) return state;
+            for (const script of rewritten) {
+                markOtherScriptsOutdatedInPlace(scripts, script);
+            }
+            const next = { ...state, scripts };
+            for (const script of rewritten) {
+                if (!script.fileName) continue;
+                storage.write(
+                    groupScriptWrites(next.sessionId, script.fileName),
+                    { type: WRITE_SCRIPT, value: [next.sessionId, script.fileName, script.scriptSession.getText()] },
+                    DEBOUNCE_DURATION_SCRIPT_WRITE
+                );
+            }
+            return next;
+        }
+
         case SET_SCRIPT_VIS_SPEC: {
             // Rewrite the `@vis vegalite` tag of the charted statement and stage the rewrite as a diff to accept or
             // reject, like a formatting. The rewrite keeps the other tags, e.g. `@vis board`.
@@ -1152,6 +1194,16 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
         }
 
     }
+}
+
+/// The change from one text to another: the range between their common prefix and suffix
+export function textChange(from: string, to: string): ScriptTextChange {
+    let prefix = 0;
+    const max = Math.min(from.length, to.length);
+    while (prefix < max && from.charCodeAt(prefix) === to.charCodeAt(prefix)) ++prefix;
+    let suffix = 0;
+    while (suffix < max - prefix && from.charCodeAt(from.length - 1 - suffix) === to.charCodeAt(to.length - 1 - suffix)) ++suffix;
+    return { from: prefix, to: from.length - suffix, insert: to.slice(prefix, to.length - suffix) };
 }
 
 export function clearSemanticUserFocus<V extends SessionScripts>(state: V): V {

@@ -23,7 +23,7 @@ pub const COMMENT_TAG_PREFIX: &str = "@";
 /// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
 pub const COMMENT_TAG_END: &str = "end";
 /// The known tags, any other `@word` is ordinary text
-pub const COMMENT_TAGS: &[&str] = &["metadata", "description", "vis", COMMENT_TAG_END];
+pub const COMMENT_TAGS: &[&str] = &["metadata", "description", "vis", "param", COMMENT_TAG_END];
 
 /// Is a tag name one of the known tags?
 pub fn is_comment_tag(name: &[u8]) -> bool {
@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn ignores_unknown_tags() {
-        let text = "-- @todo fix this\n-- @param x\n/* @param x */";
+        let text = "-- @todo fix this\n-- @see x\n/* @see x */";
         let blocks = group(text);
         assert_eq!(tags(text, &blocks), vec![(CommentBlockType::COMMENT, ""), (CommentBlockType::COMMENT, "")]);
         assert!(blocks.warnings.is_empty());

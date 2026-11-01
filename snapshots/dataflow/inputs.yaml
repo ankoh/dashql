@@ -1,0 +1,130 @@
+dataflow-snapshots:
+
+  - name: InputTwoScripts
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min::int;
+      - name: b
+        input: |
+          /* @param :min = 10 */
+          select count(*) from orders where amount > :min::int;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id .. :min::int"
+          box: [296,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select cou.. :min::int"
+          box: [296,112,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "10"
+          box: [0,56,200,80]
+      edges:
+        - from: ":min"
+          to: a.0
+          kind: input
+          name: min
+        - from: ":min"
+          to: b.0
+          kind: input
+          name: min
+
+  - name: InputsOfOneScript
+    catalog: |
+      create table orders (id int, amount int, region text);
+    scripts:
+      - name: a
+        input: |
+          /* @param :region = 'EU' */
+          create temp table t as select * from orders where region = :region;
+          select * from t where amount > :min;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE_AS
+              target: t
+              text: "create tem.. = :region"
+            - type: SELECT
+              text: "select * f..unt > :min"
+          box: [296,0,280,112]
+      inputs:
+        - name: region
+          type: "text"
+          cast: false
+          value: "'EU'"
+          box: [0,0,200,80]
+        - name: min
+          type: "text"
+          cast: false
+          box: [0,112,200,80]
+      edges:
+        - from: ":region"
+          to: a.0
+          kind: input
+          name: region
+        - from: a.0
+          to: a.1
+          kind: table
+          name: t
+        - from: ":min"
+          to: a.1
+          kind: input
+          name: min
+
+  - name: InputWithReferences
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id, amount from orders where amount > :min;
+      - name: b
+        input: |
+          select count(*) from :a;
+      - name: c
+        input: |
+          select 1;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id,..unt > :min"
+          box: [296,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select cou..*) from :a"
+          box: [672,0,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select 1"
+          box: [0,144,280,80]
+      inputs:
+        - name: min
+          type: "bigint"
+          cast: false
+          value: "10"
+          box: [0,0,200,80]
+      edges:
+        - from: ":min"
+          to: a.0
+          kind: input
+          name: min
+        - from: a.0
+          to: b.0
+          kind: inline
+          name: a

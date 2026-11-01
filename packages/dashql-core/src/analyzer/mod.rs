@@ -9,12 +9,15 @@
 
 mod constants;
 mod function_calls;
+pub mod param_tags;
 mod name_resolution;
 mod parameters;
+pub mod sql_types;
 mod state;
 pub mod types;
 mod vis_tags;
 
+pub use sql_types::{SqlType, SqlTypeKind};
 pub use types::*;
 pub use vis_tags::{has_vis_tags, statement_output_columns, vis_renderer_tag};
 
@@ -70,6 +73,8 @@ pub struct AnalyzedScript {
     pub visualization_specs: Vec<VisualizationSpec>,
     /// The flow position of the script, the first `@vis flow` tag in statement order
     pub flow: Option<FlowSpec>,
+    /// The values of the parameters of the script, the first `@param` tag of every name in statement order
+    pub param_values: Vec<ParamTag>,
     /// The schema-inference constraints
     pub inference_constraints: Vec<InferenceConstraint>,
     /// The inferred schemas of tables that are not in the catalog
@@ -158,6 +163,7 @@ pub fn analyze_with(parsed: Arc<ParsedScript>, catalog: &Catalog, script_results
     // The AST is in post-order with sorted attributes, sort the parameters by their position in the text
     state.out.parameters.sort_by_key(|p| p.location.offset());
     vis_tags::analyze(&mut state);
+    param_tags::analyze(&mut state);
 
     let mut out = state.into_script();
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed

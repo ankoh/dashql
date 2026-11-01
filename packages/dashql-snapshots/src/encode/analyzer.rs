@@ -351,6 +351,9 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
                 if let Some(statement) = parameter.ast_statement_id {
                     m.int("statement-id", statement as i64);
                 }
+                if let Some(cast) = &parameter.cast_type {
+                    m.quoted("cast", &cast.to_string());
+                }
                 e.location(&mut m, parameter.ast_node_id, "text");
                 m.into_node()
             })
@@ -371,6 +374,24 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
     if !script.visualization_specs.is_empty() {
         let items = script.visualization_specs.iter().map(|spec| encode_visualization(&e, spec)).collect();
         out.insert("visualizations", Node::seq(items));
+    }
+
+    // Parameter values
+    if !script.param_values.is_empty() {
+        let items = script
+            .param_values
+            .iter()
+            .map(|input| {
+                let mut m = Map::new();
+                m.plain("name", &input.name);
+                if let Some(literal) = &input.literal {
+                    m.quoted("value", &literal.to_hyper());
+                }
+                m.int("statement-id", input.statement_id as i64);
+                m.into_node()
+            })
+            .collect();
+        out.insert("param-values", Node::seq(items));
     }
 
     // Flow position
@@ -550,7 +571,7 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
 
 
 /// The keys the analyzer snapshot test compares
-pub const COMPARED_KEYS: [&str; 10] = [
+pub const COMPARED_KEYS: [&str; 11] = [
     "errors",
     "tables",
     "catalog-changes",
@@ -559,6 +580,7 @@ pub const COMPARED_KEYS: [&str; 10] = [
     "expressions",
     "constants",
     "parameters",
+    "param-values",
     "name-scopes",
     "inferred-tables",
 ];

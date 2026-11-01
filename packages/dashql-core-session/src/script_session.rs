@@ -1162,6 +1162,11 @@ impl ScriptSession {
         self.script.rewrite_vis_flow(flow, parse_if_outdated)
     }
 
+    /// Set or remove the value of an input of the script, its `@param` tag, returns the new text
+    pub fn rewrite_param_tag(&mut self, name: &str, value: Option<&str>, parse_if_outdated: bool) -> Result<String> {
+        self.script.rewrite_param_tag(name, value, parse_if_outdated)
+    }
+
     /// Can formatting represent every node?
     pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
         self.script.is_fully_formattable(config, parse_if_outdated)

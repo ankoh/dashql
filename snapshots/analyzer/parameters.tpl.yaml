@@ -13,3 +13,33 @@ analyzer-snapshots:
       input: |-
         insert into :target select * from :source join (select * from $0 where y = :y) o on true;
         delete from $1 where id = ?
+  # Scalar parameters with the type of their cast
+  - name: parameters_casts
+    script:
+      input: |-
+        select :a::int, :b::bigint[], :c::timestamp with time zone, cast(:d as text), :e::numeric(10,2),
+          :f::varchar(20), :g::date, :h::json, :i::int8, :j::timestamptz, :k::interval day, :l::bool, :m
+  # The values of inputs in @param tags, literals in the Hyper dialect, the first tag of a name wins
+  - name: parameters_param_tags
+    script:
+      input: |-
+        /**
+         * @param :min = 10
+         * @param :region = 'North America'
+         * @param :day
+         * @param :span = interval '3 days'
+         * @param :bad = now()
+         * @param broken
+         */
+        select * from orders where amount > :min and region = :region and day = :day::date and ts > now() - :span;
+        /* @param :min = 20
+           @param :"foo-2" = date '2024-01-01' */
+        select :min, :"foo-2"
+  # A Javadoc @param that names no :parameter is a comment
+  - name: parameters_javadoc_param
+    script:
+      input: |-
+        /**
+         * @param x the value
+         */
+        select :x

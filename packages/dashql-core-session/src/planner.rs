@@ -20,7 +20,9 @@
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
 use crate::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
 use crate::script_references::{self, ReferenceErrors, ReferenceKind, ScriptReferences};
+use crate::session_inputs::{bind_inputs, collect_session_inputs, SessionInputs};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
+use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::execution::{
     ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphConnectionKind,
     ExecutionGraphConnectionT, ExecutionGraphDiagnosticT, ExecutionGraphEdgeReason as Reason, ExecutionGraphEdgeT, ExecutionGraphEntityT,
@@ -72,6 +74,8 @@ pub struct PlannerConnection<'a> {
     pub kind: ConnectionKind,
     /// The catalog of the connection, its scripts were analyzed with it
     pub catalog: &'a Catalog,
+    /// The SQL dialect of the connection, the planner prints the values of inputs in it
+    pub dialect: FormattingDialect,
 }
 
 /// A script of the plan
@@ -180,6 +184,8 @@ struct PlanState {
     partial: bool,
     /// The script references with errors: (script, offset, length) of the parameter
     reference_errors: BTreeSet<(u32, u32, u32)>,
+    /// The inputs of the session, the scalar parameters that the statements bind
+    inputs: SessionInputs,
 }
 
 impl PlanState {
@@ -347,6 +353,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         tolerant,
         partial: false,
         reference_errors: BTreeSet::new(),
+        inputs: collect_session_inputs(request),
     };
     state.graph.valid = true;
     let script_count = request.scripts.len();
@@ -587,7 +594,26 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 }
             }
             // The SQL of the statement as written, with the script references spliced in
-            let spliced = script_references::splice_statement(request, &prepared, &references, si as u32, statement_id as u32, &materialization_of, &materializations);
+            let mut spliced = script_references::splice_statement(
+                request,
+                &prepared,
+                &references,
+                si as u32,
+                statement_id as u32,
+                &materialization_of,
+                &materializations,
+                &state.inputs,
+            );
+            // The inputs of the statement become literals, an input without a value fails the plan
+            let dialect = request.connections[connection as usize].dialect;
+            let bindings = bind_inputs(&state.inputs, p, Some(statement_id as u32), dialect);
+            spliced.edits.extend(bindings.edits);
+            for (span, message) in bindings.errors {
+                state.report(node_id, si as u32, Some(span), message, true);
+            }
+            for (script, span, message) in std::mem::take(&mut spliced.input_errors) {
+                state.report(node_id, script, Some(span), message, true);
+            }
             let mut sql = if spliced.edits.is_empty() { read_executable_text(scanned, span) } else { read_executable_text_with(scanned, span, &spliced.edits) };
             for r in &spliced.references {
                 let mut reference = ExecutionGraphScriptReferenceT::default();
@@ -1151,7 +1177,12 @@ fn finish(
                 meta.planned = planned.get(i).copied().unwrap_or(false);
                 meta.target = targets.contains(&(i as u32));
                 if let Some(p) = prepared.get(i).and_then(Option::as_ref) {
-                    meta.signature = opt(dashql_core::signature::compute_signature(p.parsed).ok());
+                    // The signature of the AST and the values that the script binds, `:min=10` per line
+                    meta.signature = opt(dashql_core::signature::compute_signature(p.parsed).ok().map(|signature| {
+                        // The values in the Hyper dialect, the key covers the connection
+                        let values = bind_inputs(&state.inputs, p, None, FormattingDialect::HYPER).values;
+                        std::iter::once(signature).chain(values.iter().map(|(name, value)| format!(":{name}={value}"))).collect::<Vec<_>>().join("\n")
+                    }));
                     meta.cacheable = is_cacheable(i, prepared, &producers_of, &mut cacheable);
                     meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
                     meta.referenced_scripts = opt_vec(producers_of(i));
@@ -1241,7 +1272,7 @@ mod tests {
     fn rejects_duplicate_script_names() {
         let catalog = Catalog::new();
         let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog }];
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER }];
         let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }, PlannerScript { script: &b, name: "foo", connection: 0, materialization_file: None }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
@@ -1254,8 +1285,8 @@ mod tests {
         let catalog = Catalog::new();
         let a = analyzed(&catalog, "select 1");
         let connections = [
-            PlannerConnection { id: "first", kind: ConnectionKind::Local, catalog: &catalog },
-            PlannerConnection { id: "second", kind: ConnectionKind::Remote, catalog: &catalog },
+            PlannerConnection { id: "first", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER },
+            PlannerConnection { id: "second", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER },
         ];
         let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
         let graph = plan_session(&request(&connections, &scripts));
@@ -1267,7 +1298,7 @@ mod tests {
     fn rejects_unknown_connections_and_scripts() {
         let catalog = Catalog::new();
         let a = analyzed(&catalog, "select 1");
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog }];
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER }];
         let scripts = [PlannerScript { script: &a, name: "foo", connection: 1, materialization_file: None }];
         assert_eq!(messages(&plan_session(&request(&connections, &scripts))), vec!["unknown planner connection"]);
         let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
@@ -1281,8 +1312,8 @@ mod tests {
         let (trino, local) = (Catalog::new(), Catalog::new());
         let (foo, bar) = (analyzed(&trino, "select 1 as a"), analyzed(&local, "select * from :foo"));
         let connections = [
-            PlannerConnection { id: "trino", kind: ConnectionKind::Remote, catalog: &trino },
-            PlannerConnection { id: "local", kind: ConnectionKind::Local, catalog: &local },
+            PlannerConnection { id: "trino", kind: ConnectionKind::Remote, catalog: &trino, dialect: FormattingDialect::HYPER },
+            PlannerConnection { id: "local", kind: ConnectionKind::Local, catalog: &local, dialect: FormattingDialect::HYPER },
         ];
         let scripts = [
             PlannerScript { script: &foo, name: "foo", connection: 0, materialization_file: Some("abc.0123.parquet") },
@@ -1299,7 +1330,7 @@ mod tests {
     fn rejects_scripts_of_another_catalog() {
         let (catalog, other) = (Catalog::new(), Catalog::new());
         let a = analyzed(&other, "select 1");
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog }];
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER }];
         let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
@@ -1324,7 +1355,7 @@ mod tests {
             script.scan();
             script.parse();
             script.analyze(&catalog, false).unwrap();
-            let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog }];
+            let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER }];
             let scripts = [PlannerScript { script: &script, name: "foo", connection: 0, materialization_file: None }];
             let mut targets = request(&connections, &scripts);
             targets.scope = PlanScope::Targets(&[0]);
@@ -1338,7 +1369,7 @@ mod tests {
     fn plans_scripts_without_names() {
         let catalog = Catalog::new();
         let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog }];
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER }];
         let scripts = [PlannerScript { script: &a, name: "", connection: 0, materialization_file: None }, PlannerScript { script: &b, name: "", connection: 0, materialization_file: None }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(graph.valid);

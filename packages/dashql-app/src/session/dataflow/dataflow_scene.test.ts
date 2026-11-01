@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 import { describe, expect, it } from 'vitest';
 
 import { DataflowEdgeKind, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';
-import { buildDataflowScene, DATAFLOW_LAYOUT, dataflowLayoutInput, fitDataflowScene, selectedEdges } from './dataflow_scene.js';
+import { buildDataflowScene, DATAFLOW_LAYOUT, dataflowLayoutInput, fitDataflowScene, INPUT_BOX_WIDTH, selectedEdges } from './dataflow_scene.js';
 
 const SELECT = core.buffers.parser.StatementType.SELECT;
 
@@ -18,9 +18,10 @@ function script(scriptKey: number, statements: number): DataflowScript {
 
 const GRAPH: DataflowGraph = {
     scripts: [script(1, 2), script(2, 1)],
+    inputs: [],
     edges: [
-        { key: 'a', from: { scriptKey: 1, statementId: 0 }, to: { scriptKey: 1, statementId: 1 }, kind: DataflowEdgeKind.Table, name: 't' },
-        { key: 'b', from: { scriptKey: 1, statementId: 1 }, to: { scriptKey: 2, statementId: 0 }, kind: DataflowEdgeKind.Table, name: 't' },
+        { key: 'a', from: { scriptKey: 1, statementId: 0 }, to: { scriptKey: 1, statementId: 1 }, kind: DataflowEdgeKind.Table, name: 't', input: null },
+        { key: 'b', from: { scriptKey: 1, statementId: 1 }, to: { scriptKey: 2, statementId: 0 }, kind: DataflowEdgeKind.Table, name: 't', input: null },
     ],
 };
 
@@ -95,6 +96,33 @@ describe('dataflow scene', () => {
         expect(selectedEdges(scene, { scriptKey: 1, statementId: 0 }).map(e => e.key)).toEqual(['a']);
         expect(selectedEdges(scene, { scriptKey: 1, statementId: null }).map(e => e.key)).toEqual(['a', 'b']);
         expect(selectedEdges(scene, null)).toEqual([]);
+    });
+
+    it('lays out an input as a box of one row and routes its edges from the row', () => {
+        const type = { kind: core.buffers.analyzer.SqlTypeKind.INT4, sql: 'integer', arrayDimensions: 0, withTimeZone: false, cast: true, known: true };
+        const graph: DataflowGraph = {
+            ...GRAPH,
+            inputs: [{ name: 'min', type, value: '10' }],
+            edges: [
+                ...GRAPH.edges,
+                { key: 'i', from: { scriptKey: -1, statementId: 0 }, to: { scriptKey: 2, statementId: 0 }, kind: DataflowEdgeKind.Input, name: 'min', input: 'min' },
+            ],
+        };
+        const input = dataflowLayoutInput(graph, () => null, () => null, () => false, () => ({ x: 8, y: 16 }));
+        expect(input.boxes[2]).toEqual({ statements: 1, width: INPUT_BOX_WIDTH, fixed: { x: 8, y: 16 } });
+        expect(input.edges).toContainEqual({ fromBox: 2, fromStatement: 0, toBox: 1, toStatement: 0 });
+        const positions = [{ ...POSITIONS[0], x: 296 }, { ...POSITIONS[1], x: 672 }, { x: 0, y: 200, width: INPUT_BOX_WIDTH, height: 80, rows: [40] }];
+        const scene = buildDataflowScene(graph, positions, () => null, () => false);
+        expect(scene.inputs.map(i => [i.input.name, i.rowY, i.output])).toEqual([['min', 240, true]]);
+        const edge = scene.edges.find(e => e.key === 'i')!;
+        expect(start(edge.path)).toEqual([INPUT_BOX_WIDTH - DATAFLOW_LAYOUT.rowPadding, 240 + 16]);
+        expect(scene.boxes[1].rows[0].input).toBe(true);
+        expect(selectedEdges(scene, { scriptKey: -1, statementId: null, input: 'min' }).map(e => e.key)).toEqual(['i']);
+        // A selected script highlights the edges of its inputs
+        expect(selectedEdges(scene, { scriptKey: 2, statementId: null }).map(e => e.key)).toEqual(['b', 'i']);
+        // Zoomed out, the input is its header
+        const collapsed = buildDataflowScene(graph, positions, () => null, () => true, DATAFLOW_LAYOUT, true);
+        expect(start(collapsed.edges.find(e => e.key === 'i')!.path)).toEqual([INPUT_BOX_WIDTH, 200 + DATAFLOW_LAYOUT.headerHeight / 2]);
     });
 
     it('fits a scene into a viewport at most at its real size', () => {

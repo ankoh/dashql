@@ -522,7 +522,7 @@ mod tests {
         let input = "/* Revenue dashboard.\n      @vis table\n*/";
         assert_eq!(format_comments(input), "/**\n * Revenue dashboard.\n * @vis table\n */");
         // Comments without tags stay as written
-        let input = "/* Revenue dashboard.\n      @param x\n*/";
+        let input = "/* Revenue dashboard.\n      @see x\n*/";
         assert_eq!(format_comments(input), input);
     }
 

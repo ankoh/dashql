@@ -378,6 +378,24 @@ impl Script {
         crate::vis_rewrite::rewrite_vis_flow(&self.text.to_string(), &parsed, flow)
     }
 
+    /// Set or remove the value of an input of the script, its `@param` tag. A new tag goes to the statement that uses
+    /// the input first. Returns the new text like `rewrite_vis_renderer`.
+    pub fn rewrite_param_tag(&mut self, name: &str, value: Option<&str>, parse_if_outdated: bool) -> Result<String> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let first_use = self
+            .analyzed
+            .as_ref()
+            .filter(|a| Arc::ptr_eq(&a.parsed, &parsed))
+            .and_then(|a| {
+                a.parameters
+                    .iter()
+                    .find(|p| p.kind == crate::analyzer::ParameterKind::Scalar && p.name.as_deref() == Some(name))
+                    .and_then(|p| p.ast_statement_id)
+            })
+            .map(|s| s as usize);
+        crate::param_rewrite::rewrite_param_tag(&self.text.to_string(), &parsed, name, value, first_use)
+    }
+
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
     /// `markdown` or `table`) by `@vis vegalite <spec>`, or add one. The annotation of the query is
     /// consolidated into one comment (see `vis_rewrite`).

@@ -1,0 +1,400 @@
+planner-snapshots:
+
+  - name: InputLiterals
+    catalog: |
+      create table orders (id int, amount int, region text, open boolean, day date, ts timestamp);
+    scripts:
+      - name: foo
+        input: |
+          /** @param :min = 10
+           * @param :region = 'EU'
+           * @param :open = true
+           * @param :delta = -2
+           * @param :day = date '2024-01-01'
+           * @param :span = interval '3 days' */
+          select id from orders where amount > :min + :delta and region = :region and open = :open
+            and day >= :day and ts > timestamp '2024-02-01' - :span;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "491aece2fe4bd2d3115571e0a99d7d78\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3 days'"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            select id from orders where amount > 10 + (-2) and region = 'EU' and open = TRUE
+              and day >= DATE '2024-01-01' and ts > timestamp '2024-02-01' - INTERVAL '3 days'
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+
+  - name: InputCast
+    catalog: |
+      create table orders (id int, amount int, day date);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = '10'
+             @param :day = '2024-01-01' */
+          select id from orders where amount > :min::int and day >= cast(:day as date);
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "875fa0f8d21d45701413201bad790689\n:day='2024-01-01'\n:min='10'"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > '10'::int and day >= cast('2024-01-01' as date)"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+
+  - name: InputWithoutValue
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = now() */
+          select id from orders where amount > :min and id > :max;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "2cc97148e5d9686f9efa7a7ced9a9720"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > :min and id > :max"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics:
+        - node: 0
+          script: foo
+          text: ":min"
+          error: true
+          message: 'input :min has no value'
+        - node: 0
+          script: foo
+          text: ":max"
+          error: true
+          message: 'input :max has no value'
+
+  - name: InputSessionValue
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min;
+      - name: b
+        input: |
+          select id from orders where amount > :min;
+      - name: c
+        input: |
+          /* @param :min = 30 */
+          select id from orders where amount > :min;
+    expected:
+      valid: true
+      scripts:
+        - name: a
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "fa0129fa43622ffca7fffead7d400401\n:min=10"
+        - name: b
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "fa0129fa43622ffca7fffead7d400401\n:min=10"
+        - name: c
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "fa0129fa43622ffca7fffead7d400401\n:min=30"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: a
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: b
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: c
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders where amount > 30"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+
+  - name: InputInlined
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = 10
+             @param :span = interval '3 days'
+             @param :day = date '2024-02-01' */
+          select id, amount from orders where amount > :min and :day - :span < date '2024-03-01';
+      - name: bar
+        input: |
+          /* @param :limit = 5 */
+          select count(*) from :foo where id < :limit;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "4184a4e3a2a157502b9b65aa8a1da1e5\n:day=date '2024-02-01'\n:min=10\n:span=interval '3 days'"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a925dea9ffc73e5faf3f4e303c0cd548\n:limit=5"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders where amount > 10 and DATE '2024-02-01' - INTERVAL '3 days' < date '2024-03-01'"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders where amount > 10 and DATE '2024-02-01' - INTERVAL '3 days' < date '2024-03-01'
+            )
+            select count(*) from foo where id < 5
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InputTrino
+    hyper: skip
+    connections:
+      - name: trino
+        kind: REMOTE
+        dialect: trino
+        catalog: |
+          create table events (id int, ts timestamp, day date);
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          /* @param :span = interval '1 day 2 hours'
+             @param :day = date '2024-01-01'
+             @param :name = 'it''s' */
+          select id from events where ts > now() - :span and day = :day and :name <> '';
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "3bb0015de7566bcf113faa08afc914b0\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '1 day 2 hours'"
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: events
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select id from events where ts > now() - INTERVAL '26' HOUR and day = DATE '2024-01-01' and 'it''s' <> ''"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+
+  - name: InputTrinoUnsupported
+    hyper: skip
+    connections:
+      - name: trino
+        kind: REMOTE
+        dialect: trino
+        catalog: |
+          create table events (id int, ts timestamp);
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          /* @param :span = interval '1 month 2 days' */
+          select id from events where ts > now() - :span;
+    expected:
+      valid: false
+      connections:
+        - name: trino
+          kind: REMOTE
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "c4abd93e7f1ee7ddcfbad8039062618e\n:span=interval '1 month 2 days'"
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: events
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select id from events where ts > now() - :span"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics:
+        - node: 0
+          script: foo
+          text: ":span"
+          error: true
+          message: 'input :span: Trino has no interval of months and days, "1 month 2 days" has both'

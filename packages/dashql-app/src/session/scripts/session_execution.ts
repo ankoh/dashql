@@ -12,6 +12,7 @@ import type { ModifySessionScripts } from './session_scripts_registry.js';
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import { isQueryCacheMiss, type QueryResultCache } from '../../query/query_result_cache.js';
+import { affectedScriptIndices, sessionPlanRequest } from '../inputs/session_inputs.js';
 
 /// The run that holds a session, a run of the whole session or of one of its scripts
 export type SessionRunKind = 'session' | 'script';
@@ -235,25 +236,15 @@ export function planSessionScripts(args: {
     /// The name of the file of the materialized result of a script below the mount prefix
     materializationFile?: (scriptIndex: number) => string | undefined;
 }): SessionScriptsPlan {
-    const connectionIds: string[] = [];
-    const catalogs: core.DashQLCatalog[] = [];
-    for (const script of args.scripts) {
-        if (connectionIds.includes(script.connection.connectionId)) continue;
-        connectionIds.push(script.connection.connectionId);
-        catalogs.push(script.connection.catalog);
-    }
+    const request = sessionPlanRequest(args.scripts, args.files, args.isLocalConnection);
     const graph = args.instance.planSession({
-        connections: connectionIds.map((id, index) => ({ id, local: args.isLocalConnection(id), catalog: catalogs[index] })),
-        scripts: args.scripts.map((script, index) => ({
-            name: scriptDisplayName(args.files[index]),
-            connection: connectionIds.indexOf(script.connection.connectionId),
-            session: script.scriptSession,
-            materializationFile: args.materializationFile?.(index),
-        })),
+        ...request,
+        scripts: request.scripts.map((script, index) => ({ ...script, materializationFile: args.materializationFile?.(index) })),
         targets: args.targets,
         materialized: args.materialized,
         mountPrefix: args.mountPrefix,
     }).unpack();
+    const connectionIds = request.connections.map(c => c.id);
     return { graph, connectionIds };
 }
 
@@ -705,6 +696,9 @@ export async function runSessionExecution(args: {
     cache?: QueryResultCache | null;
     /// Read no cached results: every script runs, the results with reusable keys become the newest files of their keys
     refresh?: boolean;
+    /// Run only the scripts that the change of these inputs affects: the scripts that use them and the scripts
+    /// downstream of them (docs/design/session_inputs.md)
+    inputs?: readonly string[];
     /// Allows tests to control cooperative scheduling without relying on timer timing.
     yieldToBrowser?: () => Promise<void>;
     /// Maximum concurrently running backend queries on a connection.
@@ -764,11 +758,26 @@ export async function runSessionExecution(args: {
         });
         const updates = await prepareSessionScripts(scripts, cooperate);
         await cooperate();
+        const isLocalConnection = args.isLocalConnection ?? (() => false);
+        // A change of inputs runs the scripts that it affects, with what they read
+        let targets: number[] | undefined;
+        if (args.inputs != null) {
+            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files, isLocalConnection)).unpack() as core.buffers.execution.SessionDataflowT;
+            targets = affectedScriptIndices(dataflow, args.inputs);
+            emit({ totalScripts: targets.length });
+            if (targets.length === 0) {
+                await args.modifySessionScripts({ type: APPLY_PLANNER_ANALYSIS, value: updates });
+                signal.removeEventListener('abort', stop);
+                emit({ phase: 'succeeded' });
+                return;
+            }
+        }
         const mountPrefix = args.mounts?.prefix ?? createMountPrefix();
         const planWith = (provided: number[] = [], names: Map<number, string> = new Map()) => planSessionScripts({
             instance, scripts, files,
-            isLocalConnection: args.isLocalConnection ?? (() => false),
+            isLocalConnection,
             mountPrefix,
+            targets,
             materialized: provided,
             materializationFile: index => names.get(index),
         });
@@ -863,7 +872,8 @@ export async function runSessionExecution(args: {
             const materialized = new Set((plan.graph.materializations ?? []).map(m => m.script));
             const graph = plan.graph;
             // Scripts without statements are done right away, so are the scripts with cached results
-            const done = scripts.filter((_script, index) => !graph.nodes.some(node => node.script === index)).length;
+            const counted = targets ?? scripts.map((_script, index) => index);
+            const done = counted.filter(index => !graph.nodes.some(node => node.script === index)).length;
             if (done > 0) emit({}, { scripts: done });
             await runExecutionGraph({
                 plan, scripts, files, sessionId,

@@ -210,3 +210,29 @@
     stroke-width: 1.5px;
     stroke-linecap: round;
 }
+
+/* An input is a solid neutral box, the scripts are dashed fragments */
+rect.input_fragment {
+    fill: white;
+    fill-opacity: 0.9;
+    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 62%);
+    stroke-dasharray: none;
+}
+
+.input_type {
+    font-family: var(--font_family_mono);
+    font-size: 0.68rem;
+    text-anchor: end;
+    dominant-baseline: central;
+    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%);
+    pointer-events: none;
+}
+
+.input_type[data-inferred] {
+    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 58%);
+    font-style: italic;
+}
+
+.input_row {
+    overflow: visible;
+}

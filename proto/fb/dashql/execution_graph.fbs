@@ -1,6 +1,7 @@
 include "dashql/catalog.fbs";
 include "dashql/parsed_script.fbs";
 include "dashql/script_compilation.fbs";
+include "dashql/analyzed_script.fbs";
 
 namespace dashql.buffers.execution;
 
@@ -187,7 +188,8 @@ table ScriptReferenceCheck {
 }
 
 /// What carries the data of a dataflow edge
-enum DataflowEdgeKind: uint8 { INLINE_REFERENCE, SCAN_REFERENCE, INVALID_REFERENCE, TABLE }
+/// An INPUT edge starts at an input, its from_script is the index of the input
+enum DataflowEdgeKind: uint8 { INLINE_REFERENCE, SCAN_REFERENCE, INVALID_REFERENCE, TABLE, INPUT }
 
 /// A statement of a script in the dataflow of a session
 table DataflowStatement {
@@ -220,10 +222,47 @@ table DataflowEdge {
     name: string;
 }
 
+/// Where the type of an input comes from
+enum SessionInputTypeSource: uint8 { CAST, LITERAL, NONE }
+
+/// A statement that uses an input
+struct SessionInputConsumer {
+    script: uint32;
+    statement: uint32;
+}
+
+/// An input of a session: a named scalar parameter of its scripts and its value, see docs/design/session_inputs.md
+table SessionInput {
+    /// The name of the parameter
+    name: string;
+    /// The type, of a cast or inferred from the value
+    sql_type: dashql.buffers.analyzer.SqlType;
+    /// Where the type comes from
+    type_source: SessionInputTypeSource;
+    /// The value of the session, the literal of the first `@param` tag with a value in session order, in the Hyper
+    /// dialect, absent if no script has one
+    literal: string;
+    /// The value as a control shows it: the number, the content of a string, the text of a typed literal
+    value: string;
+    /// Does the input have a value?
+    has_value: bool;
+    /// The statements that use the input, in session order
+    consumers: [SessionInputConsumer];
+    /// The problems of the input
+    warnings: [string];
+}
+
+/// The inputs of a session, in the order of their first use
+table SessionInputs {
+    inputs: [SessionInput];
+}
+
 /// The dataflow of the scripts of a session, see docs/design/dataflow.md
 table SessionDataflow {
     /// The scripts in session order
     scripts: [DataflowScript];
+    /// The inputs in the order of their first use, the sources of the INPUT edges
+    inputs: [SessionInput];
     /// The edges, sorted and without duplicates
     edges: [DataflowEdge];
 }

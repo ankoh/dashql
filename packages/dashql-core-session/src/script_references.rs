@@ -446,6 +446,8 @@ pub(crate) struct SplicedStatement {
     pub inlined: Vec<(u32, u32)>,
     /// The materializations that the statement scans
     pub inputs: Vec<u32>,
+    /// The values of inputs that the inlined queries don't read: (script, text span, message)
+    pub input_errors: Vec<(u32, TextSpan, String)>,
 }
 
 /// The children of a node
@@ -623,6 +625,7 @@ pub(crate) fn splice_statement(
     statement_id: u32,
     materialization_of: &BTreeMap<u32, u32>,
     materializations: &[ExecutionGraphMaterializationT],
+    inputs: &crate::session_inputs::SessionInputs,
 ) -> SplicedStatement {
     let mut out = SplicedStatement::default();
     let direct: Vec<&Reference> = references.of(script).iter().filter(|r| r.statement_id == statement_id && r.producer.is_some()).collect();
@@ -721,7 +724,13 @@ pub(crate) fn splice_statement(
                 let p = prepared[producer as usize].as_ref().unwrap();
                 let Some(terminal) = p.terminal() else { continue };
                 let span = p.parsed.associate_descriptions()[terminal as usize].statement_span;
-                let edits = reference_edits(p, terminal, references.of(producer));
+                let mut edits = reference_edits(p, terminal, references.of(producer));
+                // The inlined query binds the inputs of its script
+                // Within the connection of the statement
+                let dialect = request.connections[request.scripts[script as usize].connection as usize].dialect;
+                let bindings = crate::session_inputs::bind_inputs(inputs, p, Some(terminal), dialect);
+                edits.extend(bindings.edits);
+                out.input_errors.extend(bindings.errors.into_iter().map(|(span, message)| (producer, span, message)));
                 let body = read_executable_text_with(p.scanned, span, &edits);
                 ctes.push(format!("{cte} as (\n{}\n)", body.trim_end()));
                 out.inlined.push((producer, terminal));

@@ -1,0 +1,41 @@
+dataflow-snapshots:
+  # An input feeds the statements of two scripts that use it
+  - name: InputTwoScripts
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min::int;
+      - name: b
+        input: |
+          /* @param :min = 10 */
+          select count(*) from orders where amount > :min::int;
+
+  # Two inputs feed statements of one script, an input without a value has none
+  - name: InputsOfOneScript
+    catalog: |
+      create table orders (id int, amount int, region text);
+    scripts:
+      - name: a
+        input: |
+          /* @param :region = 'EU' */
+          create temp table t as select * from orders where region = :region;
+          select * from t where amount > :min;
+
+  # An input feeds a script that another script reads
+  - name: InputWithReferences
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id, amount from orders where amount > :min;
+      - name: b
+        input: |
+          select count(*) from :a;
+      - name: c
+        input: |
+          select 1;

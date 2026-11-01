@@ -25,7 +25,8 @@ SHA-256("dashql-query-cache-v3" + framed(stableJson(connectionParamsSignature), 
 The plan of a script records its AST signature and whether it is cacheable (`ExecutionGraphScript.signature` and
 `cacheable`). A script that references other scripts with table parameters (`:foo`, see `script_references.md`)
 caches its result under a signature that appends the keys of the referenced scripts to its AST signature, one per
-line. Every planned script has a result key (`computeScriptResultKeys`). The key is reusable, i.e. a run may serve
+line. The AST signature of a script that binds inputs is followed by their literals, `:min=10` per line
+(`session_inputs.md`), a new value is a new key. Every planned script has a result key (`computeScriptResultKeys`). The key is reusable, i.e. a run may serve
 a cached file of the key instead of running the script, if the script is cacheable, its connection caches results,
 and the keys of the scripts it references are reusable. A referenced script is a single SELECT, so it is cacheable;
 one on a connection that doesn't cache results makes the script not reusable either.

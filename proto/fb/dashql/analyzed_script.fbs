@@ -207,6 +207,53 @@ enum ParameterKind: uint8 {
     TABLE = 1,
 }
 
+/// The kind of a SQL type
+enum SqlTypeKind: uint8 {
+    BOOL,
+    INT1,
+    INT2,
+    INT4,
+    INT8,
+    FLOAT4,
+    FLOAT8,
+    NUMERIC,
+    VARCHAR,
+    CHAR,
+    TEXT,
+    BIT,
+    DATE,
+    TIME,
+    TIMESTAMP,
+    INTERVAL,
+    GENERIC,
+}
+
+/// A structured SQL type, e.g. the type of a cast
+table SqlType {
+    /// The kind of the element type
+    kind: SqlTypeKind = BOOL;
+    /// The number of array dimensions, 0 for a scalar type
+    array_dimensions: uint8 = 0;
+    /// The precision of NUMERIC, TIME, TIMESTAMP and INTERVAL, -1 if unset
+    precision: int32 = -1;
+    /// The scale of NUMERIC, -1 if unset
+    scale: int32 = -1;
+    /// The length of VARCHAR, CHAR and BIT, -1 if unset
+    length: int32 = -1;
+    /// Does a TIME or TIMESTAMP have a time zone?
+    with_time_zone: bool = false;
+    /// Is a BIT varying?
+    varying: bool = false;
+    /// The fields of an INTERVAL (a parser.IntervalType), -1 if unset
+    interval_fields: int16 = -1;
+    /// The name of a GENERIC type, lowercased
+    name: string;
+    /// The modifiers of a GENERIC type as written
+    modifiers: [string];
+    /// The SQL text of the type, e.g. `numeric(10,2)`
+    sql: string;
+}
+
 /// A parameter of the script: a named `:name` (also `:"name"`, `:'name'`), a positional `$1` or an unnamed `?`
 table Parameter {
     // The id of the parameter ref node
@@ -219,6 +266,8 @@ table Parameter {
     kind: ParameterKind = SCALAR;
     /// The name without the prefix, "1" for `$1`, null for an unnamed `?`
     name: string;
+    /// The type of the cast whose value is a scalar parameter, `:min::int`
+    cast_type: SqlType;
 }
 
 struct ConstantExpression {
@@ -288,6 +337,7 @@ enum AnalyzerErrorType: uint8 {
     INVALID_DASHBOARD_LAYOUT,
     MALFORMED_COMMENT_TAG,
     INVALID_VIS_TAG,
+    INVALID_PARAM_TAG,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a

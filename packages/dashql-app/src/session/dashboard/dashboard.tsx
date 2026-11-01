@@ -13,6 +13,7 @@ import {
     type DashboardPlacement,
 } from './dashboard_layout.js';
 import { persistDashboardPlacement } from './dashboard_source.js';
+import { SessionInputStrip } from '../inputs/session_input_strip.js';
 import * as styles from './dashboard.module.css';
 
 const GRID_GAP = 12;
@@ -158,6 +159,12 @@ export function Dashboard(props: Props): React.ReactElement {
     return (
         <section className={styles.page} aria-label="Dashboard">
             <div className={styles.sr_only} role="status" aria-live="polite">{announcement}</div>
+            {/* The inputs of the session stay at the top while the cards scroll underneath */}
+            <SessionInputStrip
+                className={styles.inputs}
+                sessionScripts={props.sessionScripts}
+                modifySessionScripts={props.modifySessionScripts}
+            />
             {scripts.length === 0 ? (
                 <div className={styles.empty_state}>
                     <strong>No visualizations yet</strong>

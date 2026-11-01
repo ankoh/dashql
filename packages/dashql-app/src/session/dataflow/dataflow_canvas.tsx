@@ -12,7 +12,10 @@ import * as graphStyles from '../../ui/graph/graph.module.css';
 import type { ScriptData, SessionScripts } from '../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
-import { deriveDataflowGraph, DataflowEdgeKind, statementTypeLabel, type DataflowScript } from './dataflow_graph.js';
+import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
+import { SessionInputCard } from '../inputs/session_input_card.js';
+import { useApplySessionInput } from '../inputs/use_apply_session_input.js';
+import { deriveSessionInputs, type SessionInput } from '../inputs/session_inputs.js';
 import {
     buildDataflowScene,
     DATAFLOW_COLLAPSE_SCALE,
@@ -24,6 +27,7 @@ import {
     type DataflowBoxPosition,
     type DataflowSceneBox,
     type DataflowSceneEdge,
+    type DataflowSceneInput,
     type DataflowSelection,
 } from './dataflow_scene.js';
 import { createFlowScript, deleteFlowScript, persistFlowPosition, removeFlowPositions } from './dataflow_source.js';
@@ -59,6 +63,23 @@ interface Position {
     y: number;
 }
 
+/// The key of the box of a script or of an input, the drag and the layout follow it
+function nodeKeyOfScript(scriptKey: number): string {
+    return `script:${scriptKey}`;
+}
+
+function nodeKeyOfInput(name: string): string {
+    return `input:${name}`;
+}
+
+function inputOfNodeKey(key: string): string | null {
+    return key.startsWith('input:') ? key.slice('input:'.length) : null;
+}
+
+function scriptOfNodeKey(key: string): number {
+    return Number(key.slice('script:'.length));
+}
+
 /// Do two boxes overlap?
 function boxesOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
     return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
@@ -83,13 +104,16 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const [zoomCollapsed, setZoomCollapsed] = React.useState(false);
     const [collapsed, setCollapsed] = React.useState<ReadonlySet<number>>(new Set());
     const [selection, setSelection] = React.useState<DataflowSelection | null>(null);
-    const [drag, setDrag] = React.useState<{ scriptKey: number; position: Position } | null>(null);
+    const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
 
     // Where the layout placed the boxes without `@vis flow` tags, by script key. The boxes keep these positions while
     // the session changes, so that only new boxes are placed. A box that a growing neighbour would overlap is placed
     // again, a tag always wins.
     const placedRef = React.useRef(new Map<number, Position>());
+    // Where the layout or a drag placed the inputs, by name. No script holds the position of an input.
+    const placedInputsRef = React.useRef(new Map<string, Position>());
+    const { apply: applyInput, literalOf, busyInputs } = useApplySessionInput(sessionScripts, modifySessionScripts);
 
     const graph = deriveDataflowGraph(sessionScripts);
     const scriptOf = React.useCallback((script: DataflowScript): ScriptData | undefined => sessionScripts.scripts[script.scriptKey], [sessionScripts.scripts]);
@@ -99,36 +123,49 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         return statementId != null && statementId < script.statements.length ? statementId : null;
     }, [scriptOf]);
 
-    // The layout lays out full boxes, collapsing a box only changes how it is drawn
+    // The layout lays out full boxes, collapsing a box only changes how it is drawn. The boxes of the inputs follow
+    // the boxes of the scripts.
     const positions: DataflowBoxPosition[] = React.useMemo(() => {
         const placed = placedRef.current;
+        const placedInputs = placedInputsRef.current;
         const tagOf = (script: DataflowScript): Position | null => {
             const flow = scriptOf(script)?.annotations.flowPosition;
             return flow != null ? { x: flow.x, y: flow.y } : null;
         };
-        const compute = (soft: (script: DataflowScript) => Position | null) => {
-            const input = dataflowLayoutInput(graph, script => tagOf(script) ?? soft(script), chartStatement, () => false);
+        const keys = [...graph.scripts.map(script => nodeKeyOfScript(script.scriptKey)), ...graph.inputs.map(input => nodeKeyOfInput(input.name))];
+        const isTagged = (i: number) => i < graph.scripts.length && tagOf(graph.scripts[i]) != null;
+        const compute = (replace: ReadonlySet<string>) => {
+            const soft = (key: string, position: Position | undefined) => (replace.has(key) ? null : position ?? null);
+            const input = dataflowLayoutInput(
+                graph,
+                script => tagOf(script) ?? soft(nodeKeyOfScript(script.scriptKey), placed.get(script.scriptKey)),
+                chartStatement,
+                () => false,
+                input => soft(nodeKeyOfInput(input.name), placedInputs.get(input.name)),
+            );
             return sessionScripts.instance.computeDataflowLayout(input.boxes, input.edges, DATAFLOW_LAYOUT);
         };
         if (graph.scripts.length === 0) return [];
-        let layout = compute(script => placed.get(script.scriptKey) ?? null);
+        let layout = compute(new Set());
         // A box that overlaps another one, e.g. one that grew, and was placed by the layout is placed again
-        const replace = new Set<number>();
+        const replace = new Set<string>();
         for (let i = 0; i < layout.length; ++i) {
             for (let j = i + 1; j < layout.length; ++j) {
                 if (!boxesOverlap(layout[i], layout[j])) continue;
-                const [a, b] = [graph.scripts[i], graph.scripts[j]];
-                const soft = tagOf(b) == null ? b : tagOf(a) == null ? a : null;
-                if (soft != null) replace.add(soft.scriptKey);
+                const soft = !isTagged(j) ? j : !isTagged(i) ? i : null;
+                if (soft != null) replace.add(keys[soft]);
             }
         }
-        if (replace.size > 0) {
-            layout = compute(script => (replace.has(script.scriptKey) ? null : placed.get(script.scriptKey) ?? null));
-        }
+        if (replace.size > 0) layout = compute(replace);
         // Remember where the boxes of analyzed scripts are, a script without statements is placed again once it has some
         placed.clear();
         graph.scripts.forEach((script, i) => {
             if (tagOf(script) == null && script.statements.length > 0) placed.set(script.scriptKey, { x: layout[i].x, y: layout[i].y });
+        });
+        placedInputs.clear();
+        graph.inputs.forEach((input, i) => {
+            const p = layout[graph.scripts.length + i];
+            if (p != null) placedInputs.set(input.name, { x: p.x, y: p.y });
         });
         return layout;
     }, [graph, scriptOf, chartStatement, arrangeRevision, sessionScripts.instance]);
@@ -136,13 +173,15 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     // A dragged box follows the pointer
     const shown = React.useMemo(() => {
         if (drag == null) return positions;
-        const index = graph.scripts.findIndex(s => s.scriptKey === drag.scriptKey);
-        if (index < 0) return positions;
+        const scriptIndex = graph.scripts.findIndex(s => nodeKeyOfScript(s.scriptKey) === drag.node);
+        const inputIndex = graph.inputs.findIndex(i => nodeKeyOfInput(i.name) === drag.node);
+        const index = scriptIndex >= 0 ? scriptIndex : inputIndex >= 0 ? graph.scripts.length + inputIndex : -1;
+        if (index < 0 || positions[index] == null) return positions;
         const out = positions.slice();
         out[index] = { ...positions[index], x: drag.position.x, y: drag.position.y };
         return out;
-    }, [positions, drag, graph.scripts]);
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed), [graph, shown, chartStatement, isCollapsed]);
+    }, [positions, drag, graph.scripts, graph.inputs]);
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, zoomCollapsed), [graph, shown, chartStatement, isCollapsed, zoomCollapsed]);
     const highlighted = React.useMemo(() => selectedEdges(scene, selection), [scene, selection]);
     const highlightedSet = React.useMemo(() => new Set(highlighted), [highlighted]);
 
@@ -190,21 +229,33 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     }, []);
 
     // Dragging a box by its header. Moves and the release are followed on the window, the pointer leaves the header.
-    const dragRef = React.useRef<{ scriptKey: number; pointerId: number; startX: number; startY: number; origin: Position; position: Position | null } | null>(null);
+    const dragRef = React.useRef<{ node: string; pointerId: number; startX: number; startY: number; origin: Position; position: Position | null } | null>(null);
     const finishDragRef = React.useRef<(event: PointerEvent, commit: boolean) => void>(() => {});
     finishDragRef.current = (event: PointerEvent, commit: boolean) => {
         const current = dragRef.current;
         if (current == null || current.pointerId !== event.pointerId) return;
         dragRef.current = null;
         setDrag(null);
-        if (current.position == null) {
-            if (commit) setSelection({ scriptKey: current.scriptKey, statementId: null });
+        const input = inputOfNodeKey(current.node);
+        if (input != null) {
+            // An input keeps the position of the drag while the canvas is open
+            if (current.position == null) {
+                if (commit) setSelection({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input });
+            } else if (commit) {
+                placedInputsRef.current.set(input, current.position);
+                setArrangeRevision(r => r + 1);
+            }
             return;
         }
-        const script = sessionScripts.scripts[current.scriptKey];
+        const scriptKey = scriptOfNodeKey(current.node);
+        if (current.position == null) {
+            if (commit) setSelection({ scriptKey, statementId: null });
+            return;
+        }
+        const script = sessionScripts.scripts[scriptKey];
         // The tag fixes the box, a script whose tag can't be written keeps its box where it was
         if (commit && script != null && persistFlowPosition(script, current.position.x, current.position.y, modifySessionScripts)) {
-            placedRef.current.set(current.scriptKey, current.position);
+            placedRef.current.set(scriptKey, current.position);
         }
     };
     React.useEffect(() => {
@@ -217,7 +268,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
             if (current.position == null && Math.hypot(dx * k, dy * k) < 4) return;
             const grid = DATAFLOW_LAYOUT.grid;
             current.position = { x: Math.round((current.origin.x + dx) / grid) * grid, y: Math.round((current.origin.y + dy) / grid) * grid };
-            setDrag({ scriptKey: current.scriptKey, position: current.position });
+            setDrag({ node: current.node, position: current.position });
         };
         const up = (event: PointerEvent) => finishDragRef.current(event, true);
         const cancel = (event: PointerEvent) => finishDragRef.current(event, false);
@@ -233,7 +284,12 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const onHandleDown = React.useCallback((event: React.PointerEvent, box: DataflowSceneBox) => {
         if (event.button !== 0) return;
         event.stopPropagation();
-        dragRef.current = { scriptKey: box.script.scriptKey, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: { x: box.x, y: box.y }, position: null };
+        dragRef.current = { node: nodeKeyOfScript(box.script.scriptKey), pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: { x: box.x, y: box.y }, position: null };
+    }, []);
+    const onInputHandleDown = React.useCallback((event: React.PointerEvent, box: DataflowSceneInput) => {
+        if (event.button !== 0) return;
+        event.stopPropagation();
+        dragRef.current = { node: nodeKeyOfInput(box.input.name), pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: { x: box.x, y: box.y }, position: null };
     }, []);
 
     // Creating and removing scripts
@@ -255,6 +311,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     }, [createAt]);
     const arrange = React.useCallback(() => {
         placedRef.current.clear();
+        placedInputsRef.current.clear();
         const scripts = graph.scripts.map(scriptOf).filter((s): s is ScriptData => s != null);
         removeFlowPositions(scripts, modifySessionScripts);
         setArrangeRevision(r => r + 1);
@@ -281,7 +338,9 @@ export function DataflowCanvas(props: Props): React.ReactElement {
 
     const internal = scene.edges.filter(e => e.internal);
     const between = scene.edges.filter(e => !e.internal);
-    const solid = (e: DataflowSceneEdge) => e.kind === DataflowEdgeKind.Inline || e.kind === DataflowEdgeKind.Table;
+    const solid = (e: DataflowSceneEdge) => e.kind === DataflowEdgeKind.Inline || e.kind === DataflowEdgeKind.Table || e.kind === DataflowEdgeKind.Input;
+    // The inputs as the feed and the dashboard show them, with their warnings
+    const sessionInputs = deriveSessionInputs(sessionScripts);
     return (
         <div
             ref={viewportRef}
@@ -306,6 +365,18 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 key={box.script.scriptKey}
                                 className={graphStyles.fragment}
                                 data-color={box.index % 6}
+                                x={box.x}
+                                y={box.y}
+                                width={box.width}
+                                height={box.height}
+                                rx={8}
+                                ry={8}
+                            />
+                        ))}
+                        {scene.inputs.map(box => (
+                            <rect
+                                key={`input:${box.input.name}`}
+                                className={`${graphStyles.fragment} ${styles.input_fragment}`}
                                 x={box.x}
                                 y={box.y}
                                 width={box.width}
@@ -366,7 +437,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 script={sessionScripts.scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
                                 highlighted={highlighted}
-                                dragging={drag?.scriptKey === box.script.scriptKey}
+                                dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
                                 dependencies={dependencies}
                                 onHandleDown={onHandleDown}
                                 onSelect={setSelection}
@@ -374,6 +445,21 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 onInspect={props.onInspect}
                                 onDelete={script => deleteFlowScript(script, modifySessionScripts)}
                                 onCreateDownstream={createDownstream}
+                            />
+                        ))}
+                        {scene.inputs.map(box => (
+                            <DataflowInputBox
+                                key={box.input.name}
+                                box={box}
+                                input={sessionInputs.find(i => i.name === box.input.name) ?? null}
+                                selected={selection?.input === box.input.name}
+                                highlighted={highlighted.length > 0 && highlighted.some(e => e.input === box.input.name)}
+                                dragging={drag?.node === nodeKeyOfInput(box.input.name)}
+                                busy={busyInputs.has(box.input.name)}
+                                onHandleDown={onInputHandleDown}
+                                onSelect={setSelection}
+                                literalOf={literalOf}
+                                onCommit={applyInput}
                             />
                         ))}
                     </g>
@@ -565,6 +651,67 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 <circle r={8} />
                 <path d="M -4 0 L 4 0 M 0 -4 L 0 4" />
             </g>
+        </g>
+    );
+}
+
+interface InputBoxProps {
+    box: DataflowSceneInput;
+    /// The input of the session, null while the inputs follow the graph
+    input: SessionInput | null;
+    selected: boolean;
+    highlighted: boolean;
+    dragging: boolean;
+    busy: boolean;
+    onHandleDown: (event: React.PointerEvent, box: DataflowSceneInput) => void;
+    onSelect: (selection: DataflowSelection) => void;
+    literalOf: (input: SessionInput, value: string) => { literal: string } | { error: string };
+    onCommit: (name: string, literal: string) => void;
+}
+
+/// The box of an input: the header with the name and the type, and the value in its row. Enter in the value writes it
+/// and runs the scripts that use the input.
+function DataflowInputBox(props: InputBoxProps): React.ReactElement {
+    const { box } = props;
+    const config = DATAFLOW_LAYOUT;
+    const input: DataflowInput = box.input;
+    const name = input.name;
+    const select = () => props.onSelect({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: name });
+    const portY = box.collapsed ? box.y + config.headerHeight / 2 : box.rowY + config.rowHeight / 2;
+    const portX = box.collapsed ? box.x + box.width : box.x + box.width - config.rowPadding;
+    return (
+        <g
+            className={styles.box}
+            data-dataflow-input={name}
+            data-selected={props.selected}
+            data-dragging={props.dragging || undefined}
+        >
+            <g
+                className={styles.header}
+                data-dataflow-handle
+                role="button"
+                tabIndex={0}
+                aria-label={`Input :${name}, ${input.type.sql}`}
+                onPointerDown={event => props.onHandleDown(event, box)}
+                onKeyDown={event => {
+                    if (event.key !== ' ' && event.key !== 'Enter') return;
+                    event.preventDefault();
+                    select();
+                }}
+            >
+                <rect x={box.x} y={box.y} width={box.width} height={config.headerHeight} rx={8} ry={8} className={styles.header_hit} />
+                <circle className={styles.status} data-status={props.busy ? 'running' : 'idle'} cx={box.x + 14} cy={box.y + config.headerHeight / 2} r={4} />
+                <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(`:${name}`, 16)}</text>
+                <text className={styles.input_type} x={box.x + box.width - 12} y={box.y + config.headerHeight / 2} data-inferred={!input.type.cast || undefined}>
+                    {truncate(input.type.sql, 14)}
+                </text>
+            </g>
+            {!box.collapsed && props.input != null && (
+                <foreignObject x={box.x + config.rowPadding} y={box.rowY} width={box.width - 2 * config.rowPadding} height={config.rowHeight} className={styles.input_row}>
+                    <SessionInputCard input={props.input} variant="block" busy={props.busy} literalOf={props.literalOf} onCommit={props.onCommit} />
+                </foreignObject>
+            )}
+            {box.output && <GraphPort x={portX} y={portY} side="right" highlighted={props.highlighted} data-dataflow-port="output" />}
         </g>
     );
 }

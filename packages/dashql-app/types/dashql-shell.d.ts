@@ -81,6 +81,8 @@ declare module '@ankoh/dashql-shell-js' {
     export const planSession: DashQLBindings['planSession'];
     export const checkScriptReferences: DashQLBindings['checkScriptReferences'];
     export const deriveSessionDataflow: DashQLBindings['deriveSessionDataflow'];
+    export const collectSessionInputs: DashQLBindings['collectSessionInputs'];
+    export const inputLiteral: DashQLBindings['inputLiteral'];
     export const quoteIdentifier: DashQLBindings['quoteIdentifier'];
     export const processBatch: DashQLBindings['processBatch'];
     export const appendCatalogChangesSql: DashQLBindings['appendCatalogChangesSql'];

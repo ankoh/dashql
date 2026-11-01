@@ -117,6 +117,34 @@ describe('runSessionExecution', () => {
         expect(f.unpack).toHaveBeenCalledOnce();
     });
 
+    it('runs the scripts that a change of inputs affects', async () => {
+        const f = fixture();
+        const EdgeKind = core.buffers.execution.DataflowEdgeKind;
+        // The input :min feeds 2_commands, which 10_last reads
+        const dataflow = {
+            scripts: [], inputs: [{ name: 'min' }, { name: 'other' }],
+            edges: [
+                { fromScript: 0, fromStatement: 0, toScript: 1, toStatement: 0, kind: EdgeKind.INPUT, name: 'min' },
+                { fromScript: 1, fromStatement: 0, toScript: 0, toStatement: 0, kind: EdgeKind.INPUT, name: 'other' },
+                { fromScript: 1, fromStatement: 2, toScript: 2, toStatement: 0, kind: EdgeKind.INLINE_REFERENCE, name: '2_commands' },
+            ],
+        };
+        const derive = vi.fn(() => ({ unpack: () => dataflow }));
+        (f.session.instance as any).deriveSessionDataflow = derive;
+        await runSessionExecution({ ...f.args, inputs: ['min'] });
+        expect(derive).toHaveBeenCalledOnce();
+        expect(f.plan.mock.calls[0][0].targets).toEqual([1, 2]);
+        expect(f.lastState().phase).toBe('succeeded');
+
+        // A change that no script reads runs nothing
+        const g = fixture();
+        (g.session.instance as any).deriveSessionDataflow = derive;
+        await runSessionExecution({ ...g.args, inputs: ['nope'] });
+        expect(g.plan).not.toHaveBeenCalled();
+        expect(g.executeQuery).not.toHaveBeenCalled();
+        expect(g.lastState()).toEqual(expect.objectContaining({ phase: 'succeeded', totalScripts: 0 }));
+    });
+
     it('passes the catalog changes of planned statements to the executor', async () => {
         const f = fixture();
         const change = new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, '', '', 't', ['a']);

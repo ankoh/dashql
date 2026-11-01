@@ -147,3 +147,278 @@ analyzer-snapshots:
               scope: 0
               text: "(select * .. y = :y) o"
           text: "select * f.. o on true"
+
+  - name: parameters_casts
+    script:
+      input: |-
+        select :a::int, :b::bigint[], :c::timestamp with time zone, cast(:d as text), :e::numeric(10,2),
+          :f::varchar(20), :g::date, :h::json, :i::int8, :j::timestamptz, :k::interval day, :l::bool, :m
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: function
+          known-function: CAST
+          is-const: true
+          statement-id: 0
+          text: "cast(:d as text)"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "10"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "20"
+      constants:
+        - expression: 1
+          text: "10"
+        - expression: 2
+          text: "2"
+        - expression: 3
+          text: "20"
+      parameters:
+        - kind: scalar
+          name: a
+          statement-id: 0
+          cast: "integer"
+          text: ":a"
+        - kind: scalar
+          name: b
+          statement-id: 0
+          cast: "bigint[]"
+          text: ":b"
+        - kind: scalar
+          name: c
+          statement-id: 0
+          cast: "timestamp with time zone"
+          text: ":c"
+        - kind: scalar
+          name: d
+          statement-id: 0
+          cast: "text"
+          text: ":d"
+        - kind: scalar
+          name: e
+          statement-id: 0
+          cast: "numeric(10,2)"
+          text: ":e"
+        - kind: scalar
+          name: f
+          statement-id: 0
+          cast: "varchar(20)"
+          text: ":f"
+        - kind: scalar
+          name: g
+          statement-id: 0
+          cast: "date"
+          text: ":g"
+        - kind: scalar
+          name: h
+          statement-id: 0
+          cast: "json"
+          text: ":h"
+        - kind: scalar
+          name: i
+          statement-id: 0
+          cast: "bigint"
+          text: ":i"
+        - kind: scalar
+          name: j
+          statement-id: 0
+          cast: "timestamp with time zone"
+          text: ":j"
+        - kind: scalar
+          name: k
+          statement-id: 0
+          cast: "interval day"
+          text: ":k"
+        - kind: scalar
+          name: l
+          statement-id: 0
+          cast: "boolean"
+          text: ":l"
+        - kind: scalar
+          name: m
+          statement-id: 0
+          text: ":m"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              expression: 0
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+          text: "select :a:..::bool, :m"
+
+  - name: parameters_param_tags
+    script:
+      input: |-
+        /**
+         * @param :min = 10
+         * @param :region = 'North America'
+         * @param :day
+         * @param :span = interval '3 days'
+         * @param :bad = now()
+         * @param broken
+         */
+        select * from orders where amount > :min and region = :region and day = :day::date and ts > now() - :span;
+        /* @param :min = 20
+           @param :"foo-2" = date '2024-01-01' */
+        select :min, :"foo-2"
+      catalog-id: 1
+      errors:
+        - type: INVALID_PARAM_TAG
+          severity: WARNING
+          message: 'now() is no literal, a literal is a number, a string, true, false, null, or a date, time, timestamp or interval literal'
+          text: "now()"
+        - type: INVALID_PARAM_TAG
+          severity: WARNING
+          message: 'the script already has a value for @param :min, this tag is ignored'
+          text: ":min"
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "orders"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "amount"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "region"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "day"
+        - expression-idx: 3
+          type: colref/unresolved
+          statement-id: 0
+          text: "ts"
+        - expression-idx: 4
+          type: function
+          name: now
+          is-const: true
+          statement-id: 0
+          text: "now()"
+      parameters:
+        - kind: scalar
+          name: min
+          statement-id: 0
+          text: ":min"
+        - kind: scalar
+          name: region
+          statement-id: 0
+          text: ":region"
+        - kind: scalar
+          name: day
+          statement-id: 0
+          cast: "date"
+          text: ":day"
+        - kind: scalar
+          name: span
+          statement-id: 0
+          text: ":span"
+        - kind: scalar
+          name: min
+          statement-id: 1
+          text: ":min"
+        - kind: scalar
+          name: foo-2
+          statement-id: 1
+          text: ":\"foo-2\""
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: unresolved
+              name: orders
+              text: "orders"
+          text: "select * f..() - :span"
+        - scope-id: 1
+          columns:
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+          text: "select :mi.., :\"foo-2\""
+      param-values:
+        - name: min
+          value: "10"
+          statement-id: 0
+        - name: region
+          value: "'North America'"
+          statement-id: 0
+        - name: day
+          statement-id: 0
+        - name: span
+          value: "interval '3 days'"
+          statement-id: 0
+        - name: bad
+          statement-id: 0
+        - name: foo-2
+          value: "date '2024-01-01'"
+          statement-id: 1
+      inferred-tables:
+        - name: orders
+          confidence: confident
+          columns:
+            - name: amount
+              confidence: confident
+            - name: region
+              confidence: confident
+            - name: day
+              confidence: confident
+            - name: ts
+              confidence: confident
+
+  - name: parameters_javadoc_param
+    script:
+      input: |-
+        /**
+         * @param x the value
+         */
+        select :x
+      catalog-id: 1
+      errors: []
+      parameters:
+        - kind: scalar
+          name: x
+          statement-id: 0
+          text: ":x"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: '?'
+              computed: true
+          text: "select :x"

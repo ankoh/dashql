@@ -2288,7 +2288,7 @@ planner-snapshots:
         input: |
           select * from orders where amount > :foo;
     expected:
-      valid: true
+      valid: false
       scripts:
         - name: foo
           text-version: 1
@@ -2333,4 +2333,9 @@ planner-snapshots:
             - entity: '256.65536.4294967296'
               mode: READ
       edges: []
-      diagnostics: []
+      diagnostics:
+        - node: 1
+          script: bar
+          text: ":foo"
+          error: true
+          message: 'input :foo has no value'

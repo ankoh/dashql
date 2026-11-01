@@ -21,6 +21,8 @@ export type DashQLBindings = Pick<
     | 'planSession'
     | 'checkScriptReferences'
     | 'deriveSessionDataflow'
+    | 'collectSessionInputs'
+    | 'inputLiteral'
     | 'quoteIdentifier'
     | 'processBatch'
     | 'appendCatalogChangesSql'
@@ -51,6 +53,8 @@ export interface DataflowLayoutBox {
     collapsed?: boolean;
     /// The position of the box if it is fixed, e.g. by its `@vis flow` tag
     fixed?: { x: number; y: number } | null;
+    /// The width of the box, the width of the config if absent
+    width?: number | null;
 }
 
 /// An edge between statements of two boxes
@@ -77,6 +81,8 @@ export interface SessionPlanConnection {
     id: string;
     /// Is the connection the embedded Hyper, which scans the materialized results of other connections?
     local: boolean;
+    /// The SQL dialect of the connection, the values of inputs are printed in it. Hyper if absent.
+    dialect?: buffers.formatting.FormattingDialect;
     /// The catalog of the connection, its scripts are analyzed with it
     catalog: DashQLCatalog;
 }
@@ -174,6 +180,7 @@ const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
 const EXECUTION_GRAPH_TYPE = Symbol('EXECUTION_GRAPH_TYPE');
 const SCRIPT_REFERENCE_CHECK_TYPE = Symbol('SCRIPT_REFERENCE_CHECK_TYPE');
 const SESSION_DATAFLOW_TYPE = Symbol('SESSION_DATAFLOW_TYPE');
+const SESSION_INPUTS_TYPE = Symbol('SESSION_INPUTS_TYPE');
 const SCRIPT_RESULTS_TYPE = Symbol('SCRIPT_RESULTS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
@@ -310,7 +317,7 @@ export class DashQL {
                 if (connection.catalog.ptr.api !== this) {
                     throw new Error('planner catalog belongs to a different DashQL instance');
                 }
-                native.addConnection(connection.id, connection.local, connection.catalog.ptr.assertNotNull());
+                native.addConnection(connection.id, connection.local, connection.catalog.ptr.assertNotNull(), connection.dialect ?? buffers.formatting.FormattingDialect.HYPER);
             }
             for (const script of request.scripts) {
                 if (!(script.session instanceof DashQLScriptSession)) {
@@ -369,6 +376,26 @@ export class DashQL {
         }
     }
 
+    /// Collect the inputs of the scripts of a session, the named scalar parameters and their values, see
+    /// docs/design/session_inputs.md. Takes every analysis that is current with the text of its script. Ignores the
+    /// targets, the materialized scripts and the mount prefix.
+    public collectSessionInputs(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.SessionInputs> {
+        const native = this.buildSessionPlanRequest(request);
+        try {
+            return new FlatBufferPtr(SESSION_INPUTS_TYPE, this, this.bindings.collectSessionInputs(native), () => new buffers.execution.SessionInputs());
+        } finally {
+            native.free();
+        }
+    }
+
+    /// The literal of the value of an input control in the Hyper dialect, the value of an `@param` tag: a number,
+    /// `true` or `false`, a date, a time, a timestamp, an interval or a string, as the type of the input says. Without
+    /// a type a number is a number, `true` and `false` are booleans, and any other value is a string. Throws if the
+    /// type doesn't read the value.
+    public inputLiteral(value: string, type: { kind: buffers.analyzer.SqlTypeKind; withTimeZone?: boolean } | null): string {
+        return this.bindings.inputLiteral(value, type?.kind ?? -1, type?.withTimeZone ?? false);
+    }
+
     /// Create the results of the scripts of a session, which their table parameters read
     public createScriptResults(): DashQLScriptResults {
         return new DashQLScriptResults(new Ptr(SCRIPT_RESULTS_TYPE, this, new this.bindings.ScriptResults()));
@@ -388,7 +415,7 @@ export class DashQL {
                 layout.setConfig(config.boxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid);
             }
             for (const box of boxes) {
-                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0);
+                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0, box.width ?? 0);
             }
             for (const edge of edges) {
                 layout.addEdge(edge.fromBox, edge.fromStatement, edge.toBox, edge.toStatement);
@@ -722,6 +749,17 @@ export class DashQLScriptSession {
     /// Remove the `@vis flow` tag of the script. Returns the new text, the script is not changed.
     public removeVisFlow(parseIfOutdated: boolean = true): string {
         return this.ptr.assertNotNull().removeVisFlow(parseIfOutdated);
+    }
+
+    /// Set the value of an input of the script, its `@param :name = <literal>` tag, the literal in the Hyper dialect. A
+    /// new tag goes to the statement that uses the input first. Returns the new text, the script is not changed.
+    public rewriteParamTag(name: string, literal: string, parseIfOutdated: boolean = true): string {
+        return this.ptr.assertNotNull().rewriteParamTag(name, literal, parseIfOutdated);
+    }
+
+    /// Remove the `@param` tags of an input of the script. Returns the new text, the script is not changed.
+    public removeParamTag(name: string, parseIfOutdated: boolean = true): string {
+        return this.ptr.assertNotNull().removeParamTag(name, parseIfOutdated);
     }
 
     /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template) or `table` tag.

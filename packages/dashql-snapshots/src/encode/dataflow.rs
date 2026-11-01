@@ -3,7 +3,7 @@
 //!
 //! The boxes are laid out like the app lays them out on its first render: a script with a `@vis flow` tag is fixed
 //! at its position, the chart of a visualized terminal statement follows its row, and the scripts of `collapsed` are
-//! collapsed to their headers.
+//! collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide.
 
 use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
@@ -23,7 +23,10 @@ pub fn collapsed_of(fixture: &Node) -> Vec<String> {
     fixture.get("collapsed").map(Node::children).unwrap_or_default().into_iter().filter_map(|n| n.val().map(str::to_string)).collect()
 }
 
-/// Lay out the boxes of the scripts of a dataflow
+/// The width of the box of an input, like the canvas of the app
+pub const INPUT_BOX_WIDTH: f64 = 200.0;
+
+/// Lay out the boxes of the scripts of a dataflow, then the boxes of its inputs
 fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collapsed: &[bool]) -> Vec<(f64, f64, f64, f64)> {
     let boxes: Vec<DataflowLayoutBox> = dataflow
         .scripts
@@ -42,14 +45,20 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
                 chart_statement,
                 collapsed,
                 fixed: analyzed.and_then(|a| a.flow).map(|flow| (flow.x as f64, flow.y as f64)),
+                width: None,
             }
         })
+        .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), ..Default::default() }))
         .collect();
+    let scripts = dataflow.scripts.len() as u32;
     let edges: Vec<DataflowLayoutEdge> = dataflow
         .edges
         .iter()
-        .filter(|e| e.from.script != e.to.script)
-        .map(|e| DataflowLayoutEdge { from_box: e.from.script, from_statement: e.from.statement, to_box: e.to.script, to_statement: e.to.statement })
+        .map(|e| {
+            let from_box = if e.kind == DataflowEdgeKind::Input { scripts + e.from.script } else { e.from.script };
+            DataflowLayoutEdge { from_box, from_statement: e.from.statement, to_box: e.to.script, to_statement: e.to.statement }
+        })
+        .filter(|e| e.from_box != e.to_box)
         .collect();
     compute_dataflow_layout(&boxes, &edges, &DataflowLayoutConfig::default()).iter().map(|g| (g.x, g.y, g.width, g.height)).collect()
 }
@@ -103,7 +112,11 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
         .iter()
         .map(|e| {
             let mut m = Map::new();
-            m.plain("from", &port(e.from.script, e.from.statement));
+            if e.kind == DataflowEdgeKind::Input {
+                m.quoted("from", &format!(":{}", dataflow.inputs[e.from.script as usize].name));
+            } else {
+                m.plain("from", &port(e.from.script, e.from.statement));
+            }
             m.plain("to", &port(e.to.script, e.to.statement));
             m.plain(
                 "kind",
@@ -112,14 +125,38 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
                     DataflowEdgeKind::ScanReference => "scan",
                     DataflowEdgeKind::InvalidReference => "invalid",
                     DataflowEdgeKind::Table => "table",
+                    DataflowEdgeKind::Input => "input",
                 },
             );
             m.plain("name", &e.name);
             m.into_node()
         })
         .collect();
+    let script_count = dataflow.scripts.len();
+    let input_nodes: Vec<Node> = dataflow
+        .inputs
+        .iter()
+        .enumerate()
+        .map(|(i, input)| {
+            let mut m = Map::new();
+            m.plain("name", &input.name);
+            m.quoted("type", &input.sql_type.to_string());
+            if input.type_source != dashql_core_session::session_inputs::InputTypeSource::Cast {
+                m.boolean("cast", false);
+            }
+            if let Some(literal) = &input.literal {
+                m.quoted("value", &literal.to_hyper());
+            }
+            let (x, y, w, h) = boxes[script_count + i];
+            m.insert("box", Node::flow_seq([x, y, w, h].iter().map(|v| Node::int(v.round() as i64)).collect()));
+            m.into_node()
+        })
+        .collect();
     let mut out = Map::new();
     out.insert("scripts", Node::seq(scripts));
+    if !input_nodes.is_empty() {
+        out.insert("inputs", Node::seq(input_nodes));
+    }
     out.insert("edges", Node::seq(edges));
     Ok(out.into_node())
 }

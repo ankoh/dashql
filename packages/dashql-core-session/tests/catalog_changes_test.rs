@@ -318,7 +318,7 @@ fn a_plan_of_a_script_carries_the_changes_of_its_statements() {
     let mut session = ScriptSession::new(&catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
     session.replace_text(&catalog, 0, "create table t (v int); drop table u; select * from t;");
     session.analyze(&catalog);
-    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog }];
+    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER }];
     let scripts = [PlannerScript { script: session.script(), name: "", connection: 0, materialization_file: None }];
     let graph = plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Targets(&[0]), materialized: &[], mount_prefix: "" });
     assert!(graph.valid);

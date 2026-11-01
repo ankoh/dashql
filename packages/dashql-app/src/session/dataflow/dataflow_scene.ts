@@ -1,6 +1,6 @@
 import type * as core from '@ankoh/dashql-core';
 
-import { DataflowEdgeKind, type DataflowEdge, type DataflowGraph, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
+import { DataflowEdgeKind, type DataflowGraph, type DataflowInput, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
 
 /// The sizes of the canvas, every row center is a multiple of the grid so that edges between snapped boxes are straight
 export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
@@ -13,6 +13,9 @@ export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
     boxGap: 32,
     grid: 8,
 };
+
+/// The width of the box of an input, like the dataflow snapshots of the core
+export const INPUT_BOX_WIDTH = 200;
 
 /// Boxes are collapsed below this zoom, which leaves out the charts and merges the edges between boxes
 export const DATAFLOW_COLLAPSE_SCALE = 0.5;
@@ -57,12 +60,24 @@ export interface DataflowSceneBox extends Rect {
     output: boolean;
 }
 
+/// The box of an input: a header with the name and one row with the value
+export interface DataflowSceneInput extends Rect {
+    input: DataflowInput;
+    collapsed: boolean;
+    /// The top of the row of the value on the canvas
+    rowY: number;
+    /// Does an edge start at the input?
+    output: boolean;
+}
+
 /// An edge
 export interface DataflowSceneEdge {
     key: string;
     kind: DataflowEdgeKind;
     from: DataflowPort;
     to: DataflowPort;
+    /// The input that an input edge starts at
+    input: string | null;
     /// Do both ends lie in one box?
     internal: boolean;
     path: string;
@@ -72,6 +87,7 @@ export interface DataflowSceneEdge {
 
 export interface DataflowScene {
     boxes: DataflowSceneBox[];
+    inputs: DataflowSceneInput[];
     edges: DataflowSceneEdge[];
     /// The bounds of the boxes
     bounds: Rect;
@@ -86,15 +102,18 @@ export interface DataflowBoxPosition {
     rows: number[];
 }
 
-/// The inputs of the layout of a graph: a box per script and the edges between statements of different scripts
+/// The inputs of the layout of a graph: a box per script, then a box of one row per input, and the edges between
+/// statements of different boxes
 export function dataflowLayoutInput(
     graph: DataflowGraph,
     fixed: (script: DataflowScript) => { x: number; y: number } | null,
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
+    fixedInput: (input: DataflowInput) => { x: number; y: number } | null = () => null,
 ): { boxes: core.DataflowLayoutBox[]; edges: core.DataflowLayoutEdge[] } {
     const index = new Map(graph.scripts.map((s, i) => [s.scriptKey, i]));
-    const boxes = graph.scripts.map(script => {
+    const inputIndex = new Map(graph.inputs.map((input, i) => [input.name, graph.scripts.length + i]));
+    const boxes: core.DataflowLayoutBox[] = graph.scripts.map(script => {
         const isCollapsed = collapsed(script);
         return {
             statements: script.statements.length,
@@ -103,8 +122,11 @@ export function dataflowLayoutInput(
             fixed: fixed(script),
         };
     });
+    for (const input of graph.inputs) {
+        boxes.push({ statements: 1, width: INPUT_BOX_WIDTH, fixed: fixedInput(input) });
+    }
     const edges = graph.edges.flatMap(edge => {
-        const fromBox = index.get(edge.from.scriptKey);
+        const fromBox = edge.input != null ? inputIndex.get(edge.input) : index.get(edge.from.scriptKey);
         const toBox = index.get(edge.to.scriptKey);
         if (fromBox == null || toBox == null || fromBox === toBox) return [];
         return [{ fromBox, fromStatement: edge.from.statementId, toBox, toStatement: edge.to.statementId }];
@@ -120,7 +142,7 @@ function portY(box: DataflowSceneBox, statementId: number, config: core.Dataflow
 }
 
 /// The width of the frame that the ports of a box sit on: the statement rows, or the header of a collapsed box
-export function portFrameWidth(box: DataflowSceneBox, config: core.DataflowLayoutConfig): number {
+export function portFrameWidth(box: EdgeEnd, config: core.DataflowLayoutConfig): number {
     return box.collapsed ? box.width : box.width - 2 * config.rowPadding;
 }
 
@@ -141,10 +163,15 @@ export function roundedPath(points: [number, number][], radius = EDGE_CORNER_RAD
     return out.join(' ');
 }
 
+/// The part of a box that edges are routed around
+interface EdgeEnd extends Rect {
+    collapsed: boolean;
+}
+
 /// The route of an edge from the output port of a row to the input port of a row of another box. A target to the
 /// right is reached with at most two turns, a target to the left with an S around the boxes. Returns the path and the
 /// middle of the route.
-function routeEdge(from: DataflowSceneBox, fromY: number, to: DataflowSceneBox, toY: number, config: core.DataflowLayoutConfig): { path: string; middle: [number, number] } {
+function routeEdge(from: EdgeEnd, fromY: number, to: EdgeEnd, toY: number, config: core.DataflowLayoutConfig): { path: string; middle: [number, number] } {
     const x1 = from.x + (from.width + portFrameWidth(from, config)) / 2;
     const x2 = to.x + (to.width - portFrameWidth(to, config)) / 2;
     const stub = EDGE_STUB;
@@ -175,13 +202,15 @@ export function edgeBadgeWidth(text: string): number {
     return Math.max(EDGE_BADGE_MIN_WIDTH, text.length * 6 + 10);
 }
 
-/// The scene of a graph with the positions of its boxes, in the order of the scripts
+/// The scene of a graph with the positions of its boxes, in the order of the scripts, then the inputs
 export function buildDataflowScene(
     graph: DataflowGraph,
     positions: DataflowBoxPosition[],
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
     config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT,
+    /// Are the inputs drawn as their headers? The canvas collapses them when it is zoomed out.
+    inputsCollapsed = false,
 ): DataflowScene {
     const boxes: DataflowSceneBox[] = graph.scripts.map((script, index) => {
         const p = positions[index];
@@ -199,14 +228,40 @@ export function buildDataflowScene(
         return { script, index, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height, rows, chart, input: false, output: false };
     });
     const boxOf = new Map(boxes.map(b => [b.script.scriptKey, b]));
+    const inputs: DataflowSceneInput[] = graph.inputs.flatMap((input, i) => {
+        const p = positions[graph.scripts.length + i];
+        if (p == null) return [];
+        const height = inputsCollapsed ? config.headerHeight : p.height;
+        return [{ input, collapsed: inputsCollapsed, x: p.x, y: p.y, width: p.width, height, rowY: p.y + (p.rows[0] ?? 0), output: false }];
+    });
+    const inputOf = new Map(inputs.map(i => [i.input.name, i]));
 
     // Edges into collapsed boxes are merged, their statements are hidden
     const edges: DataflowSceneEdge[] = [];
     const merged = new Set<string>();
     for (const edge of graph.edges) {
-        const from = boxOf.get(edge.from.scriptKey);
         const to = boxOf.get(edge.to.scriptKey);
-        if (from == null || to == null) continue;
+        if (to == null) continue;
+        if (edge.input != null) {
+            const source = inputOf.get(edge.input);
+            if (source == null) continue;
+            const toStatement = to.collapsed ? -1 : edge.to.statementId;
+            if (to.collapsed) {
+                const key = `:${edge.input}>${to.script.scriptKey}.${toStatement}`;
+                if (merged.has(key)) continue;
+                merged.add(key);
+            }
+            const fromY = source.collapsed ? source.y + config.headerHeight / 2 : source.rowY + config.rowHeight / 2;
+            const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config);
+            source.output = true;
+            const toRow = to.rows[edge.to.statementId];
+            if (to.collapsed || toRow == null) to.input = true;
+            else toRow.input = true;
+            edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: edge.input, internal: false, path, badge: null });
+            continue;
+        }
+        const from = boxOf.get(edge.from.scriptKey);
+        if (from == null) continue;
         const internal = from === to;
         if (internal && from.collapsed) continue;
         const fromStatement = from.collapsed ? -1 : edge.from.statementId;
@@ -236,29 +291,32 @@ export function buildDataflowScene(
         const badge = edge.kind === DataflowEdgeKind.Table && !internal && edge.name.length > 0
             ? { x: middle[0], y: middle[1], width: edgeBadgeWidth(edge.name), text: edge.name }
             : null;
-        edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, internal, path, badge });
+        edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: null, internal, path, badge });
     }
 
     let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const box of boxes) {
+    for (const box of [...boxes, ...inputs]) {
         minX = Math.min(minX, box.x);
         minY = Math.min(minY, box.y);
         maxX = Math.max(maxX, box.x + box.width);
         maxY = Math.max(maxY, box.y + box.height);
     }
-    const bounds = boxes.length === 0 ? { x: 0, y: 0, width: 0, height: 0 } : { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-    return { boxes, edges, bounds };
+    const bounds = boxes.length + inputs.length === 0 ? { x: 0, y: 0, width: 0, height: 0 } : { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    return { boxes, inputs, edges, bounds };
 }
 
-/// What is selected on the canvas: a box, or a statement of it
+/// What is selected on the canvas: a box, or a statement of it, or an input
 export interface DataflowSelection {
     scriptKey: number;
     statementId: number | null;
+    /// The selected input, the script key is `INPUT_PORT_SCRIPT_KEY` then
+    input?: string;
 }
 
-/// The edges of a selection: of the selected statement, or of every statement of the selected box
+/// The edges of a selection: of the selected statement, or of every statement of the selected box, or of the input
 export function selectedEdges(scene: DataflowScene, selection: DataflowSelection | null): DataflowSceneEdge[] {
     if (selection == null) return [];
+    if (selection.input != null) return scene.edges.filter(edge => edge.input === selection.input);
     const touches = (port: DataflowPort) => port.scriptKey === selection.scriptKey
         && (selection.statementId == null || port.statementId === selection.statementId);
     return scene.edges.filter(edge => touches(edge.from) || touches(edge.to));

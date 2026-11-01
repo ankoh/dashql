@@ -25,6 +25,8 @@ interface VerticalScrollShadowsProps {
     prominent?: boolean;
     refreshKey?: unknown;
     rightInset?: number;
+    /// The space above the top shadow, e.g. of a strip that floats over the top of the scroll element
+    topInset?: number;
 }
 
 const NO_OVERFLOW: VerticalScrollOverflow = { top: false, bottom: false };
@@ -35,6 +37,7 @@ export const VerticalScrollShadows: React.FC<VerticalScrollShadowsProps> = ({
     prominent = false,
     refreshKey,
     rightInset = 0,
+    topInset = 0,
 }) => {
     const [overflow, setOverflow] = React.useState(NO_OVERFLOW);
     const updateOverflow = React.useCallback(() => {
@@ -58,11 +61,12 @@ export const VerticalScrollShadows: React.FC<VerticalScrollShadowsProps> = ({
     }, [getScrollElement, refreshKey, updateOverflow]);
 
     const insetStyle = rightInset === 0 ? undefined : { right: rightInset };
+    const topStyle = topInset === 0 ? insetStyle : { ...insetStyle, top: topInset };
     const shadows = (
         <>
             <div
                 className={classNames(styles.shadow, styles.top, prominent && styles.prominent)}
-                style={insetStyle}
+                style={topStyle}
                 data-scroll-shadow="top"
                 data-visible={overflow.top}
                 aria-hidden="true"

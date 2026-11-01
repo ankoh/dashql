@@ -69,6 +69,8 @@ pub struct DataflowLayoutBox {
     pub collapsed: bool,
     /// The position of the box if it is fixed
     pub fixed: Option<(f64, f64)>,
+    /// The width of the box, the width of the config if absent
+    pub width: Option<f64>,
 }
 
 /// An edge between statements of two boxes
@@ -103,7 +105,7 @@ impl DataflowBoxGeometry {
 
 /// The geometry of a box without its position
 fn box_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> DataflowBoxGeometry {
-    let mut geometry = DataflowBoxGeometry { width: config.box_width, ..Default::default() };
+    let mut geometry = DataflowBoxGeometry { width: b.width.unwrap_or(config.box_width), ..Default::default() };
     if b.collapsed || b.statements == 0 {
         geometry.rows = vec![0.0; b.statements as usize];
         geometry.height = config.header_height;

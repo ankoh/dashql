@@ -337,7 +337,7 @@ planner-snapshots:
         input: |
           select count(*) from :foo;
 
-  # A scalar parameter is no script reference
+  # A scalar parameter is no script reference, it is an input, without a value it fails the plan
   - name: ScalarParameter
     catalog: |
       create table orders (id int, amount int);
