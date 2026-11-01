@@ -27,7 +27,7 @@ analyzer-snapshots:
          * @param :min = 10
          * @param :region = 'North America'
          * @param :day
-         * @param :span = interval '3 days'
+         * @param :span = interval '3' day
          * @param :bad = now()
          * @param broken
          */

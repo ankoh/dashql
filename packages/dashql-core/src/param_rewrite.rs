@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn adds_a_tag_to_the_first_use() {
         assert_eq!(rewrite("select 1;\nselect :min", "min", Some("10"), Some(1)), "select 1;\n/** @param :min = 10 */\nselect :min");
-        assert_eq!(rewrite("select :span", "span", Some("INTERVAL '3 days'"), None), "/** @param :span = interval '3 days' */\nselect :span");
+        assert_eq!(rewrite("select :span", "span", Some("INTERVAL '3' DAY"), None), "/** @param :span = interval '3' day */\nselect :span");
     }
 
     #[test]

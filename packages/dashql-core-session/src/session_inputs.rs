@@ -7,7 +7,8 @@
 //! its own and the session reads one value per input.
 //!
 //! The type of an input is the type of a cast of the parameter, `:min::int`, the first cast in session order, or the
-//! type of its literal: `interval '3 days'` is an interval, `10` a bigint and `'EU'` text.
+//! type of its literal: `interval '3' day` is an interval, `10` a bigint and `'EU'` text. The unit of an interval is
+//! part of its value, a control picks it, so the type of the literal of an interval is `interval` without fields.
 //!
 //! The planner binds the literal in the dialect of the connection of the statement, `INTERVAL '3' DAY` on Trino. A
 //! literal that the dialect can't express and an input without a value are errors of the plan.
@@ -150,7 +151,10 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
                 input.sql_type = cast;
                 input.type_source = InputTypeSource::Cast;
             }
-            (None, Some(literal_type)) => {
+            (None, Some(mut literal_type)) => {
+                if let SqlTypeKind::Interval { fields, .. } = &mut literal_type.kind {
+                    *fields = None;
+                }
                 input.sql_type = literal_type;
                 input.type_source = InputTypeSource::Literal;
             }

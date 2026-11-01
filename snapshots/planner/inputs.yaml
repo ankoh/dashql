@@ -11,7 +11,7 @@ planner-snapshots:
            * @param :open = true
            * @param :delta = -2
            * @param :day = date '2024-01-01'
-           * @param :span = interval '3 days' */
+           * @param :span = interval '3' day */
           select id from orders where amount > :min + :delta and region = :region and open = :open
             and day >= :day and ts > timestamp '2024-02-01' - :span;
     expected:
@@ -23,7 +23,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "491aece2fe4bd2d3115571e0a99d7d78\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3 days'"
+          signature: "491aece2fe4bd2d3115571e0a99d7d78\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3' day"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -35,8 +35,8 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            select id from orders where amount > 10 + (-2) and region = 'EU' and open = TRUE
-              and day >= DATE '2024-01-01' and ts > timestamp '2024-02-01' - INTERVAL '3 days'
+            select id from orders where amount > 10 + (-2) and region = 'EU' and open = true
+              and day >= date '2024-01-01' and ts > timestamp '2024-02-01' - interval '3' day
           produces-output: true
           barrier: false
           script-result: true
@@ -221,7 +221,7 @@ planner-snapshots:
       - name: foo
         input: |
           /* @param :min = 10
-             @param :span = interval '3 days'
+             @param :span = interval '3' day
              @param :day = date '2024-02-01' */
           select id, amount from orders where amount > :min and :day - :span < date '2024-03-01';
       - name: bar
@@ -237,7 +237,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "4184a4e3a2a157502b9b65aa8a1da1e5\n:day=date '2024-02-01'\n:min=10\n:span=interval '3 days'"
+          signature: "4184a4e3a2a157502b9b65aa8a1da1e5\n:day=date '2024-02-01'\n:min=10\n:span=interval '3' day"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
@@ -256,7 +256,7 @@ planner-snapshots:
           script: foo
           statement-id: 0
           type: SELECT
-          sql: "select id, amount from orders where amount > 10 and DATE '2024-02-01' - INTERVAL '3 days' < date '2024-03-01'"
+          sql: "select id, amount from orders where amount > 10 and date '2024-02-01' - interval '3' day < date '2024-03-01'"
           produces-output: true
           barrier: false
           script-result: true
@@ -269,7 +269,7 @@ planner-snapshots:
           type: SELECT
           sql: |-
             with foo as (
-            select id, amount from orders where amount > 10 and DATE '2024-02-01' - INTERVAL '3 days' < date '2024-03-01'
+            select id, amount from orders where amount > 10 and date '2024-02-01' - interval '3' day < date '2024-03-01'
             )
             select count(*) from foo where id < 5
           produces-output: true
@@ -306,7 +306,7 @@ planner-snapshots:
       - name: foo
         connection: trino
         input: |
-          /* @param :span = interval '1 day 2 hours'
+          /* @param :span = interval '26' hour
              @param :day = date '2024-01-01'
              @param :name = 'it''s' */
           select id from events where ts > now() - :span and day = :day and :name <> '';
@@ -323,7 +323,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "3bb0015de7566bcf113faa08afc914b0\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '1 day 2 hours'"
+          signature: "3bb0015de7566bcf113faa08afc914b0\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '26' hour"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE
@@ -335,7 +335,7 @@ planner-snapshots:
           connection: trino
           statement-id: 0
           type: SELECT
-          sql: "select id from events where ts > now() - INTERVAL '26' HOUR and day = DATE '2024-01-01' and 'it''s' <> ''"
+          sql: "select id from events where ts > now() - interval '26' hour and day = date '2024-01-01' and 'it''s' <> ''"
           produces-output: true
           barrier: false
           script-result: true
@@ -345,7 +345,7 @@ planner-snapshots:
       edges: []
       diagnostics: []
 
-  - name: InputTrinoUnsupported
+  - name: InputIntervalText
     hyper: skip
     connections:
       - name: trino
@@ -357,7 +357,7 @@ planner-snapshots:
       - name: foo
         connection: trino
         input: |
-          /* @param :span = interval '1 month 2 days' */
+          /* @param :span = interval '1 day 2 hours' */
           select id from events where ts > now() - :span;
     expected:
       valid: false
@@ -372,7 +372,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "c4abd93e7f1ee7ddcfbad8039062618e\n:span=interval '1 month 2 days'"
+          signature: "c4abd93e7f1ee7ddcfbad8039062618e"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE
@@ -397,4 +397,4 @@ planner-snapshots:
           script: foo
           text: ":span"
           error: true
-          message: 'input :span: Trino has no interval of months and days, "1 month 2 days" has both'
+          message: 'input :span has no value'

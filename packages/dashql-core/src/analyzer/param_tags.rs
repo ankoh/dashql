@@ -2,7 +2,7 @@
 //!
 //! ```sql
 //! /* @param :min = 10
-//!    @param :span = interval '3 days' */
+//!    @param :span = interval '3' day */
 //! select * from orders where amount > :min and ts > now() - :span;
 //! ```
 //!

@@ -5,7 +5,7 @@ The named scalar parameters of the scripts of a session are its inputs. `:min` a
 ```sql
 /**
  * @param :min = 10
- * @param :span = interval '3 days'
+ * @param :span = interval '3' day
  */
 select * from orders where amount > :min and ts > now() - :span;
 ```
@@ -42,10 +42,16 @@ script, the first tag of a name in statement order wins, a second one is a warni
 collects the tags in `AnalyzedScript.inputs` (`analyzer::param_tags`).
 
 The value is a literal in the Hyper dialect, whatever the connection of the script speaks (`sql_literal`): a number
-(`10`, `-2.5`), a string (`'EU'`), `true`, `false`, `null`, or a typed literal of a date, a time, a timestamp or an
-interval (`date '2024-01-01'`, `timestamptz '2024-01-01 10:00+02'`, `interval '3 days'`, `interval '3' day`). The
-parser of DashQL reads it as the expression of `select <literal>`. Anything else, e.g. `now()` or `1 + 1`, is a warning
-on the tag and leaves the input unset. Scripts never hold the literals of another dialect, so DashQL never reads them.
+(`10`, `-2.5`), a string (`'EU'`), `true`, `false`, `null`, or a typed literal (`date '2024-01-01'`,
+`timestamptz '2024-01-01 10:00+02'`, `interval '3' day`). The parser of DashQL reads it as the expression of
+`select <literal>`, the reader of types of the analyzer (`analyzer::sql_types`) reads the type of a typed literal and
+the formatter prints it. Anything else, e.g. `now()` or `1 + 1`, is a warning on the tag and leaves the input unset.
+Scripts never hold the literals of another dialect, so DashQL never reads them.
+
+An interval is a number and one unit, `year`, `month`, `day`, `hour`, `minute` or `second`: an integer, seconds may
+have a fraction (`interval '1.5' second`). Hyper and Trino read it alike. Interval text, `interval '3 days'` or
+`interval '1 day 2 hours'`, is no literal: Trino has no form of it, and DashQL doesn't read the text of intervals. The
+unit is part of the value, the type of an input with an interval literal is `interval`.
 
 `param_rewrite::rewrite_param_tag` (`ScriptSession.rewriteParamTag`, `removeParamTag`) writes a literal: the first tag
 of the name is replaced where it is and the others are removed. Without a tag a new one goes into the annotation of the
@@ -56,24 +62,20 @@ the scripts agree and every script holds its values on its own, also when it is 
 ## Binding
 
 The planner binds the inputs of every statement it plans and of every query it inlines: the text of a parameter becomes
-the literal printed in the dialect of the connection of the statement (`SqlLiteral::print`, `PlannerConnection.dialect`,
-which the app derives from the connector like the formatter). A negative number is put in parentheses, `x-:n` would
-read as a comment otherwise.
+the literal printed by the formatter in the dialect of the connection of the statement (`SqlLiteral::print`,
+`PlannerConnection.dialect`, which the app derives from the connector like the formatter). A negative number is put in
+parentheses, `x-:n` would read as a comment otherwise.
 
 | Literal | Hyper | Trino |
 |---|---|---|
 | `10`, `-2` | `10`, `(-2)` | `10`, `(-2)` |
 | `'it''s'` | `'it''s'` | `'it''s'` |
-| `true` | `TRUE` | `TRUE` |
-| `date '2024-01-01'` | `DATE '2024-01-01'` | `DATE '2024-01-01'` |
-| `timestamptz '2024-01-01 10:00 UTC'` | `TIMESTAMP WITH TIME ZONE '…'` | `TIMESTAMP '2024-01-01 10:00 UTC'` |
-| `interval '3 days'` | `INTERVAL '3 days'` | `INTERVAL '3' DAY` |
-| `interval '1 day 2 hours'` | `INTERVAL '1 day 2 hours'` | `INTERVAL '26' HOUR` |
-| `interval '1 year 2 months'` | `INTERVAL '1 year 2 months'` | `INTERVAL '14' MONTH` |
+| `date '2024-01-01'` | `date '2024-01-01'` | `date '2024-01-01'` |
+| `timestamptz '2024-01-01 10:00 UTC'` | `timestamptz '2024-01-01 10:00 UTC'` | `timestamp '2024-01-01 10:00 UTC'` |
+| `interval '3' day` | `interval '3' day` | `interval '3' day` |
 
-Trino has one unit per interval literal and no interval of both months and days: an interval is printed in the largest
-unit that holds it exactly, `interval '1 month 2 days'` is an error. The text of an interval is read like Hyper reads
-it: amounts with units (`3 days`, `1.5 hours`, `2 weeks`), a time (`01:30:00`) and `ago`.
+The Trino dialect of the formatter writes the literals of the Hyper dialect that Trino reads differently: Trino reads
+the time zone of a timestamp or time literal from its text, so the type of the literal has no zone.
 
 A cast of the parameter in the query applies to the literal, `:min::int` with `'10'` is `'10'::int`. An input without a
 value and a literal that the dialect can't express are errors of the plan, with the span of the parameter
@@ -98,11 +100,11 @@ session is free, with the inputs of every change since.
 
 `useSessionInputs` collects the inputs of a session when a script or its analysis changes. `SessionInputCard` shows an
 input: the name, the type and a control that follows the type, a number field, a boolean select, a date or a datetime
-field, an interval field (`3 days`), and text otherwise. The control shows the value without its SQL, `3 days` for
-`interval '3 days'` and `EU` for `'EU'`. The control owns its draft: Enter writes it and runs, Escape restores the
-value. The core makes the literal of a draft (`inputLiteral`, `SqlLiteral::from_value`): the type of the input says
+field, a number field with a unit select for an interval, and text otherwise. The control shows the value without its
+SQL, `3` and `day` for `interval '3' day` and `EU` for `'EU'`. The control owns its draft: Enter writes it and runs,
+Escape restores the value, a changed unit or boolean writes it at once. The core makes the literal of a draft (`inputLiteral`, `SqlLiteral::from_value`): the type of the input says
 what the draft is, an input whose type is unknown reads a number, `true`, `false` or a string. A draft that the type
-doesn't read, e.g. `ten` for an integer or `soon` for an interval, is marked and not written.
+doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not written.
 
 - **Feed and dashboard.** `SessionInputStrip` floats the cards over the top of the view on a translucent, blurred
   veil that fades out downward, the content scrolls underneath. The feed starts its first script below the strip and

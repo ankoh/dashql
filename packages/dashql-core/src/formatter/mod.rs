@@ -1058,12 +1058,35 @@ impl<'a> Formatter<'a> {
         let f = &self.fmt;
         let [type_node, value] = attrs!(self.children(node), [K::SQL_CONST_CAST_TYPE, K::SQL_CONST_CAST_VALUE]);
         let (Some(type_node), Some(value)) = (type_node, value) else { return self.format_unimplemented(node) };
+        // Trino reads the time zone of a timestamp or time literal from its text, its literals have no zone in the type
+        if self.config.dialect == FormattingDialect::TRINO {
+            if let Some(keyword) = self.zoned_time_type(type_node) {
+                let value_reg = self.reg(value);
+                if value_reg == 0 {
+                    return self.format_unimplemented(node);
+                }
+                return f.concat(&[f.text(keyword), f.text(" "), value_reg]);
+            }
+        }
         let type_reg = self.reg(type_node);
         let value_reg = self.reg(value);
         if type_reg == 0 || value_reg == 0 {
             return self.format_unimplemented(node);
         }
         f.concat(&[type_reg, f.text(" "), value_reg])
+    }
+
+    /// The keyword of a timestamp or time type with a time zone, `timestamp with time zone` is `timestamp`
+    fn zoned_time_type(&self, type_node: &'a Node) -> Option<&'static str> {
+        let [element] = attrs!(self.children(type_node), [K::SQL_TYPENAME_TYPE]);
+        let element = element?;
+        let [tz] = attrs!(self.children(element), [K::SQL_TIME_TYPE_WITH_TIMEZONE]);
+        let zoned = tz.is_some_and(|t| t.node_type() == NodeType::BOOL && t.children_begin_or_value() != 0);
+        match element.node_type() {
+            NodeType::OBJECT_SQL_TIMESTAMP_TYPE if zoned => Some("timestamp"),
+            NodeType::OBJECT_SQL_TIME_TYPE if zoned => Some("time"),
+            _ => None,
+        }
     }
 
     fn format_const_interval_cast(&self, node: &'a Node) -> FmtReg {
@@ -1106,7 +1129,15 @@ impl<'a> Formatter<'a> {
             ],
         );
         let (Some(name), Some(value)) = (name, value) else { return self.format_unimplemented(node) };
-        let name_reg = self.reg(name);
+        let mut name_reg = self.reg(name);
+        // Trino reads the time zone of a timestamp or time literal from its text, `timestamptz '...'` is `timestamp '...'`
+        if self.config.dialect == FormattingDialect::TRINO && args.is_none() {
+            match self.text_at(name.symbol_span()).to_ascii_lowercase().as_str() {
+                "timestamptz" => name_reg = f.text("timestamp"),
+                "timetz" => name_reg = f.text("time"),
+                _ => {}
+            }
+        }
         let value_reg = self.reg(value);
         if name_reg == 0 || value_reg == 0 {
             return self.format_unimplemented(node);

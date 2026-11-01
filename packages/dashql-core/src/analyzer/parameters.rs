@@ -51,7 +51,7 @@ fn cast_type(state: &AnalysisState, node: &Node, parent: &Node) -> Option<SqlTyp
         _ => return None,
     };
     let type_node = state.children(parent).iter().find(|c| c.attribute_key() == type_key)?;
-    read_sql_type(state, type_node)
+    read_sql_type(state.parsed, type_node)
 }
 
 /// The parser keeps the quotes of names from string literals (`:'mode'`, see docs/design/core_quirks.md)

@@ -287,7 +287,7 @@ analyzer-snapshots:
          * @param :min = 10
          * @param :region = 'North America'
          * @param :day
-         * @param :span = interval '3 days'
+         * @param :span = interval '3' day
          * @param :bad = now()
          * @param broken
          */
@@ -299,7 +299,7 @@ analyzer-snapshots:
       errors:
         - type: INVALID_PARAM_TAG
           severity: WARNING
-          message: 'now() is no literal, a literal is a number, a string, true, false, null, or a date, time, timestamp or interval literal'
+          message: 'now() is no literal, a literal is a number, a string, true, false, null, or a typed literal like date ''2024-01-01'' or interval ''3'' day'
           text: "now()"
         - type: INVALID_PARAM_TAG
           severity: WARNING
@@ -382,7 +382,7 @@ analyzer-snapshots:
         - name: day
           statement-id: 0
         - name: span
-          value: "interval '3 days'"
+          value: "interval '3' day"
           statement-id: 0
         - name: bad
           statement-id: 0

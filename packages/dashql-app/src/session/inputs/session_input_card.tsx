@@ -31,8 +31,17 @@ function fromDateTimeLocal(value: string): string {
     return value.replace('T', ' ');
 }
 
+/// The units of an interval, an interval is a number and one unit (docs/design/session_inputs.md)
+const INTERVAL_UNITS = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+
+/// The amount and the unit of the value of an interval, `3 day`, the unit is null without one
+function splitInterval(value: string): { amount: string; unit: string | null } {
+    const match = /^\s*(\S*)\s+(\S+)\s*$/.exec(value);
+    return match == null ? { amount: value.trim(), unit: null } : { amount: match[1], unit: match[2].toLowerCase() };
+}
+
 const PLACEHOLDERS: Partial<Record<SessionInputControl, string>> = {
-    [SessionInputControl.Interval]: '3 days',
+    [SessionInputControl.Interval]: '3',
     [SessionInputControl.Number]: '0',
     [SessionInputControl.Integer]: '0',
 };
@@ -54,6 +63,10 @@ export function SessionInputCard(props: Props): React.ReactElement {
     const result = React.useMemo(() => literalOf(input, committed), [literalOf, input, committed]);
     const problem = draft.trim().length === 0 || !('error' in result) ? null : result.error;
     const unset = input.value == null;
+    // The unit of an interval without an amount, the draft holds the unit once it has one
+    const [emptyUnit, setEmptyUnit] = React.useState('day');
+    const interval = splitInterval(draft);
+    const intervalUnit = interval.unit ?? emptyUnit;
 
     const commit = React.useCallback((next: string) => {
         const literal = literalOf(input, next);
@@ -91,7 +104,43 @@ export function SessionInputCard(props: Props): React.ReactElement {
         >
             {props.variant !== 'block' && <span className={styles.name}>:{input.name}</span>}
             {props.variant !== 'block' && <span className={styles.type} data-inferred={!input.type.cast || undefined} title={typeTitle}>{input.type.sql}</span>}
-            {control === SessionInputControl.Boolean ? (
+            {control === SessionInputControl.Interval ? (
+                <>
+                    <input
+                        className={classNames(styles.control, styles.control_amount)}
+                        aria-label={label}
+                        type="text"
+                        inputMode="decimal"
+                        value={interval.amount}
+                        placeholder={PLACEHOLDERS[control]}
+                        spellCheck={false}
+                        autoComplete="off"
+                        onChange={event => {
+                            const amount = event.currentTarget.value.replace(/\s+/g, '');
+                            setDraft(amount.length === 0 ? '' : `${amount} ${intervalUnit}`);
+                        }}
+                        onKeyDown={onKeyDown}
+                    />
+                    <select
+                        className={classNames(styles.control, styles.control_unit)}
+                        aria-label={`Unit of :${input.name}`}
+                        value={intervalUnit}
+                        onChange={event => {
+                            const unit = event.currentTarget.value;
+                            if (interval.amount.length === 0) {
+                                setEmptyUnit(unit);
+                                return;
+                            }
+                            const next = `${interval.amount} ${unit}`;
+                            setDraft(next);
+                            commit(next);
+                        }}
+                    >
+                        {!INTERVAL_UNITS.includes(intervalUnit) && <option value={intervalUnit} disabled>{intervalUnit}</option>}
+                        {INTERVAL_UNITS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                    </select>
+                </>
+            ) : control === SessionInputControl.Boolean ? (
                 <select
                     className={styles.control}
                     aria-label={label}

@@ -11,7 +11,7 @@ planner-snapshots:
            * @param :open = true
            * @param :delta = -2
            * @param :day = date '2024-01-01'
-           * @param :span = interval '3 days' */
+           * @param :span = interval '3' day */
           select id from orders where amount > :min + :delta and region = :region and open = :open
             and day >= :day and ts > timestamp '2024-02-01' - :span;
 
@@ -61,7 +61,7 @@ planner-snapshots:
       - name: foo
         input: |
           /* @param :min = 10
-             @param :span = interval '3 days'
+             @param :span = interval '3' day
              @param :day = date '2024-02-01' */
           select id, amount from orders where amount > :min and :day - :span < date '2024-03-01';
       - name: bar
@@ -82,13 +82,13 @@ planner-snapshots:
       - name: foo
         connection: trino
         input: |
-          /* @param :span = interval '1 day 2 hours'
+          /* @param :span = interval '26' hour
              @param :day = date '2024-01-01'
              @param :name = 'it''s' */
           select id from events where ts > now() - :span and day = :day and :name <> '';
 
-  # Trino has no interval of months and days
-  - name: InputTrinoUnsupported
+  # Interval text is no literal, an interval is a number and a unit: the input has no value
+  - name: InputIntervalText
     hyper: skip
     connections:
       - name: trino
@@ -100,5 +100,5 @@ planner-snapshots:
       - name: foo
         connection: trino
         input: |
-          /* @param :span = interval '1 month 2 days' */
+          /* @param :span = interval '1 day 2 hours' */
           select id from events where ts > now() - :span;

@@ -7,11 +7,57 @@
 //! of well-known types (`text`, `date`, `int8`, `timestamptz`, ...) map to their kinds, so `::int8` and `::bigint`
 //! are the same type.
 
-use super::state::AnalysisState;
 use dashql_buffers::parser::{AttributeKey as K, CharacterType, IntervalType as IntervalTypeEnum, Node, NodeType, NumericType};
 use dashql_parser::attrs;
+use dashql_parser::parser::context::resolve_text_span;
+use dashql_parser::parser::ParsedScript;
 use std::fmt;
 use std::sync::Arc;
+
+/// The AST of a parsed script, as the reader of types reads it
+#[derive(Clone, Copy)]
+struct Ast<'a> {
+    parsed: &'a ParsedScript,
+}
+
+impl<'a> Ast<'a> {
+    fn children(&self, node: &Node) -> &'a [Node] {
+        let count = node.children_count() as usize;
+        if count == 0 {
+            return &[];
+        }
+        let begin = node.children_begin_or_value() as usize;
+        &self.parsed.nodes[begin..begin + count]
+    }
+
+    fn text_at(&self, node: &Node) -> &'a str {
+        let scanned = &self.parsed.scanned;
+        let span = resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
+        let begin = (span.offset as usize).min(scanned.text.len());
+        let end = (begin + span.length as usize).min(scanned.text.len());
+        &scanned.text[begin..end]
+    }
+
+    /// The lowercased name of a NAME node or of a name path
+    fn name(&self, node: &Node) -> Option<String> {
+        let text = |id: u32| self.parsed.scanned.names.get(id).text.to_lowercase();
+        match node.node_type() {
+            NodeType::NAME => Some(text(node.children_begin_or_value())),
+            NodeType::ARRAY => {
+                let mut parts = Vec::new();
+                for child in self.children(node) {
+                    match child.node_type() {
+                        NodeType::OBJECT_EXT_TRAILING_DOT => continue,
+                        NodeType::NAME => parts.push(text(child.children_begin_or_value())),
+                        _ => return None,
+                    }
+                }
+                (!parts.is_empty()).then(|| parts.join("."))
+            }
+            _ => None,
+        }
+    }
+}
 
 /// The kind of a SQL type
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -78,7 +124,7 @@ impl SqlType {
 }
 
 /// The kind of a well-known generic type name
-fn generic_kind(name: &str) -> Option<SqlTypeKind> {
+pub fn generic_kind(name: &str) -> Option<SqlTypeKind> {
     Some(match name {
         "bool" => SqlTypeKind::Bool,
         "tinyint" | "int1" => SqlTypeKind::Int1,
@@ -96,12 +142,12 @@ fn generic_kind(name: &str) -> Option<SqlTypeKind> {
 }
 
 /// The unsigned integer of a literal node
-fn read_u32(state: &AnalysisState, node: Option<&Node>) -> Option<u32> {
+fn read_u32(ast: Ast, node: Option<&Node>) -> Option<u32> {
     let node = node?;
     if node.node_type() != NodeType::LITERAL_INTEGER {
         return None;
     }
-    state.text_at(*node.symbol_span()).trim().parse().ok()
+    ast.text_at(node).trim().parse().ok()
 }
 
 /// The value of a bool node, false if missing
@@ -110,9 +156,9 @@ fn read_bool(node: Option<&Node>) -> bool {
 }
 
 /// The modifiers of a type, the nodes of its modifier array
-fn modifiers<'a>(state: &AnalysisState<'a>, node: Option<&Node>) -> &'a [Node] {
+fn modifiers<'a>(ast: Ast<'a>, node: Option<&Node>) -> &'a [Node] {
     match node {
-        Some(n) if n.node_type() == NodeType::ARRAY => state.children(n),
+        Some(n) if n.node_type() == NodeType::ARRAY => ast.children(n),
         _ => &[],
     }
 }
@@ -133,31 +179,31 @@ fn numeric_kind(value: u32, precision: Option<u32>, scale: Option<u32>) -> Optio
 }
 
 /// Read the kind of the node of a simple type name, None if the node is no type
-fn read_kind(state: &AnalysisState, node: &Node) -> Option<SqlTypeKind> {
+fn read_kind(ast: Ast, node: &Node) -> Option<SqlTypeKind> {
     match node.node_type() {
         NodeType::ENUM_SQL_NUMERIC_TYPE => numeric_kind(node.children_begin_or_value(), None, None),
         NodeType::OBJECT_SQL_NUMERIC_TYPE => {
-            let [base, mods] = attrs!(state.children(node), [K::SQL_NUMERIC_TYPE_BASE, K::SQL_NUMERIC_TYPE_MODIFIERS]);
-            let mods = modifiers(state, mods);
-            let precision = read_u32(state, mods.first());
-            let scale = read_u32(state, mods.get(1));
+            let [base, mods] = attrs!(ast.children(node), [K::SQL_NUMERIC_TYPE_BASE, K::SQL_NUMERIC_TYPE_MODIFIERS]);
+            let mods = modifiers(ast, mods);
+            let precision = read_u32(ast, mods.first());
+            let scale = read_u32(ast, mods.get(1));
             numeric_kind(base?.children_begin_or_value(), precision, scale)
         }
         NodeType::OBJECT_SQL_CHARACTER_TYPE => {
-            let [char_type, length] = attrs!(state.children(node), [K::SQL_CHARACTER_TYPE, K::SQL_CHARACTER_TYPE_LENGTH]);
-            let length = read_u32(state, length);
+            let [char_type, length] = attrs!(ast.children(node), [K::SQL_CHARACTER_TYPE, K::SQL_CHARACTER_TYPE_LENGTH]);
+            let length = read_u32(ast, length);
             match CharacterType(char_type?.children_begin_or_value() as _) {
                 CharacterType::VARCHAR => Some(SqlTypeKind::Varchar { length }),
                 _ => Some(SqlTypeKind::Char { length }),
             }
         }
         NodeType::OBJECT_SQL_BIT_TYPE => {
-            let [varying, length] = attrs!(state.children(node), [K::SQL_BIT_TYPE_VARYING, K::SQL_BIT_TYPE_LENGTH]);
-            Some(SqlTypeKind::Bit { length: read_u32(state, length), varying: read_bool(varying) })
+            let [varying, length] = attrs!(ast.children(node), [K::SQL_BIT_TYPE_VARYING, K::SQL_BIT_TYPE_LENGTH]);
+            Some(SqlTypeKind::Bit { length: read_u32(ast, length), varying: read_bool(varying) })
         }
         NodeType::OBJECT_SQL_TIMESTAMP_TYPE | NodeType::OBJECT_SQL_TIME_TYPE => {
-            let [precision, tz] = attrs!(state.children(node), [K::SQL_TIME_TYPE_PRECISION, K::SQL_TIME_TYPE_WITH_TIMEZONE]);
-            let precision = read_u32(state, precision);
+            let [precision, tz] = attrs!(ast.children(node), [K::SQL_TIME_TYPE_PRECISION, K::SQL_TIME_TYPE_WITH_TIMEZONE]);
+            let precision = read_u32(ast, precision);
             let with_time_zone = read_bool(tz);
             if node.node_type() == NodeType::OBJECT_SQL_TIMESTAMP_TYPE {
                 Some(SqlTypeKind::Timestamp { precision, with_time_zone })
@@ -166,27 +212,16 @@ fn read_kind(state: &AnalysisState, node: &Node) -> Option<SqlTypeKind> {
             }
         }
         NodeType::OBJECT_SQL_INTERVAL_TYPE => {
-            let [fields, precision] = attrs!(state.children(node), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION]);
+            let [fields, precision] = attrs!(ast.children(node), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION]);
             Some(SqlTypeKind::Interval {
                 fields: fields.map(|f| IntervalTypeEnum(f.children_begin_or_value() as _)),
-                precision: read_u32(state, precision),
+                precision: read_u32(ast, precision),
             })
         }
         NodeType::OBJECT_SQL_GENERIC_TYPE => {
-            let [name, mods] = attrs!(state.children(node), [K::SQL_GENERIC_TYPE_NAME, K::SQL_GENERIC_TYPE_MODIFIERS]);
-            let name = name?;
-            let name: String = match name.node_type() {
-                NodeType::NAME => state.node_name(name).text.to_lowercase(),
-                NodeType::ARRAY => {
-                    let path = state.read_name_path(name);
-                    if path.is_empty() {
-                        return None;
-                    }
-                    path.iter().map(|&id| state.name(id).text.to_lowercase()).collect::<Vec<_>>().join(".")
-                }
-                _ => return None,
-            };
-            let mods = modifiers(state, mods);
+            let [name, mods] = attrs!(ast.children(node), [K::SQL_GENERIC_TYPE_NAME, K::SQL_GENERIC_TYPE_MODIFIERS]);
+            let name = ast.name(name?)?;
+            let mods = modifiers(ast, mods);
             if mods.is_empty() {
                 if let Some(kind) = generic_kind(&name) {
                     return Some(kind);
@@ -194,20 +229,21 @@ fn read_kind(state: &AnalysisState, node: &Node) -> Option<SqlTypeKind> {
             }
             Some(SqlTypeKind::Generic {
                 name: name.into(),
-                modifiers: mods.iter().map(|m| Arc::from(state.text_at(*m.symbol_span()).trim())).collect(),
+                modifiers: mods.iter().map(|m| Arc::from(ast.text_at(m).trim())).collect(),
             })
         }
         _ => None,
     }
 }
 
-/// Read a type name (`OBJECT_SQL_TYPENAME`), None if the node is no type name
-pub(super) fn read_sql_type(state: &AnalysisState, node: &Node) -> Option<SqlType> {
+/// Read a type name (`OBJECT_SQL_TYPENAME`) of a parsed script, None if the node is no type name
+pub fn read_sql_type(parsed: &ParsedScript, node: &Node) -> Option<SqlType> {
+    let ast = Ast { parsed };
     if node.node_type() != NodeType::OBJECT_SQL_TYPENAME {
         return None;
     }
-    let [element, array] = attrs!(state.children(node), [K::SQL_TYPENAME_TYPE, K::SQL_TYPENAME_ARRAY]);
-    let kind = read_kind(state, element?)?;
+    let [element, array] = attrs!(ast.children(node), [K::SQL_TYPENAME_TYPE, K::SQL_TYPENAME_ARRAY]);
+    let kind = read_kind(ast, element?)?;
     // `int[]`, `int[][]`, `int[3]` and `int array` have one dimension per bound, `array` alone has one
     let array_dimensions = match array {
         Some(a) if a.node_type() == NodeType::ARRAY => (a.children_count() as u8).max(1),

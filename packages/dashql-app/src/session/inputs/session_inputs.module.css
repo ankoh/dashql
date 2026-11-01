@@ -133,6 +133,20 @@
     background-color: white;
 }
 
+/* An interval is a number and a unit */
+.control_amount {
+    flex: 1 1 48px;
+    min-width: 40px;
+    width: 64px;
+}
+
+.control_unit {
+    flex: 0 0 auto;
+    min-width: 0;
+    width: auto;
+    padding: 0 2px;
+}
+
 .control::placeholder {
     color: var(--base_color_neutral_4);
 }

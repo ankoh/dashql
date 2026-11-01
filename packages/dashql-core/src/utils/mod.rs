@@ -36,6 +36,18 @@ pub fn ci_find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     (0..=haystack.len() - needle.len()).find(|&i| ci_starts_with(&haystack[i..], needle))
 }
 
+/// A string literal of a text, quotes are doubled: `it's` is `'it''s'`
+pub fn quote_string_literal(text: &str) -> String {
+    format!("'{}'", text.replace('\'', "''"))
+}
+
+/// The text of a string literal as the scanner reads it, `'it''s'` is `it's`. None for other literals, e.g. the
+/// escape strings `E'...'`.
+pub fn unquote_string_literal(literal: &str) -> Option<String> {
+    let inner = literal.strip_prefix('\'')?.strip_suffix('\'')?;
+    Some(inner.replace("''", "'"))
+}
+
 /// Quote an identifier if it would not round-trip unquoted
 pub fn quote_identifier(text: &str) -> String {
     let is_start = |c: u8| c.is_ascii_alphabetic() || c == b'_' || c >= 0x80;
