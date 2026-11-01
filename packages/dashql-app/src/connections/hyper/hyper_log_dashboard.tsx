@@ -2,18 +2,18 @@ import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
-import type { EmbeddedClientContext } from '../platform/database/embedded_database.js';
-import { stringifyError } from '../platform/logger/logger.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
-import { SyncIcon } from '../ui/foundations/symbol_icon.js';
-import { Tooltip } from '../ui/foundations/tooltip.js';
-import { VegaLiteChart, type VegaSignals } from '../ui/vegalite/vegalite_chart.js';
-import type { ChartColors } from '../ui/vegalite/vegalite_theme.js';
-import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper/hyper_log_metrics.js';
-import { overviewClientContext, queryEndsQuery } from './hyper/hyper_log_metrics.js';
-import { useHyperLogMetrics, useHyperLogRows, useHyperLogState } from './hyper/hyper_log_metrics_provider.js';
+import type { EmbeddedClientContext } from '../../platform/database/embedded_database.js';
+import { stringifyError } from '../../platform/logger/logger.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
+import { SyncIcon } from '../../ui/foundations/symbol_icon.js';
+import { Tooltip } from '../../ui/foundations/tooltip.js';
+import { VegaLiteChart, type VegaSignals } from '../../ui/vegalite/vegalite_chart.js';
+import type { ChartColors } from '../../ui/vegalite/vegalite_theme.js';
+import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
+import { overviewClientContext, queryEndsQuery } from './hyper_log_metrics.js';
+import { useHyperLogMetrics, useHyperLogRows, useHyperLogState } from './hyper_log_metrics_provider.js';
 import {
     bucketQueries,
     bucketSamples,
@@ -31,7 +31,7 @@ import {
     type MetricsWindow,
     type QueryBucket,
     type SampleAggregate,
-} from './connection_metrics.js';
+} from './hyper_log_stats.js';
 import {
     bucketChartSpec,
     ROWS_DATASET,
@@ -40,10 +40,10 @@ import {
     WINDOW_START_SIGNAL,
     type ChartSeries,
     type SeriesKind,
-} from './connection_metric_specs.js';
-import { recentQueriesSql, queryShapesSql } from './connection_query_sql.js';
-import { QueryTable, type QueryTableProps } from './connection_query_table.js';
-import * as styles from './connection_metrics_dashboard.module.css';
+} from './hyper_log_chart_specs.js';
+import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
+import { QueryTable, type QueryTableProps } from '../connection_query_table.js';
+import * as styles from './hyper_log_dashboard.module.css';
 
 /// The labels of the query scopes
 const QUERY_SCOPE_LABELS: Record<QueryScope, string> = {
@@ -405,12 +405,12 @@ const LogUnavailablePanel: React.FC<{ error: HyperLogError }> = ({ error }) => (
 );
 
 /// The components of the view, replaced in tests
-export interface ConnectionMetricsViewDependencies {
+export interface HyperLogDashboardViewDependencies {
     /// The table of the queries
     QueryTable: React.FC<QueryTableProps>;
 }
 
-const DEFAULT_DEPENDENCIES: ConnectionMetricsViewDependencies = { QueryTable };
+const DEFAULT_DEPENDENCIES: HyperLogDashboardViewDependencies = { QueryTable };
 
 interface Props {
     /// The id of the connection
@@ -420,7 +420,7 @@ interface Props {
 }
 
 /// The activity and the metrics of a Hyper connection and of its Hyper, from the extract of the Hyper log
-export const ConnectionMetricsDashboard: React.FC<Props> = (props: Props) => {
+export const HyperLogDashboard: React.FC<Props> = (props: Props) => {
     const logMetrics = useHyperLogMetrics();
     const { queries, samples } = useHyperLogRows(props.connectionId);
     const logState = useHyperLogState(props.connectionId);
@@ -438,7 +438,7 @@ export const ConnectionMetricsDashboard: React.FC<Props> = (props: Props) => {
         await logMetrics?.poll(props.connectionId);
     }, [logMetrics, props.connectionId]);
     return (
-        <ConnectionMetricsView
+        <HyperLogDashboardView
             queries={queries}
             queryEnds={queryEnds}
             runQuery={runQuery}
@@ -474,11 +474,11 @@ interface ViewProps {
     /// The current time, the clock when not set
     now?: number;
     /// The components of the view
-    dependencies?: ConnectionMetricsViewDependencies;
+    dependencies?: HyperLogDashboardViewDependencies;
 }
 
 /// The query metrics of a connection and the resource metrics of the engine in a sliding time window
-export const ConnectionMetricsView: React.FC<ViewProps> = ({ queries, queryEnds, runQuery, refresh, clientContext = null, samples, logError = null, resourceUsageLogged = null, engine, now, dependencies = DEFAULT_DEPENDENCIES }) => {
+export const HyperLogDashboardView: React.FC<ViewProps> = ({ queries, queryEnds, runQuery, refresh, clientContext = null, samples, logError = null, resourceUsageLogged = null, engine, now, dependencies = DEFAULT_DEPENDENCIES }) => {
     const [windowIndex, setWindowIndex] = React.useState(0);
     const window = METRICS_WINDOWS[windowIndex];
     const [scope, setScope] = React.useState(QueryScope.All);

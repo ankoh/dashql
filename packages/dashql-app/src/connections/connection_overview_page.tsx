@@ -5,7 +5,7 @@ import { useConnectionReferences, useConnectionRegistry } from './connection_reg
 import type { ConnectionState } from './connection_state.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
-import { ConnectionMetricsDashboard } from './connection_metrics_dashboard.js';
+import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';
 import * as styles from './connection_overview_page.module.css';
 
@@ -48,7 +48,7 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
                 </header>
                 <div>
                     {isHyperConnection(connection)
-                        ? <ConnectionMetricsDashboard connectionId={connectionId} engine={<ConnectionEngineFacts connection={connection} />} />
+                        ? <HyperLogDashboard connectionId={connectionId} engine={<ConnectionEngineFacts connection={connection} />} />
                         : (
                             <p className={styles.unavailable} data-testid="connection-metrics-unavailable">
                                 Query metrics are available for Hyper connections.

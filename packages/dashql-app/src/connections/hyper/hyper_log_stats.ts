@@ -1,4 +1,4 @@
-import type { HyperQueryEnd, HyperResourceSample } from './hyper/hyper_log_metrics.js';
+import type { HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
 
 /// A time window of the connection metrics, ending now.
 export interface MetricsWindow {

@@ -1,4 +1,4 @@
-import { QueryScope } from './connection_metrics.js';
+import { QueryScope } from './hyper_log_stats.js';
 
 // The tables of the queries of a connection as SQL over the query ends of the extract of the Hyper log.
 // The overview runs them with its client context, they are listed as queries of the app.

@@ -1,14 +1,14 @@
 import type * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 
-import { getTestHyperDBClient, testDatabasePath } from '../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '../platform/logger/test_logger.js';
-import { connectionClientContext, HyperLogMetrics, queryEndsQuery, sqlframeClientContext } from './hyper/hyper_log_metrics.js';
-import { QueryScope } from './connection_metrics.js';
-import { recentQueriesSql, queryShapesSql } from './connection_query_sql.js';
+import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
+import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
+import { connectionClientContext, HyperLogMetrics, queryEndsQuery, sqlframeClientContext } from './hyper_log_metrics.js';
+import { QueryScope } from './hyper_log_stats.js';
+import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
 
-describe('Connection query SQL', () => {
+describe('Hyper log query SQL', () => {
     let client: HyperDBClient;
     let sharedClient = false;
     let database: HyperDB | null = null;

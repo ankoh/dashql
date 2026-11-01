@@ -3,11 +3,11 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper/hyper_log_metrics.js';
-import { QueryScope } from './connection_metrics.js';
-import { ConnectionMetricsView, type ConnectionMetricsViewDependencies } from './connection_metrics_dashboard.js';
-import { recentQueriesSql, queryShapesSql } from './connection_query_sql.js';
-import type { QueryTableProps } from './connection_query_table.js';
+import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
+import { QueryScope } from './hyper_log_stats.js';
+import { HyperLogDashboardView, type HyperLogDashboardViewDependencies } from './hyper_log_dashboard.js';
+import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
+import type { QueryTableProps } from '../connection_query_table.js';
 
 const NOW = 1_800_000_000_000;
 const MINUTE = 60_000;
@@ -27,7 +27,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ sql, refreshes = 0 }) => {
     shownRefreshes = refreshes;
     return <div data-testid="query-table" />;
 };
-const dependencies: ConnectionMetricsViewDependencies = { QueryTable };
+const dependencies: HyperLogDashboardViewDependencies = { QueryTable };
 
 interface ViewTestProps {
     queries: HyperQueryEnd[];
@@ -39,7 +39,7 @@ interface ViewTestProps {
 }
 
 const View: React.FC<ViewTestProps> = props => (
-    <ConnectionMetricsView
+    <HyperLogDashboardView
         dependencies={dependencies}
         queries={props.queries}
         queryEnds={QUERY_ENDS}
@@ -75,7 +75,7 @@ function query(endedAt: number, succeeded = true, sentByApp = false): HyperQuery
     };
 }
 
-describe('ConnectionMetricsView', () => {
+describe('HyperLogDashboardView', () => {
     let container: HTMLDivElement;
     let root: Root;
 

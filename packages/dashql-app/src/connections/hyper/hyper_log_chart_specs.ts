@@ -1,6 +1,6 @@
 import type { TopLevelSpec } from 'vega-lite';
 
-import type { ChartColors } from '../ui/vegalite/vegalite_theme.js';
+import type { ChartColors } from '../../ui/vegalite/vegalite_theme.js';
 
 /// The params of the bounds of the time window, in milliseconds since the epoch
 export const WINDOW_START_SIGNAL = 'windowStart';

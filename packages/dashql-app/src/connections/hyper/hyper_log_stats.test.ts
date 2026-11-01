@@ -1,4 +1,4 @@
-import type { HyperQueryEnd, HyperResourceSample } from './hyper/hyper_log_metrics.js';
+import type { HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
 import {
     computeQueryMetrics,
     computeResourceMetrics,
@@ -11,7 +11,7 @@ import {
     queriesInScope,
     QueryScope,
     type MetricsWindow,
-} from './connection_metrics.js';
+} from './hyper_log_stats.js';
 
 const WINDOW: MetricsWindow = { key: 'test', durationMs: 60_000, bucketMs: 10_000, p95WindowMs: 20_000 };
 
