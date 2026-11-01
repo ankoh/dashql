@@ -4,7 +4,7 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 
 ## 1) Implement formatter behavior
 
-1. Update formatter logic in the Rust core, `packages/dashql-core/src/formatter/`: `mod.rs` holds the dispatch and the shared helpers, the statement formatters live in `select.rs`, `create.rs`, `insert.rs`, `delete.rs`, `explain.rs`, `pgq.rs` and `vis.rs`.
+1. Update formatter logic in the Rust core, `packages/dashql-core/src/formatter/`: `mod.rs` holds the dispatch and the shared helpers, the statement formatters live in `select.rs`, `create.rs`, `insert.rs`, `delete.rs`, `explain.rs` and `pgq.rs`, `comments.rs` places and wraps comments, and `program.rs` holds the formatting program and its width-aware renderer.
 2. Ensure the node is handled in the `Formatter::format_node` dispatch (`mod.rs`).
 3. Keep lowercase SQL keywords as the default; honor the configured keyword case without changing identifiers, literals, comments, or current break/indent behavior.
 4. Don't use the source text of a node (`text_at`) as escape hatch to copy over the AST node content, instead use a place holder similar to unsupported node types (`format_unimplemented`).
@@ -43,7 +43,8 @@ This generates/updates `snapshots/formatter/<category>.yaml` from all `.tpl.yaml
 
 ## 4) Snapshot tests
 
-Neither test needs a registration: both read every `snapshots/formatter/*.yaml`.
+No test needs a registration: the first two read every `snapshots/formatter/*.yaml`, the round trip every
+`snapshots/parser/*.yaml`.
 
 ### Snapshot equality
 Target:
@@ -58,10 +59,17 @@ Target:
 
 Every case of every formatter snapshot file with a `dialects.hyper.validation` block runs
 in a fresh Hyper database. The test executes `validation.setup`, checks that the Rust formatter output equals each
-expectation of the `hyper` dialect, and executes it statement by statement. Hyper is reached through the C ABI
-`//packages/hyper-api:hyper_ffi`.
+expectation of the `hyper` dialect, and executes it statement by statement. Hyper is reached through
+`//packages/hyper-api:hyper_ffi_rs`, the Rust side of the C ABI `//packages/hyper-api:hyper_ffi`.
 
 This ensures both textual snapshot checks and executable SQL validation are covered.
+
+### Parser snapshot round trip
+Target:
+- `//packages/dashql-core:formatter_roundtrip_test` (`packages/dashql-core/tests/formatter_roundtrip.rs`)
+
+Every error-free script of the parser snapshots (`snapshots/parser/*.yaml`) must be fully formattable, and its
+output must parse without errors again. Without comments, formatting the output a second time must not change it.
 
 ## 5) Add a JS API formatting test (recommended)
 
@@ -81,7 +89,8 @@ This catches integration regressions between core formatter and app-side API/WAS
 Run the full targets used for acceptance:
 
 ```bash
-bazel test //packages/dashql-core:formatter_snapshot_test //packages/dashql-core:formatter_validation_hyper_test
+bazel test //packages/dashql-core:formatter_snapshot_test //packages/dashql-core:formatter_validation_hyper_test \
+    //packages/dashql-core:formatter_roundtrip_test
 bazel test //packages/dashql-core:all
 bazel test //packages/dashql-core-js:all
 bazel test //packages/dashql-app:all
@@ -90,7 +99,7 @@ bazel test //packages/dashql-app:all
 If failures occur:
 1. Fix formatter or expected snapshots as needed.
 2. Re-run `bazel run //snapshots/formatter:update` if templates changed.
-3. Re-run both test targets until green.
+3. Re-run the formatter test targets until green.
 
 ## 7) Typical change checklist
 

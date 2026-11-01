@@ -64,6 +64,9 @@ bazel build //...
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
 | `//packages/dashql-cli:dashql` | The `dashql` command line tool: `agent` commands and the local agent server (`agent serve`), `lint` for SQL files |
 
+`mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
+built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
+
 ### Build Configs
 
 ```bash
@@ -74,7 +77,7 @@ bazel build //packages/dashql-app:all
 bazel build --config=release //packages/dashql-app:pages
 
 # Debug builds with symbols
-bazel build --config=debug //packages/dashql-app:dev
+bazel build --config=debug //packages/dashql-core:dashql_core
 ```
 
 Use `--config=release` for production artifacts. The default `fastbuild` config is sufficient for development.
@@ -132,7 +135,7 @@ bazel test --test_output=errors //packages/dashql-core:dashql_core_unit_tests
 
 ### Snapshot Tests
 
-Many tests use snapshot fixtures in `/snapshots/`. To update snapshots after intentional changes:
+Many tests use snapshot fixtures in `snapshots/<category>/`. To update snapshots after intentional changes:
 
 ```bash
 bazel run //snapshots/parser:update
@@ -148,7 +151,7 @@ bazel run //snapshots/plans/hyper/tests:update
 bazel run //snapshots:update
 ```
 
-These targets regenerate `/snapshots/*.yaml` from `/snapshots/*.tpl.yaml` templates with the Rust core
+These targets regenerate `snapshots/<category>/<name>.yaml` from the templates `<name>.tpl.yaml` next to them with the Rust core
 (`//packages/dashql-snapshots:snapshotter`, flags `--source_dir=<repository> [--filter=<category>]`).
 
 - The snapshot tests compare YAML trees structurally, including the key order of every map; numbers
@@ -325,7 +328,7 @@ bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefo
 
 ```bash
 # Build and test (type checking happens automatically)
-bazel test //packages/dashql-native:test
+bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test //packages/dashql-cli:tests
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-session:all \

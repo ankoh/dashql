@@ -8,19 +8,19 @@ We just setup `bazel-remote` with mTLS and mark that topic done.
 
 ```
 # Generate CA, client and server certificates for mTLS
-bazel run //scripts:generate_cache_certificates
+bazel run //infra/bazel-cache:generate_cache_certificates
 
 # Rsync docker compose config to the cache server
-bazel run //scripts:configure_cache_server
+bazel run //infra/bazel-cache:configure_cache_server
 
-# Dump settings that we require as GitHub secrets (c.f. setup-bazel/action.yaml)
-bazel run //scripts:dump_github_cache_entries
+# Dump settings that we require as GitHub secrets (c.f. .github/actions/setup-bazel/action.yml)
+bazel run //infra/bazel-cache:github_secrets
 ```
 
 
 # Firewall
 
-Configure Hetzner Firewall as well as ufw to restrict to 22, 443 and 1986.
+Configure Hetzner Firewall as well as ufw to restrict to 22 (SSH), 80 and 443 (Caddy, Grafana) and 9092 (bazel-remote gRPC).
 
 ```
 sudo ufw allow 22/tcp
