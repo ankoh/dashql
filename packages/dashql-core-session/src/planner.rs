@@ -368,7 +368,9 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
 
 /// Plan the statements of the scripts of a session, see `plan_session`
 pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
-    let lenient = matches!(request.scope, PlanScope::Targets(_) | PlanScope::Tolerant);
+    // A plan of targets, and a tolerant plan like one, prepares what its targets need, runs the statements of a script
+    // in order and passes a script that doesn't parse through as written
+    let targeted = matches!(request.scope, PlanScope::Targets(_) | PlanScope::Tolerant);
     let tolerant = matches!(request.scope, PlanScope::Tolerant);
     let mut state = PlanState {
         graph: ExecutionGraphT::default(),
@@ -422,7 +424,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let mut prepared: Vec<Option<Prepared>> = (0..script_count).map(|_| None).collect();
     let mut planned = vec![false; script_count];
     let mut references = ScriptReferences::new(script_count);
-    let mut pending: Vec<u32> = if lenient { targets.clone() } else { (0..script_count as u32).collect() };
+    let mut pending: Vec<u32> = if targeted { targets.clone() } else { (0..script_count as u32).collect() };
     while let Some(i) = pending.pop() {
         if planned[i as usize] {
             continue;
@@ -431,7 +433,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
         let input = &request.scripts[i as usize];
         let catalog = request.connections[input.connection as usize].catalog;
         let Some(p) = prepare(&mut state, i, input.script, catalog) else { continue };
-        if !lenient {
+        if !targeted {
             diagnose_syntax(&mut state, i, &p);
         }
         references.resolve(&mut state_reporter(&mut state), request, i, &p);
@@ -474,7 +476,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     // A plan includes every statement of a script or none
     let included = |i: usize| include[i] == Include::All;
     // Scripts that a plan of targets passes through as one statement, they don't parse
-    let opaque: Vec<bool> = (0..script_count).map(|i| lenient && include[i] == Include::All && prepared[i].as_ref().is_some_and(|p| !p.parses())).collect();
+    let opaque: Vec<bool> = (0..script_count).map(|i| targeted && include[i] == Include::All && prepared[i].as_ref().is_some_and(|p| !p.parses())).collect();
 
     // The node ids of the included statements
     let mut node_of: BTreeMap<(u32, u32), u32> = BTreeMap::new();
@@ -983,7 +985,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
         let i = i as u32;
         let connection = node.connection;
         // A plan of targets runs the statements of a script in order
-        if lenient {
+        if targeted {
             edge(previous_of_script.insert(node.script, i), i, NONE, NONE, Reason::SEQUENCE);
         }
         edge(last_barrier.get(&connection).copied(), i, NONE, NONE, Reason::BARRIER);
