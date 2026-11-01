@@ -162,6 +162,9 @@ export function createExecutionMounts(cache: QueryResultCache, database: Parquet
 export interface ScriptResultKey {
     /// The key, the files of the results of the script are named after it
     key: string;
+    /// The signature that the key derives from: the signature of the AST of the script and the keys of the scripts it
+    /// references, one per line. The executor derives the key from it.
+    signature: string;
     /// May a run read a file of the key instead of running the script? The script is cacheable, its connection
     /// caches results and so do the scripts it references.
     reusable: boolean;
@@ -189,20 +192,13 @@ export async function computeScriptResultKeys(
                 const key = await keyOf(index, signature);
                 if (key == null) return null;
                 const reusable = script.cacheable && cachesResults(index) && references.every(reference => reference!.reusable);
-                return { key, reusable };
+                return { key, signature, reusable };
             })();
             keys.set(index, pending);
         }
         return pending;
     };
     return await Promise.all(graph.scripts.map((_script, index) => resultKey(index, 0)));
-}
-
-/// The signature of the result key of a script: the signature of its AST and the keys of the scripts it references,
-/// one per line. The executor derives the key from it.
-export function scriptResultSignature(graph: core.buffers.execution.ExecutionGraphT, keys: Array<ScriptResultKey | null>, index: number): string {
-    const script = graph.scripts[index];
-    return [String(script.signature ?? ''), ...(script.referencedScripts ?? []).map(r => keys[r]?.key ?? '')].join('\n');
 }
 
 /// The mount prefix of a plan without the mounts of the query result cache. Its materializations can't run, the plan
@@ -783,7 +779,7 @@ export async function runSessionPlan(args: {
                 const connectionId = script.connection.connectionId;
                 const [queryId, execution] = args.executeQuery(connectionId, {
                     query: String(resultNode.sql ?? ''), analyzeResults: true, publishResults: true, throwOnError: true, abortSignal: signal,
-                    cacheable: true, cacheOnly: true, cacheSignature: scriptResultSignature(plan.graph, keys, index),
+                    cacheable: true, cacheOnly: true, cacheSignature: key.signature,
                     metadata: {
                         queryType: QueryType.USER_PROVIDED, userProvided: true, sessionId, resultOwner: scriptResultOwner(sessionId, script.scriptKey),
                         ...plannedStatementMetadata(statement),
@@ -843,7 +839,7 @@ export async function runSessionPlan(args: {
             run, logger: args.logger,
             // The cached results were read already, a script that runs replaces the result of its key
             resultQueryArgs: index => keys[index]?.reusable && !materialized.has(index)
-                ? { cacheable: true, refreshCache: true, cacheSignature: scriptResultSignature(graph, keys, index) }
+                ? { cacheable: true, refreshCache: true, cacheSignature: keys[index]!.signature }
                 : {},
         });
         return outputs;

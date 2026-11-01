@@ -108,12 +108,12 @@ describe('script runs', () => {
         await prepareSessionScripts(scripts, async () => {});
         const { graph } = planSessionScripts({ instance: dql, scripts, files: session.scriptOrder, mountPrefix: createMountPrefix() });
         const keys = await computeScriptResultKeys(graph, async (index, signature) => `${index}:${signature}`, () => true);
-        expect(keys[0]).toEqual({ key: `0:${graph.scripts[0].signature}`, reusable: true });
+        expect(keys[0]).toEqual({ key: `0:${graph.scripts[0].signature}`, signature: graph.scripts[0].signature, reusable: true });
         // A script that references a cacheable script covers the key of that script
-        expect(keys[2]).toEqual({ key: `2:${graph.scripts[2].signature}\n${keys[0]!.key}`, reusable: true });
+        expect(keys[2]).toEqual({ key: `2:${graph.scripts[2].signature}\n${keys[0]!.key}`, signature: `${graph.scripts[2].signature}\n${keys[0]!.key}`, reusable: true });
         // A script with other statements than queries has a key, its results are not reused
-        expect(keys[1]).toEqual({ key: `1:${graph.scripts[1].signature}`, reusable: false });
-        expect(keys[3]).toEqual({ key: `3:${graph.scripts[3].signature}\n${keys[0]!.key}`, reusable: false });
+        expect(keys[1]).toEqual({ key: `1:${graph.scripts[1].signature}`, signature: graph.scripts[1].signature, reusable: false });
+        expect(keys[3]).toEqual({ key: `3:${graph.scripts[3].signature}\n${keys[0]!.key}`, signature: `${graph.scripts[3].signature}\n${keys[0]!.key}`, reusable: false });
         // The results of a script on a connection that doesn't cache are not reused, nor are those of its consumers
         const uncached = await computeScriptResultKeys(graph, async (index, signature) => `${index}:${signature}`, index => index !== 0);
         expect(uncached[0]).toEqual({ ...keys[0], reusable: false });
