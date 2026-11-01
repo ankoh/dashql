@@ -12,6 +12,10 @@ hyperd run \
 
 ```
 
+This gRPC listener serves the `V3_GRPC` protocol, which only the desktop app speaks. The browser app connects with
+`V3_HTTP`, the default of a new Hyper connection (`http://localhost:7484`), so it needs an HTTP v3 listener, e.g. the
+one of `--ui` below.
+
 ## Other flags
 
 ```

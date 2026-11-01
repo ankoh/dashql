@@ -9,9 +9,13 @@ artifact. Cloudflare does not clone or build the repository.
    `main`. Do not connect the GitHub repository through Cloudflare's Git integration.
 2. Create a Cloudflare API token with `Account > Cloudflare Pages > Edit` permission, scoped to
    the account that owns `dashql.app`.
-3. Add these GitHub Actions repository secrets:
-   - `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID.
-   - `CLOUDFLARE_API_TOKEN`: the Pages API token.
+3. Add these GitHub Actions secrets:
+   - `PAGES_DASHQL_ACCOUNT_ID`: the Cloudflare account ID.
+   - `PAGES_DASHQL_API_TOKEN`: the Pages API token.
+
+   The deploy jobs of `publish.yml` run in the GitHub environments `cloudflare-pages` (the app) and
+   `cloudflare-pages-org` (dashql.org). Add the secrets to the repository, or scope them to both
+   environments.
 4. Run the main-branch workflow once. The publish job downloads the `dashql_app_pages` artifact
    produced by Bazel and uploads it with `wrangler pages deploy`.
 5. In the Pages project's **Custom domains** settings, add both `dashql.app` and `hyperdb.sh`.

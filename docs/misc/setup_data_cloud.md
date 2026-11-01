@@ -3,7 +3,9 @@
 1. Go To Setup > External Client Apps
 2. Enable OAuth Settings
     a. Callback URL: `https://dashql.app/oauth.html`
-    b. Enable OAuth Scopes: `api`, `cdp_api`
+    b. Enable OAuth Scopes: `api`, `cdp_api`, and optionally `openid` and `profile`. With them DashQL reads
+       `/services/oauth2/userinfo` and keeps the user name as the `login_hint` of later logins; without them it
+       skips that step.
 3. Require PKCE and uncheck Require Secret for Web Server Flow
 4. Save
 5. Manage Consumer Details
