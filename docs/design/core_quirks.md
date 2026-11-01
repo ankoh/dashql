@@ -1,7 +1,7 @@
-# Quirks inherited from the C++ core
+# Core quirks
 
-The Rust core was ported bug for bug from the former C++ core. Every entry below looks wrong but was
-kept on purpose, so that the snapshots did not change.
+Every entry below is current behavior of the core that looks wrong but is kept on purpose, so that the
+snapshots and the encoded buffers stay stable.
 
 Each quirk can be fixed as an ordinary change with a snapshot update; remove its entry then. Add an
 entry when you find another one. The headings name where the behavior lives.
@@ -128,9 +128,9 @@ The snapshots pin these orders:
 
 - **Ambiguous column candidates are listed in FROM order** (`NameScope::sources`, and
   `NameScope::cte_definitions` is an ordered map).
-- **Duplicate unqualified names resolve in declaration order.** `CatalogEntry::tables_by_unqualified_name`,
+- **Duplicate unqualified names resolve in declaration order.** `CatalogEntryData::tables_by_unqualified_name`,
   `table_columns_by_name` and `functions_by_unqualified_name` are btree maps of lists that keep the
   insertion order of equal keys.
 - **Catalog-wide column lookups visit entries in resolution order** (`resolve_table_columns_with_catalog`),
   by layer and then entry id.
-- **The `FlatCatalog` name dictionary is built in resolution order** (`Catalog::flatten`).
+- **The `FlatCatalog` name dictionary is built in resolution order** (`CatalogSnapshot::flatten`).

@@ -182,7 +182,7 @@ resolution and in `flatten`, and within a layer against the entry with the older
 | Layer | Content | Published by |
 |---|---|---|
 | `SESSION` | The scripts of a session | `ScriptSession::load_into_catalog`; in JS `loadIntoCatalog()` takes no layer |
-| `EXECUTED` | Relations created by executed statements | The shell's session relations (`shell/session_relations.rs`) |
+| `EXECUTED` | Relations created by executed statements | The shell's session relations (`dashql-core-shell/src/session_relations.rs`) |
 | `CONNECTION` | The schema of the connection | Connection catalog batches (`catalog_batch.ts`), the shell's catalog scripts, the CLI's schema files |
 
 The layer is part of the core, not chosen by the app: session scripts always shadow the connection
@@ -209,7 +209,8 @@ catalog, so it only moves when what other entries resolve against may have chang
 
 `same_declarations` compares what other entries resolve against: the ids and names of databases,
 schemas, tables, columns and functions, plus column order, function params and return types. It
-ignores AST positions, source locations and name ids. So typing in a query of a script that also declares
+ignores AST positions, source locations and name ids. Tables also compare `is_view` and their
+`catalog_version`. So typing in a query of a script that also declares
 tables republishes without a version bump, while adding a column, renaming a table or changing the layer
 bumps it. Other scripts read the locations for the declaration under the cursor: an analysis that is
 current reads them from the catalog, its snapshot holds the locations of the earlier publish.
@@ -219,7 +220,7 @@ catalog unchanged.
 
 ### Resolution
 
-`Catalog::resolve_table(name, ignore_entry, out, limit)` (`catalog/mod.rs`):
+`CatalogSnapshot::resolve_table(name, ignore_entry, out, limit)` (`catalog/mod.rs`):
 
 | Name | Strategy |
 |---|---|
@@ -234,14 +235,21 @@ alternatives for ambiguity errors.
 ## Analysis
 
 `analyze(parsed, catalog)` (`analyzer/mod.rs`) runs four passes over the post-order AST, interleaved
-in morsels of 1024 nodes so that expression ids come out in a fixed order:
+in morsels of 1024 nodes so that expression ids come out in a fixed order. The visualizations are
+built after the scan:
 
 | # | Pass | Output |
 |---|---|---|
 | 1 | Name resolution (`name_resolution.rs`) | Scopes, table and column references, declarations, inferred schemas |
 | 2 | Function calls (`function_calls.rs`) | Function call expressions and their arguments |
 | 3 | Constant propagation (`constants.rs`) | Constant expression roots |
-| 4 | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries |
+| 4 | Parameters (`parameters.rs`) | `parameters`, sorted by their position in the text |
+| - | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries, `flow` of the first `@vis flow` tag |
+
+`analyze_with(parsed, catalog, script_results)` also takes the `ScriptResults` of the session
+(`script_results.rs`): the output columns of its single-SELECT scripts, declared as the tables of the
+reserved entry `SCRIPT_RESULTS_ENTRY_ID`, which named table parameters read (see `script_references.md`).
+`analyze` passes none.
 
 All passes share `AnalysisState` (`analyzer/state.rs`): the parsed script, the catalog, the name
 texts, the output `AnalyzedScript`, and `expression_index` (AST node → expression), through which
@@ -261,7 +269,7 @@ creates a `NameScope` and links it to its parent. Declarations are registered as
 1. indexes the script's declarations (`index_declarations`)
 2. resolves names in three sweeps over the scope tree: bottom-up (tables against CTEs, the script and
    the catalog; columns against the tables and child outputs of the scope), top-down (correlated
-   references from parent scopes), then unresolved tables against the remaining candidates
+   references from parent scopes), then the remaining unresolved columns against the unresolved tables
 3. materializes derived tables from the output columns of their defining scopes
 4. assigns statement ids
 5. solves schema inference: columns referenced on tables that are not in the catalog become
@@ -288,7 +296,8 @@ snapshot it resolved against:
 pub snapshot: Arc<CatalogSnapshot>
 ```
 
-`AnalyzedScript::table(loc)` resolves through the script's own entry, then the snapshot. Encoding
+`AnalyzedScript::table(loc)` resolves through the script's own entry, then its `ScriptResults`, then
+the snapshot. Encoding
 (`pack.rs`), the cursor and completion read the catalog only through it
 (`catalog_test::analyses_keep_the_snapshot_they_resolved_against`). The snapshot also contains the
 script's own published version, which the analysis ignores.
@@ -322,6 +331,8 @@ An analysis is current when nothing it read has changed. Three counters exist:
 - the parsed and scanned scripts of the analysis are the current ones (`Arc::ptr_eq` along the
   chain) and were scanned from the current text version
 - `catalog.is_current(&analyzed.snapshot)`
+- if the script has table parameters, the analysis holds the script's current `ScriptResults`
+  (`Script::script_results_current`, `Arc::ptr_eq`)
 
 The planner applies the same catalog check per input (`planner.rs`, "stale catalog analysis").
 
@@ -408,10 +419,11 @@ Connections publish their schema as descriptor entries:
 
 The catalog applies changes (`dashql-core`, `catalog/changes.rs`); deriving, qualifying, compacting and
 persisting them needs the analyzer and scripts and lives in `dashql-core-session` (`catalog_changes.rs`):
-1. `derive_catalog_change(analysis, statement)`: a successful `CREATE TABLE`, `CREATE TABLE AS`,
+1. `derive_catalog_change(analysis, statement, options)`: a successful `CREATE TABLE`, `CREATE TABLE AS`,
    `CREATE VIEW`, `SELECT INTO` or `DROP` becomes a `CatalogChange` (a create or drop with plain names,
    `catalog/changes.rs`; `CatalogChangeT` only at the boundary), with the relation named as written
-   and the columns from the analysis.
+   and the columns from the analysis. Temporary relations are skipped unless
+   `CatalogChangeOptions::include_temporary` is set.
 2. `qualify_catalog_changes(changes, defaults)`: qualifies names with the connection's default
    database and schema.
 3. `compact_catalog_changes`: keeps the last change of every relation. `IF NOT EXISTS` is resolved

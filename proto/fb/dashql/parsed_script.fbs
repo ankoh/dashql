@@ -522,13 +522,14 @@ table Error {
 enum CommentBlockType: uint8 {
     /// An ordinary comment
     COMMENT = 0,
-    /// A `@dashql:<tag>` region, the parser does not interpret the tag or the content.
+    /// A `@<tag>` region of a known tag, the parser does not interpret the content.
     /// Readers pick blocks by tag name and parse the content, e.g. as JSON.
     DASHQL_TAG = 1,
 }
 
 /// A group of comments: a single block comment or a run of line comments on consecutive lines.
-/// Tagged regions (`-- @dashql:<tag>` ... `-- @dashql:end`, or `/* @dashql:<tag> ... */`) are split into their own blocks.
+/// Blocks are split at every line that starts with a known tag (`@metadata`, `@description`, `@vis`); a tag runs
+/// to the next tag line or to the end of the comment, an `-- @end` line also ends it.
 struct CommentBlock {
     block_type: CommentBlockType;
     /// Byte span of the whole block in the source text, including comment markers and tag lines

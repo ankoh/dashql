@@ -14,7 +14,7 @@ Please consult relevant docs in that directory before making changes.
     - `docs/agents/build_rust_coverage.md`
     - `docs/agents/rust_analyzer.md` (rust-project.json for rust-analyzer)
 
-- Rust core (parser design, parse-tree change rules, quirks inherited from the former C++ core)
+- Rust core (parser design, parse-tree change rules, core quirks kept on purpose)
     - `docs/design/core_parser.md`
     - `docs/design/core_quirks.md`
 
