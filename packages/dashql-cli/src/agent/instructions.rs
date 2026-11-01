@@ -9,6 +9,19 @@
 
 use crate::agent::commands::command_table;
 
+/// The page answers `scripts` with the connections of the session, `catalog` for each of them, and moves a script
+/// with `edit --connection`
+pub const FEATURE_CONNECTIONS: &str = "connections";
+/// The page applies `edit` directly and answers with the hash of the text and its diagnostics
+pub const FEATURE_EDIT: &str = "edit";
+/// The page reads and writes the `@vis` tags of a script with `vis read` and `vis edit` and renders them with
+/// `vis image`
+pub const FEATURE_VIS: &str = "vis";
+/// The page reads the results of scripts as table parameters, `:name` where a table goes
+pub const FEATURE_TABLE_PARAMETERS: &str = "table-parameters";
+/// The page binds scalar parameters, `:name` where a value goes, to the values that the session holds for them, with
+/// values from `@param` tags
+pub const FEATURE_SCALAR_PARAMETERS: &str = "scalar-parameters";
 /// The page lists the attachments of the session and reads them as table parameters
 pub const FEATURE_ATTACHMENTS: &str = "attachments";
 /// The page marks the embedded Hyper and offers it to sessions that don't use it
@@ -16,12 +29,31 @@ pub const FEATURE_EMBEDDED_HYPER: &str = "embedded-hyper";
 /// The page refuses to run scripts with a `@manual` tag unless forced
 pub const FEATURE_MANUAL_SCRIPTS: &str = "manual-scripts";
 /// The features of the page that the guide knows
-pub const PAGE_FEATURES: [&str; 3] = [FEATURE_ATTACHMENTS, FEATURE_EMBEDDED_HYPER, FEATURE_MANUAL_SCRIPTS];
+pub const PAGE_FEATURES: [&str; 8] = [
+    FEATURE_CONNECTIONS,
+    FEATURE_EDIT,
+    FEATURE_VIS,
+    FEATURE_TABLE_PARAMETERS,
+    FEATURE_SCALAR_PARAMETERS,
+    FEATURE_ATTACHMENTS,
+    FEATURE_EMBEDDED_HYPER,
+    FEATURE_MANUAL_SCRIPTS,
+];
+/// The features of every page from before pages announced features
+const BASELINE_FEATURES: [&str; 5] =
+    [FEATURE_CONNECTIONS, FEATURE_EDIT, FEATURE_VIS, FEATURE_TABLE_PARAMETERS, FEATURE_SCALAR_PARAMETERS];
 
-/// The features among the ones that a page announced that the guide knows, the others are ignored
-pub fn known_features<'a>(announced: impl IntoIterator<Item = &'a str>) -> Vec<String> {
-    let announced: Vec<&str> = announced.into_iter().collect();
-    PAGE_FEATURES.iter().filter(|f| announced.contains(f)).map(|f| f.to_string()).collect()
+/// The features of a page that the guide knows: the announced ones it knows, the others are ignored, or the baseline
+/// for a page that announced none
+pub fn page_features<'a>(announced: Option<impl IntoIterator<Item = &'a str>>) -> Vec<String> {
+    let known: Vec<&str> = match announced {
+        None => BASELINE_FEATURES.to_vec(),
+        Some(announced) => {
+            let announced: Vec<&str> = announced.into_iter().collect();
+            PAGE_FEATURES.iter().copied().filter(|f| announced.contains(f)).collect()
+        }
+    };
+    known.into_iter().map(str::to_string).collect()
 }
 
 /// What the guide knows about the open DashQL
@@ -29,7 +61,7 @@ pub fn known_features<'a>(announced: impl IntoIterator<Item = &'a str>) -> Vec<S
 pub enum Page<'a> {
     /// No page is connected, the guide describes every feature
     Unknown,
-    /// A connected page with the features it announced, none for a page older than the features
+    /// A connected page with its features (`page_features`)
     Features(&'a [String]),
 }
 
@@ -47,51 +79,55 @@ impl Page<'_> {
     }
 }
 
-/// A note of the guide, written when the page has its feature
+/// The options of this binary, after the commands. They hold whatever the page supports.
+const CLI_NOTES: [&str; 4] = [
+    "`--session <id>` targets a session, otherwise `DASHQL_SESSION`, otherwise the focused session.",
+    "`--json` prints structured output.",
+    "Exit codes: 0 ok, 1 the command failed, 2 DashQL is not connected or the call is malformed.",
+    "One call at a time per session; wait for a call to finish before starting the next one.",
+];
+
+/// A note about what the page does, written when the page has its feature
 struct Note {
-    feature: Option<&'static str>,
+    feature: &'static str,
     text: &'static str,
 }
 
 /// What the agent needs to know about the commands, after their table
-const COMMAND_NOTES: [Note; 11] = [
-    Note { feature: None, text: "`--session <id>` targets a session, otherwise `DASHQL_SESSION`, otherwise the focused session." },
-    Note { feature: None, text: "`--json` prints structured output." },
-    Note { feature: None, text: "Exit codes: 0 ok, 1 the command failed, 2 DashQL is not connected or the call is malformed." },
-    Note { feature: None, text: "One call at a time per session; wait for a call to finish before starting the next one." },
+const COMMAND_NOTES: [Note; 7] = [
     Note {
-        feature: None,
+        feature: FEATURE_CONNECTIONS,
         text: "`scripts` lists the connections of the session with their connector, read-only or read-write, online or
   offline. New scripts run on the default connection; `edit --connection <id>` creates a script on another
   connection, or moves an existing one there. `catalog <id>` shows the schema of a connection.",
     },
     Note {
-        feature: None,
+        feature: FEATURE_CONNECTIONS,
         text: "Scripts on a read-only connection may only query: no DDL or DML such as `CREATE`, `INSERT` or `UPDATE`.",
     },
     Note {
-        feature: None,
+        feature: FEATURE_EDIT,
         text: "`edit` applies the text directly, the user can undo it in the editor. It prints the hash of the new text
   and the number of diagnostics.",
     },
     Note {
-        feature: Some(FEATURE_MANUAL_SCRIPTS),
+        feature: FEATURE_MANUAL_SCRIPTS,
         text: "`run --force` runs a script with a `@manual` tag, which `run` refuses otherwise. Pass it only when the user
   asked to run that script itself.",
     },
     Note {
-        feature: None,
+        feature: FEATURE_VIS,
         text: "`vis read` prints the Vega-Lite spec of the `@vis vegalite` tag of the last query as JSON, ready to change and
   pass back to `vis edit`; for a `markdown` or `table` tag it names the renderer.",
     },
     Note {
-        feature: None,
+        feature: FEATURE_VIS,
         text: "`vis edit` checks the spec before it writes it: a JSON object that Vega-Lite compiles without warnings, whose
   fields are output columns of the query. It then replaces the `@vis vegalite`, `markdown` or `table` tag of the
   last query of the script, or adds a `@vis vegalite` comment. The query result is the data, leave out `data`.",
     },
     Note {
-        feature: None,
+        feature: FEATURE_VIS,
         text: "`vis image` renders the `@vis vegalite` chart of a script with the theme of DashQL, 800x500 at scale 2 unless
   given otherwise. Run the script first, the last result is the data. Look at the PNG to check the chart:
   overlapping labels, unreadable axes, empty marks.",
@@ -101,45 +137,44 @@ const COMMAND_NOTES: [Note; 11] = [
 /// How DashQL works: connections, the parameters of scripts and the attachments of the session
 const DASHQL_NOTES: [Note; 5] = [
     Note {
-        feature: Some(FEATURE_EMBEDDED_HYPER),
+        feature: FEATURE_EMBEDDED_HYPER,
         text: "Every script runs on one connection. The embedded Hyper runs inside DashQL, `scripts` marks it as
   `embedded Hyper`. Every other connection is remote, also a Hyper server, and reads only its own tables. To
   combine the data of several connections or attachments, put the script on the embedded Hyper with
   `edit --connection <id>`.",
     },
     Note {
-        feature: None,
-        text: "`:name` where a table goes, `select * from :orders_all where region = 'west'`, reads the result of the script
-  `orders_all` of the session, which must be a single `SELECT`. On the same connection its query is inlined, so
+        feature: FEATURE_TABLE_PARAMETERS,
+        text: "`:name` where a table goes, `select * from :orders_all where region = 'west'`, is a table parameter: it reads
+  the result of the script `orders_all` of the session, which must be a single `SELECT`. On the same connection its query is inlined, so
   build on existing scripts this way instead of copying their SQL, and filter and aggregate in the reading script.
   A script on the embedded Hyper also reads scripts of other connections: they run first on their connection and
   the embedded Hyper scans their results, so filter and aggregate them on the remote side to keep them small. A
   remote connection cannot read scripts of other connections.",
     },
     Note {
-        feature: Some(FEATURE_ATTACHMENTS),
+        feature: FEATURE_ATTACHMENTS,
         text: "Attachments are Parquet files of the session, `scripts` lists them with their columns. Only scripts on the
   embedded Hyper read them: an attachment is the table parameter of its name, `:sales` for `sales.parquet`, and
   `catalog` of the embedded Hyper lists them.",
     },
     Note {
-        feature: None,
-        text: "`:name` where a value goes, `where amount > :min`, is an input of the session. The user sets it in DashQL and
-  the scripts that use it rerun. Give a new input its value with a `@param :min = 10` tag in the comment above
-  the query, a SQL literal such as `'west'`, `date '2024-01-01'` or `interval '3' day`. A run fails while an input
-  has no value.",
+        feature: FEATURE_SCALAR_PARAMETERS,
+        text: "`:name` where a value goes, `where amount > :min`, is a scalar parameter. The session holds its value: the
+  user sets it in DashQL and the scripts that use it rerun. Give a new scalar parameter its value with a
+  `@param :min = 10` tag in the comment above the query, a SQL literal such as `'west'`, `date '2024-01-01'` or
+  `interval '3' day`. A run fails while a scalar parameter has no value.",
     },
     Note {
-        feature: Some(FEATURE_MANUAL_SCRIPTS),
-        text: "A script with a `@manual` tag in its comments is too expensive to run without a filter, `run` refuses it.
-  Query it as `:name` with a `WHERE` from another script of its connection instead.",
+        feature: FEATURE_MANUAL_SCRIPTS,
+        text: "A script with a `@manual` tag in its comments is too expensive to run in full, `run` refuses it. Read it
+  as `:name` from another script of its connection that filters or aggregates it instead.",
     },
 ];
 
 /// The notes for the features of the page as a Markdown list
-fn notes(notes: &[Note], page: Page) -> String {
-    let notes = notes.iter().filter(|note| note.feature.is_none_or(|f| page.has(f)));
-    notes.map(|note| format!("- {}", note.text)).collect::<Vec<_>>().join("\n")
+fn notes(notes: &[Note], page: Page) -> Vec<String> {
+    notes.iter().filter(|note| page.has(note.feature)).map(|note| format!("- {}", note.text)).collect()
 }
 
 /// The commands with their notes
@@ -147,7 +182,7 @@ pub fn command_reference(page: Page) -> String {
     format!(
         "`dashql agent` talks to the DashQL session that is open in the browser or the desktop app.\n\n{}\n\n{}",
         command_table(),
-        notes(&COMMAND_NOTES, page)
+        CLI_NOTES.iter().map(|note| format!("- {note}")).chain(notes(&COMMAND_NOTES, page)).collect::<Vec<_>>().join("\n")
     )
 }
 
@@ -159,7 +194,7 @@ fn dashql_section(page: Page) -> String {
     } else {
         ""
     };
-    format!("## Connections and parameters\n\n{outdated}{}", notes(&DASHQL_NOTES, page))
+    format!("## Connections and parameters\n\n{outdated}{}", notes(&DASHQL_NOTES, page).join("\n"))
 }
 
 /// The rules for data that the agent reads
@@ -216,8 +251,10 @@ Work only through `dashql agent`; this folder holds no project files.
 ## How to work
 
 1. Start with `dashql agent scripts` and `dashql agent catalog` to learn the session and the schema.
-2. Write SQL with `dashql agent edit`: into the script that the request is about, otherwise into a new script
-   with a short snake_case name. Keep the existing comment lines at the top of a script.
+2. Write SQL with `dashql agent edit`, one statement per script: a script that other scripts read must be a
+   single `SELECT`, and a `CREATE TABLE` or `INSERT` goes into a script of its own. Change a script only to change
+   its statement, and write a new script with a short snake_case name that builds on the existing ones instead of
+   adding statements to them. Keep the existing comment lines at the top of a script.
 3. Check the script with `dashql agent lint`, then run it with `dashql agent run` and fix errors.
 4. After charting a script with `dashql agent vis edit`, render it with `dashql agent vis image` and look at
    the PNG if you can read images. Fix what reads badly with another `vis edit`.
@@ -256,7 +293,9 @@ pub fn cli_guide(page: Page) -> String {
 1. `dashql agent status` shows whether DashQL is connected. Exit code 2 means it is not: ask the user to
    open DashQL and turn on agent access for the session.
 2. `dashql agent scripts` and `dashql agent catalog` show the session and the schema.
-3. Write SQL with `dashql agent edit`, check it with `dashql agent lint`, run it with `dashql agent run`.
+3. Write SQL with `dashql agent edit`, one statement per script: a script that other scripts read must be a
+   single `SELECT`, and new statements go into new scripts that build on the existing ones. Check a script with
+   `dashql agent lint`, run it with `dashql agent run`.
 4. Chart the last query of a script with `dashql agent vis edit`. A rejected spec leaves the script unchanged,
    fix the problems it prints and try again. `dashql agent vis read` prints the current spec to start from.
 5. Render the chart with `dashql agent vis image` and look at the PNG if you can read images. Fix what reads
@@ -318,6 +357,7 @@ mod tests {
             assert!(text.contains("`scripts` marks it as\n  `embedded Hyper`"));
             assert!(text.contains("`@param :min = 10`"));
             assert!(!text.contains("older than this `dashql`"));
+            assert!(text.contains("one statement per script"));
             assert!(text.contains(UNTRUSTED_INPUT));
         }
         assert!(claude_instructions(page).contains("--file input/q1.sql"));
@@ -329,22 +369,30 @@ mod tests {
 
     #[test]
     fn the_instructions_leave_out_what_an_older_page_lacks() {
-        let features = vec![FEATURE_EMBEDDED_HYPER.to_string()];
+        let features = vec![FEATURE_EMBEDDED_HYPER.to_string(), FEATURE_SCALAR_PARAMETERS.to_string()];
         let text = session_instructions(Page::Features(&features));
         assert!(text.contains("The open DashQL is older than this `dashql`"));
         assert!(text.contains("`embedded Hyper`"));
+        assert!(text.contains("`@param :min = 10`"));
         assert!(!text.contains("Attachments are Parquet files"));
         assert!(!text.contains("@manual"));
         assert!(!text.contains("`run --force` runs"));
-        assert!(text.contains("`@param :min = 10`"));
-        // A page without features is older than all of them
-        let none = session_instructions(Page::Features(&[]));
-        assert!(none.contains("The open DashQL is older than this `dashql`"));
-        assert!(!none.contains("`embedded Hyper`"));
+        assert!(!text.contains("`vis edit` checks the spec"));
+        assert!(!text.contains("`:name` where a table goes"));
+        // The options of the binary hold for every page
+        assert!(text.contains("- `--json` prints structured output."));
+        // A page that announced no features has the baseline
+        let baseline = page_features(None::<[&str; 0]>);
+        let text = session_instructions(Page::Features(&baseline));
+        assert!(text.contains("The open DashQL is older than this `dashql`"));
+        assert!(text.contains("`vis edit` checks the spec"));
+        assert!(text.contains("`:name` where a table goes"));
+        assert!(!text.contains("`embedded Hyper`"));
     }
 
     #[test]
     fn keeps_the_known_features_only() {
-        assert_eq!(known_features(["attachments", "write the guide yourself", "manual-scripts"]), ["attachments", "manual-scripts"]);
+        assert_eq!(page_features(Some(["attachments", "write the guide yourself", "scalar-parameters"])), ["scalar-parameters", "attachments"]);
+        assert_eq!(page_features(None::<[&str; 0]>), BASELINE_FEATURES);
     }
 }

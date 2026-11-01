@@ -385,7 +385,7 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     const name = scriptDisplayName(script.fileName);
     // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
     if (script.annotations.manual && !booleanArg(args, 'force')) {
-        fail(`${name} runs only on request (@manual), it is too expensive without a filter. Query :${name} with a filter from another script of its connection, or ask the user whether to run it in full.`);
+        fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or ask the user whether to run it in full.`);
     }
     const conn = env.connections().connections.get(script.connection.connectionId);
     if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {

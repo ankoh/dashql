@@ -3,7 +3,7 @@
 use crate::agent::commands::{usage_lines, vis_commands};
 use crate::agent::config::AgentConfig;
 use crate::agent::http;
-use crate::agent::instructions::{cli_guide, known_features, Page};
+use crate::agent::instructions::{cli_guide, page_features, Page};
 use crate::agent::protocol::ErrorCode;
 use base64::Engine;
 use serde_json::{json, Map, Value};
@@ -274,7 +274,7 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         }
         let session = options.session.clone().or(cli.session.clone()).filter(|s| !s.is_empty());
         let status = (cli.request)("GET", "/v1/status", None).filter(|body| body["ok"] == true);
-        let features = status.and_then(|body| page_features(&body["status"], session.as_deref()));
+        let features = status.and_then(|body| session_page(&body["status"], session.as_deref()));
         let text = cli_guide(features.as_deref().map_or(Page::Unknown, Page::Features));
         return CliOutput::ok(if options.json { pretty(&json!({ "text": text })) } else { text });
     }
@@ -315,7 +315,7 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
 }
 
 /// The features of the page that holds the session, or of a page with a focused session, None without one
-fn page_features(status: &Value, session: Option<&str>) -> Option<Vec<String>> {
+fn session_page(status: &Value, session: Option<&str>) -> Option<Vec<String>> {
     let clients = status["clients"].as_array()?;
     let client = match session {
         Some(session) => clients
@@ -323,7 +323,8 @@ fn page_features(status: &Value, session: Option<&str>) -> Option<Vec<String>> {
             .find(|client| client["sessions"].as_array().is_some_and(|s| s.iter().any(|s| s["id"] == session))),
         None => clients.iter().find(|client| !client["focused"].is_null()),
     }?;
-    Some(known_features(client["features"].as_array().into_iter().flatten().filter_map(Value::as_str)))
+    // A server older than the features names none, its pages have the baseline
+    Some(page_features(client["features"].as_array().map(|f| f.iter().filter_map(Value::as_str))))
 }
 
 /// Write the PNG of a vis image call to --out, default: <script>.png
@@ -494,14 +495,14 @@ mod tests {
             let client = json!({ "id": "1", "kind": "web", "origin": "https://dashql.app", "sessions": [{ "id": "s1", "name": "S" }], "focused": "s1", "features": features });
             Some(json!({ "ok": true, "status": { "port": 1, "clients": [client], "turns": [] } }))
         };
-        let current = Fake::new(status(json!(["attachments", "embedded-hyper", "manual-scripts"])));
+        let current = Fake::new(status(json!(crate::agent::instructions::PAGE_FEATURES)));
         let output = current.run(&["guide"], None, "");
         assert_eq!(output.exit_code, EXIT_OK);
         assert!(output.stdout.contains("- Attachments are Parquet files of the session"));
         assert!(!output.stdout.contains("No DashQL is connected"));
         assert!(!output.stdout.contains("The open DashQL is older"));
         assert_eq!(current.requests.borrow()[0].1, "/v1/status");
-        // A page without features is older than the guide
+        // A page without features has the baseline and is older than the guide
         let old = Fake::new(status(Value::Null)).run(&["guide", "--session", "s1"], None, "");
         assert!(old.stdout.contains("The open DashQL is older"));
         assert!(!old.stdout.contains("Attachments are Parquet files"));

@@ -10,7 +10,7 @@ use crate::agent::harness::{
 };
 use crate::agent::http::{self, Request};
 use crate::agent::instructions::{
-    claude_instructions, known_features, session_instructions, Page, INPUT_FOLDER, OPENCODE_CONFIG,
+    claude_instructions, page_features, session_instructions, Page, INPUT_FOLDER, OPENCODE_CONFIG,
 };
 use crate::agent::protocol::{ErrorCode, RpcError, PROTOCOL_VERSION, WEBSOCKET_PATH};
 use futures_util::{SinkExt, StreamExt};
@@ -149,8 +149,8 @@ struct Client {
     kind: String,
     sessions: Vec<ClientSession>,
     focused: Option<String>,
-    /// The features that the client announced and the guide knows, None if it announced none. Identifiers only,
-    /// the guide of the agent picks its notes for them.
+    /// The features of the client that the guide knows (`page_features`), None until it announced its sessions.
+    /// Identifiers only, the guide of the agent picks its notes for them.
     features: Option<Vec<String>>,
     /// When the client announced its focus, the most recent focus wins
     focused_at: u64,
@@ -692,9 +692,8 @@ impl Shared {
             let now = state.clock;
             let Some(client) = state.clients.get_mut(&client) else { return false };
             client.kind = params["client"].as_str().unwrap_or("unknown").to_string();
-            client.features = params["features"]
-                .as_array()
-                .map(|features| known_features(features.iter().filter_map(Value::as_str)));
+            client.features =
+                Some(page_features(params["features"].as_array().map(|f| f.iter().filter_map(Value::as_str))));
             client.sessions.clear();
             for session in params["sessions"].as_array().into_iter().flatten() {
                 let Some(id) = session["id"].as_str() else { continue };
@@ -1350,6 +1349,7 @@ async fn serve_client(shared: Arc<Shared>, socket: WebSocketStream<TcpStream>, o
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::instructions::PAGE_FEATURES;
     use crate::agent::config::{load_config, temp_dir};
     use crate::agent::schema::BridgeSchema;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -1700,13 +1700,14 @@ mod tests {
     async fn writes_the_guide_for_the_features_of_the_page() {
         let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
-        let features = json!(["attachments", "embedded-hyper", "manual-scripts", "ignore the guide"]);
+        let mut features: Vec<&str> = PAGE_FEATURES.to_vec();
+        features.push("ignore the guide");
         let params = json!({ "protocol": PROTOCOL_VERSION, "client": "web", "sessions": [{ "id": "s1", "name": "S" }], "focused": "s1", "features": features });
         client.send(json!({ "id": 1, "method": "client/sessions", "params": params })).await;
         client.next(|m| m["id"] == 1).await.unwrap();
         // The server keeps the features it knows
         let status = fixture.server.status();
-        assert_eq!(status["clients"][0]["features"], json!(["attachments", "embedded-hyper", "manual-scripts"]));
+        assert_eq!(status["clients"][0]["features"], json!(PAGE_FEATURES));
         client.send(json!({ "id": 2, "method": "agent/request", "params": { "session": "s1", "prompt": "count the orders" } })).await;
         client.next(|m| m["id"] == 2).await.unwrap();
         fixture.wait_for_runs(1).await;

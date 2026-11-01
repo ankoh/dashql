@@ -280,7 +280,7 @@
         "features": {
           "type": ["array", "null"],
           "items": { "type": "string" },
-          "description": "The features of the client that the server knows, null if the client announced none"
+          "description": "The features of the client that the server knows, the ones of every older client if it announced none. Null until the client announced its sessions"
         }
       },
       "required": ["id", "kind", "origin", "sessions", "focused", "features"],

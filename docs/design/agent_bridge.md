@@ -223,10 +223,12 @@ page stops the agent server first.
   files and run programs, what to do. The guide describes the commands of the binary and DashQL as of its build, a
   newer DashQL reaches agents with the next `dashql`.
 - **Page features:** the page announces what it supports as identifiers with `client/sessions` (`features`,
-  `AGENT_FEATURES` in `agent_protocol.ts`): `attachments`, `embedded-hyper`, `manual-scripts`. The server keeps the
-  ones it knows (`PAGE_FEATURES` in `instructions.rs`) and shows them in its status. Notes of the guide may need a
-  feature: the guide for a page leaves out the notes of the features it lacks and asks the user to reload DashQL or
-  update the app. Harness runs get the guide for the page that holds the session, `dashql agent guide` the one for
+  `AGENT_FEATURES` in `agent_protocol.ts`): `connections`, `edit`, `vis`, `table-parameters`, `scalar-parameters`,
+  `attachments`, `embedded-hyper`, `manual-scripts`. The server keeps the ones it knows (`PAGE_FEATURES` in
+  `instructions.rs`), a page that announced none has the ones of every older page (`BASELINE_FEATURES`), and the
+  status shows them. Every note about what the page does names its feature, only the options of the binary hold
+  for every page. The guide for a page leaves out the notes of the features it lacks and asks the user to reload
+  DashQL or update the app. Harness runs get the guide for the page that holds the session, `dashql agent guide` the one for
   the page of the session in the status of the server, or the full guide when no page is connected. A page can
   only hide notes of the binary or ask for an update this way, never add text.
 - **Harness runs** that DashQL starts don't use the skill: the server writes their `AGENTS.md` and `CLAUDE.md`
