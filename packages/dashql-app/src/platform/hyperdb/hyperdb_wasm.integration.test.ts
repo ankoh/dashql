@@ -318,6 +318,41 @@ describe('HyperDB embedded database integration', () => {
         }
     }, 60_000);
 
+    it('reads the Parquet attachments of a session through a read-only mount', async () => {
+        const connection = await database!.connect();
+        const root = await getOPFSRoot();
+        const name = `dashql-attachments-${crypto.randomUUID()}`;
+        const directory = await root.getDirectoryHandle(name, { create: true });
+        const write = async (file: string, values: number[]) => {
+            const bytes = await exportArrowTableAsParquet(database!, arrow.tableFromArrays({ value: BigInt64Array.from(values.map(BigInt)) }));
+            const writer = await (await directory.getFileHandle(file, { create: true })).createWritable();
+            await writer.write(bytes as BlobPart);
+            await writer.close();
+        };
+        const total = async (path: string, file: string) => toPlainObjects(await connection.query(`
+            SELECT sum(value) AS total FROM external('${path}/${file}', format => 'parquet')
+        `));
+        await write('a.parquet', [1, 2]);
+        let path: string | null = null;
+        try {
+            path = await database!.registerExternalDirectory(directory, `/mnt/external/attachments/${name}`, 'read');
+            expect(await total(path, 'a.parquet')).toEqual([{ total: 3n }]);
+            // An overwritten, an added and a removed file are seen after a refresh
+            await write('a.parquet', [10, 20, 30]);
+            await write('b.parquet', [5]);
+            await database!.refreshExternalDirectory(path);
+            expect(await total(path, 'a.parquet')).toEqual([{ total: 60n }]);
+            expect(await total(path, 'b.parquet')).toEqual([{ total: 5n }]);
+            await directory.removeEntry('b.parquet');
+            await database!.refreshExternalDirectory(path);
+            await expect(total(path, 'b.parquet')).rejects.toThrow();
+        } finally {
+            if (path != null) await ignoreCleanupFailure(() => database!.removeExternalDirectory(path!));
+            await ignoreCleanupFailure(() => root.removeEntry(name, { recursive: true }));
+            await connection.close();
+        }
+    }, 60_000);
+
     it('refuses to refresh a directory that is not registered', async () => {
         await expect(database!.refreshExternalDirectory('/mnt/external/unknown-directory')).rejects.toThrow('not registered');
     });
