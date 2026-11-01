@@ -102,8 +102,8 @@ Every app window runs one embedded hyperdb-wasm instance, `setupWebHyperDB` give
 - `user.hyper`, attached as `hyper`, is the database of the embedded Hyper connector and the shell
   (`connect({ defaultDatabase: 'hyper' })`).
 - `snippets.hyper`, attached as `__dashql_snippets`, holds the `snippets` table of the snippet overlay, one row per
-  snippet and connector with its id, category, path, description and text. `SnippetSearch` fills it on the first search
-  and finds the snippets with `ILIKE`.
+  snippet and connector with the columns `id`, `category`, `connector`, `path` and `body`, the body includes the
+  description. `SnippetSearch` fills it on the first search and finds the snippets with `ILIKE`.
 - `logs/` holds the log files of the Hyper process of the instance, the instance sets it as `log_file_path`. They
   are rotated by `log_file_size_limit` and `log_file_max_count` (`HYPERDB_WASM_ENGINE_SETTINGS`), and
   `hyper_log()` reads them. The monitors of the connections copy them into `connections/<id>/monitoring.hyper`.
