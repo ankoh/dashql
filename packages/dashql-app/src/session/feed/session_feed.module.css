@@ -291,11 +291,10 @@
     display: grid;
     place-items: center;
     padding: 0;
-    /* A grey tag like the mention tags of the scripts */
-    border: 1px solid var(--base_color_neutral_2);
+    border: 0;
     border-radius: 6px;
     color: var(--base_color_neutral_6);
-    background-color: var(--base_color_neutral_1);
+    background: transparent;
     cursor: pointer;
     /* Hidden but clickable, a pointer on the button hovers its card and shows it */
     opacity: 0;
@@ -319,12 +318,10 @@
 
 .feed_entry_insert:hover {
     color: var(--base_color_neutral_8);
-    background-color: color-mix(in srgb, var(--base_color_neutral_2) 50%, var(--base_color_neutral_1));
 }
 
 .feed_entry_insert:active {
-    background-color: var(--base_color_neutral_2);
-    border-color: var(--base_color_neutral_3);
+    color: var(--base_color_neutral_9);
 }
 
 .feed_entry_insert:focus-visible {

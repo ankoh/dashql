@@ -677,7 +677,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     data-testid="script-insert-above"
                     onClick={() => props.onCreate(entryIndex)}
                 >
-                    <PlusIcon size={12} />
+                    <PlusIcon size={14} />
                 </button>
                 <button
                     type="button"
@@ -747,7 +747,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     data-testid="script-insert-below"
                     onClick={() => props.onCreate(entryIndex + 1)}
                 >
-                    <PlusIcon size={12} />
+                    <PlusIcon size={14} />
                 </button>
             </div>
         </div>
