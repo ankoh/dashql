@@ -76,16 +76,16 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         const native = new NativeStorageBackend('/tmp/native-attachments');
         const bytes = new Uint8Array([0, 128, 255, 10]);
         await native.saveSessionManifest(TEST_SESSION_ID, testSession());
-        await native.saveDataFile(TEST_SESSION_ID, 'data.bin', bytes);
+        await native.saveDataFile(TEST_SESSION_ID, 'data.parquet', bytes);
         try {
             await composite.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
             await composite.loadSession(TEST_SESSION_ID);
-            await expect(opfs.loadDataFile(TEST_SESSION_ID, 'data.bin')).resolves.toEqual(bytes);
+            await expect(opfs.loadDataFile(TEST_SESSION_ID, 'data.parquet')).resolves.toEqual(bytes);
             const root = await getOPFSRoot();
             const sessions = await root.getDirectoryHandle('sessions');
             const session = await sessions.getDirectoryHandle(TEST_SESSION_ID);
             const attachments = await session.getDirectoryHandle('attachments');
-            const file = await attachments.getFileHandle('data.bin');
+            const file = await attachments.getFileHandle('data.parquet');
             expect(new Uint8Array(await (await file.getFile()).arrayBuffer())).toEqual(bytes);
         } finally {
             await opfs.deleteSession(TEST_SESSION_ID);
@@ -95,19 +95,19 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     it('refreshes the complete native attachment mirror and removes stale files without native writes', async () => {
         const native = new NativeStorageBackend('/tmp/native-refresh');
         await native.saveSessionManifest(TEST_SESSION_ID, testSession());
-        await native.saveDataFile(TEST_SESSION_ID, 'first.bin', new Uint8Array([1]));
-        await native.saveDataFile(TEST_SESSION_ID, 'second.bin', new Uint8Array([2]));
-        await registry.saveDataFile(TEST_SESSION_ID, 'first.bin', new Uint8Array([0]));
-        await registry.saveDataFile(TEST_SESSION_ID, 'stale.bin', new Uint8Array([3]));
+        await native.saveDataFile(TEST_SESSION_ID, 'first.parquet', new Uint8Array([1]));
+        await native.saveDataFile(TEST_SESSION_ID, 'second.parquet', new Uint8Array([2]));
+        await registry.saveDataFile(TEST_SESSION_ID, 'first.parquet', new Uint8Array([0]));
+        await registry.saveDataFile(TEST_SESSION_ID, 'stale.parquet', new Uint8Array([3]));
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
         const before = { files: new Map(fsStore.files), bytes: new Map(fsStore.binFiles), dirs: new Set(fsStore.dirs), mtimes: new Map(fsStore.mtimes) };
         await backend.loadSession(TEST_SESSION_ID);
-        expect((await registry.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'first.bin', sizeBytes: 1 }, { name: 'second.bin', sizeBytes: 1 }]);
-        expect(await registry.loadDataFile(TEST_SESSION_ID, 'first.bin')).toEqual(new Uint8Array([1]));
-        expect(await registry.loadDataFile(TEST_SESSION_ID, 'second.bin')).toEqual(new Uint8Array([2]));
+        expect((await registry.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'first.parquet', sizeBytes: 1 }, { name: 'second.parquet', sizeBytes: 1 }]);
+        expect(await registry.loadDataFile(TEST_SESSION_ID, 'first.parquet')).toEqual(new Uint8Array([1]));
+        expect(await registry.loadDataFile(TEST_SESSION_ID, 'second.parquet')).toEqual(new Uint8Array([2]));
         expect({ files: fsStore.files, bytes: fsStore.binFiles, dirs: fsStore.dirs, mtimes: fsStore.mtimes }).toEqual(before);
-        await native.deleteDataFile(TEST_SESSION_ID, 'first.bin');
-        await native.deleteDataFile(TEST_SESSION_ID, 'second.bin');
+        await native.deleteDataFile(TEST_SESSION_ID, 'first.parquet');
+        await native.deleteDataFile(TEST_SESSION_ID, 'second.parquet');
         await backend.loadSession(TEST_SESSION_ID);
         expect(await registry.listDataFiles(TEST_SESSION_ID)).toEqual([]);
     });
@@ -115,33 +115,33 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     it('copies only the native attachments that changed since they were mirrored', async () => {
         const native = new NativeStorageBackend('/tmp/native-unchanged');
         await native.saveSessionManifest(TEST_SESSION_ID, testSession());
-        await native.saveDataFile(TEST_SESSION_ID, 'first.bin', new Uint8Array([1]));
-        await native.saveDataFile(TEST_SESSION_ID, 'second.bin', new Uint8Array([2]));
+        await native.saveDataFile(TEST_SESSION_ID, 'first.parquet', new Uint8Array([1]));
+        await native.saveDataFile(TEST_SESSION_ID, 'second.parquet', new Uint8Array([2]));
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
         await backend.loadSession(TEST_SESSION_ID);
         const copies = vi.spyOn(registry, 'saveDataFile');
         await backend.loadSession(TEST_SESSION_ID);
         expect(copies).not.toHaveBeenCalled();
-        await native.saveDataFile(TEST_SESSION_ID, 'second.bin', new Uint8Array([3]));
+        await native.saveDataFile(TEST_SESSION_ID, 'second.parquet', new Uint8Array([3]));
         await backend.loadSession(TEST_SESSION_ID);
-        expect(copies.mock.calls.map(call => call[1])).toEqual(['second.bin']);
-        expect(await registry.loadDataFile(TEST_SESSION_ID, 'second.bin')).toEqual(new Uint8Array([3]));
+        expect(copies.mock.calls.map(call => call[1])).toEqual(['second.parquet']);
+        expect(await registry.loadDataFile(TEST_SESSION_ID, 'second.parquet')).toEqual(new Uint8Array([3]));
     });
 
     it('mirrors native attachment saves through the composite backend', async () => {
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: '/tmp/native-save' });
         const bytes = new Uint8Array([0, 255]);
-        await backend.saveDataFile(TEST_SESSION_ID, 'saved.bin', bytes);
-        await expect(registry.loadDataFile(TEST_SESSION_ID, 'saved.bin')).resolves.toEqual(bytes);
-        expect(await backend.loadDataFile(TEST_SESSION_ID, 'saved.bin')).toEqual(bytes);
+        await backend.saveDataFile(TEST_SESSION_ID, 'saved.parquet', bytes);
+        await expect(registry.loadDataFile(TEST_SESSION_ID, 'saved.parquet')).resolves.toEqual(bytes);
+        expect(await backend.loadDataFile(TEST_SESSION_ID, 'saved.parquet')).toEqual(bytes);
     });
 
     it('mirrors native attachment deletes through the composite backend', async () => {
         const native = new NativeStorageBackend('/tmp/native-delete');
-        await native.saveDataFile(TEST_SESSION_ID, 'deleted.bin', new Uint8Array([1]));
-        await registry.saveDataFile(TEST_SESSION_ID, 'deleted.bin', new Uint8Array([1]));
+        await native.saveDataFile(TEST_SESSION_ID, 'deleted.parquet', new Uint8Array([1]));
+        await registry.saveDataFile(TEST_SESSION_ID, 'deleted.parquet', new Uint8Array([1]));
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
-        await backend.deleteDataFile(TEST_SESSION_ID, 'deleted.bin');
+        await backend.deleteDataFile(TEST_SESSION_ID, 'deleted.parquet');
         expect(await registry.listDataFiles(TEST_SESSION_ID)).toEqual([]);
         expect(await native.listDataFiles(TEST_SESSION_ID)).toEqual([]);
     });
@@ -149,13 +149,13 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     it('mirrors native attachment renames even when the source has not been mirrored', async () => {
         const native = new NativeStorageBackend('/tmp/native-rename');
         const bytes = new Uint8Array([128, 255]);
-        await native.saveDataFile(TEST_SESSION_ID, 'old.bin', bytes);
-        await registry.saveDataFile(TEST_SESSION_ID, 'new.bin', new Uint8Array([0]));
+        await native.saveDataFile(TEST_SESSION_ID, 'old.parquet', bytes);
+        await registry.saveDataFile(TEST_SESSION_ID, 'new.parquet', new Uint8Array([0]));
         await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
-        await backend.renameDataFile(TEST_SESSION_ID, 'old.bin', 'new.bin');
-        await expect(registry.loadDataFile(TEST_SESSION_ID, 'new.bin')).resolves.toEqual(bytes);
-        expect((await registry.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'new.bin', sizeBytes: 2 }]);
-        expect((await native.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'new.bin', sizeBytes: 2 }]);
+        await backend.renameDataFile(TEST_SESSION_ID, 'old.parquet', 'new.parquet');
+        await expect(registry.loadDataFile(TEST_SESSION_ID, 'new.parquet')).resolves.toEqual(bytes);
+        expect((await registry.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'new.parquet', sizeBytes: 2 }]);
+        expect((await native.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: 'new.parquet', sizeBytes: 2 }]);
     });
 
     it('routes flat CRUD to a registered native directory and preserves files on unregister', async () => {

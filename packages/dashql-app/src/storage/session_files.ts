@@ -1,4 +1,4 @@
-import type { SessionAttachment, SessionConnection, SessionData, SessionScript } from './storage_backend.js';
+import { isAttachmentFileName, type SessionAttachment, type SessionConnection, type SessionData, type SessionScript } from './storage_backend.js';
 import { isValidUuid } from './session_validation.js';
 
 /// The draft script of the editor, never a script of a session
@@ -80,7 +80,9 @@ export function sanitizeSessionFiles(session: SessionData): SanitizedSessionFile
             valid = false;
             break;
         }
-        if (!isPlainObject(attachment) || !isSafeFileName(attachment.name) || attachmentKeys.has(fileNameKey(attachment.name))) {
+        // A session attaches Parquet files only
+        if (!isPlainObject(attachment) || !isSafeFileName(attachment.name) || !isAttachmentFileName(attachment.name)
+            || attachmentKeys.has(fileNameKey(attachment.name))) {
             valid = false;
             continue;
         }

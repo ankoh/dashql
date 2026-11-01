@@ -16,13 +16,13 @@ describe('session transfer', () => {
         const target = new SessionTestBackend();
         await seed(source);
         const bytes = new Uint8Array([0, 255, 128]);
-        await source.saveDataFile(TEST_SESSION_ID, 'payload.bin', bytes);
+        await source.saveDataFile(TEST_SESSION_ID, 'payload.parquet', bytes);
         expect(await copySession(TEST_SESSION_ID, source, target, new TestLogger())).toEqual({ sessionCount: 1, fileCount: 4 });
         expect(await verifySession(TEST_SESSION_ID, source, target)).toBe(true);
         const cloneId = '99999999-8888-4777-8666-555555555555';
         await cloneSession(TEST_SESSION_ID, source, target, cloneId, new TestLogger());
-        expect(await target.loadDataFile(cloneId, 'payload.bin')).toEqual(bytes);
-        await target.saveDataFile(TEST_SESSION_ID, 'payload.bin', new Uint8Array([0, 254, 128]));
+        expect(await target.loadDataFile(cloneId, 'payload.parquet')).toEqual(bytes);
+        await target.saveDataFile(TEST_SESSION_ID, 'payload.parquet', new Uint8Array([0, 254, 128]));
         expect(await verifySession(TEST_SESSION_ID, source, target)).toBe(false);
     });
     it('copies all flat durable files and verifies the result', async () => {

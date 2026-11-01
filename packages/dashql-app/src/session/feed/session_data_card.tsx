@@ -35,9 +35,8 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
     const [error, setError] = React.useState<string | null>(null);
     const enabled = connectionReadsAttachments(props.conn?.details);
     const disabled = !enabled || busy;
-    // A Parquet file is the table parameter of its name, scripts read it as `:sales`
-    const parameter = attachmentParameterName(props.file.name);
-    const extension = props.file.name.split('.').pop()?.toUpperCase() ?? 'FILE';
+    // An attachment is the table parameter of its name, scripts read `sales.parquet` as `:sales`
+    const parameter = attachmentParameterName(props.file.name) ?? props.file.name;
 
     const download = async () => {
         if (disabled) return;
@@ -73,26 +72,24 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
             <div className={styles.feed_data_card_topline}>
                 <div className={styles.feed_data_file_icon} aria-hidden="true" data-testid="data-file-type">
                     <FileIcon size={24} />
-                    <span>{extension}</span>
+                    <span>PARQUET</span>
                 </div>
                 <div className={styles.feed_data_title}>
                     <span className={styles.feed_data_name}>{props.file.name}</span>
                     <span className={styles.feed_data_size}>{formatBytes(props.file.sizeBytes)}</span>
                 </div>
                 <div className={styles.feed_data_actions}>
-                    {parameter != null && (
-                        // The table parameter of the attachment, mentioned and renamed like a script
-                        <ScriptMentionTag
-                            scriptName={parameter}
-                            subject="attachment"
-                            canTarget={!disabled && props.onMention != null}
-                            onTarget={() => props.onMention?.(parameter)}
-                            renaming={renaming}
-                            onRenamingChange={setRenaming}
-                            onRename={name => props.onRename?.(name)}
-                        />
-                    )}
-                    {parameter != null && props.onRename != null && (
+                    {/* The table parameter of the attachment, mentioned and renamed like a script */}
+                    <ScriptMentionTag
+                        scriptName={parameter}
+                        subject="attachment"
+                        canTarget={!disabled && props.onMention != null}
+                        onTarget={() => props.onMention?.(parameter)}
+                        renaming={renaming}
+                        onRenamingChange={setRenaming}
+                        onRename={name => props.onRename?.(name)}
+                    />
+                    {props.onRename != null && (
                         <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium} disabled={disabled}
                             // The input takes the focus, a click while it is open keeps the edit
                             onMouseDown={(event) => event.preventDefault()}
@@ -110,7 +107,7 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
                     </IconButton>
                 </div>
             </div>
-            {props.collides && parameter != null && (
+            {props.collides && (
                 <div role="status" data-testid="data-file-collision">A script is named {parameter} too, :{parameter} is ambiguous</div>
             )}
             {error != null && <div role="alert">{error}</div>}

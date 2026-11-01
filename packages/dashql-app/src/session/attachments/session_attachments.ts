@@ -1,17 +1,17 @@
 import type * as core from '@ankoh/dashql-core';
 
-import type { DataFile } from '../../storage/storage_backend.js';
+import { ATTACHMENT_EXTENSION, isAttachmentFileName, type DataFile } from '../../storage/storage_backend.js';
 
 /// The directory that the embedded Hyper mounts the attachments of the sessions in, one folder per session
 export const ATTACHMENT_MOUNT_ROOT = '/mnt/external/attachments';
 
-/// An attachment of a session, a file in the `attachments` folder of the session. A Parquet file is the table
-/// parameter of its name, `sales.parquet` is `:sales` (docs/design/script_references.md).
+/// An attachment of a session, a Parquet file in the `attachments` folder of the session. It is the table parameter of
+/// its name, `sales.parquet` is `:sales` (docs/design/script_references.md).
 export interface SessionAttachment {
     /// The file name
     fileName: string;
-    /// The name of the table parameter, null for files that are no Parquet file
-    name: string | null;
+    /// The name of the table parameter, the file name without `.parquet`
+    name: string;
     /// The size of the file
     sizeBytes: number;
     /// The time of the last modification, 0 if the storage doesn't know it
@@ -20,27 +20,27 @@ export interface SessionAttachment {
     columns: string[] | null;
 }
 
-/// The name of the table parameter of an attachment, the file name without `.parquet`. Null for other files.
+/// The name of the table parameter of an attachment, the file name without `.parquet`. Null for a file that is no
+/// attachment.
 export function attachmentParameterName(fileName: string): string | null {
-    const match = /^(.+)\.parquet$/i.exec(fileName);
-    return match == null ? null : match[1];
+    return isAttachmentFileName(fileName) ? fileName.slice(0, -ATTACHMENT_EXTENSION.length) : null;
 }
 
 /// The names of the table parameters of attachments, which no script may take
 export function attachmentNames(attachments: readonly SessionAttachment[] | undefined): string[] {
-    return (attachments ?? []).flatMap(attachment => attachment.name == null ? [] : [attachment.name]);
+    return (attachments ?? []).map(attachment => attachment.name);
 }
 
 /// A file name for a new attachment whose table parameter takes no name of a script or another attachment, the
 /// same name in another case neither: `sales.parquet` becomes `sales-2.parquet`. A file with the name of an attachment
-/// replaces it and keeps its name. Files that are no Parquet file keep their name.
+/// replaces it and keeps its name.
 export function uniqueAttachmentFileName(fileName: string, scriptNames: Iterable<string>, attachments: readonly SessionAttachment[]): string {
-    if (attachmentParameterName(fileName) == null || attachments.some(attachment => attachment.fileName === fileName)) return fileName;
+    if (attachments.some(attachment => attachment.fileName === fileName)) return fileName;
     return freeAttachmentFileName(fileName, scriptNames, attachments);
 }
 
-/// The file name of a renamed attachment: the requested name with the extension of the file unless it names one, past
-/// the names of the scripts and the other attachments like a new attachment. Null for a name that is no plain file name.
+/// The file name of a renamed attachment: the requested name with `.parquet` unless it has it, past the names of the
+/// scripts and the other attachments like a new attachment. Null for a name that is no plain file name.
 export function renamedAttachmentFileName(
     fileName: string,
     requested: string,
@@ -48,24 +48,19 @@ export function renamedAttachmentFileName(
     attachments: readonly SessionAttachment[],
 ): string | null {
     const trimmed = requested.trim();
-    const extension = /\.[^.]*$/.exec(fileName)?.[0] ?? '';
-    const name = extension.length > 0 && trimmed.toLowerCase().endsWith(extension.toLowerCase()) ? trimmed : `${trimmed}${extension}`;
-    if (name.length === extension.length || name === '.' || name === '..' || /[/\\\0]/.test(name)) return null;
+    const name = isAttachmentFileName(trimmed) ? trimmed : `${trimmed}${ATTACHMENT_EXTENSION}`;
+    if (!isAttachmentFileName(name) || /[/\\\0]/.test(name)) return null;
     return freeAttachmentFileName(name, scriptNames, attachments.filter(attachment => attachment.fileName !== fileName));
 }
 
-/// A file name that is taken by no attachment, whose table parameter takes no name of a script or another attachment
-/// in any case, suffixing "-2", "-3", ... to the name
+/// A file name whose table parameter takes no name of a script or another attachment in any case, suffixing "-2",
+/// "-3", ... to the name
 function freeAttachmentFileName(fileName: string, scriptNames: Iterable<string>, attachments: readonly SessionAttachment[]): string {
-    const parameter = attachmentParameterName(fileName);
-    const base = parameter ?? fileName.replace(/\.[^.]*$/, '');
+    const base = attachmentParameterName(fileName) ?? fileName;
     const extension = fileName.slice(base.length);
-    const takenNames = new Set([...(parameter == null ? [] : scriptNames), ...attachmentNames(attachments)].map(name => name.toLowerCase()));
-    const takenFiles = new Set(attachments.map(attachment => attachment.fileName.toLowerCase()));
-    const taken = (candidate: string) => takenFiles.has(`${candidate}${extension}`.toLowerCase())
-        || (parameter != null && takenNames.has(candidate.toLowerCase()));
+    const taken = new Set([...scriptNames, ...attachmentNames(attachments)].map(name => name.toLowerCase()));
     let candidate = base;
-    for (let suffix = 2; taken(candidate); ++suffix) {
+    for (let suffix = 2; taken.has(candidate.toLowerCase()); ++suffix) {
         candidate = `${base}-${suffix}`;
     }
     return `${candidate}${extension}`;
@@ -76,21 +71,23 @@ export function attachmentStamp(attachment: SessionAttachment): string {
     return `${attachment.sizeBytes}-${attachment.mtimeMs}`;
 }
 
-/// The attachments of a listing of the data files of a session. An attachment whose file is unchanged keeps the
-/// columns of `previous`.
+/// The attachments of a listing of the data files of a session, other files are no attachments. An attachment whose
+/// file is unchanged keeps the columns of `previous`.
 export function readSessionAttachments(files: readonly DataFile[], previous: readonly SessionAttachment[] = []): SessionAttachment[] {
     const before = new Map(previous.map(attachment => [attachment.fileName, attachment]));
-    return files.map(file => {
+    return files.flatMap(file => {
+        const name = attachmentParameterName(file.name);
+        if (name == null) return [];
         const attachment: SessionAttachment = {
             fileName: file.name,
-            name: attachmentParameterName(file.name),
+            name,
             sizeBytes: file.sizeBytes,
             mtimeMs: file.mtimeMs ?? 0,
             columns: null,
         };
         const kept = before.get(file.name);
         if (kept != null && attachmentStamp(kept) === attachmentStamp(attachment)) attachment.columns = kept.columns;
-        return attachment;
+        return [attachment];
     });
 }
 
@@ -115,10 +112,10 @@ export function attachmentPath(sessionId: string, fileName: string): string {
 
 /// The attachments of a session that table parameters read, for a request of the core
 export function planAttachments(attachments: readonly SessionAttachment[] | undefined): core.SessionPlanAttachment[] {
-    return (attachments ?? []).flatMap(attachment => attachment.name == null ? [] : [{
+    return (attachments ?? []).map(attachment => ({
         name: attachment.name,
         file: attachment.fileName,
         stamp: attachmentStamp(attachment),
         columns: attachment.columns,
-    }]);
+    }));
 }

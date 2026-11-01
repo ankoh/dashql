@@ -12,12 +12,12 @@ function file(path: string, text: string): File {
 describe('V2 browser folder import', () => {
     it('preserves binary data without text decoding', async () => {
         const bytes = new Uint8Array([0, 255, 128]);
-        const payload = new File([bytes], 'payload.bin');
-        Object.defineProperty(payload, 'webkitRelativePath', { value: 'selected/attachments/payload.bin' });
+        const payload = new File([bytes], 'payload.parquet');
+        Object.defineProperty(payload, 'webkitRelativePath', { value: 'selected/attachments/payload.parquet' });
         const bundle = await readSessionBundleFromBrowserFolder([
             file('selected/dashql-session.json', JSON.stringify(testSession())), payload,
         ]);
-        expect(bundle.data).toEqual([{ name: 'payload.bin', bytes }]);
+        expect(bundle.data).toEqual([{ name: 'payload.parquet', bytes }]);
     });
     it('strips one root and appends unlisted scripts in natural order', async () => {
         await expect(readSessionBundleFromBrowserFolder([
@@ -41,8 +41,8 @@ describe('V2 browser folder import', () => {
     it.each([
         ['selected/scripts/page/query.sql', 'directly inside scripts/'],
         ['selected/scripts/dashql-draft.sql', 'directly inside scripts/'],
-        ['selected/attachments/nested/payload.bin', 'directly inside attachments/'],
-        ['selected/attachments/../payload.bin', 'directly inside attachments/'],
+        ['selected/attachments/nested/payload.parquet', 'directly inside attachments/'],
+        ['selected/attachments/../payload.parquet', 'directly inside attachments/'],
     ])('rejects obsolete V1 layout %s', async (path, message) => {
         await expect(readSessionBundleFromBrowserFolder([
             file('selected/dashql-session.json', JSON.stringify(testSession())),

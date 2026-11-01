@@ -45,9 +45,20 @@ export interface DataFileData {
 /// copy for large picker/drop files. Other persistence paths use bytes.
 export type DataFileContent = Uint8Array | Blob;
 
+/// The extension of attachments: a session attaches Parquet files only, scripts read them as table parameters
+export const ATTACHMENT_EXTENSION = '.parquet';
+
+/// Is a file name the name of an attachment, a Parquet file? Listings leave other files out.
+export function isAttachmentFileName(name: string): boolean {
+    return name.length > ATTACHMENT_EXTENSION.length && name.toLowerCase().endsWith(ATTACHMENT_EXTENSION);
+}
+
 export function validateDataFileName(name: string): void {
     if (!name || name === '.' || name === '..' || /[/\\\0]/.test(name)) {
         throw new Error(`Invalid data file basename: ${name}`);
+    }
+    if (!isAttachmentFileName(name)) {
+        throw new Error(`Only Parquet files can be attached: ${name}`);
     }
 }
 

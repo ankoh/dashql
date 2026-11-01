@@ -13,7 +13,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 ├── sessions/<session-id>/                     OPFS sessions
 │   ├── dashql-session.json                    session metadata
 │   ├── scripts/<script-name>                  script text
-│   └── attachments/<file-name>                attached data files
+│   └── attachments/<name>.parquet             attached Parquet files
 ├── cache/<hash>.<uuid>.parquet[.last_access]  query result cache of the app
 ├── connections/<connection-id>/               files of a global connection
 │   ├── dashql-catalog-relations.sql           catalog of the last refresh
@@ -65,7 +65,9 @@ the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format
 whether their results are cached.
 
 - `scripts/` holds one file per script, named by the script.
-- `attachments/` holds data files that queries read in place, a Parquet file `a.parquet` is the table parameter `:a`.
+- `attachments/` holds the attachments, Parquet files that queries read in place: `a.parquet` is the table parameter
+  `:a`. A session attaches Parquet files only (`validateDataFileName`): adding or importing another file fails, a
+  listing of the folder leaves other files out, and a session file that lists one is sanitized.
   Session bundles rebase these paths when a session is imported under a new id.
 
 ### The query result cache

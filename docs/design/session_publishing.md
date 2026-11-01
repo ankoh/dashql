@@ -35,7 +35,7 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
     { "name": "01_setup.sql", "connectionId": "22bdfa32-…" },
     { "name": "02_report.sql", "connectionId": "9f0c6e1a-…" }
   ],
-  "attachments": [{ "name": "sales.csv" }],
+  "attachments": [{ "name": "sales.parquet" }],
   "metadata": { "…": "…" }
 }
 ```

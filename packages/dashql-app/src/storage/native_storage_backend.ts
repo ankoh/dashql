@@ -1,5 +1,5 @@
 import { type StorageBackend, type SessionData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
-import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
+import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
 
 import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile, type FileStamp } from '../platform/electron_fs.js';
 
@@ -224,7 +224,7 @@ export class NativeStorageBackend implements StorageBackend {
             listFiles(await this.abs(STORAGE_SCRIPTS_FOLDER)),
             listFiles(await this.abs(STORAGE_ATTACHMENTS_FOLDER)),
         ]);
-        return { scripts: scripts.filter(file => file.name.toLowerCase().endsWith('.sql')), attachments };
+        return { scripts: scripts.filter(file => file.name.toLowerCase().endsWith('.sql')), attachments: attachments.filter(file => isAttachmentFileName(file.name)) };
     }
 
     /// Acknowledge the scripts as they are on disk, script writes check the disk from now on
@@ -262,9 +262,10 @@ export class NativeStorageBackend implements StorageBackend {
         if (!(await exists(dir))) return [];
         const files: DataFile[] = [];
         for (const entry of await readDir(dir)) {
-            validateDataFileName(entry.name);
             if (entry.isDirectory) throw new Error(`Invalid session layout: nested data directory ${entry.name}`);
-            if (entry.isFile) {
+            // Other files in the folder are no attachments
+            if (entry.isFile && isAttachmentFileName(entry.name)) {
+                validateDataFileName(entry.name);
                 const stamp = await fileStamp(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${entry.name}`));
                 if (stamp != null) files.push({ name: entry.name, sizeBytes: stamp.size, mtimeMs: stamp.mtimeMs });
             }

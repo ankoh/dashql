@@ -40,7 +40,7 @@ function messyStorage() {
         'sessions/s1/dashql-session-index.json': '{}',
         'sessions/s1/scripts/1.sql': 'SELECT 1',
         'sessions/s1/scripts/page/2.sql': 'SELECT 2',
-        'sessions/s2/attachments/a.csv': '',
+        'sessions/s2/attachments/a.parquet': '',
         'sessions/s2/dashql-session.json': '{}',
         'sessions/gone/dashql-session.json': '{}',
         'connections/c1/dashql-catalog-relations.sql': '',

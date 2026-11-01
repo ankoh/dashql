@@ -40,11 +40,12 @@ describe('session file lists', () => {
                 { name: 'b.sql', connectionId: TEST_CONNECTION_ID },
                 { name: 'B.sql', connectionId: TEST_CONNECTION_ID },
             ],
-            attachments: [{ name: '10.csv' }, { name: '2.csv' }, { name: 'a/b.csv' }],
+            attachments: [{ name: '10.parquet' }, { name: '2.parquet' }, { name: 'a/b.parquet' }, { name: 'notes.csv' }],
         }));
+        // A session attaches Parquet files only
         expect(files).toEqual({
             scripts: [{ name: 'b.sql', connectionId: TEST_CONNECTION_ID }],
-            attachments: [{ name: '2.csv' }, { name: '10.csv' }],
+            attachments: [{ name: '2.parquet' }, { name: '10.parquet' }],
             valid: false,
         });
         expect(sanitizeSessionFiles(testSession()).valid).toBe(true);
@@ -52,7 +53,7 @@ describe('session file lists', () => {
     });
 
     it('sorts attachments and remaps the connections of scripts', () => {
-        expect(sessionAttachments(['10.csv', '2.csv'])).toEqual([{ name: '2.csv' }, { name: '10.csv' }]);
+        expect(sessionAttachments(['10.parquet', '2.parquet'])).toEqual([{ name: '2.parquet' }, { name: '10.parquet' }]);
         expect(remapSessionScripts([
             { name: 'a.sql', connectionId: TEST_CONNECTION_ID },
             { name: 'b.sql', connectionId: OTHER_CONNECTION_ID },

@@ -1,6 +1,6 @@
 import { type SessionRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type SessionData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from './storage_backend.js';
 import { STORAGE_VERSION } from './migration/versions.js';
-import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
+import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
 import { sleep } from '../utils/sleep.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
 
@@ -303,8 +303,10 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         if (!dir) return [];
         const files: DataFile[] = [];
         for await (const [name, handle] of dir.entries()) {
-            validateDataFileName(name);
             if (handle.kind === 'directory') throw new Error(`Invalid session layout: nested data directory ${name}`);
+            // Other files in the folder are no attachments
+            if (!isAttachmentFileName(name)) continue;
+            validateDataFileName(name);
             const file = await (handle as FileSystemFileHandle).getFile();
             files.push({ name, sizeBytes: file.size, mtimeMs: file.lastModified });
         }

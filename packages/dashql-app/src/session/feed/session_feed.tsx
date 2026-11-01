@@ -49,7 +49,7 @@ import { revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.
 import { ScriptFeedRow, type ScriptFeedRowProps } from './session_feed_row.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './session_feed_drag.js';
-import type { DataFile } from '../../storage/storage_backend.js';
+import { ATTACHMENT_EXTENSION, isAttachmentFileName, type DataFile } from '../../storage/storage_backend.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { SessionDataCard } from './session_data_card.js';
 import { SessionInputStrip } from '../inputs/session_input_strip.js';
@@ -249,11 +249,18 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const attachmentsEnabled = connectionReadsAttachments(props.conn?.details);
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {
         setAttachmentError(null);
+        // A session attaches Parquet files only, they are table parameters of the scripts
+        const parquet = [...files].filter(file => isAttachmentFileName(file.name));
+        const refused = [...files].filter(file => !isAttachmentFileName(file.name));
+        if (refused.length > 0) {
+            setAttachmentError(`Only Parquet files can be attached: ${refused.map(file => file.name).join(', ')}`);
+        }
+        if (parquet.length === 0) return;
         try {
-            // A Parquet attachment is a table parameter, it takes no name of a script or another attachment
+            // An attachment takes no name of a script or another attachment
             const scriptNames = latestScriptOrder.current.map(scriptDisplayName);
             const attachments = [...(latestAttachments.current ?? [])];
-            for (const file of files) {
+            for (const file of parquet) {
                 const fileName = uniqueAttachmentFileName(file.name, scriptNames, attachments);
                 await storageReader.backend.saveDataFile(sessionId, fileName, file);
                 attachments.push(...readSessionAttachments([{ name: fileName, sizeBytes: file.size }]));
@@ -775,7 +782,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 ) : undefined}
                 below={attachmentsVisible && (attachmentsExpanded || attachmentError != null) ? (
                     <section className={styles.feed_data_section} aria-label="Session attachments">
-                        <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple
+                        <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
                             onChange={handleAttachmentInput} aria-label="Add session attachments" disabled={!attachmentsEnabled} />
                         {attachmentsExpanded && (
                             <div id="session-attachments" className={styles.feed_data_drawer}

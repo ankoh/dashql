@@ -122,7 +122,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         if (!supportsParquet(computeDb)) return;
         for (const session of registry.sessionScriptsMap.values()) {
             for (const attachment of session.attachments ?? []) {
-                if (attachment.name == null || attachment.columns != null) continue;
+                if (attachment.columns != null) continue;
                 const stamp = attachmentStamp(attachment);
                 const key = `${session.sessionId}/${attachment.fileName}@${stamp}`;
                 if (describedAttachments.current.has(key)) continue;

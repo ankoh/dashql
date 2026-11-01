@@ -71,6 +71,7 @@ describe('V2 session ZIP import', () => {
         ['nested attachment', 'attachments/folder/payload.bin', 'directly inside attachments/'],
         ['backslash attachment', 'attachments/payload\\name.bin', 'basename'],
         ['NUL attachment', 'attachments/payload\0.bin', 'basename'],
+        ['CSV attachment', 'attachments/payload.csv', 'Only Parquet files can be attached'],
     ])('rejects %s before mutating storage', async (_label, path, message) => {
         const backend = new SessionTestBackend();
         await expect(importSessionFromZip(await zip({

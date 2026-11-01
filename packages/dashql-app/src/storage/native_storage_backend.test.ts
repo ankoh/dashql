@@ -73,16 +73,20 @@ describe('NativeStorageBackend V2 flat storage', () => {
     });
     it('preserves binary data through CRUD and lists naturally sorted names', async () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40]);
-        await backend.saveDataFile(TEST_SESSION_ID, '10_payload.bin', bytes);
-        await backend.saveDataFile(TEST_SESSION_ID, '2_payload.bin', new Uint8Array());
+        await backend.saveDataFile(TEST_SESSION_ID, '10_payload.parquet', bytes);
+        await backend.saveDataFile(TEST_SESSION_ID, '2_payload.parquet', new Uint8Array());
         expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([
-            { name: '2_payload.bin', sizeBytes: 0 }, { name: '10_payload.bin', sizeBytes: 5 },
+            { name: '2_payload.parquet', sizeBytes: 0 }, { name: '10_payload.parquet', sizeBytes: 5 },
         ]);
-        await backend.renameDataFile(TEST_SESSION_ID, '10_payload.bin', '1_renamed.bin');
-        expect(await backend.loadDataFile(TEST_SESSION_ID, '1_renamed.bin')).toEqual(bytes);
-        await backend.deleteDataFile(TEST_SESSION_ID, '1_renamed.bin');
+        await backend.renameDataFile(TEST_SESSION_ID, '10_payload.parquet', '1_renamed.parquet');
+        expect(await backend.loadDataFile(TEST_SESSION_ID, '1_renamed.parquet')).toEqual(bytes);
+        await backend.deleteDataFile(TEST_SESSION_ID, '1_renamed.parquet');
         expect(await backend.listDataFiles(TEST_SESSION_ID)).toHaveLength(1);
         await expect(backend.saveDataFile(TEST_SESSION_ID, '../escape', bytes)).rejects.toThrow('basename');
+        // A session attaches Parquet files only, the listing leaves other files of the folder out
+        await expect(backend.saveDataFile(TEST_SESSION_ID, 'notes.csv', bytes)).rejects.toThrow('Only Parquet files can be attached');
+        fsStore.files.set(`${DIR}/attachments/notes.csv`, 'a,b');
+        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(file => file.name)).toEqual(['2_payload.parquet']);
         fsStore.dirs.add(`${DIR}/attachments/nested`);
         await expect(backend.listDataFiles(TEST_SESSION_ID)).rejects.toThrow('nested data');
     });

@@ -19,28 +19,28 @@ describe('V2 session export', () => {
         const bundle = { session: testSession(), catalogs: [], scripts: [] };
         const bytes = new Uint8Array([0, 255]);
         const view = new Uint8Array([99, 0, 255, 99]).subarray(1, 3);
-        expect(sessionBundlesEqual({ ...bundle, data: [{ name: 'payload.bin', bytes }] },
-            { ...bundle, data: [{ name: 'payload.bin', bytes: view }] })).toBe(true);
-        expect(sessionBundlesEqual({ ...bundle, data: [{ name: 'payload.bin', bytes }] },
-            { ...bundle, data: [{ name: 'payload.bin', bytes: new Uint8Array([0, 254]) }] })).toBe(false);
+        expect(sessionBundlesEqual({ ...bundle, data: [{ name: 'payload.parquet', bytes }] },
+            { ...bundle, data: [{ name: 'payload.parquet', bytes: view }] })).toBe(true);
+        expect(sessionBundlesEqual({ ...bundle, data: [{ name: 'payload.parquet', bytes }] },
+            { ...bundle, data: [{ name: 'payload.parquet', bytes: new Uint8Array([0, 254]) }] })).toBe(false);
         expect(sessionBundlesEqual(bundle, { ...bundle, data: [] })).toBe(true);
     });
     it('persists arbitrary binary data and round-trips it through a ZIP', async () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40, 13, 10, 0]);
         const input = new JSZip();
         input.file('dashql-session.json', JSON.stringify(testSession()));
-        input.file('attachments/2_payload.bin', bytes);
+        input.file('attachments/2_payload.parquet', bytes);
         const backend = new SessionTestBackend();
         await importSessionFromZip(await input.generateAsync({ type: 'blob' }), backend);
-        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: '2_payload.bin', sizeBytes: bytes.length }]);
-        expect(await backend.loadDataFile(TEST_SESSION_ID, '2_payload.bin')).toEqual(bytes);
+        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: '2_payload.parquet', sizeBytes: bytes.length }]);
+        expect(await backend.loadDataFile(TEST_SESSION_ID, '2_payload.parquet')).toEqual(bytes);
 
         const archive = await JSZip.loadAsync(await exportSessionAsZip(TEST_SESSION_ID, backend));
-        expect(archive.file('attachments/2_payload.bin')).not.toBeNull();
-        expect(await archive.file('attachments/2_payload.bin')!.async('uint8array')).toEqual(bytes);
+        expect(archive.file('attachments/2_payload.parquet')).not.toBeNull();
+        expect(await archive.file('attachments/2_payload.parquet')!.async('uint8array')).toEqual(bytes);
         const target = new SessionTestBackend();
         await importSessionFromZip(await archive.generateAsync({ type: 'blob' }), target);
-        expect(await target.loadDataFile(TEST_SESSION_ID, '2_payload.bin')).toEqual(bytes);
+        expect(await target.loadDataFile(TEST_SESSION_ID, '2_payload.parquet')).toEqual(bytes);
     });
     it.each(['hyper', 'trino'])('omits %s header credentials from main and attached databases in ZIP and URL exports', async connector => {
         const backend = new SessionTestBackend();

@@ -35,15 +35,15 @@ describe('V2 HTTP session bundle', () => {
         const bytes = new Uint8Array([0, 255, 128]);
         const httpClient = client({
             '/session/dashql-session.json': JSON.stringify(testSession({ attachments: [
-                { name: '../escape' }, { name: 'payload.bin' }, { name: 'PAYLOAD.bin' },
+                { name: '../escape' }, { name: 'payload.parquet' }, { name: 'PAYLOAD.parquet' },
             ] })),
         });
         const fetch = httpClient.fetch;
-        httpClient.fetch = vi.fn(async (input, init) => String(input).endsWith('/attachments/payload.bin')
+        httpClient.fetch = vi.fn(async (input, init) => String(input).endsWith('/attachments/payload.parquet')
             ? { ...response(''), arrayBuffer: async () => bytes.buffer }
             : fetch(input, init));
         const result = await readSessionBundleFromHttp(URL, httpClient);
-        expect(result.bundle.data).toEqual([{ name: 'payload.bin', bytes }]);
+        expect(result.bundle.data).toEqual([{ name: 'payload.parquet', bytes }]);
         expect(result.incomplete).toBe(true);
         expect(vi.mocked(httpClient.fetch).mock.calls.map(call => String(call[0])).some(url => url.includes('escape'))).toBe(false);
     });

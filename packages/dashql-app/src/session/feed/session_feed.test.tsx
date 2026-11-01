@@ -85,7 +85,7 @@ describe('V2 session feed rows', () => {
     it('disables every file action for non-WASM connections', () => {
         const sessionId = '12345678-1234-1234-1234-123456789abc';
         const props: SessionDataCardProps = {
-            sessionId, file: { name: 'sales 2.csv', sizeBytes: 42 },
+            sessionId, file: { name: 'sales 2.parquet', sizeBytes: 42 },
             conn: null, storageReader: { backend: new SessionTestBackend() } as any, onRemoved: vi.fn(),
         };
         for (const conn of [null,
@@ -95,12 +95,15 @@ describe('V2 session feed rows', () => {
             act(() => root.render(<LoggerProvider>
                 <SessionDataCard {...props} conn={conn as any} />
             </LoggerProvider>));
-            expect(container.textContent).toContain('sales 2.csv');
-            expect(container.querySelector('[data-testid="data-file-type"]')?.textContent).toContain('CSV');
+            expect(container.textContent).toContain('sales 2.parquet');
+            expect(container.querySelector('[data-testid="data-file-type"]')?.textContent).toContain('PARQUET');
             for (const action of ['data-file-download', 'data-file-remove']) {
                 expect(container.querySelector<HTMLButtonElement>(`[data-testid="${action}"]`)?.disabled).toBe(true);
             }
-            expect(Array.from(container.querySelectorAll('button')).every(button => button.disabled)).toBe(true);
+            // The tag of the table parameter is disabled like the tag of a script
+            expect(container.querySelector('[data-testid="script-mention"]')?.getAttribute('aria-disabled')).toBe('true');
+            expect(Array.from(container.querySelectorAll('button')).filter(button => button.dataset.testid !== 'script-mention')
+                .every(button => button.disabled)).toBe(true);
             expect(container.querySelector('[data-testid="script-drag-handle"]')).toBeNull();
         }
     });
@@ -128,25 +131,17 @@ describe('V2 session feed rows', () => {
         });
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
         expect(onRename).toHaveBeenCalledExactlyOnceWith('revenue');
-        // Other files are no table parameter
-        act(() => root.render(<LoggerProvider>
-            <SessionDataCard sessionId="session" file={{ name: 'sales.csv', sizeBytes: 3 }} conn={wasm}
-                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
-        </LoggerProvider>));
-        expect(container.querySelector('[data-testid="script-mention"]')).toBeNull();
-        expect(container.querySelector('[data-testid="data-file-rename"]')).toBeNull();
-        expect(container.querySelector('[data-testid="data-file-collision"]')).toBeNull();
     });
 
     it('downloads data bytes and removes the file before requesting a list refresh for HyperDB WASM', async () => {
         const backend = new SessionTestBackend();
         const bytes = new Uint8Array([0, 255, 13]);
-        await backend.saveDataFile('session', 'sales.csv', bytes);
+        await backend.saveDataFile('session', 'sales.parquet', bytes);
         const onRemoved = vi.fn();
         const download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
         try {
             act(() => root.render(<LoggerProvider>
-                <SessionDataCard sessionId="session" file={{ name: 'sales.csv', sizeBytes: 3 }}
+                <SessionDataCard sessionId="session" file={{ name: 'sales.parquet', sizeBytes: 3 }}
                     conn={{ details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any}
                     storageReader={{ backend } as any} onRemoved={onRemoved} />
             </LoggerProvider>));
@@ -154,7 +149,7 @@ describe('V2 session feed rows', () => {
             expect(downloadButton).not.toBeNull();
             expect(Array.from(container.querySelectorAll('button')).every(button => !button.disabled)).toBe(true);
             await act(async () => { downloadButton!.click(); });
-            expect(download).toHaveBeenCalledExactlyOnceWith(bytes, 'sales.csv');
+            expect(download).toHaveBeenCalledExactlyOnceWith(bytes, 'sales.parquet');
             await vi.waitFor(() => expect(container.querySelector<HTMLButtonElement>('[data-testid="data-file-remove"]')!.disabled).toBe(false));
             await act(async () => { container.querySelector<HTMLButtonElement>('[data-testid="data-file-remove"]')!.click(); });
             expect(await backend.listDataFiles('session')).toEqual([]);

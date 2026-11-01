@@ -501,11 +501,9 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
             const { fileName, newFileName } = action.value;
             const index = state.attachments?.findIndex(a => a.fileName === fileName) ?? -1;
             const name = attachmentParameterName(newFileName);
-            if (index < 0 || fileName === newFileName) return state;
+            if (index < 0 || name == null || fileName === newFileName) return state;
             const newScripts = { ...state.scripts };
-            const rewritten = name == null || state.attachments![index].name == null
-                ? []
-                : rewriteRenamedReferences(state, newScripts, { attachment: fileName }, name, null, logger);
+            const rewritten = rewriteRenamedReferences(state, newScripts, { attachment: fileName }, name, null, logger);
             for (const script of rewritten) {
                 markOtherScriptsOutdatedInPlace(newScripts, script);
             }

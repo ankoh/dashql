@@ -19,6 +19,10 @@ describe('session attachments', () => {
         expect(sameSessionAttachments(next, readSessionAttachments([{ name: 'a.parquet', sizeBytes: 1, mtimeMs: 1 }, { name: 'b.parquet', sizeBytes: 2, mtimeMs: 3 }], next))).toBe(true);
     });
 
+    it('leaves out the files that are no Parquet file', () => {
+        expect(readSessionAttachments([{ name: 'notes.csv', sizeBytes: 1 }, { name: 'a.PARQUET', sizeBytes: 1 }]).map(a => a.name)).toEqual(['a']);
+    });
+
     it('passes the Parquet attachments to the core', () => {
         const attachments = readSessionAttachments([{ name: 'notes.txt', sizeBytes: 1 }, { name: 'sales.parquet', sizeBytes: 5, mtimeMs: 7 }]);
         expect(planAttachments(attachments)).toEqual([{ name: 'sales', file: 'sales.parquet', stamp: '5-7', columns: null }]);
@@ -29,9 +33,8 @@ describe('session attachments', () => {
         const attachments = readSessionAttachments([{ name: 'orders.parquet', sizeBytes: 1 }, { name: 'sales-2.parquet', sizeBytes: 1 }]);
         expect(uniqueAttachmentFileName('Sales.parquet', ['sales', 'items'], attachments)).toBe('Sales-3.parquet');
         expect(uniqueAttachmentFileName('ORDERS.parquet', [], attachments)).toBe('ORDERS-2.parquet');
-        // A file with the name of an attachment replaces it, other files keep their names
+        // A file with the name of an attachment replaces it
         expect(uniqueAttachmentFileName('orders.parquet', ['orders'], attachments)).toBe('orders.parquet');
-        expect(uniqueAttachmentFileName('sales.csv', ['sales'], attachments)).toBe('sales.csv');
         expect(uniqueAttachmentFileName('fresh.parquet', ['sales'], attachments)).toBe('fresh.parquet');
     });
 
