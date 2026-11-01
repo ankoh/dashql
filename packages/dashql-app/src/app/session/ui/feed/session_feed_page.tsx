@@ -179,6 +179,8 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         size={SegmentedControlSize.Small}
                         onChange={(selectedIndex) => {
                             setOverviewConnectionId(null);
+                            // The details of the feed and the inspector of the dataflow belong to their view
+                            setDetails(null);
                             setMode(views[selectedIndex]?.[0] ?? SessionViewMode.Session);
                         }}
                     >
@@ -325,12 +327,13 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         <div className={styles.dataflow_layout}>
                             <div className={styles.dataflow_canvas}>
                                 <dependencies.DataflowCanvas
+                                    key={props.sessionScripts.sessionId}
                                     sessionScripts={props.sessionScripts}
                                     modifySessionScripts={props.modifySessionScripts}
                                     onInspect={scriptKey => setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey })}
                                 />
                             </div>
-                            {showDetails && (
+                            {showDetails && details.scriptId != null && props.sessionScripts.scripts[details.scriptId] != null && (
                                 <div className={styles.dataflow_inspector} data-testid="dataflow-inspector">
                                     <dependencies.ScriptDetails
                                         sessionScripts={props.sessionScripts}
@@ -341,7 +344,12 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                         hideDetails={() => setDetails(null)}
                                         scriptId={details.scriptId}
                                         initialTab={details.initialTab}
-                                        navigateToScript={(scriptKey) => setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey })}
+                                        navigateToScript={(scriptKey) => {
+                                            const target = props.sessionScripts.scripts[scriptKey];
+                                            if (!target?.fileName) return;
+                                            props.modifySessionScripts({ type: SELECT_SCRIPT, value: target.fileName });
+                                            setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey });
+                                        }}
                                     />
                                 </div>
                             )}

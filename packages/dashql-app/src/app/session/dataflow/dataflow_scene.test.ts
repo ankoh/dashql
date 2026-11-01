@@ -58,6 +58,24 @@ describe('dataflow scene', () => {
         expect(scene.bounds).toEqual({ x: 0, y: 0, width: 656, height: 120 });
     });
 
+    it('routes an edge to a box on the left around the boxes, from the output port to the input port', () => {
+        const backward = [POSITIONS[0], { x: 0, y: 200, width: 280, height: 80, rows: [40] }];
+        const edge = buildDataflowScene(GRAPH, [{ ...POSITIONS[0], x: 376 }, backward[1]], () => null, () => false).edges[1];
+        const points = edge.path.match(/-?\d+(\.\d+)? -?\d+(\.\d+)?/g)!.map(p => p.split(' ').map(Number));
+        // Out of the right of the source row, into the left of the target row
+        expect(points[0]).toEqual([376 + 280 - DATAFLOW_LAYOUT.rowPadding, 88]);
+        expect(points[points.length - 1]).toEqual([DATAFLOW_LAYOUT.rowPadding, 200 + 40 + 16]);
+        // Between the boxes, the badge on the way back
+        expect(edge.badge?.y).toBe((120 + 200) / 2);
+    });
+
+    it('routes an edge between boxes stacked at the same x around them', () => {
+        const stacked = [POSITIONS[0], { x: 0, y: 200, width: 280, height: 80, rows: [40] }];
+        const edge = buildDataflowScene(GRAPH, stacked, () => null, () => false).edges[1];
+        expect(edge.path.startsWith(`M ${280 - DATAFLOW_LAYOUT.rowPadding} 88`)).toBe(true);
+        expect(edge.path.endsWith(`L ${DATAFLOW_LAYOUT.rowPadding} 256`)).toBe(true);
+    });
+
     it('merges the edges of collapsed boxes and leaves out the edges inside them', () => {
         const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, () => true);
         expect(scene.edges.map(e => e.key)).toEqual(['b']);

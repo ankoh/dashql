@@ -36,3 +36,17 @@ export function analyzedTestSession(dql: core.DashQL, entries: Array<[string, st
         semanticUserFocus: null,
     };
 }
+
+/// A session with one more script, analyzed with the catalog of the other scripts
+export function withTestScript(session: SessionScripts, fileName: string, text: string): SessionScripts {
+    const connection = Object.values(session.scripts)[0].connection;
+    const [scriptKey, script] = createEmptyScriptData(session.instance, connection, fileName);
+    replaceScriptSessionText(script.scriptSession, text);
+    script.editorUpdate = script.scriptSession.analyze();
+    return {
+        ...session,
+        scripts: { ...session.scripts, [scriptKey]: script },
+        scriptRefs: { ...session.scriptRefs, [fileName]: createScriptRef(scriptKey, fileName) },
+        scriptOrder: [...session.scriptOrder, fileName],
+    };
+}

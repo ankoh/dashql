@@ -59,8 +59,9 @@ interface Position {
     y: number;
 }
 
-function samePosition(l: Position | null | undefined, r: Position | null | undefined): boolean {
-    return l == null ? r == null : r != null && l.x === r.x && l.y === r.y;
+/// Do two boxes overlap?
+function boxesOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
+    return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
 function truncate(text: string, length: number): string {
@@ -69,7 +70,8 @@ function truncate(text: string, length: number): string {
 
 /// The dataflow of a session: every script is a box of its statements, edges show the flow of data between them.
 /// The boxes keep the positions of their `@vis flow` tags, the others are placed by the layout of the core. A box
-/// that was placed keeps its position while the scripts are edited, Arrange lays out every box again.
+/// that was placed keeps its position while the scripts are edited, unless a neighbour grows over it, Arrange lays
+/// out every box again.
 export function DataflowCanvas(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const { sessionScripts, modifySessionScripts } = props;
@@ -84,10 +86,10 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const [drag, setDrag] = React.useState<{ scriptKey: number; position: Position } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
 
-    // The positions on screen, by script key, and the last `@vis flow` tags that were seen. A changed tag moves its
-    // box, a box without a tag keeps where the layout put it.
+    // Where the layout placed the boxes without `@vis flow` tags, by script key. The boxes keep these positions while
+    // the session changes, so that only new boxes are placed. A box that a growing neighbour would overlap is placed
+    // again, a tag always wins.
     const placedRef = React.useRef(new Map<number, Position>());
-    const tagsRef = React.useRef(new Map<number, Position | null>());
 
     const graph = deriveDataflowGraph(sessionScripts);
     const scriptOf = React.useCallback((script: DataflowScript): ScriptData | undefined => sessionScripts.scripts[script.scriptKey], [sessionScripts.scripts]);
@@ -96,27 +98,40 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         const statementId = scriptOf(script)?.annotations.visualizeQuery?.statementId;
         return statementId != null && statementId < script.statements.length ? statementId : null;
     }, [scriptOf]);
-    const tagsSignature = graph.scripts.map(s => {
-        const tag = scriptOf(s)?.annotations.flowPosition;
-        return tag == null ? '' : `${tag.x},${tag.y}`;
-    }).join(';');
 
+    // The layout lays out full boxes, collapsing a box only changes how it is drawn
     const positions: DataflowBoxPosition[] = React.useMemo(() => {
         const placed = placedRef.current;
-        const tags = tagsRef.current;
-        for (const script of graph.scripts) {
+        const tagOf = (script: DataflowScript): Position | null => {
             const flow = scriptOf(script)?.annotations.flowPosition;
-            const tag = flow != null ? { x: flow.x, y: flow.y } : null;
-            if (tag != null && !samePosition(tags.get(script.scriptKey), tag)) placed.set(script.scriptKey, tag);
-            tags.set(script.scriptKey, tag);
+            return flow != null ? { x: flow.x, y: flow.y } : null;
+        };
+        const compute = (soft: (script: DataflowScript) => Position | null) => {
+            const input = dataflowLayoutInput(graph, script => tagOf(script) ?? soft(script), chartStatement, () => false);
+            return sessionScripts.instance.computeDataflowLayout(input.boxes, input.edges, DATAFLOW_LAYOUT);
+        };
+        if (graph.scripts.length === 0) return [];
+        let layout = compute(script => placed.get(script.scriptKey) ?? null);
+        // A box that overlaps another one, e.g. one that grew, and was placed by the layout is placed again
+        const replace = new Set<number>();
+        for (let i = 0; i < layout.length; ++i) {
+            for (let j = i + 1; j < layout.length; ++j) {
+                if (!boxesOverlap(layout[i], layout[j])) continue;
+                const [a, b] = [graph.scripts[i], graph.scripts[j]];
+                const soft = tagOf(b) == null ? b : tagOf(a) == null ? a : null;
+                if (soft != null) replace.add(soft.scriptKey);
+            }
         }
-        const input = dataflowLayoutInput(graph, script => placed.get(script.scriptKey) ?? null, chartStatement, isCollapsed);
-        if (input.boxes.length === 0) return [];
-        const layout = sessionScripts.instance.computeDataflowLayout(input.boxes, input.edges, DATAFLOW_LAYOUT);
-        graph.scripts.forEach((script, i) => placed.set(script.scriptKey, { x: layout[i].x, y: layout[i].y }));
+        if (replace.size > 0) {
+            layout = compute(script => (replace.has(script.scriptKey) ? null : placed.get(script.scriptKey) ?? null));
+        }
+        // Remember where the boxes of analyzed scripts are, a script without statements is placed again once it has some
+        placed.clear();
+        graph.scripts.forEach((script, i) => {
+            if (tagOf(script) == null && script.statements.length > 0) placed.set(script.scriptKey, { x: layout[i].x, y: layout[i].y });
+        });
         return layout;
-        // tagsSignature stands for the tags that the callbacks read
-    }, [graph, tagsSignature, chartStatement, isCollapsed, arrangeRevision, sessionScripts.instance]);
+    }, [graph, scriptOf, chartStatement, arrangeRevision, sessionScripts.instance]);
 
     // A dragged box follows the pointer
     const shown = React.useMemo(() => {
@@ -147,7 +162,8 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         const behavior = zoom<SVGSVGElement, unknown>()
             .scaleExtent([0.1, 2])
             .clickDistance(4)
-            .filter(event => !event.button && !(event.target instanceof Element && event.target.closest('button, [data-dataflow-handle], foreignObject')))
+            .filter(event => (!event.ctrlKey || event.type === 'wheel') && !event.button
+                && !(event.target instanceof Element && event.target.closest('button, [role="button"], foreignObject')))
             .on('zoom', event => {
                 transformRef.current = event.transform;
                 sceneRef.current?.setAttribute('transform', event.transform.toString());
@@ -174,24 +190,22 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     }, []);
 
     // Dragging a box by its header. Moves and the release are followed on the window, the pointer leaves the header.
-    const dragRef = React.useRef<{ scriptKey: number; pointerId: number; startX: number; startY: number; origin: Position; moved: boolean } | null>(null);
-    const dragPositionRef = React.useRef(drag);
-    dragPositionRef.current = drag;
+    const dragRef = React.useRef<{ scriptKey: number; pointerId: number; startX: number; startY: number; origin: Position; position: Position | null } | null>(null);
     const finishDragRef = React.useRef<(event: PointerEvent, commit: boolean) => void>(() => {});
     finishDragRef.current = (event: PointerEvent, commit: boolean) => {
         const current = dragRef.current;
         if (current == null || current.pointerId !== event.pointerId) return;
         dragRef.current = null;
-        const dropped = dragPositionRef.current;
-        if (!current.moved || dropped == null) {
+        setDrag(null);
+        if (current.position == null) {
             if (commit) setSelection({ scriptKey: current.scriptKey, statementId: null });
             return;
         }
-        setDrag(null);
-        if (!commit) return;
-        placedRef.current.set(current.scriptKey, dropped.position);
         const script = sessionScripts.scripts[current.scriptKey];
-        if (script != null) persistFlowPosition(script, dropped.position.x, dropped.position.y, modifySessionScripts);
+        // The tag fixes the box, a script whose tag can't be written keeps its box where it was
+        if (commit && script != null && persistFlowPosition(script, current.position.x, current.position.y, modifySessionScripts)) {
+            placedRef.current.set(current.scriptKey, current.position);
+        }
     };
     React.useEffect(() => {
         const move = (event: PointerEvent) => {
@@ -200,10 +214,10 @@ export function DataflowCanvas(props: Props): React.ReactElement {
             const k = transformRef.current.k;
             const dx = (event.clientX - current.startX) / k;
             const dy = (event.clientY - current.startY) / k;
-            if (!current.moved && Math.hypot(dx * k, dy * k) < 4) return;
-            current.moved = true;
+            if (current.position == null && Math.hypot(dx * k, dy * k) < 4) return;
             const grid = DATAFLOW_LAYOUT.grid;
-            setDrag({ scriptKey: current.scriptKey, position: { x: Math.round((current.origin.x + dx) / grid) * grid, y: Math.round((current.origin.y + dy) / grid) * grid } });
+            current.position = { x: Math.round((current.origin.x + dx) / grid) * grid, y: Math.round((current.origin.y + dy) / grid) * grid };
+            setDrag({ scriptKey: current.scriptKey, position: current.position });
         };
         const up = (event: PointerEvent) => finishDragRef.current(event, true);
         const cancel = (event: PointerEvent) => finishDragRef.current(event, false);
@@ -219,22 +233,19 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const onHandleDown = React.useCallback((event: React.PointerEvent, box: DataflowSceneBox) => {
         if (event.button !== 0) return;
         event.stopPropagation();
-        dragRef.current = { scriptKey: box.script.scriptKey, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: { x: box.x, y: box.y }, moved: false };
+        dragRef.current = { scriptKey: box.script.scriptKey, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: { x: box.x, y: box.y }, position: null };
     }, []);
 
     // Creating and removing scripts
     const quoteIdentifier = React.useCallback((name: string) => sessionScripts.instance.quoteIdentifier(name), [sessionScripts.instance]);
-    const createAt = React.useCallback((position: Position, producer: ScriptData | null) => {
-        void createFlowScript(position.x, position.y, producer, quoteIdentifier, modifySessionScripts);
+    const createAt = React.useCallback((position: Position | null, producer: ScriptData | null) => {
+        void createFlowScript(position, producer, quoteIdentifier, modifySessionScripts);
     }, [quoteIdentifier, modifySessionScripts]);
+    // The layout places a script that reads a box right of it, in a free slot
     const createDownstream = React.useCallback((box: DataflowSceneBox) => {
-        const producer = sessionScripts.scripts[box.script.scriptKey] ?? null;
-        createAt({ x: box.x + box.width + DATAFLOW_LAYOUT.layerGap, y: box.y }, producer);
+        createAt(null, sessionScripts.scripts[box.script.scriptKey] ?? null);
     }, [sessionScripts.scripts, createAt]);
-    const createNew = React.useCallback(() => {
-        const bounds = scene.bounds;
-        createAt({ x: bounds.x, y: scene.boxes.length === 0 ? 0 : bounds.y + bounds.height + DATAFLOW_LAYOUT.boxGap * 2 }, null);
-    }, [scene.bounds, scene.boxes.length, createAt]);
+    const createNew = React.useCallback(() => createAt(null, null), [createAt]);
     const onCanvasDoubleClick = React.useCallback((event: React.MouseEvent<SVGSVGElement>) => {
         if (event.target !== svgRef.current) return;
         const rect = svgRef.current.getBoundingClientRect();

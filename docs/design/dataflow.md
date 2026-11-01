@@ -68,20 +68,23 @@ in the URL), next to the feed and the dashboard in the view switch. `app/session
   the edges that start or end at it until it is analyzed again, so the canvas does not flicker while a script is
   edited.
 - `dataflow_scene.ts` turns the graph and the layout into the scene: boxes, statement rows with their ports, charts,
-  edge paths and badges. Edges between boxes are routed by the edge router of the plan view
-  (`compute/ui/graph/graph_edges.ts`) from the right of the source row to the left of the target row, edges inside a
-  box run along the left of its rows. Collapsed boxes merge their edges and leave out the edges inside them.
+  edge paths and badges. An edge between boxes runs from the output port on the right of its source row to the input
+  port on the left of its target row, orthogonal with rounded corners like the edges of the plan view: with at most
+  two turns to a target on the right, around the boxes to a target on the left or at the same x. Edges inside a box
+  run along the left of its rows. Collapsed boxes merge their edges and leave out the edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
   (`compute/ui/graph/graph.module.css`, `GraphPort`): boxes are fragments, statements are node frames, inline
   references and table edges are solid, scans and invalid references are dashed, the relation of a table edge is a
   badge, and a selection redraws its edges in the highlight layer and highlights their ports. Charts are
-  `foreignObject`s below their statement. d3-zoom pans and zooms, below half the size every box is collapsed.
+  `foreignObject`s below their statement. d3-zoom pans and zooms, below half the size every box is drawn collapsed.
 - `dataflow_source.ts` writes the changes into the scripts: a dragged box writes its `@vis flow` tag, the `+` of a
-  box creates `select * from :<script>` on its connection to the right of it, a double click on the canvas or New
-  script creates a query at a position, the trash button deletes the script, and Arrange removes every `@vis flow`
-  tag and lays out every box again.
+  box creates `select * from :<script>` on its connection, New script creates a query, a double click on the canvas
+  creates a query at that position, the trash button deletes the script, and Arrange removes every `@vis flow` tag
+  and lays out every box again.
 
-A box keeps its position on screen while the session changes: the canvas remembers where every box was placed and
-passes the positions to the layout as fixed boxes, so only new boxes are placed. A changed `@vis flow` tag, e.g. a
-hand edit, moves its box. Opening a box (its pencil, a double click or Enter) shows the script in the script details
-next to the canvas.
+The layout always lays out full boxes, collapsing a box only changes how it is drawn. A box with a `@vis flow` tag is
+fixed at its tag. The canvas remembers where the layout placed the other boxes and passes these positions to the
+layout as fixed boxes, so a box keeps its position while the session changes and only new boxes are placed: a script
+that reads a box goes right of it, in the nearest free slot. A remembered box that a neighbour grows over is placed
+again, a script without statements is not remembered until it has some. Opening a box (its pencil, a double click or
+Enter) shows the script in the script details next to the canvas, switching the view closes them.

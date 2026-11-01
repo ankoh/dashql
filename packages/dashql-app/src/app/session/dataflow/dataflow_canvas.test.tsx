@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
-import { analyzedTestSession } from './dataflow_test_session.js';
+import { analyzedTestSession, withTestScript } from './dataflow_test_session.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -81,13 +81,48 @@ describe('DataflowCanvas', () => {
         expect(action?.value.text).toMatch(/^\/\*\* @vis flow x=-?\d+ y=-?\d+ \*\/\nselect a from t$/);
     });
 
+    it('keeps the boxes in place and places a new script right of the box it reads, in a free slot', () => {
+        render();
+        const rect = (fileName: string) => {
+            const frame = container.querySelectorAll('rect[data-color]')[session.scriptOrder.indexOf(fileName)];
+            return { x: Number(frame.getAttribute('x')), y: Number(frame.getAttribute('y')) };
+        };
+        const before = { schema: rect('schema.sql'), report: rect('report.sql') };
+        session = withTestScript(session, 'first.sql', 'select * from :report');
+        render();
+        session = withTestScript(session, 'second.sql', 'select * from :report');
+        render();
+        expect([rect('schema.sql').x, rect('schema.sql').y]).toEqual([before.schema.x, before.schema.y]);
+        expect([rect('report.sql').x, rect('report.sql').y]).toEqual([before.report.x, before.report.y]);
+        const [first, second] = [rect('first.sql'), rect('second.sql')];
+        expect(first.x).toBeGreaterThan(before.report.x);
+        expect(second.x).toBe(first.x);
+        expect(second.y).not.toBe(first.y);
+    });
+
+    it('drops a box at the last position of a fast drag', () => {
+        render();
+        const header = box('report.sql').querySelector<SVGGElement>('[data-dataflow-handle]')!;
+        const pointer = (type: string, x: number, y: number) => new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y });
+        // The release follows the move before React renders the drag
+        act(() => {
+            header.dispatchEvent(pointer('pointerdown', 100, 100));
+            header.dispatchEvent(pointer('pointermove', 180, 140));
+            header.dispatchEvent(pointer('pointerup', 180, 140));
+        });
+        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
+        expect(action?.type).toBe(SET_SCRIPT_TEXT);
+        expect(box('report.sql').getAttribute('data-dragging')).toBeNull();
+    });
+
     it('adds a script that reads a box, deletes a box and opens a script', () => {
         const onInspect = vi.fn();
         render(onInspect);
         act(() => box('report.sql').querySelector<SVGGElement>('[data-dataflow-action="add"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
         const create = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
         expect(create?.type).toBe(CREATE_SCRIPT);
-        expect(create?.value.text).toMatch(/^\/\*\* @vis flow x=\d+ y=-?\d+ \*\/\nselect \* from :report$/);
+        // The layout places the new script right of the box, it has no position of its own
+        expect(create?.value.text).toBe('select * from :report');
         expect(create?.value.connection).toBe(session.scripts[key('report.sql')].connection);
 
         act(() => box('report.sql').querySelector<SVGGElement>('[data-dataflow-action="open"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));

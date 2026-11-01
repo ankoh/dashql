@@ -1,6 +1,5 @@
 import type * as core from '@ankoh/dashql-core';
 
-import { buildEdgePathBetweenRectangles, PathBuilder, selectHorizontalEdgeType } from '../compute/ui/graph/graph_edges.js';
 import { DataflowEdgeKind, type DataflowEdge, type DataflowGraph, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
 
 /// The sizes of the canvas, every row center is a multiple of the grid so that edges between snapped boxes are straight
@@ -19,8 +18,10 @@ export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
 export const DATAFLOW_COLLAPSE_SCALE = 0.5;
 
 /// The space between an edge inside a box and the left border of the box, per statement that it spans
-const INTERNAL_EDGE_GUTTER = 4;
-const INTERNAL_EDGE_GUTTER_STEP = 3;
+const INTERNAL_EDGE_GUTTER = 3;
+const INTERNAL_EDGE_GUTTER_STEP = 2;
+/// The straight run of an edge out of its source and into its target before a turn
+const EDGE_STUB = 12;
 const EDGE_CORNER_RADIUS = 4;
 export const EDGE_BADGE_HEIGHT = 15;
 const EDGE_BADGE_MIN_WIDTH = 25;
@@ -123,24 +124,50 @@ export function portFrameWidth(box: DataflowSceneBox, config: core.DataflowLayou
     return box.collapsed ? box.width : box.width - 2 * config.rowPadding;
 }
 
-/// The path of an edge between two boxes, from the right of the source row to the left of the target row
-function edgePath(from: DataflowSceneBox, fromY: number, to: DataflowSceneBox, toY: number, config: core.DataflowLayoutConfig): string {
-    const height = config.rowHeight;
-    const [fromX, toX] = [from.x + from.width / 2, to.x + to.width / 2];
-    const type = selectHorizontalEdgeType(fromX, fromY, toX, toY);
-    const [fromWidth, toWidth] = [portFrameWidth(from, config), portFrameWidth(to, config)];
-    return buildEdgePathBetweenRectangles(new PathBuilder(), type, fromX, fromY, toX, toY, fromWidth, height, toWidth, height, EDGE_CORNER_RADIUS).render();
+/// An orthogonal path through points with rounded corners, like the edges of the plan view
+export function roundedPath(points: [number, number][], radius = EDGE_CORNER_RADIUS): string {
+    const out = [`M ${points[0][0]} ${points[0][1]}`];
+    for (let i = 1; i < points.length - 1; ++i) {
+        const [px, py] = points[i - 1];
+        const [x, y] = points[i];
+        const [nx, ny] = points[i + 1];
+        const r = Math.min(radius, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+        const before = [x - Math.sign(x - px) * r, y - Math.sign(y - py) * r];
+        const after = [x + Math.sign(nx - x) * r, y + Math.sign(ny - y) * r];
+        out.push(`L ${before[0]} ${before[1]}`, `Q ${x} ${y}, ${after[0]} ${after[1]}`);
+    }
+    const [lx, ly] = points[points.length - 1];
+    out.push(`L ${lx} ${ly}`);
+    return out.join(' ');
 }
 
-/// The path of an edge between two rows of one box, along the left border of the rows
+/// The route of an edge from the output port of a row to the input port of a row of another box. A target to the
+/// right is reached with at most two turns, a target to the left with an S around the boxes. Returns the path and the
+/// middle of the route.
+function routeEdge(from: DataflowSceneBox, fromY: number, to: DataflowSceneBox, toY: number, config: core.DataflowLayoutConfig): { path: string; middle: [number, number] } {
+    const x1 = from.x + (from.width + portFrameWidth(from, config)) / 2;
+    const x2 = to.x + (to.width - portFrameWidth(to, config)) / 2;
+    const stub = EDGE_STUB;
+    if (x2 - x1 >= 2 * stub) {
+        if (fromY === toY) return { path: roundedPath([[x1, fromY], [x2, toY]]), middle: [(x1 + x2) / 2, fromY] };
+        const mx = Math.round((x1 + x2) / 2);
+        return { path: roundedPath([[x1, fromY], [mx, fromY], [mx, toY], [x2, toY]]), middle: [mx, (fromY + toY) / 2] };
+    }
+    // Back around the boxes: between them if there is space, below both otherwise
+    const [ox, ix] = [x1 + stub, x2 - stub];
+    const [fromBottom, toBottom] = [from.y + from.height, to.y + to.height];
+    let cy: number;
+    if (to.y - fromBottom >= 2 * stub) cy = (fromBottom + to.y) / 2;
+    else if (from.y - toBottom >= 2 * stub) cy = (toBottom + from.y) / 2;
+    else cy = Math.max(fromBottom, toBottom) + config.boxGap / 2;
+    return { path: roundedPath([[x1, fromY], [ox, fromY], [ox, cy], [ix, cy], [ix, toY], [x2, toY]]), middle: [(ox + ix) / 2, cy] };
+}
+
+/// The path of an edge between two rows of one box, along the left border of the rows inside the padding of the box
 function internalEdgePath(box: DataflowSceneBox, fromY: number, toY: number, span: number, config: core.DataflowLayoutConfig): string {
     const x = box.x + config.rowPadding;
-    const gutter = INTERNAL_EDGE_GUTTER + INTERNAL_EDGE_GUTTER_STEP * Math.min(Math.max(span - 1, 0), 4);
-    const r = Math.min(EDGE_CORNER_RADIUS, Math.abs(toY - fromY) / 2);
-    const dir = toY >= fromY ? 1 : -1;
-    const left = x - gutter;
-    return `M ${x} ${fromY} L ${left + r} ${fromY} Q ${left} ${fromY}, ${left} ${fromY + dir * r} `
-        + `L ${left} ${toY - dir * r} Q ${left} ${toY}, ${left + r} ${toY} L ${x} ${toY}`;
+    const gutter = Math.min(config.rowPadding - 1, INTERNAL_EDGE_GUTTER + INTERNAL_EDGE_GUTTER_STEP * Math.min(Math.max(span - 1, 0), 2));
+    return roundedPath([[x, fromY], [x - gutter, fromY], [x - gutter, toY], [x, toY]], 3);
 }
 
 /// The width of a badge with a text
@@ -168,7 +195,8 @@ export function buildDataflowScene(
             width: p.width - 2 * config.rowPadding,
             height: config.chartHeight,
         };
-        return { script, index, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height: p.height, rows, chart, input: false, output: false };
+        const height = isCollapsed ? config.headerHeight : p.height;
+        return { script, index, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height, rows, chart, input: false, output: false };
     });
     const boxOf = new Map(boxes.map(b => [b.script.scriptKey, b]));
 
@@ -191,10 +219,11 @@ export function buildDataflowScene(
         const fromY = portY(from, edge.from.statementId, config);
         const toY = portY(to, edge.to.statementId, config);
         let path: string;
+        let middle: [number, number] = [0, 0];
         if (internal) {
             path = internalEdgePath(from, fromY, toY, Math.abs(edge.to.statementId - edge.from.statementId), config);
         } else {
-            path = edgePath(from, fromY, to, toY, config);
+            ({ path, middle } = routeEdge(from, fromY, to, toY, config));
         }
         // Collapsed boxes have one port per side, rows have their own
         const fromRow = from.rows[edge.from.statementId];
@@ -205,7 +234,7 @@ export function buildDataflowScene(
         if (to.collapsed || toRow == null) to.input = true;
         else toRow.input = true;
         const badge = edge.kind === DataflowEdgeKind.Table && !internal && edge.name.length > 0
-            ? { x: (from.x + from.width + to.x) / 2, y: (fromY + toY) / 2, width: edgeBadgeWidth(edge.name), text: edge.name }
+            ? { x: middle[0], y: middle[1], width: edgeBadgeWidth(edge.name), text: edge.name }
             : null;
         edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, internal, path, badge });
     }

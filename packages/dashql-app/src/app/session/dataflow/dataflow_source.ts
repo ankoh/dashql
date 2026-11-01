@@ -2,19 +2,20 @@ import type { ModifySessionScripts } from '../scripts/session_scripts_registry.j
 import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '../scripts/session_scripts.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
 
-/// Write the position of a script into its `@vis flow` tag
-export function persistFlowPosition(script: ScriptData, x: number, y: number, modifySessionScripts: ModifySessionScripts): void {
+/// Write the position of a script into its `@vis flow` tag. Returns whether the script has the position, a script
+/// that does not parse or has no statement can't be placed.
+export function persistFlowPosition(script: ScriptData, x: number, y: number, modifySessionScripts: ModifySessionScripts): boolean {
     const position = script.annotations.flowPosition;
-    if (position != null && position.x === Math.round(x) && position.y === Math.round(y)) return;
+    if (position != null && position.x === Math.round(x) && position.y === Math.round(y)) return true;
     let text: string;
     try {
         text = script.scriptSession.rewriteVisFlow(x, y);
     } catch (e) {
-        // A script that does not parse or has no statement keeps its position until the next drag
         console.warn('cannot write the position of the script', e);
-        return;
+        return false;
     }
     modifySessionScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
+    return true;
 }
 
 /// Remove the `@vis flow` tags of scripts, the layout places them again
@@ -32,18 +33,17 @@ export function removeFlowPositions(scripts: ScriptData[], modifySessionScripts:
     }
 }
 
-/// The text of a new script at a position of the canvas, a query of the result of `producer` if given
-export function newFlowScriptText(x: number, y: number, producer: ScriptData | null, quoteIdentifier: (name: string) => string): string {
-    const tag = `/** @vis flow x=${Math.round(x)} y=${Math.round(y)} */\n`;
+/// The text of a new script, at a position of the canvas if given, a query of the result of `producer` if given
+export function newFlowScriptText(position: { x: number; y: number } | null, producer: ScriptData | null, quoteIdentifier: (name: string) => string): string {
+    const tag = position != null ? `/** @vis flow x=${Math.round(position.x)} y=${Math.round(position.y)} */\n` : '';
     if (producer == null) return `${tag}select 1`;
     return `${tag}select * from :${quoteIdentifier(scriptDisplayName(producer.fileName))}`;
 }
 
-/// Create a script at a position of the canvas: a query of the result of `producer` on its connection, or an empty
-/// query on the connection of the last script
+/// Create a script: a query of the result of `producer` on its connection, or a query on the connection of the last
+/// script. A script without a position is placed by the layout, one that reads `producer` right of it.
 export function createFlowScript(
-    x: number,
-    y: number,
+    position: { x: number; y: number } | null,
     producer: ScriptData | null,
     quoteIdentifier: (name: string) => string,
     modifySessionScripts: ModifySessionScripts,
@@ -52,7 +52,7 @@ export function createFlowScript(
         type: CREATE_SCRIPT,
         value: {
             index: null,
-            text: newFlowScriptText(x, y, producer, quoteIdentifier),
+            text: newFlowScriptText(position, producer, quoteIdentifier),
             ...(producer != null ? { connection: producer.connection } : {}),
         },
     });
