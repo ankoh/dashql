@@ -329,6 +329,7 @@ formatter-snapshots:
             expected: |-
               /**
                * Revenue dashboard.
+               *
                * @param Revenue per region.
                * @board width=6 height=3
                * @vis vegalite
@@ -339,6 +340,7 @@ formatter-snapshots:
             expected: |-
               /**
                * Revenue dashboard.
+               *
                * @param Revenue per region.
                * @board width=6 height=3
                * @vis vegalite

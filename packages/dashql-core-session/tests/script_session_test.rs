@@ -951,11 +951,11 @@ fn rewrites_the_board_placement_through_the_parsed_comments() {
 
     assert_eq!(
         session.rewrite_vis_board(0, Some(&VisBoard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
-        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @board row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
+        "/**\n * \u{1F4CA} @vis board is text here\n *\n * @vis table\n * @board row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
         session.rewrite_vis_board(0, Some(&VisBoard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
-        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @board width=6 height=3\n */\nselect '\u{1F4CA}' as label"
+        "/**\n * \u{1F4CA} @vis board is text here\n *\n * @vis table\n * @board width=6 height=3\n */\nselect '\u{1F4CA}' as label"
     );
 }
 

@@ -258,7 +258,7 @@ fn rewrite_vis_board_replaces_or_inserts_the_placement() {
     let mut script = parsed_script("/**\n * Sales.\n * @vis table\n */\nselect 1");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
-        "/**\n * Sales.\n * @vis table\n * @board width=6 height=3\n */\nselect 1"
+        "/**\n * Sales.\n *\n * @vis table\n * @board width=6 height=3\n */\nselect 1"
     );
 }
 
@@ -269,7 +269,7 @@ fn rewrite_vis_flow_places_the_script() {
     let mut script = parsed_script("create table t (a int);\n/* Rows.\n   @vis table */\nselect a from t");
     assert_eq!(
         script.rewrite_vis_flow(Some(&flow), false).unwrap(),
-        "create table t (a int);\n/**\n * Rows.\n * @vis table\n * @flow x=-16 y=240\n */\nselect a from t"
+        "create table t (a int);\n/**\n * Rows.\n *\n * @vis table\n * @flow x=-16 y=240\n */\nselect a from t"
     );
     // A statement that is no query gets a new comment
     let mut script = parsed_script("create table t (a int)");
@@ -312,17 +312,17 @@ fn rewrite_vis_tags_consolidate_the_annotation() {
         script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
         "/**\n * @param Sales.\n * @param :a = 1\n * @vis table\n */\nselect 1 as a"
     );
-    // Ordinary comments stay where they are, the text before the first tag of a block comment stays in front
+    // Ordinary comments and the text before the first tag of a block comment are the description, it goes on top
     let mut script = parsed_script("-- Note\n/* Revenue.\n   @vis table */\n-- More\n\n/* @param Sales. */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
-        "-- Note\n/**\n * Revenue.\n * @vis table\n * @board width=6 height=3\n * @param Sales.\n */\n-- More\n\nselect 1 as a"
+        "/**\n * Note\n * Revenue.\n * More\n *\n * @vis table\n * @board width=6 height=3\n * @param Sales.\n */\nselect 1 as a"
     );
     // The text before the first tag of a later block comment goes in front of all tags
     let mut script = parsed_script("/* @param Sales. */\n/* Note.\n   @vis table */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
-        "/**\n * Note.\n * @param Sales.\n * @vis table\n * @board width=6 height=3\n */\nselect 1 as a"
+        "/**\n * Note.\n *\n * @param Sales.\n * @vis table\n * @board width=6 height=3\n */\nselect 1 as a"
     );
     // The comment keeps its indentation
     let mut script = parsed_script("  /* @vis table */\n  /* @board width=4 */\n  select 1 as a");
@@ -385,11 +385,11 @@ fn rewrite_vis_renderer_replaces_inserts_and_removes() {
     written.replace_text(&text);
     written.analyze(&catalog, true).unwrap();
     assert_eq!(written.analyzed.as_ref().unwrap().visualization_specs[0].markdown.as_ref().unwrap().row_template, "### {{a}}\n\n* item");
-    // A query without tags gets a comment, a renderer goes before a board placement
+    // A query without tags gets a comment with its description, a renderer goes before a board placement
     let mut script = parsed_script("-- Sales\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
-        "-- Sales\n/** @vis table */\nselect 1 as a"
+        "/**\n * Sales\n *\n * @vis table\n */\nselect 1 as a"
     );
     let mut script = parsed_script("select 0;\n  select 1 as a");
     assert_eq!(
@@ -418,7 +418,7 @@ fn rewrite_vis_tags_removes_tags() {
     let mut script = parsed_script("/* @vis table\n   @board width=4 */\nselect 1");
     assert_eq!(script.rewrite_vis_board(0, None, false).unwrap(), "/** @vis table */\nselect 1");
     let mut script = parsed_script("/* Sales\n   @vis table\n   @board width=4\n*/\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/**\n * Sales\n * @board width=4\n */\nselect 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/**\n * Sales\n *\n * @board width=4\n */\nselect 1");
     // The text before the first tag stays an ordinary comment
     let mut script = parsed_script("/* Sales\n   @vis table\n*/\nselect 1");
     assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** Sales */\nselect 1");
@@ -517,6 +517,29 @@ fn rewrite_vegalite_inserts_a_comment() {
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark":"bar"}"#, false).unwrap().0,
         "/**\n * @param Revenue.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1 as a"
+    );
+}
+
+#[test]
+fn rewrite_vegalite_puts_the_description_on_top() {
+    let vis = "@vis vegalite\n * {\"mark\": \"bar\"}";
+    let cases = [
+        // The description joins the comment of the tags, an empty line separates them
+        ("/* Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * {vis}\n */\nselect 1")),
+        ("-- Monthly revenue\n-- by region\nselect 1".to_string(), format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1")),
+        // A description below the tags moves on top of them
+        ("/** @param :min = 10 */\n/* Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
+        ("/* @flow x=1 y=2 */\n-- Monthly revenue\nselect 1".to_string(), format!("/**\n * Monthly revenue\n *\n * {vis}\n * @flow x=1 y=2\n */\nselect 1")),
+        // The descriptions keep their order, the blank lines between them go
+        ("-- Monthly revenue\n\n/* @vis table */\n/* by region */\nselect 1".to_string(), format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1")),
+    ];
+    for (before, after) in cases {
+        assert_eq!(parsed_script(&before).rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0, after, "{before}");
+    }
+    // The comments of the previous statement stay
+    assert_eq!(
+        parsed_script("select 1; -- one\n-- Two.\nselect 2").rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        format!("select 1; -- one\n/**\n * Two.\n *\n * {vis}\n */\nselect 2")
     );
 }
 

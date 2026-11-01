@@ -550,7 +550,7 @@ mod tests {
         assert_eq!(format_comments(input), "/** @param Sales. */\n-- note\n/** @vis table */");
         // The text before the first tag of a block comment goes in front of all tags
         let input = "/* @param Sales. */\n/* Note.\n   @vis table */";
-        assert_eq!(format_comments(input), "/**\n * Note.\n * @param Sales.\n * @vis table\n */");
+        assert_eq!(format_comments(input), "/**\n * Note.\n *\n * @param Sales.\n * @vis table\n */");
         // Comments that cannot be printed canonically stay apart
         let input = "/* @param Sales. */\n-- @vis markdown\n-- see */ here";
         assert_eq!(format_comments(input), "/** @param Sales. */\n-- @vis markdown\n-- see */ here");
@@ -559,7 +559,7 @@ mod tests {
     #[test]
     fn keeps_text_before_the_first_tag() {
         let input = "/* Revenue dashboard.\n      @vis table\n*/";
-        assert_eq!(format_comments(input), "/**\n * Revenue dashboard.\n * @vis table\n */");
+        assert_eq!(format_comments(input), "/**\n * Revenue dashboard.\n *\n * @vis table\n */");
         // Comments without tags stay as written
         let input = "/* Revenue dashboard.\n      @see x\n*/";
         assert_eq!(format_comments(input), input);

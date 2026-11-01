@@ -108,16 +108,16 @@ the `@vis` and `@board` tags of the terminal statement, and removing the positio
 (`rewriteVisFlow` and `removeVisFlow` of the script session).
 
 The tags are edited in the annotation of the statement (`annotation.rs`): its comment tags
-(`@vis`, `@board`, `@flow`, `@param`) as one list, the `Annotation` with the text before the first tag
-(`preamble`, the description) and the tags, each a name and content lines whose first line is the text on the line of
-the tag. `Script::read_annotation` reads it, `Script::rewrite_annotation` replaces it; the app and
+(`@vis`, `@board`, `@flow`, `@param`) as one list, the `Annotation` with the description (`preamble`: the text of the
+ordinary comments in front of the statement and the text before the first tag of a block comment) and the tags, each a
+name and content lines whose first line is the text on the line of the tag. `Script::read_annotation` reads it, `Script::rewrite_annotation` replaces it; the app and
 core-js reach both as `readAnnotation` and `rewriteAnnotation` of a script or script session, with the
 annotation as JSON (`{"preamble": [...], "tags": [{"name": ..., "lines": [...]}]}`). The `@vis` rewrites
 are small edits of the annotation, the description and any other tag are written the same way. The annotation printer is shared with the formatter, so an edit and a formatting print the same
 comment.
 
-Writing an annotation consolidates it. The comments with tags in front of the statement become one
-comment, in place of the first of them:
+Writing an annotation consolidates it. The comments in front of the statement become one comment, in place of the
+first of them, with the description on top:
 
 ```sql
 -- @param :year = 2024                    /**
@@ -134,12 +134,13 @@ WHERE year = :year;                       * @board width=6 height=3
   indentation of the comment it replaces.
 - The edited tag is printed anew, the other tags keep their content as written. Text that followed a tag
   on its line stays there.
-- Text before the first tag of a block comment goes in front of the tags, after a tag it would read as
-  the content of the tag. Ordinary comments stay where they are. Blank lines between the comments of the
-  annotation are removed.
-- A new renderer goes before the other `@vis`, `@board` and `@flow` tags, after the parameters. A new board placement goes after the renderer. A statement without tags gets a new comment on the line before it. A
-  board placement needs a renderer.
-- Removing the last tag removes the comment.
+- The description goes in front of the tags: the ordinary comments in their order, wherever they were, and the text
+  before the first tag of a block comment, separated from the tags by an empty line. After a tag it would read as
+  the content of the tag. Other blank lines between the comments of the annotation are removed.
+- A new renderer goes before the other `@vis`, `@board` and `@flow` tags, after the parameters. A new board placement
+  goes after the renderer. A statement without comments gets a new comment on the line before it. A board placement
+  needs a renderer.
+- Removing the last tag leaves the description as the comment, without a description it removes the comment.
 - An annotation that would not read back unchanged is an error: an unknown tag name, a line with a line
   break, a continuation line that starts with a tag.
 

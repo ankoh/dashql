@@ -85,7 +85,7 @@ describe('Annotations', () => {
         expect(dashql.annotationTagText(annotation.tags[0])).toEqual(':min = 1');
         annotation.preamble = ['Revenue.'];
         annotation.tags[0] = dashql.annotationTag('param', ':min = 2');
-        expect(script.rewriteAnnotation(0, annotation)).toEqual('/**\n * Revenue.\n * @param\n * :min = 2\n * @vis table\n */\nselect 1;');
+        expect(script.rewriteAnnotation(0, annotation)).toEqual('/**\n * Revenue.\n *\n * @param\n * :min = 2\n * @vis table\n */\nselect 1;');
         expect(script.rewriteAnnotation(0, { preamble: [], tags: [] })).toEqual('select 1;');
         expect(() => script.rewriteAnnotation(0, { preamble: [], tags: [dashql.annotationTag('param', 'a */ b')] })).toThrow('cannot contain');
         expect(() => script.rewriteAnnotation(0, { preamble: [], tags: [{ name: 'todo', lines: [] }] })).toThrow('unknown comment tag');

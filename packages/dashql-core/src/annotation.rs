@@ -1,15 +1,17 @@
 //! The annotation of a statement: the comment tags in front of it (`@vis`, `@board`, `@flow`, `@param`),
 //! read as one list and written back as one comment.
 //!
-//! An annotation is the text before the first tag of a block comment (the preamble) and the tags in their
-//! order. A tag has a name and content lines, the first line is the text on the line of the tag and may be
-//! empty. Reading collects the tagged comments of a statement, wherever they are and in whichever form.
-//! Writing prints the annotation as one comment in place of the first of them and removes the others,
-//! so every edit leaves the annotation consolidated. The content of the tags is not interpreted.
+//! An annotation is the description of a statement (the preamble) and the tags in their order. The preamble is the
+//! text of the ordinary comments in front of the statement and the text before the first tag of a block comment. A
+//! tag has a name and content lines, the first line is the text on the line of the tag and may be empty. Reading
+//! collects the comments in front of a statement, wherever the tags are and in whichever form. Writing prints the
+//! annotation as one comment in place of the first of them and removes the others, so every edit leaves the
+//! annotation consolidated with the description on top. The content of the tags is not interpreted.
 //!
 //! Annotations are printed Javadoc-style, the formatter prints tagged comments the same way: a single
 //! line stays on the line of `/**` (`/** @vis table */`), otherwise `/**` and `*/` are on lines of their
-//! own and every line has a ` * ` gutter, which keeps lines that start with `*`. `/*` would nest and `*/`
+//! own and every line has a ` * ` gutter, which keeps lines that start with `*`. An empty line separates the
+//! description from the tags. `/*` would nest and `*/`
 //! would end the comment, an annotation with them cannot be printed.
 //!
 //! The spans of the parsed script are applied to the given text, which may be newer than the parse
@@ -81,7 +83,7 @@ impl AnnotationTag {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Annotation {
-    /// The text before the first tag of a block comment
+    /// The description: the text of the ordinary comments and the text before the first tag of a block comment
     pub preamble: Vec<String>,
     /// The tags in their order
     pub tags: Vec<AnnotationTag>,
@@ -123,14 +125,21 @@ impl Annotation {
         self.preamble.is_empty() && self.tags.is_empty()
     }
 
+    /// The empty line between the description and the tags, if there are both
+    fn separator(&self) -> Option<String> {
+        (!self.preamble.is_empty() && !self.tags.is_empty()).then(String::new)
+    }
+
     /// The lines of the comment without its markers
     pub fn lines(&self) -> Vec<String> {
-        self.preamble.iter().cloned().chain(self.tags.iter().flat_map(AnnotationTag::printed_lines)).collect()
+        let tags = self.tags.iter().flat_map(AnnotationTag::printed_lines);
+        self.preamble.iter().cloned().chain(self.separator()).chain(tags).collect()
     }
 
     /// The index of the first printed line of a tag
     fn first_line_of(&self, tag: usize) -> usize {
-        self.preamble.len() + self.tags[..tag].iter().map(AnnotationTag::printed_len).sum::<usize>()
+        let separator = usize::from(self.separator().is_some());
+        self.preamble.len() + separator + self.tags[..tag].iter().map(AnnotationTag::printed_len).sum::<usize>()
     }
 
     /// Check that the annotation reads back unchanged
@@ -197,22 +206,14 @@ fn check_statement(parsed: &ParsedScript, statement_id: usize) -> Result<()> {
 }
 
 /// Read the annotation of a statement and the comments that hold it, ascending indexes into the comments
-/// of the script
+/// of the script. Every comment in front of the statement belongs to it, the ordinary ones are its description.
 fn read_with_comments(parsed: &ParsedScript, statement_id: usize) -> (Annotation, Vec<usize>) {
     let blocks = &parsed.comment_blocks;
     let description = parsed.associate_descriptions()[statement_id];
     let begin = description.description_blocks_begin as usize;
     let range = &blocks.blocks[begin..begin + description.description_blocks_count as usize];
-    let mut comments: Vec<usize> = range
-        .iter()
-        .filter(|b| b.block_type == CommentBlockType::DASHQL_TAG)
-        .flat_map(|b| b.comments_begin as usize..(b.comments_begin + b.comments_count) as usize)
-        .collect();
-    comments.dedup();
-    // Ordinary comments are no part of the annotation, except for the text before the first tag of a block
-    // comment
-    let annotated = range.iter().filter(|b| comments.binary_search(&(b.comments_begin as usize)).is_ok());
-    (Annotation::from_blocks(parsed.scanned.text.as_bytes(), blocks, annotated), comments)
+    let comments = (description.description_begin..description.description_begin + description.description_count).map(|c| c as usize).collect();
+    (Annotation::from_blocks(parsed.scanned.text.as_bytes(), blocks, range.iter()), comments)
 }
 
 /// Read the annotation of a statement
@@ -276,7 +277,7 @@ fn splice(text: &str, edits: &[(usize, usize, String)]) -> Result<String> {
 
 /// Rewrite the annotation of a statement. `edit` changes the annotation and returns the index of the tag
 /// it wrote, if any. The annotation is printed as one comment in place of its first comments, the other
-/// comments with tags are removed. An edit that neither writes a tag nor changes the annotation leaves
+/// comments in front of the statement are removed. An edit that neither writes a tag nor changes the annotation leaves
 /// the text alone. Returns the new text and the span of the written tag in it, from `@` to the end of its
 /// last line.
 pub(crate) fn rewrite(
@@ -294,7 +295,7 @@ pub(crate) fn rewrite(
     }
     let outdated = || Error::invalid_argument("the parsed script is outdated");
     let bytes = text.as_bytes();
-    // The comments with tags, comments that are separated by whitespace only form a run. Removing a run
+    // The comments of the annotation, comments that are separated by whitespace only form a run. Removing a run
     // removes the blank lines between its comments too, they would be left behind.
     let mut runs: Vec<TextSpan> = Vec::new();
     for &id in &comments {
@@ -433,7 +434,8 @@ mod tests {
     fn reads_the_tags_of_every_comment() {
         let text = "-- @param\n-- Sales.\n-- per region\n-- @end\n-- note\n/* Revenue.\n   @vis table */\nselect 1";
         let annotation = read_annotation(&parsed(text), 0).unwrap();
-        assert_eq!(annotation.preamble, lines(&["Revenue."]));
+        // Ordinary comments are the description, wherever they are
+        assert_eq!(annotation.preamble, lines(&["note", "Revenue."]));
         assert_eq!(
             annotation.tags,
             vec![AnnotationTag::new("param", lines(&["", "Sales.", "per region"])), AnnotationTag::new("vis", lines(&["table"]))]
