@@ -180,7 +180,8 @@ after `:`.
 ### Mentions and Renames
 
 A click on the `:name` tag of a script inserts the reference at the cursor of the editor that had the focus last,
-another script or the prompt of the composer (`useLastFocusedEditor`). SQL reads `:name` quoted if it has to be,
+another script or the prompt of the composer (`useLastFocusedEditor`). The card of a Parquet attachment in the attachments drawer
+of the feed inserts its table parameter the same way, it shows the name and warns when a script has the name too. SQL reads `:name` quoted if it has to be,
 `:"foo-2"` (`DashQL.quoteIdentifier`). A question in natural language reads `:foo-2`.
 
 A rename of a script rewrites the references to it in the other scripts of the session: the references of the check

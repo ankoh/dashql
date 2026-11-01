@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { cloneSession, copySession, verifySession } from './session_transfer.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from './session_test_backend.js';
-import { hyperOPFSRoot } from '../platform/opfs_root.js';
 
 async function seed(backend: SessionTestBackend): Promise<void> {
     await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
@@ -39,8 +38,7 @@ describe('session transfer', () => {
     it('clones under a new UUID sharing the connections and rolls back a failed clone', async () => {
         const source = new SessionTestBackend();
         await seed(source);
-        await source.saveScript(TEST_SESSION_ID, '03_attachment.sql',
-            `SELECT * FROM external('${hyperOPFSRoot()}/sessions/${TEST_SESSION_ID}/attachments/payload.bin')`);
+        await source.saveScript(TEST_SESSION_ID, '03_attachment.sql', 'SELECT * FROM :payload');
         const target = new SessionTestBackend();
         const cloneId = '99999999-8888-4777-8666-555555555555';
         await cloneSession(TEST_SESSION_ID, source, target, cloneId, new TestLogger());
@@ -48,8 +46,7 @@ describe('session transfer', () => {
         expect(cloned).toMatchObject({ sessionId: cloneId, name: 'V2 Session (copy)' });
         expect(cloned.connections.map(connection => connection.connectionId)).toEqual([TEST_CONNECTION_ID]);
         expect(await target.loadScripts(cloneId)).toHaveLength(3);
-        expect((await target.loadScript(cloneId, '03_attachment.sql')).sql).toContain(
-            `${hyperOPFSRoot()}/sessions/${cloneId}/attachments/payload.bin`);
+        expect((await target.loadScript(cloneId, '03_attachment.sql')).sql).toBe('SELECT * FROM :payload');
 
         const failing = new SessionTestBackend();
         failing.saveScript = async () => { throw new Error('write failed'); };

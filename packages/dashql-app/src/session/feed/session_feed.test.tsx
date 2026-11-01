@@ -20,7 +20,6 @@ import { AgentQuestionStore } from '../../agent/agent_question_store.js';
 import { AgentConnectionStatus } from '../../agent/agent_client.js';
 import { CREATE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../connections/connector_info.js';
-import { hyperOPFSRoot } from '../../platform/opfs_root.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -83,7 +82,7 @@ describe('V2 session feed rows', () => {
     beforeEach(() => { state.query = null; state.sortableTransform = null; state.formatScriptEditor.mockReset(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-    it('keeps the HyperDB path behind a copy action and disables every file action for non-WASM connections', () => {
+    it('disables every file action for non-WASM connections', () => {
         const sessionId = '12345678-1234-1234-1234-123456789abc';
         const props: SessionDataCardProps = {
             sessionId, file: { name: 'sales 2.csv', sizeBytes: 42 },
@@ -96,15 +95,34 @@ describe('V2 session feed rows', () => {
             act(() => root.render(<LoggerProvider>
                 <SessionDataCard {...props} conn={conn as any} />
             </LoggerProvider>));
-            expect(container.textContent).not.toContain(`${hyperOPFSRoot()}/sessions/${sessionId}/attachments/sales 2.csv`);
             expect(container.textContent).toContain('sales 2.csv');
             expect(container.querySelector('[data-testid="data-file-type"]')?.textContent).toContain('CSV');
-            for (const action of ['data-file-copy-path', 'data-file-download', 'data-file-remove']) {
+            for (const action of ['data-file-download', 'data-file-remove']) {
                 expect(container.querySelector<HTMLButtonElement>(`[data-testid="${action}"]`)?.disabled).toBe(true);
             }
             expect(Array.from(container.querySelectorAll('button')).every(button => button.disabled)).toBe(true);
             expect(container.querySelector('[data-testid="script-drag-handle"]')).toBeNull();
         }
+    });
+
+    it('mentions the table parameter of a Parquet attachment and flags a script of the same name', () => {
+        const onMention = vi.fn();
+        act(() => root.render(<LoggerProvider>
+            <SessionDataCard sessionId="session" file={{ name: 'sales.parquet', sizeBytes: 3 }}
+                conn={{ details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any}
+                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} collides />
+        </LoggerProvider>));
+        expect(container.querySelector('[data-testid="data-file-parameter"]')?.textContent).toContain(':sales');
+        expect(container.querySelector('[data-testid="data-file-collision"]')).not.toBeNull();
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="data-file-mention"]')!.click());
+        expect(onMention).toHaveBeenCalledExactlyOnceWith('sales');
+        // Other files are no table parameter
+        act(() => root.render(<LoggerProvider>
+            <SessionDataCard sessionId="session" file={{ name: 'sales.csv', sizeBytes: 3 }} conn={null}
+                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} collides />
+        </LoggerProvider>));
+        expect(container.querySelector('[data-testid="data-file-mention"]')).toBeNull();
+        expect(container.querySelector('[data-testid="data-file-collision"]')).toBeNull();
     });
 
     it('downloads data bytes and removes the file before requesting a list refresh for HyperDB WASM', async () => {

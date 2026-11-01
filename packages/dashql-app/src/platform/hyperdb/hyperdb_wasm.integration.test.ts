@@ -12,7 +12,7 @@ import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type Hy
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_parquet_export.js';
 import { createExecutionMounts } from '../../session/scripts/session_execution.js';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
-import { getOPFSRoot, hyperOPFSRoot } from '../opfs_root.js';
+import { getOPFSRoot } from '../opfs_root.js';
 import { markSessionAttachmentsChanged, readAttachmentColumns, unmountSessionAttachments } from '../../session/attachments/attachment_mounts.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -231,31 +231,6 @@ describe('HyperDB embedded database integration', () => {
         } finally {
             if (path != null) await ignoreCleanupFailure(() => database!.removeExternalFile(path!));
             await connection.close();
-        }
-    }, 60_000);
-
-    it('queries session CSV data directly from the canonical OPFS path without registration', async () => {
-        const connection = await database!.connect();
-        const root = await getOPFSRoot();
-        const sessions = await root.getDirectoryHandle('sessions', { create: true });
-        const sessionId = crypto.randomUUID();
-        try {
-            const session = await sessions.getDirectoryHandle(sessionId, { create: true });
-            const attachments = await session.getDirectoryHandle('attachments', { create: true });
-            const file = await attachments.getFileHandle('values.csv', { create: true });
-            const writer = await file.createWritable();
-            await writer.write('value,name\n1,alpha\n2,beta\n');
-            await writer.close();
-
-            expect(toPlainObjects(await connection.query(`
-                SELECT value, name
-                FROM external('${hyperOPFSRoot()}/sessions/${sessionId}/attachments/values.csv', format => 'csv', header => true,
-                    columns => descriptor(value bigint, name text))
-                ORDER BY value
-            `))).toEqual([{ value: 1n, name: 'alpha' }, { value: 2n, name: 'beta' }]);
-        } finally {
-            await connection.close();
-            await ignoreCleanupFailure(() => sessions.removeEntry(sessionId, { recursive: true }));
         }
     }, 60_000);
 

@@ -1,6 +1,5 @@
 import type { Logger } from '../platform/logger/logger.js';
 import type { StorageBackend } from './storage_backend.js';
-import { rebaseSessionAttachmentPaths } from './session_bundle.js';
 
 const LOG_CTX = 'session_transfer';
 
@@ -73,8 +72,7 @@ export async function cloneSession(
         fileCount++;
 
         for (const script of await source.loadScripts(sourceSessionId)) {
-            await target.saveScript(newSessionId, script.name,
-                rebaseSessionAttachmentPaths(script.sql, sourceSessionId, newSessionId)!);
+            await target.saveScript(newSessionId, script.name, script.sql);
             fileCount++;
         }
         for (const file of await source.listDataFiles(sourceSessionId)) {

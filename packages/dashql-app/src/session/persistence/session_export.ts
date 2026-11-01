@@ -17,7 +17,6 @@ import {
     bundleCatalogPath,
     pruneBundleConnections,
     readSessionBundle,
-    rebaseSessionAttachmentPaths,
     regenerateBundleConnectionIds,
     type SessionBundle,
     type SessionBundleCatalog,
@@ -115,12 +114,8 @@ export async function exportSessionAsZip(
 
     // Apply the caller's transform (sharing sanitization, name override, ...)
     const out = options.transformBundle ? options.transformBundle(bundle) : bundle;
-    const rebase = (text: string | null) => rebaseSessionAttachmentPaths(text, bundle.session.sessionId, out.session.sessionId);
-    const scripts = bundle.scripts.map(script => ({ ...script, sql: rebase(script.sql)! }));
-    const catalogs = out.catalogs.map(catalog => ({ ...catalog, relations: rebase(catalog.relations), functions: rebase(catalog.functions) }));
-
     // Create ZIP from loaded data
-    return await createSessionZip(out.session, scripts, catalogs, bundle.data);
+    return await createSessionZip(out.session, bundle.scripts, out.catalogs, bundle.data);
 }
 
 /// Export a session as a shareable ZIP.

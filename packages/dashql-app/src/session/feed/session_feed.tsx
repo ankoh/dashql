@@ -25,7 +25,7 @@ import {
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../connections/connection_state.js';
 import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SESSION_ATTACHMENTS } from '../scripts/session_scripts.js';
 import { markSessionAttachmentsChanged } from '../attachments/attachment_mounts.js';
-import { readSessionAttachments, sameSessionAttachments, uniqueAttachmentFileName } from '../attachments/session_attachments.js';
+import { attachmentParameterName, readSessionAttachments, sameSessionAttachments, uniqueAttachmentFileName } from '../attachments/session_attachments.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
@@ -456,8 +456,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // A mention of a script goes to the cursor of the script editor that had the focus last, other than the editor of
     // the script itself, or into the composer
     const lastFocusedEditor = useLastFocusedEditor();
-    const handleTargetScript = React.useCallback((fileName: string) => {
-        const name = scriptDisplayName(fileName);
+    // The mention of a table parameter, a script that is not `fileName` reads it
+    const handleMention = React.useCallback((name: string, fileName: string | null) => {
         const view = lastFocusedEditor();
         if (view != null && view !== composerView) {
             const scriptKey = view.state.field(DashQLProcessorPlugin, false)?.scriptKey;
@@ -469,6 +469,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         }
         composerTargetScriptRef.current?.(name);
     }, [lastFocusedEditor, composerView, props.sessionScripts.scripts, props.sessionScripts.instance]);
+    const handleTargetScript = React.useCallback((fileName: string) => handleMention(scriptDisplayName(fileName), fileName), [handleMention]);
+    const handleMentionAttachment = React.useCallback((name: string) => handleMention(name, null), [handleMention]);
     const scriptNames = React.useMemo(() => props.sessionScripts.scriptOrder.map(scriptDisplayName), [props.sessionScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
@@ -779,7 +781,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                                 <div className={styles.feed_data_cards}>
                                     {pinnedDataFiles.map(file => (
                                         <SessionDataCard key={`${sessionId}/${file.name}`} sessionId={sessionId}
-                                            file={file} conn={props.conn} storageReader={storageReader} onRemoved={refreshDataFiles} />
+                                            file={file} conn={props.conn} storageReader={storageReader} onRemoved={refreshDataFiles}
+                                            onMention={handleMentionAttachment}
+                                            collides={scriptNames.some(name => name.toLowerCase() === attachmentParameterName(file.name)?.toLowerCase())} />
                                     ))}
                                     {pinnedDataFiles.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
                                 </div>

@@ -19,7 +19,6 @@ import {
     validateSessionData,
 } from './session_validation.js';
 import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments, sessionConnectionIdsOf } from './session_files.js';
-import { hyperOPFSRoot } from '../platform/opfs_root.js';
 
 /// The durable, portable subset of a session. Derived cache files and storage-location metadata
 /// are intentionally not represented here.
@@ -234,15 +233,6 @@ export function renameBundleCatalogs(catalogs: readonly SessionBundleCatalog[], 
     return [...renamed.values()];
 }
 
-/// Rewrite only this session's canonical attachment paths after explicitly creating a new identity.
-/// References to another session are left unchanged.
-export function rebaseSessionAttachmentPaths(text: string | null, sourceSessionId: string, targetSessionId: string): string | null {
-    if (text == null || sourceSessionId === targetSessionId) return text;
-    return text.split(
-        `${hyperOPFSRoot()}/sessions/${sourceSessionId}/attachments/`,
-    ).join(`${hyperOPFSRoot()}/sessions/${targetSessionId}/attachments/`);
-}
-
 /// Parse catalog files on scratch scripts and omit malformed SQL before it can reach storage.
 /// Analysis is intentionally excluded: imported catalogs may reference types or objects that are
 /// only available once their connection has been restored.
@@ -365,8 +355,7 @@ export async function writeSessionBundle(
     try {
         await backend.saveSessionManifest(sessionId, session);
         for (const script of bundle.scripts) {
-            await backend.saveScript(sessionId, script.name,
-                rebaseSessionAttachmentPaths(script.sql, bundle.session.sessionId, sessionId)!);
+            await backend.saveScript(sessionId, script.name, script.sql);
         }
         for (const file of bundle.data ?? []) {
             await backend.saveDataFile(sessionId, file.name, file.bytes);
@@ -404,8 +393,7 @@ export async function seedConnectionCatalogs(
         if (existing.some(text => text != null)) continue;
         for (const [fileName, text] of files) {
             if (text == null) continue;
-            await backend.saveConnectionFile(catalog.connectionId, fileName,
-                rebaseSessionAttachmentPaths(text, bundle.session.sessionId, sessionId)!);
+            await backend.saveConnectionFile(catalog.connectionId, fileName, text);
         }
     }
 }

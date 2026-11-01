@@ -13,7 +13,6 @@ import { importSessionFromZip } from './session_import.js';
 import { sessionBundlesEqual } from '../../storage/session_bundle.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testConnections, testSession } from '../../storage/session_test_backend.js';
 import type { SessionData } from '../../storage/storage_backend.js';
-import { hyperOPFSRoot } from '../../platform/opfs_root.js';
 
 describe('V2 session export', () => {
     it('compares data bytes independently of typed-array JSON serialization', () => {
@@ -217,8 +216,7 @@ describe('V2 session export', () => {
                 { name: '01_attachment.sql', connectionId: TEST_CONNECTION_ID },
             ],
         }));
-        await backend.saveScript(TEST_SESSION_ID, '01_attachment.sql',
-            `SELECT * FROM external('${hyperOPFSRoot()}/sessions/${TEST_SESSION_ID}/attachments/payload.bin')`);
+        await backend.saveScript(TEST_SESSION_ID, '01_attachment.sql', 'SELECT * FROM :payload');
         await backend.saveScript(TEST_SESSION_ID, '02_attached.sql', 'SELECT 2');
 
         const archive = await JSZip.loadAsync(await exportSessionAsSharedZip(
@@ -227,8 +225,8 @@ describe('V2 session export', () => {
             new Map(),
         ));
         const exported = JSON.parse(await archive.file('dashql-session.json')!.async('text'));
-        expect(await archive.file('scripts/01_attachment.sql')!.async('text')).toContain(
-            `${hyperOPFSRoot()}/sessions/${exported.sessionId}/attachments/payload.bin`);
+        // A script names an attachment by its table parameter, whatever the id of the session
+        expect(await archive.file('scripts/01_attachment.sql')!.async('text')).toBe('SELECT * FROM :payload');
 
         expect(exported.sessionId).not.toBe(TEST_SESSION_ID);
         expect(exported).not.toHaveProperty('defaultConnectionId');
