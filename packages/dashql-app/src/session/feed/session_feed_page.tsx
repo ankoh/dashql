@@ -102,7 +102,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId
         && props.sessionScripts.scripts[details.scriptId] != null;
     React.useEffect(() => setDetails(null), [props.sessionScripts.sessionId]);
-    const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const [overviewConnectionId, setOverviewConnectionId] = React.useState<string | null>(null);
     const closeOverview = React.useCallback(() => setOverviewConnectionId(null), []);
@@ -289,7 +288,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             modifySessionScripts={props.modifySessionScripts}
                             draftRenameRef={draftRenameRef}
                             active={feedActive}
-                            scrollShadowContainer={feedShadowContainer}
                             showDetails={openDetails}
                             conn={props.connection}
                             scriptConnections={props.scriptConnections}
@@ -360,11 +358,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             )}
                         </div>
                     )}
-                    <div
-                        ref={setFeedShadowContainer}
-                        className={dashboardActive || dataflowActive || overviewActive ? styles.feed_shadow_layer_hidden : styles.feed_shadow_layer}
-                        aria-hidden="true"
-                    />
                 </div>
             </main>
             {navigationDrawerOpen && (

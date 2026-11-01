@@ -1,25 +1,14 @@
-/* The strip floats over the top of a view: the chips sit on a soft, blurred veil that fades out downward, the
-   content scrolls visibly underneath. Only the chips take pointer events. */
+/* The strip is an opaque bar at the top of a view, the content scrolls underneath it. The view positions the strip
+   (absolute or sticky) and sets the inline padding through the variable: the order of the stylesheets differs between
+   the dev server and the bundle, a property set by both would flip between them. */
 .strip {
-    position: relative;
     z-index: 15;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px 16px 14px 16px;
-    pointer-events: none;
-}
-
-.strip::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: color-mix(in srgb, var(--stage_color) 55%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+    padding: 10px var(--session_input_strip_inline_padding, 16px);
+    background-color: white;
+    border-bottom: 1px solid var(--log_border_color);
 }
 
 .chips {
@@ -27,14 +16,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-}
-
-.chips > * {
-    pointer-events: auto;
-}
-
-.strip > :not(.chips) {
-    pointer-events: auto;
 }
 
 /* An input: the name, the type and the value */
@@ -49,8 +30,7 @@
     padding: 0 4px 0 10px;
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
-    background-color: color-mix(in srgb, white 90%, transparent);
-    box-shadow: var(--shadow_medium);
+    background-color: white;
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
 }

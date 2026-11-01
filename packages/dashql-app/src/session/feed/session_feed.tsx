@@ -44,7 +44,6 @@ import { useQueryResultCache } from '../../storage/query_result_cache_provider.j
 import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '../../storage/storage_writer.js';
 import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
 import { revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './session_feed_row.js';
 import { getKeywordCase } from '../scripts/script_format.js';
@@ -86,7 +85,6 @@ export interface SessionFeedProps {
     /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
     /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
     active: boolean;
-    scrollShadowContainer?: HTMLElement | null;
     dependencies?: SessionFeedDependencies;
 }
 
@@ -564,16 +562,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     ], [feedActive, composerView, handleAcceptDiff, handleRejectDiff]);
     dependencies.useKeyEvents(keyHandlers);
 
-    // The docked composer floats over the feed, the last script keeps clear of it
-    const composerSectionRef = React.useRef<HTMLDivElement>(null);
-    const composerSectionSize = observeSize(composerSectionRef);
-    const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
-    // The strip of the inputs and attachments floats over the top of the feed, the first script starts below it
-    const [topStripHeight, setTopStripHeight] = React.useState(0);
     const feedLayout = useSessionFeedLayout(
         entries,
-        (compactLayout ? COMPACT_FIRST_SEPARATOR_HEIGHT : FIRST_SEPARATOR_HEIGHT) + topStripHeight,
-        bottomInset,
+        compactLayout ? COMPACT_FIRST_SEPARATOR_HEIGHT : FIRST_SEPARATOR_HEIGHT,
     );
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
@@ -623,7 +614,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger);
     }, [connectionAttention, executeQuery, logger, props.modifySessionScripts]);
 
-    // Scroll a script into the part of the feed that the docked composer leaves free.
+    // Scroll a script into view.
     // A script with results that does not fit shows its results, once its row is mounted and the results are measured.
     // A created script has no entry until the next render.
     const revealScript = React.useCallback((scriptKey: number, target: AgentFollowTarget) => {
@@ -632,7 +623,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         if (index < 0 || element == null) return;
         let top = feedLayout.getRowOffset(index * 2 + 1);
         const bottom = feedLayout.getRowOffset(index * 2 + 2);
-        const viewportHeight = element.clientHeight - bottomInset;
+        const viewportHeight = element.clientHeight;
         if (target === 'result' && bottom - top > viewportHeight) {
             const item = element.querySelector(`[data-script-key="${scriptKey}"]`);
             const result = item?.querySelector('[data-feed-result]');
@@ -642,7 +633,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         }
         const offset = revealScrollOffset(top, bottom, element.scrollTop, viewportHeight);
         if (offset != null) element.scrollTo({ top: offset });
-    }, [entries, feedLayout.listRef, feedLayout.getRowOffset, bottomInset]);
+    }, [entries, feedLayout.listRef, feedLayout.getRowOffset]);
 
     // The feed follows the agent to the scripts it edits and runs in a question of the composer, also while the
     // agent still works. The followed script stays in view as it is measured and its results arrive.
@@ -744,12 +735,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
-        topPadding: (compactLayout ? COMPACT_FEED_TOP_PADDING : FEED_TOP_PADDING) + topStripHeight,
-        bottomPadding: bottomInset,
+        topPadding: compactLayout ? COMPACT_FEED_TOP_PADDING : FEED_TOP_PADDING,
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset, topStripHeight]);
+    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.
@@ -764,12 +754,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             data-landing={landing ? '' : undefined}
             style={{ '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px` } as React.CSSProperties}
         >
-            {/* The inputs and the attachments float over the top of the feed, the scripts scroll underneath */}
+            {/* The inputs and the attachments sit on a bar above the feed */}
             <SessionInputStrip
                 className={styles.feed_top_strip}
                 sessionScripts={props.sessionScripts}
                 modifySessionScripts={props.modifySessionScripts}
-                onHeight={setTopStripHeight}
                 leading={attachmentsVisible ? (
                     <button type="button" className={styles.feed_data_chip}
                         aria-expanded={attachmentsExpanded}
@@ -847,14 +836,12 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 {props.active && (
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
-                        portalContainer={props.scrollShadowContainer}
-                        topInset={topStripHeight}
                         prominent
                         refreshKey={`${props.sessionScripts.sessionId}:${entries.length}:${feedLayout.rowHeightsVersion}`}
                     />
                 )}
             </div>
-            <div className={styles.feed_composer_section} ref={composerSectionRef}>
+            <div className={styles.feed_composer_section}>
                 <div className={styles.feed_composer_body}>
                     {composerConnection != null && <dependencies.SessionComposer
                         key={props.sessionScripts.sessionId}

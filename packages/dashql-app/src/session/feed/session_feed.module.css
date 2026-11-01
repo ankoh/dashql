@@ -17,17 +17,23 @@
     background: var(--stage_background);
     overflow: hidden;
     display: grid;
-    /* The feed spans the full height, the docked composer floats over its bottom edge */
-    grid-template-rows: minmax(0, 1fr);
+    /* The bar of the inputs, the feed, the docked composer */
+    grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-columns: minmax(0, 1fr);
 }
 
-/* The landing header, the hero composer, then a spacer that keeps the prompt slightly above center */
+/* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above center */
 .feed_body_container[data-landing] {
-    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1.3fr);
+    grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1.3fr);
+}
+
+/* The rows are explicit, the bar of the inputs is absent without inputs and attachments */
+.feed_top_strip {
+    grid-row: 1;
 }
 
 .feed_landing_header {
+    grid-row: 2;
     align-self: end;
     display: flex;
     flex-direction: column;
@@ -52,66 +58,31 @@
     font-style: italic;
 }
 
-/* The docked composer floats over the bottom of the feed. The feed reserves the same space below its last
-   script (see the bottom padding of the last separator), so only the fade ever covers content. */
+/* The docked composer sits on a white bar below the feed */
 .feed_composer_section {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-    /* Let clicks through the fade, only the composer itself is interactive */
-    pointer-events: none;
+    grid-row: 3;
+    background-color: white;
+    border-top: 1px solid var(--log_border_color);
 }
 
-/* Padded separately so the size observer of the section sees the full height */
+/* Lines the composer up with the scripts of the feed, which stop before the scrollbar */
 .feed_composer_body {
-    padding: 40px calc(16px + var(--feed-scrollbar-inset, 0px)) 16px 16px;
-    pointer-events: auto;
-}
-
-/* Fade the scripts out behind the docked composer, the scrollbar stays uncovered */
-.feed_composer_section::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: var(--feed-scrollbar-inset, 0px);
-    background: linear-gradient(
-        to bottom,
-        hsla(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%, 0) 0%,
-        hsla(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%, 0.7) 20px,
-        hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%) 40px
-    );
-    pointer-events: none;
+    padding: 12px calc(16px + var(--feed-scrollbar-inset, 0px)) 12px 16px;
 }
 
 .feed_body_container[data-landing] .feed_composer_section {
-    position: relative;
-    z-index: auto;
     justify-self: center;
     width: min(720px, 100%);
     box-sizing: border-box;
+    background-color: transparent;
+    border-top: none;
 }
 
 .feed_body_container[data-landing] .feed_composer_body {
     padding: 0 16px;
 }
 
-.feed_body_container[data-landing] .feed_composer_section::before {
-    content: none;
-}
-
-.feed_top_strip {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: var(--feed-scrollbar-inset, 0px);
-}
-
-/* The attachments are a chip of the strip, their cards open in a floating drawer below it */
+/* The attachments are a chip of the strip, their cards open in a drawer within it */
 .feed_data_chip {
     appearance: none;
     display: inline-flex;
@@ -122,8 +93,7 @@
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     color: var(--base_color_neutral_8);
-    background-color: color-mix(in srgb, white 90%, transparent);
-    box-shadow: var(--shadow_medium);
+    background-color: white;
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
     font-weight: 600;
@@ -131,7 +101,7 @@
 }
 
 .feed_data_chip:hover {
-    background-color: white;
+    background-color: var(--base_color_neutral_0);
 }
 
 .feed_data_count {
@@ -149,8 +119,7 @@
     box-sizing: border-box;
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
-    background-color: color-mix(in srgb, white 92%, transparent);
-    box-shadow: var(--shadow_large);
+    background-color: white;
 }
 
 .feed_data_drawer {
@@ -251,6 +220,9 @@
 }
 
 .feed_list_container {
+    grid-row: 2;
+    /* Holds the scroll shadows at the edges of the feed */
+    position: relative;
     min-height: 0;
     overflow: hidden;
 }

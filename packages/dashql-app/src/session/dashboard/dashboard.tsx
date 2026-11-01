@@ -199,49 +199,51 @@ export function Dashboard(props: Props): React.ReactElement {
     return (
         <section className={styles.page} aria-label="Dashboard">
             <div className={styles.sr_only} role="status" aria-live="polite">{announcement}</div>
-            {/* The inputs of the session stay at the top while the cards scroll underneath */}
+            {/* The inputs of the session sit on a bar above the scrolling cards */}
             <SessionInputStrip
                 className={styles.inputs}
                 sessionScripts={props.sessionScripts}
                 modifySessionScripts={props.modifySessionScripts}
             />
-            {scripts.length === 0 ? (
-                <div className={styles.empty_state}>
-                    <strong>No scripts yet</strong>
-                    <span>Every script of the session appears here, queries with @vis comments as visualizations.</span>
-                </div>
-            ) : (
-                <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                    <div
-                        ref={gridRef}
-                        className={styles.grid}
-                        style={{ minHeight: rows * DASHBOARD_ROW_HEIGHT + Math.max(0, rows - 1) * GRID_GAP }}
-                    >
-                        {cardScripts.map(script => {
-                            const placement = placementById.get(script.scriptKey);
-                            const preferred = preferredPlacement(script);
-                            const shifted = (preferred?.row != null && preferred.row !== placement?.row)
-                                || (preferred?.column != null && preferred.column !== placement?.column);
-                            return placement == null ? null : (
-                                <DashboardCard
-                                    key={script.scriptKey}
-                                    sessionId={props.sessionScripts.sessionId}
-                                    script={script}
-                                    placement={placement}
-                                    columnStep={columnStep}
-                                    rowStep={rowStep}
-                                    onResize={handleResize}
-                                    onResizeCancel={handleResizeCancel}
-                                    shifted={shifted}
-                                    onVisualize={handleVisualize}
-                                    onOpenChart={handleOpenChart}
-                                    onOpenEditor={handleOpenEditor}
-                                />
-                            );
-                        })}
+            <div className={styles.scroll}>
+                {scripts.length === 0 ? (
+                    <div className={styles.empty_state}>
+                        <strong>No scripts yet</strong>
+                        <span>Every script of the session appears here, queries with @vis comments as visualizations.</span>
                     </div>
-                </DndContext>
-            )}
+                ) : (
+                    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                        <div
+                            ref={gridRef}
+                            className={styles.grid}
+                            style={{ minHeight: rows * DASHBOARD_ROW_HEIGHT + Math.max(0, rows - 1) * GRID_GAP }}
+                        >
+                            {cardScripts.map(script => {
+                                const placement = placementById.get(script.scriptKey);
+                                const preferred = preferredPlacement(script);
+                                const shifted = (preferred?.row != null && preferred.row !== placement?.row)
+                                    || (preferred?.column != null && preferred.column !== placement?.column);
+                                return placement == null ? null : (
+                                    <DashboardCard
+                                        key={script.scriptKey}
+                                        sessionId={props.sessionScripts.sessionId}
+                                        script={script}
+                                        placement={placement}
+                                        columnStep={columnStep}
+                                        rowStep={rowStep}
+                                        onResize={handleResize}
+                                        onResizeCancel={handleResizeCancel}
+                                        shifted={shifted}
+                                        onVisualize={handleVisualize}
+                                        onOpenChart={handleOpenChart}
+                                        onOpenEditor={handleOpenEditor}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </DndContext>
+                )}
+            </div>
             {overlayScript != null && overlay?.kind === 'editor' && (
                 <DashboardEditorOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
             )}

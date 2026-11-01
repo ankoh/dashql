@@ -107,8 +107,8 @@ Escape restores the value, a changed unit or boolean writes it at once. The core
 what the draft is, an input whose type is unknown reads a number, `true`, `false` or a string. A draft that the type
 doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not written.
 
-- **Feed and dashboard.** `SessionInputStrip` floats the cards over the top of the view on a translucent, blurred
-  veil that fades out downward, the content scrolls underneath. The feed starts its first script below the strip and
-  the strip holds the chip of the attachments, their cards open in a floating drawer below it. The strip of the
+- **Feed and dashboard.** `SessionInputStrip` puts the cards on an opaque white bar at the top of the view. In the feed
+  the bar is a row above the scrolling scripts and holds the chip of the attachments, their cards open in a drawer
+  within it. The strip of the
   dashboard sticks to the top of the page.
 - **Dataflow.** Every input is a box with a header and the value in one row (`dataflow.md`).

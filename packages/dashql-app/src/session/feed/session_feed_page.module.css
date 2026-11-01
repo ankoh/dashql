@@ -209,20 +209,6 @@
     min-height: 0;
 }
 
-.feed_shadow_layer,
-.feed_shadow_layer_hidden {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    min-width: 0;
-    min-height: 0;
-    pointer-events: none;
-}
-
-.feed_shadow_layer_hidden {
-    visibility: hidden;
-}
-
 /* Keep the feed laid out behind alternate content so its measurements and scroll position survive. */
 .feed_layer,
 .feed_layer_hidden {
