@@ -9,6 +9,33 @@ export enum SessionViewMode {
     Session = 0,
     Shell = 1,
     Dashboard = 2,
+    Dataflow = 3,
+}
+
+/// The experimental views that the settings enable
+export interface SessionViewsEnabled {
+    dashboard: boolean;
+    dataflow: boolean;
+}
+
+/// The views that are part of the URL, as the value of the `view` query parameter
+const VIEW_PARAMETERS: [SessionViewMode, string, keyof SessionViewsEnabled][] = [
+    [SessionViewMode.Dashboard, 'dashboard', 'dashboard'],
+    [SessionViewMode.Dataflow, 'dataflow', 'dataflow'],
+];
+
+/// Is a view mode available with the settings?
+export function sessionViewModeEnabled(mode: SessionViewMode, enabled: SessionViewsEnabled): boolean {
+    const view = VIEW_PARAMETERS.find(([m]) => m === mode);
+    return view == null || enabled[view[2]];
+}
+
+/// The experimental views of the app settings
+export function useSessionViewsEnabled(): SessionViewsEnabled {
+    const settings = useAppConfig()?.settings;
+    const dashboard = settings?.experimental_dashboards === true;
+    const dataflow = settings?.experimental_dataflow === true;
+    return React.useMemo(() => ({ dashboard, dataflow }), [dashboard, dataflow]);
 }
 
 export interface SessionViewModeContextValue {
@@ -18,15 +45,17 @@ export interface SessionViewModeContextValue {
 const SESSION_VIEW_MODE_CTX = React.createContext<SessionViewModeContextValue | null>(null);
 export const useSessionViewMode = () => React.useContext(SESSION_VIEW_MODE_CTX)!;
 
-export function sessionViewModeFromSearch(search: string, dashboardsEnabled: boolean): SessionViewMode {
-    return dashboardsEnabled && new URLSearchParams(search).get('view') === 'dashboard'
-        ? SessionViewMode.Dashboard
-        : SessionViewMode.Session;
+/// The view of the `view` query parameter, the session if the view is unknown or not enabled
+export function sessionViewModeFromSearch(search: string, enabled: SessionViewsEnabled): SessionViewMode {
+    const value = new URLSearchParams(search).get('view');
+    const view = VIEW_PARAMETERS.find(([, parameter]) => parameter === value);
+    return view != null && enabled[view[2]] ? view[0] : SessionViewMode.Session;
 }
 
 export function sessionViewSearch(search: string, mode: SessionViewMode): string {
     const params = new URLSearchParams(search);
-    if (mode === SessionViewMode.Dashboard) params.set('view', 'dashboard');
+    const view = VIEW_PARAMETERS.find(([m]) => m === mode);
+    if (view != null) params.set('view', view[1]);
     else params.delete('view');
     const next = params.toString();
     return next ? `?${next}` : '';
@@ -46,23 +75,27 @@ export function sessionViewNavigation(
     };
 }
 
-/// The view mode of the session. The dashboard view is part of the URL and only exists while
-/// dashboards are enabled in the settings.
+/// Is a view mode part of the URL?
+function inSearch(mode: SessionViewMode): boolean {
+    return VIEW_PARAMETERS.some(([m]) => m === mode);
+}
+
+/// The view mode of the session. The dashboard and dataflow views are part of the URL and only exist while they are
+/// enabled in the settings.
 export const SessionViewModeProvider: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const dashboardsEnabled = useAppConfig()?.settings?.experimental_dashboards === true;
+    const enabled = useSessionViewsEnabled();
     const settingsReady = useAppSettingsReady();
 
-    const [sessionViewMode, setSessionViewModeState] = React.useState(() => sessionViewModeFromSearch(location.search, dashboardsEnabled));
-    const visibleViewMode = !dashboardsEnabled && sessionViewMode === SessionViewMode.Dashboard
-        ? SessionViewMode.Session : sessionViewMode;
+    const [sessionViewMode, setSessionViewModeState] = React.useState(() => sessionViewModeFromSearch(location.search, enabled));
+    const visibleViewMode = sessionViewModeEnabled(sessionViewMode, enabled) ? sessionViewMode : SessionViewMode.Session;
     const sessionViewModeRef = React.useRef(visibleViewMode);
     const pendingViewSearchRef = React.useRef<string | null>(null);
     sessionViewModeRef.current = visibleViewMode;
     const setSessionViewMode = React.useCallback<React.Dispatch<React.SetStateAction<SessionViewMode>>>((update) => {
         const next = typeof update === 'function' ? update(sessionViewModeRef.current) : update;
-        const allowed = next === SessionViewMode.Dashboard && !dashboardsEnabled ? SessionViewMode.Session : next;
+        const allowed = sessionViewModeEnabled(next, enabled) ? next : SessionViewMode.Session;
         sessionViewModeRef.current = allowed;
         setSessionViewModeState(allowed);
         const navigation = sessionViewNavigation(location, allowed);
@@ -70,7 +103,7 @@ export const SessionViewModeProvider: React.FC<React.PropsWithChildren> = (props
             pendingViewSearchRef.current = navigation.to.search;
             navigate(navigation.to, navigation.options);
         }
-    }, [dashboardsEnabled, location.pathname, location.search, location.hash, location.state, navigate]);
+    }, [enabled, location.pathname, location.search, location.hash, location.state, navigate]);
     const sessionViewModeValue = React.useMemo<SessionViewModeContextValue>(
         () => ({ mode: visibleViewMode, setMode: setSessionViewMode }),
         [visibleViewMode, setSessionViewMode],
@@ -78,31 +111,32 @@ export const SessionViewModeProvider: React.FC<React.PropsWithChildren> = (props
 
     React.useEffect(() => {
         if (!settingsReady) return;
-        if (!dashboardsEnabled) {
+        // A view that the settings disabled falls back to the session, also in the URL
+        if (!sessionViewModeEnabled(sessionViewMode, enabled)) {
             pendingViewSearchRef.current = null;
-            if (sessionViewMode === SessionViewMode.Dashboard) {
-                sessionViewModeRef.current = SessionViewMode.Session;
-                setSessionViewModeState(SessionViewMode.Session);
-            }
-            if (new URLSearchParams(location.search).get('view') === 'dashboard') {
-                const navigation = sessionViewNavigation(location, SessionViewMode.Session);
-                navigate(navigation.to, navigation.options);
-            }
+            sessionViewModeRef.current = SessionViewMode.Session;
+            setSessionViewModeState(SessionViewMode.Session);
+        }
+        const requested = sessionViewModeFromSearch(location.search, enabled);
+        const parameter = new URLSearchParams(location.search).get('view');
+        if (parameter != null && !inSearch(requested)) {
+            pendingViewSearchRef.current = null;
+            const navigation = sessionViewNavigation(location, SessionViewMode.Session);
+            navigate(navigation.to, navigation.options);
             return;
         }
         if (pendingViewSearchRef.current != null) {
             if (pendingViewSearchRef.current === location.search) pendingViewSearchRef.current = null;
             return;
         }
-        const requested = sessionViewModeFromSearch(location.search, dashboardsEnabled);
-        if (requested === SessionViewMode.Dashboard && sessionViewModeRef.current !== requested) {
+        if (inSearch(requested) && sessionViewModeRef.current !== requested) {
             sessionViewModeRef.current = requested;
             setSessionViewModeState(requested);
-        } else if (requested !== SessionViewMode.Dashboard && sessionViewModeRef.current === SessionViewMode.Dashboard) {
+        } else if (!inSearch(requested) && inSearch(sessionViewModeRef.current)) {
             sessionViewModeRef.current = SessionViewMode.Session;
             setSessionViewModeState(SessionViewMode.Session);
         }
-    }, [dashboardsEnabled, settingsReady, location.search, navigate]);
+    }, [enabled, settingsReady, location.search, navigate]);
 
     return (
         <SESSION_VIEW_MODE_CTX.Provider value={sessionViewModeValue}>

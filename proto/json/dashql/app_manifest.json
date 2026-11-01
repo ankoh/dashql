@@ -98,6 +98,9 @@
         "experimental_dashboards": {
           "type": "boolean"
         },
+        "experimental_dataflow": {
+          "type": "boolean"
+        },
         "experimental_file_attachments": {
           "type": "boolean"
         },

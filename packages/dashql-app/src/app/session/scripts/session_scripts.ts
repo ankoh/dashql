@@ -1392,9 +1392,11 @@ function deriveScriptAnnotations(
 
     const visualizeQuery = compileVisualizeQuery(scriptSession, connectorType, logger);
 
+    const flow = update.scriptAnnotations?.flowPosition;
     return {
         tableDefs: tableDefsFlat,
         visualizeQuery,
+        flowPosition: flow != null ? { statementId: flow.statementId, x: flow.x, y: flow.y } : null,
     };
 }
 

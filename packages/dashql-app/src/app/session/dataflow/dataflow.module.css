@@ -1,0 +1,212 @@
+/* The dataflow canvas. Edges, ports, node frames and the boxes (fragments) come from the shared graph styles. */
+
+.viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    touch-action: none;
+    background: var(--stage_background);
+}
+
+.viewport:focus-visible {
+    outline: 2px solid hsl(211, 100%, 45%);
+    outline-offset: -2px;
+}
+
+.svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+.svg:active { cursor: grabbing; }
+
+.empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg_color_muted, hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%));
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.toolbar {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    display: flex;
+    gap: 6px;
+}
+
+.controls {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 2;
+}
+
+/* A script box */
+.box {
+    --graph_node_border_color: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    --graph_node_background: white;
+}
+
+.box[data-dragging="true"] {
+    opacity: 0.85;
+}
+
+.header {
+    cursor: move;
+}
+
+.header:focus { outline: none; }
+
+.header_hit {
+    fill: transparent;
+}
+
+.box[data-selected="true"] .header_hit,
+.header:focus-visible .header_hit {
+    fill: hsla(211, 100%, 45%, 0.08);
+    stroke: hsl(211, 100%, 45%);
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
+}
+
+.title {
+    font-family: var(--font_family_mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    dominant-baseline: central;
+    fill: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 24%);
+    pointer-events: none;
+}
+
+.status {
+    fill: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+}
+.status[data-status="running"] { fill: hsl(41, 92%, 52%); }
+.status[data-status="succeeded"] { fill: hsl(137, 55%, 40%); }
+.status[data-status="failed"] { fill: hsl(356, 72%, 52%); }
+
+.action {
+    cursor: pointer;
+    color: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 34%);
+}
+.action:focus { outline: none; }
+.action_hit { fill: transparent; }
+.action:hover .action_hit,
+.action:focus-visible .action_hit {
+    fill: hsla(var(--neutral_hue), calc(20% * var(--neutral_tint)), 40%, 0.1);
+}
+
+/* A statement row, styled like an operator of the plan view */
+.statement {
+    cursor: pointer;
+}
+.statement:focus { outline: none; }
+.statement:hover {
+    --graph_node_background: hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98%);
+}
+.statement[data-selected="true"],
+.statement:focus-visible {
+    --graph_node_background: hsl(211, 100%, 97%);
+    --graph_node_border_color: hsl(211, 100%, 45%);
+}
+
+.type_badge rect {
+    fill: hsl(var(--neutral_hue), calc(20% * var(--neutral_tint)), 94%);
+    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    stroke-width: 1px;
+}
+
+.type_badge text,
+.badge_text {
+    font-family: var(--font_family_mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 30%);
+}
+
+.label {
+    font-family: var(--font_family_mono);
+    font-size: 0.75rem;
+    dominant-baseline: central;
+    fill: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 24%);
+    pointer-events: none;
+}
+
+.summary {
+    font-family: var(--font_family_mono);
+    font-size: 0.7rem;
+    text-anchor: end;
+    dominant-baseline: central;
+    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 46%);
+    pointer-events: none;
+}
+
+/* The badge of a table edge */
+.badge {
+    fill: white;
+}
+[data-highlighted="true"] > .badge {
+    fill: hsl(211, 100%, 45%);
+    stroke: hsl(211, 100%, 45%);
+}
+[data-highlighted="true"] > .badge_text {
+    fill: white;
+}
+
+.chart {
+    overflow: hidden;
+}
+
+.chart_body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 6px;
+    background: white;
+    border: 1px solid hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 84%);
+    box-sizing: border-box;
+}
+
+.chart_placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 0.8rem;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 46%);
+}
+
+/* The button that adds a script reading the box, shown on hover */
+.add {
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 120ms;
+}
+.box:hover .add,
+.add:focus-visible {
+    opacity: 1;
+}
+.add:focus { outline: none; }
+.add circle {
+    fill: white;
+    stroke: hsl(211, 100%, 45%);
+    stroke-width: 1px;
+}
+.add path {
+    stroke: hsl(211, 100%, 45%);
+    stroke-width: 1.5px;
+    stroke-linecap: round;
+}

@@ -16,9 +16,11 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 const state = {
     feedProps: null as any,
     dashboardsEnabled: false,
+    dataflowEnabled: false,
     mode: SessionViewMode.Session,
     setMode: vi.fn(),
     dashboardProps: null as any,
+    dataflowProps: null as any,
     shareProps: null as any,
     exportProps: null as any,
     sidebarProps: null as any,
@@ -54,15 +56,25 @@ const dependencies = {
         state.dashboardProps = props;
         return <div data-testid="dashboard" />;
     },
+    DataflowCanvas: (props: any) => {
+        state.dataflowProps = props;
+        return <div data-testid="dataflow" />;
+    },
     SessionConnectionButtons: (props: any) => {
         state.connectionButtonsProps = props;
         return null;
     },
     useSessionViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
-    useAppConfig: () => ({ settings: { experimental_dashboards: state.dashboardsEnabled } }),
+    useAppConfig: () => ({ settings: { experimental_dashboards: state.dashboardsEnabled, experimental_dataflow: state.dataflowEnabled } }),
     SegmentedControl,
     useSessionExecution: () => state.execution,
 } as unknown as SessionFeedPageDependencies;
+
+/// The label of a button of the view switch, its tooltip
+function viewLabel(button: HTMLButtonElement): string | null {
+    const id = button.getAttribute('aria-labelledby');
+    return button.getAttribute('aria-label') ?? (id != null ? document.getElementById(id)?.textContent ?? null : null);
+}
 
 function scripts() {
     return {
@@ -86,6 +98,8 @@ describe('SessionFeedPage', () => {
     beforeEach(() => {
         state.feedProps = null;
         state.dashboardsEnabled = false;
+        state.dataflowEnabled = false;
+        state.dataflowProps = null;
         state.mode = SessionViewMode.Session;
         state.setMode.mockReset();
         state.dashboardProps = null;
@@ -479,6 +493,43 @@ describe('SessionFeedPage', () => {
         expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
         act(() => buttons[0]?.click());
         expect(state.setMode).toHaveBeenCalledWith(SessionViewMode.Session);
+    });
+
+    it('offers the Dataflow view when enabled, after the Dashboard', () => {
+        state.dashboardsEnabled = true;
+        state.dataflowEnabled = true;
+        act(() => root.render(
+            <SessionFeedPage sessionScripts={scripts()} modifySessionScripts={vi.fn()} connection={null} active dependencies={dependencies} />,
+        ));
+        const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="session-view-switch"] button');
+        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
+        act(() => buttons[2]?.click());
+        expect(state.setMode).toHaveBeenCalledWith(SessionViewMode.Dataflow);
+    });
+
+    it('renders the Dataflow canvas and opens a script in the inspector beside it', () => {
+        state.dataflowEnabled = true;
+        state.mode = SessionViewMode.Dataflow;
+        const sessionScripts = scripts();
+        const modifySessionScripts = vi.fn();
+        const ScriptDetails = vi.fn((_props: any) => <div data-testid="script-details" />);
+        act(() => root.render(
+            <SessionFeedPage sessionScripts={sessionScripts} modifySessionScripts={modifySessionScripts} connection={null} active
+                dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />,
+        ));
+        expect(container.querySelector('[data-testid="dataflow"]')).not.toBeNull();
+        expect(state.dataflowProps).toMatchObject({ sessionScripts, modifySessionScripts });
+        expect(state.feedProps.active).toBe(false);
+        const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="session-view-switch"] button');
+        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dataflow']);
+        expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
+
+        expect(container.querySelector('[data-testid="dataflow-inspector"]')).toBeNull();
+        act(() => state.dataflowProps.onInspect(1));
+        expect(container.querySelector('[data-testid="dataflow-inspector"] [data-testid="script-details"]')).not.toBeNull();
+        expect(ScriptDetails.mock.calls[ScriptDetails.mock.calls.length - 1]?.[0].scriptId).toBe(1);
+        act(() => ScriptDetails.mock.calls[ScriptDetails.mock.calls.length - 1]?.[0].hideDetails());
+        expect(container.querySelector('[data-testid="dataflow-inspector"]')).toBeNull();
     });
 
     it('closes the script details when another session is selected', () => {

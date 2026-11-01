@@ -19,6 +19,7 @@ import { SessionFileSaveOverlay } from '../session_file_save_overlay.js';
 import { ScriptDetails, TabKey as DetailsTabKey } from '../script_details.js';
 import { SessionFeed } from './session_feed.js';
 import { Dashboard } from '../../dashboard/dashboard.js';
+import { DataflowCanvas } from '../../dataflow/dataflow_canvas.js';
 import { SessionViewMode, useSessionViewMode } from '../session_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundations/segmented_control.js';
 import { useAppConfig } from '../../../config/app_config.js';
@@ -35,6 +36,10 @@ import type { RenameDraftReferences } from '../../scripts/script_rename.js';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const CloseIcon = SymbolIcon('x_16');
+// The views of the session view switch, the 24px octicons drawn at the size of the switch
+const FeedViewIcon = SymbolIcon('rows');
+const DashboardViewIcon = SymbolIcon('dashboard_24');
+const DataflowViewIcon = SymbolIcon('workflow_24');
 
 export interface SessionFeedPageDependencies {
     SessionFeed: typeof SessionFeed;
@@ -46,6 +51,7 @@ export interface SessionFeedPageDependencies {
     IconButton: typeof IconButton;
     Button: typeof Button;
     Dashboard: typeof Dashboard;
+    DataflowCanvas: typeof DataflowCanvas;
     SessionURLShareOverlay: typeof SessionURLShareOverlay;
     SessionFileSaveOverlay: typeof SessionFileSaveOverlay;
     SessionConnectionButtons: typeof SessionConnectionButtons;
@@ -65,6 +71,7 @@ const DEFAULT_DEPENDENCIES: SessionFeedPageDependencies = {
     IconButton,
     Button,
     Dashboard,
+    DataflowCanvas,
     SessionURLShareOverlay,
     SessionFileSaveOverlay,
     SessionConnectionButtons,
@@ -125,10 +132,20 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
         : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
         : run.phase === 'succeeded' ? `${progress} succeeded` : `${progress} completed`;
     const { mode, setMode } = dependencies.useSessionViewMode();
-    const dashboardsEnabled = dependencies.useAppConfig()?.settings?.experimental_dashboards === true;
+    const settings = dependencies.useAppConfig()?.settings;
+    const dashboardsEnabled = settings?.experimental_dashboards === true;
+    const dataflowEnabled = settings?.experimental_dataflow === true;
     const dashboardActive = dashboardsEnabled && mode === SessionViewMode.Dashboard;
+    const dataflowActive = dataflowEnabled && mode === SessionViewMode.Dataflow;
+    // The views of the switch, the session first
+    const views: [SessionViewMode, string, typeof FeedViewIcon][] = [
+        [SessionViewMode.Session, 'Feed', FeedViewIcon],
+        ...(dashboardsEnabled ? [[SessionViewMode.Dashboard, 'Dashboard', DashboardViewIcon] as [SessionViewMode, string, typeof FeedViewIcon]] : []),
+        ...(dataflowEnabled ? [[SessionViewMode.Dataflow, 'Dataflow', DataflowViewIcon] as [SessionViewMode, string, typeof FeedViewIcon]] : []),
+    ];
+    const activeView = dashboardActive ? SessionViewMode.Dashboard : dataflowActive ? SessionViewMode.Dataflow : SessionViewMode.Session;
     const overviewActive = overviewConnectionId != null;
-    const feedActive = props.active && !dashboardActive && !showDetails && !overviewActive;
+    const feedActive = props.active && !dashboardActive && !dataflowActive && !showDetails && !overviewActive;
     // Stable since it is passed into the callbacks of every feed row
     const latestSessionScripts = React.useRef(props.sessionScripts);
     latestSessionScripts.current = props.sessionScripts;
@@ -156,19 +173,23 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                 </dependencies.IconButton>
                 {/* A connection overview is not part of the session, its controls are hidden */}
                 {!overviewActive && <>
-                    {dashboardsEnabled && <dependencies.SegmentedControl
+                    {views.length > 1 && <dependencies.SegmentedControl
                         aria-label="Session view"
                         data-testid="session-view-switch"
                         size={SegmentedControlSize.Small}
                         onChange={(selectedIndex) => {
                             setOverviewConnectionId(null);
-                            setMode(selectedIndex === 0
-                                ? SessionViewMode.Session
-                                : SessionViewMode.Dashboard);
+                            setMode(views[selectedIndex]?.[0] ?? SessionViewMode.Session);
                         }}
                     >
-                        <dependencies.SegmentedControl.Button selected={!dashboardActive}>Session</dependencies.SegmentedControl.Button>
-                        <dependencies.SegmentedControl.Button selected={dashboardActive}>Dashboard</dependencies.SegmentedControl.Button>
+                        {views.map(([view, label, Icon]) => (
+                            <dependencies.SegmentedControl.IconButton
+                                key={view}
+                                aria-label={label}
+                                icon={<Icon size={16} />}
+                                selected={activeView === view}
+                            />
+                        ))}
                     </dependencies.SegmentedControl>}
                     <div className={styles.execution_controls}>
                         <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
@@ -266,7 +287,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             scriptConnections={props.scriptConnections}
                         />
                     </div>
-                    {!dashboardActive && !overviewActive && showDetails
+                    {!dashboardActive && !dataflowActive && !overviewActive && showDetails
                                 ? <dependencies.ScriptDetails
                                     sessionScripts={props.sessionScripts}
                                     modifySessionScripts={props.modifySessionScripts}
@@ -299,9 +320,35 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             modifySessionScripts={props.modifySessionScripts}
                         />
                     )}
+                    {dataflowActive && !overviewActive && (
+                        <div className={styles.dataflow_layout}>
+                            <div className={styles.dataflow_canvas}>
+                                <dependencies.DataflowCanvas
+                                    sessionScripts={props.sessionScripts}
+                                    modifySessionScripts={props.modifySessionScripts}
+                                    onInspect={scriptKey => setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey })}
+                                />
+                            </div>
+                            {showDetails && (
+                                <div className={styles.dataflow_inspector} data-testid="dataflow-inspector">
+                                    <dependencies.ScriptDetails
+                                        sessionScripts={props.sessionScripts}
+                                        modifySessionScripts={props.modifySessionScripts}
+                                        draftRenameRef={draftRenameRef}
+                                        connection={props.connection}
+                                        scriptConnections={props.scriptConnections}
+                                        hideDetails={() => setDetails(null)}
+                                        scriptId={details.scriptId}
+                                        initialTab={details.initialTab}
+                                        navigateToScript={(scriptKey) => setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey })}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div
                         ref={setFeedShadowContainer}
-                        className={dashboardActive || overviewActive ? styles.feed_shadow_layer_hidden : styles.feed_shadow_layer}
+                        className={dashboardActive || dataflowActive || overviewActive ? styles.feed_shadow_layer_hidden : styles.feed_shadow_layer}
                         aria-hidden="true"
                     />
                 </div>

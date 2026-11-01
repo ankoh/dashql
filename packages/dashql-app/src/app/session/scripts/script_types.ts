@@ -60,6 +60,16 @@ export interface ScriptAnnotations {
     tableDefs: string[];
     // The resolved visualization of this script (its @vis tags), if any.
     visualizeQuery: ResolvedVisualizeQuery | null;
+    // The position of the script on the dataflow canvas, its `@vis flow` tag, if any.
+    flowPosition?: FlowPosition | null;
+}
+
+/// The position of a script on the dataflow canvas
+export interface FlowPosition {
+    // The statement whose annotation holds the `@vis flow` tag
+    statementId: number;
+    x: number;
+    y: number;
 }
 
 /// A reference in the session's flat ordered script collection.
@@ -75,6 +85,7 @@ export function createEmptyAnnotations(): ScriptAnnotations {
     return {
         tableDefs: [],
         visualizeQuery: null,
+        flowPosition: null,
     };
 }
 

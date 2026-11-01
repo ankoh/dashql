@@ -79,6 +79,15 @@ export function AppSettings(props: { onClose: () => void; }) {
             }
         }));
     }, [reconfigure]);
+    const toggleExperimentalDataflow = React.useCallback(() => {
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                experimental_dataflow: !value.settings?.experimental_dataflow,
+            }
+        }));
+    }, [reconfigure]);
     const toggleExperimentalFileAttachments = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -370,6 +379,18 @@ export function AppSettings(props: { onClose: () => void; }) {
                             onClick={toggleExperimentalDashboards}
                             disabled={config == null}
                             aria-labelledby="app-setting-experimental-dashboards"
+                        />
+                    </div>
+                    <div id="app-setting-experimental-dataflow" className={styles.setting_name}>
+                        Experimental Dataflow
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.experimental_dataflow ?? false}
+                            onClick={toggleExperimentalDataflow}
+                            disabled={config == null}
+                            aria-labelledby="app-setting-experimental-dataflow"
                         />
                     </div>
                     <div id="app-setting-experimental-file-attachments" className={styles.setting_name}>
