@@ -30,7 +30,7 @@ use dashql_buffers::execution::{
     ExecutionGraphT, ExecutionGraphUnresolvedReferenceT,
 };
 use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType as Type, TempType, TextSpanT};
-use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
+use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, RelationExpression, TableRole};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
 use dashql_core::pack;
 use dashql_core::script::Script;
@@ -286,6 +286,22 @@ struct ConnectionState<'a> {
     live_views: BTreeSet<Name>,
     /// The declarations by name, as the planned statements see them
     live_namespace: BTreeMap<Name, &'a TableDeclaration>,
+}
+
+impl<'a> ConnectionState<'a> {
+    /// The name of a relation and the declaration that it reads, None if it is unresolved or its declaration is
+    /// incompatible or unavailable. Analysis can bind an earlier access to a later declaration of the same name, the
+    /// live lifetime still owns that access.
+    fn resolve(&self, relation: &RelationExpression) -> (Name, Option<&'a TableDeclaration>) {
+        let name = resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
+        let Some(resolved) = &relation.resolved_table else { return (name, None) };
+        let declaration = self.declarations.get(&resolved.catalog_table_id).copied().filter(|d| {
+            d.catalog_schema_id == resolved.catalog_schema_id && resource_name(&d.table_name) == name && !self.incompatible_kinds.contains(&resolved.catalog_table_id)
+        });
+        let owned = self.live_producers.contains(&name) || self.producers.contains_key(&resolved.catalog_table_id.unpack_table_id().pack());
+        let table = declaration.map(|d| self.live_namespace.get(&name).copied().filter(|_| owned).unwrap_or(d));
+        (name, table)
+    }
 }
 
 /// Validate the analysis of a script against the catalog of its connection
@@ -788,27 +804,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 if is_cte_reference(analyzed, table_ref) {
                     continue;
                 }
-                let name = resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
-                let mut table: Option<&TableDeclaration> = None;
-                if let Some(resolved) = &relation.resolved_table {
-                    if let Some(&declaration) = c.declarations.get(&resolved.catalog_table_id) {
-                        if declaration.catalog_schema_id == resolved.catalog_schema_id
-                            && resource_name(&declaration.table_name) == name
-                            && !c.incompatible_kinds.contains(&resolved.catalog_table_id)
-                        {
-                            table = Some(declaration);
-                        }
-                    }
-                    // Analysis can bind an earlier access to a later same-name declaration, the live
-                    // lifetime still owns that access
-                    if let (Some(_), Some(&live)) = (table, c.live_namespace.get(&name)) {
-                        if c.live_producers.contains(&name) || c.producers.contains_key(&resolved.catalog_table_id.unpack_table_id().pack()) {
-                            table = Some(live);
-                        }
-                    }
-                    if table.is_none() {
-                        barrier!("resolved relation declaration is incompatible or unavailable");
-                    }
+                let (name, table) = c.resolve(relation);
+                if relation.resolved_table.is_some() && table.is_none() {
+                    barrier!("resolved relation declaration is incompatible or unavailable");
                 }
                 let write = table_ref.role == TableRole::Write && (ty != Type::EXPLAIN || explain_executes);
                 access(&mut state, &mut accesses, &name, table, if write { Mode::WRITE } else { Mode::READ });
@@ -844,13 +842,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                         continue;
                     }
                     let Some(relation) = &table_ref.inner else { continue };
-                    let name = resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
-                    let table = relation
-                        .resolved_table
-                        .as_ref()
-                        .and_then(|resolved| c.declarations.get(&resolved.catalog_table_id).copied())
-                        .filter(|d| resource_name(&d.table_name) == name && !c.incompatible_kinds.contains(&d.object_id));
-                    let table = table.map(|t| c.live_namespace.get(&name).copied().filter(|_| c.live_producers.contains(&name)).unwrap_or(t));
+                    let (name, table) = c.resolve(relation);
                     let target = access(&mut state, &mut accesses, &name, table, Mode::READ);
                     if !direct.contains(&target) {
                         inherited.insert(target);

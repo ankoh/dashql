@@ -162,8 +162,9 @@ inlined script may be anywhere in the session.
 A statement that inlines a script reads the relations of the inlined query, and of every query that query inlines in
 turn (`plan_session`, the loop over `inlined`). Each table reference of the query that is no
 reference to a common table expression (`is_cte_reference`) becomes a READ access of the consumer, merged with the
-consumer's own accesses, and takes part in the conflict timeline like a direct read. An unresolved name in the query
-makes the consumer a non-invalidating barrier, as a direct read would.
+consumer's own accesses, and takes part in the conflict timeline like a direct read. Inherited and direct reads
+resolve their relation alike (`ConnectionState::resolve`). An unresolved name in the query makes the consumer a
+non-invalidating barrier, as a direct read would.
 
 The other checks of direct reads do not apply to inherited reads:
 
@@ -171,9 +172,8 @@ The other checks of direct reads do not apply to inherited reads:
 - A relation whose producer comes later in node order is not diagnosed (see Session Order).
 - A dropped relation is not diagnosed.
 - Table functions and other sources without a relation are skipped, ambiguous relations are not diagnosed.
-- A resolved name whose declaration is unavailable or of an incompatible kind becomes an unresolved-reference access
+- A resolved name whose declaration is unavailable or of an incompatible kind is an unresolved-reference access
   without a barrier.
-- The access binds to the live declaration of its name only if a planned statement created that name.
 - Every access is READ.
 
 In a plan of the session the node of the inlined script runs these checks itself. In a plan of targets the query of a
