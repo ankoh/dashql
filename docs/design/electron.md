@@ -101,8 +101,8 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 ## Build and Packaging
 
 - Main and the utility worker compile with `ts_project` (`//packages/dashql-native:compile`); the preload is
-  hand-written CommonJS (`src/preload.cjs`). `src/preload.ts` is an older copy that nothing loads, the bridge
-  type the app uses is `packages/dashql-app/types/electron.d.ts`.
+  hand-written CommonJS (`src/preload.cjs`). The bridge type the app uses is
+  `packages/dashql-app/types/electron.d.ts`.
 - The renderer is the Vite `electron` mode build of the app (`//packages/dashql-app:electron`,
   `:electron_bundle`), with a relative base and without wasm precompression.
 - `electron-builder` packages one app per architecture: `//packages/dashql-native:mac_package_arm64` and
