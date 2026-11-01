@@ -32,9 +32,6 @@
    edges. The inputs line up with the scripts and keep the room of the composer below the feed. */
 .feed_top_strip {
     grid-row: 1;
-    --session_input_strip_background: transparent;
-    --session_input_strip_block_padding: 12px;
-    --session_input_strip_inline_padding: 16px;
 }
 
 .feed_landing_header {

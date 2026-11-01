@@ -6,9 +6,9 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: var(--session_input_strip_block_padding, 10px) var(--session_input_strip_inline_padding, 16px);
-    /* A muted toolbar by default, the inputs on it are the white surfaces */
-    background-color: var(--session_input_strip_background, var(--base_color_neutral_0));
+    padding: var(--session_input_strip_block_padding, 12px) var(--session_input_strip_inline_padding, 16px);
+    /* The inputs sit on the stage like the scripts and the cards, the feed and the dashboard look alike */
+    background-color: var(--session_input_strip_background, transparent);
     border-bottom: var(--session_input_strip_border, 1px solid var(--log_border_color));
 }
 
