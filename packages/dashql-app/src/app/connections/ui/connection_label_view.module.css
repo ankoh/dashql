@@ -1,8 +1,15 @@
+/* The label fills its row, the tag goes to the right end */
 .label {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 6px;
+    width: 100%;
     min-width: 0;
+}
+
+.inline {
+    display: inline-flex;
+    width: auto;
     max-width: 100%;
     vertical-align: middle;
 }
@@ -16,4 +23,5 @@
 
 .detail {
     flex-shrink: 0;
+    margin-left: auto;
 }

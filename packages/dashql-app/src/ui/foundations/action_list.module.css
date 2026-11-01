@@ -56,7 +56,9 @@
     flex-direction: column;
     align-items: start;
 }
+/* The title spans the item, its content can align to the right end */
 .text_title {
+    align-self: stretch;
     font-weight: 500;
     font-size: 0.9rem;
 }

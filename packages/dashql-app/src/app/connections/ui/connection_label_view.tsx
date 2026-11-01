@@ -3,12 +3,15 @@ import * as styles from './connection_label_view.module.css';
 
 import type { ConnectionLabelParts } from './connection_label.js';
 import { Tag } from '../../../ui/foundations/tag.js';
+import { classNames } from '../../../utils/classnames.js';
 
-/// The label of a connection, the protocol follows the connector name as a small muted tag
-export function ConnectionLabelView(props: { parts: ConnectionLabelParts }): React.ReactElement {
+/// The label of a connection, the protocol is a small muted tag.
+/// The label fills its row and the tag sits at the right end, an inline label puts the tag right
+/// after the name, e.g. in a title.
+export function ConnectionLabelView(props: { parts: ConnectionLabelParts, inline?: boolean }): React.ReactElement {
     const { name, detail } = props.parts;
     return (
-        <span className={styles.label}>
+        <span className={classNames(styles.label, props.inline && styles.inline)}>
             <span className={styles.name}>{name}</span> <ConnectionProtocolTag detail={detail} />
         </span>
     );

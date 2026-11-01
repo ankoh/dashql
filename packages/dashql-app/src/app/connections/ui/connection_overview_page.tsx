@@ -41,7 +41,7 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
                         <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
                     </svg>
                     <h2 className={styles.title}>
-                        <ConnectionLabelView parts={label} />
+                        <ConnectionLabelView parts={label} inline />
                         <span className={styles.title_separator}>/</span>
                         <span>Overview</span>
                     </h2>
