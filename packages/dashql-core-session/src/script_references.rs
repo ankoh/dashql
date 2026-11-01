@@ -176,47 +176,25 @@ impl ScriptReferences {
         self.by_script[script as usize] = out;
     }
 
-    /// The first materialized script that an inline reference scans through the queries it inlines, none for a
-    /// scan reference itself
-    fn scan_through_inlined(&self, prepared: &[Option<Prepared>], reference: &Reference) -> Option<u32> {
-        let mut visited = BTreeSet::new();
-        let mut pending = vec![reference];
-        while let Some(r) = pending.pop() {
-            let Some(producer) = r.producer else { continue };
-            if r.kind != ReferenceKind::Inline || !visited.insert(producer) {
-                continue;
+    /// The scripts that references read, every script after the scripts it references, with what reads them: the
+    /// producer of a reference and, through the terminal query of an inlined script, the producers of its references
+    fn closure<'r>(&self, prepared: &[Option<Prepared>], roots: impl IntoIterator<Item = &'r Reference>) -> Vec<(u32, ReferenceKind)> {
+        fn visit(this: &ScriptReferences, prepared: &[Option<Prepared>], r: &Reference, visited: &mut BTreeSet<u32>, out: &mut Vec<(u32, ReferenceKind)>) {
+            let Some(producer) = r.producer else { return };
+            if r.kind == ReferenceKind::Invalid || !visited.insert(producer) {
+                return;
             }
-            let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
-            for nested in self.of(producer).iter().filter(|n| Some(n.statement_id) == terminal) {
-                match (nested.kind, nested.producer) {
-                    (ReferenceKind::Scan, Some(materialized)) => return Some(materialized),
-                    _ => pending.push(nested),
+            if r.kind == ReferenceKind::Inline {
+                let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
+                for nested in this.of(producer).iter().filter(|n| Some(n.statement_id) == terminal) {
+                    visit(this, prepared, nested, visited, out);
                 }
             }
+            out.push((producer, r.kind));
         }
-        None
-    }
-
-    /// The relations that an inline reference reads unqualified through the queries it inlines, lower-cased, with the
-    /// script whose query reads them
-    fn inlined_relations(&self, prepared: &[Option<Prepared>], reference: &Reference) -> Vec<(u32, String)> {
-        let mut out = Vec::new();
-        let mut visited = BTreeSet::new();
-        let mut pending = vec![reference];
-        while let Some(r) = pending.pop() {
-            let Some(producer) = r.producer else { continue };
-            if r.kind != ReferenceKind::Inline || !visited.insert(producer) {
-                continue;
-            }
-            let Some(p) = prepared[producer as usize].as_ref() else { continue };
-            let Some(terminal) = p.terminal() else { continue };
-            // The query reads its own common table expressions
-            let mut own = BTreeSet::new();
-            cte_names(p, terminal, &mut own);
-            let mut relations = BTreeSet::new();
-            relation_names(p, terminal, &mut relations);
-            out.extend(relations.difference(&own).map(|name| (producer, name.clone())));
-            pending.extend(self.of(producer).iter().filter(|n| n.statement_id == terminal));
+        let (mut visited, mut out) = (BTreeSet::new(), Vec::new());
+        for r in roots {
+            visit(self, prepared, r, &mut visited, &mut out);
         }
         out
     }
@@ -247,10 +225,21 @@ impl ScriptReferences {
                 if anchor.is_none() {
                     reporter.error(script as u32, Some(r.text_span), "a script reference must be part of a query".into());
                 }
+                // The scripts that the reference reads, the nearest first
+                let closure: Vec<(u32, ReferenceKind)> = self.closure(prepared, [r]).into_iter().rev().collect();
                 // A relation of an inlined query must not resolve to a common table expression of the statement
                 if let (Some(anchor), ReferenceKind::Inline) = (anchor, r.kind) {
                     let visible = visible_ctes(consumer, r.statement_id, anchor);
-                    if let Some((inlined, relation)) = self.inlined_relations(prepared, r).into_iter().find(|(_, name)| visible.contains(name)) {
+                    let conflict = closure.iter().filter(|(_, kind)| *kind == ReferenceKind::Inline).find_map(|&(inlined, _)| {
+                        let p = prepared[inlined as usize].as_ref()?;
+                        let terminal = p.terminal()?;
+                        // The query reads its own common table expressions
+                        let (mut own, mut relations) = (BTreeSet::new(), BTreeSet::new());
+                        cte_names(p, terminal, &mut own);
+                        relation_names(p, terminal, &mut relations);
+                        relations.difference(&own).find(|name| visible.contains(*name)).map(|name| (inlined, name.clone()))
+                    });
+                    if let Some((inlined, relation)) = conflict {
                         reporter.error(
                             script as u32,
                             Some(r.text_span),
@@ -267,9 +256,10 @@ impl ScriptReferences {
                     // The view scans what the queries it inlines scan
                     let message = |materialized: u32| format!("a view cannot read {} of another connection", script_label(request, materialized));
                     let lifetime = "its result exists only while the statement runs";
+                    let scanned = closure.iter().find(|(_, kind)| *kind == ReferenceKind::Scan).map(|&(materialized, _)| materialized);
                     if r.kind == ReferenceKind::Scan {
                         reporter.error(script as u32, Some(r.text_span), format!("{}, {lifetime}", message(producer)));
-                    } else if let Some(materialized) = self.scan_through_inlined(prepared, r) {
+                    } else if let Some(materialized) = scanned {
                         reporter.error(
                             script as u32,
                             Some(r.text_span),
@@ -641,38 +631,13 @@ pub(crate) fn splice_statement(
     let (scanned, parsed) = (consumer.scanned, consumer.parsed);
 
     // The scripts of the statement, every script after the scripts it references
-    let mut order: Vec<u32> = Vec::new();
-    fn visit(references: &ScriptReferences, prepared: &[Option<Prepared>], r: &Reference, order: &mut Vec<u32>, depth: usize) {
-        let Some(producer) = r.producer else { return };
-        if order.contains(&producer) || depth > prepared.len() {
-            return;
-        }
-        if r.kind == ReferenceKind::Inline {
-            let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
-            for nested in references.of(producer).iter().filter(|n| Some(n.statement_id) == terminal) {
-                visit(references, prepared, nested, order, depth + 1);
-            }
-        }
-        if !order.contains(&producer) {
-            order.push(producer);
-        }
-    }
-    for r in &direct {
-        visit(references, prepared, r, &mut order, 0);
-    }
+    let order = references.closure(prepared, direct.iter().copied());
 
     // The names of the common table expressions, distinct from the names the statement and the inlined queries use
     let mut used = BTreeSet::new();
     used_names(consumer, statement_id, &mut used);
-    let kind_of = |producer: u32| -> ReferenceKind {
-        if request.scripts[producer as usize].connection == request.scripts[script as usize].connection {
-            ReferenceKind::Inline
-        } else {
-            ReferenceKind::Scan
-        }
-    };
-    for &producer in &order {
-        if kind_of(producer) == ReferenceKind::Inline {
+    for &(producer, kind) in &order {
+        if kind == ReferenceKind::Inline {
             let p = prepared[producer as usize].as_ref().unwrap();
             if let Some(terminal) = p.terminal() {
                 used_names(p, terminal, &mut used);
@@ -682,7 +647,7 @@ pub(crate) fn splice_statement(
     // A table parameter is no relation of the statement, a relation of the same name as a script would be shadowed
     let mut cte_names: BTreeMap<u32, String> = BTreeMap::new();
     let mut taken = used;
-    for &producer in &order {
+    for &(producer, _) in &order {
         let name = request.scripts[producer as usize].name;
         let shadows = |candidate: &str| taken.contains(&candidate.to_lowercase());
         let mut candidate = name.to_string();
@@ -722,9 +687,9 @@ pub(crate) fn splice_statement(
 
     // The common table expressions in order
     let mut ctes: Vec<String> = Vec::new();
-    for &producer in &order {
+    for &(producer, kind) in &order {
         let cte = identifier(&cte_names[&producer]);
-        match kind_of(producer) {
+        match kind {
             ReferenceKind::Inline => {
                 let p = prepared[producer as usize].as_ref().unwrap();
                 let Some(terminal) = p.terminal() else { continue };
@@ -781,7 +746,7 @@ pub(crate) fn splice_statement(
         out.references.push(SplicedReference {
             reference: r.clone(),
             cte_name: cte_names[&producer].clone(),
-            materialization: if kind_of(producer) == ReferenceKind::Scan { materialization_of.get(&producer).copied() } else { None },
+            materialization: if r.kind == ReferenceKind::Scan { materialization_of.get(&producer).copied() } else { None },
         });
     }
     out
