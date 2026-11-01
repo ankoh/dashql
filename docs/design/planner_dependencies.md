@@ -266,10 +266,10 @@ of its materializations.
 
 ## Cacheability
 
-A script is cacheable if it parses, has a statement, every statement is a SELECT or EXPLAIN, and every script it
-references is cacheable (`is_cacheable` in `finish`); a reference cycle is not cacheable. A referenced script is a
-single SELECT and thus cacheable, so a script is cacheable exactly if its own statements are queries. Whether a
-cached result is used also depends on the connections (`query_cache.md`, Cache Key).
+A script is cacheable if it parses, has a statement and every statement is a SELECT or EXPLAIN
+(`ExecutionGraphScript.cacheable`). The scripts it references need no check: a referenced script is a single SELECT,
+anything else invalidates the plan. Whether a cached result is used also depends on the connections
+(`query_cache.md`, Cache Key).
 
 ## Outputs of a Target
 

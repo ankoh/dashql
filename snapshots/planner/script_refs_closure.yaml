@@ -819,7 +819,7 @@ planner-snapshots:
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
           target: true
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "400b56f938d45d0772f97ea2363aff94"
           references: [foo]

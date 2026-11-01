@@ -275,7 +275,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "f8e2a1541f02cb33ffc97ee99e57cf40"
           references: [inserts,creates,explains,empty]
@@ -344,7 +344,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "400b56f938d45d0772f97ea2363aff94"
           references: [foo]
@@ -380,7 +380,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "400b56f938d45d0772f97ea2363aff94"
           references: [foo]
@@ -426,7 +426,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "fe235a7a8b58c2a3883e48f928d53b58"
           references: [b]
@@ -434,7 +434,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "53cb8d838665dfc222f33fbc869bf813"
           references: [a]
@@ -442,7 +442,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "cddfd669199bf7db6dc79d7f0eb1a0d0"
           references: [d]
@@ -450,7 +450,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "625567cadd99548b4029cb40b6c851c0"
           references: [e]
@@ -458,7 +458,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "0460f47e2de906f4351e2b3df35bca21"
           references: [c]
@@ -540,7 +540,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
-          cacheable: false
+          cacheable: true
           terminal-statement-id: 0
           signature: "941369e7141a307a6f67de9ef3e5ba97"
           references: [foo,two]

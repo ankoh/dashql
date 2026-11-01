@@ -1119,21 +1119,7 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
             })
             .collect(),
     );
-    // Cacheable scripts: queries only, and the scripts they reference are cacheable
     let producers_of = |i: usize| script_references.map(|r| r.producers_of(i as u32)).unwrap_or_default();
-    let mut cacheable: Vec<Option<bool>> = vec![None; request.scripts.len()];
-    fn is_cacheable(i: usize, prepared: &[Option<Prepared>], producers_of: &dyn Fn(usize) -> Vec<u32>, memo: &mut [Option<bool>]) -> bool {
-        if let Some(c) = memo[i] {
-            return c;
-        }
-        let Some(p) = prepared.get(i).and_then(Option::as_ref) else { return false };
-        // A cycle is not cacheable, it was reported
-        memo[i] = Some(false);
-        let queries = p.parses() && !p.parsed.statements.is_empty() && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN));
-        let result = queries && producers_of(i).into_iter().all(|r| is_cacheable(r as usize, prepared, producers_of, memo));
-        memo[i] = Some(result);
-        result
-    }
     graph.scripts = opt_vec(
         request
             .scripts
@@ -1159,7 +1145,8 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
                         let values = bind_inputs(&state.inputs, p, None, FormattingDialect::HYPER).values;
                         std::iter::once(signature).chain(values.iter().map(|(name, value)| format!(":{name}={value}"))).collect::<Vec<_>>().join("\n")
                     }));
-                    meta.cacheable = is_cacheable(i, prepared, &producers_of, &mut cacheable);
+                    // Queries only. The scripts that a script references are single queries, or the plan is invalid.
+                    meta.cacheable = p.parses() && !p.parsed.statements.is_empty() && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN));
                     meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
                     meta.referenced_scripts = opt_vec(producers_of(i));
                 } else {
