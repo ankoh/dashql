@@ -1,14 +1,15 @@
 /* The strip is an opaque bar at the top of a view, the content scrolls underneath it. The view positions the strip
-   (absolute or sticky) and sets the inline padding through the variable: the order of the stylesheets differs between
+   (absolute or sticky) and sets the padding and the surface through the variables: the order of the stylesheets differs between
    the dev server and the bundle, a property set by both would flip between them. */
 .strip {
     z-index: 15;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px var(--session_input_strip_inline_padding, 16px);
-    background-color: white;
-    border-bottom: 1px solid var(--log_border_color);
+    padding: var(--session_input_strip_block_padding, 10px) var(--session_input_strip_inline_padding, 16px);
+    /* A muted toolbar by default, the inputs on it are the white surfaces */
+    background-color: var(--session_input_strip_background, var(--base_color_neutral_0));
+    border-bottom: var(--session_input_strip_border, 1px solid var(--log_border_color));
 }
 
 .chips {
@@ -47,6 +48,69 @@
 .card[data-invalid],
 .card[data-unset] {
     border-color: var(--status_color_failed);
+}
+
+/* On the strip an input is an input group: the name as a muted prefix, then the field with the type as a suffix */
+.card:not(.card_block) {
+    align-items: stretch;
+    gap: 0;
+    height: 30px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.card:not(.card_block):focus-within {
+    outline-offset: -1px;
+}
+
+.card:not(.card_block) .name {
+    display: flex;
+    align-items: center;
+    padding: 0 9px;
+    border-right: 1px solid var(--log_border_color);
+    background-color: var(--base_color_neutral_0);
+    color: var(--base_color_neutral_7);
+}
+
+.card:not(.card_block) .control {
+    order: 1;
+    align-self: stretch;
+    height: auto;
+    padding: 0 8px;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+.card:not(.card_block) .control_amount {
+    padding-right: 2px;
+}
+
+.card:not(.card_block) .control_unit {
+    padding: 0 2px;
+}
+
+.card:not(.card_block) .type {
+    order: 2;
+    align-self: center;
+    padding: 0 8px 0 2px;
+    background-color: transparent;
+    color: var(--base_color_neutral_4);
+}
+
+.card:not(.card_block) .type[data-inferred] {
+    border: none;
+    font-style: italic;
+}
+
+.card:not(.card_block) .status {
+    order: 3;
+    align-self: center;
+    margin: 0 8px 0 0;
+}
+
+.card:not(.card_block):not([data-busy]) .status {
+    display: none;
 }
 
 /* The card of a box of the dataflow fills the row of the box */

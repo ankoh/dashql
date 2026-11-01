@@ -42,7 +42,6 @@ import { computeScriptResultCacheKey, scriptRunServices } from '../scripts/scrip
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '../../storage/storage_writer.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './session_feed_row.js';
@@ -52,6 +51,7 @@ import { ATTACHMENT_EXTENSION, isAttachmentFileName, type DataFile } from '../..
 import { stringifyError } from '../../platform/logger/logger.js';
 import { SessionDataCard } from './session_data_card.js';
 import { SessionInputStrip } from '../inputs/session_input_strip.js';
+import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
@@ -740,6 +740,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
     }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.

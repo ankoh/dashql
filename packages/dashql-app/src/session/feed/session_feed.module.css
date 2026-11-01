@@ -27,9 +27,14 @@
     grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1.3fr);
 }
 
-/* The rows are explicit, the bar of the inputs is absent without inputs and attachments */
+/* The rows are explicit, the strip of the inputs is absent without inputs and attachments.
+   The inputs and the composer sit on the stage like the scripts, borders and the scroll shadows of the feed mark its
+   edges. The inputs line up with the scripts and keep the room of the composer below the feed. */
 .feed_top_strip {
     grid-row: 1;
+    --session_input_strip_background: transparent;
+    --session_input_strip_block_padding: 12px;
+    --session_input_strip_inline_padding: 16px;
 }
 
 .feed_landing_header {
@@ -58,10 +63,9 @@
     font-style: italic;
 }
 
-/* The docked composer sits on a white bar below the feed */
+/* The docked composer sits on the stage below the feed, a card like the scripts */
 .feed_composer_section {
     grid-row: 3;
-    background-color: white;
     border-top: 1px solid var(--log_border_color);
 }
 
@@ -74,7 +78,6 @@
     justify-self: center;
     width: min(720px, 100%);
     box-sizing: border-box;
-    background-color: transparent;
     border-top: none;
 }
 

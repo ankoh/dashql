@@ -580,7 +580,6 @@ export interface ScriptFeedRowProps {
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
     topPadding: number;
-    /// The space below the last script that the docked composer floats over
     onCreate: (index: number) => void;
     onEditorView: (scriptKey: number, view: EditorView) => void;
     onRowHeightChange: (index: number, height: number) => void;
