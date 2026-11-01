@@ -5,7 +5,7 @@ import type { SessionScripts } from '../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { SessionInputCard } from './session_input_card.js';
 import { useApplySessionInput } from './use_apply_session_input.js';
-import { useSessionInputs } from './session_inputs.js';
+import { deriveSessionInputs } from './session_inputs.js';
 
 import * as styles from './session_inputs.module.css';
 
@@ -24,7 +24,7 @@ interface Props {
 /// The inputs of a session as chips on a translucent strip that floats over the top of a view. Renders nothing
 /// without inputs and leading chips.
 export function SessionInputStrip(props: Props): React.ReactElement | null {
-    const inputs = useSessionInputs(props.sessionScripts);
+    const inputs = deriveSessionInputs(props.sessionScripts);
     const { apply, literalOf, busyInputs } = useApplySessionInput(props.sessionScripts, props.modifySessionScripts);
     const ref = React.useRef<HTMLDivElement | null>(null);
     const empty = inputs.length === 0 && props.leading == null;

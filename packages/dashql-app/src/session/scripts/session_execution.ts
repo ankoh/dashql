@@ -15,7 +15,7 @@ import { isQueryCacheMiss, type QueryResultCache } from '../../query/query_resul
 import { affectedScriptIndices, sessionPlanRequest } from '../inputs/session_inputs.js';
 
 /// The run that holds a session, a run of the whole session or of one of its scripts
-export type SessionRunKind = 'session' | 'script';
+type SessionRunKind = 'session' | 'script';
 
 /// The sessions that a run holds. One run holds a session at a time, the app disables the runs of a held session.
 const activeSessions = new Map<string, SessionRunKind>();
@@ -82,9 +82,7 @@ export interface SessionExecutionState {
     /// The planned statements
     totalStatements: number;
     completedStatements: number;
-    /// The connection of the statement that started last
-    activeConnectionId: string | null;
-    activeScriptKey: number | null;
+    /// The script of the statement that started last
     activeFileName: string | null;
     activeStatementIndex: number | null;
     activeStatementCount: number | null;
@@ -159,7 +157,7 @@ export function createExecutionMounts(cache: QueryResultCache, database: Parquet
 }
 
 /// The result key of a script of a plan
-export interface ScriptResultKey {
+interface ScriptResultKey {
     /// The key, the files of the results of the script are named after it
     key: string;
     /// The signature that the key derives from: the signature of the AST of the script and the keys of the scripts it
@@ -208,7 +206,7 @@ export function createMountPrefix(): string {
 }
 
 /// A plan of the scripts of a session
-export interface SessionScriptsPlan {
+interface SessionScriptsPlan {
     /// The execution graph, `graph.scripts[i]` is the script `i` of the request
     graph: core.buffers.execution.ExecutionGraphT;
     /// The connection ids, `node.connection` indexes them
@@ -250,7 +248,7 @@ export function describePlanErrors(graph: core.buffers.execution.ExecutionGraphT
 }
 
 /// The run of a plan: of the whole session or of a target script
-export interface PlanRun {
+interface PlanRun {
     kind: 'session' | 'script';
     /// The file of the target of a run of a script
     target: string | null;
@@ -293,7 +291,7 @@ export function describePlannedStatements(graph: core.buffers.execution.Executio
 }
 
 /// The title of a planned statement in the query history, e.g. `bar.sql 2/3 · inlines foo.sql`
-export function plannedStatementTitle(statement: PlannedStatement): string {
+function plannedStatementTitle(statement: PlannedStatement): string {
     const parts = [`${statement.script} ${statement.statement}/${statement.statements}`];
     if (statement.cached) parts.push('cached result');
     if (statement.inlined.length > 0) parts.push(`inlines ${statement.inlined.join(', ')}`);
@@ -303,7 +301,7 @@ export function plannedStatementTitle(statement: PlannedStatement): string {
 }
 
 /// The description of a planned statement in the query history
-export function plannedStatementDescription(statement: PlannedStatement): string {
+function plannedStatementDescription(statement: PlannedStatement): string {
     const parts = [`${statement.statementType} ${statement.statement} of ${statement.statements} of ${statement.script}`
         + (statement.result ? ', the result of the script' : '')
         + (statement.run === 'session' ? ', run of the session' : `, run of ${statement.target}`)];
@@ -358,9 +356,9 @@ function logPlan(logger: LoggerLike | undefined, sessionId: string, graph: core.
 }
 
 /// Check a plan before anything of it runs: the visualizations of its outputs decode, including outputs that the run
-/// discards, and its nodes are in statement order. Returns the visualizations of the outputs by node.
-async function checkExecutionGraph(plan: SessionScriptsPlan, scriptCount: number, cooperate: () => Promise<void>) {
-    const { graph, connectionIds } = plan;
+/// discards. Returns the visualizations of the outputs by node.
+async function checkExecutionGraph(plan: SessionScriptsPlan, cooperate: () => Promise<void>) {
+    const { graph } = plan;
     const visualizations = new Map<number, ReturnType<typeof resolveCompiledVisualization>>();
     for (const [index, node] of graph.nodes.entries()) {
         if (!node.producesOutput) continue;
@@ -371,13 +369,6 @@ async function checkExecutionGraph(plan: SessionScriptsPlan, scriptCount: number
         }
         visualizations.set(index, visualization);
         if ((index + 1) % PREPARATION_YIELD_INTERVAL === 0) await cooperate();
-    }
-    if (graph.nodes.some((node, index) => node.script >= scriptCount || node.connection >= connectionIds.length
-        || (index > 0 && (node.script < graph.nodes[index - 1].script
-            || (node.script === graph.nodes[index - 1].script
-                && node.statementId <= graph.nodes[index - 1].statementId))))
-        || graph.edges.some(edge => edge.from >= edge.to || edge.to >= graph.nodes.length)) {
-        throw new Error('Execution plan is not in committed statement order');
     }
     return visualizations;
 }
@@ -423,7 +414,7 @@ export async function runExecutionGraph(args: {
     const { plan: { graph, connectionIds }, scripts, files, sessionId, signal, queries, logger } = args;
     const plannedStatements = describePlannedStatements(graph, files, args.run);
     args.emit({ phase: 'running', totalStatements: graph.nodes.length });
-    const visualizations = await checkExecutionGraph(args.plan, scripts.length, args.cooperate);
+    const visualizations = await checkExecutionGraph(args.plan, args.cooperate);
     // Validate after notifications, but before the first backend call. Later edits belong to the next run.
     args.validate(true);
     const materializations = graph.materializations ?? [];
@@ -484,7 +475,7 @@ export async function runExecutionGraph(args: {
             wake();
         };
         args.validate(false);
-        args.emit({ activeConnectionId: connectionId, activeScriptKey: script.scriptKey, activeFileName: files[scriptIndex],
+        args.emit({ activeFileName: files[scriptIndex],
             activeStatementIndex: statementIndex + 1, activeStatementCount: statementIndexes[scriptIndex].length });
         running[node.connection]++;
         runningTotal++;
@@ -748,7 +739,7 @@ export async function runSessionPlan(args: {
         const keys = await computeScriptResultKeys(plan.graph,
             (index, signature) => args.resultKey(scripts[index].connection.connectionId, signature),
             index => args.cachesResults(scripts[index].connection.connectionId));
-        const visualizations = await checkExecutionGraph(plan, scripts.length, cooperate);
+        const visualizations = await checkExecutionGraph(plan, cooperate);
         const validate = sessionPlanValidator({ graph: plan.graph, session, getSession: args.getSession, scripts, files });
         validate(true);
         await args.modifySessionScripts({ type: APPLY_PLANNER_ANALYSIS, value: updates });
@@ -881,8 +872,7 @@ export async function runSessionExecution(args: {
     if (!acquireSessionExecution(session, 'session')) return;
     let state: SessionExecutionState = {
         phase: 'planning', totalScripts: 0, completedScripts: 0,
-        totalStatements: 0, completedStatements: 0, activeConnectionId: null,
-        activeScriptKey: null, activeFileName: null,
+        totalStatements: 0, completedStatements: 0, activeFileName: null,
         activeStatementIndex: null, activeStatementCount: null, error: null,
     };
     const emit = (update: Partial<SessionExecutionState>, increment: { statements?: number; scripts?: number } = {}) => {
@@ -926,7 +916,7 @@ export async function runSessionExecution(args: {
         });
         signal.throwIfAborted();
         signal.removeEventListener('abort', stop);
-        emit({ phase: 'succeeded', activeConnectionId: null, activeScriptKey: null, activeFileName: null,
+        emit({ phase: 'succeeded', activeFileName: null,
             activeStatementIndex: null, activeStatementCount: null });
     } catch (error) {
         cancelActive();

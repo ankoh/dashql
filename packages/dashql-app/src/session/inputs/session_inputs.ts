@@ -91,7 +91,7 @@ export function readSessionInputType(type: core.buffers.analyzer.SqlTypeT | null
 }
 
 /// Collect the inputs of a session with the core
-export function collectSessionInputs(session: SessionScripts): SessionInput[] {
+function collectSessionInputs(session: SessionScripts): SessionInput[] {
     const scripts = orderedSessionScripts(session);
     if (scripts.length === 0 || typeof session.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
     const request = sessionPlanRequest(scripts, scripts.map(s => s.fileName));
@@ -144,11 +144,6 @@ export function deriveSessionInputs(session: SessionScripts): SessionInput[] {
     if (cached != null && sameInputs(cached.inputs, inputs)) inputs = cached.inputs;
     INPUTS.set(session.sessionId, { signature, inputs });
     return inputs;
-}
-
-/// The inputs of a session for a component
-export function useSessionInputs(session: SessionScripts): SessionInput[] {
-    return deriveSessionInputs(session);
 }
 
 /// The control of the value of an input

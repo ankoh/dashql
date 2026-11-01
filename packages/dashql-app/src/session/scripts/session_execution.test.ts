@@ -107,12 +107,12 @@ describe('runSessionExecution', () => {
         ]);
         expect(f.lastState()).toEqual({
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
-            totalStatements: 4, completedStatements: 4, activeConnectionId: null,
-            activeScriptKey: null, activeFileName: null,
+            totalStatements: 4, completedStatements: 4,
+            activeFileName: null,
             activeStatementIndex: null, activeStatementCount: null, error: null,
         });
         expect(f.states.some(state => state.completedScripts === 1 && state.completedStatements === 0)).toBe(true);
-        expect(f.states.filter(state => state.activeScriptKey === 101).map(state => state.activeStatementIndex))
+        expect(f.states.filter(state => state.activeFileName === '2_commands.sql').map(state => state.activeStatementIndex))
             .toEqual(expect.arrayContaining([1, 2, 3]));
         expect(f.unpack).toHaveBeenCalledOnce();
     });
@@ -216,7 +216,7 @@ describe('runSessionExecution', () => {
         await run;
     });
 
-    it.each(['invalid', 'text', 'analysis', 'catalog', 'membership', 'session', 'instance', 'missing', 'order', 'edge'])
+    it.each(['invalid', 'text', 'analysis', 'catalog', 'membership', 'session', 'instance', 'missing'])
         ('rejects %s plans before backend execution', async kind => {
             const f = fixture();
             if (kind === 'invalid') {
@@ -234,8 +234,6 @@ describe('runSessionExecution', () => {
                     case 'session': f.session.scripts[102].scriptSession = f.session.scripts[101].scriptSession; break;
                     case 'instance': f.getSession.mockReturnValue({ ...f.session, instance: {} as core.DashQL }); break;
                     case 'missing': f.getSession.mockReturnValue(null); break;
-                    case 'order': f.graph.nodes.reverse(); break;
-                    case 'edge': f.graph.edges.push({ from: 3, to: 0 }); break;
                 }
             });
             await runSessionExecution(f.args);

@@ -142,12 +142,12 @@ function portY(box: DataflowSceneBox, statementId: number, config: core.Dataflow
 }
 
 /// The width of the frame that the ports of a box sit on: the statement rows, or the header of a collapsed box
-export function portFrameWidth(box: EdgeEnd, config: core.DataflowLayoutConfig): number {
+function portFrameWidth(box: EdgeEnd, config: core.DataflowLayoutConfig): number {
     return box.collapsed ? box.width : box.width - 2 * config.rowPadding;
 }
 
 /// An orthogonal path through points with rounded corners, like the edges of the plan view
-export function roundedPath(points: [number, number][], radius = EDGE_CORNER_RADIUS): string {
+function roundedPath(points: [number, number][], radius = EDGE_CORNER_RADIUS): string {
     const out = [`M ${points[0][0]} ${points[0][1]}`];
     for (let i = 1; i < points.length - 1; ++i) {
         const [px, py] = points[i - 1];
@@ -198,7 +198,7 @@ function internalEdgePath(box: DataflowSceneBox, fromY: number, toY: number, spa
 }
 
 /// The width of a badge with a text
-export function edgeBadgeWidth(text: string): number {
+function edgeBadgeWidth(text: string): number {
     return Math.max(EDGE_BADGE_MIN_WIDTH, text.length * 6 + 10);
 }
 

@@ -366,8 +366,8 @@ describe('session execution with real core planning', () => {
         ]));
         expect(f.lastState()).toEqual({
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
-            totalStatements: 3, completedStatements: 3, activeConnectionId: null,
-            activeScriptKey: null, activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null,
+            totalStatements: 3, completedStatements: 3,
+            activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null,
         });
         expect(f.cancelQuery).not.toHaveBeenCalled();
     });

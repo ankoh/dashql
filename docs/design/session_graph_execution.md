@@ -40,10 +40,9 @@ The app would keep the async loop around these calls.
 
 - **One execution protocol.** The order of the statements and their catalog changes would come
   from the core together with the scheduling.
-- **The graph's invariants live with the graph.** `session_execution.ts` checks that nodes come
-  in committed statement order, that edges point forward and that edge targets are in range. It
-  also deduplicates edges, because the planner emits one edge per conflicting entity and reason.
-  These are properties of the planner's output and belong in the planner and its tests.
+- **The graph's invariants live with the graph.** The planner snapshot test checks that nodes come
+  in committed statement order and that edges point forward. `session_execution.ts` deduplicates
+  edges, because the planner emits one edge per conflicting entity and reason.
 - **Rust tests for the scheduling rules.** Predecessor counting, ready order and "a failure stops
   new launches" would be tested next to the planner.
 

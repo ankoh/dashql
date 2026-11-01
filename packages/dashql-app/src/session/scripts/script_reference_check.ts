@@ -6,7 +6,7 @@ import { orderedSessionScripts, type SessionScripts } from './session_scripts.js
 const NONE = 0xFFFFFFFF;
 
 /// What a script reference reads
-export enum ScriptReferenceKind {
+enum ScriptReferenceKind {
     /// The query of the referenced script is inlined into the statement, both run on one connection
     Inline = 'inline',
     /// The statement scans the result of a script of another connection, materialized as Parquet file
@@ -16,7 +16,7 @@ export enum ScriptReferenceKind {
 }
 
 /// A checked table parameter of a script, `:foo`
-export interface ScriptReferenceMark {
+interface ScriptReferenceMark {
     /// The begin of the parameter, at the prefix, in UTF-16 code units
     from: number;
     /// The end of the parameter

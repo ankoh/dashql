@@ -131,7 +131,7 @@ function edgeKey(from: DataflowPort, to: DataflowPort, kind: DataflowEdgeKind, n
 
 /// Derive the dataflow of the scripts of a session with the core. A script without a current analysis has no
 /// statements and no edges.
-export function computeDataflowGraph(session: SessionScripts): DataflowGraph {
+function computeDataflowGraph(session: SessionScripts): DataflowGraph {
     const scripts = orderedSessionScripts(session);
     if (scripts.length === 0) return EMPTY_GRAPH;
     const dataflow: core.buffers.execution.SessionDataflowT = session.instance.deriveSessionDataflow(
