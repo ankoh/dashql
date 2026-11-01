@@ -1,5 +1,4 @@
 import { computeScriptReferenceReports, type ScriptReferenceReport } from './script_reference_check.js';
-import { scriptRunServices } from './script_run.js';
 import type { SessionScripts } from './session_scripts.js';
 
 function sameReport(l: ScriptReferenceReport, r: ScriptReferenceReport): boolean {
@@ -21,12 +20,12 @@ interface CachedCheck {
 const CHECKS = new Map<string, CachedCheck>();
 
 /// What the check of a session depends on: the names, connections and analyses of its scripts
-function checkSignature(session: SessionScripts, isLocalConnection: (connectionId: string) => boolean): string {
+function checkSignature(session: SessionScripts): string {
     return session.scriptOrder.map(file => session.scripts[session.scriptRefs[file]?.scriptId ?? -1]).filter(script => script != null).map(script => [
         script.scriptKey,
         script.fileName,
         script.connection.connectionId,
-        isLocalConnection(script.connection.connectionId) ? 'L' : 'R',
+        script.connection.local ? 'L' : 'R',
         script.scriptSession.getTextVersion(),
         // The analyzed text, not the cursor: the check reads the text and its analysis only
         script.editorUpdate?.textVersion ?? '',
@@ -52,11 +51,10 @@ function checkSessionScriptReferencesOrThrow(session: SessionScripts): Map<numbe
     if (session.scriptOrder == null || session.scriptOrder.length === 0 || typeof session.instance?.checkScriptReferences !== 'function') {
         return NO_REPORTS;
     }
-    const isLocalConnection = scriptRunServices(session.instance).isLocalConnection;
-    const signature = checkSignature(session, isLocalConnection);
+    const signature = checkSignature(session);
     const cached = CHECKS.get(session.sessionId);
     if (cached?.signature === signature) return cached.reports;
-    const reports = computeScriptReferenceReports(session, isLocalConnection);
+    const reports = computeScriptReferenceReports(session);
     // A script without a current analysis keeps its last report until it is analyzed again
     for (const [key, report] of cached?.reports ?? []) {
         const next = reports.get(key);

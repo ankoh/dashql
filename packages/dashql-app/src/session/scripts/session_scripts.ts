@@ -25,6 +25,7 @@ import {
 } from '../../storage/storage_writer.js';
 import type { ConnectionParams, SessionConnection, SessionScript } from '../../storage/storage_backend.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
+import { isHyperWasmConnection } from '../../connections/connection_label.js';
 import { Logger, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
 import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 
@@ -87,11 +88,16 @@ export interface ScriptConnection {
     /// The params of the connection when the script took it. The session file needs them to hold a
     /// copy of a connection that it doesn't hold yet, a copy that it holds wins.
     params?: ConnectionParams;
+    /// Is the connection the embedded Hyper, which scans the results of scripts of other connections?
+    local?: boolean;
 }
 
 /// The connection of a script that runs on a connection of the app
 export function scriptConnectionOf(connection: ConnectionState): ScriptConnection {
-    return { connectionId: connection.connectionId, connectorInfo: connection.connectorInfo, catalog: connection.catalog, params: connection.params };
+    return {
+        connectionId: connection.connectionId, connectorInfo: connection.connectorInfo, catalog: connection.catalog, params: connection.params,
+        local: isHyperWasmConnection(connection),
+    };
 }
 
 /// The scripts of a session in feed order
@@ -803,7 +809,7 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
                 }
                 let changes = new Map<number, ScriptTextChange[]>();
                 try {
-                    const reports = computeScriptReferenceReports({ ...state, scripts: newScripts }, () => false);
+                    const reports = computeScriptReferenceReports({ ...state, scripts: newScripts });
                     changes = renameScriptReferenceChanges(reports, oldFileName, `:${state.instance.quoteIdentifier(cleanBase)}`);
                 } catch (e: any) {
                     logger.error("Failed to find the references of a renamed script", { fileName: oldFileName, error: stringifyError(e) }, LOG_CTX);

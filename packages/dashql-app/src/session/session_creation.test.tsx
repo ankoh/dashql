@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
 import type { ConnectionState } from '../connections/connection_state.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
@@ -29,6 +29,7 @@ describe('session creation', () => {
             catalog: {},
             catalogFunctionScript: { toString: () => '' },
             params,
+            details: { type: HYPER_CONNECTOR, value: { proto: {} } },
         } as unknown as ConnectionState;
         let createSession!: SessionCreation;
         let registry!: SessionScriptsRegistry;

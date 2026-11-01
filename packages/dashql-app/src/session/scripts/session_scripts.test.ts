@@ -4,7 +4,7 @@ import * as Immutable from 'immutable';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
@@ -584,7 +584,7 @@ describe('V2 flat session script mutations', () => {
         const next = reduce(current, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: kept } });
         const alphaKey = next.scriptRefs['1_alpha.sql'].scriptId;
         const betaKey = next.scriptRefs['2_beta.sql'].scriptId;
-        const target = { ...connection(), params: { hyper: { protocol: 'WASM' } } } as unknown as ConnectionState;
+        const target = { ...connection(), params: { hyper: { protocol: 'WASM' } }, details: { type: HYPER_CONNECTOR, value: { proto: {} } } } as unknown as ConnectionState;
         const writer = new RecordingWriter(logger, new SessionTestBackend());
         const merged = reduce(reduce(next, { type: SET_PENDING_CONNECTION, value: { ...main, params: target.params } }),
             { type: MERGE_CONNECTION, value: { from: main.connectionId, into: target } }, writer);

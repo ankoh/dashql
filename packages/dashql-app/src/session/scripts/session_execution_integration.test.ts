@@ -42,7 +42,7 @@ afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 
 function fixture(entries: Array<[string, string]>) {
     const catalog = dql.createCatalog();
-    const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog };
+    const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog, local: true };
     const scripts: SessionScripts['scripts'] = {};
     const scriptRefs: SessionScripts['scriptRefs'] = {};
     for (const [fileName, text] of entries) {
@@ -165,7 +165,7 @@ describe('session execution with real core planning', () => {
             release: vi.fn(async () => { events.push('release'); }),
         };
         await f.run({
-            isLocalConnection: connectionId => connectionId === main, mounts,
+            mounts,
             resultKey: async (connectionId, signature) => `${connectionId === main ? 'local' : 'remote'}:${signature}`,
             cachesResults: () => caching,
         });
@@ -301,12 +301,12 @@ describe('session execution with real core planning', () => {
                 release: vi.fn(async () => {}),
             };
             // Plan once to learn the signature of foo
-            await f.run({ isLocalConnection: connectionId => connectionId === main, mounts });
+            await f.run({ mounts });
             const fooKey = `remote:${f.graphs[0].scripts[0].signature}`;
             const file = cache.put(fooKey);
             queries.length = 0;
             await f.run({
-                isLocalConnection: connectionId => connectionId === main, mounts, cache,
+                mounts, cache,
                 resultKey: async (connectionId, signature) => `${connectionId === main ? 'local' : 'remote'}:${signature}`,
                 cachesResults: () => true,
             });
@@ -328,7 +328,7 @@ describe('session execution with real core planning', () => {
         ]);
         const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
         f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '2_bar.sql', connection: remote } });
-        await f.run({ isLocalConnection: () => false });
+        await f.run();
         expect(f.executeQuery).not.toHaveBeenCalled();
         expect(f.lastState()).toMatchObject({ phase: 'failed' });
         expect(f.lastState()?.error).toContain('2_bar.sql runs on the connection');

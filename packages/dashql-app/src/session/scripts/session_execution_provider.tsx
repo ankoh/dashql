@@ -6,7 +6,6 @@ import { useConnectionRegistry } from '../../connections/connection_registry.js'
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { useSessionScriptsRegistry, useSessionScriptsRegistryReader, type ModifySessionScripts } from './session_scripts_registry.js';
 import { createExecutionMounts, isSessionExecutionRunning, runSessionExecution, subscribeSessionExecutions, type SessionExecutionState } from './session_execution.js';
-import { isHyperWasmConnection } from '../../connections/connection_label.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { supportsParquet } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import { registerScriptRunServices, type ScriptRunServices } from './script_run.js';
@@ -127,10 +126,6 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
 
     // A run of a script plans it with the scripts it references, the services read the latest registries
     const runServices = React.useMemo<ScriptRunServices>(() => ({
-        isLocalConnection: connectionId => {
-            const connection = latest.current.connections.connections.get(connectionId);
-            return connection != null && isHyperWasmConnection(connection);
-        },
         createMounts: () => {
             const { computeDb, queryResultCache } = latest.current;
             return queryResultCache != null && supportsParquet(computeDb) ? createExecutionMounts(queryResultCache, computeDb) : null;
@@ -202,10 +197,6 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
             executeQuery, cancelQuery, modifySessionScripts,
             maxConcurrentQueries: connectionId => maxConcurrentQueries(connections.connections.get(connectionId)),
             // The embedded Hyper scans the results of the scripts of other connections, mounted from the compute database
-            isLocalConnection: connectionId => {
-                const connection = connections.connections.get(connectionId);
-                return connection != null && isHyperWasmConnection(connection);
-            },
             mounts: queryResultCache != null && supportsParquet(computeDb) ? createExecutionMounts(queryResultCache, computeDb) : null,
             resultKey: runServices.cacheKey,
             cachesResults: runServices.cachesResults,

@@ -37,7 +37,7 @@ afterEach(() => { vi.restoreAllMocks(); registerScriptRunServices(dql, null); dq
 /// A session with scripts on the embedded database, `remote` moves scripts to a Trino connection. `caching` tells
 /// whether the connections cache query results.
 function fixture(entries: Array<[string, string]>, remote: string[] = [], caching = true) {
-    const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
+    const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog(), local: true };
     const trino = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
     const scripts: SessionScripts['scripts'] = {};
     const scriptRefs: SessionScripts['scriptRefs'] = {};
@@ -80,7 +80,6 @@ function fixture(entries: Array<[string, string]>, remote: string[] = [], cachin
         return run;
     };
     const services: ScriptRunServices = {
-        isLocalConnection: connectionId => connectionId === connection.connectionId,
         createMounts,
         cacheKey: async (connectionId, signature) => `${connectionId === connection.connectionId ? 'local' : 'remote'}:${signature}`,
         cachesResults: () => caching,
@@ -94,7 +93,7 @@ function fixture(entries: Array<[string, string]>, remote: string[] = [], cachin
         const scripts = live.scriptOrder.map(file => script(file));
         await prepareSessionScripts(scripts, async () => {});
         return planSessionScripts({
-            instance: dql, scripts, files: live.scriptOrder, isLocalConnection: services.isLocalConnection,
+            instance: dql, scripts, files: live.scriptOrder,
             mountPrefix: createMountPrefix(), targets: [live.scriptOrder.indexOf(fileName)],
         }).graph;
     };
@@ -107,7 +106,7 @@ describe('script runs', () => {
         const session = f.session();
         const scripts = session.scriptOrder.map(file => f.script(file));
         await prepareSessionScripts(scripts, async () => {});
-        const { graph } = planSessionScripts({ instance: dql, scripts, files: session.scriptOrder, isLocalConnection: () => true, mountPrefix: createMountPrefix() });
+        const { graph } = planSessionScripts({ instance: dql, scripts, files: session.scriptOrder, mountPrefix: createMountPrefix() });
         const keys = await computeScriptResultKeys(graph, async (index, signature) => `${index}:${signature}`, () => true);
         expect(keys[0]).toEqual({ key: `0:${graph.scripts[0].signature}`, reusable: true });
         // A script that references a cacheable script covers the key of that script

@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { runAgentCommand, findScript, type AgentCommandEnvironment } from './agent_commands.js';
 import { AgentCommandError } from './agent_client.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionHealth } from '../connections/connection_state.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
@@ -60,6 +60,7 @@ describe('agent commands', () => {
             connectionId: 'db',
             connectionHealth: ConnectionHealth.ONLINE,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: { type: HYPER_CONNECTOR, value: { proto: {} } },
             queriesActive: new Map(),
             queriesFinished: new Map(),
         }]]);
@@ -103,11 +104,12 @@ describe('agent commands', () => {
             connectionId: 'lake',
             connectionHealth: ConnectionHealth.ONLINE,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            details: { type: TRINO_CONNECTOR },
             queriesActive: new Map(),
             queriesFinished: new Map(),
         });
     };
-    const lakeConnection = { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: undefined, params: undefined };
+    const lakeConnection = { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: undefined, params: undefined, local: false };
 
     it('marks read-only connections', async () => {
         useLake();

@@ -1,6 +1,6 @@
 import * as core from '@ankoh/dashql-core';
 
-import { scriptDisplayName } from './script_types.js';
+import { sessionPlanRequest } from '../inputs/session_inputs.js';
 import type { ScriptData, SessionScripts } from './session_scripts.js';
 
 const NONE = 0xFFFFFFFF;
@@ -52,28 +52,13 @@ function orderedScripts(session: SessionScripts): ScriptData[] {
 
 /// Check the script references of every script of a session, by script key. A script whose analysis is not current
 /// with its text has no report.
-export function computeScriptReferenceReports(
-    session: SessionScripts,
-    isLocalConnection: (connectionId: string) => boolean,
-): Map<number, ScriptReferenceReport> {
+export function computeScriptReferenceReports(session: SessionScripts): Map<number, ScriptReferenceReport> {
     const scripts = orderedScripts(session);
     const reports = new Map<number, ScriptReferenceReport>();
     if (scripts.length === 0) return reports;
-    const connectionIds: string[] = [];
-    const catalogs: core.DashQLCatalog[] = [];
-    for (const script of scripts) {
-        if (connectionIds.includes(script.connection.connectionId)) continue;
-        connectionIds.push(script.connection.connectionId);
-        catalogs.push(script.connection.catalog);
-    }
-    const check: core.buffers.execution.ScriptReferenceCheckT = session.instance.checkScriptReferences({
-        connections: connectionIds.map((id, index) => ({ id, local: isLocalConnection(id), catalog: catalogs[index] })),
-        scripts: scripts.map(script => ({
-            name: scriptDisplayName(script.fileName),
-            connection: connectionIds.indexOf(script.connection.connectionId),
-            session: script.scriptSession,
-        })),
-    }).unpack();
+    const check: core.buffers.execution.ScriptReferenceCheckT = session.instance.checkScriptReferences(
+        sessionPlanRequest(scripts, scripts.map(script => script.fileName)),
+    ).unpack();
     check.scripts.forEach((checked, index) => {
         if (!checked.checked) return;
         const marks = checked.references.map(reference => {

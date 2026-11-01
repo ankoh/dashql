@@ -229,14 +229,13 @@ export function planSessionScripts(args: {
     instance: core.DashQL;
     scripts: readonly ScriptData[];
     files: readonly string[];
-    isLocalConnection: (connectionId: string) => boolean;
     mountPrefix: string;
     targets?: number[];
     materialized?: number[];
     /// The name of the file of the materialized result of a script below the mount prefix
     materializationFile?: (scriptIndex: number) => string | undefined;
 }): SessionScriptsPlan {
-    const request = sessionPlanRequest(args.scripts, args.files, args.isLocalConnection);
+    const request = sessionPlanRequest(args.scripts, args.files);
     const graph = args.instance.planSession({
         ...request,
         scripts: request.scripts.map((script, index) => ({ ...script, materializationFile: args.materializationFile?.(index) })),
@@ -684,8 +683,6 @@ export async function runSessionExecution(args: {
     modifySessionScripts: ModifySessionScripts;
     signal: AbortSignal;
     onState: (state: SessionExecutionState) => void;
-    /// Is a connection the embedded Hyper, which scans the results of scripts of other connections?
-    isLocalConnection?: (connectionId: string) => boolean;
     /// The mounts of the materialized script results of the run, null without a compute database
     mounts?: ExecutionMounts | null;
     /// The result key of a script on a connection, names the files of the materialized results
@@ -758,11 +755,10 @@ export async function runSessionExecution(args: {
         });
         const updates = await prepareSessionScripts(scripts, cooperate);
         await cooperate();
-        const isLocalConnection = args.isLocalConnection ?? (() => false);
         // A change of inputs runs the scripts that it affects, with what they read
         let targets: number[] | undefined;
         if (args.inputs != null) {
-            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files, isLocalConnection)).unpack() as core.buffers.execution.SessionDataflowT;
+            const dataflow = instance.deriveSessionDataflow(sessionPlanRequest(scripts, files)).unpack() as core.buffers.execution.SessionDataflowT;
             targets = affectedScriptIndices(dataflow, args.inputs);
             emit({ totalScripts: targets.length });
             if (targets.length === 0) {
@@ -775,7 +771,6 @@ export async function runSessionExecution(args: {
         const mountPrefix = args.mounts?.prefix ?? createMountPrefix();
         const planWith = (provided: number[] = [], names: Map<number, string> = new Map()) => planSessionScripts({
             instance, scripts, files,
-            isLocalConnection,
             mountPrefix,
             targets,
             materialized: provided,

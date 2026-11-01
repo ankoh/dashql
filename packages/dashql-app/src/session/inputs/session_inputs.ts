@@ -67,7 +67,7 @@ export function orderedSessionScripts(session: SessionScripts): ScriptData[] {
 
 /// The request of the core for the scripts of a session, connections in the order of their first script. A
 /// connection speaks the dialect of its connector, the planner prints the values of inputs in it.
-export function sessionPlanRequest(scripts: readonly ScriptData[], files: readonly string[], isLocalConnection: (connectionId: string) => boolean): core.SessionPlanRequest {
+export function sessionPlanRequest(scripts: readonly ScriptData[], files: readonly string[]): core.SessionPlanRequest {
     const connections: ScriptData['connection'][] = [];
     for (const script of scripts) {
         if (connections.some(c => c.connectionId === script.connection.connectionId)) continue;
@@ -77,7 +77,7 @@ export function sessionPlanRequest(scripts: readonly ScriptData[], files: readon
     return {
         connections: connections.map(c => ({
             id: c.connectionId,
-            local: isLocalConnection(c.connectionId),
+            local: c.local ?? false,
             catalog: c.catalog,
             dialect: formattingDialectForConnector(c.connectorInfo?.connectorType),
         })),
@@ -105,7 +105,7 @@ export function readSessionInputType(type: core.buffers.analyzer.SqlTypeT | null
 export function collectSessionInputs(session: SessionScripts): SessionInput[] {
     const scripts = orderedSessionScripts(session);
     if (scripts.length === 0 || typeof session.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
-    const request = sessionPlanRequest(scripts, scripts.map(s => s.fileName), () => false);
+    const request = sessionPlanRequest(scripts, scripts.map(s => s.fileName));
     const collected = session.instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT;
     return collected.inputs.map(input => ({
         name: String(input.name ?? ''),

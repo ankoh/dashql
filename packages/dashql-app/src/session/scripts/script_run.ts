@@ -41,8 +41,6 @@ export class ScriptPlanError extends Error {
 
 /// The services of the run of a script
 export interface ScriptRunServices {
-    /// Is a connection the embedded Hyper?
-    isLocalConnection: (connectionId: string) => boolean;
     /// The mounts of the materialized results, null without a compute database
     createMounts: () => ExecutionMounts | null;
     /// The result key of a script on a connection, null if the connection has no key
@@ -61,7 +59,6 @@ export interface ScriptRunServices {
 /// The services of a run without a session execution provider: no connection is the embedded Hyper, no results of
 /// other connections are mounted and no results are cached
 const PLAIN_SERVICES: ScriptRunServices = {
-    isLocalConnection: () => false,
     createMounts: () => null,
     cacheKey: async () => null,
     cachesResults: () => false,
@@ -127,7 +124,7 @@ export async function runPlannedScript(
         mounts = services.createMounts();
         const mountPrefix = mounts?.prefix ?? createMountPrefix();
         const plan = (materialized: number[] = [], materializationFiles: Map<number, string> = new Map()) => planSessionScripts({
-            instance, scripts, files, isLocalConnection: services.isLocalConnection,
+            instance, scripts, files,
             mountPrefix, targets: [targetIndex], materialized,
             materializationFile: index => materializationFiles.get(index),
         });
@@ -275,7 +272,7 @@ export async function computeScriptResultCacheKey(
 ): Promise<string | null> {
     const { files, scripts, targetIndex } = sessionScriptsOf(session, target);
     const { graph } = planSessionScripts({
-        instance: session.instance, scripts, files, isLocalConnection: services.isLocalConnection,
+        instance: session.instance, scripts, files,
         mountPrefix: createMountPrefix(), targets: [targetIndex],
     });
     if (!graph.valid) return null;
