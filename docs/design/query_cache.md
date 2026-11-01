@@ -74,8 +74,10 @@ mount (`QueryResultCache.mount`), which is set up on first use and stays. The co
 every path it opened below the mount and doesn't notice files that JavaScript removes or rewrites. Unique names keep
 these remembered files valid while they exist. After this window removed files, the next use of the mount refreshes it
 (`refreshExternalDirectory`, `MountedResource.refresh` of hyperdb-wasm), so the database looks the paths up again and
-forgets the removed files. A refresh doesn't wait for readers: queries that run keep reading the files they opened. A
-new compute database, e.g. after a restart of hyperdb-wasm, gets a new mount.
+forgets the removed files. A refresh doesn't wait for readers: queries that run keep reading the files they opened.
+Once they finished, the database releases the files it opened before the refresh, so the mount, which stays for the
+life of the window, doesn't hold on to every file it ever read. A new compute database, e.g. after a restart of
+hyperdb-wasm, gets a new mount.
 
 Native session folders keep the entries `cache/` and `*.hyper` in a top-level `.gitignore`, so the cache folders of
 earlier versions stay out of version control. It is written with the session file, and missing entries are appended
