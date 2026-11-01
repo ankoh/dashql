@@ -5,6 +5,7 @@ import type { View } from 'vega';
 import { observeSize } from '../foundations/size_observer.js';
 import { loadVega, type VegaModules } from './vegalite_loader.js';
 import { createEmbedOptions, resolveChartColors, type ChartColors } from './vegalite_theme.js';
+import { withViewEncodings } from './vegalite_spec.js';
 import * as styles from './vegalite_chart.module.css';
 
 /// The items of the named datasets of a spec, by dataset name
@@ -113,7 +114,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
             if (disposed) return;
             const colors = resolveChartColors();
             const runtimeSpec = {
-                ...(typeof props.spec === 'function' ? props.spec(colors) : props.spec),
+                ...withViewEncodings(typeof props.spec === 'function' ? props.spec(colors) : props.spec),
                 width: 'container',
                 height: 'container',
                 autosize: { type: 'fit', contains: 'padding', resize: true },

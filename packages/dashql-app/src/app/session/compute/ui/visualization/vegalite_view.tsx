@@ -5,6 +5,7 @@ import * as styles from './visualization.module.css';
 import { loadVega } from '../../../../../ui/vegalite/vegalite_loader.js';
 import { arrowTableToRows } from '../../../../../ui/vegalite/vegalite_rows.js';
 import { createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../../../../../ui/vegalite/vegalite_theme.js';
+import { withViewEncodings } from '../../../../../ui/vegalite/vegalite_spec.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../../../../query/query_execution_state.js';
 import { useComputationRegistry } from '../../../../../compute/computation_registry.js';
 import {
@@ -168,7 +169,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
         let finalizeView: (() => void) | null = null;
         let stableScaleDomains: VegaStableScaleDomain[] = [];
         const baseSpec = crossFilterBinding?.spec ?? (props.hideLegend ? stripLegends(spec) : spec);
-        const runtimeSpec = { ...baseSpec } as TopLevelSpec & {
+        const runtimeSpec = { ...withViewEncodings(baseSpec) } as TopLevelSpec & {
             width?: unknown;
             height?: unknown;
             autosize?: unknown;

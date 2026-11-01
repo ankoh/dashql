@@ -1,6 +1,7 @@
 import type { TopLevelSpec } from 'vega-lite';
 
 import { loadVega, type VegaModules } from './vegalite_loader.js';
+import { withViewEncodings } from './vegalite_spec.js';
 import { createVegaLiteConfig, resolveChartColors } from './vegalite_theme.js';
 
 /// The size of a chart image in CSS pixels, the image has `scale` times as many pixels
@@ -41,7 +42,7 @@ export interface ChartImage {
 export async function renderVegaLitePng(spec: TopLevelSpec, rows: readonly object[], options: ChartImageOptions = {}): Promise<ChartImage> {
     const { vega, vegaLite, expressionInterpreter } = await (options.loader ?? loadVega)();
     const sizedSpec = {
-        ...spec,
+        ...withViewEncodings(spec),
         data: { values: rows },
         width: options.width ?? CHART_IMAGE_WIDTH,
         height: options.height ?? CHART_IMAGE_HEIGHT,

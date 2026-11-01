@@ -1,5 +1,6 @@
 import { stringifyError } from '../../platform/logger/logger.js';
 import { loadVega } from './vegalite_loader.js';
+import { withViewEncodings } from './vegalite_spec.js';
 
 /// The logger that Vega-Lite reports problems to
 type VegaLiteLogger = NonNullable<NonNullable<Parameters<typeof import('vega-lite').compile>[1]>['logger']>;
@@ -14,7 +15,7 @@ export async function checkVegaLiteSpec(spec: Record<string, unknown>): Promise<
     };
     const logger: VegaLiteLogger = { level: () => logger, error: collect, warn: collect, info: () => logger, debug: () => logger };
     try {
-        vegaLite.compile({ ...spec, data: { values: [] } } as Parameters<typeof vegaLite.compile>[0], { logger });
+        vegaLite.compile({ ...withViewEncodings(spec), data: { values: [] } } as Parameters<typeof vegaLite.compile>[0], { logger });
     } catch (e: unknown) {
         problems.push(stringifyError(e));
     }
