@@ -15,6 +15,12 @@ const FIRST_SEPARATOR_HEIGHT = 48;
 
 export class FeedRowHeightCache {
     private readonly measuredHeights = new Map<number, number>();
+    /// The mean amount that the measured scripts exceed their estimates by.
+    /// The estimate only counts the editor lines, the results of a script make its card taller.
+    /// react-window sizes the list by extrapolating the rows it has laid out, the measured rows around the viewport.
+    /// With the unmeasured rows at their bare estimate, the list grows far taller than its rows,
+    /// and a scroll into that excess shows an empty feed.
+    private estimateCorrection = 0;
 
     constructor(
         private entries: FeedLayoutEntry[],
@@ -23,15 +29,33 @@ export class FeedRowHeightCache {
     ) {}
 
     updateEntries(entries: FeedLayoutEntry[], firstSeparatorHeight = this.firstSeparatorHeight) {
-        this.entries = entries;
+        if (entries !== this.entries) {
+            this.entries = entries;
+            this.updateEstimateCorrection();
+        }
         this.firstSeparatorHeight = firstSeparatorHeight;
+    }
+
+    private updateEstimateCorrection() {
+        let excess = 0;
+        let measured = 0;
+        for (const entry of this.entries) {
+            const height = this.measuredHeights.get(entry.scriptId);
+            if (height == null) continue;
+            excess += height - entry.estimatedHeight;
+            ++measured;
+        }
+        this.estimateCorrection = measured === 0 ? 0 : excess / measured;
+    }
+
+    private getEntryHeight(entry: FeedLayoutEntry) {
+        return this.measuredHeights.get(entry.scriptId)
+            ?? Math.max(SEPARATOR_HEIGHT, Math.round(entry.estimatedHeight + this.estimateCorrection));
     }
 
     getAverageRowHeight() {
         if (this.entries.length === 0) return SEPARATOR_HEIGHT;
-        const totalEntryHeight = this.entries.reduce((total, entry) => (
-            total + (this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight)
-        ), 0);
+        const totalEntryHeight = this.entries.reduce((total, entry) => total + this.getEntryHeight(entry), 0);
         const totalSeparatorHeight = this.firstSeparatorHeight + this.entries.length * SEPARATOR_HEIGHT;
         return (totalEntryHeight + totalSeparatorHeight) / (this.entries.length * 2 + 1);
     }
@@ -41,7 +65,7 @@ export class FeedRowHeightCache {
             return index === 0 ? this.firstSeparatorHeight : SEPARATOR_HEIGHT;
         }
         const entry = this.entries[Math.floor(index / 2)];
-        return entry == null ? undefined : this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight;
+        return entry == null ? undefined : this.getEntryHeight(entry);
     }
 
     /// The offset of a row from the top of the list, the sum of the rows above it
@@ -56,9 +80,10 @@ export class FeedRowHeightCache {
     setRowHeight = (index: number, height: number) => {
         const entry = index % 2 === 1 ? this.entries[Math.floor(index / 2)] : null;
         if (entry == null) return;
-        const previousHeight = this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight;
-        if (previousHeight === height) return;
+        if (this.measuredHeights.get(entry.scriptId) === height) return;
+        const previousHeight = this.getEntryHeight(entry);
         this.measuredHeights.set(entry.scriptId, height);
+        this.updateEstimateCorrection();
         this.onChange(index, previousHeight, height);
     };
 
