@@ -16,7 +16,7 @@ import {
 } from './session_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/shell_result.js';
-import { useAppConfig } from '../../config/app_config.js';
+import { useAppConfig } from '../../../config/app_config.js';
 import { getKeywordCase } from '../ui/script_format.js';
 import { ConnectorType } from '../../../connections/connector_info.js';
 import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '../../../connections/connection_label.js';

@@ -7,9 +7,9 @@ import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { GitHubTheme } from '../theme/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
-import { FlavorProvider } from '../app/flavor/flavor_provider.js';
-import { FLAVOR_QUERY_PARAMETER, getRequestedFlavor, resolveFlavor } from '../app/flavor/flavor_resolution.js';
-import { DASHQL_FLAVOR, type AppFlavor } from '../app/flavor/flavors.js';
+import { FlavorProvider } from '../config/flavor_provider.js';
+import { FLAVOR_QUERY_PARAMETER, getRequestedFlavor, resolveFlavor } from '../config/flavor_resolution.js';
+import { DASHQL_FLAVOR, type AppFlavor } from '../config/flavors.js';
 import { DEMOS, type DemoEntry } from './demo_registry.js';
 import * as styles from './demos.module.css';
 

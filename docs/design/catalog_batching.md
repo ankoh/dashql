@@ -69,7 +69,7 @@ There is one batch worker per main-thread `DashQL` instance (`batch_worker.ts`, 
 exported as `@ankoh/dashql-core/browser-worker`).
 
 - `DashQLCoreProvider` initializes the worker during initial core setup when created with
-  `initialSetup={{ setupBatchWorker: true }}` (`packages/dashql-app/src/app/providers/core_provider.tsx`). The
+  `initialSetup={{ setupBatchWorker: true }}` (`packages/dashql-app/src/runtime/core_provider.tsx`). The
   session app enables it; the shell does not. The option is captured at creation.
 - `initialize()` warms the module with an empty batch and memoizes readiness. Initialization failure fails
   core setup and disposes the worker.

@@ -7,9 +7,9 @@ import { Tooltip } from '../../ui/foundations/tooltip.js';
 import { SESSION_PATH, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_mode.js';
 import { classNames } from '../../utils/classnames.js';
-import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
-import { useAppFlavor } from '../flavor/flavor_provider.js';
-import type { AppFlavorRailPage } from '../flavor/flavors.js';
+import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
+import { useAppFlavor } from '../../config/flavor_provider.js';
+import type { AppFlavorRailPage } from '../../config/flavors.js';
 
 /// Is the pathname a page of the workspace, the sessions and their connections?
 export function isWorkspacePath(pathname: string): boolean {

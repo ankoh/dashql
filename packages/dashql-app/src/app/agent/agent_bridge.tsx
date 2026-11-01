@@ -11,7 +11,7 @@ import {
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { DASHQL_AGENT_PORT } from '../../globals.js';
-import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
+import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { useRouteContext } from '../router/router.js';

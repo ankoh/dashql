@@ -20,7 +20,7 @@ import { connectionEntryFromState, findSessionQueries, useConnectionReferences, 
 import type { ConnectionState } from '../../../connections/connection_state.js';
 import { isHyperWasmConnection } from '../../../connections/connection_label.js';
 import { useSessionScriptsRegistrySetter } from '../scripts/session_scripts_registry.js';
-import { useDashQLCoreSetup } from '../../providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../../runtime/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useCancelQuery } from '../../../connections/query_executor.js';
 import { SessionImportConflictDialog } from '../ui/session_import_conflict_dialog.js';

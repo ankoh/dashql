@@ -28,7 +28,7 @@ import { authenticateSalesforce } from '../connections/salesforce/salesforce_aut
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
-import { useAppConfig } from '../app/config/app_config.js';
+import { useAppConfig } from '../config/app_config.js';
 import { getKeywordCase } from '../app/session/ui/script_format.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import { useFormatDialog } from './format_dialog.js';

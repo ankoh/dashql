@@ -1,4 +1,4 @@
-import type { AppSettings } from '../config/app_config.js';
+import type { AppSettings } from './app_config.js';
 
 /// The logo of a flavor
 export interface AppFlavorLogo {
@@ -78,7 +78,7 @@ export const SIDB_FLAVOR: AppFlavor = {
     displayName: 'SIDB',
     logo: { symbol: 'sidb', aspectRatio: 2231 / 688, wordmark: true },
     tagline: 'powered by Hyper',
-    favicon: new URL('../../../static/favicons/sidb/favicon.svg?no-inline', import.meta.url),
+    favicon: new URL('../../static/favicons/sidb/favicon.svg?no-inline', import.meta.url),
     features: {
         sessionArchiveExport: false,
     },

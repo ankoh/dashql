@@ -3,7 +3,7 @@ import * as styles from './session_feed.module.css';
 
 
 import type { EditorView } from '@codemirror/view';
-import { useAppConfig } from '../../../config/app_config.js';
+import { useAppConfig } from '../../../../config/app_config.js';
 
 import { List } from 'react-window';
 import {

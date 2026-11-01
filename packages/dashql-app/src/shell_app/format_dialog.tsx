@@ -7,7 +7,7 @@ import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createScriptFormatConfig, getKeywordCase, measureScriptFormatWidth } from '../app/session/ui/script_format.js';
-import { useAppConfig } from '../app/config/app_config.js';
+import { useAppConfig } from '../config/app_config.js';
 import { CodeMirror } from '../app/session/scripts/editor/codemirror.js';
 import {
     DashQLScannerDecorationUpdateEffect,

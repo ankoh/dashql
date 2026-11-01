@@ -13,7 +13,7 @@ import { BASE64URL_CODEC } from '../utils/base64.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { CopyToClipboardButton } from '../utils/clipboard.js';
 import { DASHQL_VERSION } from '../globals.js';
-import { FlavorLogo, FlavorProvider, useAppFlavor } from '../app/flavor/flavor_provider.js';
+import { FlavorLogo, FlavorProvider, useAppFlavor } from '../config/flavor_provider.js';
 import { GitHubTheme } from '../theme/github_theme.js';
 import { LogsOverlay } from '../ui/logs_overlay.js';
 import { Logger, stringifyError } from '../platform/logger/logger.js';
@@ -24,7 +24,7 @@ import { classNames } from '../utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
 import { decodeOAuthState, getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
-import { getRequestedFlavor } from '../app/flavor/flavor_resolution.js';
+import { getRequestedFlavor } from '../config/flavor_resolution.js';
 
 import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/tokens.css';

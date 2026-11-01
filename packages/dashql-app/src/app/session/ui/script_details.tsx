@@ -26,7 +26,7 @@ import { useSessionExecution } from '../scripts/session_execution_provider.js';
 import { useStorageReader } from '../../../storage/storage_provider.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
-import { useAppConfig } from '../../config/app_config.js';
+import { useAppConfig } from '../../../config/app_config.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../scripts/editor/dashql_diff_hint.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';

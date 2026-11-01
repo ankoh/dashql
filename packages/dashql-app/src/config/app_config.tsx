@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { ConnectorConfigs, readConnectorConfigs } from '../../connections/connector_configs.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
-import { Logger } from '../../platform/logger/logger.js';
-import { createTrace } from '../../platform/logger/trace_context.js';
-import { AppFlavor, applyFlavorSettings } from '../flavor/flavors.js';
-import { useAppFlavor } from '../flavor/flavor_provider.js';
+import { ConnectorConfigs, readConnectorConfigs } from '../connections/connector_configs.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
+import { Logger } from '../platform/logger/logger.js';
+import { createTrace } from '../platform/logger/trace_context.js';
+import { AppFlavor, applyFlavorSettings } from './flavors.js';
+import { useAppFlavor } from './flavor_provider.js';
 
-const CONFIG_URL = new URL('../../../static/config.json', import.meta.url);
+const CONFIG_URL = new URL('../../static/config.json', import.meta.url);
 
 export interface AppSettings {
     pauseAfterAppSetup?: boolean;

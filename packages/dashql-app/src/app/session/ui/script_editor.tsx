@@ -7,7 +7,7 @@ import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirr
 import { CodeMirror, createCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../scripts/editor/dashql_processor.js';
 import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, SessionScripts, getSelectedScriptRef } from '../scripts/session_scripts.js';
-import { AppConfig, useAppConfig } from '../../config/app_config.js';
+import { AppConfig, useAppConfig } from '../../../config/app_config.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ModifySessionScripts, useSessionScripts } from '../scripts/session_scripts_registry.js';
 import { Logger } from '../../../platform/logger/logger.js';

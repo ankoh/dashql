@@ -6,14 +6,14 @@ import { Button, ButtonVariant, IconButton } from '../../../ui/foundations/butto
 import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 import { SegmentedControl } from '../../../ui/foundations/segmented_control.js';
 
-import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../../config/app_config.js';
+import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../../../config/app_config.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router/router.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { LogLevel } from '../../../platform/logger/log_buffer.js';
 import { useStorageReader } from '../../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../../storage/query_result_cache_provider.js';
-import { AppFlavor, FLAVORS } from '../../flavor/flavors.js';
-import { useAppFlavor, useRequestedAppFlavor } from '../../flavor/flavor_provider.js';
+import { AppFlavor, FLAVORS } from '../../../config/flavors.js';
+import { useAppFlavor, useRequestedAppFlavor } from '../../../config/flavor_provider.js';
 import { useAppRestart } from '../../../platform/crosstab/app_hand_over.js';
 
 export function AppSettings(props: { onClose: () => void; }) {

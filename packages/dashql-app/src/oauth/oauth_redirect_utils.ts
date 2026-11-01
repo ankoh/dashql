@@ -1,5 +1,5 @@
 import type { OAuthState } from './oauth_types.js';
-import { AppFlavor, FLAVORS } from '../app/flavor/flavors.js';
+import { AppFlavor, FLAVORS } from '../config/flavors.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
 
 const PUBLIC_OAUTH_ORIGINS = new Set(['https://dashql.app', 'https://hyperdb.sh']);

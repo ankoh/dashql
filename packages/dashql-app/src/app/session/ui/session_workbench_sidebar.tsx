@@ -86,13 +86,13 @@ import { useDetachConnection } from '../session_connection_detach.js';
 import { useDeleteConnection } from '../../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../../connections/connection_merge.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../../../connections/connection_label.js';
-import { useAppFlavor } from '../../flavor/flavor_provider.js';
+import { useAppFlavor } from '../../../config/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from './session_file_save_overlay.js';
 import * as styles from './session_workbench_sidebar.module.css';
 import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../../../connections/connection_tree.js';
 import * as actionMenuStyles from '../../ui/action_menu.module.css';
-import { useDashQLCoreSetup } from '../../providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../../runtime/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { PlatformType, usePlatformType } from '../../../platform/platform_type.js';
 

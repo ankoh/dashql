@@ -9,7 +9,7 @@ import { ParticleFlowBackground } from '../../../ui/particle_flow/particle_flow_
 import { formatBytes } from '../../../utils/format.js';
 import type { SessionBundle } from '../../../storage/session_bundle.js';
 import { CompactNavBar } from '../../ui/navbar.js';
-import { useAppFlavor } from '../../flavor/flavor_provider.js';
+import { useAppFlavor } from '../../../config/flavor_provider.js';
 import type { HttpSessionLoadProgress, HttpSessionLoadResult } from '../persistence/http_session_bundle.js';
 import * as styles from './session_import_card.module.css';
 

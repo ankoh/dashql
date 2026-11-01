@@ -16,7 +16,7 @@ import {
     HyperDatabaseClient,
 } from './hyperdb_grpc_client.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useAppConfig } from '../../app/config/app_config.js';
+import { useAppConfig } from '../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';

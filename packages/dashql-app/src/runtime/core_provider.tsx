@@ -1,11 +1,11 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as React from 'react';
 
-import { useLogger } from '../../platform/logger/logger_provider.js';
-import { TracedLogger, stringifyError } from '../../platform/logger/logger.js';
-import { createTrace } from '../../platform/logger/trace_context.js';
-import { decodedContentLength } from '../../utils/content_length.js';
-import { disposeCatalogBatchWorker, initializeCatalogBatchWorker } from '../../connections/catalog/catalog_batch.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
+import { TracedLogger, stringifyError } from '../platform/logger/logger.js';
+import { createTrace } from '../platform/logger/trace_context.js';
+import { decodedContentLength } from '../utils/content_length.js';
+import { disposeCatalogBatchWorker, initializeCatalogBatchWorker } from '../connections/catalog/catalog_batch.js';
 import { CorePanicOverlay } from './core_panic_overlay.js';
 
 // Load the WebAssembly asset through the core package export.

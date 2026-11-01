@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppConfig } from '../../config/app_config.js';
-import { useAppSettingsReady } from '../../config/app_settings_sync.js';
+import { useAppConfig } from '../../../config/app_config.js';
+import { useAppSettingsReady } from '../../../config/app_settings_sync.js';
 
 /// How a session is shown
 export enum SessionViewMode {

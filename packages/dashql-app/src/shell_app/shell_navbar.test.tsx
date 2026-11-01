@@ -4,9 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { ResizeObserverMock } from '../tests/mocks/view_mocks.js';
 import { ShellNavBar } from './shell_navbar.js';
-import { FlavorProvider } from '../app/flavor/flavor_provider.js';
-import { applyFlavorToDocument } from '../app/flavor/flavor_resolution.js';
-import { DASHQL_FLAVOR, SIDB_FLAVOR } from '../app/flavor/flavors.js';
+import { FlavorProvider } from '../config/flavor_provider.js';
+import { applyFlavorToDocument } from '../config/flavor_resolution.js';
+import { DASHQL_FLAVOR, SIDB_FLAVOR } from '../config/flavors.js';
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 

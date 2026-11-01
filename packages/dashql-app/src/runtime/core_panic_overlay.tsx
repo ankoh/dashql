@@ -1,12 +1,12 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as React from 'react';
 
-import * as baseStyles from '../../ui/banner/banner_page.module.css';
+import * as baseStyles from '../ui/banner/banner_page.module.css';
 import * as styles from './core_panic_overlay.module.css';
 
-import { Button, ButtonVariant } from '../../ui/foundations/button.js';
-import { useAppRestart } from '../../platform/crosstab/app_hand_over.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { useAppRestart } from '../platform/crosstab/app_hand_over.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 
 const LOG_CTX = 'core';
 

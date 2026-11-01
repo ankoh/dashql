@@ -8,8 +8,8 @@ import { SegmentedControl } from '../../../../ui/foundations/segmented_control.j
 import { Button } from '../../../../ui/foundations/button.js';
 import { ConnectionHealth } from '../../../../connections/connection_state.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
-import { FlavorProvider } from '../../../flavor/flavor_provider.js';
-import { SIDB_FLAVOR } from '../../../flavor/flavors.js';
+import { FlavorProvider } from '../../../../config/flavor_provider.js';
+import { SIDB_FLAVOR } from '../../../../config/flavors.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

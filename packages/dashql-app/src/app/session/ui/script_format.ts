@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import type { EditorView } from '@codemirror/view';
 
 import type { ScriptData } from '../scripts/session_scripts.js';
-import type { AppSettings } from '../../config/app_config.js';
+import type { AppSettings } from '../../../config/app_config.js';
 import { ConnectorType } from '../../../connections/connector_info.js';
 
 const DEFAULT_FORMAT_WIDTH = 80;

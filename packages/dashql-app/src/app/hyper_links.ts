@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useConnectionSaver } from '../connections/connection_persistence.js';
 import { connectionLabel } from '../connections/connection_label.js';
-import { useDashQLCoreSetup } from './providers/core_provider.js';
+import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_LINK_SESSION, useRouteContext, useRouterNavigate } from './router/router.js';
 import { sessionConnectionIds, type SessionScripts } from './session/scripts/session_scripts.js';
 import { useSessionScriptsRegistryReader } from './session/scripts/session_scripts_registry.js';

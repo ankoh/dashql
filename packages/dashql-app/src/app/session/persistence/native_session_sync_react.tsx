@@ -7,7 +7,7 @@ import { isDesktopHost } from '../../../platform/native_globals.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useStorage } from '../../../storage/storage_provider.js';
-import { useAppFlavor } from '../../flavor/flavor_provider.js';
+import { useAppFlavor } from '../../../config/flavor_provider.js';
 import type { SessionScriptsStorageSnapshot, SessionScripts } from '../scripts/session_scripts.js';
 import type { NamedFileStamp } from '../../../storage/native_storage_backend.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection } from '../../../connections/connection_restore.js';

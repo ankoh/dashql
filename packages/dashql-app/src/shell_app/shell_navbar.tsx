@@ -4,7 +4,7 @@ import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position
 import { DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { FlavorLogo, useRequestedAppFlavor } from '../app/flavor/flavor_provider.js';
+import { FlavorLogo, useRequestedAppFlavor } from '../config/flavor_provider.js';
 import { Tag, TagVariant } from '../ui/foundations/tag.js';
 import { ShellInternals } from './internals.js';
 

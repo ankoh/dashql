@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
 import { OPEN_LINK_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useDashQLCoreSetup } from '../providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { stringifyError } from '../../platform/logger/logger.js';

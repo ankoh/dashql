@@ -4,7 +4,7 @@ import { SalesforceApiClient, SalesforceApiClientInterface } from './salesforce_
 import { SalesforceAPIClientMock } from './salesforce_api_client_mock.js';
 import { mockSalesforceAuthFlow as mockSalesforceSetup } from './salesforce_connection_setup_mock.js';
 import { SalesforceSetupApi, createSalesforceSetup } from './salesforce_connection_setup.js';
-import { useAppConfig } from '../../app/config/app_config.js';
+import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';

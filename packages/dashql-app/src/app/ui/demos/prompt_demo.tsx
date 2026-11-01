@@ -4,7 +4,7 @@ import * as styles from './prompt_demo.module.css';
 
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { useDashQLCoreSetup } from '../../providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../../runtime/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { PromptEditor } from '../../session/scripts/editor/prompt_editor.js';
 

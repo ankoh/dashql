@@ -3,21 +3,21 @@ import * as React from 'react';
 import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
 import { useConnectionAllocator, useConnectionRegistrySetter } from '../../connections/connection_registry.js';
 import { newSessionConnection } from '../../connections/embedded_connection.js';
-import { useDashQLCoreSetup } from '../providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { useSessionCreation } from '../session/session_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import { loadApp, selectStartupSession, shouldFinishInitialNavigation } from './app_loading_logic.js';
-import { useAppConfig } from '../config/app_config.js';
+import { useAppConfig } from '../../config/app_config.js';
 import { useStorage } from '../../storage/storage_provider.js';
 import { useSessionScriptsRegistrySetter } from '../session/scripts/session_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
 import { restoreAppState } from '../session/persistence/app_state_loader.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
-import { useAppSettingsReady } from '../config/app_settings_sync.js';
+import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 
 const LOG_CTX = "app_loader";
 

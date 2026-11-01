@@ -15,7 +15,7 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext } from '../router/router.js';
 import { useVersionCheck } from '../../platform/version/version_check.js';
 import { useLocation } from 'react-router-dom';
-import { FlavorLogo, useAppFlavor } from '../flavor/flavor_provider.js';
+import { FlavorLogo, useAppFlavor } from '../../config/flavor_provider.js';
 import { NavRail, useNavRailWide } from './nav_rail.js';
 import { useMacWindowLayout } from './mac_window_layout.js';
 

@@ -10,11 +10,11 @@ import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { JsonView } from '../../ui/json/json_view.js';
 import { projectSqlText, ReadonlySqlView } from '../../app/session/scripts/editor/readonly_sql_view.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import { useDashQLCoreSetup } from '../../app/providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
-import { useAppConfig } from '../../app/config/app_config.js';
+import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../app/session/ui/script_format.js';
 import { HyperPlanView } from '../plan/hyper_plan_view.js';
 

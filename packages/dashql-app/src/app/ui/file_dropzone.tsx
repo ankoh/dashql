@@ -5,7 +5,7 @@ import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant }
 import { PlatformFile } from '../../platform/file/file.js';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 import { FileLoader } from './file_loader.js';
-import { FlavorLogo } from '../flavor/flavor_provider.js';
+import { FlavorLogo } from '../../config/flavor_provider.js';
 
 function FileDropzoneArea() {
     return (

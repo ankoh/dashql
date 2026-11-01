@@ -7,7 +7,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { AppConfigProvider, useAppConfig, useAppReconfigure } from '../app/config/app_config.js';
+import { AppConfigProvider, useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useFormatDialog, type FormatDialogController } from './format_dialog.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

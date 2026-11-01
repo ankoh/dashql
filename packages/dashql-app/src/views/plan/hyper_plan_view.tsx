@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import * as dashql from '@ankoh/dashql-core';
-import { useDashQLCoreSetup } from '../../app/providers/core_provider.js';
+import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { createPlanLayoutConfig, PlanView } from './plan_view.js';
 
 export interface HyperPlanViewProps {
