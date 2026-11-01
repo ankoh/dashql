@@ -39,7 +39,7 @@ The value of an input is a comment tag (`core_parser.md`, Comment Tags) of every
 `@param :name = <literal>`. The parameter is written like in the query, double-quoted if it is no plain word
 (`@param :"foo 2" = 'x'`). `@param :min` leaves the input unset. Like `@flow` the tag annotates any statement of the
 script, the first tag of a name in statement order wins, a second one is a warning (`INVALID_PARAM_TAG`). The analyzer
-collects the tags in `AnalyzedScript.inputs` (`analyzer::param_tags`).
+collects the tags in `AnalyzedScript.param_values` (`analyzer::param_tags`).
 
 The value is a literal in the Hyper dialect, whatever the connection of the script speaks (`sql_literal`): a number
 (`10`, `-2.5`), a string (`'EU'`), `true`, `false`, `null`, or a typed literal (`date '2024-01-01'`,

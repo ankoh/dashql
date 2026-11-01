@@ -115,7 +115,6 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                 statement_id: statement_id as u32,
                 name: Arc::from(parts.name),
                 literal,
-                text_span: block.text_span,
             });
         }
     }

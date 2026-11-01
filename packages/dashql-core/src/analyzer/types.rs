@@ -698,8 +698,6 @@ pub struct ParamTag {
     pub name: Arc<str>,
     /// The value, a literal in the Hyper dialect, None if the input is unset or the value is no literal
     pub literal: Option<crate::sql_literal::SqlLiteral>,
-    /// The tag block
-    pub text_span: TextSpan,
 }
 
 /// A Markdown spec

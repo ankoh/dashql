@@ -59,15 +59,6 @@ pub struct SessionInput {
     pub warnings: Vec<String>,
 }
 
-impl SessionInput {
-    /// The scripts that use the input, in session order
-    pub fn consumer_scripts(&self) -> Vec<u32> {
-        let mut scripts: Vec<u32> = self.consumers.iter().map(|c| c.script).collect();
-        scripts.dedup();
-        scripts
-    }
-}
-
 /// The inputs of a session, in the order of their first use
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SessionInputs {
@@ -93,7 +84,6 @@ impl SessionInputs {
 pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
     let mut inputs: Vec<SessionInput> = Vec::new();
     let mut index: BTreeMap<Arc<str>, usize> = BTreeMap::new();
-    let mut casts: Vec<Option<SqlType>> = Vec::new();
     for (si, script) in request.scripts.iter().enumerate() {
         let Some(p) = Prepared::lenient(script.script) else { continue };
         for parameter in &p.analyzed.parameters {
@@ -111,7 +101,6 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
                     consumers: Vec::new(),
                     warnings: Vec::new(),
                 });
-                casts.push(None);
                 inputs.len() - 1
             });
             let input = &mut inputs[i];
@@ -121,17 +110,19 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
                     input.consumers.push(consumer);
                 }
             }
-            if let Some(cast) = &parameter.cast_type {
-                match &casts[i] {
-                    None => casts[i] = Some(cast.clone()),
-                    Some(first) if first != cast => {
-                        let warning = format!("input :{name} is cast to {first} and to {cast}");
-                        if !input.warnings.contains(&warning) {
-                            input.warnings.push(warning);
-                        }
-                    }
-                    Some(_) => {}
+            // The first cast in session order
+            match &parameter.cast_type {
+                Some(cast) if input.type_source == InputTypeSource::None => {
+                    input.sql_type = cast.clone();
+                    input.type_source = InputTypeSource::Cast;
                 }
+                Some(cast) if input.sql_type != *cast => {
+                    let warning = format!("input :{name} is cast to {} and to {cast}", input.sql_type);
+                    if !input.warnings.contains(&warning) {
+                        input.warnings.push(warning);
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -144,21 +135,14 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
             }
         }
     }
-    for (input, cast) in inputs.iter_mut().zip(casts) {
-        let literal_type = input.literal.as_ref().and_then(SqlLiteral::sql_type);
-        match (cast, literal_type) {
-            (Some(cast), _) => {
-                input.sql_type = cast;
-                input.type_source = InputTypeSource::Cast;
+    // An input without a cast has the type of its literal
+    for input in inputs.iter_mut().filter(|i| i.type_source == InputTypeSource::None) {
+        if let Some(mut literal_type) = input.literal.as_ref().and_then(SqlLiteral::sql_type) {
+            if let SqlTypeKind::Interval { fields, .. } = &mut literal_type.kind {
+                *fields = None;
             }
-            (None, Some(mut literal_type)) => {
-                if let SqlTypeKind::Interval { fields, .. } = &mut literal_type.kind {
-                    *fields = None;
-                }
-                input.sql_type = literal_type;
-                input.type_source = InputTypeSource::Literal;
-            }
-            (None, None) => {}
+            input.sql_type = literal_type;
+            input.type_source = InputTypeSource::Literal;
         }
     }
     SessionInputs { inputs }
