@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
+import { CancelQuery, QueryExecutor } from '../../../connections/query_executor.js';
 import type { DashQLShellEnvironment } from '../../../shell/api.js';
 import {
     EMPTY_RESULT_IPC,

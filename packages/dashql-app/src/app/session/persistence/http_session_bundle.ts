@@ -8,7 +8,7 @@ import {
 import type { SessionBundle } from '../../../storage/session_bundle.js';
 import { assembleSessionBundle, readSessionBundleHead } from '../../../storage/session_bundle.js';
 import { type MigrationFolder, OverlayFolder } from '../../../storage/migration/migration_folder.js';
-import { LEGACY_SESSION_FILE } from '../../../storage/migration/legacy_links.js';
+import { LEGACY_SESSION_FILE } from '../../../platform/events/legacy_links.js';
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_SCRIPT_BYTES = 8 * 1024 * 1024;

@@ -10,10 +10,10 @@ import { EmbeddedDatabaseProvider } from '../../../platform/database/embedded_da
 import type { EmbeddedComputeDatabase } from '../../../platform/database/embedded_database.js';
 import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../../../query/query_execution_state.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
-import { QueryExecutorProvider } from '../../connections/query_executor.js';
+import { ConnectionRegistry, useConnectionRegistry } from '../../../connections/connection_registry.js';
+import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../../connections/connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../../connections/connector_info.js';
+import { QueryExecutorProvider } from '../../../connections/query_executor.js';
 import { SessionTestBackend } from '../../../storage/session_test_backend.js';
 import { StorageProvider } from '../../../storage/storage_provider.js';
 import { SessionExecutionProvider, sessionExecutionIsBusy, useSessionExecution } from './session_execution_provider.js';

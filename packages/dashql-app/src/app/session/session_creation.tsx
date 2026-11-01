@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ConnectionState } from '../connections/connection_state.js';
-import { sessionConnectionFromState } from '../connections/connection_registry.js';
+import { ConnectionState } from '../../connections/connection_state.js';
+import { sessionConnectionFromState } from '../../connections/connection_registry.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
 import { groupSessionManifestWrites, WRITE_SESSION_MANIFEST } from '../../storage/storage_writer.js';
 import { scriptConnectionOf, SessionScripts } from './scripts/session_scripts.js';

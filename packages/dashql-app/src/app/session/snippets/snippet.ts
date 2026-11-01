@@ -1,4 +1,4 @@
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 
 /// The folder of the snippets that load datasets, the browser lists it first
 export const SNIPPET_DATASETS_FOLDER = 'datasets';

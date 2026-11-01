@@ -1,4 +1,4 @@
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { renderScriptReference } from './script_references.js';
 
 /// Describe the SQL dialect of a connector for the agent

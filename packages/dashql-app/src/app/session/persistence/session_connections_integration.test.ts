@@ -3,9 +3,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { Logger } from '../../../platform/logger/logger.js';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
-import type { ConnectionReferences, ConnectionRegistry } from '../../connections/connection_registry.js';
+import type { ConnectionReferences, ConnectionRegistry } from '../../../connections/connection_registry.js';
 import { sessionConnectionReferences } from '../scripts/session_scripts_registry.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { CompositeStorageBackend } from '../../../storage/composite_storage_backend.js';
 import { writePortableSessionFresh } from '../../../storage/session_import_transaction.js';
 import { SessionTestBackend } from '../../../storage/session_test_backend.js';

@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildSchemaContext } from './agent_catalog.js';
-import { isSystemSchema } from '../connections/system_schemas.js';
+import { isSystemSchema } from '../../connections/catalog/system_schemas.js';
 import { Logger } from '../../platform/logger/logger.js';
 
 class TestLogger extends Logger {

@@ -1,8 +1,8 @@
 import * as core from '@ankoh/dashql-core';
 import type * as arrow from 'apache-arrow';
 
-import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
-import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
+import type { CancelQuery, QueryExecutor } from '../../../connections/query_executor.js';
+import type { QueryExecutionArgs } from '../../../connections/query_execution_args.js';
 import { QueryType, type PlannedStatement } from '../../../query/query_execution_state.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
 import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type ScriptData, type SessionScripts } from './session_scripts.js';

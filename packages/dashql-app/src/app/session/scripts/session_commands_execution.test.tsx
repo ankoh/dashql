@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionCommands, type SessionCommandsDependencies } from './session_commands.js';
-import { ConnectionHealth } from '../../connections/connection_state.js';
+import { ConnectionHealth } from '../../../connections/connection_state.js';
 import { SessionConnectionAttentionContext } from '../ui/session_connection_attention.js';
 import { SessionViewMode } from '../ui/session_view_mode.js';
 

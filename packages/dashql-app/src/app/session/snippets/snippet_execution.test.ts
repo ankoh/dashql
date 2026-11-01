@@ -8,7 +8,7 @@ import { SCHEDULE_TASK, type ComputationAction } from '../../../compute/computat
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../../platform/hyperdb/hyperdb_wasm.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { SNIPPET_DATASETS_FOLDER } from './snippet.js';
 import { getBundledSnippets, snippetText } from './snippet_registry.js';
 

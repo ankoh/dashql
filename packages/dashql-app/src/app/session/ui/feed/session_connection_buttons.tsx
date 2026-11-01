@@ -5,10 +5,10 @@ import * as styles from './session_connection_buttons.module.css';
 
 import { AnchorSide } from '../../../../ui/foundations/anchored_position.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
-import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
-import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../../connections/ui/connection_status.js';
-import { ConnectionSettingsOverlay } from '../../../connections/ui/connection_settings_overlay.js';
-import { connectionLabelText } from '../../../connections/ui/connection_label.js';
+import { ConnectionHealth, type ConnectionState } from '../../../../connections/connection_state.js';
+import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../../../connections/connection_status.js';
+import { ConnectionSettingsOverlay } from '../../../../connections/connection_settings_overlay.js';
+import { connectionLabelText } from '../../../../connections/connection_label.js';
 import { useConnectionLabeler } from '../connection_labels.js';
 
 interface Props {

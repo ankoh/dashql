@@ -6,7 +6,7 @@ import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptDa
 import { Dispatch } from '../../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../../utils/store.js';
 import { useStorageWriter } from '../../../storage/storage_provider.js';
-import { ConnectionReferencesProvider, type ConnectionReferences } from '../../connections/connection_registry.js';
+import { ConnectionReferencesProvider, type ConnectionReferences } from '../../../connections/connection_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import type { InvalidSession } from '../../../storage/session_validation.js';

@@ -1,4 +1,4 @@
-import { connectionParamsShareEqual, type ConnectionParams } from '../../connections/connection_params.js';
+import { connectionParamsShareEqual, type ConnectionParams } from '../../../connections/connection_params.js';
 import type { ConnectionEntry, SessionConnection, SessionData } from '../../../storage/storage_backend.js';
 import { dedupeConnections } from '../../../storage/storage_writer.js';
 import { isLocalHyperWasmParams } from '../../../storage/session_validation.js';

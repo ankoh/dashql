@@ -14,11 +14,11 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundation
 import { ButtonGroup } from '../../../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
-import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '../../../../connections/connection_state.js';
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
-import { ConnectorType } from '../../../connections/connector_info.js';
+import { ConnectorType } from '../../../../connections/connector_info.js';
 import { QueryExecutionStatus, queryIsDone } from '../../../../query/query_execution_state.js';
-import { useCancelQuery, useQueryState } from '../../../connections/query_executor.js';
+import { useCancelQuery, useQueryState } from '../../../../connections/query_executor.js';
 import type { StorageReader } from '../../../../storage/storage_provider.js';
 import { getScriptRefs, type SessionScripts, type ScriptData } from '../../scripts/session_scripts.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';

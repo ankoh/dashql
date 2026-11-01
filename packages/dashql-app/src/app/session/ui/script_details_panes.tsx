@@ -7,7 +7,7 @@ import { PaperAirplaneIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import type { QueryExecutionState } from '../../../query/query_execution_state.js';
 import type { ScriptData } from '../scripts/session_scripts.js';
-import type { ConnectorType } from '../../connections/connector_info.js';
+import type { ConnectorType } from '../../../connections/connector_info.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { ButtonGroup } from '../../../ui/foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';

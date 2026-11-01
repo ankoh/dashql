@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
-import { useConnectionAllocator, useConnectionRegistrySetter } from '../connections/connection_registry.js';
-import { newSessionConnection } from '../connections/embedded_connection.js';
+import { useConnectionAllocator, useConnectionRegistrySetter } from '../../connections/connection_registry.js';
+import { newSessionConnection } from '../../connections/embedded_connection.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';

@@ -12,7 +12,7 @@ import { ShellQueryHistoryProvider } from './shell_query_history.js';
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import { DashQLCoreProvider } from '../app/providers/core_provider.js';
-import { ShellComputeQueryExecutionProvider } from './computation_query_execution.js';
+import { ShellComputeQueryExecutionProvider } from './shell_compute_query_execution.js';
 import { AppConfigProvider } from '../app/config/app_config.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';

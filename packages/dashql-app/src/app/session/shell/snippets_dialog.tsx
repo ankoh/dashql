@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { ConnectorType } from '../../connections/connector_info.js';
+import type { ConnectorType } from '../../../connections/connector_info.js';
 import { SnippetBrowser } from '../ui/snippets/snippets_overlay.js';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 import { useFocusTrap } from '../../../ui/foundations/focus.js';

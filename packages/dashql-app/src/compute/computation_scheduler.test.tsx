@@ -36,7 +36,7 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { ComputationRegistry, useComputationRegistry } from './computation_registry.js';
-import { ComputeQueryExecutionProvider } from './computation_query_execution.js';
+import { ComputeQueryExecutionProvider } from './compute_query_execution.js';
 import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from './computation_state.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 

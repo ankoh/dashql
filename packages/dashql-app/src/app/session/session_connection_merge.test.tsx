@@ -9,12 +9,12 @@ import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_datab
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../connections/connection_state.js';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
-import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
-import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
-import { QueryExecutorProvider, useQueryExecutor } from '../connections/query_executor.js';
+import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
+import type { HyperLogMetrics } from '../../connections/hyper/hyper_log_metrics.js';
+import { HyperLogMetricsProvider, useHyperLogMetrics } from '../../connections/hyper/hyper_log_metrics_provider.js';
+import { QueryExecutorProvider, useQueryExecutor } from '../../connections/query_executor.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { SessionScriptsRegistryProvider } from './scripts/session_scripts_registry.js';

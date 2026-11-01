@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { EditorView } from '@codemirror/view';
 
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
-import { ConnectorType } from '../../../connections/connector_info.js';
+import { ConnectorType } from '../../../../connections/connector_info.js';
 import { buildSnippetRegistry } from '../../snippets/snippet_registry.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';

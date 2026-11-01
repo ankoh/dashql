@@ -3,8 +3,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
-import type { ConnectionState } from '../connections/connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import type { ConnectionState } from '../../connections/connection_state.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../../storage/storage_provider.js';
 import type { StorageWriter } from '../../storage/storage_writer.js';

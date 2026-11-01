@@ -5,9 +5,9 @@ import type { LoggerLike, Logger } from '../../platform/logger/logger.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import type { AgentCommandParams, AgentCommandResult } from '../../platform/agent/agent_protocol.js';
 import { AgentCommandError } from '../../platform/agent/agent_client.js';
-import type { ConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
-import type { QueryExecutor } from '../connections/query_executor.js';
+import type { ConnectionRegistry } from '../../connections/connection_registry.js';
+import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import type { QueryExecutor } from '../../connections/query_executor.js';
 import {
     CREATE_SCRIPT,
     RENAME_SCRIPT,

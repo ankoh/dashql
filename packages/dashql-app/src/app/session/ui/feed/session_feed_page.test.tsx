@@ -6,7 +6,7 @@ import { SessionFeedPage, type SessionFeedPageDependencies } from './session_fee
 import { SessionViewMode } from '../session_view_mode.js';
 import { SegmentedControl } from '../../../../ui/foundations/segmented_control.js';
 import { Button } from '../../../../ui/foundations/button.js';
-import { ConnectionHealth } from '../../../connections/connection_state.js';
+import { ConnectionHealth } from '../../../../connections/connection_state.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { FlavorProvider } from '../../../flavor/flavor_provider.js';
 import { SIDB_FLAVOR } from '../../../flavor/flavors.js';

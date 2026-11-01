@@ -15,7 +15,7 @@ import { TaskStatus, TaskProgress, TaskVariant, COLUMN_AGGREGATION_TASK, DATA_SE
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../platform/logger/logger_provider.js';
 import type { ComputeQueryExecution } from './computation_tasks.js';
-import { useCreateComputeQueryExecution } from './computation_query_execution.js';
+import { useCreateComputeQueryExecution } from './compute_query_execution.js';
 
 const LOG_CTX = 'scheduler';
 

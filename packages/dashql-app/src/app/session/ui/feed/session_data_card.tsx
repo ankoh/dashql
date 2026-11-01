@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './session_feed.module.css';
-import type { ConnectionState } from '../../../connections/connection_state.js';
-import { connectionReadsAttachments } from '../../../connections/connector_descriptor.js';
+import type { ConnectionState } from '../../../../connections/connection_state.js';
+import { connectionReadsAttachments } from '../../../../connections/connector_descriptor.js';
 import type { DataFile } from '../../../../storage/storage_backend.js';
 import type { StorageReader } from '../../../../storage/storage_provider.js';
 import { useFileDownloader } from '../../../../platform/file/file_downloader_hook.js';

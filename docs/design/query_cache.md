@@ -171,7 +171,7 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - Key derivation: `packages/dashql-app/src/query/query_result_cache_key.ts`
 - Cache contract: `packages/dashql-app/src/query/query_result_cache.ts`
 - OPFS implementation: `packages/dashql-app/src/storage/opfs_query_result_cache.ts`
-- Executor integration: `packages/dashql-app/src/app/connections/query_executor.tsx`
+- Executor integration: `packages/dashql-app/src/connections/query_executor.tsx`
 - Eviction policy: `packages/dashql-app/src/storage/query_result_cache_eviction.ts`
 - Files of runs: `createExecutionMounts` in `packages/dashql-app/src/app/session/scripts/session_execution.ts`
 - Cache inspection UI: `packages/dashql-app/src/app/session/persistence/ui/query_cache_view.tsx`

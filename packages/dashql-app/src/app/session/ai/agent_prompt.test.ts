@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 
 describe('Agent prompt', () => {
     it('names the dialect and the dashql commands in the agent prompt', () => {

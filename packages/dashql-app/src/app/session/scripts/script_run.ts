@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { QueryExecutor } from '../../connections/query_executor.js';
+import type { QueryExecutor } from '../../../connections/query_executor.js';
 import { isQueryCacheMiss, type QueryResultCache } from '../../../query/query_result_cache.js';
 import { QueryType } from '../../../query/query_execution_state.js';
 import {
@@ -22,7 +22,7 @@ import {
     type ExecutionMounts,
 } from './session_execution.js';
 import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, scriptResultOwner, type ScriptData, type SessionScripts } from './session_scripts.js';
-import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
+import type { QueryExecutionArgs } from '../../../connections/query_execution_args.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
 import { yieldToBrowser } from '../../../utils/yield_to_browser.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';

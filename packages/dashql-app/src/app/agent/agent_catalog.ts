@@ -1,10 +1,10 @@
 import * as core from '@ankoh/dashql-core';
 
 import type { Logger } from '../../platform/logger/logger.js';
-import type { ConnectionState } from '../connections/connection_state.js';
+import type { ConnectionState } from '../../connections/connection_state.js';
 import type { SessionScripts } from '../session/scripts/session_scripts.js';
-import { quoteIdentifier } from '../connections/catalog_sql_generator.js';
-import { isSystemSchema } from '../connections/system_schemas.js';
+import { quoteIdentifier } from '../../connections/catalog/catalog_sql_generator.js';
+import { isSystemSchema } from '../../connections/catalog/system_schemas.js';
 
 const LOG_CTX = 'agent_catalog';
 

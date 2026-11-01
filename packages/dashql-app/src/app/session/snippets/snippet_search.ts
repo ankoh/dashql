@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../../../platform/database/embedded_database.js';
 import { quoteLiteral } from '../../../platform/hyperdb/hyperdb_incremental_extract.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import type { SnippetRegistry } from './snippet_registry.js';
 
 /// The table of the snippets in the snippet database, one row per snippet and connector

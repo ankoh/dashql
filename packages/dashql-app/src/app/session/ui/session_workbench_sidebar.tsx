@@ -38,7 +38,7 @@ import {
 import { classNames } from '../../../utils/classnames.js';
 import { OPEN_SESSION, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../../router/router.js';
 import { SessionSetupStatus } from '../../loading/session_setup_status.js';
-import { ConnectionState, RENAME_CONNECTION } from '../../connections/connection_state.js';
+import { ConnectionState, RENAME_CONNECTION } from '../../../connections/connection_state.js';
 import {
     findSessionQueries,
     useConnectionReferences,
@@ -46,15 +46,15 @@ import {
     useConnectionAllocator,
     useSessionConnections,
     useDynamicConnectionDispatch,
-} from '../../connections/connection_registry.js';
+} from '../../../connections/connection_registry.js';
 import {
     createConnectionStateFromParams,
     createAttachedConnectionParamsForConnector,
-} from '../../connections/connection_params.js';
-import { useEmbeddedConnection, useNewSessionConnection } from '../../connections/embedded_connection.js';
-import { ATTACHABLE_CONNECTORS } from '../../connections/attached_connection.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
-import { ConnectionSettingsOverlay } from '../../connections/ui/connection_settings_overlay.js';
+} from '../../../connections/connection_params.js';
+import { useEmbeddedConnection, useNewSessionConnection } from '../../../connections/embedded_connection.js';
+import { ATTACHABLE_CONNECTORS } from '../../../connections/attached_connection.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../../connections/connector_info.js';
+import { ConnectionSettingsOverlay } from '../../../connections/connection_settings_overlay.js';
 import { renderSessionName } from './session_name.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
 import { VerticalScrollShadows } from '../../../ui/foundations/vertical_scroll_shadows.js';
@@ -83,14 +83,14 @@ import { RENAME_SESSION } from '../scripts/session_scripts.js';
 import { NameInput } from '../../../ui/foundations/name_input.js';
 import { useMergeConnections } from '../session_connection_merge.js';
 import { useDetachConnection } from '../session_connection_detach.js';
-import { useDeleteConnection } from '../../connections/connection_deletion.js';
-import { connectionMergeCandidates } from '../../connections/connection_merge.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../../connections/ui/connection_label.js';
+import { useDeleteConnection } from '../../../connections/connection_deletion.js';
+import { connectionMergeCandidates } from '../../../connections/connection_merge.js';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../../../connections/connection_label.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from './session_file_save_overlay.js';
 import * as styles from './session_workbench_sidebar.module.css';
-import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../../connections/ui/connection_tree.js';
+import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../../../connections/connection_tree.js';
 import * as actionMenuStyles from '../../ui/action_menu.module.css';
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';

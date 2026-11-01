@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '../../connections/connection_state.js';
-import { connectorOfDetails } from '../../connections/connector_descriptor.js';
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
+import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '../../../connections/connection_state.js';
+import { connectorOfDetails } from '../../../connections/connector_descriptor.js';
+import { useConnectionRegistry } from '../../../connections/connection_registry.js';
+import { useCancelQuery, useQueryExecutor } from '../../../connections/query_executor.js';
 import { useSessionScriptsRegistry, useSessionScriptsRegistryReader, type ModifySessionScripts } from './session_scripts_registry.js';
 import { createExecutionMounts, isSessionExecutionRunning, runSessionExecution, subscribeSessionExecutions, type SessionExecutionState } from './session_execution.js';
-import { isHyperWasmConnection } from '../../connections/ui/connection_label.js';
+import { isHyperWasmConnection } from '../../../connections/connection_label.js';
 import { useComputeDatabase } from '../../../compute/compute_connection_provider.js';
 import { supportsParquet } from '../../../platform/hyperdb/hyperdb_parquet_export.js';
 import { registerScriptRunServices, type ScriptRunServices } from './script_run.js';
-import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
+import { computeQueryCacheKeyForConnection } from '../../../connections/query_executor.js';
 import { useQueryResultCache } from '../../../storage/query_result_cache_provider.js';
 import { scriptConnectionIds } from './session_scripts.js';
 import { QueryType } from '../../../query/query_execution_state.js';

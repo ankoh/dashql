@@ -11,7 +11,7 @@ import { DatabaseIcon, FileIcon, LibraryIcon, SearchIcon, XIcon } from '../../..
 import { TextInput } from '../../../../ui/foundations/text_input.js';
 import { TreeEntry, TreeEntryName } from '../../../../ui/foundations/tree_entry.js';
 import { useEmbeddedDatabaseSetup } from '../../../../platform/database/embedded_database_provider.js';
-import { ConnectorType } from '../../../connections/connector_info.js';
+import { ConnectorType } from '../../../../connections/connector_info.js';
 import { useDashQLCoreSetup } from '../../../providers/core_provider.js';
 import { ReadonlySqlView, useProjectedSqlText } from '../../scripts/editor/readonly_sql_view.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase, measureScriptFormatWidth } from '../script_format.js';

@@ -1,19 +1,19 @@
 import * as React from 'react';
 
 import { SELECT_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useConnectionDispatch, useSessionConnections } from '../connections/connection_registry.js';
+import { useConnectionDispatch, useSessionConnections } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { AppLoadingPage } from '../ui/app_loading_page.js';
 import { canShowSession } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useAppSettingsReady } from '../config/app_settings_sync.js';
-import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
+import { useHyperSetup } from '../../connections/hyper/hyper_connection_setup.js';
 import { useInitialMemorySetup } from './initial_memory_setup.js';
 import { SessionSetupStatus } from './session_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../ui/narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
 import { useSharedSessionImport } from './shared_session_import.js';
-import { useHyperLinks } from '../hyper_link/hyper_links.js';
+import { useHyperLinks } from '../hyper_links.js';
 
 interface Props { }
 

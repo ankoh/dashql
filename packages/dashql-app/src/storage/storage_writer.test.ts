@@ -25,10 +25,10 @@ import {
     storageWriteChainKey,
 } from './storage_writer.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
-import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../app/connections/connector_info.js';
-import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../app/connections/connection_state.js';
-import { CONNECTOR_INFOS } from '../app/connections/connector_info.js';
-import { sessionConnectionFromState } from '../app/connections/connection_registry.js';
+import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
+import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
+import { CONNECTOR_INFOS } from '../connections/connector_info.js';
+import { sessionConnectionFromState } from '../connections/connection_registry.js';
 import { testConnections, testSession, TEST_CONNECTION_ID, TEST_SESSION_ID } from './session_test_backend.js';
 
 class NullLogger extends Logger {

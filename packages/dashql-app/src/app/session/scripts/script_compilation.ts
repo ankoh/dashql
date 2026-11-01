@@ -1,6 +1,6 @@
 import * as core from '@ankoh/dashql-core';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
 import type { ResolvedVisualizeQuery } from './script_types.js';
 

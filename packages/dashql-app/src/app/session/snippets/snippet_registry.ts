@@ -1,6 +1,6 @@
 import type * as dashql from '@ankoh/dashql-core';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { SNIPPET_DATASETS_FOLDER, type Snippet } from './snippet.js';
 import { parseSnippetFile, type SnippetFile } from './snippet_header.js';
 

@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { AgentBridge } from '../../agent/agent_bridge.js';
 import { AgentConnectionStatus } from '../../../platform/agent/agent_client.js';
 import { newScriptConnection, type SessionScripts, type ScriptData } from '../scripts/session_scripts.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { buildCatalogNameIndex, collectMentionedIdentifiers } from './catalog_name_index.js';
 import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
 import { collectReferencedScripts } from './script_references.js';

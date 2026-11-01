@@ -2,11 +2,11 @@ import * as React from 'react';
 
 import type { Logger } from '../../platform/logger/logger.js';
 import { stringifyError } from '../../platform/logger/logger.js';
-import type { DynamicConnectionDispatch } from '../connections/connection_registry.js';
-import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
-import type { HyperSetupApi } from '../connections/hyper/hyper_connection_setup.js';
-import { cancelConnectionSetup, registerConnectionSetup } from '../connections/connection_setup_cancellation.js';
-import { isHyperLinkParams, useHyperLinkTabState } from '../hyper_link/hyper_link.js';
+import type { DynamicConnectionDispatch } from '../../connections/connection_registry.js';
+import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import type { HyperSetupApi } from '../../connections/hyper/hyper_connection_setup.js';
+import { cancelConnectionSetup, registerConnectionSetup } from '../../connections/connection_setup_cancellation.js';
+import { isHyperLinkParams, useHyperLinkTabState } from '../../connections/hyper/hyper_link.js';
 
 const startupAttempts = new Map<string, AbortController>();
 

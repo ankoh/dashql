@@ -2,10 +2,10 @@ import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { LEGACY_SESSION_QUERY_PARAMETER, migrateAppEventData } from '../../storage/migration/legacy_links.js';
+import { LEGACY_SESSION_QUERY_PARAMETER, migrateAppEventData } from './legacy_links.js';
 import { Logger } from '../logger/logger.js';
 import { PlatformDragDropEventVariant, SETUP_SESSION, SETUP_SESSION_URL, SetupEventVariant } from './event.js';
-import { parseHyperLinkTarget, type HyperLinkTarget } from '../../app/hyper_link/hyper_link.js';
+import { parseHyperLinkTarget, type HyperLinkTarget } from './hyper_link_target.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";

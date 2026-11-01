@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
 
 /// The comment tag of the description of a snippet

@@ -1,6 +1,6 @@
 import * as core from '@ankoh/dashql-core';
 
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../../connections/connector_info.js';
 import { createEmptyScriptData, replaceScriptSessionText, type SessionScripts } from '../scripts/session_scripts.js';
 import { createEmptyMetadata, createScriptRef } from '../scripts/script_types.js';
 

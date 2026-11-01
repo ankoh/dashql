@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth } from '../../connections/connection_state.js';
+import { ConnectionHealth } from '../../../connections/connection_state.js';
 import { SessionShellsPage, type SessionShellsPageDependencies } from './session_shells_page.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

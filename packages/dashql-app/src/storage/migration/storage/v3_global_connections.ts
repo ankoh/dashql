@@ -1,5 +1,5 @@
 import { stringifyError } from '../../../platform/logger/logger.js';
-import { connectionParamsEqual, connectionParamsKey, connectionParamsWithoutDraftRows } from '../../../app/connections/connection_params.js';
+import { connectionParamsEqual, connectionParamsKey, connectionParamsWithoutDraftRows } from '../../../connections/connection_params.js';
 import type { ConnectionEntry, ConnectionParams } from '../../storage_backend.js';
 import { isValidUuid } from '../../session_validation.js';
 import type { MigrationFolder } from '../migration_folder.js';

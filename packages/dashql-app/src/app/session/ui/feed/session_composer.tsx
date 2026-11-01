@@ -16,7 +16,7 @@ import { findScriptReferences, renderScriptReference, SCRIPT_REFERENCE_PREFIX } 
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../ai/ui/agent_prompt_panel.js';
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
-import type { ConnectorType } from '../../../connections/connector_info.js';
+import type { ConnectorType } from '../../../../connections/connector_info.js';
 import type { SnippetRegistry } from '../../snippets/snippet_registry.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');

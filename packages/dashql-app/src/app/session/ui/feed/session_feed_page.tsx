@@ -3,7 +3,7 @@ import * as styles from './session_feed_page.module.css';
 
 import { LinkIcon, PaperAirplaneIcon, PlugIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
 
-import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '../../../../connections/connection_state.js';
 import {
     scriptConnectionIds,
     SELECT_SCRIPT,
@@ -30,7 +30,7 @@ import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored
 import { connectionHealthKey, connectionsToConnect, ExecuteConnectionGuard, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../session_connection_attention.js';
 import { SessionConnectionButtons } from './session_connection_buttons.js';
 import { useAppFlavor } from '../../../flavor/flavor_provider.js';
-import { ConnectionOverviewPage } from '../../../connections/ui/connection_overview_page.js';
+import { ConnectionOverviewPage } from '../../../../connections/connection_overview_page.js';
 import { AgentSessionMenu } from '../../../agent/agent_session_menu.js';
 import type { RenameDraftReferences } from '../../scripts/script_rename.js';
 

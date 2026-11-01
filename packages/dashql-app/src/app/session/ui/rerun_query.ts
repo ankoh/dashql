@@ -1,6 +1,6 @@
 import type * as arrow from 'apache-arrow';
 
-import type { QueryExecutor } from '../../connections/query_executor.js';
+import type { QueryExecutor } from '../../../connections/query_executor.js';
 import { SessionScripts, ScriptData, isAnalysisOutdated } from '../scripts/session_scripts.js';
 import { ensureSessionScriptAnalyzed, ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { stringifyError, type LoggerLike } from '../../../platform/logger/logger.js';

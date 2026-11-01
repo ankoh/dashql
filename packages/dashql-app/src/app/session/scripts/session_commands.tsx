@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { getSelectedScriptRef, newScriptConnection, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT, type ScriptData, type SessionScripts } from './session_scripts.js';
 import type { ScriptRef } from './script_types.js';
-import { useCatalogLoaderQueue } from '../../connections/catalog_loader.js';
-import { useConnectionRegistryStore, useSessionConnections, type ConnectionRegistry } from '../../connections/connection_registry.js';
+import { useCatalogLoaderQueue } from '../../../connections/catalog/catalog_loader.js';
+import { useConnectionRegistryStore, useSessionConnections, type ConnectionRegistry } from '../../../connections/connection_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
-import { useQueryExecutor } from '../../connections/query_executor.js';
+import { useQueryExecutor } from '../../../connections/query_executor.js';
 import { useRouteContext } from '../../router/router.js';
 import { useSessionScripts } from './session_scripts_registry.js';
-import { isCatalogRefreshRunning } from '../../connections/catalog_update_state.js';
+import { isCatalogRefreshRunning } from '../../../connections/catalog/catalog_update_state.js';
 import { runSessionScript } from '../ui/rerun_query.js';
 import { connectionHealthKey, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../ui/session_connection_attention.js';
 import { SessionViewMode, useSessionViewMode } from '../ui/session_view_mode.js';

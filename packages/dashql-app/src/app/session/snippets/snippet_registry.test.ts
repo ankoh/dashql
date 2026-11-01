@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
 import { SNIPPET_DATASETS_FOLDER, SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
 import { buildSnippetRegistry, bundledSnippetFiles, getBundledSnippets, snippetText, snippetsForConnector } from './snippet_registry.js';
 import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '../ui/script_format.js';

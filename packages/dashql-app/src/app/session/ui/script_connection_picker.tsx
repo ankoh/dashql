@@ -7,23 +7,23 @@ import { Button, ButtonSize, ButtonVariant } from '../../../ui/foundations/butto
 import * as ActionList from '../../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
-import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
-import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '../../connections/connector_info.js';
-import { ATTACHABLE_CONNECTORS, useConnectionAttach } from '../../connections/attached_connection.js';
-import { ConnectionSettingsOverlay } from '../../connections/ui/connection_settings_overlay.js';
+import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '../../../connections/connector_info.js';
+import { ATTACHABLE_CONNECTORS, useConnectionAttach } from '../../../connections/attached_connection.js';
+import { ConnectionSettingsOverlay } from '../../../connections/connection_settings_overlay.js';
 import {
     resolveSessionConnections,
     useConnectionReferences,
     useConnectionRegistry,
     useConnectionRegistryStore,
-} from '../../connections/connection_registry.js';
+} from '../../../connections/connection_registry.js';
 import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
-import { CONNECTION_HEALTH_COLORS } from '../../connections/ui/connection_status.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/ui/connection_label.js';
-import { ConnectionLabelView } from '../../connections/ui/connection_label_view.js';
+import { CONNECTION_HEALTH_COLORS } from '../../../connections/connection_status.js';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../../connections/connection_label.js';
+import { ConnectionLabelView } from '../../../connections/connection_label_view.js';
 import { useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
-import { listedConnections } from '../../connections/ui/connection_tree.js';
+import { listedConnections } from '../../../connections/connection_tree.js';
 
 /// The fields of a connection that a script shows
 export interface ScriptConnectionView {

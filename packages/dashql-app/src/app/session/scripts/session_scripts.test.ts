@@ -4,10 +4,10 @@ import * as Immutable from 'immutable';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../../../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../../connections/connector_info.js';
 import { SessionTestBackend } from '../../../storage/session_test_backend.js';
 import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../../storage/storage_writer.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import type { ConnectionState } from '../../../connections/connection_state.js';
 import {
     ANALYZE_OUTDATED_SCRIPT,
     CATALOG_DID_UPDATE,

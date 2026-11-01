@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as styles from './session_page.module.css';
 
 import { useSessionScripts } from '../scripts/session_scripts_registry.js';
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import { useConnectionRegistry } from '../../../connections/connection_registry.js';
+import type { ConnectionState } from '../../../connections/connection_state.js';
 import { newScriptConnection, sessionConnectionIds } from '../scripts/session_scripts.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useRouteContext } from '../../router/router.js';

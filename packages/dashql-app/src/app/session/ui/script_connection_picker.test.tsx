@@ -3,9 +3,9 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
-import { ConnectionHealth } from '../../connections/connection_state.js';
-import { ConnectionRegistry } from '../../connections/connection_registry.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../../connections/connector_info.js';
+import { ConnectionHealth } from '../../../connections/connection_state.js';
+import { ConnectionRegistry } from '../../../connections/connection_registry.js';
 import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../../storage/storage_provider.js';
 import { SessionTestBackend } from '../../../storage/session_test_backend.js';

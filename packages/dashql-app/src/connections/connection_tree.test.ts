@@ -1,0 +1,163 @@
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { type ConnectionState } from './connection_state.js';
+import { connectionLabel, connectionLabelParts, connectionOrdinals } from './connection_label.js';
+import type { ConnectionRegistry } from './connection_registry.js';
+import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
+import {
+    connectionTreeRowHeight,
+    flattenCatalogRows,
+    listedConnections,
+    isConnectionInitiallyExpanded,
+    isVisibleCatalogNode,
+    type CatalogNode,
+} from './connection_tree.js';
+
+describe('connection labels', () => {
+    it('labels the mandatory local database by its connector and Wasm', () => {
+        const database = {
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: {
+                type: HYPER_CONNECTOR,
+                value: { proto: { setupParams: { protocol: 'WASM' } } },
+            },
+        } as ConnectionState;
+
+        expect(connectionLabel(database)).toBe('Hyper Wasm');
+        expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Wasm' });
+    });
+
+    it('keeps the connector and protocol label for remote Hyper databases', () => {
+        const database = {
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: {
+                type: HYPER_CONNECTOR,
+                value: { proto: { setupParams: { protocol: 'V3_HTTP' } } },
+            },
+        } as ConnectionState;
+
+        expect(connectionLabel(database)).toBe('Hyper Http');
+        expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Http' });
+    });
+
+    it('labels a named connection by its name instead of its connector and ordinal', () => {
+        const database = {
+            name: 'Production',
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: {
+                type: HYPER_CONNECTOR,
+                value: { proto: { setupParams: { protocol: 'V3_HTTP' } } },
+            },
+        } as ConnectionState;
+
+        expect(connectionLabel(database, 2)).toBe('Production Http');
+        expect(connectionLabelParts(database, 2)).toEqual({ name: 'Production', connector: 'Hyper', detail: 'Http' });
+    });
+
+    it('initially collapses Memory only when another database exists', () => {
+        const memory = {
+            connectionId: 'memory',
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } },
+        } as ConnectionState;
+        const remote = {
+            connectionId: 'remote',
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } },
+        } as ConnectionState;
+
+        expect(isConnectionInitiallyExpanded(memory, 1)).toBe(true);
+        expect(isConnectionInitiallyExpanded(memory, 2)).toBe(false);
+        expect(isConnectionInitiallyExpanded(remote, 2)).toBe(true);
+    });
+});
+
+describe('connections of the same connector', () => {
+    const hyper = (connectionId: string, extra: Partial<ConnectionState> = {}) => ({
+        connectionId,
+        active: true,
+        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } },
+        ...extra,
+    }) as ConnectionState;
+    const trino = (connectionId: string) => ({
+        connectionId,
+        active: true,
+        connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+        details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } },
+    }) as ConnectionState;
+    const registryOf = (databases: ConnectionState[]) => {
+        const connectionsByType: string[][] = [[], [], []];
+        for (const database of databases) connectionsByType[database.connectorInfo.connectorType].push(database.connectionId);
+        return {
+            connections: new Map(databases.map(database => [database.connectionId, database])),
+            connectionsByType,
+        } as unknown as ConnectionRegistry;
+    };
+    const noReferences = fixedConnectionReferences({});
+
+    it('numbers connections only when their connector repeats', () => {
+        const registry = registryOf([hyper('a'), trino('t'), hyper('b')]);
+        const ordinals = connectionOrdinals(registry, noReferences);
+        expect([...ordinals]).toEqual([['a', 1], ['b', 2]]);
+        expect(connectionLabel(registry.connections.get('b')!, ordinals.get('b'))).toBe('Hyper #2 Http');
+        expect(connectionLabel(registry.connections.get('t')!, ordinals.get('t') ?? null)).toBe('Trino Http');
+    });
+
+    it('does not number connections that are not listed', () => {
+        // Inactive connections that no session uses are not listed
+        const registry = registryOf([hyper('a', { active: false }), hyper('b', { active: false })]);
+        const references = fixedConnectionReferences({ session: ['a'] });
+        expect(connectionOrdinals(registry, references).size).toBe(0);
+        expect(listedConnections(registry, references, []).map(database => database.connectionId)).toEqual(['a']);
+    });
+
+    it('sizes the group headings of the connection tree', () => {
+        const rows = [
+            { type: 'connection-group', key: 'g', label: 'This session' },
+            { type: 'connection', key: 'a', database: hyper('a') },
+        ] as any;
+        expect(connectionTreeRowHeight(0, { rows })).toBeLessThan(connectionTreeRowHeight(1, { rows }));
+    });
+});
+
+describe('connection catalog tree', () => {
+    it('hides anonymous database and schema containers created by unqualified SQL declarations', () => {
+        expect(isVisibleCatalogNode('database', '')).toBe(false);
+        expect(isVisibleCatalogNode('schema', '   ')).toBe(false);
+        expect(isVisibleCatalogNode('database', 'hyper')).toBe(true);
+        expect(isVisibleCatalogNode('schema', 'public')).toBe(true);
+    });
+
+    it('reads descendants only when their parents are expanded', () => {
+        const schemas = [{ nameId: () => 1, childBegin: () => 0, childCount: () => 2 }];
+        const tables = [
+            { nameId: () => 2, childBegin: () => 0, childCount: () => 0 },
+            { nameId: () => 3, childBegin: () => 0, childCount: () => 0 },
+        ];
+        const reader = {
+            readName: (id: number) => ['', 'public', 'accounts', 'contacts'][id],
+            catalogReader: {
+                databasesLength: () => 1,
+                schemasLength: () => schemas.length,
+                tablesLength: () => tables.length,
+                columnsLength: () => 0,
+                schemas: (index: number) => schemas[index],
+                tables: (index: number) => tables[index],
+                columns: () => null,
+            },
+        } as any;
+        const database: CatalogNode = {
+            key: 'catalog/database:0:hyper', name: 'hyper', kind: 'database', index: 0, childBegin: 0, childCount: 1,
+        };
+
+        const databaseOnly = flattenCatalogRows(reader, [database], new Set());
+        expect(databaseOnly.map(row => row.name)).toEqual(['hyper']);
+        expect(databaseOnly[0].type).toBe('catalog');
+
+        const withSchema = flattenCatalogRows(reader, [database], new Set([database.key]));
+        expect(withSchema.map(row => row.name)).toEqual(['hyper', 'public']);
+
+        const withTables = flattenCatalogRows(reader, [database], new Set([database.key, withSchema[1].key]));
+        expect(withTables.map(row => row.name)).toEqual(['hyper', 'public', 'accounts', 'contacts']);
+    });
+});

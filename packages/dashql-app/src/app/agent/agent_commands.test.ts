@@ -5,9 +5,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { runAgentCommand, findScript, type AgentCommandEnvironment } from './agent_commands.js';
 import { AgentCommandError } from '../../platform/agent/agent_client.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
-import { ConnectionHealth } from '../connections/connection_state.js';
-import type { QueryExecutor } from '../connections/query_executor.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { ConnectionHealth } from '../../connections/connection_state.js';
+import type { QueryExecutor } from '../../connections/query_executor.js';
 import {
     CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, createEmptyScriptData, reduceSessionScripts, replaceScriptSessionText,
     type SessionScripts,

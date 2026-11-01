@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import type { ConnectionState } from '../../connections/connection_state.js';
-import { useConnectionReferences, useConnectionRegistryStore } from '../../connections/connection_registry.js';
-import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../../connections/ui/connection_label.js';
+import type { ConnectionState } from '../../../connections/connection_state.js';
+import { useConnectionReferences, useConnectionRegistryStore } from '../../../connections/connection_registry.js';
+import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../../../connections/connection_label.js';
 import { useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
 
 const subscribeNever = () => () => {};

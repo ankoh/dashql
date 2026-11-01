@@ -8,7 +8,7 @@ import { EmbeddedDatabaseProvider } from '../../../../platform/database/embedded
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../../../platform/hyperdb/hyperdb_wasm.js';
 import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../../../tests/hyperdb_test_client.js';
-import { ConnectorType } from '../../../connections/connector_info.js';
+import { ConnectorType } from '../../../../connections/connector_info.js';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from '../../snippets/snippet_registry.js';
 import { SnippetsOverlay } from './snippets_overlay.js';
 

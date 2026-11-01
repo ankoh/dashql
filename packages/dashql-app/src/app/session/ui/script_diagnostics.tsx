@@ -7,7 +7,7 @@ import { AlertIcon, XCircleFillIcon, XIcon } from '../../../ui/foundations/symbo
 import type { ScriptData } from '../scripts/session_scripts.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
 import { formattingDialectForConnector } from './script_format.js';
-import type { ConnectorType } from '../../connections/connector_info.js';
+import type { ConnectorType } from '../../../connections/connector_info.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';

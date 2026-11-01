@@ -81,7 +81,7 @@ exported as `@ankoh/dashql-core/browser-worker`).
 
 ## Application Publication
 
-`packages/dashql-app/src/app/connections/catalog_batch.ts` is the commit boundary. Production callers request
+`packages/dashql-app/src/connections/catalog/catalog_batch.ts` is the commit boundary. Production callers request
 only `catalogDescriptor` outputs.
 
 - `beginCatalogBatch(catalog)` allocates a generation per catalog before metadata is fetched;
@@ -131,6 +131,6 @@ batching does not reconstruct argument metadata the engine does not expose.
 - `packages/dashql-core-js/src/batch.ts`, `api.ts`: API and buffer ownership.
 - `packages/dashql-core-js/src/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker
   transport.
-- `packages/dashql-app/src/app/connections/catalog_batch.ts`: commit boundary.
-- `packages/dashql-app/src/app/connections/catalog_loader.tsx`: refresh queue and supersession.
-- `packages/dashql-app/src/app/connections/connection_restore.ts`: catalog restoration.
+- `packages/dashql-app/src/connections/catalog/catalog_batch.ts`: commit boundary.
+- `packages/dashql-app/src/connections/catalog/catalog_loader.tsx`: refresh queue and supersession.
+- `packages/dashql-app/src/connections/connection_restore.ts`: catalog restoration.

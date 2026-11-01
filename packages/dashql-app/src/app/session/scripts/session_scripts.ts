@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 
 import { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from './editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './focus.js';
-import { ConnectorInfo, ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorInfo, ConnectorType } from '../../../connections/connector_info.js';
 import { VariantKind } from '../../../utils/variant.js';
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
@@ -24,7 +24,7 @@ import {
     type SessionScriptList,
 } from '../../../storage/storage_writer.js';
 import type { ConnectionParams, SessionConnection, SessionScript } from '../../../storage/storage_backend.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import type { ConnectionState } from '../../../connections/connection_state.js';
 import { Logger, LoggerLike, stringifyError } from '../../../platform/logger/logger.js';
 import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 

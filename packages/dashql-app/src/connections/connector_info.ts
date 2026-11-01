@@ -1,0 +1,169 @@
+import { isDesktopHost } from "../platform/native_globals.js";
+
+export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
+export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
+export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
+export const SIDB_CONNECTOR = Symbol('SIDB_CONNECTOR');
+
+export enum ConnectorType {
+    HYPER = 0,
+    SALESFORCE_DATA_CLOUD = 1,
+    TRINO = 2,
+    SIDB = 3,
+}
+export const CONNECTOR_TYPES: ConnectorType[] = [
+    ConnectorType.HYPER,
+    ConnectorType.SALESFORCE_DATA_CLOUD,
+    ConnectorType.TRINO,
+    ConnectorType.SIDB,
+];
+
+export interface ConnectorInfo {
+    /// The connector type
+    connectorType: ConnectorType;
+    /// The query shown in the first script of a new session.
+    helloWorldScript: string;
+    /// The connector name
+    names: {
+        displayLong: string;
+        displayShort: string;
+        fileShort: string;
+    };
+    /// The icons
+    icons: {
+        colored: string,
+        uncolored: string,
+        outlines: string,
+    }
+    /// The connector features
+    features: ConnectorFeatures;
+    /// The connector platforms
+    platforms: ConnectorPlatforms;
+}
+
+export interface ConnectorPlatforms {
+    /// Supports the browser?
+    browser: boolean;
+    /// Supports the electron app?
+    native: boolean;
+}
+
+export interface ConnectorFeatures {
+    /// Do new sessions cache query results?
+    queryResultCaching: boolean;
+    /// Do connections only run queries, no DDL or DML?
+    readOnly: boolean;
+}
+
+export const CONNECTOR_INFOS: ConnectorInfo[] = [
+    {
+        connectorType: ConnectorType.HYPER,
+        helloWorldScript: 'select version();',
+        names: {
+            displayShort: 'Hyper',
+            displayLong: 'Hyper',
+            fileShort: 'hyper',
+        },
+        icons: {
+            colored: "hyper",
+            uncolored: "hyper_nocolor",
+            outlines: "hyper_outlines",
+        },
+        features: {
+            queryResultCaching: false,
+            readOnly: false,
+        },
+        platforms: {
+            browser: true,
+            native: true,
+        },
+    },
+    {
+        connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
+        helloWorldScript: 'select version();',
+        names: {
+            displayShort: 'Salesforce',
+            displayLong: 'Salesforce Data Cloud',
+            fileShort: 'sfdc',
+        },
+        icons: {
+            colored: "salesforce_notext",
+            uncolored: "salesforce_notext_nocolor",
+            outlines: "salesforce_outlines",
+        },
+        features: {
+            queryResultCaching: true,
+            readOnly: true,
+        },
+        platforms: {
+            browser: true,
+            native: true,
+        },
+    },
+    {
+        connectorType: ConnectorType.TRINO,
+        helloWorldScript: 'select version();',
+        names: {
+            displayShort: 'Trino',
+            displayLong: 'Trino',
+            fileShort: 'trino',
+        },
+        icons: {
+            colored: "trino",
+            uncolored: "trino_nocolor",
+            outlines: "trino_outlines",
+        },
+        features: {
+            queryResultCaching: true,
+            readOnly: true,
+        },
+        platforms: {
+            browser: true,
+            native: true,
+        },
+    },
+    {
+        // SIDB connections behave like Salesforce Data Cloud connections for now, but can write to their database
+        connectorType: ConnectorType.SIDB,
+        helloWorldScript: 'select version();',
+        names: {
+            displayShort: 'SIDB',
+            displayLong: 'SIDB',
+            fileShort: 'sidb',
+        },
+        icons: {
+            colored: "sidb_mark",
+            uncolored: "sidb_mark_nocolor",
+            outlines: "sidb_mark_outlines",
+        },
+        features: {
+            queryResultCaching: true,
+            readOnly: false,
+        },
+        platforms: {
+            browser: true,
+            native: true,
+        },
+    },
+];
+
+export function getConnectorInfoForParams(params: { hyper?: any; salesforce?: any; sidb?: any; trino?: any }): ConnectorInfo | null {
+    if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
+    if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    if ("sidb" in params) return CONNECTOR_INFOS[ConnectorType.SIDB];
+    if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
+    return null;
+}
+
+export function isConnectorAvailable(info: ConnectorInfo): boolean {
+    return isDesktopHost() ? info.platforms.native : info.platforms.browser;
+}
+
+export function requiresSwitchingToNative(info: ConnectorInfo) {
+    return !isConnectorAvailable(info);
+}
+
+export const useConnectorList = () => {
+    const connectorTypes = [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB, ConnectorType.TRINO];
+    return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
+};

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { CatalogLoaderProvider } from '../../connections/catalog_loader.js';
+import { CatalogLoaderProvider } from '../../../connections/catalog/catalog_loader.js';
 import { useConnectionScriptsDispatch } from './session_scripts_registry.js';
 import { CATALOG_DID_UPDATE } from './session_scripts.js';
 

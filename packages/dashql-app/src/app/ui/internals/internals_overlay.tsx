@@ -7,7 +7,7 @@ import { AppSettings } from './app_settings_view.js';
 import { StorageWriterView } from '../../session/persistence/ui/storage_writer_view.js';
 import { LogViewer } from '../../../ui/logs/log_viewer.js';
 import { OverlaySize } from '../../../ui/foundations/overlay.js';
-import { QueryViewer } from '../../connections/ui/query_viewer.js';
+import { QueryViewer } from '../../../connections/query_viewer.js';
 import { QueryCacheView } from '../../session/persistence/ui/query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '../../../ui/foundations/vertical_tabs.js';
 import { StorageBrowserView } from './storage_browser_view.js';

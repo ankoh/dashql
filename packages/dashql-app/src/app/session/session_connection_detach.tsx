@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 
-import { useEmbeddedConnection } from '../connections/embedded_connection.js';
+import { useEmbeddedConnection } from '../../connections/embedded_connection.js';
 import { DETACH_CONNECTION, scriptConnectionOf } from './scripts/session_scripts.js';
 import { useConnectionScriptsDispatch } from './scripts/session_scripts_registry.js';
 

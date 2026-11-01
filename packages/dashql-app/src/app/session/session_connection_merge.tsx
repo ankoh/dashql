@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
+import { useDeleteConnection } from '../../connections/connection_deletion.js';
+import { useConnectionReferences, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { MERGE_CONNECTION } from './scripts/session_scripts.js';
 import { useConnectionScriptsDispatch } from './scripts/session_scripts_registry.js';

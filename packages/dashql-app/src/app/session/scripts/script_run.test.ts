@@ -3,8 +3,8 @@ import { tableFromArrays } from 'apache-arrow';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../../../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
-import type { QueryExecutor } from '../../connections/query_executor.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../../connections/connector_info.js';
+import type { QueryExecutor } from '../../../connections/query_executor.js';
 import type { ParquetDatabase } from '../../../platform/hyperdb/hyperdb_parquet_export.js';
 import { memoryQueryResultCache } from '../../../tests/memory_query_result_cache.js';
 import { QueryCacheMissError } from '../../../query/query_result_cache.js';

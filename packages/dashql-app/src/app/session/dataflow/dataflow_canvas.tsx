@@ -4,7 +4,7 @@ import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } fro
 import { ButtonGroup } from '../../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { ChevronDownIcon, ChevronRightIcon, PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../../ui/foundations/symbol_icon.js';
-import { useQueryState } from '../../connections/query_executor.js';
+import { useQueryState } from '../../../connections/query_executor.js';
 import { QueryExecutionStatus } from '../../../query/query_execution_state.js';
 import { VisualizationDispatch } from '../../../views/visualization/visualization_dispatch.js';
 import { GraphPort } from '../../../ui/graph/graph_port.js';
