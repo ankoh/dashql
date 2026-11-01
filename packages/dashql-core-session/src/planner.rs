@@ -186,7 +186,7 @@ impl PlanState {
         let mut d = ExecutionGraphDiagnosticT::default();
         d.node = node;
         d.script = script;
-        d.message = Some(message);
+        d.message = opt(Some(message));
         d.text_span = text_span.map(|s| {
             let mut t = TextSpanT::default();
             t.offset = s.offset;
@@ -222,9 +222,9 @@ impl PlanState {
         entity.catalog_object_id = id;
         (entity.catalog_database_id, entity.catalog_schema_id) = table.catalog_schema_id.unpack_schema_id();
         let (db, schema, name) = resource_name(&table.table_name);
-        entity.database_name = Some(db);
-        entity.schema_name = Some(schema);
-        entity.name = Some(name);
+        entity.database_name = opt(Some(db));
+        entity.schema_name = opt(Some(schema));
+        entity.name = opt(Some(name));
         entity.connection = connection;
         self.entity_list.push(entity);
         i
@@ -237,9 +237,9 @@ impl PlanState {
         let i = self.unresolved_list.len() as u32;
         self.unresolved_references.insert((connection, name.clone()), i);
         let mut r = ExecutionGraphUnresolvedReferenceT::default();
-        r.database_name = Some(name.0.clone());
-        r.schema_name = Some(name.1.clone());
-        r.name = Some(name.2.clone());
+        r.database_name = opt(Some(name.0.clone()));
+        r.schema_name = opt(Some(name.1.clone()));
+        r.name = opt(Some(name.2.clone()));
         r.connection = connection;
         self.unresolved_list.push(r);
         i
@@ -373,7 +373,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     // An invalid request stops every plan, also a tolerant one
     if !state.graph.valid || state.partial {
         state.graph.valid = false;
-        return finish(state, request, &[], &[], None, Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        return finish(state, request, &[], &[], None);
     }
 
     // Prepare the scripts: all of them in a plan of the session, also those whose results the host provides, the
@@ -399,14 +399,14 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     }
     // Invalid input snapshots must never yield executable partial plans
     if !state.graph.valid {
-        return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        return finish(state, request, &prepared, &planned, Some(&references));
     }
     references.check(&mut state_reporter(&mut state), request, &prepared);
     if tolerant {
         references.unlink_unplannable(&prepared);
     }
     if !state.graph.valid {
-        return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        return finish(state, request, &prepared, &planned, Some(&references));
     }
 
     // The statements of the plan
@@ -538,7 +538,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             node.script = si as u32;
             node.statement_id = 0;
             node.statement_type = parsed.statements.first().map(|s| s.statement_type).unwrap_or(Type::NONE);
-            node.sql = Some(read_executable_text(scanned, TextSpan::new(0, scanned.text.len() as u32)).trim().to_string());
+            node.sql = opt(Some(read_executable_text(scanned, TextSpan::new(0, scanned.text.len() as u32)).trim().to_string()));
             node.produces_output = true;
             node.script_result = true;
             node.barrier = true;
@@ -653,7 +653,11 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             let visualization = analyzed.visualization_specs.iter().find(|s| s.ast_statement_id == Some(statement_id as u32));
             if let Some(spec) = visualization.filter(|_| ty == Type::SELECT) {
                 match compile_visualization(spec, analyzed) {
-                    Ok(compiled) => node.visualization = Some(Box::new(compiled)),
+                    Ok(mut compiled) => {
+                        compiled.renderer = opt(compiled.renderer.take());
+                        compiled.vegalite_spec = opt(compiled.vegalite_spec.take());
+                        node.visualization = Some(Box::new(compiled));
+                    }
                     Err(e) => {
                         barrier = true;
                         state.report(node_id, si as u32, None, format!("visualization: {e}"), true);
@@ -901,7 +905,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     }
                 }
             }
-            node.accesses = Some(
+            node.accesses = opt_vec(
                 accesses
                     .into_iter()
                     .map(|((entity, unresolved), mode)| {
@@ -918,7 +922,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             if !sql.is_empty() && parsed.errors.is_empty() && scanned.errors.is_empty() {
                 node.catalog_changes = derive_catalog_change(analyzed, statement_id, &change_options).map(|c| vec![c.pack()]);
             }
-            node.sql = Some(sql);
+            node.sql = opt(Some(sql));
             node.barrier = barrier;
             nodes.push(node);
         }
@@ -1028,7 +1032,11 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             e
         })
         .collect();
-    finish(state, request, &prepared, &planned, Some(&references), nodes, edges, materializations, graph_references)
+    state.graph.nodes = opt_vec(nodes);
+    state.graph.edges = opt_vec(edges);
+    state.graph.materializations = opt_vec(materializations);
+    state.graph.references = opt_vec(graph_references);
+    finish(state, request, &prepared, &planned, Some(&references))
 }
 
 /// The label of a script in diagnostics, `foo.sql`
@@ -1089,18 +1097,8 @@ fn opt_vec<T>(v: Vec<T>) -> Option<Vec<T>> {
     (!v.is_empty()).then_some(v)
 }
 
-#[allow(clippy::too_many_arguments)]
-fn finish(
-    state: PlanState,
-    request: &SessionPlanRequest,
-    prepared: &[Option<Prepared>],
-    planned: &[bool],
-    script_references: Option<&ScriptReferences>,
-    nodes: Vec<ExecutionGraphNodeT>,
-    edges: Vec<ExecutionGraphEdgeT>,
-    materializations: Vec<ExecutionGraphMaterializationT>,
-    references: Vec<ExecutionGraphScriptReferenceT>,
-) -> ExecutionGraphT {
+/// Complete the graph of a plan with its connections, scripts, entities and diagnostics
+fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Prepared>], planned: &[bool], script_references: Option<&ScriptReferences>) -> ExecutionGraphT {
     let targets: BTreeSet<u32> = seeds(request).into_iter().collect();
     let mut graph = state.graph;
     if state.partial {
@@ -1171,57 +1169,9 @@ fn finish(
             })
             .collect(),
     );
-    graph.entities = opt_vec(
-        state
-            .entity_list
-            .into_iter()
-            .map(|mut e| {
-                e.database_name = opt(e.database_name);
-                e.schema_name = opt(e.schema_name);
-                e.name = opt(e.name);
-                e
-            })
-            .collect(),
-    );
-    graph.unresolved_references = opt_vec(
-        state
-            .unresolved_list
-            .into_iter()
-            .map(|mut r| {
-                r.database_name = opt(r.database_name);
-                r.schema_name = opt(r.schema_name);
-                r.name = opt(r.name);
-                r
-            })
-            .collect(),
-    );
-    graph.nodes = opt_vec(
-        nodes
-            .into_iter()
-            .map(|mut n| {
-                n.sql = opt(n.sql);
-                n.accesses = n.accesses.and_then(opt_vec);
-                if let Some(v) = n.visualization.as_mut() {
-                    v.renderer = opt(v.renderer.take());
-                    v.vegalite_spec = opt(v.vegalite_spec.take());
-                }
-                n
-            })
-            .collect(),
-    );
-    graph.edges = opt_vec(edges);
-    graph.diagnostics = opt_vec(
-        state
-            .diagnostics
-            .into_iter()
-            .map(|mut d| {
-                d.message = opt(d.message);
-                d
-            })
-            .collect(),
-    );
-    graph.materializations = opt_vec(materializations);
-    graph.references = opt_vec(references);
+    graph.entities = opt_vec(state.entity_list);
+    graph.unresolved_references = opt_vec(state.unresolved_list);
+    graph.diagnostics = opt_vec(state.diagnostics);
     graph
 }
 
