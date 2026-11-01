@@ -77,6 +77,7 @@ pub struct Options {
     pub height: Option<String>,
     pub scale: Option<String>,
     pub exit_with_stdin: bool,
+    pub force: bool,
     pub help: bool,
     pub positionals: Vec<String>,
 }
@@ -109,6 +110,7 @@ pub fn parse_args(argv: &[String]) -> Result<Options, String> {
         match name {
             "--json" if inline.is_none() => options.json = true,
             "--exit-with-stdin" if inline.is_none() => options.exit_with_stdin = true,
+            "--force" if inline.is_none() => options.force = true,
             "-h" | "--help" if inline.is_none() => options.help = true,
             "--" => options.positionals.extend(args.by_ref().cloned()),
             a if a.starts_with('-') && a != "-" => return Err(format!("unknown option {arg}")),
@@ -225,6 +227,9 @@ fn call_args(
             args.insert("script".into(), one("script")?);
             if let Some(max_rows) = &options.max_rows {
                 args.insert("maxRows".into(), parse_positive(max_rows, "--max-rows")?.into());
+            }
+            if options.force {
+                args.insert("force".into(), true.into());
             }
         }
         "result" => {
@@ -465,6 +470,8 @@ mod tests {
             Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "x", "data": { "rows": 1 } } })));
         assert_eq!(fake.run(&["run", "q1", "--json", "--max-rows", "5"], None, "").stdout, "{\n  \"rows\": 1\n}\n");
         assert_eq!(fake.body(0)["args"], json!({ "script": "q1", "maxRows": 5 }));
+        fake.run(&["run", "q1", "--force"], None, "");
+        assert_eq!(fake.body(1)["args"], json!({ "script": "q1", "force": true }));
     }
 
     #[test]

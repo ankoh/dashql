@@ -403,6 +403,11 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
         out.insert("flow", m.into_node());
     }
 
+    // Runs only on request
+    if script.manual {
+        out.boolean("manual", true);
+    }
+
     // Inferred table schemas
     if !script.inferred_table_schemas.is_empty() {
         let confidence = |c: InferenceConfidence| match c {

@@ -36,8 +36,9 @@ attachment files, connections that share a catalog and unknown indexes invalidat
 is the embedded Hyper, every other connection is REMOTE.
 
 The scope is the whole session (`PlanScope::Session`) or target scripts (`PlanScope::Targets`). A plan of the
-session includes every statement of the scripts whose materialized results the host doesn't provide, it checks every
-script. A plan of targets includes every statement of the targets and the queries of the scripts that they materialize, unless the
+session includes every statement of the scripts whose materialized results the host doesn't provide and that don't run
+only on request (`@manual`, `AnalyzedScript.manual`), it checks every script. A script that runs on request is included
+when it is a target and inlined into its consumers. A plan of targets includes every statement of the targets and the queries of the scripts that they materialize, unless the
 host provides the materialized result. The targets, the scripts they reference and the scripts those reference must
 have a current analysis, `ExecutionGraphScript.planned` marks them. `ExecutionGraphScript.target` marks the scripts
 a plan includes in full: the targets, in a plan of the session the scripts whose results the host doesn't provide, in a
@@ -175,7 +176,8 @@ Errors, each with the text of the parameter except the one of a script that runs
 ("the table parameter :sales matches sales.sql and sales.parquet"), a positional table
 parameter, a script or attachment as the target of INSERT or DELETE, a REMOTE statement that reads an attachment, a reference outside of a query (`delete ... using
 :foo`), a referenced script that is no single SELECT or does not parse ("foo.sql is no single SELECT that bar.sql
-could read"), a cycle, a REMOTE statement that reads another connection, a view over a materialized result, also
+could read"), a cycle, a REMOTE statement that reads another connection, a statement that reads a script of another
+connection that runs only on request (`@manual`), a view over a materialized result, also
 through an inlined query, an inlined query that reads a relation that the statement defines as common table expression
 where the query goes (a recursive WITH, the WITH of an INSERT around it), and a materialized script that runs later in the session than the statement that scans it ("move foo.sql above bar.sql").
 An inlined script may be below its consumer.

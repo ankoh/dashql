@@ -17,7 +17,7 @@ so it works only while DashQL is open and agent access is turned on for the sess
 | `dashql agent edit <script> [--file f] [--connection c]` | Replace or create a script with the text of the file or stdin |
 | `dashql agent catalog [connection]` | `CREATE TABLE` statements of the tables you can query |
 | `dashql agent lint <script>` | Parser and analyzer diagnostics of a script |
-| `dashql agent run <script> [--max-rows N]` | Run a script: columns, first rows, row count or error |
+| `dashql agent run <script> [--max-rows N] [--force]` | Run a script: columns, first rows, row count or error |
 | `dashql agent result <script> [--page N]` | More rows of the last result of a script |
 | `dashql agent vis read <script>` | The chart of a script: its renderer and Vega-Lite spec |
 | `dashql agent vis edit <script> [--file f]` | Chart the last query of a script with the Vega-Lite spec of the file or stdin |
@@ -33,6 +33,9 @@ so it works only while DashQL is open and agent access is turned on for the sess
 - Scripts on a read-only connection may only query: no DDL or DML such as `CREATE`, `INSERT` or `UPDATE`.
 - `edit` applies the text directly, the user can undo it in the editor. It prints the hash of the new text
   and the number of diagnostics.
+- A script with a `@manual` tag in its comments is too expensive to run without a filter. `run` refuses it:
+  query it as `:name` with a `WHERE` from another script of its connection instead. Pass `--force` only when the
+  user asked to run that script itself.
 - `vis read` prints the Vega-Lite spec of the `@vis vegalite` tag of the last query as JSON, ready to change and
   pass back to `vis edit`; for a `markdown` or `table` tag it names the renderer.
 - `vis edit` checks the spec before it writes it: a JSON object that Vega-Lite compiles without warnings, whose

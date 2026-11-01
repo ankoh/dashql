@@ -1,0 +1,82 @@
+planner-snapshots:
+  # A plan of the session leaves out a script that runs only on request, its consumer inlines it with a filter
+  - name: SessionSkipsManual
+    connections:
+      - name: db
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, region text, amount int);
+    scripts:
+      - name: orders_all
+        connection: db
+        input: |
+          /* All orders, expensive without a filter.
+             @manual */
+          select id, region, amount from orders;
+      - name: west
+        connection: db
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+      - name: other
+        connection: db
+        input: |
+          select count(*) from orders;
+
+  # A script that runs only on request runs as target
+  - name: ManualTarget
+    connections:
+      - name: db
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, region text, amount int);
+    scripts:
+      - name: orders_all
+        connection: db
+        input: |
+          -- @manual
+          select id, region, amount from orders;
+      - name: west
+        connection: db
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+    targets: [orders_all]
+
+  # The dataflow of a session holds a script that runs only on request
+  - name: ManualTolerant
+    scope: tolerant
+    connections:
+      - name: db
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, region text, amount int);
+    scripts:
+      - name: orders_all
+        connection: db
+        input: |
+          /* @manual */
+          select id, region, amount from orders;
+      - name: west
+        connection: db
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+
+  # Scripts of other connections cannot read a script that runs only on request, the scan would run it in full
+  - name: ManualAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, region text, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: orders_all
+        connection: trino
+        input: |
+          /* @manual */
+          select id, region, amount from orders;
+      - name: west
+        connection: local
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+    targets: [west]

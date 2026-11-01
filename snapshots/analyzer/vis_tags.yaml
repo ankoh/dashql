@@ -867,6 +867,103 @@ analyzer-snapshots:
         x: 6
         y: 5
 
+  - name: manual_tag
+    script:
+      input: |
+        /* All orders, expensive without a filter.
+           @manual until the warehouse has a partition per day */
+        select 1 as a;
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+      manual: true
+
+  - name: manual_tag_later_statement
+    script:
+      input: |
+        create table t (a int);
+        -- @manual
+        select a from t;
+        /* @manual */
+        select a + 1 from t;
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: t
+          text: "create tab.. t (a int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+              text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: t
+          columns: [a]
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "t"
+        - type: name/internal
+          catalog-id: "256.65536.4294967296"
+          statement-id: 2
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.4294967296.0"
+          statement-id: 1
+          text: "a"
+        - expression-idx: 1
+          type: colref/internal
+          catalog: "256.65536.4294967296.0"
+          statement-id: 2
+          text: "a"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 2
+          text: "1"
+      constants:
+        - expression: 2
+          text: "1"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a from t"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: '?'
+              computed: true
+          text: "select a + 1 from t"
+      manual: true
+
   - name: vis_tag_not_a_query
     script:
       input: |

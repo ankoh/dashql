@@ -20,7 +20,7 @@
 //! The planner edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of
 //! materializations, which the references stand for, are no dataflow.
 
-use crate::planner::{plan, PlanScope, Prepared, SessionPlanRequest};
+use crate::planner::{plan, runs_on_request, PlanScope, Prepared, SessionPlanRequest};
 use crate::script_references::ReferenceKind;
 use crate::session_inputs::SessionInput;
 use dashql_buffers::execution::{ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT};
@@ -77,6 +77,8 @@ pub struct DataflowScript {
     pub text_version: u64,
     /// The statements in script order
     pub statements: Vec<DataflowStatement>,
+    /// Does the script run only on request, its `@manual` tag?
+    pub manual: bool,
 }
 
 /// An end of an edge: a statement of a script
@@ -169,6 +171,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
         if script.analyzed {
             script.text_version = input.analyzed.as_ref().map_or(0, |a| a.parsed.scanned.text_version);
+            script.manual = runs_on_request(input);
         }
     }
 

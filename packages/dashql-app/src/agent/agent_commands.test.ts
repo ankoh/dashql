@@ -26,6 +26,7 @@ function script(scriptKey: number, fileName: string, text: string, diagnostics: 
         scriptSession: { getText: () => text, getTextVersion: () => 0n, getCatalogRevision: () => 0n },
         editorUpdate: { diagnostics, textVersion: 0n, catalogRevision: 0n },
         connection: { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} },
+        annotations: { tableDefs: [], visualizeQuery: null },
         latestQueryId: null,
         latestResultQueryId: null,
     } as any;
@@ -206,6 +207,15 @@ describe('agent commands', () => {
     it('refuses to run a script on an offline connection', async () => {
         connections.get('db').connectionHealth = ConnectionHealth.FAILED;
         await expect(run('run', { script: 'orders' })).rejects.toThrow('The connection db of orders is not online');
+    });
+
+    it('refuses to run a script that runs only on request unless forced', async () => {
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null, manual: true };
+        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders runs only on request (@manual)');
+        await expect(run('run', { script: 'orders', force: 'yes' })).rejects.toThrow('force must be a boolean');
+        // Forced, the run goes on to the connection
+        connections.get('db').connectionHealth = ConnectionHealth.FAILED;
+        await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('The connection db of orders is not online');
     });
 
     it('pages through the last result of a script', async () => {

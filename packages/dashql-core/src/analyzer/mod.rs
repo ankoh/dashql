@@ -9,6 +9,7 @@
 
 mod constants;
 mod function_calls;
+pub mod manual_tag;
 pub mod param_tags;
 mod name_resolution;
 mod parameters;
@@ -75,6 +76,8 @@ pub struct AnalyzedScript {
     pub flow: Option<FlowSpec>,
     /// The values of the parameters of the script, the first `@param` tag of every name in statement order
     pub param_values: Vec<ParamTag>,
+    /// Does the script run only on request? A `@manual` tag on any statement
+    pub manual: bool,
     /// The schema-inference constraints
     pub inference_constraints: Vec<InferenceConstraint>,
     /// The inferred schemas of tables that are not in the catalog
@@ -164,6 +167,7 @@ pub fn analyze_with(parsed: Arc<ParsedScript>, catalog: &Catalog, table_paramete
     state.out.parameters.sort_by_key(|p| p.location.offset());
     vis_tags::analyze(&mut state);
     param_tags::analyze(&mut state);
+    manual_tag::analyze(&mut state);
 
     let mut out = state.into_script();
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed

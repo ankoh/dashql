@@ -42,6 +42,34 @@ dataflow-snapshots:
           kind: inline
           name: b
 
+  - name: ManualReference
+    scripts:
+      - name: a
+        input: |
+          /* @manual */
+          select 1 as x;
+      - name: b
+        input: |
+          select x from :a where x > 0;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          manual: true
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select x f..here x > 0"
+          box: [376,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: inline
+          name: a
+
   - name: InvalidReferenceToScriptWithCommands
     scripts:
       - name: a

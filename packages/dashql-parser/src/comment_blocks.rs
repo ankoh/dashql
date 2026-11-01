@@ -23,7 +23,7 @@ pub const COMMENT_TAG_PREFIX: &str = "@";
 /// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
 pub const COMMENT_TAG_END: &str = "end";
 /// The known tags, any other `@word` is ordinary text
-pub const COMMENT_TAGS: &[&str] = &["vis", "board", "flow", "param", COMMENT_TAG_END];
+pub const COMMENT_TAGS: &[&str] = &["vis", "board", "flow", "param", "manual", COMMENT_TAG_END];
 
 /// Is a tag name one of the known tags?
 pub fn is_comment_tag(name: &[u8]) -> bool {

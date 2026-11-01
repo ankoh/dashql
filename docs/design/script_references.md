@@ -45,6 +45,29 @@ select count(*) from foo
 The host writes the result of foo.sql through hyperdb-wasm for every connection type, into the folder of the query
 result cache that is mounted read-write at `/mnt/external/cache`, not as a path below `/mnt/fs`.
 
+## Scripts That Run on Request
+
+A script whose query is too expensive without a filter is a building block. A `@manual` tag in a comment of any of
+its statements says so; the text after the tag is free, e.g. the reason:
+
+```sql
+-- orders_all.sql
+/* All orders, expensive without a filter.
+   @manual */
+select id, region, amount from orders;
+
+-- west.sql
+select sum(amount) from :orders_all where region = 'west';
+```
+
+A run of the whole session and the run of an input change leave the script out, a run of the script itself runs it.
+The scripts of its connection inline it with their own filters, so a run of the session runs `west.sql` with the query of
+`orders_all.sql` inlined. Scripts of other connections cannot reference it: a scan would run it in full, the reference
+is an error ("orders_all.sql runs only on request (@manual), the scripts of the connection trino inline it but west.sql
+of the connection local cannot read it"). The analyzer sets `AnalyzedScript.manual`, the editor update carries it as
+`EditorScriptAnnotations.manual` (`ScriptAnnotations.manual` in the app) and the dataflow as `DataflowScript.manual`.
+The feed marks the script as manual. `dashql agent run` refuses it without `--force`.
+
 ## Attachments
 
 A table parameter also reads the Parquet attachments of a session: `sales.parquet` is `:sales`. Scripts and
@@ -79,7 +102,7 @@ before the ones of the scripts. The signature of a script covers the stamps of t
 
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
 into the SQL of the nodes and orders the statements across connections. A run of the whole session plans every
-script whose result the cache doesn't provide. A run of one script plans the script and the queries of the scripts it materializes, unless the host
+script whose result the cache doesn't provide, except the scripts that run on request. A run of one script plans the script and the queries of the scripts it materializes, unless the host
 already has their results; the queries it inlines are part of its statements.
 
 ## Running a Session

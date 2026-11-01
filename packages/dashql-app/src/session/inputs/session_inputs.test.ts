@@ -45,4 +45,16 @@ describe('session inputs', () => {
         expect(affectedScriptIndices(dataflow, ['min', 'region'])).toEqual([1, 2, 3, 4]);
         expect(affectedScriptIndices(dataflow, ['nope'])).toEqual([]);
     });
+
+    it('leaves out the scripts that run only on request, but not the scripts downstream of them', () => {
+        const dataflow = {
+            scripts: [{}, { manual: true }, {}],
+            inputs: [{ name: 'min' }],
+            edges: [
+                edge(0, 1, EdgeKind.INPUT),
+                edge(1, 2, EdgeKind.INLINE_REFERENCE),
+            ],
+        } as unknown as core.buffers.execution.SessionDataflowT;
+        expect(affectedScriptIndices(dataflow, ['min'])).toEqual([2]);
+    });
 });

@@ -345,6 +345,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             references={props.scriptReferences ?? null}
                         />
                     )}
+                    {props.scriptData?.annotations.manual && (
+                        <span
+                            className={styles.feed_entry_manual}
+                            title="Runs only on request (@manual): Execute All and input changes skip this script"
+                            data-testid="script-manual"
+                        >
+                            manual
+                        </span>
+                    )}
                     <ScriptMentionTag
                         scriptName={displayName}
                         canTarget={props.canTarget}

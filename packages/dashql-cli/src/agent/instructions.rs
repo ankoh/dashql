@@ -13,6 +13,9 @@ pub const COMMAND_NOTES: &str = "- `--session <id>` targets a session, otherwise
 - Scripts on a read-only connection may only query: no DDL or DML such as `CREATE`, `INSERT` or `UPDATE`.
 - `edit` applies the text directly, the user can undo it in the editor. It prints the hash of the new text
   and the number of diagnostics.
+- A script with a `@manual` tag in its comments is too expensive to run without a filter. `run` refuses it:
+  query it as `:name` with a `WHERE` from another script of its connection instead. Pass `--force` only when the
+  user asked to run that script itself.
 - `vis read` prints the Vega-Lite spec of the `@vis vegalite` tag of the last query as JSON, ready to change and
   pass back to `vis edit`; for a `markdown` or `table` tag it names the renderer.
 - `vis edit` checks the spec before it writes it: a JSON object that Vega-Lite compiles without warnings, whose

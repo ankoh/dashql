@@ -91,7 +91,8 @@ keys of the scripts that reference it follow it (`query_cache.md`).
 change (`ScriptData.externalChanges`), it keeps its cursor and undoes it as one step.
 `useApplySessionInput` then starts a run of the session with `inputs` (`runSessionExecution`): the run analyzes the
 scripts, derives the dataflow and plans the scripts that the change affects as targets (`affectedScriptIndices`), the
-scripts that use one of the inputs and every script downstream of them by an inline, scan or table edge. The targets
+scripts that use one of the inputs and every script downstream of them by an inline, scan or table edge, except the
+scripts that run only on request (`@manual`, `DataflowScript.manual`); the scripts downstream of them are targets. The targets
 run with what they read, the scripts they scan are served from the query result cache when their keys are reusable.
 A change that no script reads runs nothing. A run that holds the session stops, the run of the change starts once the
 session is free, with the inputs of every change since.

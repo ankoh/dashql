@@ -62,6 +62,8 @@ export interface ScriptAnnotations {
     visualizeQuery: ResolvedVisualizeQuery | null;
     // The position of the script on the dataflow canvas, its `@flow` tag, if any.
     flowPosition?: FlowPosition | null;
+    // Does the script run only on request, its `@manual` tag? Execute All and input changes leave it out.
+    manual?: boolean;
 }
 
 /// The position of a script on the dataflow canvas

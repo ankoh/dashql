@@ -1008,6 +1008,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
                     let mut packed = DataflowScriptT::default();
                     packed.analyzed = script.analyzed;
                     packed.text_version = script.text_version;
+                    packed.manual = script.manual;
                     let statements: Vec<_> = script
                         .statements
                         .into_iter()

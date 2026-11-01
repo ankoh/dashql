@@ -21,7 +21,7 @@
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
 use crate::compiler::read_executable_text_with;
-use crate::planner::{script_label, ConnectionKind, Prepared, SessionPlanRequest};
+use crate::planner::{runs_on_request, script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
@@ -220,12 +220,26 @@ impl ScriptReferences {
             };
             reference.producer = Some(producer as u32);
             let producer_connection = request.scripts[producer].connection;
+            let connection = |c: u32| request.connections[c as usize].id;
             reference.kind = if producer_connection == consumer.connection {
                 ReferenceKind::Inline
+            } else if runs_on_request(request.scripts[producer].script) {
+                // Reading the result on another connection would run the script in full
+                reporter.error(
+                    script,
+                    Some(text_span),
+                    format!(
+                        "{} runs only on request (@manual), the scripts of the connection {} inline it but {} of the connection {} cannot read it",
+                        script_label(request, producer as u32),
+                        connection(producer_connection),
+                        script_label(request, script),
+                        connection(consumer.connection)
+                    ),
+                );
+                ReferenceKind::Invalid
             } else if request.connections[consumer.connection as usize].kind == ConnectionKind::Local {
                 ReferenceKind::Scan
             } else {
-                let connection = |c: u32| request.connections[c as usize].id;
                 reporter.error(
                     script,
                     Some(text_span),

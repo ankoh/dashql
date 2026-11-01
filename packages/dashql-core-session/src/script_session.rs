@@ -930,6 +930,7 @@ impl ScriptSession {
             position.y = flow.y;
             Box::new(position)
         });
+        annotations.manual = analyzed.manual;
         let mut statements = Vec::with_capacity(parsed.statements.len());
         let mut statement_descriptions = Vec::new();
         for (statement_id, (statement, metadata)) in

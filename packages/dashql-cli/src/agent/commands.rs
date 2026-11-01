@@ -39,7 +39,7 @@ pub const AGENT_COMMANDS: [AgentCommand; 11] = [
     AgentCommand { name: "lint", args: "<script>", does: "Parser and analyzer diagnostics of a script" },
     AgentCommand {
         name: "run",
-        args: "<script> [--max-rows N]",
+        args: "<script> [--max-rows N] [--force]",
         does: "Run a script: columns, first rows, row count or error",
     },
     AgentCommand { name: "result", args: "<script> [--page N]", does: "More rows of the last result of a script" },

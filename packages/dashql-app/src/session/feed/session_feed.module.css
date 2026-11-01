@@ -441,6 +441,17 @@ button.feed_entry_mention {
     display: inline-block;
 }
 
+/* A script with @manual runs only on request, Execute All and input changes skip it */
+.feed_entry_manual {
+    flex-shrink: 0;
+    margin-right: 6px;
+    color: var(--base_color_neutral_5);
+    font-family: var(--font_family);
+    font-size: var(--font_size_caption);
+    line-height: 20px;
+    white-space: nowrap;
+}
+
 .feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
     background-color: color-mix(in srgb, var(--base_color_neutral_2) 50%, var(--base_color_neutral_1));
 }

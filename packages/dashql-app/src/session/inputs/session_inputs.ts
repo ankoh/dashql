@@ -193,7 +193,8 @@ export function sessionInputLiteral(instance: core.DashQL, type: SessionInputTyp
 }
 
 /// The scripts that an input change reruns: the scripts that use one of the inputs and every script downstream of
-/// them, by the references and relation edges of the dataflow. Indexes the scripts of the dataflow.
+/// them, by the references and relation edges of the dataflow. A script that runs only on request (`@manual`) is left
+/// out, the scripts downstream of it are not. Indexes the scripts of the dataflow.
 export function affectedScriptIndices(dataflow: core.buffers.execution.SessionDataflowT, inputs: readonly string[]): number[] {
     const names = new Set(inputs);
     const affected = new Set<number>();
@@ -217,5 +218,5 @@ export function affectedScriptIndices(dataflow: core.buffers.execution.SessionDa
             }
         }
     }
-    return [...affected].sort((l, r) => l - r);
+    return [...affected].filter(script => !dataflow.scripts[script]?.manual).sort((l, r) => l - r);
 }

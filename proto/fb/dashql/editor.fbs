@@ -193,6 +193,9 @@ table EditorScriptAnnotations {
     statements: [EditorStatement];
     /// Absent if the script has no `@vis flow` tag
     flow_position: EditorFlowPosition;
+    /// Does the script run only on request, its `@manual` tag? Runs of the whole session and of input changes leave
+    /// it out.
+    manual: bool;
 }
 
 /// Plain processing values copied from ScriptStatistics.

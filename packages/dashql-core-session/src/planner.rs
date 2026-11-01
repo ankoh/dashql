@@ -366,11 +366,18 @@ fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
     }
 }
 
+/// Does a script run only on request? Its current analysis has a `@manual` tag.
+pub(crate) fn runs_on_request(script: &Script) -> bool {
+    script.current_analysis().is_some_and(|(_, _, analyzed)| analyzed.manual)
+}
+
 /// The scripts whose statements a plan includes in full before their references: the targets, or the scripts of the
-/// session whose results the host doesn't provide
+/// session whose results the host doesn't provide and that don't run only on request
 fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
     match request.scope {
-        PlanScope::Session => (0..request.scripts.len() as u32).filter(|i| !request.materialized.contains(i)).collect(),
+        PlanScope::Session => (0..request.scripts.len() as u32)
+            .filter(|&i| !request.materialized.contains(&i) && !runs_on_request(request.scripts[i as usize].script))
+            .collect(),
         PlanScope::Targets(targets) => targets.to_vec(),
         PlanScope::Tolerant => (0..request.scripts.len() as u32).collect(),
     }

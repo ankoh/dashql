@@ -12,6 +12,17 @@ dataflow-snapshots:
         input: |
           select * from :b, :a;
 
+  # A script that runs only on request is part of the dataflow
+  - name: ManualReference
+    scripts:
+      - name: a
+        input: |
+          /* @manual */
+          select 1 as x;
+      - name: b
+        input: |
+          select x from :a where x > 0;
+
   # A referenced script is a single SELECT, the reference is invalid but still an edge
   - name: InvalidReferenceToScriptWithCommands
     scripts:

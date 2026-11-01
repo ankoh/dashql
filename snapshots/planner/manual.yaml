@@ -1,0 +1,323 @@
+planner-snapshots:
+
+  - name: SessionSkipsManual
+    connections:
+      - name: db
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, region text, amount int);
+    scripts:
+      - name: orders_all
+        connection: db
+        input: |
+          /* All orders, expensive without a filter.
+             @manual */
+          select id, region, amount from orders;
+      - name: west
+        connection: db
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+      - name: other
+        connection: db
+        input: |
+          select count(*) from orders;
+    expected:
+      valid: true
+      connections:
+        - name: db
+          kind: LOCAL
+      scripts:
+        - name: orders_all
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e8b216f24c2154e7a3fe602167871968"
+        - name: west
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "5806d569bf1cf4b37ae2af290a712d58"
+          references: [orders_all]
+        - name: other
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "3bc46f571ba7cb1188f84dab00bf5cca"
+      entities:
+        - catalog-id: 'db/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: west
+          connection: db
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with orders_all as (
+            select id, region, amount from orders
+            )
+            select sum(amount) from orders_all where region = 'west'
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: 'db/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: other
+          connection: db
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'db/256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 0
+          script: west
+          text: ":orders_all"
+          target: orders_all
+          cte: orders_all
+      diagnostics: []
+      checked-references:
+        - script: west
+          references:
+            - text: ":orders_all"
+              target: orders_all
+              kind: inline
+
+  - name: ManualTarget
+    connections:
+      - name: db
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, region text, amount int);
+    scripts:
+      - name: orders_all
+        connection: db
+        input: |
+          -- @manual
+          select id, region, amount from orders;
+      - name: west
+        connection: db
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+    targets: [orders_all]
+    expected:
+      valid: true
+      connections:
+        - name: db
+          kind: LOCAL
+      scripts:
+        - name: orders_all
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e8b216f24c2154e7a3fe602167871968"
+        - name: west
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          planned: false
+          target: false
+      entities:
+        - catalog-id: 'db/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: orders_all
+          connection: db
+          statement-id: 0
+          type: SELECT
+          sql: "select id, region, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'db/256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+      checked-references:
+        - script: west
+          references:
+            - text: ":orders_all"
+              target: orders_all
+              kind: inline
+
+  - name: ManualTolerant
+    scope: tolerant
+    connections:
+      - name: db
+        kind: LOCAL
+        catalog: |
+          create table orders (id int, region text, amount int);
+    scripts:
+      - name: orders_all
+        connection: db
+        input: |
+          /* @manual */
+          select id, region, amount from orders;
+      - name: west
+        connection: db
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+    expected:
+      valid: true
+      connections:
+        - name: db
+          kind: LOCAL
+      scripts:
+        - name: orders_all
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e8b216f24c2154e7a3fe602167871968"
+        - name: west
+          connection: db
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "5806d569bf1cf4b37ae2af290a712d58"
+          references: [orders_all]
+      entities:
+        - catalog-id: 'db/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: orders_all
+          connection: db
+          statement-id: 0
+          type: SELECT
+          sql: "select id, region, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'db/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: west
+          connection: db
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with orders_all as (
+            select id, region, amount from orders
+            )
+            select sum(amount) from orders_all where region = 'west'
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: 'db/256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: west
+          text: ":orders_all"
+          target: orders_all
+          cte: orders_all
+      diagnostics: []
+      checked-references:
+        - script: west
+          references:
+            - text: ":orders_all"
+              target: orders_all
+              kind: inline
+
+  - name: ManualAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, region text, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: orders_all
+        connection: trino
+        input: |
+          /* @manual */
+          select id, region, amount from orders;
+      - name: west
+        connection: local
+        input: |
+          select sum(amount) from :orders_all where region = 'west';
+    targets: [west]
+    expected:
+      valid: false
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: orders_all
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e8b216f24c2154e7a3fe602167871968"
+        - name: west
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "5806d569bf1cf4b37ae2af290a712d58"
+          references: [orders_all]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: west
+          text: ":orders_all"
+          error: true
+          message: 'orders_all.sql runs only on request (@manual), the scripts of the connection trino inline it but west.sql of the connection local cannot read it'
+      checked-references:
+        - script: west
+          references:
+            - text: ":orders_all"
+              target: orders_all
+              kind: invalid
+              errors:
+                - 'orders_all.sql runs only on request (@manual), the scripts of the connection trino inline it but west.sql of the connection local cannot read it'

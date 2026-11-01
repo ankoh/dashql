@@ -69,6 +69,13 @@ function numberArg(args: Record<string, unknown>, name: string, fallback: number
     return value;
 }
 
+function booleanArg(args: Record<string, unknown>, name: string): boolean {
+    const value = args[name];
+    if (value == null) return false;
+    if (typeof value !== 'boolean') usage(`${name} must be a boolean`);
+    return value;
+}
+
 /// Find a script by its file name or display name, case-insensitive
 export function findScript(state: SessionScripts, name: string): ScriptData | null {
     const wanted = scriptDisplayName(name.trim()).toLowerCase();
@@ -342,6 +349,10 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     const script = requireScript(state, stringArg(args, 'script'));
     const maxRows = numberArg(args, 'maxRows', DEFAULT_RUN_ROWS);
     const name = scriptDisplayName(script.fileName);
+    // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
+    if (script.annotations.manual && !booleanArg(args, 'force')) {
+        fail(`${name} runs only on request (@manual), it is too expensive without a filter. Query :${name} with a filter from another script of its connection, or ask the user and run it with --force.`);
+    }
     const conn = env.connections().connections.get(script.connection.connectionId);
     if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {
         fail(`The connection ${script.connection.connectionId} of ${name} is not online, ask the user to connect it`);

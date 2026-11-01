@@ -1542,6 +1542,7 @@ function deriveScriptAnnotations(
         tableDefs: tableDefsFlat,
         visualizeQuery,
         flowPosition: flow != null ? { statementId: flow.statementId, x: flow.x, y: flow.y } : null,
+        manual: update.scriptAnnotations?.manual ?? false,
     };
 }
 

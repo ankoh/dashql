@@ -108,6 +108,9 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
                     })
                     .collect();
                 m.insert("statements", Node::seq(statements));
+                if script.manual {
+                    m.boolean("manual", true);
+                }
             }
             let (x, y, w, h) = boxes[i];
             m.insert("box", Node::flow_seq([x, y, w, h].iter().map(|v| Node::int(v.round() as i64)).collect()));

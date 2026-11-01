@@ -169,6 +169,24 @@ analyzer-snapshots:
         /* @flow y=5 x=6 */
         select 3;
 
+  # A script that runs only on request, the text after the tag is free
+  - name: manual_tag
+    script:
+      input: |
+        /* All orders, expensive without a filter.
+           @manual until the warehouse has a partition per day */
+        select 1 as a;
+
+  # The tag may annotate any statement, a second one changes nothing
+  - name: manual_tag_later_statement
+    script:
+      input: |
+        create table t (a int);
+        -- @manual
+        select a from t;
+        /* @manual */
+        select a + 1 from t;
+
   # A statement that returns no rows
   - name: vis_tag_not_a_query
     script:
