@@ -213,7 +213,9 @@ describe('V2 session feed rows', () => {
         // The connection takes the place of the file name
         const picker = container.querySelector('[data-testid="script-connection-picker"]')!;
         expect(picker.textContent).toContain('Trino');
-        expect(picker.textContent).toContain('Http');
+        // The header shows the logo of the database, neither the protocol nor the health
+        expect(picker.textContent).not.toContain('Http');
+        expect(picker.querySelector('use')?.getAttribute('xlink:href')).toContain(CONNECTOR_INFOS[ConnectorType.TRINO].icons.colored);
         expect(picker.textContent).not.toContain('01_alpha');
 
         act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());

@@ -328,6 +328,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             connection={props.connection}
                             disabled={props.scriptData == null || queryActive || sessionExecution.busy}
                             onPick={connectionId => props.onPickConnection(props.scriptFileName, connectionId)}
+                            entryHeader
                         />
                     </div>
                     {props.scriptDebugMode && props.scriptData != null && (

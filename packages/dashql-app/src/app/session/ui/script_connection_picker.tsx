@@ -85,6 +85,16 @@ export function useAttachPendingConnection(instance: core.DashQL, modifySessionS
     }, [attach, instance, modifySessionScripts]);
 }
 
+/// The colored logo of the database of a connector
+function ConnectorIcon(props: { connectorInfo: ConnectorInfo, size?: number }) {
+    const size = `${props.size ?? 16}px`;
+    return (
+        <svg className={styles.connector_icon} width={size} height={size} aria-hidden="true">
+            <use xlinkHref={`${symbols}#${props.connectorInfo.icons.colored}`} />
+        </svg>
+    );
+}
+
 /// A dot in the color of the connection health
 export function HealthDot(props: { health: ConnectionHealth | null }) {
     return (
@@ -107,6 +117,9 @@ interface Props {
     onPick: (connectionId: string) => void;
     /// Run the script on a new connection of a connector, returns the id of the connection
     onAttach?: (connector: ConnectorType) => string;
+    /// The trigger sits in the header of an entry card, it shows the logo of the database instead of
+    /// the health dot and leaves out the protocol tag
+    entryHeader?: boolean;
     /// The test id of the trigger
     testId?: string;
     dependencies?: ScriptConnectionPickerDependencies;
@@ -152,8 +165,10 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         disabled={props.disabled}
-                        leadingVisual={props.connection == null ? undefined : <HealthDot health={props.connection.connectionHealth} />}
-                        trailingVisual={props.connection == null ? undefined : <ConnectionProtocolTag detail={props.connection.labelParts.detail} />}
+                        leadingVisual={props.connection == null ? undefined : props.entryHeader
+                            ? <ConnectorIcon connectorInfo={props.connection.connectorInfo} size={14} />
+                            : <HealthDot health={props.connection.connectionHealth} />}
+                        trailingVisual={props.connection == null || props.entryHeader ? undefined : <ConnectionProtocolTag detail={props.connection.labelParts.detail} />}
                         aria-label={`Connection of ${props.scriptName} script: ${label}`}
                         data-testid={props.testId ?? "script-connection-picker"}
                         title={label}
@@ -223,9 +238,7 @@ export function ConnectionMenu(props: MenuProps) {
             onClick={() => props.onPick(connection.connectionId)}
         >
             <ActionList.Leading>
-                <svg className={styles.connector_icon} width="16px" height="16px" aria-hidden="true">
-                    <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
-                </svg>
+                <ConnectorIcon connectorInfo={connection.connectorInfo} />
             </ActionList.Leading>
             <ActionList.ItemText>
                 <ActionList.ItemTextTitle>

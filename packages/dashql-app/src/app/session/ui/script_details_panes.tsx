@@ -71,6 +71,7 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
                     connection={props.connection}
                     disabled={props.connectionPickDisabled}
                     onPick={props.onPickConnection}
+                    entryHeader
                 />
             </div>
             {props.scriptDebugMode && (
