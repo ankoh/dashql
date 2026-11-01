@@ -988,7 +988,7 @@ planner-snapshots:
           select * from later;
           create table later (id int);
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: forward
           text-version: 1
@@ -1034,7 +1034,7 @@ planner-snapshots:
       diagnostics:
         - node: 0
           script: forward
-          error: true
+          error: false
           message: relation resolves to a later producer in input order
 
   - name: ProducerThenConsumer
@@ -1101,7 +1101,7 @@ planner-snapshots:
       - name: producer
         input: create table relation (id int);
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: consumer
           text-version: 1
@@ -1155,7 +1155,7 @@ planner-snapshots:
       diagnostics:
         - node: 0
           script: consumer
-          error: true
+          error: false
           message: relation resolves to a later producer in input order
 
   - name: UnresolvedBarrier
@@ -1239,7 +1239,7 @@ planner-snapshots:
           set foo = 1;
           select 2;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: session
           text-version: 1
@@ -1263,7 +1263,7 @@ planner-snapshots:
           script: session
           statement-id: 1
           type: SET
-          sql: ""
+          sql: "set foo = 1"
           produces-output: false
           barrier: true
           accesses: []
@@ -1286,7 +1286,7 @@ planner-snapshots:
       diagnostics:
         - node: 1
           script: session
-          error: true
+          error: false
           message: unsupported statement effects; backend session semantics are not guaranteed
 
   - name: UnresolvedDrop
@@ -1592,7 +1592,7 @@ planner-snapshots:
           explain (format 'analyze') insert into a values (2);
           explain (analyze) create table copied as select * from a;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: explain
           text-version: 1
@@ -1611,7 +1611,7 @@ planner-snapshots:
           script: explain
           statement-id: 0
           type: EXPLAIN
-          sql: ""
+          sql: "explain (analyze) insert into a values (1)"
           produces-output: true
           barrier: true
           accesses:
@@ -1621,7 +1621,7 @@ planner-snapshots:
           script: explain
           statement-id: 1
           type: EXPLAIN
-          sql: ""
+          sql: "explain (analyse true) delete from a returning id"
           produces-output: true
           barrier: true
           accesses:
@@ -1631,7 +1631,7 @@ planner-snapshots:
           script: explain
           statement-id: 2
           type: EXPLAIN
-          sql: ""
+          sql: "explain (format 'analyze') insert into a values (2)"
           produces-output: true
           barrier: true
           accesses:
@@ -1641,7 +1641,7 @@ planner-snapshots:
           script: explain
           statement-id: 3
           type: EXPLAIN
-          sql: ""
+          sql: "explain (analyze) create table copied as select * from a"
           produces-output: true
           barrier: true
           script-result: true
@@ -1673,19 +1673,19 @@ planner-snapshots:
       diagnostics:
         - node: 0
           script: explain
-          error: true
+          error: false
           message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
         - node: 1
           script: explain
-          error: true
+          error: false
           message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
         - node: 2
           script: explain
-          error: true
+          error: false
           message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
         - node: 3
           script: explain
-          error: true
+          error: false
           message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
 
   - name: ExplainAnalyzeQueriesAndDisabledMutation
@@ -1976,7 +1976,7 @@ planner-snapshots:
       - name: session
         input: create temp table t (id int);
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: session
           text-version: 1
@@ -2005,7 +2005,7 @@ planner-snapshots:
       diagnostics:
         - node: 0
           script: session
-          error: true
+          error: false
           message: 'unsupported session, locking, constraint, or graph effects'
 
   - name: MalformedParser

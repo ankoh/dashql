@@ -174,3 +174,23 @@ planner-snapshots:
         input: |
           with c as (select * from a) select * from c x;
           with c as (select * from a), d as (select * from c) select * from d, c as y;
+
+  # Graph queries are barriers, a plan of the session runs them in session order
+  - name: GraphQueries
+    catalog: |
+      create table people (id int, name text);
+      create table knows (src int, dst int);
+    scripts:
+      - name: load
+        input: |
+          insert into people values (1, 'a'), (2, 'b');
+          insert into knows values (1, 2);
+      - name: friends
+        input: |
+          with pg as property graph (
+            vertex tables (people key (id))
+            edge tables (knows key (src, dst) source key (src) references people (id) destination key (dst) references people (id))
+          )
+          select * from graph_table(pg match (a)-[e]->(b) columns (a.name as from_name, b.name as to_name)) gt;
+      - name: count
+        input: select count(*) from people;

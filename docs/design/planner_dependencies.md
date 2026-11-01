@@ -16,10 +16,9 @@ it.
 
 A node records:
 
-- `sql`: the statement text with its script references spliced in (`splice_statement`). A plan of the session clears
-  the SQL of invalid barriers with effects it cannot classify (unsupported statement types, EXPLAIN without a body,
-  execution-enabled EXPLAIN with a mutating body), a plan of targets keeps it. A visualization that fails to compile
-  clears it in both.
+- `sql`: the statement text with its script references spliced in (`splice_statement`), also for barriers with
+  effects the planner cannot classify (unsupported statement types, EXPLAIN without a body, execution-enabled EXPLAIN
+  with a mutating body). A visualization that fails to compile clears it.
 - `produces_output`: SELECT and EXPLAIN always, INSERT and DELETE with RETURNING on their root, nothing else; SELECT
   INTO does not (`produces_output` in `compiler.rs`).
 - `script_result`: the node is the terminal statement of its script, the last statement (`Prepared::terminal`), and
@@ -119,18 +118,18 @@ VIEW. Accesses name catalog identities, the timeline names: a DROP and a recreat
 timeline while their accesses keep distinct entities (`planner.md`, Conflicts). The planner tracks a live namespace
 per connection while it visits the statements: the declarations of participating scripts enter it at their CREATE,
 those of every other script of the catalog are in it from the start, a DROP removes the name. A direct read of a
-dropped name is an invalid barrier, and so is a direct read of a relation whose producer is the same node or a later
-one ("relation resolves to a later producer in input order").
+dropped name is a barrier, and so is a direct read of a relation whose producer is the same node or a later one
+("relation resolves to a later producer in input order").
 
 ### Barriers
 
-A node is a barrier if one of its checks fails. Invalidating (an error in a plan of the session, a warning in a plan
-of targets): unsupported statement types, unsupported table sources, ambiguous relations or DROP targets,
-incompatible declarations, reads of dropped relations, reads of later producers, missing DDL targets, session,
-locking, constraint or graph effects, mutating execution-enabled EXPLAIN, analyzer errors. A visualization that does
-not compile is an invalid barrier in both scopes. Not invalidating: unresolved relations, unresolved DROP targets,
-and reads, writes and DROPs of a view (a view of the catalog or one that a planned CREATE VIEW created), since views
-are not expanded.
+A node is a barrier if one of its checks fails: unsupported statement types, unsupported table sources, ambiguous
+relations or DROP targets, incompatible declarations, reads of dropped relations, reads of later producers, missing
+DDL targets, session, locking, constraint or graph effects (reported once per statement), mutating
+execution-enabled EXPLAIN, analyzer errors, unresolved relations, unresolved DROP targets, and reads, writes and DROPs
+of a view (a view of the catalog or one that a planned CREATE VIEW created), since views are not expanded. The
+diagnostics of barriers are warnings in every scope, the statement runs as written in session order. A visualization
+that does not compile is an invalid barrier in both scopes.
 
 Barriers order the nodes of their connection only. In node order, every node gets a BARRIER edge from the last
 barrier of its connection, and a barrier node also gets a BARRIER edge from every node of its connection since the
@@ -219,7 +218,7 @@ diagnosed:
 
 The plan is valid. bar reads `t` before any writer and joins its readers, the CREATE of baz gets an edge bar → baz
 (DDL), so bar runs before `t` is created. foo itself reads `t` after baz. A direct read of `t` in bar would be the
-invalid barrier "relation resolves to a later producer in input order".
+barrier "relation resolves to a later producer in input order".
 
 ## Runs of One Script
 

@@ -11,7 +11,7 @@ planner-snapshots:
           select a from t, u;
           select b from t;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: queries
           text-version: 1
@@ -70,7 +70,7 @@ planner-snapshots:
       diagnostics:
         - node: 1
           script: queries
-          error: true
+          error: false
           message: 'analyzer: column reference is ambiguous, candidates: t.a, u.a'
 
   - name: TableFunctionSource
@@ -122,7 +122,7 @@ planner-snapshots:
           select * from t;
           select 1;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: queries
           text-version: 1
@@ -163,7 +163,7 @@ planner-snapshots:
       diagnostics:
         - node: 0
           script: queries
-          error: true
+          error: false
           message: ambiguous relation reference
 
   - name: AmbiguousDropTarget
@@ -176,7 +176,7 @@ planner-snapshots:
           drop table t;
           select 1;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: queries
           text-version: 1
@@ -215,7 +215,7 @@ planner-snapshots:
       diagnostics:
         - node: 0
           script: queries
-          error: true
+          error: false
           message: ambiguous DROP target
         - node: 0
           script: queries
@@ -231,7 +231,7 @@ planner-snapshots:
           drop table a;
           select * from a;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: queries
           text-version: 1
@@ -278,7 +278,7 @@ planner-snapshots:
       diagnostics:
         - node: 1
           script: queries
-          error: true
+          error: false
           message: relation was dropped without an earlier lifetime producer; later producer cannot be reordered
 
   - name: AliasesAndDerivedTables
@@ -357,7 +357,7 @@ planner-snapshots:
       - name: consumer
         input: select * from shared;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: table_producer
           text-version: 1
@@ -445,7 +445,7 @@ planner-snapshots:
       diagnostics:
         - node: 2
           script: consumer
-          error: true
+          error: false
           message: ambiguous relation reference
         - node: 2
           script: consumer
@@ -1105,3 +1105,119 @@ planner-snapshots:
               mode: READ
       edges: []
       diagnostics: []
+
+  - name: GraphQueries
+    catalog: |
+      create table people (id int, name text);
+      create table knows (src int, dst int);
+    scripts:
+      - name: load
+        input: |
+          insert into people values (1, 'a'), (2, 'b');
+          insert into knows values (1, 2);
+      - name: friends
+        input: |
+          with pg as property graph (
+            vertex tables (people key (id))
+            edge tables (knows key (src, dst) source key (src) references people (id) destination key (dst) references people (id))
+          )
+          select * from graph_table(pg match (a)-[e]->(b) columns (a.name as from_name, b.name as to_name)) gt;
+      - name: count
+        input: select count(*) from people;
+    expected:
+      valid: true
+      scripts:
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "3b15d5acf9674e52483480f638ed842e"
+        - name: friends
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "6ea2ba5697f66cbc00867713bc108501"
+        - name: count
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e9e651f797318eb183a4cb9b64a6aa06"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: people
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: knows
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: load
+          statement-id: 0
+          type: INSERT
+          sql: "insert into people values (1, 'a'), (2, 'b')"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: load
+          statement-id: 1
+          type: INSERT
+          sql: "insert into knows values (1, 2)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: WRITE
+        - id: 2
+          script: friends
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with pg as property graph (
+              vertex tables (people key (id))
+              edge tables (knows key (src, dst) source key (src) references people (id) destination key (dst) references people (id))
+            )
+            select * from graph_table(pg match (a)-[e]->(b) columns (a.name as from_name, b.name as to_name)) gt
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+        - id: 3
+          script: count
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from people"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 0
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: BARRIER
+      diagnostics:
+        - node: 2
+          script: friends
+          error: false
+          message: 'unsupported session, locking, constraint, or graph effects'

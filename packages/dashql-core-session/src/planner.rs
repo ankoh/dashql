@@ -176,8 +176,6 @@ struct PlanState {
     unresolved_list: Vec<ExecutionGraphUnresolvedReferenceT>,
     /// The diagnostics of the plan
     diagnostics: Vec<ExecutionGraphDiagnosticT>,
-    /// Are diagnostics of statements warnings? Plans of targets run statements of every kind.
-    lenient: bool,
     /// Do errors leave something out of the plan instead of stopping it? See `PlanScope::Tolerant`.
     tolerant: bool,
     /// Did a tolerant plan leave something out?
@@ -210,10 +208,10 @@ impl PlanState {
         }
     }
 
-    /// Report a diagnostic of a statement, an invalidating one is a warning in a plan of targets
-    fn diagnose(&mut self, node: u32, script: u32, message: String, invalid: bool) {
-        let error = invalid && !self.lenient;
-        self.report(node, script, None, message, error);
+    /// Report a diagnostic of a statement. It is a warning in every scope: the statement runs as written, a barrier
+    /// orders it against the other statements of its connection.
+    fn diagnose(&mut self, node: u32, script: u32, message: String) {
+        self.report(node, script, None, message, false);
     }
 
     fn intern_entity(&mut self, connection: u32, table: &TableDeclaration) -> u32 {
@@ -349,7 +347,6 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         entity_list: Vec::new(),
         unresolved_list: Vec::new(),
         diagnostics: Vec::new(),
-        lenient,
         tolerant,
         partial: false,
         reference_errors: BTreeSet::new(),
@@ -556,7 +553,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             node.script_result = true;
             node.barrier = true;
             node.connection = connection;
-            state.diagnose(node_id, si as u32, "the script does not parse, it runs as written".into(), false);
+            state.diagnose(node_id, si as u32, "the script does not parse, it runs as written".into());
             nodes.push(node);
             continue;
         }
@@ -630,11 +627,11 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             let mut explain_executes = false;
             let mut accesses: BTreeMap<(u32, u32), Mode> = BTreeMap::new();
             let mut barrier = false;
-            // `barrier` marks the node, `invalid` the plan
+            // A statement that the planner can't classify is a barrier, it runs in session order
             macro_rules! barrier {
-                ($message:expr, $invalid:expr) => {{
+                ($message:expr) => {{
                     barrier = true;
-                    state.diagnose(node_id, si as u32, $message.to_string(), $invalid);
+                    state.diagnose(node_id, si as u32, $message.to_string());
                 }};
             }
             let access = |state: &mut PlanState, accesses: &mut BTreeMap<(u32, u32), Mode>, name: &Name, table: Option<&TableDeclaration>, mode: Mode| {
@@ -659,10 +656,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 | Type::DROP_TABLE
                 | Type::DROP_VIEW => {}
                 _ => {
-                    barrier!("unsupported statement effects; backend session semantics are not guaranteed", true);
-                    if !lenient {
-                        sql.clear();
-                    }
+                    barrier!("unsupported statement effects; backend session semantics are not guaranteed");
                 }
             }
             // A query with `@vis` tags carries its visualization
@@ -705,10 +699,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     }
                 }
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
-                    barrier!("EXPLAIN requires a statement or expressions body", true);
-                    if !lenient {
-                        sql.clear();
-                    }
+                    barrier!("EXPLAIN requires a statement or expressions body");
                 }
             }
             for e in &analyzed.errors {
@@ -716,13 +707,13 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 if error_node < statement.nodes_begin || error_node >= statement.nodes_begin + statement.node_count {
                     continue;
                 }
-                let invalid = e.severity == AnalyzerErrorSeverity::ERROR;
-                state.diagnose(node_id, si as u32, format!("analyzer: {}", e.message), invalid);
-                if invalid {
+                state.diagnose(node_id, si as u32, format!("analyzer: {}", e.message));
+                if e.severity == AnalyzerErrorSeverity::ERROR {
                     barrier = true;
                 }
             }
-            // AST effects that are not represented by ordinary relation reads
+            // AST effects that are not represented by ordinary relation reads, reported once per statement
+            let mut effects = false;
             for ni in statement.nodes_begin..statement.nodes_begin + statement.node_count {
                 let ast = &parsed.nodes[ni as usize];
                 if ast.node_type() == NodeType::NONE {
@@ -738,10 +729,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                         | NodeType::OBJECT_SQL_CREATE_FUNCTION
                 ) || ast.attribute_key() == Key::SQL_SELECT_INTO;
                 if ty == Type::EXPLAIN && explain_executes && mutating {
-                    barrier!("execution-enabled EXPLAIN with a mutating body cannot be safely classified", true);
-                    if !lenient {
-                        sql.clear();
-                    }
+                    barrier!("execution-enabled EXPLAIN with a mutating body cannot be safely classified");
                 }
                 if ast.node_type() == NodeType::ENUM_SQL_TEMP_TYPE && ast.children_begin_or_value() == TempType::NONE.0 as u32 {
                     continue;
@@ -756,7 +744,10 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                         | Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME
                 ) || matches!(ast.node_type(), NodeType::OBJECT_SQL_GRAPH_TABLE | NodeType::OBJECT_SQL_PROPERTY_GRAPH)
                 {
-                    barrier!("unsupported session, locking, constraint, or graph effects", true);
+                    if !effects {
+                        barrier!("unsupported session, locking, constraint, or graph effects");
+                    }
+                    effects = true;
                 }
             }
             for table_ref in &analyzed.table_references {
@@ -765,11 +756,11 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     continue;
                 }
                 let Some(relation) = &table_ref.inner else {
-                    barrier!("unsupported table source", true);
+                    barrier!("unsupported table source");
                     continue;
                 };
                 if !relation.resolved_alternatives.is_empty() {
-                    barrier!("ambiguous relation reference", true);
+                    barrier!("ambiguous relation reference");
                 }
                 // References to CTEs are no relation accesses
                 if is_cte_reference(analyzed, table_ref) {
@@ -794,26 +785,26 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                         }
                     }
                     if table.is_none() {
-                        barrier!("resolved relation declaration is incompatible or unavailable", true);
+                        barrier!("resolved relation declaration is incompatible or unavailable");
                     }
                 }
                 let write = table_ref.role == TableRole::Write && (ty != Type::EXPLAIN || explain_executes);
                 access(&mut state, &mut accesses, &name, table, if write { Mode::WRITE } else { Mode::READ });
                 if c.dropped_resources.contains(&name) {
-                    barrier!("relation was dropped without an earlier lifetime producer; later producer cannot be reordered", true);
+                    barrier!("relation was dropped without an earlier lifetime producer; later producer cannot be reordered");
                 }
                 match &relation.resolved_table {
-                    None => barrier!(format!("unresolved relation: {}", relation.table_name.debug_string()), false),
+                    None => barrier!(format!("unresolved relation: {}", relation.table_name.debug_string())),
                     Some(resolved) => {
                         let id = match table {
                             Some(t) => t.table_id().pack(),
                             None => resolved.catalog_table_id.unpack_table_id().pack(),
                         };
                         if c.producers.get(&id).is_some_and(|&p| p >= node_id) && !c.live_producers.contains(&name) {
-                            barrier!("relation resolves to a later producer in input order", true);
+                            barrier!("relation resolves to a later producer in input order");
                         }
                         if c.views.contains(&id) || c.live_views.contains(&name) {
-                            barrier!("view dependencies are not expanded; conservative access barrier", false);
+                            barrier!("view dependencies are not expanded; conservative access barrier");
                         }
                     }
                 }
@@ -838,7 +829,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     let table = table.map(|t| c.live_namespace.get(&name).copied().filter(|_| c.live_producers.contains(&name)).unwrap_or(t));
                     access(&mut state, &mut accesses, &name, table, Mode::READ);
                     if relation.resolved_table.is_none() {
-                        barrier!(format!("unresolved relation: {}", relation.table_name.debug_string()), false);
+                        barrier!(format!("unresolved relation: {}", relation.table_name.debug_string()));
                     }
                 }
             }
@@ -855,7 +846,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             if ddl {
                 let packed = pack::pack_parsed_statement(parsed, statement_id);
                 match packed.target {
-                    None => barrier!("missing DDL target", true),
+                    None => barrier!("missing DDL target"),
                     Some(target) => {
                         let mut name: Name = (
                             target.database_name.clone().unwrap_or_default(),
@@ -876,16 +867,16 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                                 if matches.len() == 1 {
                                     name = matches.into_iter().next().unwrap();
                                 } else if matches.len() > 1 {
-                                    barrier!("ambiguous DROP target", true);
+                                    barrier!("ambiguous DROP target");
                                 }
                             }
                             match c.live_namespace.get(&name) {
                                 Some(&live) => table = Some(live),
-                                None => barrier!("unresolved DROP target; conservative access barrier", false),
+                                None => barrier!("unresolved DROP target; conservative access barrier"),
                             }
                             if let Some(t) = table {
                                 if c.views.contains(&t.table_id().pack()) || c.live_views.contains(&name) {
-                                    barrier!("view dependencies are not expanded; conservative access barrier", false);
+                                    barrier!("view dependencies are not expanded; conservative access barrier");
                                 }
                             }
                         } else {
@@ -896,7 +887,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                             }
                             match table {
                                 Some(t) => name = resource_name(&t.table_name),
-                                None => barrier!("missing DDL target declaration", true),
+                                None => barrier!("missing DDL target declaration"),
                             }
                         }
                         access(&mut state, &mut accesses, &name, table, Mode::DDL);

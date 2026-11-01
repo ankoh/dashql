@@ -562,20 +562,20 @@ describe('session execution with real core planning', () => {
             error: 'Invalid captured visualization metadata' });
     });
 
-    it('rejects an unsupported SET plan without executing even preceding valid SQL', async () => {
+    it('runs an unsupported SET as a barrier in session order', async () => {
         const f = fixture([
             ['1_valid.sql', 'select 1;'],
             ['2_set.sql', 'set foo = 1;'],
+            ['3_after.sql', 'select 2;'],
         ]);
         await f.run();
 
         expect(f.graphs).toHaveLength(1);
-        expect(f.graphs[0].valid).toBe(false);
-        expect(f.graphs[0].diagnostics.length).toBeGreaterThan(0);
-        expect(f.executeQuery).not.toHaveBeenCalled();
-        expect(f.modifySessionScripts).not.toHaveBeenCalled();
-        expect(f.lastState()).toMatchObject({ phase: 'failed', completedStatements: 0 });
-        expect(f.lastState().error).toBeTruthy();
+        expect(f.graphs[0].valid).toBe(true);
+        expect(f.graphs[0].diagnostics.map(d => [d.error, d.message])).toEqual([
+            [false, 'unsupported statement effects; backend session semantics are not guaranteed']]);
+        expect(f.calls.map(call => call.sql)).toEqual(['select 1', 'set foo = 1', 'select 2']);
+        expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedStatements: 3 });
     });
 
     it('plans again from edited live sessions on rerun rather than reusing captured SQL', async () => {

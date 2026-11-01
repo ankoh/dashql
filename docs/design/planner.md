@@ -41,10 +41,11 @@ host provides the materialized result. The targets, the scripts they reference a
 have a current analysis, `ExecutionGraphScript.planned` marks them. `ExecutionGraphScript.target` marks the scripts
 a plan includes in full: the targets, in a plan of the session the scripts whose results the host doesn't provide, in a
 tolerant plan every script. A plan of targets runs like a
-single script: statements keep their SQL whatever their kind, the statements of a script are chained with
-SEQUENCE edges, a target that does not parse becomes one barrier node with its text as written, and the
-diagnostics of statements are warnings. Diagnostics of script references, stale analysis, visualizations that fail
-to compile and a referenced script that runs later stay errors.
+single script: the statements of a script are chained with SEQUENCE edges and a target that does not parse becomes
+one barrier node with its text as written. In both scopes statements keep their SQL whatever their kind and the
+diagnostics of statements are warnings: a statement that the planner can't classify is a barrier and runs in session
+order. Syntax errors in a plan of the session, diagnostics of script references, stale analysis, inputs without a
+value, visualizations that fail to compile and a referenced script that runs later are errors.
 
 A tolerant plan (`PlanScope::Tolerant`) is the plan of the [dataflow](dataflow.md) of a session, which is never run.
 It plans every script like a plan of targets that targets all of them, but errors leave something out instead of
@@ -225,10 +226,10 @@ key/value attributes, not by searching the whole SQL text. `analyze` and `analys
 enable execution unless their argument is an explicit boolean false; missing or
 unknown arguments are conservative. `format analyze` (including quoted values)
 also enables execution. Any enabling option wins over a disabling duplicate.
-Execution-enabled EXPLAIN with a mutating body is an invalid barrier with the
-diagnostic `execution-enabled EXPLAIN with a mutating body cannot be safely classified`
-and no backend SQL. Its nested DML target accesses remain WRITE for diagnostic
-dependency tracking, but consumers must not execute any node of an invalid graph.
+Execution-enabled EXPLAIN with a mutating body is a barrier with the warning
+`execution-enabled EXPLAIN with a mutating body cannot be safely classified`.
+Its nested DML target accesses remain WRITE, so the readers and writers of its
+targets are ordered around it. Consumers must not execute any node of an invalid graph.
 An ordering barrier alone is not a proof that backend execution, DDL publication,
 or session effects are safe.
 
@@ -240,11 +241,11 @@ the backend SQL of the node is the plain statement text.
 ## Conservative Limits
 
 Views are not expanded into underlying declarations yet. Reads and writes through
-views, and unresolved physical relations, create barriers against all earlier and
-later nodes. Such barriers have diagnostics but do not necessarily invalidate
-the graph. Ambiguous references, stale inputs, malformed SQL, unsupported
-statements, and recognized session/locking/constraint/graph effects invalidate it.
-Execution-enabled mutating EXPLAIN invalidates the graph.
+views, unresolved physical relations, ambiguous references, unsupported statements,
+and recognized session/locking/constraint/graph effects such as `GRAPH_TABLE`
+create barriers against all earlier and later nodes of their connection. Such
+barriers have warnings and run in session order, they don't invalidate the graph.
+Stale inputs and malformed SQL invalidate it.
 
 This is relation-level planning, not a proof of arbitrary SQL side effects.
 Opaque function effects, triggers, backend search-path behavior, and transaction
