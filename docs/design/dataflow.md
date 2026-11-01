@@ -15,14 +15,15 @@ in a run, from the analysis of every script:
   analysis is not planned (`analyzed` is false), the app keeps what it knew about it.
 - **Script references**: a table parameter `:foo` flows from the terminal query of `foo.sql` to the statement of the
   parameter, `INLINE_REFERENCE` within a connection, `SCAN_REFERENCE` from the materialized result on the LOCAL
-  connection. A reference with errors whose name finds a script is an `INVALID_REFERENCE` edge, from the
-  reference check of the planner (`check_script_references`); the editor reports the errors.
+  connection. A reference with errors whose name finds a script is an `INVALID_REFERENCE` edge, the plan keeps the
+  script of an invalid reference; the editor reports the errors.
 - **Relations**: the planner edges `READ_AFTER_WRITE`, `WRITE_AFTER_WRITE` and `DDL` of a relation whose source wrote
   the relation are `TABLE` edges, labeled with the relation name. A write continues the flow, so the `create`,
   `insert` and `select` of a table form a chain, also within one script. A drop neither produces nor reads data, it
   ends no edge and starts none. A statement that reads a relation only through the query of an inlined script reads
   it through that script: the edge into the statement is left out, the edge into the script stays. A statement that
-  also reads or writes the relation itself keeps its edge.
+  also reads or writes the relation itself keeps its edge. The plan tells the reads of a statement from those it
+  inherits from inlined queries.
 
 - **Inputs**: a named scalar parameter `:min` is an input of the session (`session_inputs.md`), the inputs follow the
   scripts in the order of their first use. An `INPUT` edge starts at an input, its `from_script` is the index of the

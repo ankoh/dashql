@@ -18,11 +18,9 @@
 //! The planner edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of
 //! materializations, which the references stand for, are no dataflow.
 
-use crate::planner::{plan_session, PlanScope, Prepared, SessionPlanRequest};
-use crate::script_references::{check_script_references, ReferenceKind};
-use crate::session_inputs::{collect_session_inputs, InputTypeSource};
-use dashql_core::analyzer::SqlType;
-use dashql_core::sql_literal::SqlLiteral;
+use crate::planner::{plan, PlanScope, Prepared, SessionPlanRequest};
+use crate::script_references::ReferenceKind;
+use crate::session_inputs::SessionInput;
 use dashql_buffers::execution::{ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT};
 use dashql_buffers::parser::StatementType;
 use dashql_parser::span::TextSpan;
@@ -90,26 +88,13 @@ pub struct DataflowEdge {
     pub name: String,
 }
 
-/// An input of the session, a named scalar parameter
-#[derive(Clone, Debug, PartialEq)]
-pub struct DataflowInput {
-    /// The name of the parameter
-    pub name: String,
-    /// The type, of a cast or inferred from the value
-    pub sql_type: SqlType,
-    /// Where the type comes from
-    pub type_source: InputTypeSource,
-    /// The value of the session, None if no script has an `@param` tag with a value
-    pub literal: Option<SqlLiteral>,
-}
-
 /// The dataflow of a session
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Dataflow {
     /// The scripts in session order
     pub scripts: Vec<DataflowScript>,
     /// The inputs in the order of their first use
-    pub inputs: Vec<DataflowInput>,
+    pub inputs: Vec<SessionInput>,
     /// The edges, sorted and without duplicates
     pub edges: Vec<DataflowEdge>,
 }
@@ -140,28 +125,11 @@ fn writes(node: &ExecutionGraphNodeT) -> impl Iterator<Item = Relation> + '_ {
         .filter_map(|a| relation_of(a.entity, a.unresolved_reference))
 }
 
-/// Does the statement of a node read a relation itself, not only through the query of an inlined script? The table
-/// references of its analysis are those of its own text.
-fn reads_directly(request: &SessionPlanRequest, graph: &ExecutionGraphT, node: &ExecutionGraphNodeT, (entity, unresolved): Relation) -> bool {
-    let Some(analyzed) = request.scripts.get(node.script as usize).and_then(|s| s.script.analyzed.as_ref()) else { return false };
-    let entity_id = graph.entities.as_ref().and_then(|e| e.get(entity as usize)).map(|e| e.catalog_object_id.object_id);
-    let unresolved_name = graph.unresolved_references.as_ref().and_then(|r| r.get(unresolved as usize)).and_then(|r| r.name.clone());
-    analyzed
-        .table_references
-        .iter()
-        .filter(|r| r.ast_statement_id == Some(node.statement_id) && !r.reads_script_result())
-        .filter_map(|r| r.inner.as_ref())
-        .any(|relation| match (&relation.resolved_table, entity_id) {
-            (Some(resolved), Some(id)) => resolved.catalog_table_id.unpack_table_id().pack() == id,
-            (None, None) => unresolved_name.as_deref() == Some(&*relation.table_name.table_name.text),
-            _ => false,
-        })
-}
-
 /// Derive the dataflow of the scripts of a session. Ignores the scope and the materializations of the request.
 pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
     let tolerant = SessionPlanRequest { scope: PlanScope::Tolerant, materialized: &[], ..*request };
-    let graph = plan_session(&tolerant);
+    let plan = plan(&tolerant);
+    let graph = &plan.graph;
     let empty = Vec::new();
     let nodes = graph.nodes.as_ref().unwrap_or(&empty);
     let port = |node: &ExecutionGraphNodeT| DataflowPort { script: node.script, statement: node.statement_id };
@@ -169,18 +137,12 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
 
     // The statements, from the nodes of the plan
     let mut scripts: Vec<DataflowScript> = vec![DataflowScript::default(); request.scripts.len()];
-    let spans: Vec<Vec<TextSpan>> = request
-        .scripts
-        .iter()
-        .map(|s| Prepared::lenient(s.script).map(|p| p.parsed.associate_descriptions().iter().map(|d| d.statement_span).collect()).unwrap_or_default())
-        .collect();
-    for node in nodes {
+    for (node, &text_span) in nodes.iter().zip(&plan.spans) {
         let Some(script) = scripts.get_mut(node.script as usize) else { continue };
-        let text_span = spans[node.script as usize].get(node.statement_id as usize).copied().unwrap_or_default();
         script.analyzed = true;
         script.statements.push(DataflowStatement {
             statement_type: node.statement_type,
-            target: writes(node).next().map(|r| relation_name(&graph, r)),
+            target: writes(node).next().map(|r| relation_name(graph, r)),
             text_span,
         });
     }
@@ -212,18 +174,17 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
             name: reference.parameter.clone().unwrap_or_default(),
         });
     }
-    for (consumer, checked) in check_script_references(request).into_iter().enumerate() {
-        for reference in checked.references.into_iter().filter(|r| r.kind == ReferenceKind::Invalid) {
-            let (Some(producer), Some(statement)) = (reference.script, reference.statement_id) else { continue };
-            let Some(from) = terminal_of(producer) else { continue };
-            if !node_of.contains_key(&(consumer as u32, statement)) {
+    for consumer in 0..request.scripts.len() as u32 {
+        for reference in plan.references.of(consumer).iter().filter(|r| r.kind == ReferenceKind::Invalid) {
+            let Some(from) = reference.producer.and_then(terminal_of) else { continue };
+            if !node_of.contains_key(&(consumer, reference.statement_id)) {
                 continue;
             }
             edges.insert(DataflowEdge {
                 from: port(&nodes[from as usize]),
-                to: DataflowPort { script: consumer as u32, statement },
+                to: DataflowPort { script: consumer, statement: reference.statement_id },
                 kind: DataflowEdgeKind::InvalidReference,
-                name: reference.parameter,
+                name: reference.name.clone(),
             });
         }
     }
@@ -253,26 +214,21 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
                 .flatten()
                 .filter_map(|&script| terminal_of(script))
                 .any(|terminal| terminal != to && targets.contains(&terminal));
-            if through_inlined && !writes(node).any(|r| r == relation) && !reads_directly(request, &graph, node, relation) {
+            if through_inlined && plan.inherited.contains(&(to, relation.0, relation.1)) {
                 continue;
             }
             edges.insert(DataflowEdge {
                 from: port(&nodes[from as usize]),
                 to: port(&nodes[to as usize]),
                 kind: DataflowEdgeKind::Table,
-                name: relation_name(&graph, relation),
+                name: relation_name(graph, relation),
             });
         }
     }
 
     // Inputs
-    let session_inputs = collect_session_inputs(request);
-    let mut inputs = Vec::with_capacity(session_inputs.inputs.len());
-    for (i, input) in session_inputs.inputs.into_iter().enumerate() {
-        for consumer in &input.consumers {
-            if !node_of.contains_key(&(consumer.script, consumer.statement)) {
-                continue;
-            }
+    for (i, input) in plan.inputs.inputs.iter().enumerate() {
+        for consumer in input.consumers.iter().filter(|c| node_of.contains_key(&(c.script, c.statement))) {
             edges.insert(DataflowEdge {
                 from: DataflowPort { script: i as u32, statement: 0 },
                 to: DataflowPort { script: consumer.script, statement: consumer.statement },
@@ -280,13 +236,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
                 name: input.name.to_string(),
             });
         }
-        inputs.push(DataflowInput {
-            name: input.name.to_string(),
-            sql_type: input.sql_type,
-            type_source: input.type_source,
-            literal: input.literal,
-        });
     }
 
-    Dataflow { scripts, inputs, edges: edges.into_iter().collect() }
+    Dataflow { scripts, inputs: plan.inputs.inputs, edges: edges.into_iter().collect() }
 }

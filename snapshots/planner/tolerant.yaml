@@ -41,6 +41,7 @@ planner-snapshots:
           cacheable: true
           terminal-statement-id: 0
           signature: "88510ebcc83d1da84e0cf24522a94111"
+          references: [stale]
         - name: unknown
           text-version: 1
           analyzed-text-version: 1

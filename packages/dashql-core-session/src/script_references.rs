@@ -90,16 +90,12 @@ impl ScriptReferences {
         out
     }
 
-    /// Unlink the references that a plan cannot splice: invalid references and references of scripts that were not
-    /// prepared. A tolerant plan keeps going after their errors.
-    pub(crate) fn unlink_unplannable(&mut self, prepared: &[Option<Prepared>]) {
-        for references in self.by_script.iter_mut() {
-            for r in references.iter_mut() {
-                let unprepared = r.producer.is_some_and(|p| prepared[p as usize].is_none());
-                if r.kind == ReferenceKind::Invalid || unprepared {
-                    r.producer = None;
-                    r.kind = ReferenceKind::Invalid;
-                }
+    /// Invalidate the references of scripts that were not prepared. A tolerant plan keeps going after their errors and
+    /// splices no invalid reference.
+    pub(crate) fn invalidate_unprepared(&mut self, prepared: &[Option<Prepared>]) {
+        for r in self.by_script.iter_mut().flatten() {
+            if r.producer.is_some_and(|p| prepared[p as usize].is_none()) {
+                r.kind = ReferenceKind::Invalid;
             }
         }
     }
@@ -623,7 +619,7 @@ pub(crate) fn splice_statement(
     inputs: &crate::session_inputs::SessionInputs,
 ) -> SplicedStatement {
     let mut out = SplicedStatement::default();
-    let direct: Vec<&Reference> = references.of(script).iter().filter(|r| r.statement_id == statement_id && r.producer.is_some()).collect();
+    let direct: Vec<&Reference> = references.of(script).iter().filter(|r| r.statement_id == statement_id && r.kind != ReferenceKind::Invalid).collect();
     if direct.is_empty() {
         return out;
     }
@@ -671,7 +667,7 @@ pub(crate) fn splice_statement(
         let mut edits = Vec::new();
         let mut relations = BTreeSet::new();
         relation_names(p, statement, &mut relations);
-        for r in refs.iter().filter(|r| r.statement_id == statement) {
+        for r in refs.iter().filter(|r| r.statement_id == statement && r.kind != ReferenceKind::Invalid) {
             let Some(producer) = r.producer else { continue };
             let cte = &cte_names[&producer];
             let tableref = &p.parsed.nodes[p.parsed.nodes[r.ast_node_id as usize].parent() as usize];

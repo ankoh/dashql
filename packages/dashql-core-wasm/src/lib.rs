@@ -1009,7 +1009,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
         let inputs: Vec<_> = dataflow
             .inputs
             .into_iter()
-            .map(|input| pack_session_input(&input.name, &input.sql_type, input.type_source, input.literal.as_ref(), &[], &[]))
+            .map(|input| pack_session_input(&input))
             .collect();
         out.inputs = (!inputs.is_empty()).then_some(inputs);
         finish!(out)
@@ -1017,20 +1017,14 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
 }
 
 /// Pack an input of a session
-fn pack_session_input(
-    name: &str,
-    sql_type: &dashql_core::analyzer::SqlType,
-    type_source: dashql_core_session::session_inputs::InputTypeSource,
-    literal: Option<&dashql_core::sql_literal::SqlLiteral>,
-    consumers: &[dashql_core_session::session_inputs::InputConsumer],
-    warnings: &[String],
-) -> dashql_buffers::execution::SessionInputT {
+fn pack_session_input(input: &dashql_core_session::session_inputs::SessionInput) -> dashql_buffers::execution::SessionInputT {
     use dashql_buffers::execution::{SessionInputConsumerT, SessionInputT, SessionInputTypeSource};
     use dashql_core_session::session_inputs::InputTypeSource;
+    let (consumers, warnings, literal) = (&input.consumers, &input.warnings, input.literal.as_ref());
     let mut out = SessionInputT::default();
-    out.name = Some(name.to_string());
-    out.sql_type = Some(Box::new(dashql_core::pack::pack_sql_type(sql_type)));
-    out.type_source = match type_source {
+    out.name = Some(input.name.to_string());
+    out.sql_type = Some(Box::new(dashql_core::pack::pack_sql_type(&input.sql_type)));
+    out.type_source = match input.type_source {
         InputTypeSource::Cast => SessionInputTypeSource::CAST,
         InputTypeSource::Literal => SessionInputTypeSource::LITERAL,
         InputTypeSource::None => SessionInputTypeSource::NONE,
@@ -1087,7 +1081,7 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> Vec<u8> {
             inputs
                 .inputs
                 .iter()
-                .map(|i| pack_session_input(&i.name, &i.sql_type, i.type_source, i.literal.as_ref(), &i.consumers, &i.warnings))
+                .map(pack_session_input)
                 .collect(),
         );
         finish!(out)

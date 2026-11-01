@@ -178,6 +178,24 @@ struct PlanState {
     partial: bool,
     /// The inputs of the session, the scalar parameters that the statements bind
     inputs: SessionInputs,
+    /// The text span of the statement of every node
+    spans: Vec<TextSpan>,
+    /// The relations that a node reads only through the queries of inlined scripts: (node, entity, unresolved)
+    inherited: BTreeSet<(u32, u32, u32)>,
+}
+
+/// A plan and what the planner derived on the way, the dataflow of a session projects it
+pub(crate) struct Plan {
+    /// The execution graph
+    pub(crate) graph: ExecutionGraphT,
+    /// The script references, an invalid one keeps the script that its name finds
+    pub(crate) references: ScriptReferences,
+    /// The inputs of the session
+    pub(crate) inputs: SessionInputs,
+    /// The text span of the statement of every node
+    pub(crate) spans: Vec<TextSpan>,
+    /// The relations that a node reads only through the queries of inlined scripts: (node, entity, unresolved)
+    pub(crate) inherited: BTreeSet<(u32, u32, u32)>,
 }
 
 impl PlanState {
@@ -329,6 +347,11 @@ fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
 /// Plan the statements of the scripts of a session. Consumes the current analysis without analyzing, publishing or
 /// changing scripts.
 pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
+    plan(request).graph
+}
+
+/// Plan the statements of the scripts of a session, see `plan_session`
+pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let lenient = matches!(request.scope, PlanScope::Targets(_) | PlanScope::Tolerant);
     let tolerant = matches!(request.scope, PlanScope::Tolerant);
     let mut state = PlanState {
@@ -341,6 +364,8 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         tolerant,
         partial: false,
         inputs: collect_session_inputs(request),
+        spans: Vec::new(),
+        inherited: BTreeSet::new(),
     };
     state.graph.valid = true;
     let script_count = request.scripts.len();
@@ -373,7 +398,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     // An invalid request stops every plan, also a tolerant one
     if !state.graph.valid || state.partial {
         state.graph.valid = false;
-        return finish(state, request, &[], &[], None);
+        return finish(state, request, &[], &[], ScriptReferences::new(script_count));
     }
 
     // Prepare the scripts: all of them in a plan of the session, also those whose results the host provides, the
@@ -399,14 +424,14 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     }
     // Invalid input snapshots must never yield executable partial plans
     if !state.graph.valid {
-        return finish(state, request, &prepared, &planned, Some(&references));
+        return finish(state, request, &prepared, &planned, references);
     }
     references.check(&mut state_reporter(&mut state), request, &prepared);
     if tolerant {
-        references.unlink_unplannable(&prepared);
+        references.invalidate_unprepared(&prepared);
     }
     if !state.graph.valid {
-        return finish(state, request, &prepared, &planned, Some(&references));
+        return finish(state, request, &prepared, &planned, references);
     }
 
     // The statements of the plan
@@ -544,6 +569,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             node.barrier = true;
             node.connection = connection;
             state.diagnose(node_id, si as u32, "the script does not parse, it runs as written".into());
+            state.spans.push(parsed.associate_descriptions().first().map(|d| d.statement_span).unwrap_or_default());
             nodes.push(node);
             continue;
         }
@@ -573,6 +599,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             node.connection = connection;
             let ty = statement.statement_type;
             let span = descriptions[statement_id].statement_span;
+            state.spans.push(span);
             node.produces_output = produces_output(parsed, statement);
             node.script_result = terminal == Some(statement_id as u32) && node.produces_output;
             if node.script_result {
@@ -633,6 +660,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 if mode > *entry {
                     *entry = mode;
                 }
+                target
             };
             match ty {
                 Type::SELECT
@@ -804,6 +832,8 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 }
             }
             // An inline script reference reads the relations of the terminal query of the referenced script
+            let direct: BTreeSet<(u32, u32)> = accesses.keys().copied().collect();
+            let mut inherited: BTreeSet<(u32, u32)> = BTreeSet::new();
             for &(producer, producer_statement) in &spliced.inlined {
                 let producer_analyzed = prepared[producer as usize].as_ref().unwrap().analyzed;
                 for table_ref in &producer_analyzed.table_references {
@@ -821,7 +851,10 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                         .and_then(|resolved| c.declarations.get(&resolved.catalog_table_id).copied())
                         .filter(|d| resource_name(&d.table_name) == name && !c.incompatible_kinds.contains(&d.object_id));
                     let table = table.map(|t| c.live_namespace.get(&name).copied().filter(|_| c.live_producers.contains(&name)).unwrap_or(t));
-                    access(&mut state, &mut accesses, &name, table, Mode::READ);
+                    let target = access(&mut state, &mut accesses, &name, table, Mode::READ);
+                    if !direct.contains(&target) {
+                        inherited.insert(target);
+                    }
                     if relation.resolved_table.is_none() {
                         barrier!(format!("unresolved relation: {}", relation.table_name.debug_string()));
                     }
@@ -884,7 +917,8 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                                 None => barrier!("missing DDL target declaration"),
                             }
                         }
-                        access(&mut state, &mut accesses, &name, table, Mode::DDL);
+                        let target = access(&mut state, &mut accesses, &name, table, Mode::DDL);
+                        inherited.remove(&target);
                         if drop {
                             c.live_producers.remove(&name);
                             c.live_namespace.remove(&name);
@@ -905,6 +939,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                     }
                 }
             }
+            state.inherited.extend(inherited.into_iter().map(|(entity, unresolved)| (node_id, entity, unresolved)));
             node.accesses = opt_vec(
                 accesses
                     .into_iter()
@@ -1036,7 +1071,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     state.graph.edges = opt_vec(edges);
     state.graph.materializations = opt_vec(materializations);
     state.graph.references = opt_vec(graph_references);
-    finish(state, request, &prepared, &planned, Some(&references))
+    finish(state, request, &prepared, &planned, references)
 }
 
 /// The label of a script in diagnostics, `foo.sql`
@@ -1098,7 +1133,7 @@ fn opt_vec<T>(v: Vec<T>) -> Option<Vec<T>> {
 }
 
 /// Complete the graph of a plan with its connections, scripts, entities and diagnostics
-fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Prepared>], planned: &[bool], script_references: Option<&ScriptReferences>) -> ExecutionGraphT {
+fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Prepared>], planned: &[bool], references: ScriptReferences) -> Plan {
     let targets: BTreeSet<u32> = seeds(request).into_iter().collect();
     let mut graph = state.graph;
     if state.partial {
@@ -1119,7 +1154,6 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
             })
             .collect(),
     );
-    let producers_of = |i: usize| script_references.map(|r| r.producers_of(i as u32)).unwrap_or_default();
     graph.scripts = opt_vec(
         request
             .scripts
@@ -1148,7 +1182,7 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
                     // Queries only. The scripts that a script references are single queries, or the plan is invalid.
                     meta.cacheable = p.parses() && !p.parsed.statements.is_empty() && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN));
                     meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
-                    meta.referenced_scripts = opt_vec(producers_of(i));
+                    meta.referenced_scripts = opt_vec(references.producers_of(i as u32));
                 } else {
                     meta.terminal_statement_id = NONE;
                 }
@@ -1159,7 +1193,7 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
     graph.entities = opt_vec(state.entity_list);
     graph.unresolved_references = opt_vec(state.unresolved_list);
     graph.diagnostics = opt_vec(state.diagnostics);
-    graph
+    Plan { graph, references, inputs: state.inputs, spans: state.spans, inherited: state.inherited }
 }
 
 #[cfg(test)]
