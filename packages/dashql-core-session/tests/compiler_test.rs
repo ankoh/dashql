@@ -136,7 +136,7 @@ fn blank_text_with_errors_has_no_statement() {
 
 #[test]
 fn vis_tag_table() {
-    let result = compile_text("/* @vis table\n   @vis card row=2 column=3 width=4 height=5 */\nselect 1 as a");
+    let result = compile_text("/* @vis table\n   @vis board row=2 column=3 width=4 height=5 */\nselect 1 as a");
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     assert_eq!(result.kind, StatementKind::VISUALIZE);
     assert_eq!(result.sql.as_deref(), Some("select 1 as a"));
@@ -171,7 +171,7 @@ fn vis_tag_markdown() {
 
 #[test]
 fn invalid_vis_tags_run_the_query() {
-    for text in ["/* @vis vegalite {\"mark\": */ select 1", "/* @vis card width=6 */ select 1", "/* @vis chart */ select 1"] {
+    for text in ["/* @vis vegalite {\"mark\": */ select 1", "/* @vis board width=6 */ select 1", "/* @vis chart */ select 1"] {
         let result = compile_text(text);
         assert!(result.errors.as_ref().unwrap().is_empty(), "{text}: {:?}", result.errors);
         assert_eq!(result.kind, StatementKind::QUERY, "{text}");

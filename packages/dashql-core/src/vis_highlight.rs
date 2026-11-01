@@ -3,7 +3,7 @@
 //! Every tag, `@description`, `@metadata`, `@vis` and the `@end` that older scripts close a region of
 //! line comments with, is a keyword, so the tags of an annotation read alike. The JSON of `@metadata` and `@vis vegalite` is
 //! split into its tokens: keys are identifiers, strings, numbers and booleans are literals. In a `@vis`
-//! tag, the kind is a keyword, the keys of `card` args are identifiers and `{{field}}` placeholders of
+//! tag, the kind is a keyword, the keys of `board` args are identifiers and `{{field}}` placeholders of
 //! Markdown templates are identifiers. The rest of the comment stays a comment, e.g. the prose of a
 //! `@description`.
 //!
@@ -20,7 +20,7 @@ const VIS_TAG: &[u8] = b"vis";
 /// The tag of the metadata of a script, a JSON object
 const METADATA_TAG: &[u8] = b"metadata";
 
-/// The tokens of the content lines of a `card` or `markdown` tag
+/// The tokens of the content lines of a `board` or `markdown` tag
 struct Lines<'a> {
     script: &'a [u8],
     out: &'a mut Vec<(TextSpan, ScannerTokenType)>,
@@ -33,7 +33,7 @@ impl Lines<'_> {
         }
     }
 
-    /// The `key=value` args of a card
+    /// The `key=value` args of a board placement
     fn args(&mut self, begin: usize, end: usize) {
         let text = self.script;
         let mut i = begin;
@@ -166,7 +166,7 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             let begin = if i == 0 { kind_end } else { line.offset as usize };
             let end = line.end() as usize;
             match kind {
-                b"card" if i == 0 => lines.args(begin, end),
+                b"board" | b"card" if i == 0 => lines.args(begin, end),
                 b"markdown" => lines.placeholders(begin, end),
                 _ => {}
             }
@@ -248,12 +248,12 @@ mod tests {
             ]
         );
         assert_eq!(
-            spans("-- @vis card width=6\n-- @vis markdown **{{a}}**\n-- @end\nselect 1"),
+            spans("-- @vis board width=6\n-- @vis markdown **{{a}}**\n-- @end\nselect 1"),
             vec![
                 ("-- ", T::COMMENT),
                 ("@vis", T::KEYWORD),
                 (" ", T::COMMENT),
-                ("card", T::KEYWORD),
+                ("board", T::KEYWORD),
                 (" ", T::COMMENT),
                 ("width", T::IDENTIFIER),
                 ("=", T::COMMENT),

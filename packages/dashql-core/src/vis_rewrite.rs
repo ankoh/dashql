@@ -1,9 +1,10 @@
-//! Rewrite the `@vis` tags of a query: set, replace or remove its renderer and its card.
+//! Rewrite the `@vis` tags of a query: set, replace or remove its renderer and its board placement.
 //!
 //! The tags are edited in the annotation of the query (see `annotation`), so an edit leaves the annotation
 //! consolidated in one comment. The edited tag is printed anew, the other tags keep their content. A new
-//! renderer goes before the other `@vis` tags, a new card after the renderer. `/*` and `*/` in the strings
-//! of a Vega-Lite spec are escaped, they would nest or end the comment.
+//! renderer goes before the other `@vis` tags, a new board placement after the renderer, and a `card` tag,
+//! the alias of `board`, is replaced by `board`. `/*` and `*/` in the strings of a Vega-Lite spec are
+//! escaped, they would nest or end the comment.
 
 use crate::annotation::{Annotation, AnnotationTag};
 use crate::error::{Error, Result};
@@ -68,7 +69,7 @@ impl VisRenderer {
 
 /// The dashboard placement of a visualization
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct VisCard {
+pub struct VisBoard {
     /// The grid row, None for automatic placement
     pub row: Option<i32>,
     /// The grid column, None for automatic placement
@@ -79,12 +80,12 @@ pub struct VisCard {
     pub height: i32,
 }
 
-impl VisCard {
-    /// The `@vis card` tag. Negative rows are dropped, the width is limited to the grid, the column to the
+impl VisBoard {
+    /// The `@vis board` tag. Negative rows are dropped, the width is limited to the grid, the column to the
     /// free space.
     pub fn tag(&self) -> AnnotationTag {
         let width = self.width.clamp(1, GRID_COLUMNS);
-        let mut line = String::from("card");
+        let mut line = String::from("board");
         if let Some(row) = self.row.filter(|&r| r >= 0) {
             line.push_str(&format!(" row={row}"));
         }
@@ -108,8 +109,8 @@ fn is_renderer(tag: &AnnotationTag) -> bool {
 }
 
 /// Is a tag the dashboard placement of a visualization?
-fn is_card(tag: &AnnotationTag) -> bool {
-    is_vis(tag) && tag.kind() == "card"
+fn is_board(tag: &AnnotationTag) -> bool {
+    is_vis(tag) && matches!(tag.kind(), "board" | "card")
 }
 
 /// Rewrite the annotation of a query
@@ -162,18 +163,18 @@ pub fn rewrite_vis_renderer(text: &str, parsed: &ParsedScript, statement_id: usi
     Ok(rewrite_vis_renderer_tag(text, parsed, statement_id, renderer)?.0)
 }
 
-/// Set or remove the card of a query, a query needs a renderer for a card
-pub fn rewrite_vis_card(text: &str, parsed: &ParsedScript, statement_id: usize, card: Option<&VisCard>) -> Result<String> {
+/// Set or remove the board placement of a query, a query needs a renderer to be placed
+pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize, board: Option<&VisBoard>) -> Result<String> {
     let (text, _) = rewrite_query(text, parsed, statement_id, |annotation| {
         let tags = &mut annotation.tags;
-        Ok(match (card, tags.iter().position(is_card)) {
-            (Some(card), Some(i)) => {
-                tags[i] = card.tag();
+        Ok(match (board, tags.iter().position(is_board)) {
+            (Some(board), Some(i)) => {
+                tags[i] = board.tag();
                 Some(i)
             }
-            (Some(card), None) => {
+            (Some(board), None) => {
                 let renderer = tags.iter().position(is_renderer).ok_or_else(|| Error::invalid_argument("the query has no @vis renderer"))?;
-                tags.insert(renderer + 1, card.tag());
+                tags.insert(renderer + 1, board.tag());
                 Some(renderer + 1)
             }
             (None, Some(i)) => {

@@ -1,7 +1,7 @@
 //! Completion inside comments: the names of comment tags and the content of `@vis` tags.
 //!
 //! - `@` at the start of a comment line completes the tag names.
-//! - `@vis ` completes the kinds, `@vis card ` its args.
+//! - `@vis ` completes the kinds, `@vis board ` its args.
 //! - In the JSON of `@vis vegalite`, a tolerant scanner finds the key path at the cursor and whether a
 //!   key or a value follows, also in JSON that is not complete yet. Keys come from a table per path,
 //!   values from the Vega-Lite enums and, for `field`, from the output columns of the query.
@@ -22,9 +22,9 @@ use std::sync::Arc;
 /// The tag of visualizations
 const VIS_TAG: &[u8] = b"vis";
 /// The kinds of `@vis` tags
-const VIS_KINDS: &[&str] = &["vegalite", "markdown", "table", "card"];
-/// The args of `@vis card`
-const CARD_ARGS: &[&str] = &["row", "column", "width", "height"];
+const VIS_KINDS: &[&str] = &["vegalite", "markdown", "table", "board"];
+/// The args of `@vis board`
+const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
 
 /// The top-level properties of a Vega-Lite spec
 const SPEC_KEYS: &[&str] = &[
@@ -329,7 +329,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
         return Some(candidates.finish(k));
     }
     match &text[..kind_end] {
-        b"card" => {
+        b"board" | b"card" => {
             let first_line_end = text.iter().position(|&c| c == b'\n').unwrap_or(text.len());
             if at > first_line_end {
                 return None;
@@ -348,7 +348,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                 .filter_map(|arg| arg.iter().position(|&c| c == b'=').map(|eq| &arg[..eq]))
                 .collect();
             let mut candidates = Candidates::new(span(arg_begin, arg_end), &text[arg_begin..at]);
-            for &arg in CARD_ARGS {
+            for &arg in BOARD_ARGS {
                 if !used.contains(&arg.as_bytes()) || text[arg_begin..arg_end].starts_with(arg.as_bytes()) {
                     candidates.add(arg, if has_equals { arg.to_string() } else { format!("{arg}=") });
                 }

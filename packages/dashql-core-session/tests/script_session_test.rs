@@ -13,7 +13,7 @@ use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, Formattin
 use dashql_buffers::parser::{ScannerTokenType, StatementType};
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::pack_completion;
-use dashql_core::vis_rewrite::VisCard;
+use dashql_core::vis_rewrite::VisBoard;
 use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
 use dashql_core::script::Script;
 use dashql_core_session::script_session::ScriptSession;
@@ -943,30 +943,30 @@ fn compatibility_query_formatting_and_diff_apis() {
 }
 
 #[test]
-fn rewrites_the_card_through_the_parsed_comments() {
+fn rewrites_the_board_placement_through_the_parsed_comments() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);
-    let source = "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card row=1 width=4 */\nselect '\u{1F4CA}' as label";
+    let source = "/* \u{1F4CA} @vis board is text here\n   @vis table\n   @vis board row=1 width=4 */\nselect '\u{1F4CA}' as label";
     assert_eq!(session.replace_text(0, source).status, EditorUpdateStatus::OK);
 
     assert_eq!(
-        session.rewrite_vis_card(0, Some(&VisCard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
-        "/**\n * \u{1F4CA} @vis card is text here\n * @vis table\n * @vis card row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
+        session.rewrite_vis_board(0, Some(&VisBoard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
+        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @vis board row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
-        session.rewrite_vis_card(0, Some(&VisCard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
-        "/**\n * \u{1F4CA} @vis card is text here\n * @vis table\n * @vis card width=6 height=3\n */\nselect '\u{1F4CA}' as label"
+        session.rewrite_vis_board(0, Some(&VisBoard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
+        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @vis board width=6 height=3\n */\nselect '\u{1F4CA}' as label"
     );
 }
 
 #[test]
-fn inserts_a_card_into_a_visualization() {
+fn inserts_a_board_placement_into_a_visualization() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
-        session.rewrite_vis_card(0, Some(&VisCard { row: Some(0), column: Some(0), width: 6, height: 3 }), true).unwrap(),
-        "/**\n * @vis table\n * @vis card row=0 column=0 width=6 height=3\n */\nselect 1"
+        session.rewrite_vis_board(0, Some(&VisBoard { row: Some(0), column: Some(0), width: 6, height: 3 }), true).unwrap(),
+        "/**\n * @vis table\n * @vis board row=0 column=0 width=6 height=3\n */\nselect 1"
     );
 }
 
@@ -1063,16 +1063,16 @@ fn reports_memory_statistics_of_the_latest_analysis() {
 }
 
 #[test]
-fn rejects_cards_without_a_renderer() {
+fn rejects_board_placements_without_a_renderer() {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
     script.replace_text("select 1");
-    let card = VisCard { row: Some(-1), column: Some(20), width: 20, height: 0 };
-    assert!(script.rewrite_vis_card(0, Some(&card), true).is_err());
+    let board = VisBoard { row: Some(-1), column: Some(20), width: 20, height: 0 };
+    assert!(script.rewrite_vis_board(0, Some(&board), true).is_err());
     script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
-        script.rewrite_vis_card(0, Some(&card), true).unwrap(),
-        "/**\n * @vis vegalite {\"mark\": \"bar\"}\n * @vis card column=0 width=12 height=1\n */\nselect 1"
+        script.rewrite_vis_board(0, Some(&board), true).unwrap(),
+        "/**\n * @vis vegalite {\"mark\": \"bar\"}\n * @vis board column=0 width=12 height=1\n */\nselect 1"
     );
 }
 

@@ -14,7 +14,7 @@ every engine and tool runs it unmodified, and only DashQL reads the tags.
  *     "y": {"field": "revenue", "aggregate": "sum"}
  *   }
  * }
- * @vis card width=6 height=3
+ * @vis board width=6 height=3
  */
 SELECT region, revenue FROM sales;
 ```
@@ -30,13 +30,13 @@ hold several tags. A tag starts with its kind, what follows depends on the kind:
 | `vegalite` | A Vega-Lite spec as JSON object, on the same line or the next. The statement is the data, `data` is ignored with a warning. |
 | `markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. |
 | `table` | Nothing, the result table is the visualization. |
-| `card` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
+| `board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. `card` is an alias. |
 
 ```sql
 /**
  * @description Revenue per region.
  * @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}}
- * @vis card row=0 column=6 width=6 height=4
+ * @vis board row=0 column=6 width=6 height=4
  */
 SELECT region, sum(revenue) AS revenue FROM sales GROUP BY region;
 
@@ -48,7 +48,7 @@ SELECT region, sum(revenue) AS revenue FROM sales GROUP BY region;
 SELECT metric, value, status FROM metrics;
 ```
 
-A statement has at most one renderer tag (`vegalite`, `markdown` or `table`) and at most one `card`.
+A statement has at most one renderer tag (`vegalite`, `markdown` or `table`) and at most one `board`.
 The first one wins, the others are warnings. Only queries (`SELECT`) are visualized.
 
 DashQL writes the Javadoc-style form, but any block comment and runs of line comments work too. The last
@@ -57,7 +57,7 @@ accepted:
 
 ```sql
 -- @vis table
--- @vis card width=12
+-- @vis board width=12
 SELECT * FROM orders;
 ```
 
@@ -66,17 +66,18 @@ SELECT * FROM orders;
 The dashboard is a 12-column grid with zero-based coordinates. `row` and `column` are optional starting
 hints, `width` defaults to 6 columns and `height` to 3 rows. Invalid values are warnings and normalized:
 coordinates must be non-negative, the width is clamped to 1 through 12, the height is at least 1, and a
-card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `card`
+card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `board`
 tag of the statement it shows (see Rewriting tags).
 
 ## Rewriting tags
 
 `vis_rewrite.rs` sets, replaces or removes the tags of a statement, addressed by its statement id:
 `Script::rewrite_vis_renderer` the renderer (`VisRenderer`: a Vega-Lite object, a Markdown template or
-the table) and `Script::rewrite_vis_card` the card (`VisCard`). They return the new text, the app writes
-it as an edit of the script (`rewriteVisRenderer` and `rewriteVisCard` of the script session). The
-visualization of a script in the app carries the statement id, from the compiler for the terminal query
-and from the planner for any visualized query, so a card moves also when a statement follows the query.
+the table) and `Script::rewrite_vis_board` the board placement (`VisBoard`), which replaces a `card` tag
+by `board`. They return the new text, the app writes it as an edit of the script (`rewriteVisRenderer`
+and `rewriteVisBoard` of the script session). The visualization of a script in the app carries the
+statement id, from the compiler for the terminal query and from the planner for any visualized query, so
+a card moves also when a statement follows the query.
 
 The tags are edited in the annotation of the statement (`annotation.rs`): its comment tags
 (`@description`, `@metadata`, `@vis`) as one list, the `Annotation` with the text before the first tag
@@ -97,7 +98,7 @@ comment, in place of the first of them:
 -- @end                           =>      * Revenue per region.
 /* @vis vegalite {"mark": "bar"} */       * @vis vegalite
 SELECT region, revenue FROM sales;        * {"mark": "bar"}
-                                          * @vis card width=6 height=3
+                                          * @vis board width=6 height=3
                                           */
                                          SELECT region, revenue FROM sales;
 ```
@@ -109,9 +110,9 @@ SELECT region, revenue FROM sales;        * {"mark": "bar"}
 - Text before the first tag of a block comment goes in front of the tags, after a tag it would read as
   the content of the tag. Ordinary comments stay where they are. Blank lines between the comments of the
   annotation are removed.
-- A new renderer goes before the other `@vis` tags, after a description or metadata. A new card goes
-  after the renderer. A statement without tags gets a new comment on the line before it. A card needs a
-  renderer.
+- A new renderer goes before the other `@vis` tags, after a description or metadata. A new board
+  placement goes after the renderer. A statement without tags gets a new comment on the line before it. A
+  board placement needs a renderer.
 - Removing the last tag removes the comment.
 - An annotation that would not read back unchanged is an error: an unknown tag name, a line with a line
   break, a continuation line that starts with a tag.
@@ -125,7 +126,7 @@ are escaped as `/\u002a` and `*\/`, which keeps the value. A Markdown template o
 `analyzer/vis_tags.rs` builds a `VisualizationSpec` per visualized query after the analysis passes,
 with warnings (`INVALID_VIS_TAG`, `INVALID_DASHBOARD_LAYOUT`) whose spans point into the comment:
 
-- an unknown kind, an unknown or non-integer `card` arg, args after `table`;
+- an unknown kind, an unknown or non-integer `board` arg, args after `table`;
 - a missing body of `vegalite` or `markdown`, malformed JSON, a spec that is no JSON object;
 - a `field` that is no output column of the query. Names that the spec defines itself (`"as"`) are
   fine, a nested field (`date.month`) refers to its first part. The check is skipped if a `*` hides
@@ -153,7 +154,7 @@ the tags are plain comments.
 
 Completion works inside comments (`completion_vis.rs`), although the rest of the completion skips them:
 
-- `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@vis card ` the args
+- `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@vis board ` the args
   that are not used yet.
 - In the JSON of `vegalite`, a tolerant scanner (`vis_text.rs`) finds the key path at the cursor and whether
   a key or a value follows, also in JSON that is still typed. Keys come from a table per path (spec, mark,
@@ -172,7 +173,7 @@ the annotation like the other rewrites (see Rewriting tags); the spec is printed
 The editor highlights comment tags like code (`vis_highlight.rs`), so the tags of an annotation read
 alike: every tag (`@description`, `@metadata`, `@vis` and an `@end` of older scripts) is a keyword, the JSON of
 `@metadata` and `vegalite` is split into keys (identifiers) and strings, numbers and booleans
-(literals), the kind of a `@vis` tag is a keyword, `card` keys and `{{field}}` placeholders are
+(literals), the kind of a `@vis` tag is a keyword, `board` keys and `{{field}}` placeholders are
 identifiers. The comment markers of every tagged region step back, the text of a `@description` keeps
 the color of text. Other editors show the tags as plain comments.
 
@@ -192,7 +193,7 @@ nothing but whitespace between them (block comments and tagged regions of line c
 one, so the annotation of a statement reads as one block, the same comment that a rewrite prints.
 Ordinary comments between them keep them apart.
 
-`table` and `card` tags are printed on one line, the JSON of `vegalite` compactly with the key order kept
+`table` and `board` tags are printed on one line, the JSON of `vegalite` compactly with the key order kept
 (`compact_json.rs`), descriptions, metadata and Markdown verbatim. A JSON value that fits in the rest of
 its line stays on one line, objects and arrays that don't fit put each entry on a line of its own with
 2-space indentation, so a spec reads like the Vega editor prints it instead of one key per line. The

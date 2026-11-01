@@ -461,7 +461,7 @@ planner-snapshots:
           /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "category"}, "y": {"field": "revenue"}}} */
           select category, revenue from sales;
           /* @vis table
-             @vis card row=0 column=0 width=6 height=2 */
+             @vis board row=0 column=0 width=6 height=2 */
           select category, revenue from sales;
           /* @vis markdown {{category}} */
           select category from sales;

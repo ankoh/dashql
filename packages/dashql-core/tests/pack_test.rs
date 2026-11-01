@@ -168,7 +168,7 @@ fn tokens_are_typed() {
 #[test]
 fn analyzed_scripts_pack_vis_tags() {
     let catalog = Catalog::new();
-    let script = analyzed(&catalog, "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis card width=4 */\nselect 1 as a");
+    let script = analyzed(&catalog, "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis board width=4 */\nselect 1 as a");
     let packed = pack_analyzed_script(&script, &pack_visualization);
     let specs = packed.visualization_specs.unwrap();
     assert_eq!(specs.len(), 1);

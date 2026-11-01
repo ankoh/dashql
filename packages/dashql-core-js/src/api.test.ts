@@ -67,13 +67,13 @@ describe('DashQL setup', () => {
 });
 
 describe('DashQL @vis tags', () => {
-    it('rewrites the renderer and the card of a query', () => {
+    it('rewrites the renderer and the board placement of a query', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'select 1 as a;\n/* @vis table */\nselect 2 as b');
 
-        expect(session.rewriteVisCard(1, null, 3, 6, 4)).toBe(
-            'select 1 as a;\n/**\n * @vis table\n * @vis card column=3 width=6 height=4\n */\nselect 2 as b');
+        expect(session.rewriteVisBoard(1, null, 3, 6, 4)).toBe(
+            'select 1 as a;\n/**\n * @vis table\n * @vis board column=3 width=6 height=4\n */\nselect 2 as b');
         // The gutter keeps a template line that starts with `*`
         expect(session.rewriteVisRenderer(1, 'markdown', '**{{b}}**')).toBe(
             'select 1 as a;\n/**\n * @vis markdown\n * **{{b}}**\n */\nselect 2 as b');
@@ -81,7 +81,7 @@ describe('DashQL @vis tags', () => {
             '/**\n * @vis vegalite\n * {"mark": "bar"}\n */\nselect 1 as a;\n/* @vis table */\nselect 2 as b');
         expect(session.rewriteVisRenderer(1, null)).toBe('select 1 as a;\nselect 2 as b');
         expect(() => session.rewriteVisRenderer(1, 'vegalite', '[1]')).toThrow('JSON object');
-        expect(() => session.rewriteVisCard(0, null, null, 6, 3)).toThrow('no @vis renderer');
+        expect(() => session.rewriteVisBoard(0, null, null, 6, 3)).toThrow('no @vis renderer');
         session.destroy();
         catalog.destroy();
     });

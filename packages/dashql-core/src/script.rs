@@ -15,7 +15,7 @@ use crate::completion::Completion;
 use crate::cursor::{ScriptCursor, ScriptView};
 use crate::error::{Error, Result};
 use crate::formatter::Formatter;
-use crate::vis_rewrite::{VisCard, VisRenderer};
+use crate::vis_rewrite::{VisBoard, VisRenderer};
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{Node, StatementType};
 use dashql_buffers::statistics::{ScriptMemoryStatisticsT, ScriptProcessingTimingsT, ScriptStatisticsT};
@@ -222,7 +222,7 @@ impl Script {
     }
 
     /// Parse if the parsed script is missing or was parsed from another text version (the check of
-    /// `statement_text`, `rewrite_vis_card` and `compute_signature`)
+    /// `statement_text`, `rewrite_vis_board` and `compute_signature`)
     fn parse_if_text_outdated(&mut self) {
         if self.parsed.as_ref().is_none_or(|p| p.scanned.text_version != self.text_version) {
             self.parse();
@@ -364,11 +364,11 @@ impl Script {
         crate::vis_rewrite::rewrite_vis_renderer(&self.text.to_string(), &parsed, statement_id, renderer)
     }
 
-    /// Set or remove the dashboard placement of a query, its `@vis card` tag. Returns the new text like
+    /// Set or remove the dashboard placement of a query, its `@vis board` tag. Returns the new text like
     /// `rewrite_vis_renderer`.
-    pub fn rewrite_vis_card(&mut self, statement_id: usize, card: Option<&VisCard>, parse_if_outdated: bool) -> Result<String> {
+    pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
-        crate::vis_rewrite::rewrite_vis_card(&self.text.to_string(), &parsed, statement_id, card)
+        crate::vis_rewrite::rewrite_vis_board(&self.text.to_string(), &parsed, statement_id, board)
     }
 
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
@@ -377,7 +377,7 @@ impl Script {
     ///
     /// The spec must be a JSON object, it is written compactly with its key order kept (`compact_json`).
     /// `/*` and `*/` in its strings are escaped as `/\u002a` and `*\/`, they would nest or end a block comment.
-    /// The spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
+    /// The spans of the parsed script are applied to the current text, as in `rewrite_vis_board`.
     ///
     /// Returns the rewritten text and the span of the written tag in it, from `@vis` to the end of the spec.
     pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<(String, TextSpan)> {

@@ -12,8 +12,8 @@ analyzer-snapshots:
         */
         select region, revenue from sales;
 
-  # The spec starts on the tag line, the card places it on the dashboard
-  - name: vis_tag_vegalite_inline_and_card
+  # The spec starts on the tag line, the board tag places it on the dashboard
+  - name: vis_tag_vegalite_inline_and_board
     catalog:
       script:
         input: |-
@@ -21,7 +21,7 @@ analyzer-snapshots:
     script:
       input: |
         /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "total"}}}
-           @vis card row=1 column=2 width=4 height=2 */
+           @vis board row=1 column=2 width=4 height=2 */
         select date, sum(revenue) as total from sales group by date;
 
   # The line comment form
@@ -108,23 +108,31 @@ analyzer-snapshots:
            @vis
            @vis table extra
            @vis markdown {{a}}
-           @vis card width=x depth=2 row
-           @vis card width=3 */
+           @vis board width=x depth=2 row
+           @vis board width=3 */
         select 1 as a;
 
-  # The card is normalized like the dashboard placement
-  - name: vis_tag_card_normalized
+  # The board placement is normalized like the dashboard placement
+  - name: vis_tag_board_normalized
     script:
       input: |
         /* @vis table
-           @vis card row=-1 column=9 width=6 height=0 */
+           @vis board row=-1 column=9 width=6 height=0 */
         select 1 as a;
 
-  # A card without a renderer
-  - name: vis_tag_card_only
+  # `card` is an alias of `board`
+  - name: vis_tag_card_alias
     script:
       input: |
-        /* @vis card width=6 */
+        /* @vis table
+           @vis card row=1 column=2 width=4 height=2 */
+        select 1 as a;
+
+  # A board placement without a renderer
+  - name: vis_tag_board_only
+    script:
+      input: |
+        /* @vis board width=6 */
         select 1 as a;
 
   # A statement that returns no rows

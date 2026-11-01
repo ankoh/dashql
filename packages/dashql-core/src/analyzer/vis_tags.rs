@@ -4,14 +4,15 @@
 //!
 //! ```sql
 //! /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "region"}}}
-//!    @vis card width=6 height=3 */
+//!    @vis board width=6 height=3 */
 //! select region, revenue from sales;
 //! ```
 //!
 //! A tag starts with its kind. `vegalite` takes a Vega-Lite spec as JSON object without `data`,
-//! `markdown` takes a row template, `table` takes nothing, and `card` takes the dashboard placement as
-//! `key=value` args. A statement has at most one renderer (`vegalite`, `markdown` or `table`) and at
-//! most one card, the first one wins. Problems are warnings with a span inside the comment.
+//! `markdown` takes a row template, `table` takes nothing, and `board` (or its alias `card`) takes the
+//! dashboard placement as `key=value` args. A statement has at most one renderer (`vegalite`, `markdown`
+//! or `table`) and at most one board placement, the first one wins. Problems are warnings with a span
+//! inside the comment.
 
 use super::state::AnalysisState;
 use super::types::*;
@@ -130,7 +131,7 @@ struct StatementTags {
     /// The Markdown row template
     markdown: Option<String>,
     /// The dashboard placement and the tag that set it
-    card: Option<(DashboardSpec, TextSpan)>,
+    board: Option<(DashboardSpec, TextSpan)>,
 }
 
 impl StatementTags {
@@ -195,9 +196,9 @@ impl StatementTags {
         self.vegalite = Some(spec);
     }
 
-    fn read_card(&mut self, state: &mut AnalysisState, tag: &TagText, args: usize, kind: TextSpan) {
-        if self.card.is_some() {
-            warn(state, kind, "the statement already has a @vis card, this tag is ignored".into());
+    fn read_board(&mut self, state: &mut AnalysisState, tag: &TagText, args: usize, kind: TextSpan) {
+        if self.board.is_some() {
+            warn(state, kind, "the statement already has a @vis board, this tag is ignored".into());
             return;
         }
         let (mut row, mut column, mut width, mut height) = (None, None, None, None);
@@ -211,7 +212,7 @@ impl StatementTags {
             let arg = &tag.text[begin..end];
             let span = tag.span(begin, end);
             let Some((key, value)) = arg.split_once('=') else {
-                warn(state, span, format!("@vis card takes key=value args, not \"{arg}\""));
+                warn(state, span, format!("@vis board takes key=value args, not \"{arg}\""));
                 continue;
             };
             let slot = match key {
@@ -220,16 +221,16 @@ impl StatementTags {
                 "width" => &mut width,
                 "height" => &mut height,
                 _ => {
-                    warn(state, span, format!("unknown @vis card arg \"{key}\", expected row, column, width or height"));
+                    warn(state, span, format!("unknown @vis board arg \"{key}\", expected row, column, width or height"));
                     continue;
                 }
             };
             match value.parse::<i64>() {
                 Ok(value) => *slot = Some((value, span)),
-                Err(_) => warn(state, span, format!("@vis card {key} must be an integer")),
+                Err(_) => warn(state, span, format!("@vis board {key} must be an integer")),
             }
         }
-        self.card = Some((normalize_card(state, row, column, width, height), kind));
+        self.board = Some((normalize_board(state, row, column, width, height), kind));
     }
 }
 
@@ -242,8 +243,8 @@ fn find_key(json: &str, key: &str) -> Option<(usize, usize)> {
 }
 
 /// Normalize the dashboard placement: coordinates are non-negative, the width is 1 to 12, the height at
-/// least 1, and a card is moved left to fit the grid
-fn normalize_card(
+/// least 1, and a board placement is moved left to fit the grid
+fn normalize_board(
     state: &mut AnalysisState,
     row: Option<(i64, TextSpan)>,
     column: Option<(i64, TextSpan)>,
@@ -397,14 +398,14 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                         warn(state, tag.span(rest, tag.text.len()), "@vis table takes no args, they are ignored".into());
                     }
                 }
-                "card" => out.read_card(state, &tag, rest, kind_span),
-                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown, table or card".into()),
-                _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected vegalite, markdown, table or card")),
+                "board" | "card" => out.read_board(state, &tag, rest, kind_span),
+                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown, table or board".into()),
+                _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected vegalite, markdown, table or board")),
             }
         }
         let Some((renderer, _)) = out.renderer else {
-            if let Some((_, span)) = out.card {
-                warn(state, span, "@vis card places a visualization, the statement needs @vis vegalite, markdown or table".into());
+            if let Some((_, span)) = out.board {
+                warn(state, span, "@vis board places a visualization, the statement needs @vis vegalite, markdown or table".into());
             }
             continue;
         };
@@ -417,7 +418,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             ast_node_id: statement.root,
             ast_statement_id: Some(statement_id as u32),
             renderer: Some(renderer.to_string()),
-            dashboard: out.card.map(|(card, _)| card).unwrap_or_default(),
+            dashboard: out.board.map(|(board, _)| board).unwrap_or_default(),
             markdown: out.markdown.map(|row_template| MarkdownSpec { row_template }),
             vegalite: out.vegalite,
         });

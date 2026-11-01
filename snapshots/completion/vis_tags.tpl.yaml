@@ -44,7 +44,7 @@ completion-snapshots:
     editor:
       input: |
         /* @vis table
-           @vis card width=6 h */
+           @vis board width=6 h */
         select 1
     cursor:
       search:

@@ -615,8 +615,8 @@ export class DashQLScriptSession {
         return this.ptr.assertNotNull().rewriteAnnotation(statementId, JSON.stringify(annotation), parseIfOutdated);
     }
 
-    /// Set the dashboard placement of a query, its `@vis card` tag. Returns the new text, the script is not changed.
-    public rewriteVisCard(
+    /// Set the dashboard placement of a query, its `@vis board` tag. Returns the new text, the script is not changed.
+    public rewriteVisBoard(
         statementId: number,
         row: number | null,
         column: number | null,
@@ -624,7 +624,7 @@ export class DashQLScriptSession {
         height: number,
         parseIfOutdated: boolean = true,
     ): string {
-        return this.ptr.assertNotNull().rewriteVisCard(statementId, row ?? -1, column ?? -1, width, height, parseIfOutdated);
+        return this.ptr.assertNotNull().rewriteVisBoard(statementId, row ?? -1, column ?? -1, width, height, parseIfOutdated);
     }
 
     /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template) or `table` tag.

@@ -225,7 +225,7 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
             let compact = crate::compact_json::to_string_compact(&value, width);
             std::iter::once(kind.to_string()).chain(compact.lines().map(str::to_string)).collect()
         }
-        "table" | "card" => {
+        "table" | "board" | "card" => {
             // Args are separated by single spaces
             let header = std::iter::once(kind).chain(rest.split_whitespace()).collect::<Vec<_>>().join(" ");
             std::iter::once(header).chain(body.iter().cloned()).collect()
@@ -471,7 +471,7 @@ mod tests {
 
     #[test]
     fn prints_vis_block_comments() {
-        assert_eq!(format_comments("/*   @vis   card  width=6   height=3 */"), "/** @vis card width=6 height=3 */");
+        assert_eq!(format_comments("/*   @vis   board  width=6   height=3 */"), "/** @vis board width=6 height=3 */");
         assert_eq!(format_comments("/* @vis table */"), "/** @vis table */");
         let input = "/* @vis vegalite {\"mark\":\"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */";
         assert_eq!(format_comments(input), "/**\n * @vis vegalite\n * {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n */");
@@ -487,11 +487,11 @@ mod tests {
 
     #[test]
     fn prints_tagged_line_comments_as_block_comment() {
-        let expected = "/**\n * @description Revenue.\n * @vis card width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
+        let expected = "/**\n * @description Revenue.\n * @vis board width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
         for input in [
-            "-- @description Revenue.\n-- @vis card width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}",
-            "-- @description Revenue.\n-- @vis card width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end",
-            "/* @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/",
+            "-- @description Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}",
+            "-- @description Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end",
+            "/* @description Revenue.\n   @vis board width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/",
         ] {
             assert_eq!(format_comments(input), expected, "{input}");
         }

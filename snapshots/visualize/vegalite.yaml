@@ -172,11 +172,11 @@ visualize-snapshots:
         "mark": "point"
       }
 
-  - name: vis_card
+  - name: vis_board
     script:
       input: |
         /* @vis vegalite {"mark": "bar"}
-           @vis card row=1 width=12 height=4 */
+           @vis board row=1 width=12 height=4 */
         SELECT 1 AS a;
     dashboard:
       row: 1

@@ -1409,7 +1409,7 @@ parser-snapshots:
     input: |-
       /* Revenue dashboard.
          @description Revenue per region.
-         @vis card width=6 height=3
+         @vis board width=6 height=3
          @vis vegalite
          {"mark": "bar"}
       */
@@ -1443,10 +1443,10 @@ parser-snapshots:
       line-breaks:
         - text: [21,22]
         - text: [57,58]
-        - text: [87,88]
-        - text: [104,105]
-        - text: [123,124]
-        - text: [126,127]
+        - text: [88,89]
+        - text: [105,106]
+        - text: [124,125]
+        - text: [127,128]
       comments:
         - text: "/* Revenue.. \"bar\"}\n*/"
       comment-blocks:
@@ -1462,11 +1462,11 @@ parser-snapshots:
           lines:
             - "Revenue per region."
         - type: DASHQL_TAG
-          text: "@vis card ..ight=3\n   "
+          text: "@vis board..ight=3\n   "
           tag: "vis"
           comments: [0,1]
           lines:
-            - "card width=6 height=3"
+            - "board width=6 height=3"
         - type: DASHQL_TAG
           text: "@vis vegal.. \"bar\"}\n*/"
           tag: "vis"
@@ -1534,7 +1534,7 @@ parser-snapshots:
   - name: line_comments_several_tags
     input: |-
       -- @description Revenue per region.
-      -- @vis card width=6 height=3
+      -- @vis board width=6 height=3
       -- @vis vegalite
       -- {"mark": "bar"}
       -- @end
@@ -1567,13 +1567,13 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [35,36]
-        - text: [65,66]
-        - text: [82,83]
-        - text: [101,102]
-        - text: [109,110]
+        - text: [66,67]
+        - text: [83,84]
+        - text: [102,103]
+        - text: [110,111]
       comments:
         - text: "-- @descri..er region."
-        - text: "-- @vis ca..6 height=3"
+        - text: "-- @vis bo..6 height=3"
         - text: "-- @vis vegalite"
         - text: "-- {\"mark\": \"bar\"}"
         - text: "-- @end"
@@ -1585,11 +1585,11 @@ parser-snapshots:
           lines:
             - "Revenue per region."
         - type: DASHQL_TAG
-          text: "-- @vis ca..6 height=3"
+          text: "-- @vis bo..6 height=3"
           tag: "vis"
           comments: [1,1]
           lines:
-            - "card width=6 height=3"
+            - "board width=6 height=3"
         - type: DASHQL_TAG
           text: "-- @vis ve..\"}\n-- @end"
           tag: "vis"

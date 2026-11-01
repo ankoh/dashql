@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn splits_block_comments_at_tags() {
-        let text = "/* Sales.\n   @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
+        let text = "/* Sales.\n   @description Revenue.\n   @vis board width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
@@ -510,7 +510,7 @@ mod tests {
         );
         assert_eq!(line_texts(text, &blocks, 0), vec!["Sales."]);
         assert_eq!(line_texts(text, &blocks, 1), vec!["Revenue."]);
-        assert_eq!(line_texts(text, &blocks, 2), vec!["card width=6"]);
+        assert_eq!(line_texts(text, &blocks, 2), vec!["board width=6"]);
         assert_eq!(line_texts(text, &blocks, 3), vec!["vegalite", "{\"mark\": \"bar\"}"]);
         // The blocks cover the comment without gaps
         assert_eq!(block_texts(text, &blocks).concat(), text);
@@ -519,7 +519,7 @@ mod tests {
 
     #[test]
     fn splits_line_comments_at_tags() {
-        let text = "-- @description Revenue.\n-- @vis card width=6\n-- @vis table\n-- @end";
+        let text = "-- @description Revenue.\n-- @vis board width=6\n-- @vis table\n-- @end";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
@@ -529,8 +529,8 @@ mod tests {
                 (CommentBlockType::DASHQL_TAG, "vis"),
             ]
         );
-        assert_eq!(line_texts(text, &blocks, 1), vec!["card width=6"]);
-        assert_eq!(block_texts(text, &blocks), vec!["-- @description Revenue.", "-- @vis card width=6", "-- @vis table\n-- @end"]);
+        assert_eq!(line_texts(text, &blocks, 1), vec!["board width=6"]);
+        assert_eq!(block_texts(text, &blocks), vec!["-- @description Revenue.", "-- @vis board width=6", "-- @vis table\n-- @end"]);
         assert!(blocks.warnings.is_empty());
     }
 

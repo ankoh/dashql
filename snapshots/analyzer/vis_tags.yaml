@@ -71,7 +71,7 @@ analyzer-snapshots:
             height: 3
           vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"region\"},\"y\":{\"field\":\"revenue\",\"aggregate\":\"sum\"}}}"
 
-  - name: vis_tag_vegalite_inline_and_card
+  - name: vis_tag_vegalite_inline_and_board
     catalog:
       script:
         input: |-
@@ -100,7 +100,7 @@ analyzer-snapshots:
     script:
       input: |
         /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "total"}}}
-           @vis card row=1 column=2 width=4 height=2 */
+           @vis board row=1 column=2 width=4 height=2 */
         select date, sum(revenue) as total from sales group by date;
       catalog-id: 2
       errors: []
@@ -483,18 +483,18 @@ analyzer-snapshots:
            @vis
            @vis table extra
            @vis markdown {{a}}
-           @vis card width=x depth=2 row
-           @vis card width=3 */
+           @vis board width=x depth=2 row
+           @vis board width=3 */
         select 1 as a;
       catalog-id: 1
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "chart", expected vegalite, markdown, table or card'
+          message: 'unknown @vis kind "chart", expected vegalite, markdown, table or board'
           text: "chart"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis needs a kind: vegalite, markdown, table or card'
+          message: '@vis needs a kind: vegalite, markdown, table or board'
           text: "vis"
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -506,20 +506,20 @@ analyzer-snapshots:
           text: "markdown"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis card width must be an integer'
+          message: '@vis board width must be an integer'
           text: "width=x"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis card arg "depth", expected row, column, width or height'
+          message: 'unknown @vis board arg "depth", expected row, column, width or height'
           text: "depth=2"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis card takes key=value args, not "row"'
+          message: '@vis board takes key=value args, not "row"'
           text: "row"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'the statement already has a @vis card, this tag is ignored'
-          text: "card"
+          message: 'the statement already has a @vis board, this tag is ignored'
+          text: "board"
       expressions:
         - expression-idx: 0
           type: literal/integer
@@ -543,11 +543,11 @@ analyzer-snapshots:
             width: 6
             height: 3
 
-  - name: vis_tag_card_normalized
+  - name: vis_tag_board_normalized
     script:
       input: |
         /* @vis table
-           @vis card row=-1 column=9 width=6 height=0 */
+           @vis board row=-1 column=9 width=6 height=0 */
         select 1 as a;
       catalog-id: 1
       errors:
@@ -587,17 +587,50 @@ analyzer-snapshots:
             width: 6
             height: 1
 
-  - name: vis_tag_card_only
+  - name: vis_tag_card_alias
     script:
       input: |
-        /* @vis card width=6 */
+        /* @vis table
+           @vis card row=1 column=2 width=4 height=2 */
+        select 1 as a;
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: table
+          dashboard:
+            row: 1
+            column: 2
+            width: 4
+            height: 2
+
+  - name: vis_tag_board_only
+    script:
+      input: |
+        /* @vis board width=6 */
         select 1 as a;
       catalog-id: 1
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis card places a visualization, the statement needs @vis vegalite, markdown or table'
-          text: "card"
+          message: '@vis board places a visualization, the statement needs @vis vegalite, markdown or table'
+          text: "board"
       expressions:
         - expression-idx: 0
           type: literal/integer

@@ -282,7 +282,7 @@ formatter-snapshots:
     input: |-
       -- Revenue dashboard.
       -- @description Revenue per region.
-      -- @vis card width=6 height=3
+      -- @vis board width=6 height=3
       -- @vis table
       -- @end
       select 1
@@ -297,7 +297,7 @@ formatter-snapshots:
               -- Revenue dashboard.
               /**
                * @description Revenue per region.
-               * @vis card width=6 height=3
+               * @vis board width=6 height=3
                * @vis table
                */
               select 1;
@@ -306,7 +306,7 @@ formatter-snapshots:
               -- Revenue dashboard.
               /**
                * @description Revenue per region.
-               * @vis card width=6 height=3
+               * @vis board width=6 height=3
                * @vis table
                */
               select 1;
@@ -349,7 +349,7 @@ formatter-snapshots:
   - name: vis_inline_json
     input: |-
       /* @vis vegalite {"mark": {"type": "line", "point": true}, "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}} */
-      /*@vis   card  width=12 */
+      /*@vis   board  width=12 */
       select date, revenue from sales
     dialects:
       hyper:
@@ -365,7 +365,7 @@ formatter-snapshots:
                *   "mark": {"type": "line", "point": true},
                *   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
                * }
-               * @vis card width=12
+               * @vis board width=12
                */
               select date, revenue from sales;
           - mode: pretty
@@ -376,7 +376,7 @@ formatter-snapshots:
                *   "mark": {"type": "line", "point": true},
                *   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
                * }
-               * @vis card width=12
+               * @vis board width=12
                */
               select date, revenue
               from sales;
@@ -522,7 +522,7 @@ formatter-snapshots:
       /* @vis vegalite
          {"mark": "bar"}
       */
-      /* @vis card width=6 */
+      /* @vis board width=6 */
       select 1
     dialects:
       hyper:
@@ -537,7 +537,7 @@ formatter-snapshots:
                * Add to and subtract from timestamps and measure the distance between them.
                * @vis vegalite
                * {"mark": "bar"}
-               * @vis card width=6
+               * @vis board width=6
                */
               select 1;
           - mode: pretty
@@ -547,7 +547,7 @@ formatter-snapshots:
                * Add to and subtract from timestamps and measure the distance between them.
                * @vis vegalite
                * {"mark": "bar"}
-               * @vis card width=6
+               * @vis board width=6
                */
               select 1;
 
