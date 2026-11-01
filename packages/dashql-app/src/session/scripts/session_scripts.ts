@@ -31,7 +31,7 @@ import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, R
 
 import { chartStatementId, compileVisualizeQuery } from './script_compilation.js';
 import { dropSessionTableParameters, publishTableParameters } from './table_parameters_publisher.js';
-import { attachmentStamp, readSessionAttachments, sameSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
+import { attachmentNames, attachmentStamp, readSessionAttachments, sameSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
 import { unmountSessionAttachments } from '../attachments/attachment_mounts.js';
 import type { DataFile } from '../../storage/storage_backend.js';
 import { applyScriptTextChanges, computeScriptReferenceReports, renameScriptReferenceChanges, type ScriptTextChange } from './script_reference_check.js';
@@ -773,7 +773,8 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
         case CREATE_SCRIPT: {
             // Null appends; an index inserts at that feed boundary. Text seeds the new script, e.g. from the composer.
             const { index, text, connection } = action.value;
-            const fileName = generateScriptFileName(state.scriptRefs);
+            // A script takes no name of an attachment, the table parameter would be ambiguous
+            const fileName = generateScriptFileName(state.scriptRefs, undefined, attachmentNames(state.attachments));
 
             // Create a new script on the given connection, otherwise on the connection of its neighbors
             const scriptConnection = connection ?? newScriptConnection(state, index);
@@ -830,7 +831,7 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
             if (!requestedBase || /[/\\\0]/.test(requestedBase)) {
                 return state;
             }
-            const cleanBase = uniqueScriptBase(requestedBase, state.scriptRefs, oldFileName);
+            const cleanBase = uniqueScriptBase(requestedBase, state.scriptRefs, oldFileName, attachmentNames(state.attachments));
             const newFileName = `${cleanBase}.sql`;
             const renamed = oldFileName !== newFileName;
             const renamedEntry: ScriptRef = { ...entry, fileName: newFileName };

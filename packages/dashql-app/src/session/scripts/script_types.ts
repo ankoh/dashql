@@ -108,17 +108,20 @@ export function scriptDisplayName(fileName: string): string {
 }
 
 /// Return a script base name (no extension) that is unique among the display names of the existing
-/// scripts, suffixing "-2", "-3", ... on collision.
+/// scripts and the other names of table parameters, e.g. those of attachments, suffixing "-2", "-3", ... on
+/// collision. Names are compared in lower case, like the core finds a table parameter.
 export function uniqueScriptBase(
     base: string,
     existingScripts: { [fileName: string]: ScriptRef },
     excludeFileName: string = '',
+    takenNames: Iterable<string> = [],
 ): string {
     const taken = new Set<string>();
     for (const key of Object.keys(existingScripts)) {
         if (key === excludeFileName) continue;
         taken.add(scriptDisplayName(key).toLowerCase());
     }
+    for (const name of takenNames) taken.add(name.toLowerCase());
     let candidate = base;
     for (let suffix = 2; taken.has(candidate.toLowerCase()); ++suffix) {
         candidate = `${base}-${suffix}`;
@@ -132,9 +135,11 @@ export function uniqueScriptBase(
 export function generateScriptFileName(
     existingScripts: { [fileName: string]: ScriptRef },
     base?: string,
+    takenNames: Iterable<string> = [],
 ): string {
-    const requested = base ?? randomScriptName(new Set(Object.keys(existingScripts).map(scriptDisplayName)));
-    return `${uniqueScriptBase(requested, existingScripts)}.sql`;
+    const taken = [...takenNames];
+    const requested = base ?? randomScriptName(new Set([...Object.keys(existingScripts).map(scriptDisplayName), ...taken]));
+    return `${uniqueScriptBase(requested, existingScripts, '', taken)}.sql`;
 }
 
 /// Helper to create a committed script entry.

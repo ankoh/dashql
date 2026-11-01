@@ -27,6 +27,7 @@ import {
     SessionScriptsEffects,
     isAnalysisOutdated,
     RENAME_SCRIPT,
+    SET_SESSION_ATTACHMENTS,
     RENAME_SESSION,
     UPDATE_FROM_PROCESSOR,
     REORDER_SCRIPTS,
@@ -117,6 +118,14 @@ describe('V2 flat session script mutations', () => {
         expect(writer.records.some(task => task.type.description === 'RENAME_SCRIPT')).toBe(true);
         expect(writer.records.some(task => task.type.description === 'WRITE_SESSION_SCRIPTS')).toBe(true);
         expect(writer.records.some(task => task.type.description === 'DELETE_SCRIPT')).toBe(true);
+    });
+
+    it('renames a script past the names of the attachments, a table parameter names one of them', () => {
+        let current = state(['1_alpha.sql', '2_beta.sql']);
+        current = reduce(current, { type: SET_SESSION_ATTACHMENTS, value: [{ name: 'Sales.parquet', sizeBytes: 1, mtimeMs: 1 }] });
+        current = reduce(current, { type: RENAME_SCRIPT, value: { fileName: '1_alpha.sql', newFileName: 'sales' } });
+        expect(current.scriptOrder).toEqual(['sales-2.sql', '2_beta.sql']);
+        expect(current.attachments?.map(a => [a.fileName, a.name])).toEqual([['Sales.parquet', 'Sales']]);
     });
 
     it('defers the writes and frees of a reduction until its effects are committed', () => {

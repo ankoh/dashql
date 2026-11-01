@@ -25,7 +25,7 @@ import {
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../connections/connection_state.js';
 import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SESSION_ATTACHMENTS } from '../scripts/session_scripts.js';
 import { markSessionAttachmentsChanged } from '../attachments/attachment_mounts.js';
-import { readSessionAttachments, sameSessionAttachments } from '../attachments/session_attachments.js';
+import { readSessionAttachments, sameSessionAttachments, uniqueAttachmentFileName } from '../attachments/session_attachments.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
@@ -214,6 +214,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const attachmentInputRef = React.useRef<HTMLInputElement>(null);
     const latestAttachments = React.useRef(props.sessionScripts.attachments);
     latestAttachments.current = props.sessionScripts.attachments;
+    const latestScriptOrder = React.useRef(props.sessionScripts.scriptOrder);
+    latestScriptOrder.current = props.sessionScripts.scriptOrder;
     // The session file lists the attachments, a changed attachment updates the list and the mount of the attachments
     const refreshDataFiles = React.useCallback(() => {
         markSessionAttachmentsChanged(sessionId);
@@ -247,8 +249,13 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {
         setAttachmentError(null);
         try {
+            // A Parquet attachment is a table parameter, it takes no name of a script or another attachment
+            const scriptNames = latestScriptOrder.current.map(scriptDisplayName);
+            const attachments = [...(latestAttachments.current ?? [])];
             for (const file of files) {
-                await storageReader.backend.saveDataFile(sessionId, file.name, file);
+                const fileName = uniqueAttachmentFileName(file.name, scriptNames, attachments);
+                await storageReader.backend.saveDataFile(sessionId, fileName, file);
+                attachments.push(...readSessionAttachments([{ name: fileName, sizeBytes: file.size }]));
             }
             refreshDataFiles();
         } catch (e) {

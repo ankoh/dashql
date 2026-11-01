@@ -26,6 +26,26 @@ export function attachmentParameterName(fileName: string): string | null {
     return match == null ? null : match[1];
 }
 
+/// The names of the table parameters of attachments, which no script may take
+export function attachmentNames(attachments: readonly SessionAttachment[] | undefined): string[] {
+    return (attachments ?? []).flatMap(attachment => attachment.name == null ? [] : [attachment.name]);
+}
+
+/// A file name for a new attachment whose table parameter takes no name of a script or another attachment, the
+/// same name in another case neither: `sales.parquet` becomes `sales-2.parquet`. A file with the name of an attachment
+/// replaces it and keeps its name. Files that are no Parquet file keep their name.
+export function uniqueAttachmentFileName(fileName: string, scriptNames: Iterable<string>, attachments: readonly SessionAttachment[]): string {
+    const base = attachmentParameterName(fileName);
+    if (base == null || attachments.some(attachment => attachment.fileName === fileName)) return fileName;
+    const extension = fileName.slice(base.length);
+    const taken = new Set([...scriptNames, ...attachmentNames(attachments)].map(name => name.toLowerCase()));
+    let candidate = base;
+    for (let suffix = 2; taken.has(candidate.toLowerCase()); ++suffix) {
+        candidate = `${base}-${suffix}`;
+    }
+    return `${candidate}${extension}`;
+}
+
 /// What changes when the file of an attachment changes
 export function attachmentStamp(attachment: SessionAttachment): string {
     return `${attachment.sizeBytes}-${attachment.mtimeMs}`;

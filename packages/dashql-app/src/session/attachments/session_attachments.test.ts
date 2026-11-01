@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attachmentParameterName, attachmentPrefix, planAttachments, readSessionAttachments, sameSessionAttachments } from './session_attachments.js';
+import { attachmentParameterName, attachmentPrefix, planAttachments, readSessionAttachments, sameSessionAttachments, uniqueAttachmentFileName } from './session_attachments.js';
 
 describe('session attachments', () => {
     it('names the table parameter of a Parquet file after the file', () => {
@@ -23,5 +23,15 @@ describe('session attachments', () => {
         const attachments = readSessionAttachments([{ name: 'notes.txt', sizeBytes: 1 }, { name: 'sales.parquet', sizeBytes: 5, mtimeMs: 7 }]);
         expect(planAttachments(attachments)).toEqual([{ name: 'sales', file: 'sales.parquet', stamp: '5-7', columns: null }]);
         expect(attachmentPrefix('s1')).toBe('/mnt/external/attachments/s1');
+    });
+
+    it('names a new attachment past the scripts and the other attachments', () => {
+        const attachments = readSessionAttachments([{ name: 'orders.parquet', sizeBytes: 1 }, { name: 'sales-2.parquet', sizeBytes: 1 }]);
+        expect(uniqueAttachmentFileName('Sales.parquet', ['sales', 'items'], attachments)).toBe('Sales-3.parquet');
+        expect(uniqueAttachmentFileName('ORDERS.parquet', [], attachments)).toBe('ORDERS-2.parquet');
+        // A file with the name of an attachment replaces it, other files keep their names
+        expect(uniqueAttachmentFileName('orders.parquet', ['orders'], attachments)).toBe('orders.parquet');
+        expect(uniqueAttachmentFileName('sales.csv', ['sales'], attachments)).toBe('sales.csv');
+        expect(uniqueAttachmentFileName('fresh.parquet', ['sales'], attachments)).toBe('fresh.parquet');
     });
 });
