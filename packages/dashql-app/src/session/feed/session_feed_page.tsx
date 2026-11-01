@@ -94,11 +94,14 @@ interface Props {
 
 export const SessionFeedPage: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    // The details belong to the session they were opened in, another session shows its feed
     // The composer of the feed renames the references in its draft, also for renames in the details
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
-    const [details, setDetails] = React.useState<{ sessionId: string; scriptId?: number; initialTab?: DetailsTabKey } | null>(null);
-    const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId;
+    // The details belong to the session they were opened in and close when another session is selected.
+    // Details of a script that is gone show the feed again, an empty pane would hide the feed without a way out.
+    const [details, setDetails] = React.useState<{ sessionId: string; scriptId: number; initialTab?: DetailsTabKey } | null>(null);
+    const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId
+        && props.sessionScripts.scripts[details.scriptId] != null;
+    React.useEffect(() => setDetails(null), [props.sessionScripts.sessionId]);
     const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const [overviewConnectionId, setOverviewConnectionId] = React.useState<string | null>(null);
@@ -152,7 +155,9 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const openDetails = React.useCallback((fileName?: string, initialTab?: DetailsTabKey) => {
         const sessionScripts = latestSessionScripts.current;
         const targetFileName = fileName ?? sessionScripts.scriptFocus.fileName;
-        setDetails({ sessionId: sessionScripts.sessionId, scriptId: sessionScripts.scriptRefs[targetFileName]?.scriptId, initialTab });
+        const scriptId = sessionScripts.scriptRefs[targetFileName]?.scriptId;
+        if (scriptId == null) return;
+        setDetails({ sessionId: sessionScripts.sessionId, scriptId, initialTab });
         setOverviewConnectionId(null);
     }, []);
     const workbench = (closeAfterSelection: boolean) => (
@@ -333,7 +338,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                     onInspect={scriptKey => setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey })}
                                 />
                             </div>
-                            {showDetails && details.scriptId != null && props.sessionScripts.scripts[details.scriptId] != null && (
+                            {showDetails && (
                                 <div className={styles.dataflow_inspector} data-testid="dataflow-inspector">
                                     <dependencies.ScriptDetails
                                         sessionScripts={props.sessionScripts}
