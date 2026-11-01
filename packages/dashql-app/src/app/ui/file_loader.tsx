@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import { PlatformFile } from '../../platform/file/file.js';
 import type { SessionBundle } from '../../storage/session_bundle.js';
-import { readSessionBundleFromZip } from '../session/persistence/session_import.js';
-import { useSessionImport } from '../session/persistence/session_import_provider.js';
-import { SessionImportCard, type SessionImportCardDependencies } from '../session/ui/session_import_card.js';
+import { readSessionBundleFromZip } from '../../session/persistence/session_import.js';
+import { useSessionImport } from '../../session/persistence/session_import_provider.js';
+import { SessionImportCard, type SessionImportCardDependencies } from '../../session/persistence/session_import_card.js';
 import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
 
 type PreparationPhase = 'reading' | 'validating';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { QueryExecutionState } from '../../query/query_execution_state.js';
-import { ResolvedVisualizeQuery } from '../../app/session/scripts/script_types.js';
+import { ResolvedVisualizeQuery } from '../../session/scripts/script_types.js';
 import { VegaLiteView } from './vegalite_view.js';
 import { MarkdownView } from './markdown_view.js';
 import { QueryResultView } from '../query_result/query_result_view.js';

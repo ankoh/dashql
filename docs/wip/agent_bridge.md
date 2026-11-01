@@ -307,8 +307,8 @@ and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native da
 
 ### Page side
 
-The WebSocket client and the protocol types live in `packages/dashql-app/src/platform/agent/`. The command
-registry and the provider wrap app state, so they live in `packages/dashql-app/src/app/agent/`.
+The WebSocket client and the protocol types live in `packages/dashql-app/src/agent/`. The command
+registry and the provider wrap app state, so they live in `packages/dashql-app/src/agent/`.
 
 - **Agent access toggle** per session, off by default. Start Session in the header of a session turns it on
   right away. The
@@ -587,8 +587,8 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 - **New:**
   - `packages/dashql-cli/src/agent/`: the agent server and the commands of the `dashql` binary (Rust,
     tokio and tungstenite), `packages/dashql-cli/skill/`, tests (`bazel test //packages/dashql-cli:tests`)
-  - `packages/dashql-app/src/platform/agent/`: WebSocket client, protocol types
-  - `packages/dashql-app/src/app/agent/`: command registry, provider, agent view, agent session menu
+  - `packages/dashql-app/src/agent/`: WebSocket client, protocol types
+  - `packages/dashql-app/src/agent/`: command registry, provider, agent view, agent session menu
   - `packages/dashql-native/src/agent_host.ts`: supervision of the `dashql agent serve` child process, status
   - `packages/dashql-native/src/menu_bar_template.ts`: the menu as data, tested without Electron
   - `packages/dashql-native/src/menu_bar.ts`: tray and menu (login item planned)
@@ -600,7 +600,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
     binary is already an extra resource)
   - `packages/dashql-native/src/updater.ts` (status listener for the menu)
   - `packages/dashql-app/src/app/app.tsx` (provider)
-  - `packages/dashql-app/src/app/session/ai/use_agent_questions.ts`, `ai/ui/agent_prompt_panel.tsx`
+  - `packages/dashql-app/src/agent/use_agent_questions.ts`, `ai/ui/agent_prompt_panel.tsx`
   - settings UI for the toggle and data settings
 
 Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.

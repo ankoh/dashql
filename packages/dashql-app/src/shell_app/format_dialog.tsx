@@ -1,18 +1,18 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
-import * as themes from '../app/session/scripts/editor/themes/index.js';
+import * as themes from '../session/editor/themes/index.js';
 
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createScriptFormatConfig, getKeywordCase, measureScriptFormatWidth } from '../app/session/ui/script_format.js';
+import { createScriptFormatConfig, getKeywordCase, measureScriptFormatWidth } from '../session/scripts/script_format.js';
 import { useAppConfig } from '../config/app_config.js';
-import { CodeMirror } from '../app/session/scripts/editor/codemirror.js';
+import { CodeMirror } from '../session/editor/codemirror.js';
 import {
     DashQLScannerDecorationUpdateEffect,
     DashQLStandaloneScannerDecorationPlugin,
-} from '../app/session/scripts/editor/dashql_decorations_standalone.js';
+} from '../session/editor/dashql_decorations_standalone.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';

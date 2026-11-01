@@ -1,13 +1,13 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
-import * as themes from '../app/session/scripts/editor/themes/index.js';
+import * as themes from '../session/editor/themes/index.js';
 
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../views/plan/plan_view.js';
-import { CodeMirror } from '../app/session/scripts/editor/codemirror.js';
+import { CodeMirror } from '../session/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { useFocusTrap } from '../ui/foundations/focus.js';

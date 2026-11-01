@@ -98,7 +98,7 @@ flowchart TD
     F --> G[importPortableBundleWithChoice]
 ```
 
-`readSessionBundleFromHttp` (`packages/dashql-app/src/app/session/persistence/http_session_bundle.ts`):
+`readSessionBundleFromHttp` (`packages/dashql-app/src/session/persistence/http_session_bundle.ts`):
 
 - accepts public `https:` URLs and loopback `http:` in development builds, without credentials or fragment,
   ending in `dashql-session.json` (or the legacy `dashql-notebook.json`),
@@ -123,7 +123,7 @@ URL; later edits do not write back to the host.
 ## UUID Collisions
 
 Remote trees use the portable import path of `.dashql` files and inline ZIP links
-(`packages/dashql-app/src/app/session/persistence/session_import_provider.tsx`):
+(`packages/dashql-app/src/session/persistence/session_import_provider.tsx`):
 
 - No conflict: keep the published UUID.
 - Create new: allocate a fresh UUID and append ` (copy)` to a non-empty name.
@@ -136,7 +136,7 @@ OPFS and registered native sessions both participate in the UUID check.
 ## Imported Connections
 
 Exports give every connection a fresh id, so an import finds the connections of the app by their params
-(`planConnectionImport`, `packages/dashql-app/src/app/session/persistence/session_connection_import.ts`):
+(`planConnectionImport`, `packages/dashql-app/src/session/persistence/session_connection_import.ts`):
 
 - A connection that the app knows under the same id and the same params (ignoring secrets) is used silently.
 - A server connection whose params match connections of the app asks the user whether to use one of them or
@@ -146,7 +146,7 @@ Exports give every connection a fresh id, so an import finds the connections of 
 - An embedded database (`"protocol": "WASM"`) always uses the embedded database of the app, without a question.
   Its id is rewritten in `connections`, in the `connectionId` of every script and in the names of its catalogs.
   The restoration of the app does the same for an embedded database with an unknown id
-  (`resolveSessionConnection`, `packages/dashql-app/src/app/session/persistence/app_state_loader.ts`).
+  (`resolveSessionConnection`, `packages/dashql-app/src/session/persistence/app_state_loader.ts`).
 
 **Open problem: attached databases of the embedded database.** The params of an embedded database may list
 `attachedDatabases` (e.g. `tpch.hyper`). An imported session takes the params of the embedded database of the

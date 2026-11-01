@@ -8,7 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { isWorkspacePath, NavRailPages } from './nav_rail.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { type AppFlavor, DASHQL_FLAVOR, SIDB_FLAVOR } from '../../config/flavors.js';
-import { SessionViewModeProvider } from '../session/ui/session_view_mode.js';
+import { SessionViewModeProvider } from '../../session/session_view_mode.js';
 
 describe('Nav rail', () => {
     it('marks the session pages as the workspace', () => {

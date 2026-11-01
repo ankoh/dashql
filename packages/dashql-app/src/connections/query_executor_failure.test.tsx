@@ -16,7 +16,7 @@ import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
 import { QueryExecutorProvider, useQueryExecutor } from './query_executor.js';
 import { SessionTestBackend } from '../storage/session_test_backend.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { SessionScriptsRegistryProvider } from '../app/session/scripts/session_scripts_registry.js';
+import { SessionScriptsRegistryProvider } from '../session/scripts/session_scripts_registry.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

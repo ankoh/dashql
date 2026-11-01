@@ -10,14 +10,14 @@ import { usePlatformEventListener } from '../../platform/events/event_listener_p
 import { SETUP_SESSION, SETUP_SESSION_URL, SetupEventVariant } from '../../platform/events/event.js';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
-import { readSessionBundleFromZip } from '../session/persistence/session_import.js';
-import { useSessionImport } from '../session/persistence/session_import_provider.js';
+import { readSessionBundleFromZip } from '../../session/persistence/session_import.js';
+import { useSessionImport } from '../../session/persistence/session_import_provider.js';
 import {
     readSessionBundleFromHttp,
     type HttpSessionLoadProgress,
     type HttpSessionLoadResult,
-} from '../session/persistence/http_session_bundle.js';
-import { SessionImportCard } from '../session/ui/session_import_card.js';
+} from '../../session/persistence/http_session_bundle.js';
+import { SessionImportCard } from '../../session/persistence/session_import_card.js';
 
 const LOG_CTX = "app_loader";
 

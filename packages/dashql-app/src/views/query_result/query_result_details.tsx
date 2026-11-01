@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
-import { TabHeader, formatRowCountDetail } from '../../app/session/ui/tab_header.js';
+import { TabHeader, formatRowCountDetail } from '../../session/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';

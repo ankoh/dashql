@@ -1,0 +1,197 @@
+import JSZip from 'jszip';
+
+import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
+
+import type { StorageBackend, SessionData, ScriptData, DataFileData, ConnectionParams } from '../../storage/storage_backend.js';
+import {
+    STORAGE_SESSION_FILE,
+    STORAGE_ATTACHMENTS_FOLDER,
+    validateDataFileName,
+    STORAGE_SCRIPTS_FOLDER,
+    STORAGE_CATALOG_FUNCTIONS,
+    STORAGE_CATALOG_RELATIONS,
+} from '../../storage/storage_backend.js';
+import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
+import {
+    bundleCatalogPath,
+    pruneBundleConnections,
+    readSessionBundle,
+    rebaseSessionAttachmentPaths,
+    regenerateBundleConnectionIds,
+    type SessionBundle,
+    type SessionBundleCatalog,
+} from '../../storage/session_bundle.js';
+
+/// The target platform a shared session link points at.
+export enum SessionLinkTarget {
+    NATIVE,
+    WEB
+}
+
+/// Options controlling how a session is exported to a ZIP.
+export interface SessionExportOptions {
+    /// Include the catalogs of the connections of the session when they exist.
+    withCatalog?: boolean;
+    /// Transform the session metadata and the catalogs after they are loaded from the backend and
+    /// before they are written into the ZIP. Scripts are exported verbatim from disk. The sharing
+    /// path uses this to sanitize connection secrets, strip the login hint, or give the session and
+    /// its connections fresh ids, the catalogs follow their connections.
+    transformBundle?: (bundle: Pick<SessionBundle, 'session' | 'catalogs'>) => Pick<SessionBundle, 'session' | 'catalogs'>;
+}
+
+/// Options applied after sanitizing session connection parameters for sharing.
+export interface SharedSessionExportOptions {
+    /// Carry the sharer's resolved account username in the shared connection identity.
+    withLoginHint?: boolean;
+    /// Include the catalogs of the connections of the session when present.
+    withCatalog?: boolean;
+    /// Keep the session and connection UUIDs instead of generating export-only identities.
+    preserveUUIDs?: boolean;
+    /// The names the user gave the connections (connectionId -> name), an import names new connections after them.
+    connectionNames?: ReadonlyMap<string, string>;
+}
+
+type SharedSessionExportOptionsInput = SharedSessionExportOptions | boolean;
+
+/// Creates a ZIP file from session data and script folders
+export async function createSessionZip(
+    sessionData: SessionData,
+    scripts: ScriptData[],
+    catalogs: readonly SessionBundleCatalog[] = [],
+    data: readonly DataFileData[] = [],
+): Promise<Blob> {
+    const zip = new JSZip();
+
+    // Add session metadata
+    zip.file(STORAGE_SESSION_FILE, JSON.stringify({
+        ...sessionData,
+        connections: sessionData.connections.map(connection => ({
+            connectionId: connection.connectionId,
+            params: sanitizeConnectionParamsForSharing(connection.params),
+            ...(connection.name == null ? {} : { name: connection.name }),
+        })),
+    }, null, 2));
+    // The catalogs of the connections, an import seeds the connections that are new to the app
+    for (const catalog of catalogs) {
+        if (catalog.relations != null) zip.file(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_RELATIONS), catalog.relations);
+        if (catalog.functions != null) zip.file(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_FUNCTIONS), catalog.functions);
+    }
+
+    // Add the flat ordered scripts.
+    const scriptsFolder = zip.folder(STORAGE_SCRIPTS_FOLDER);
+    if (!scriptsFolder) {
+        throw new Error('Failed to create scripts folder in ZIP');
+    }
+
+    for (const script of scripts) {
+        if (script.name.toLowerCase() === 'dashql-draft.sql') continue;
+        scriptsFolder.file(script.name, script.sql);
+    }
+    for (const file of data) {
+        validateDataFileName(file.name);
+        zip.file(`${STORAGE_ATTACHMENTS_FOLDER}/${file.name}`, file.bytes);
+    }
+
+    // Generate ZIP blob with compression
+    return await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+    });
+}
+
+/// Exports a session as a ZIP file by loading from storage backend.
+///
+/// Scripts are always exported exactly as they exist on disk. The export carries only the connections
+/// that the scripts use. Pass `options.transformBundle` to adjust the session metadata on the way out
+/// (e.g. sanitize connection secrets or drop the login hint when sharing).
+export async function exportSessionAsZip(
+    sessionId: string,
+    backend: StorageBackend,
+    options: SessionExportOptions = {}
+): Promise<Blob> {
+    const bundle = pruneBundleConnections(await readSessionBundle(sessionId, backend, options.withCatalog ?? false));
+
+    // Apply the caller's transform (sharing sanitization, name override, ...)
+    const out = options.transformBundle ? options.transformBundle(bundle) : bundle;
+    const rebase = (text: string | null) => rebaseSessionAttachmentPaths(text, bundle.session.sessionId, out.session.sessionId);
+    const scripts = bundle.scripts.map(script => ({ ...script, sql: rebase(script.sql)! }));
+    const catalogs = out.catalogs.map(catalog => ({ ...catalog, relations: rebase(catalog.relations), functions: rebase(catalog.functions) }));
+
+    // Create ZIP from loaded data
+    return await createSessionZip(out.session, scripts, catalogs, bundle.data);
+}
+
+/// Export a session as a shareable ZIP.
+///
+/// Scripts and the session name are read straight from disk (via `exportSessionAsZip`). Connection
+/// params are replaced with their live values and sanitized, the connections carry the given names. By default the exported session and
+/// connections receive fresh UUIDs so importing a copy cannot collide with existing runtime state.
+export async function exportSessionAsSharedZip(
+    backend: StorageBackend,
+    sessionId: string,
+    connectionParams: ReadonlyMap<string, ConnectionParams>,
+    optionsInput: SharedSessionExportOptionsInput = {},
+): Promise<Blob> {
+    const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
+    const withLoginHint = options.withLoginHint ?? true;
+    return await exportSessionAsZip(sessionId, backend, {
+        withCatalog: options.withCatalog ?? true,
+        transformBundle: bundle => {
+            const { session } = bundle;
+            const sanitized: SessionData = {
+                ...session,
+                connections: session.connections.map(connection => {
+                    const name = options.connectionNames?.get(connection.connectionId);
+                    return {
+                        ...connection,
+                        params: sanitizeConnectionParamsForSharing(
+                            connectionParams.get(connection.connectionId) ?? connection.params,
+                            withLoginHint,
+                        ),
+                        ...(name == null ? {} : { name }),
+                    };
+                }),
+            };
+            return options.preserveUUIDs
+                ? { ...bundle, session: sanitized }
+                : regenerateBundleConnectionIds({ ...bundle, session: { ...sanitized, sessionId: crypto.randomUUID() } });
+        },
+    });
+}
+
+/// Export a session as a shareable link that carries the session ZIP inline.
+export async function exportSessionAsUrl(
+    backend: StorageBackend,
+    sessionId: string,
+    connectionParams: any,
+    target: SessionLinkTarget,
+    optionsInput: SharedSessionExportOptionsInput = {},
+): Promise<URL> {
+    const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
+    const zipBlob = await exportSessionAsSharedZip(
+        backend,
+        sessionId,
+        connectionParams,
+        { ...options, withCatalog: options.withCatalog ?? false },
+    );
+    const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
+
+    // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema
+    const eventData: app_event.AppEventData = {
+        session: BASE64URL_CODEC.encode(zipBytes.buffer)
+    };
+
+    // Encode the JSON to base64
+    const eventDataJson = JSON.stringify(eventData);
+    const eventDataBytes = new TextEncoder().encode(eventDataJson);
+    const eventDataBase64 = BASE64URL_CODEC.encode(eventDataBytes.buffer);
+
+    switch (target) {
+        case SessionLinkTarget.WEB:
+            return new URL(`${process.env.DASHQL_APP_URL!}?data=${eventDataBase64}`);
+        case SessionLinkTarget.NATIVE:
+            return new URL(`dashql://localhost?data=${eventDataBase64}`);
+    }
+}

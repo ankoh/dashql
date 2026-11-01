@@ -17,7 +17,7 @@ Every run of a session executes a plan. The planner (`packages/dashql-core-sessi
 turns the scripts of a session, or one target script and the scripts it references, into an
 `ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines and the
 catalog changes once it succeeded. Edges order conflicting accesses. The app's
-`packages/dashql-app/src/app/session/scripts/session_execution.ts` (`runExecutionGraph`) executes
+`packages/dashql-app/src/session/scripts/session_execution.ts` (`runExecutionGraph`) executes
 that graph in TypeScript, for a run of the session (`runSessionExecution`) and for a run of one
 script (`runPlannedScript` in `script_run.ts`).
 
@@ -89,7 +89,7 @@ This is a small, independent change.
 ## Files
 
 - `packages/dashql-core-session/src/planner.rs`
-- `packages/dashql-app/src/app/session/scripts/script_run.ts`
-- `packages/dashql-app/src/app/session/scripts/session_execution.ts`
+- `packages/dashql-app/src/session/scripts/script_run.ts`
+- `packages/dashql-app/src/session/scripts/session_execution.ts`
 - `proto/fb/dashql/execution_graph.fbs`
 - `docs/design/core_analysis_catalog.md` (catalog changes in planned execution)

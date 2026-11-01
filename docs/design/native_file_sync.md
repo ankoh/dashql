@@ -103,7 +103,7 @@ the app. Scripts that were never acknowledged are not checked; OPFS sessions nev
 ### Coordinator
 
 `NativeSessionSync` in
-`packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx` is mounted once inside the
+`packages/dashql-app/src/session/persistence/native_session_sync_react.tsx` is mounted once inside the
 connection and session registry providers. It queues a session check
 
 - once for every session that enters the session registry,
@@ -117,7 +117,7 @@ coordination, and both state registries.
 ### Domain Reconciliation
 
 Session scripts reconciliation stays in
-`packages/dashql-app/src/app/session/scripts/session_scripts.ts`:
+`packages/dashql-app/src/session/scripts/session_scripts.ts`:
 
 - `SessionScriptsStorageSnapshot` is the storage-shaped boundary type.
 - `sessionScriptsMatchStorageSnapshot` detects content and page-structure differences.
@@ -276,11 +276,11 @@ bazel build //packages/dashql-native:compile
 
 ## Implementation References
 
-- Check coordinator: `packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx`
+- Check coordinator: `packages/dashql-app/src/session/persistence/native_session_sync_react.tsx`
 - Stamps and refused script writes: `packages/dashql-app/src/storage/native_storage_backend.ts`
 - Held writes: `packages/dashql-app/src/storage/storage_writer.ts`
-- Session scripts reconciliation: `packages/dashql-app/src/app/session/scripts/session_scripts.ts`
+- Session scripts reconciliation: `packages/dashql-app/src/session/scripts/session_scripts.ts`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
 - Stamp tests: `packages/dashql-app/src/storage/native_storage_backend.test.ts`
 - Writer tests: `packages/dashql-app/src/storage/storage_writer.test.ts`
-- Session scripts reconciliation tests: `packages/dashql-app/src/app/session/scripts/session_scripts.test.ts`
+- Session scripts reconciliation tests: `packages/dashql-app/src/session/scripts/session_scripts.test.ts`

@@ -5,7 +5,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { useLocation } from 'react-router-dom';
 import { Tooltip } from '../../ui/foundations/tooltip.js';
 import { SESSION_PATH, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_mode.js';
+import { SessionViewMode, useSessionViewMode } from '../../session/session_view_mode.js';
 import { classNames } from '../../utils/classnames.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';

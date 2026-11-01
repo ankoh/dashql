@@ -1,0 +1,915 @@
+import * as React from 'react';
+import symbols from '@ankoh/dashql-svg-symbols';
+import {
+    DndContext,
+    type DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+import { useComputationDispatch } from '../compute/computation_registry.js';
+import { DELETE_COMPUTATION } from '../compute/computation_state.js';
+import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
+import * as ActionList from '../ui/foundations/action_list.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import {
+    AlertIcon,
+    CopyIcon,
+    FileDirectoryIcon,
+    LinkIcon,
+    PencilIcon,
+    PlusIcon,
+    TrashIcon,
+    SymbolIcon,
+    UnlinkIcon,
+    UploadIcon,
+} from '../ui/foundations/symbol_icon.js';
+import { classNames } from '../utils/classnames.js';
+import { OPEN_SESSION, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../app/router/router.js';
+import { SessionSetupStatus } from '../app/loading/session_setup_status.js';
+import { ConnectionState, RENAME_CONNECTION } from '../connections/connection_state.js';
+import {
+    findSessionQueries,
+    useConnectionReferences,
+    useConnectionRegistry,
+    useConnectionAllocator,
+    useSessionConnections,
+    useDynamicConnectionDispatch,
+} from '../connections/connection_registry.js';
+import {
+    createConnectionStateFromParams,
+    createAttachedConnectionParamsForConnector,
+} from '../connections/connection_params.js';
+import { useEmbeddedConnection, useNewSessionConnection } from '../connections/embedded_connection.js';
+import { ATTACHABLE_CONNECTORS } from '../connections/attached_connection.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
+import { ConnectionSettingsOverlay } from '../connections/connection_settings_overlay.js';
+import { renderSessionName } from './session_name.js';
+import { SessionConnectionAttentionContext } from './session_connection_attention.js';
+import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
+import { displayPath } from '../storage/session_locator.js';
+import { StorageBackendType } from '../storage/storage_backend.js';
+import { SessionStorageOverlay } from './persistence/session_storage_overlay.js';
+import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
+import { readSessionBundleFromBrowserFolder } from './persistence/browser_session_folder.js';
+import { cloneSession } from '../storage/session_transfer.js';
+import {
+    mergeRestoredSessionIntoConnections,
+    mergeRestoredSessionIntoScripts,
+    restoreSingleSession,
+} from './persistence/app_state_loader.js';
+import { useSessionImport } from './persistence/session_import_provider.js';
+import { describeSessionValidationError } from '../storage/session_validation.js';
+import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
+import {
+    useInvalidSessions,
+    useSessionScripts,
+    useSessionScriptsDeletion,
+    useSessionScriptsRegistry,
+} from './scripts/session_scripts_registry.js';
+import { useSessionCreation } from './session_creation.js';
+import { RENAME_SESSION } from './scripts/session_scripts.js';
+import { NameInput } from '../ui/foundations/name_input.js';
+import { useMergeConnections } from './session_connection_merge.js';
+import { useDetachConnection } from './session_connection_detach.js';
+import { useDeleteConnection } from '../connections/connection_deletion.js';
+import { connectionMergeCandidates } from '../connections/connection_merge.js';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../connections/connection_label.js';
+import { useAppFlavor } from '../config/flavor_provider.js';
+import { SessionURLShareOverlay } from './persistence/session_url_share_overlay.js';
+import { SessionFileSaveOverlay } from './persistence/session_file_save_overlay.js';
+import * as styles from './session_workbench_sidebar.module.css';
+import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../connections/connection_tree.js';
+import * as actionMenuStyles from '../app/ui/action_menu.module.css';
+import { useDashQLCoreSetup } from '../runtime/core_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
+import { PlatformType, usePlatformType } from '../platform/platform_type.js';
+
+interface SessionItem {
+    sessionId: string;
+    /// The connections of the session, in the order its scripts use them
+    connections: ConnectionState[];
+    scripts: SessionScripts;
+    label: string;
+    path: string;
+    isNative: boolean;
+}
+
+interface InvalidSessionItem {
+    sessionId: string;
+    label: string;
+    path: string;
+    isNative: boolean;
+    invalidReason: string;
+}
+
+interface Props {
+    sessionScripts: SessionScripts;
+    closeAfterSelection?: () => void;
+    /// The connection whose overview is open
+    openOverviewId?: string | null;
+    /// Open the overview of a connection, or close it with null
+    onOpenOverview?: (connectionId: string | null) => void;
+    dependencies?: SessionWorkbenchSidebarDependencies;
+}
+
+export interface SessionWorkbenchSidebarDependencies {
+    useRouterNavigate: typeof useRouterNavigate;
+    useRouteContext: typeof useRouteContext;
+    useDynamicConnectionDispatch: typeof useDynamicConnectionDispatch;
+    useSessionScriptsRegistry: typeof useSessionScriptsRegistry;
+    useSessionScripts: typeof useSessionScripts;
+    useConnectionRegistry: typeof useConnectionRegistry;
+    useConnectionReferences: typeof useConnectionReferences;
+    useConnectionAllocator: typeof useConnectionAllocator;
+    useSessionCreation: typeof useSessionCreation;
+    useMergeConnections: typeof useMergeConnections;
+    useDetachConnection: typeof useDetachConnection;
+    useDeleteConnection: typeof useDeleteConnection;
+    useSessionScriptsDeletion: typeof useSessionScriptsDeletion;
+    useComputationDispatch: typeof useComputationDispatch;
+    useStorageReader: typeof useStorageReader;
+    useStorageWriter: typeof useStorageWriter;
+    useDashQLCoreSetup: typeof useDashQLCoreSetup;
+    useSessionImport: typeof useSessionImport;
+    usePlatformType: typeof usePlatformType;
+    useLogger: typeof useLogger;
+    useInvalidSessions: typeof useInvalidSessions;
+    useSessionConnections: typeof useSessionConnections;
+    useEmbeddedConnection: typeof useEmbeddedConnection;
+    useNewSessionConnection: typeof useNewSessionConnection;
+    createConnectionStateFromParams: typeof createConnectionStateFromParams;
+    ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
+    SessionStorageOverlay: typeof SessionStorageOverlay;
+    SessionURLShareOverlay: typeof SessionURLShareOverlay;
+    SessionFileSaveOverlay: typeof SessionFileSaveOverlay;
+}
+
+const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDependencies = {
+    useRouterNavigate,
+    useRouteContext,
+    useDynamicConnectionDispatch,
+    useSessionScriptsRegistry,
+    useSessionScripts,
+    useConnectionRegistry,
+    useConnectionReferences,
+    useConnectionAllocator,
+    useSessionCreation,
+    useMergeConnections,
+    useDetachConnection,
+    useDeleteConnection,
+    useSessionScriptsDeletion,
+    useComputationDispatch,
+    useStorageReader,
+    useStorageWriter,
+    useDashQLCoreSetup,
+    useSessionImport,
+    usePlatformType,
+    useLogger,
+    useInvalidSessions,
+    useSessionConnections,
+    useEmbeddedConnection,
+    useNewSessionConnection,
+    createConnectionStateFromParams,
+    ConnectionSettingsOverlay,
+    SessionStorageOverlay,
+    SessionURLShareOverlay,
+    SessionFileSaveOverlay,
+};
+
+const MoreIcon = SymbolIcon('kebab_horizontal');
+const FileZipIcon = SymbolIcon('file_zip_16');
+
+interface SessionRowMenuProps {
+    item: SessionItem;
+    onRename: () => void;
+    onDuplicate: () => void;
+    onDelete: () => void;
+    dependencies: SessionWorkbenchSidebarDependencies;
+}
+
+const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, dependencies }) => {
+    const [open, setOpen] = React.useState(false);
+    const [shareOpen, setShareOpen] = React.useState(false);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const archiveExport = useAppFlavor().features.sessionArchiveExport;
+    const [storageOpen, setStorageOpen] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+    return (
+        <AnchoredOverlay
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+            anchorRef={triggerRef}
+            returnFocusRef={triggerRef}
+            side={AnchorSide.OutsideRight}
+            align={AnchorAlignment.Start}
+            anchorOffset={4}
+            renderAnchor={(anchorProps) => (
+                <IconButton
+                    {...anchorProps}
+                    ref={triggerRef}
+                    size={ButtonSize.Small}
+                    variant={ButtonVariant.Invisible}
+                    className={styles.session_menu_button}
+                    data-testid="session-row-menu"
+                    aria-label={`More actions for ${item.label}`}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        anchorProps.onClick?.(event);
+                    }}
+                >
+                    <MoreIcon size={14} />
+                </IconButton>
+            )}
+        >
+            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${item.label}`}>
+                <ActionList.List aria-label={`Actions for ${item.label}`}>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="rename" onClick={(event) => {
+                        event.stopPropagation();
+                        setOpen(false);
+                        onRename();
+                    }}>
+                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Rename</ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <dependencies.SessionStorageOverlay
+                        sessionId={item.sessionId}
+                        isOpen={storageOpen}
+                        onClose={() => setStorageOpen(false)}
+                        side={AnchorSide.OutsideRight}
+                        align={AnchorAlignment.Start}
+                        renderAnchor={(anchorProps) => (
+                            <ActionList.ListItem
+                                {...anchorProps}
+                                data-testid="session-menu-item"
+                                data-action="storage"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setStorageOpen(true);
+                                }}
+                            >
+                                <ActionList.Leading><FileDirectoryIcon size={16} /></ActionList.Leading>
+                                <ActionList.ItemText>Storage</ActionList.ItemText>
+                            </ActionList.ListItem>
+                        )}
+                    />
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="share-url" onClick={(event) => {
+                        event.stopPropagation();
+                        setShareOpen(value => !value);
+                    }}>
+                        <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>
+                            Share as URL
+                            <dependencies.SessionURLShareOverlay
+                                sessionId={item.sessionId}
+                                isOpen={shareOpen}
+                                setIsOpen={setShareOpen}
+                            />
+                        </ActionList.ItemText>
+                    </ActionList.ListItem>
+                    {/* The list takes elements only, the fragment wraps the optional item */}
+                    <>{archiveExport && (
+                        <ActionList.ListItem data-testid="session-menu-item" data-action="export" onClick={(event) => {
+                            event.stopPropagation();
+                            setExportOpen(value => !value);
+                        }}>
+                            <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>
+                                Export .dashql
+                                <dependencies.SessionFileSaveOverlay
+                                    isOpen={exportOpen}
+                                    setIsOpen={setExportOpen}
+                                    sessionScripts={item.scripts}
+                                    fileName={item.scripts.name ?? item.scripts.sessionMetadata.originalFileName ?? 'session'}
+                                />
+                            </ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="duplicate" onClick={() => { setOpen(false); onDuplicate(); }}>
+                        <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Duplicate</ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
+                        <ActionList.Leading>{item.isNative ? <UnlinkIcon size={16} /> : <TrashIcon size={16} />}</ActionList.Leading>
+                        <ActionList.ItemText>{item.isNative ? 'Unlink' : 'Delete'}</ActionList.ItemText>
+                    </ActionList.ListItem>
+                </ActionList.List>
+            </div>
+        </AnchoredOverlay>
+    );
+};
+
+// React bubbles the events of the portaled row menu overlays (storage, share, export) through the row.
+// A row drag starts only from the row itself, never from those overlays or from a text field.
+function startsRowDrag(event: React.SyntheticEvent<HTMLElement>): boolean {
+    const target = event.target;
+    if (!(target instanceof Element) || !event.currentTarget.contains(target)) return false;
+    return target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') == null;
+}
+
+interface SessionRowProps {
+    item: SessionItem;
+    selected: boolean;
+    onOpen: (anchor: HTMLButtonElement) => void;
+    onDuplicate: () => void;
+    onDelete: () => void;
+    dependencies: SessionWorkbenchSidebarDependencies;
+}
+
+const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDuplicate, onDelete, dependencies }) => {
+    const title = item.scripts.name?.trim() || null;
+    const [, modifySessionScripts] = dependencies.useSessionScripts(item.sessionId);
+    // The rename action swaps the name for an input until the edit is committed or abandoned
+    const [renaming, setRenaming] = React.useState(false);
+    const renameInputRef = React.useRef<HTMLInputElement>(null);
+    React.useEffect(() => {
+        if (!renaming) return;
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+    }, [renaming]);
+    const commitRename = React.useCallback((name: string) => {
+        setRenaming(false);
+        void modifySessionScripts({ type: RENAME_SESSION, value: name });
+    }, [modifySessionScripts]);
+    const cancelRename = React.useCallback(() => setRenaming(false), []);
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: item.sessionId });
+    const rowRef = React.useCallback((node: HTMLLIElement | null) => {
+        setNodeRef(node);
+        // The keyboard sensor only lifts the row when the row itself has the focus
+        setActivatorNodeRef(node);
+    }, [setNodeRef, setActivatorNodeRef]);
+    const rowListeners = React.useMemo(() => listeners == null ? undefined : Object.fromEntries(
+        Object.entries(listeners).map(([eventName, handler]) => [eventName, (event: React.SyntheticEvent<HTMLElement>) => {
+            if (startsRowDrag(event)) handler(event);
+        }]),
+    ), [listeners]);
+    return (
+        <li
+            ref={rowRef}
+            className={classNames(
+                styles.entry_surface,
+                styles.entry_interactive,
+                styles.session_row,
+                {
+                    [styles.entry_selected]: selected,
+                    [styles.session_row_dragging]: isDragging,
+                },
+            )}
+            style={{ transform: CSS.Translate.toString(transform), transition }}
+            {...attributes}
+            {...rowListeners}
+        >
+            {renaming ? (
+                <div className={styles.session_rename}>
+                    <FileDirectoryIcon size={14} aria-hidden="true" />
+                    <NameInput
+                        ref={renameInputRef}
+                        className={styles.session_rename_input}
+                        name={title}
+                        onCommit={commitRename}
+                        onCancel={cancelRename}
+                        ariaLabel="Session name"
+                        placeholder="Name this session"
+                    />
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    className={styles.session_button}
+                    aria-current={selected ? 'page' : undefined}
+                    title={item.path}
+                    onClick={event => onOpen(event.currentTarget)}
+                    onDoubleClick={() => setRenaming(true)}
+                >
+                    <FileDirectoryIcon size={14} aria-hidden="true" />
+                    <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
+                </button>
+            )}
+            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
+        </li>
+    );
+};
+
+const InvalidSessionRow: React.FC<{ item: InvalidSessionItem; onDelete: () => void }> = ({ item, onDelete }) => (
+    <li className={classNames(styles.entry_surface, styles.session_row)}>
+        <div
+            className={classNames(styles.session_button, styles.session_button_invalid)}
+            title={item.invalidReason}
+        >
+            <AlertIcon size={14} aria-hidden="true" />
+            <span>
+                <span className={styles.session_name}>{item.label}</span>
+                <span className={styles.session_error}>{item.invalidReason}</span>
+            </span>
+        </div>
+        <IconButton
+            size={ButtonSize.Small}
+            variant={ButtonVariant.Invisible}
+            className={styles.session_menu_button}
+            aria-label={`${item.isNative ? 'Unlink' : 'Delete'} invalid session ${item.label}`}
+            onClick={onDelete}
+        >
+            {item.isNative ? <UnlinkIcon size={14} /> : <TrashIcon size={14} />}
+        </IconButton>
+    </li>
+);
+
+export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
+    const dependencies = props.dependencies ?? DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES;
+    const navigate = dependencies.useRouterNavigate();
+    const route = dependencies.useRouteContext();
+    const [databaseRegistry, connectionDispatch] = dependencies.useDynamicConnectionDispatch();
+    const [scriptsRegistry, setScriptsRegistry] = dependencies.useSessionScriptsRegistry();
+    const [, setDatabaseRegistry] = dependencies.useConnectionRegistry();
+    const references = dependencies.useConnectionReferences();
+    const allocateConnection = dependencies.useConnectionAllocator();
+    const createSession = dependencies.useSessionCreation();
+    const resolveEmbeddedConnection = dependencies.useEmbeddedConnection();
+    const resolveNewSessionConnection = dependencies.useNewSessionConnection();
+    const mergeConnections = dependencies.useMergeConnections();
+    const detachConnectionFromSessions = dependencies.useDetachConnection();
+    const [, modifyCurrentSession] = dependencies.useSessionScripts(props.sessionScripts.sessionId);
+    const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
+    const deleteSessionScripts = dependencies.useSessionScriptsDeletion();
+    const computationDispatch = dependencies.useComputationDispatch();
+    const storageReader = dependencies.useStorageReader();
+    const storageWriter = dependencies.useStorageWriter();
+    const setupCore = dependencies.useDashQLCoreSetup();
+    const sessionImport = dependencies.useSessionImport();
+    const platform = dependencies.usePlatformType();
+    const logger = dependencies.useLogger();
+    const { invalidSessions, deleteInvalidSession } = dependencies.useInvalidSessions();
+    const attached = dependencies.useSessionConnections(props.sessionScripts.sessionId);
+    const connectionAttention = React.useContext(SessionConnectionAttentionContext);
+    const sessionConnectionRows = React.useMemo(() => attached ?? [], [attached]);
+    const [connectionOverlayDatabaseId, setConnectionOverlayDatabaseId] = React.useState<string | null>(null);
+    const [createConnectionOpen, setCreateConnectionOpen] = React.useState(false);
+    const createConnectionButtonRef = React.useRef<HTMLButtonElement>(null);
+    const createButtonRef = React.useRef<HTMLButtonElement>(null);
+    const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
+    const folderButtonRef = React.useRef<HTMLButtonElement>(null);
+    const folderInputRef = React.useRef<HTMLInputElement>(null);
+    const [sessionOrder, setSessionOrder] = React.useState(() => storageReader.getSessionOrder());
+    const reorderWriteRef = React.useRef(Promise.resolve());
+    const sessionIds = React.useMemo(
+        () => [...scriptsRegistry.sessionScriptsMap.keys()],
+        [scriptsRegistry],
+    );
+
+    React.useEffect(() => {
+        if (route.sessionSetupStatus !== SessionSetupStatus.CONFIGURING
+            || route.sessionId !== props.sessionScripts.sessionId) return;
+        const connectionId = references.connectionsOf(route.sessionId)[0] ?? null;
+        if (connectionId != null) {
+            connectionSettingsAnchorRef.current = document.querySelector('[aria-label="Create session"]');
+            setConnectionOverlayDatabaseId(connectionId);
+        }
+    }, [references, scriptsRegistry, props.sessionScripts.sessionId, route.sessionId, route.sessionSetupStatus]);
+
+    const sessions = React.useMemo<SessionItem[]>(() => {
+        const rank = new Map(sessionOrder.map((sessionId, index) => [sessionId, index]));
+        const items: SessionItem[] = [];
+        for (const [sessionId, scripts] of scriptsRegistry.sessionScriptsMap) {
+            const connections = references.connectionsOf(sessionId)
+                .map(id => databaseRegistry.connections.get(id))
+                .filter((connection): connection is ConnectionState => connection != null);
+            const location = storageReader.getSessionLocation(sessionId);
+            const path = displayPath(sessionId, location);
+            items.push({
+                sessionId,
+                connections,
+                scripts,
+                path,
+                label: scripts.name?.trim() || path,
+                isNative: location.type === StorageBackendType.Native,
+            });
+        }
+        return items.sort((left, right) => {
+            const leftRank = rank.get(left.sessionId) ?? Number.MAX_SAFE_INTEGER;
+            const rightRank = rank.get(right.sessionId) ?? Number.MAX_SAFE_INTEGER;
+            return leftRank - rightRank;
+        });
+    }, [databaseRegistry, references, scriptsRegistry, storageReader, sessionOrder]);
+
+    React.useEffect(() => {
+        const ids = sessionIds;
+        setSessionOrder(current => {
+            const next = current.filter(id => ids.includes(id));
+            for (const id of ids) if (!next.includes(id)) next.push(id);
+            return next.length === current.length && next.every((id, index) => id === current[index]) ? current : next;
+        });
+    }, [sessionIds]);
+
+    const invalidItems = React.useMemo<InvalidSessionItem[]>(() => [...invalidSessions.values()].map(invalid => {
+        const location = storageReader.getSessionLocation(invalid.sessionId);
+        return {
+            sessionId: invalid.sessionId,
+            label: invalid.title,
+            path: displayPath(invalid.sessionId, location),
+            isNative: location.type === StorageBackendType.Native,
+            invalidReason: describeSessionValidationError(invalid.error),
+        };
+    }), [invalidSessions, storageReader]);
+    const sessionCount = sessions.length + invalidItems.length;
+    // The references follow the scripts registry
+    const connectionRows = React.useMemo(
+        () => listedConnections(databaseRegistry, references, sessionConnectionRows),
+        [databaseRegistry, references, scriptsRegistry, sessionConnectionRows],
+    );
+    const sessionConnectionIds = React.useMemo(
+        () => new Set(sessionConnectionRows.map(database => database.connectionId)),
+        [sessionConnectionRows],
+    );
+    const ordinals = React.useMemo(
+        () => connectionOrdinals(databaseRegistry, references),
+        [databaseRegistry, references, scriptsRegistry],
+    );
+    const labelOf = React.useCallback(
+        (database: ConnectionState) => connectionLabelParts(database, ordinals.get(database.connectionId) ?? null),
+        [ordinals],
+    );
+    const connectionCount = connectionRows.length;
+    const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
+        const sessionIds = references.sessionsOf(connectionId);
+        const database = databaseRegistry.connections.get(connectionId);
+        const scriptsOf = (sessionId: string) => {
+            const scripts = scriptsRegistry.sessionScriptsMap.get(sessionId);
+            return scripts == null ? 0 : scriptsOnConnection(scripts, connectionId);
+        };
+        return {
+            sessionCount: sessionIds.length,
+            // The sessions fall back to the embedded Hyper, every session that uses it keeps it
+            blockingSessionCount: database != null && isHyperWasmConnection(database)
+                ? sessionIds.length
+                : sessionIds.filter(sessionId => scriptsOf(sessionId) > 0).length,
+            usedHere: sessionConnectionRows.some(database => database.connectionId === connectionId),
+            scriptCountHere: scriptsOf(props.sessionScripts.sessionId),
+        };
+    }, [databaseRegistry, props.sessionScripts.sessionId, sessionConnectionRows, references, scriptsRegistry]);
+    const initiallyExpanded = React.useCallback((database: ConnectionState, _count: number) => (
+        sessionConnectionRows.includes(database)
+        && isConnectionInitiallyExpanded(database, sessionConnectionRows.length)
+    ), [sessionConnectionRows]);
+
+    const dndSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
+    const reorderSessions = React.useCallback((event: DragEndEvent) => {
+        if (event.over == null || event.active.id === event.over.id) return;
+        setSessionOrder(current => {
+            const from = current.indexOf(String(event.active.id));
+            const to = current.indexOf(String(event.over!.id));
+            if (from < 0 || to < 0) return current;
+            const next = [...current];
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            const sessionFolders = storageReader.sessionFolders;
+            if (sessionFolders != null) {
+                reorderWriteRef.current = reorderWriteRef.current
+                    .catch(() => {})
+                    .then(() => sessionFolders.reorderSessions(next))
+                    .catch(error => logger.warn('failed to persist session order', { error: String(error) }, 'session_workbench'));
+            }
+            return next;
+        });
+    }, [logger, storageReader.sessionFolders]);
+
+    /// Create a session on the embedded Hyper, or on the Hyper of the link that the app was opened with.
+    /// Its scripts attach other connections.
+    const createNewSession = React.useCallback(() => {
+        const { sessionId } = createSession(resolveNewSessionConnection(props.sessionScripts.instance));
+        navigate({ type: SELECT_SESSION, value: sessionId });
+        props.closeAfterSelection?.();
+    }, [createSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveNewSessionConnection]);
+
+    /// Create a connection and open its settings, the next script of the current session runs on it
+    const createConnection = React.useCallback((connector: ConnectorType) => {
+        setCreateConnectionOpen(false);
+        const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
+        const initialDatabase = dependencies.createConnectionStateFromParams(props.sessionScripts.instance, params);
+        const database = allocateConnection({ ...initialDatabase, active: true });
+        void modifyCurrentSession({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(database) });
+        connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
+        setConnectionOverlayDatabaseId(database.connectionId);
+    }, [allocateConnection, dependencies, modifyCurrentSession, props.sessionScripts.instance]);
+
+    /// Rename a connection, a blank name restores the default label
+    const renameConnection = React.useCallback((connectionId: string, name: string) => {
+        connectionDispatch(connectionId, { type: RENAME_CONNECTION, value: name });
+    }, [connectionDispatch]);
+
+    /// Delete a connection that no script uses.
+    /// The sessions whose new scripts default to the connection are detached from it first.
+    const deleteConnection = React.useCallback((connectionId: string) => {
+        const database = databaseRegistry.connections.get(connectionId);
+        if (database == null || describeUsage(connectionId).blockingSessionCount > 0) return;
+        if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
+        detachConnectionFromSessions(props.sessionScripts.instance, connectionId)
+            .then(() => shutDownAndDeleteConnection(connectionId))
+            .catch(error => {
+                logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'session_workbench');
+            });
+    }, [databaseRegistry, describeUsage, detachConnectionFromSessions, labelOf, logger, props.sessionScripts.instance, shutDownAndDeleteConnection]);
+
+    /// Detach a connection that no script of the current session uses, its new scripts use the embedded Hyper again
+    const detachConnection = React.useCallback((connectionId: string) => {
+        const embedded = resolveEmbeddedConnection(props.sessionScripts.instance);
+        if (embedded.connectionId === connectionId) return;
+        void modifyCurrentSession({ type: DETACH_CONNECTION, value: { from: connectionId, into: scriptConnectionOf(embedded) } });
+    }, [modifyCurrentSession, props.sessionScripts.instance, resolveEmbeddedConnection]);
+
+    /// The number of duplicates of a connection
+    const mergeCandidateCount = React.useCallback(
+        (connectionId: string) => connectionMergeCandidates(databaseRegistry, references, connectionId).length,
+        [databaseRegistry, references, scriptsRegistry],
+    );
+    /// Merge the duplicates of a connection into it, their sessions move to the connection
+    const mergeDuplicates = React.useCallback((connectionId: string) => {
+        const database = databaseRegistry.connections.get(connectionId);
+        const duplicates = connectionMergeCandidates(databaseRegistry, references, connectionId);
+        if (database == null || duplicates.length === 0) return;
+        const what = duplicates.length === 1 ? 'its duplicate' : `its ${duplicates.length} duplicates`;
+        if (!window.confirm(`Merge ${what} into the connection "${connectionLabelText(labelOf(database))}"?`)) return;
+        mergeConnections(connectionId, duplicates.map(duplicate => duplicate.connectionId)).catch(error => {
+            logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'session_workbench');
+        });
+    }, [databaseRegistry, labelOf, logger, mergeConnections, references]);
+
+    const closeConnectionOverlay = React.useCallback(() => {
+        setConnectionOverlayDatabaseId(null);
+        if (route.sessionSetupStatus === SessionSetupStatus.CONFIGURING && route.sessionId != null) {
+            navigate({ type: SELECT_SESSION, value: route.sessionId });
+        }
+    }, [navigate, route.sessionId, route.sessionSetupStatus]);
+
+    const duplicateSession = React.useCallback(async (item: SessionItem) => {
+        const newSessionId = crypto.randomUUID();
+        try {
+            const coreInstance = await setupCore('session_duplicate');
+            await cloneSession(item.sessionId, storageReader.backend, storageWriter.backend, newSessionId, logger);
+            const restored = await restoreSingleSession(
+                coreInstance,
+                storageWriter.backend,
+                logger,
+                newSessionId,
+                databaseRegistry,
+            );
+            setDatabaseRegistry(registry => mergeRestoredSessionIntoConnections(registry, restored));
+            setScriptsRegistry(registry => mergeRestoredSessionIntoScripts(registry, restored));
+        } catch (error) {
+            logger.warn('failed to duplicate session', {
+                sessionId: item.sessionId,
+                error: String(error),
+            }, 'session_workbench');
+        }
+    }, [databaseRegistry, logger, setDatabaseRegistry, setScriptsRegistry, setupCore, storageReader.backend, storageWriter.backend]);
+
+    const openSessionFolder = React.useCallback(async () => {
+        if (storageReader.sessionFolders == null) return;
+        if (platform === PlatformType.WEB) {
+            folderInputRef.current?.click();
+            return;
+        }
+        const folder = await globalThis.dashqlElectron?.openDirectory('Open an existing session folder');
+        if (folder == null) return;
+        try {
+            await sessionImport.importNativeFolder(folder, {
+                mode: 'anchored',
+                anchorRef: folderButtonRef,
+                returnFocusRef: folderButtonRef,
+            });
+        } catch (error) {
+            logger.error('adding native session from folder failed', { error: String(error) }, 'session_workbench');
+        }
+    }, [logger, sessionImport, platform, storageReader.sessionFolders]);
+
+    const openBrowserSessionFolder = React.useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const input = event.currentTarget;
+        if (input.files == null || input.files.length === 0) return;
+        try {
+            const bundle = await readSessionBundleFromBrowserFolder(input.files);
+            await sessionImport.importPortableBundle(bundle, {
+                presentation: {
+                    mode: 'anchored',
+                    anchorRef: folderButtonRef,
+                    returnFocusRef: folderButtonRef,
+                },
+            });
+        } catch (error) {
+            logger.error('adding browser session folder failed', { error: String(error) }, 'session_workbench');
+        } finally {
+            input.value = '';
+        }
+    }, [logger, sessionImport]);
+
+    const deleteSession = React.useCallback(async (item: SessionItem) => {
+        const action = item.isNative ? 'Unlink' : 'Delete';
+        if (!window.confirm(`${action} "${item.label}"?${item.isNative ? ' The folder and its files will remain on disk.' : ''}`)) return;
+        try {
+            await storageWriter.deleteSession(item.sessionId);
+        } catch (error) {
+            console.error('Failed to delete session from storage:', error);
+            return;
+        }
+        deleteSessionScripts(item.sessionId);
+        // Connections outlive the sessions that reference them, only the session's own
+        // computations are dropped.
+        for (const database of item.connections) {
+            for (const queryId of findSessionQueries(database, item.sessionId)) {
+                computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
+            }
+        }
+
+        if (item.sessionId === props.sessionScripts.sessionId) {
+            const next = sessions.find(session => session.sessionId !== item.sessionId);
+            if (next != null) navigate({ type: OPEN_SESSION, value: next.sessionId });
+        }
+    }, [computationDispatch, deleteSessionScripts, navigate, sessions, props.sessionScripts.sessionId, storageWriter]);
+
+    const openSession = React.useCallback((item: SessionItem) => {
+        navigate({ type: SELECT_SESSION, value: item.sessionId });
+        props.onOpenOverview?.(null);
+        props.closeAfterSelection?.();
+    }, [navigate, props.closeAfterSelection, props.onOpenOverview]);
+    const onOpenOverview = props.onOpenOverview;
+    const closeAfterSelection = props.closeAfterSelection;
+    const openOverview = React.useMemo(() => onOpenOverview == null ? undefined : (connectionId: string) => {
+        onOpenOverview(connectionId);
+        closeAfterSelection?.();
+    }, [onOpenOverview, closeAfterSelection]);
+    const sessionListRef = React.useRef<HTMLUListElement>(null);
+    const getSessionScrollElement = React.useCallback(() => sessionListRef.current, []);
+
+    return (
+        <nav className={styles.workbench} aria-label="Session workbench" data-electron-drag-region>
+            <section className={styles.section} aria-labelledby="workbench-sessions-heading">
+                <header className={styles.section_header}>
+                    <div className={styles.section_title}>
+                        <h2 id="workbench-sessions-heading" className={styles.section_heading}>Sessions</h2>
+                        <span
+                            className={styles.section_count}
+                            data-testid="session-count"
+                            aria-label={`${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
+                        >
+                            {sessionCount}
+                        </span>
+                    </div>
+                    <div className={styles.section_actions}>
+                        {storageReader.sessionFolders != null && (
+                            <>
+                                <IconButton
+                                    ref={folderButtonRef}
+                                    size={ButtonSize.Small}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="Open session folder"
+                                    onClick={openSessionFolder}
+                                >
+                                    <UploadIcon size={14} />
+                                </IconButton>
+                                {platform === PlatformType.WEB && (
+                                    <input
+                                        ref={folderInputRef}
+                                        className={styles.folder_input}
+                                        type="file"
+                                        multiple
+                                        {...({ webkitdirectory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
+                                        tabIndex={-1}
+                                        aria-hidden="true"
+                                        onChange={openBrowserSessionFolder}
+                                    />
+                                )}
+                            </>
+                        )}
+                        <IconButton
+                            ref={createButtonRef}
+                            data-testid="create-session"
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Create session"
+                            onClick={createNewSession}
+                        ><PlusIcon size={14} /></IconButton>
+                    </div>
+                </header>
+                <div className={styles.scroll_shadow_container}>
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={reorderSessions}>
+                        <SortableContext items={sessions.map(item => item.sessionId)} strategy={verticalListSortingStrategy}>
+                            <ul ref={sessionListRef} className={styles.session_list} aria-label="Sessions" data-electron-drag-region="false">
+                                {sessions.map(item => (
+                                    <SessionRow
+                                        key={item.sessionId}
+                                        item={item}
+                                        // An open connection overview replaces the session
+                                        selected={props.openOverviewId == null && item.sessionId === props.sessionScripts.sessionId}
+                                        onOpen={() => openSession(item)}
+                                        onDuplicate={() => { void duplicateSession(item); }}
+                                        onDelete={() => { void deleteSession(item); }}
+                                        dependencies={dependencies}
+                                    />
+                                ))}
+                                {invalidItems.map(item => (
+                                    <InvalidSessionRow
+                                        key={item.sessionId}
+                                        item={item}
+                                        onDelete={() => { void deleteInvalidSession(item.sessionId); }}
+                                    />
+                                ))}
+                            </ul>
+                        </SortableContext>
+                    </DndContext>
+                    <VerticalScrollShadows
+                        getScrollElement={getSessionScrollElement}
+                        refreshKey={`${sessions.length}:${invalidItems.length}`}
+                    />
+                </div>
+            </section>
+
+            <section className={classNames(styles.section, styles.database_section)} aria-labelledby="workbench-databases-heading">
+                <header className={styles.section_header}>
+                    <div className={styles.section_title}>
+                        <h2 id="workbench-databases-heading" className={styles.section_heading}>Connections</h2>
+                        <span
+                            className={styles.section_count}
+                            data-testid="connection-count"
+                            aria-label={`${connectionCount} ${connectionCount === 1 ? 'connection' : 'connections'}`}
+                        >
+                            {connectionCount}
+                        </span>
+                    </div>
+                    <AnchoredOverlay
+                        open={createConnectionOpen}
+                        onOpen={() => setCreateConnectionOpen(true)}
+                        onClose={() => setCreateConnectionOpen(false)}
+                        anchorRef={createConnectionButtonRef}
+                        returnFocusRef={createConnectionButtonRef}
+                        side={AnchorSide.OutsideBottom}
+                        align={AnchorAlignment.End}
+                        renderAnchor={anchorProps => <IconButton
+                            {...anchorProps}
+                            ref={createConnectionButtonRef}
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Create connection"
+                        ><PlusIcon size={14} /></IconButton>}
+                    >
+                        <div className={actionMenuStyles.menu} role="dialog" aria-label="Choose connection connector">
+                            <ActionList.List aria-label="Connection connector">
+                                {ATTACHABLE_CONNECTORS.map(connector => (
+                                    <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
+                                        <ActionList.Leading>
+                                            <svg width="16px" height="16px" aria-hidden="true">
+                                                <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
+                                            </svg>
+                                        </ActionList.Leading>
+                                        <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>
+                                    </ActionList.ListItem>
+                                ))}
+                            </ActionList.List>
+                        </div>
+                    </AnchoredOverlay>
+                </header>
+                <div className={styles.database_body} data-electron-drag-region="false">
+                    {connectionRows.length > 0 && <ConnectionTree
+                        databases={connectionRows}
+                        describeUsage={describeUsage}
+                        onRename={renameConnection}
+                        onDelete={deleteConnection}
+                        onDetach={detachConnection}
+                        mergeCandidateCount={mergeCandidateCount}
+                        onMerge={mergeDuplicates}
+                        initiallyExpanded={initiallyExpanded}
+                        sessionConnectionIds={sessionConnectionIds}
+                        labelOf={labelOf}
+                        attention={connectionAttention?.active === true}
+                        onOpenOverview={openOverview}
+                        openOverviewId={props.openOverviewId ?? null}
+                        onOpenSettings={(connectionId, anchor) => {
+                            connectionSettingsAnchorRef.current = anchor;
+                            setConnectionOverlayDatabaseId(connectionId);
+                        }}
+                    />}
+                </div>
+            </section>
+            <dependencies.ConnectionSettingsOverlay
+                connectionId={connectionOverlayDatabaseId}
+                isOpen={connectionOverlayDatabaseId != null}
+                onClose={closeConnectionOverlay}
+                anchorRef={connectionSettingsAnchorRef}
+                renderSessionName={renderSessionName}
+            />
+        </nav>
+    );
+};

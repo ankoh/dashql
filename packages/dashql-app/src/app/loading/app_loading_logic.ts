@@ -1,12 +1,12 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { TracedLogger } from '../../platform/logger/logger.js';
-import type { AppStateRestorationProgress, RestoredAppState } from '../session/persistence/app_state_loader.js';
+import type { AppStateRestorationProgress, RestoredAppState } from '../../session/persistence/app_state_loader.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { SetConnectionRegistryAction } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { SetSessionScriptsRegistryAction } from '../session/scripts/session_scripts_registry.js';
+import { SetSessionScriptsRegistryAction } from '../../session/scripts/session_scripts_registry.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import { InvalidSession } from '../../storage/session_validation.js';
 import { AppLoadingStatus } from './app_loading_status.js';

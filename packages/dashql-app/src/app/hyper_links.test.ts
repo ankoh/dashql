@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SessionScripts } from './session/scripts/session_scripts.js';
+import type { SessionScripts } from '../session/scripts/session_scripts.js';
 import { sessionOnConnection } from './hyper_links.js';
 import { WebPlatformEventListener } from '../platform/events/web_event_listener.js';
 import { Logger } from '../platform/logger/logger.js';
