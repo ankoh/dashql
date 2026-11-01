@@ -219,10 +219,11 @@ at the `field` value, not at the same text elsewhere. `serde_json` builds the va
 The formatter prints comments with tags as one canonical comment (`formatter/comments.rs`), in the
 style of Javadoc, JSDoc and Doxygen: a single line stays on the line of `/**` (`/** @vis table */`),
 otherwise `/**` and `*/` are on lines of their own and every line has a ` * ` gutter. The gutter keeps
-lines that start with `*`, e.g. Markdown emphasis or lists. Tagged comments that follow each other with
-nothing but whitespace between them (block comments and tagged regions of line comments) are merged into
-one, so the annotation of a statement reads as one block, the same comment that a rewrite prints.
-Ordinary comments between them keep them apart.
+lines that start with `*`, e.g. Markdown emphasis or lists. The comments in front of a statement with a tag among
+them are its annotation and are printed as one comment, the same comment that a rewrite prints: the ordinary
+comments are the description on top, printed as written, and an empty line separates it from the tags. Elsewhere,
+tagged comments that follow each other with nothing but whitespace between them (block comments and tagged regions
+of line comments) are merged into one, and ordinary comments between them keep them apart.
 
 `@vis table`, `@board` and `@flow` tags are printed on one line, the `@vis board` and `@vis flow` of older scripts
 as `@board` and `@flow`, the JSON of `vegalite` compactly with the key order kept (`compact_json.rs`),

@@ -261,8 +261,8 @@ fn legacy_layout_tag(tag: &AnnotationTag) -> Option<AnnotationTag> {
 
 /// Print comments that hold tags as one canonical tagged comment, like an annotation (see `annotation`):
 /// the tags keep their order, `@vis`, `@board` and `@flow` tags are normalized and the `@vis board` and `@vis flow` of
-/// older scripts become `@board` and `@flow`, the text before the first tag of a block comment
-/// goes in front of them. Returns None if the comments stay as written: without a tag, with malformed tags,
+/// older scripts become `@board` and `@flow`, the ordinary comments and the text before the first tag of a block
+/// comment go in front of them. Returns None if the comments stay as written: without a tag, with malformed tags,
 /// or with text that would end or nest a block comment.
 fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -> Option<Vec<u8>> {
     let blocks = group_comment_bytes(input, comments);
@@ -430,15 +430,40 @@ pub(super) fn append_comments(
                 }
             }
         }
-        let text_end = comments[range.end - 1].end() as usize;
         let next = comments.get(range.end).map(|c| c.offset as usize).or(following);
-        if let Some(next) = next.filter(|&next| next >= text_end) {
-            if count_line_breaks(substr(input, text_end, next - text_end)) > 1 {
-                output.extend_from_slice(b"\n\n");
-            }
-        }
+        keep_blank_line(output, input, comments[range.end - 1].end() as usize, next);
         u = last + 1;
     }
+}
+
+/// Keep a blank line between the end of tagged comments and the text that follows them at `next`
+fn keep_blank_line(output: &mut Vec<u8>, input: &[u8], text_end: usize, next: Option<usize>) {
+    if let Some(next) = next.filter(|&next| next >= text_end) {
+        if count_line_breaks(substr(input, text_end, next - text_end)) > 1 {
+            output.extend_from_slice(b"\n\n");
+        }
+    }
+}
+
+/// Append the comments in front of a statement. With a tag among them they are its annotation: one canonical
+/// comment with the ordinary comments as the description on top, like a rewrite of a tag prints it (see
+/// `annotation`). Otherwise, or if the annotation cannot be printed canonically, they are appended like other
+/// comments. `following` is the offset of the statement.
+pub(super) fn append_description(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan], max_width: usize, following: Option<usize>) {
+    let annotation = comment_units(input, comments)
+        .iter()
+        .any(|unit| unit.tagged)
+        .then(|| print_tagged_comment(input, comments, max_width))
+        .flatten();
+    let Some(block) = annotation else {
+        append_comments(output, input, comments, max_width, following);
+        return;
+    };
+    if !output.is_empty() && !ends_with_line_break(output) {
+        output.push(b'\n');
+    }
+    output.extend_from_slice(&block);
+    keep_blank_line(output, input, comments[comments.len() - 1].end() as usize, following);
 }
 
 #[cfg(test)]

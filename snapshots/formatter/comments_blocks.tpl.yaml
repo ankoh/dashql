@@ -118,7 +118,7 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # Several tags of a line comment run become one comment, text before the tags stays a line comment
+  # Several tags of a line comment run become one comment, the text before the tags is its description
   - name: vis_line_comments_several_tags
     input: |-
       -- Revenue dashboard.
@@ -205,7 +205,7 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # Ordinary comments between tagged comments keep them apart
+  # An ordinary comment between the tagged comments of a statement becomes the description of their comment
   - name: annotation_comments_with_ordinary_comments
     input: |-
       /* @param Revenue. */

@@ -167,26 +167,27 @@ formatter-snapshots:
           - mode: compact
             width: 30
             expected: |-
-              -- Leading text that wraps
-              -- because it is quite long.
               /**
+               * Leading text that wraps because it is quite long.
+               * trailing text
+               *
                * @param extra
                * content inside the region
                * @vis vegalite
                * {"a": 1}
                */
-              -- trailing text
               select 1;
           - mode: pretty
             expected: |-
-              -- Leading text that wraps because it is quite long.
               /**
+               * Leading text that wraps because it is quite long.
+               * trailing text
+               *
                * @param extra
                * content inside the region
                * @vis vegalite
                * {"a": 1}
                */
-              -- trailing text
               select 1;
 
   - name: comment_adjacent_regions
@@ -294,8 +295,9 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              -- Revenue dashboard.
               /**
+               * Revenue dashboard.
+               *
                * @param Revenue per region.
                * @board width=6 height=3
                * @vis table
@@ -303,8 +305,9 @@ formatter-snapshots:
               select 1;
           - mode: pretty
             expected: |-
-              -- Revenue dashboard.
               /**
+               * Revenue dashboard.
+               *
                * @param Revenue per region.
                * @board width=6 height=3
                * @vis table
@@ -567,15 +570,21 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              /** @param Revenue. */
-              -- a note
-              /** @vis table */
+              /**
+               * a note
+               *
+               * @param Revenue.
+               * @vis table
+               */
               select 1;
           - mode: pretty
             expected: |-
-              /** @param Revenue. */
-              -- a note
-              /** @vis table */
+              /**
+               * a note
+               *
+               * @param Revenue.
+               * @vis table
+               */
               select 1;
 
   - name: comment_tag_without_name

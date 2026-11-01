@@ -2958,7 +2958,7 @@ impl<'a> Formatter<'a> {
                     max_width,
                     Some(comments[description_begin].offset as usize),
                 );
-                comments::append_comments(
+                comments::append_description(
                     &mut output,
                     input,
                     &comments[description_begin..leading_end],
