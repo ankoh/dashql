@@ -136,38 +136,7 @@ impl Fixture {
 
     /// Read a fixture of a template
     pub fn from_node(fixture: &Node) -> Self {
-        let text = |node: Option<&Node>| node.and_then(Node::val).unwrap_or("").to_string();
-        let names = |node: Option<&Node>| node.map(Node::children).unwrap_or_default().into_iter().map(|n| text(Some(n))).collect::<Vec<_>>();
-        Self {
-            catalog: fixture.get("catalog").map(|c| text(Some(c))),
-            connections: fixture
-                .get("connections")
-                .map(Node::children)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|c| FixtureConnection {
-                    name: text(c.get("name")),
-                    local: c.get("kind").and_then(Node::val) == Some("LOCAL"),
-                    catalog: c.get("catalog").map(|c| text(Some(c))),
-                    trino: c.get("dialect").and_then(Node::val) == Some("trino"),
-                })
-                .collect(),
-            scripts: fixture
-                .get("scripts")
-                .map(Node::children)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|s| FixtureScript {
-                    name: text(s.get("name")),
-                    input: text(s.get("input")),
-                    stale_prepend: s.get("stale-prepend").map(|p| text(Some(p))),
-                    connection: s.get("connection").map(|c| text(Some(c))),
-                })
-                .collect(),
-            targets: fixture.get("targets").map(|t| names(Some(t))),
-            materialized: names(fixture.get("materialized")),
-            tolerant: fixture.get("scope").and_then(Node::val) == Some("tolerant"),
-        }
+        Self::from_yaml(&fixture.to_yaml())
     }
 }
 
