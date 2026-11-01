@@ -3,13 +3,14 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { ConnectionHealth } from '../../connections/connection_state.js';
 import { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { SessionScriptsRegistryProvider } from '../scripts/session_scripts_registry.js';
-import { ScriptConnectionPicker, type ScriptConnectionPickerDependencies } from './script_connection_picker.js';
+import { ScriptConnectionPicker, type ScriptConnectionPickerDependencies, type ScriptConnectionView } from './script_connection_picker.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -36,7 +37,7 @@ describe('ScriptConnectionPicker', () => {
         container.remove();
     });
 
-    function render(onAttach?: (connector: ConnectorType) => string) {
+    function render(onAttach?: (connector: ConnectorType) => string, connection: ScriptConnectionView | null = null) {
         act(() => root.render(
             <LoggerProvider>
                 <StorageProvider backend={new SessionTestBackend()}>
@@ -45,7 +46,7 @@ describe('ScriptConnectionPicker', () => {
                             <ScriptConnectionPicker
                                 sessionId="session"
                                 scriptName="query"
-                                connection={null}
+                                connection={connection}
                                 disabled={false}
                                 onPick={vi.fn()}
                                 onAttach={onAttach}
@@ -61,6 +62,16 @@ describe('ScriptConnectionPicker', () => {
     function attachOptions(): HTMLElement[] {
         return Array.from(document.querySelectorAll('[data-testid="attach-connection-option"]'));
     }
+
+    it('shows the name of the connection without its protocol', () => {
+        render(undefined, {
+            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: null as any, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            label: 'Hyper Wasm', labelParts: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm' },
+        });
+        const trigger = container.querySelector('[data-testid="script-connection-picker"]')!;
+        expect(trigger.textContent).toBe('Hyper');
+        expect(trigger.querySelector('circle')).not.toBeNull();
+    });
 
     it('offers no new connections without an attach handler', () => {
         render();

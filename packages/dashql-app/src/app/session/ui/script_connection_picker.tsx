@@ -21,7 +21,7 @@ import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } fro
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/ui/connection_status.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/ui/connection_label.js';
-import { ConnectionLabelView, ConnectionProtocolTag } from '../../connections/ui/connection_label_view.js';
+import { ConnectionLabelView } from '../../connections/ui/connection_label_view.js';
 import { useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
 import { listedConnections } from '../../connections/ui/connection_tree.js';
 
@@ -118,7 +118,7 @@ interface Props {
     /// Run the script on a new connection of a connector, returns the id of the connection
     onAttach?: (connector: ConnectorType) => string;
     /// The trigger sits in the header of an entry card, it shows the logo of the database instead of
-    /// the health dot and leaves out the protocol tag
+    /// the health dot
     entryHeader?: boolean;
     /// The test id of the trigger
     testId?: string;
@@ -168,7 +168,6 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
                         leadingVisual={props.connection == null ? undefined : props.entryHeader
                             ? <ConnectorIcon connectorInfo={props.connection.connectorInfo} size={14} />
                             : <HealthDot health={props.connection.connectionHealth} />}
-                        trailingVisual={props.connection == null || props.entryHeader ? undefined : <ConnectionProtocolTag detail={props.connection.labelParts.detail} />}
                         aria-label={`Connection of ${props.scriptName} script: ${label}`}
                         data-testid={props.testId ?? "script-connection-picker"}
                         title={label}
