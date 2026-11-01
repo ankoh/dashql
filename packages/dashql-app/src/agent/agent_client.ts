@@ -41,11 +41,42 @@ export interface AgentSocket {
 const SOCKET_OPEN = 1;
 /// Messages are cut after this many characters in the log
 const LOG_TEXT_LIMIT = 64 * 1024;
+/// Values up to this many characters on one line are logged as they are, longer ones as their size
+const LOG_VALUE_LIMIT = 120;
 
 /// A message for the log, cut after LOG_TEXT_LIMIT characters
 function clip(text: string): string {
     if (text.length <= LOG_TEXT_LIMIT) return text;
     return `${text.slice(0, LOG_TEXT_LIMIT)}... (${text.length - LOG_TEXT_LIMIT} more characters)`;
+}
+
+/// Is a value too long for a log line?
+function isLongText(text: string): boolean {
+    return text.length > LOG_VALUE_LIMIT || text.includes('\n');
+}
+
+/// A value for a log line: short values as they are, long ones as their size
+function logValue(value: unknown): string {
+    if (typeof value === 'string') {
+        if (!isLongText(value)) return value;
+        const lines = value.split('\n').length;
+        return `${value.length} characters, ${lines} line${lines === 1 ? '' : 's'}`;
+    }
+    if (value == null || typeof value !== 'object') return String(value);
+    const json = JSON.stringify(value);
+    return json.length <= LOG_VALUE_LIMIT ? json : `${Array.isArray(value) ? 'array' : 'object'} of ${json.length} characters`;
+}
+
+/// The fields of an object for a log line
+function logFields(object: unknown): Record<string, string> {
+    if (object == null || typeof object !== 'object' || Array.isArray(object)) return {};
+    return Object.fromEntries(Object.entries(object).map(([key, value]) => [key, logValue(value)]));
+}
+
+/// The first line of a text for a log line
+function firstLine(text: string): string {
+    const line = text.split('\n', 1)[0];
+    return line.length <= LOG_VALUE_LIMIT ? line : `${line.slice(0, LOG_VALUE_LIMIT)}...`;
 }
 /// The close code of a server that turns a client away, e.g. for another protocol version
 const CLOSE_POLICY_VIOLATION = 1008;
@@ -147,6 +178,7 @@ export class AgentClient {
             return Promise.reject(new Error('The agent server is not connected'));
         }
         const id = this.#nextRequestId++;
+        this.#options.logger.info('Sent a request to the agent server', { id: String(id), method }, LOG_CTX);
         return new Promise<AgentServerMethods[M]['result']>((resolve, reject) => {
             this.#pending.set(id, { resolve: resolve as (result: unknown) => void, reject });
             this.#send(socket, JSON.stringify({ id, method, params } satisfies AgentRpcMessage));
@@ -160,9 +192,9 @@ export class AgentClient {
         this.#disconnect();
     }
 
-    /// Send a message and log it
+    /// Send a message, the raw message is logged at debug level
     #send(socket: AgentSocket, text: string): void {
-        this.#options.logger.info('Sent to the agent server', { message: clip(text) }, LOG_CTX);
+        this.#options.logger.debug('Sent to the agent server', { message: clip(text) }, LOG_CTX);
         socket.send(text);
     }
 
@@ -284,7 +316,7 @@ export class AgentClient {
     }
 
     #receive(socket: AgentSocket, text: string): void {
-        this.#options.logger.info('Received from the agent server', { message: clip(text) }, LOG_CTX);
+        this.#options.logger.debug('Received from the agent server', { message: clip(text) }, LOG_CTX);
         let message: AgentRpcMessage;
         try {
             message = JSON.parse(text) as AgentRpcMessage;
@@ -299,6 +331,7 @@ export class AgentClient {
                 return;
             }
             this.#pending.delete(Number(message.id));
+            this.#options.logger.debug('Received a response from the agent server', { id: String(message.id), error: message.error?.message }, LOG_CTX);
             if (message.error != null) {
                 pending.reject(new Error(message.error.message));
             } else {
@@ -307,6 +340,7 @@ export class AgentClient {
             return;
         }
         if (message.id == null) {
+            this.#options.logger.info('Received a notification from the agent server', { method: message.method, ...logFields(message.params) }, LOG_CTX);
             this.#options.onNotification({ method: message.method, params: message.params } as AgentNotification);
             return;
         }
@@ -323,11 +357,26 @@ export class AgentClient {
             return;
         }
         const params = message.params as AgentCommandParams;
+        const command = { id: String(id), command: String(params.command) };
+        const logger = this.#options.logger;
+        logger.info('Running a command of the agent', { ...logFields(params.args), ...command, session: String(params.session) }, LOG_CTX);
+        // The texts that the agent passes, e.g. the script of edit or the spec of vis edit
+        for (const [name, value] of Object.entries(params.args ?? {})) {
+            if (typeof value === 'string' && isLongText(value)) logger.debug(`The ${name} of the command`, { ...command, [name]: value }, LOG_CTX);
+        }
+        const started = performance.now();
+        const duration = () => String(Math.round(performance.now() - started));
         this.#options.handleCommand(params).then(
-            result => reply({ result }),
+            result => {
+                logger.info('Finished the command of the agent', { ...command, durationMs: duration(), result: firstLine(result.text) }, LOG_CTX);
+                if (isLongText(result.text)) logger.debug('The result of the command', { ...command, text: clip(result.text) }, LOG_CTX);
+                reply({ result });
+            },
             (e: unknown) => {
                 const code = e instanceof AgentCommandError ? e.code : 'failed';
-                reply({ error: { code, message: e instanceof Error ? e.message : String(e) } });
+                const error = e instanceof Error ? e.message : String(e);
+                logger.warn('The command of the agent failed', { ...command, durationMs: duration(), code, error }, LOG_CTX);
+                reply({ error: { code, message: error } });
             },
         );
     }

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentClient, AgentCommandError, AgentConnectionStatus, type AgentSocket } from './agent_client.js';
 import { AGENT_FEATURES, AGENT_PROTOCOL_VERSION, type AgentCommandParams, type AgentCommandResult } from './agent_protocol.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
+import { LogLevel, type LogRecord } from '../platform/logger/log_buffer.js';
 
 /// Run the pending promise callbacks, the commands answer asynchronously
 async function flush() {
@@ -32,6 +33,17 @@ describe('AgentClient', () => {
     let disconnects: string[];
     let handleCommand: ReturnType<typeof vi.fn<(params: AgentCommandParams) => Promise<AgentCommandResult>>>;
     let client: AgentClient;
+    let logger: TestLogger;
+
+    /// The log records with a message
+    const records = (message: string): LogRecord[] => {
+        const found: LogRecord[] = [];
+        for (let i = 0; i < logger.buffer.length; ++i) {
+            const record = logger.buffer.at(i);
+            if (record?.message === message) found.push(record);
+        }
+        return found;
+    };
 
     beforeEach(() => {
         vi.useFakeTimers();
@@ -40,10 +52,11 @@ describe('AgentClient', () => {
         notifications = [];
         disconnects = [];
         handleCommand = vi.fn<(params: AgentCommandParams) => Promise<AgentCommandResult>>(async () => ({ text: 'ok' }));
+        logger = new TestLogger();
         client = new AgentClient({
             url: 'ws://127.0.0.1:47100/v1/ws',
             clientKind: 'web',
-            logger: new TestLogger(),
+            logger,
             handleCommand,
             onNotification: ({ method, params }) => notifications.push([method, params]),
             onStatus: status => statuses.push(status),
@@ -173,6 +186,32 @@ describe('AgentClient', () => {
         await flush();
         expect(sockets[0].sent).toHaveLength(4);
         expect(sockets[0].sent[3]).toEqual({ id: 's3', error: { code: 'failed', message: 'boom' } });
+    });
+
+    it('logs commands with their short arguments, the texts at debug level', async () => {
+        logger.buffer.setMinLogLevel(LogLevel.Debug);
+        client.setSessions([{ id: 's1', name: '' }], 's1');
+        sockets[0].open();
+        handleCommand.mockResolvedValueOnce({ text: 'Updated q: sha256 abc, 0 errors\nq:1:1: warning: w' });
+        const text = 'select 1\nfrom t';
+        sockets[0].receive({ id: 's1', method: 'command', params: { session: 's1', command: 'edit', args: { script: 'q', text } } });
+        await flush();
+        expect(records('Running a command of the agent').map(r => r.keyValues)).toEqual([
+            { id: 's1', command: 'edit', session: 's1', script: 'q', text: '15 characters, 2 lines' },
+        ]);
+        expect(records('The text of the command').map(r => r.keyValues)).toEqual([{ id: 's1', command: 'edit', text }]);
+        expect(records('Finished the command of the agent').map(r => r.keyValues)).toMatchObject([
+            { id: 's1', command: 'edit', result: 'Updated q: sha256 abc, 0 errors' },
+        ]);
+        expect(records('The result of the command')).toHaveLength(1);
+        expect(records('Received from the agent server').every(r => r.level === LogLevel.Debug)).toBe(true);
+
+        handleCommand.mockRejectedValueOnce(new AgentCommandError('usage', 'missing script'));
+        sockets[0].receive({ id: 's2', method: 'command', params: { session: 's1', command: 'read', args: {} } });
+        await flush();
+        expect(records('The command of the agent failed').map(r => r.keyValues)).toMatchObject([
+            { id: 's2', command: 'read', code: 'usage', error: 'missing script' },
+        ]);
     });
 
     it('resolves requests and passes notifications on', async () => {
