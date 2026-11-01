@@ -270,6 +270,14 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         });
     }
 
+    async refreshExternalDirectory(path: string): Promise<void> {
+        await this.runDatabaseOperation(async () => {
+            const resource = this.externalDirectories.get(path);
+            if (resource == null) throw new Error(`external directory is not registered: ${path}`);
+            await resource.refresh();
+        });
+    }
+
     async terminate(): Promise<void> {
         if (this.terminated) {
             return;

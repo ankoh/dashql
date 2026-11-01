@@ -63,9 +63,9 @@ export interface QueryResultCache {
     newFileName(key: string): string;
     /// The name of a new transient file, removed by the first listing after nobody pins it any more
     newTransientFileName(): string;
-    /// Mount the files in a database, resolves with the release. The mount is shared, it is refreshed while nobody
-    /// uses it after files were removed, so the database forgets the files it read.
-    acquireMount(database: ParquetDatabase): Promise<() => void>;
+    /// Mount the files in a database. The mount is shared and stays, after files were removed it is refreshed, so
+    /// the database forgets the files it opened. Queries that read files keep reading them.
+    mount(database: ParquetDatabase): Promise<void>;
     /// Write a table as file `name` while the files are mounted in the database. The file of a key is written under
     /// another name and moved in place once it is complete, the older files of the key are removed. Returns the file.
     writeTable(database: ParquetDatabase, table: arrow.Table, name: string): Promise<File>;

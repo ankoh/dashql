@@ -54,9 +54,11 @@ export async function exportArrowTableAsParquet(
     }
 }
 
-/// A database that writes and reads Parquet files: it mounts directories to write them and files to read them
+/// A database that writes and reads Parquet files: it mounts directories to write them and files to read them, and
+/// refreshes directory mounts whose files were removed
 export type ParquetDatabase = ParquetExportDatabase & EmbeddedExternalFileDatabase;
 
 export function supportsParquet(database: EmbeddedComputeDatabase | null): database is ParquetDatabase {
-    return supportsParquetExport(database) && 'registerExternalFile' in database && 'removeExternalFile' in database;
+    return supportsParquetExport(database) && 'registerExternalFile' in database && 'removeExternalFile' in database
+        && 'refreshExternalDirectory' in database;
 }

@@ -69,11 +69,12 @@ they get the exclusive lock at once (`ifAvailable`), pinned files stay. The rele
 released, so a run can remove its own files right after releasing them.
 
 Every window has its own compute database and mounts the folder itself. In a window, readers and writers share one
-mount (`acquireMount`), which is set up on first use and counts its users. The worker of the compute database keeps
-the `File` of every path it opened below a mount until the mount ends, and it doesn't notice files that JavaScript
-removes or rewrites. Unique names keep these remembered files valid while they exist. After this window removed
-files, the cache mounts the folder again the next time it is acquired while nobody uses it, so the worker forgets the
-removed files. A new compute database, e.g. after a restart of hyperdb-wasm, gets a new mount.
+mount (`QueryResultCache.mount`), which is set up on first use and stays. The compute database remembers the file of
+every path it opened below the mount and doesn't notice files that JavaScript removes or rewrites. Unique names keep
+these remembered files valid while they exist. After this window removed files, the next use of the mount refreshes it
+(`refreshExternalDirectory`, `MountedResource.refresh` of hyperdb-wasm), so the database looks the paths up again and
+forgets the removed files. A refresh doesn't wait for readers: queries that run keep reading the files they opened. A
+new compute database, e.g. after a restart of hyperdb-wasm, gets a new mount.
 
 Native session folders keep the entries `cache/` and `*.hyper` in a top-level `.gitignore`, so the cache folders of
 earlier versions stay out of version control. It is written with the session file, and missing entries are appended

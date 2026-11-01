@@ -44,6 +44,10 @@ class MockExternalFiles implements EmbeddedExternalFileDatabase, EmbeddedExterna
     async removeExternalDirectory(path: string): Promise<void> {
         if (!this.directories.delete(path)) throw new Error(`missing directory: ${path}`);
     }
+
+    async refreshExternalDirectory(path: string): Promise<void> {
+        if (!this.directories.has(path)) throw new Error(`missing directory: ${path}`);
+    }
 }
 
 describe('shell files command', () => {

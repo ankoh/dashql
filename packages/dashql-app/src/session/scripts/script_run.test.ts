@@ -338,7 +338,7 @@ describe('script runs', () => {
         await mounts.release();
         await expect(mounts.use(`${mounts.prefix}/${name}`)).rejects.toThrow('The run ended');
         await expect(mounts.writeTable(`${mounts.prefix}/${name}`, tableFromArrays({ a: [1] }))).rejects.toThrow('The run ended');
-        expect(cache.acquireMount).not.toHaveBeenCalled();
+        expect(cache.mount).not.toHaveBeenCalled();
         expect(cache.pin).not.toHaveBeenCalled();
     });
 

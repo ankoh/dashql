@@ -53,7 +53,7 @@ export function memoryQueryResultCache(mountPath: string = '/mnt/external/cache'
         pin: vi.fn(async (_name: string) => async () => {}),
         newFileName,
         newTransientFileName: () => `${crypto.randomUUID()}.transient.parquet`,
-        acquireMount: vi.fn(async (_database: unknown) => () => {}),
+        mount: vi.fn(async (_database: unknown) => {}),
         writeTable: vi.fn(async (_database: unknown, table: arrow.Table, name: string) => {
             const key = keysOfNames.get(name) ?? '';
             if (key !== '') for (const e of entries()) if (e.key === key) files.delete(e.name);

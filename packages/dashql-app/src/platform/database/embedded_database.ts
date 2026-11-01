@@ -65,6 +65,9 @@ export interface EmbeddedExternalDirectoryDatabase {
         mode: ExternalDirectoryMode,
     ): Promise<string>;
     removeExternalDirectory(path: string): Promise<void>;
+    /// Forget the files that the database opened below a mounted directory, the next access looks them up again.
+    /// Running queries keep reading the files they opened.
+    refreshExternalDirectory(path: string): Promise<void>;
 }
 
 export interface EmbeddedDatabase<Connection extends EmbeddedConnection = EmbeddedConnection> {

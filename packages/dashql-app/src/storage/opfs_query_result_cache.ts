@@ -85,12 +85,9 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
         return key == null ? [] : [{ name: file.name, key, size: file.size, cachedAtMs: file.mtimeMs, lastAccessMs: file.lastAccessMs }];
     });
 
-    // The mount of the files in the compute database, shared by the readers and writers of this window. A mount of
-    // another database is a new generation, the releases of the users of an older one don't count.
-    let mount: { database: ParquetDatabase } | null = null;
-    let mountUsers = 0;
-    let mountGeneration = 0;
-    // Did this window remove files since the files were mounted? The database still knows the files it read.
+    // The compute database that the files are mounted in, shared by the readers and writers of this window
+    let mountedIn: ParquetDatabase | null = null;
+    // Did this window remove files since the mount was refreshed? The database still knows the files it opened.
     let mountStale = false;
     let mountChain: Promise<unknown> = Promise.resolve();
     const serialize = <T>(operation: () => Promise<T>): Promise<T> => {
@@ -131,26 +128,25 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
             });
         }));
     });
-    const acquireMount = (database: ParquetDatabase) => serialize(async () => {
-        if (mount != null && (mount.database !== database || (mountUsers === 0 && mountStale))) {
-            await mount.database.removeExternalDirectory(QUERY_RESULT_CACHE_MOUNT).catch(() => {});
-            mount = null;
-            mountUsers = 0;
-            ++mountGeneration;
+    const mount = (database: ParquetDatabase) => serialize(async () => {
+        if (mountedIn != null && mountedIn !== database) {
+            await mountedIn.removeExternalDirectory(QUERY_RESULT_CACHE_MOUNT).catch(() => {});
+            mountedIn = null;
         }
-        if (mount == null) {
-            await database.registerExternalDirectory(await directory(), QUERY_RESULT_CACHE_MOUNT, 'readwrite');
-            mount = { database };
+        if (mountedIn == null) {
             mountStale = false;
+            await database.registerExternalDirectory(await directory(), QUERY_RESULT_CACHE_MOUNT, 'readwrite');
+            mountedIn = database;
+        } else if (mountStale) {
+            // Removals during the refresh mark the mount stale again
+            mountStale = false;
+            try {
+                await database.refreshExternalDirectory(QUERY_RESULT_CACHE_MOUNT);
+            } catch (error) {
+                mountStale = true;
+                throw error;
+            }
         }
-        ++mountUsers;
-        const generation = mountGeneration;
-        let released = false;
-        return () => {
-            if (released) return;
-            released = true;
-            if (generation === mountGeneration) --mountUsers;
-        };
     });
 
     const lookup = async (key: string) => {
@@ -203,57 +199,49 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
         pin,
         newFileName: key => `${key}.${crypto.randomUUID()}.parquet`,
         newTransientFileName: () => `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`,
-        acquireMount,
+        mount,
         writeTable: async (database: ParquetDatabase, table: arrow.Table, name: string) => {
-            const releaseMount = await acquireMount(database);
-            try {
-                const dir = await directory();
-                const key = cacheFileKey(name);
-                if (key == null) {
-                    await copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${name}`);
-                    return await (await dir.getFileHandle(name)).getFile();
-                }
-                // Readers of other windows find the file of a key once it is complete
-                const temporary = `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`;
-                const releaseTemporary = await pin(temporary);
-                try {
-                    await copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${temporary}`);
-                    const handle = await dir.getFileHandle(temporary);
-                    if ('move' in handle && typeof (handle as { move?: unknown }).move === 'function') {
-                        await (handle as FileSystemFileHandle & { move(name: string): Promise<void> }).move(name);
-                    } else {
-                        await (await handle.getFile()).stream().pipeTo(await (await dir.getFileHandle(name, { create: true })).createWritable());
-                        await dir.removeEntry(temporary);
-                    }
-                } finally {
-                    await releaseTemporary();
-                }
-                await touch(name);
-                // The older files of the key are removed once nobody reads them, eviction keeps the files below the limits
-                for (const entry of await entries()) {
-                    if (entry.key === key && entry.name !== name) await tryRemove(entry.name);
-                }
-                await evictToFit(store, maxBytes, maxFiles);
+            await mount(database);
+            const dir = await directory();
+            const key = cacheFileKey(name);
+            if (key == null) {
+                await copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${name}`);
                 return await (await dir.getFileHandle(name)).getFile();
-            } finally {
-                releaseMount();
             }
+            // Readers of other windows find the file of a key once it is complete
+            const temporary = `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`;
+            const releaseTemporary = await pin(temporary);
+            try {
+                await copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${temporary}`);
+                const handle = await dir.getFileHandle(temporary);
+                if ('move' in handle && typeof (handle as { move?: unknown }).move === 'function') {
+                    await (handle as FileSystemFileHandle & { move(name: string): Promise<void> }).move(name);
+                } else {
+                    await (await handle.getFile()).stream().pipeTo(await (await dir.getFileHandle(name, { create: true })).createWritable());
+                    await dir.removeEntry(temporary);
+                }
+            } finally {
+                await releaseTemporary();
+            }
+            await touch(name);
+            // The older files of the key are removed once nobody reads them, eviction keeps the files below the limits
+            for (const entry of await entries()) {
+                if (entry.key === key && entry.name !== name) await tryRemove(entry.name);
+            }
+            await evictToFit(store, maxBytes, maxFiles);
+            return await (await dir.getFileHandle(name)).getFile();
         },
         readTable: async (database: ParquetDatabase, name: string) => {
             const release = await pin(name);
             try {
                 // The file may have been removed between the lookup and the pin
                 await (await directory()).getFileHandle(name);
-                const releaseMount = await acquireMount(database);
+                await mount(database);
+                const connection = await database.connect({ pooled: true });
                 try {
-                    const connection = await database.connect({ pooled: true });
-                    try {
-                        return await connection.query(`SELECT * FROM external('${QUERY_RESULT_CACHE_MOUNT}/${name}', format => 'parquet')`);
-                    } finally {
-                        await connection.close();
-                    }
+                    return await connection.query(`SELECT * FROM external('${QUERY_RESULT_CACHE_MOUNT}/${name}', format => 'parquet')`);
                 } finally {
-                    releaseMount();
+                    await connection.close();
                 }
             } finally {
                 await release();

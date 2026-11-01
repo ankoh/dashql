@@ -116,7 +116,6 @@ export interface ExecutionMounts {
 export function createExecutionMounts(cache: QueryResultCache, database: ParquetDatabase): ExecutionMounts {
     const pins: Array<() => Promise<void>> = [];
     const transient: string[] = [];
-    let mount: Promise<() => void> | null = null;
     let released = false;
     const fileName = (path: string) => {
         if (!path.startsWith(`${cache.mountPath}/`) || path.slice(cache.mountPath.length + 1).includes('/')) throw new Error(`The path ${path} is no file of the run`);
@@ -125,8 +124,7 @@ export function createExecutionMounts(cache: QueryResultCache, database: Parquet
     /// Mount the files and pin a file until the release
     const keep = async (name: string) => {
         if (released) throw new Error(`The run ended, it no longer reads ${name}`);
-        mount ??= cache.acquireMount(database);
-        await mount;
+        await cache.mount(database);
         const unpin = await cache.pin(name);
         if (released) {
             await unpin();
@@ -155,11 +153,6 @@ export function createExecutionMounts(cache: QueryResultCache, database: Parquet
             await Promise.all(pins.splice(0, pins.length).map(release => release()));
             // Every listing removes them too, e.g. those of a window that was closed during its run
             await Promise.all(transient.splice(0, transient.length).map(name => cache.remove(name).catch(() => {})));
-            if (mount != null) {
-                const release = await mount.catch(() => null);
-                mount = null;
-                release?.();
-            }
         },
     };
 }

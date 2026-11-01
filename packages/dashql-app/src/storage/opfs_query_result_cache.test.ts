@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
-import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY } from './opfs_query_result_cache.js';
+import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
 
 const KEY_A = 'a'.repeat(64);
 const KEY_B = 'b'.repeat(64);
@@ -161,5 +162,45 @@ describe('OPFS query result cache', () => {
         await release();
         await writer.delete(KEY_A);
         expect(await files()).toEqual([]);
+    });
+
+    it('mounts the files once per database and refreshes the mount after removals, also while it is used', async () => {
+        const fakeDatabase = () => ({
+            registerExternalDirectory: vi.fn(async (_handle: FileSystemDirectoryHandle, path: string | undefined) => path!),
+            removeExternalDirectory: vi.fn(async (_path: string) => {}),
+            refreshExternalDirectory: vi.fn(async (_path: string) => {}),
+        });
+        const c = cache();
+        const first = fakeDatabase();
+        const database = first as unknown as ParquetDatabase;
+        await c.mount(database);
+        await c.mount(database);
+        expect(first.registerExternalDirectory).toHaveBeenCalledTimes(1);
+        expect(first.registerExternalDirectory.mock.calls[0][1]).toBe(QUERY_RESULT_CACHE_MOUNT);
+        expect(first.refreshExternalDirectory).not.toHaveBeenCalled();
+        // A run reads a file through the mount while the cache removes another one
+        const read = await put(c.newFileName(KEY_A));
+        await put(c.newFileName(KEY_B));
+        const release = await c.pin(read);
+        await c.delete(KEY_B);
+        expect(await files()).toEqual([read]);
+        await c.mount(database);
+        await c.mount(database);
+        expect(first.refreshExternalDirectory).toHaveBeenCalledTimes(1);
+        expect(first.refreshExternalDirectory).toHaveBeenCalledWith(QUERY_RESULT_CACHE_MOUNT);
+        expect(first.removeExternalDirectory).not.toHaveBeenCalled();
+        await release();
+        // A failed refresh is retried by the next mount
+        await c.delete(KEY_A);
+        first.refreshExternalDirectory.mockRejectedValueOnce(new Error('refresh failed'));
+        await expect(c.mount(database)).rejects.toThrow('refresh failed');
+        await c.mount(database);
+        expect(first.refreshExternalDirectory).toHaveBeenCalledTimes(3);
+        // Another database, e.g. after a restart of the engine, gets its own mount
+        const second = fakeDatabase();
+        await c.mount(second as unknown as ParquetDatabase);
+        expect(first.removeExternalDirectory).toHaveBeenCalledWith(QUERY_RESULT_CACHE_MOUNT);
+        expect(second.registerExternalDirectory).toHaveBeenCalledTimes(1);
+        expect(second.refreshExternalDirectory).not.toHaveBeenCalled();
     });
 });

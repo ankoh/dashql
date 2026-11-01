@@ -321,6 +321,19 @@ describe('HyperDB embedded database adapter', () => {
         await database.terminate();
     });
 
+    it('refreshes registered browser directories and refuses unknown ones', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const path = await database.registerExternalDirectory(directoryHandle('cache'), '/mnt/external/cache', 'readwrite');
+
+        await database.refreshExternalDirectory(path);
+        expect(client.calls).toContain(`refresh:${path}`);
+        await expect(database.refreshExternalDirectory('/mnt/external/other')).rejects.toThrow('external directory is not registered');
+        await database.removeExternalDirectory(path);
+        await expect(database.refreshExternalDirectory(path)).rejects.toThrow('external directory is not registered');
+        await database.terminate();
+    });
+
     it('registers directory handles without permission methods like the OPFS handles of Firefox', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await createDatabase(client);

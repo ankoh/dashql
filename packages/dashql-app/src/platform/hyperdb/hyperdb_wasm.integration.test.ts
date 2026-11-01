@@ -287,6 +287,41 @@ describe('HyperDB embedded database integration', () => {
         }
     }, 60_000);
 
+    it('reads a rewritten file of a registered browser directory after a refresh', async () => {
+        const connection = await database!.connect();
+        const root = await getOPFSRoot();
+        const name = `dashql-directory-${crypto.randomUUID()}`;
+        const directory = await root.getDirectoryHandle(name, { create: true });
+        const write = async (text: string) => {
+            const writer = await (await directory.getFileHandle('values.csv', { create: true })).createWritable();
+            await writer.write(text);
+            await writer.close();
+        };
+        const total = async (path: string) => toPlainObjects(await connection.query(`
+            SELECT sum(value) AS total
+            FROM external('${path}/values.csv', format => 'csv', header => true,
+                columns => descriptor(value bigint, name text))
+        `));
+        await write('value,name\n1,alpha\n2,beta\n');
+        let path: string | null = null;
+        try {
+            path = await database!.registerExternalDirectory(directory, `/mnt/external/${name}`, 'read');
+            expect(await total(path)).toEqual([{ total: 3n }]);
+            // The database opened the old file, the refresh makes it look the file up again
+            await write('value,name\n10,gamma\n20,delta\n30,epsilon\n');
+            await database!.refreshExternalDirectory(path);
+            expect(await total(path)).toEqual([{ total: 60n }]);
+        } finally {
+            if (path != null) await ignoreCleanupFailure(() => database!.removeExternalDirectory(path!));
+            await ignoreCleanupFailure(() => root.removeEntry(name, { recursive: true }));
+            await connection.close();
+        }
+    }, 60_000);
+
+    it('refuses to refresh a directory that is not registered', async () => {
+        await expect(database!.refreshExternalDirectory('/mnt/external/unknown-directory')).rejects.toThrow('not registered');
+    });
+
     it('exports an Arrow table as Parquet through OPFS', async () => {
         const table = arrow.tableFromArrays({
             id: Int32Array.from([1, 2, 3]),
@@ -389,30 +424,35 @@ describe('HyperDB embedded database integration', () => {
         }
     }, 60_000);
 
-    it('forgets removed files of the cache once nobody uses the mount', async () => {
+    it('forgets removed files of the cache while a run reads through the mount', async () => {
+        const table = arrow.tableFromArrays({ id: Int32Array.from([1]) });
         const { cache, cleanup } = await testCache();
         try {
             const first = cache.newFileName(KEY_A);
-            await cache.writeTable(database!, arrow.tableFromArrays({ id: Int32Array.from([1]) }), first);
+            await cache.writeTable(database!, table, first);
             expect(toPlainObjects(await cache.readTable(database!, first))).toEqual([{ id: 1 }]);
-            // A removed file is gone for readers of the cache, the next mount doesn't know it
-            await cache.delete(KEY_A);
-            await expect(cache.readTable(database!, first)).rejects.toThrow();
-            // Files of other keys stay readable through the refreshed mount
-            const second = cache.newFileName(KEY_B);
-            await cache.writeTable(database!, arrow.tableFromArrays({ id: Int32Array.from([2]) }), second);
-            expect(toPlainObjects(await cache.readTable(database!, second))).toEqual([{ id: 2 }]);
-            const release = await cache.acquireMount(database!);
+            // A run keeps reading its file through the shared mount while the cache removes another one
+            const kept = cache.newFileName(KEY_B);
+            await cache.writeTable(database!, arrow.tableFromArrays({ id: Int32Array.from([2]) }), kept);
+            const mounts = createExecutionMounts(cache, database!);
             try {
+                await mounts.use(`${mounts.prefix}/${kept}`);
+                await cache.delete(KEY_A);
+                await cache.mount(database!);
                 const connection = await database!.connect();
                 try {
                     await expect(connection.query(`select * from external('${QUERY_RESULT_CACHE_MOUNT}/${first}', format => 'parquet')`)).rejects.toThrow();
+                    expect(toPlainObjects(await connection.query(`select * from external('${QUERY_RESULT_CACHE_MOUNT}/${kept}', format => 'parquet')`))).toEqual([{ id: 2 }]);
                 } finally {
                     await connection.close();
                 }
             } finally {
-                release();
+                await mounts.release();
             }
+            // Files of other keys stay readable through the refreshed mount
+            const second = cache.newFileName(KEY_A);
+            await cache.writeTable(database!, table, second);
+            expect(toPlainObjects(await cache.readTable(database!, second))).toEqual([{ id: 1 }]);
         } finally {
             await cleanup();
         }
