@@ -1,5 +1,4 @@
 /**
- * @description
  * Collect the values of a group into an ordered list and a comma-separated string.
  */
 

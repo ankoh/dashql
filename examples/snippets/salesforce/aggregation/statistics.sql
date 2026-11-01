@@ -1,5 +1,4 @@
 /**
- * @description
  * Describe two measures with their spread and how strongly they move together.
  * `percentile_disc` returns an actual input value, `percentile_cont` interpolates.
  */

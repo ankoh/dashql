@@ -1,5 +1,4 @@
 /**
- * @description
  * Compute the median and the 90th percentile of a measure per group.
  */
 

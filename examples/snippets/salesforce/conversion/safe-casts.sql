@@ -1,5 +1,4 @@
 /**
- * @description
  * Convert untyped text from a source system, casting only the values that match the expected format.
  */
 

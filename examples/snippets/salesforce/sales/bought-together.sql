@@ -1,5 +1,4 @@
 /**
- * @description
  * The product pairs that appear together in the most orders.
  */
 

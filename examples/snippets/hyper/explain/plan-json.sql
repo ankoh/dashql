@@ -1,5 +1,4 @@
 /**
- * @description
  * Show the optimized plan of a query as JSON, with the estimated rows of every operator.
  */
 

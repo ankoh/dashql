@@ -89,7 +89,7 @@ formatter-snapshots:
       -- }
       -- @end
 
-      -- @description
+      -- @param
       -- Returns every row of the table with all of its columns, which is long enough to be wrapped.
       -- @end
       select 1

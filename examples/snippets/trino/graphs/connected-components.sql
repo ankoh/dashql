@@ -1,5 +1,4 @@
 /**
- * @description
  * Group the nodes of an undirected graph into connected components.
  * Every node is labeled with the smallest node it can reach within five hops.
  */

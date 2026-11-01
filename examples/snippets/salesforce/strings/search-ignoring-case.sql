@@ -1,5 +1,4 @@
 /**
- * @description
  * Find accounts by a part of their name, ignoring case with `ilike`.
  */
 

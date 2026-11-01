@@ -487,8 +487,8 @@ mod tests {
         let input = "-- @vis markdown\n-- **{{a}}**   x\n-- @end\n\n-- x   y";
         let out = format(input, &["-- @vis markdown", "-- **{{a}}**   x", "-- @end", "-- x   y"], 120);
         assert_eq!(out, "/**\n * @vis markdown\n * **{{a}}**   x\n */\n\n-- x y");
-        let input = "-- @description Sales.\n-- @end\n-- x   y";
-        assert_eq!(format(input, &["-- @description Sales.", "-- @end", "-- x   y"], 120), "/** @description Sales. */\n-- x y");
+        let input = "-- @param Sales.\n-- @end\n-- x   y";
+        assert_eq!(format(input, &["-- @param Sales.", "-- @end", "-- x   y"], 120), "/** @param Sales. */\n-- x y");
     }
 
     /// Format a script that consists of comments, every comment is found by the scanner
@@ -526,34 +526,34 @@ mod tests {
 
     #[test]
     fn prints_tagged_line_comments_as_block_comment() {
-        let expected = "/**\n * @description Revenue.\n * @board width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
+        let expected = "/**\n * @param Revenue.\n * @board width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
         for input in [
-            "-- @description Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}",
-            "-- @description Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end",
-            "/* @description Revenue.\n   @vis board width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/",
+            "-- @param Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}",
+            "-- @param Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end",
+            "/* @param Revenue.\n   @vis board width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/",
         ] {
             assert_eq!(format_comments(input), expected, "{input}");
         }
         assert_eq!(format_comments(expected), expected);
         // Descriptions keep their lines, an empty line keeps its gutter
-        let input = "-- @description\n-- Revenue.\n--\n-- * per region\n-- @end";
-        assert_eq!(format_comments(input), "/**\n * @description\n * Revenue.\n *\n * * per region\n */");
-        assert_eq!(format_comments("/* @description Revenue. */"), "/** @description Revenue. */");
+        let input = "-- @param\n-- Revenue.\n--\n-- * per region\n-- @end";
+        assert_eq!(format_comments(input), "/**\n * @param\n * Revenue.\n *\n * * per region\n */");
+        assert_eq!(format_comments("/* @param Revenue. */"), "/** @param Revenue. */");
     }
 
     #[test]
     fn merges_tagged_comments() {
-        let input = "-- @description\n-- Add to timestamps.\n-- @end\n\n/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
-        assert_eq!(format_comments(input), "/**\n * @description\n * Add to timestamps.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */");
+        let input = "-- @param\n-- Add to timestamps.\n-- @end\n\n/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
+        assert_eq!(format_comments(input), "/**\n * @param\n * Add to timestamps.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */");
         // Ordinary comments between them keep them apart
-        let input = "/* @description Sales. */\n-- note\n/* @vis table */";
-        assert_eq!(format_comments(input), "/** @description Sales. */\n-- note\n/** @vis table */");
+        let input = "/* @param Sales. */\n-- note\n/* @vis table */";
+        assert_eq!(format_comments(input), "/** @param Sales. */\n-- note\n/** @vis table */");
         // The text before the first tag of a block comment goes in front of all tags
-        let input = "/* @description Sales. */\n/* Note.\n   @vis table */";
-        assert_eq!(format_comments(input), "/**\n * Note.\n * @description Sales.\n * @vis table\n */");
+        let input = "/* @param Sales. */\n/* Note.\n   @vis table */";
+        assert_eq!(format_comments(input), "/**\n * Note.\n * @param Sales.\n * @vis table\n */");
         // Comments that cannot be printed canonically stay apart
-        let input = "/* @description Sales. */\n-- @vis markdown\n-- see */ here";
-        assert_eq!(format_comments(input), "/** @description Sales. */\n-- @vis markdown\n-- see */ here");
+        let input = "/* @param Sales. */\n-- @vis markdown\n-- see */ here";
+        assert_eq!(format_comments(input), "/** @param Sales. */\n-- @vis markdown\n-- see */ here");
     }
 
     #[test]

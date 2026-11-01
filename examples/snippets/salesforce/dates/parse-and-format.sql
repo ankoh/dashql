@@ -1,5 +1,4 @@
 /**
- * @description
  * Parse dates and timestamps in other formats with `to_date` and `to_timestamp`, and format them with `to_char`.
  */
 

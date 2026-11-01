@@ -1,5 +1,4 @@
 /**
- * @description
  * Strip everything but digits from phone numbers with `regexp_replace` and the `g` flag for all matches.
  */
 

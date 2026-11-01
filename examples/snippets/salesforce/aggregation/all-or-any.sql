@@ -1,5 +1,4 @@
 /**
- * @description
  * Check conditions over all rows of a group with `bool_and` and `bool_or`.
  */
 

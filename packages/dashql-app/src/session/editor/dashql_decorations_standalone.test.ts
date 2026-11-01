@@ -80,8 +80,8 @@ describe('scanner decorations', () => {
         catalog.destroy();
     });
 
-    it('highlights the tags alike and the text of a @description apart from its comment markers', () => {
-        const text = '-- @description\n-- Two lines\n-- of text.\n-- @end\nselect 1; -- plain\n/* @description Block.\n   @vis table */ select 2';
+    it('highlights the tags alike and steps back the comment markers of tagged regions', () => {
+        const text = '-- @vis markdown\n-- Two lines\n-- of text.\n-- @end\nselect 1; -- plain\n/* @board width=6\n   @vis table */ select 2';
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
@@ -91,7 +91,6 @@ describe('scanner decorations', () => {
             extensions: syntaxHighlighting(HighlightStyle.define([{ tag: commentTag, class: 'comment' }])),
         });
 
-        const description: string[] = [];
         const markers: string[] = [];
         const tags: string[] = [];
         const comments: string[] = [];
@@ -100,17 +99,16 @@ describe('scanner decorations', () => {
             text.length,
             (from, to, value) => {
                 const classes = value.spec.class.split(' ');
-                if (classes.includes('dashql-comment-description')) description.push(text.slice(from, to));
-                else if (classes.includes('dashql-comment-tag')) markers.push(text.slice(from, to));
+                if (classes.includes('dashql-comment-tag')) markers.push(text.slice(from, to));
                 else if (classes.includes('dashql-comment-token')) tags.push(text.slice(from, to));
                 else if (classes.includes('comment')) comments.push(text.slice(from, to));
             },
         );
 
-        expect(description).toEqual(['Two lines', 'of text.', 'Block.']);
-        expect(tags).toEqual(['@description', '@end', '@description', '@vis', 'table']);
-        expect(markers).toEqual(['-- ', '-- ', '-- ', '-- ', '/* ', ' ', '\n   ', ' ', ' */']);
-        expect(comments).toEqual(['-- plain']);
+        expect(tags).toEqual(['@vis', 'markdown', '@end', '@board', 'width', '6', '@vis', 'table']);
+        expect(markers).toEqual(['-- ', ' ', '-- ', '-- ', '-- ', '/* ', ' ', '\n   ', ' ', ' */']);
+        // The text of the tags keeps the color of comments
+        expect(comments).toEqual(['Two lines', 'of text.', '-- plain', '=']);
         session.destroy();
         catalog.destroy();
     });

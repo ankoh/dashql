@@ -1,5 +1,4 @@
 /**
- * @description
  * Find the rows of one table that have no matching row in another table (anti join).
  */
 

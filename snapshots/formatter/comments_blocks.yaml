@@ -122,7 +122,7 @@ formatter-snapshots:
 
   - name: comment_region_without_end
     input: |-
-      -- @description
+      -- @param
       -- Text that is not closed and wraps because it is quite long.
       select 1
     dialects:
@@ -135,14 +135,14 @@ formatter-snapshots:
             width: 30
             expected: |-
               /**
-               * @description
+               * @param
                * Text that is not closed and wraps because it is quite long.
                */
               select 1;
           - mode: pretty
             expected: |-
               /**
-               * @description
+               * @param
                * Text that is not closed and wraps because it is quite long.
                */
               select 1;
@@ -150,7 +150,7 @@ formatter-snapshots:
   - name: comment_region_after_comments
     input: |-
       -- Leading text that wraps because it is quite long.
-      -- @description extra
+      -- @param extra
       -- content inside the region
       -- @end
       -- @vis vegalite
@@ -170,7 +170,7 @@ formatter-snapshots:
               -- Leading text that wraps
               -- because it is quite long.
               /**
-               * @description extra
+               * @param extra
                * content inside the region
                * @vis vegalite
                * {"a": 1}
@@ -181,7 +181,7 @@ formatter-snapshots:
             expected: |-
               -- Leading text that wraps because it is quite long.
               /**
-               * @description extra
+               * @param extra
                * content inside the region
                * @vis vegalite
                * {"a": 1}
@@ -191,7 +191,7 @@ formatter-snapshots:
 
   - name: comment_adjacent_regions
     input: |-
-      -- @description
+      -- @param
       -- one
       -- @end
       -- @vis vegalite
@@ -207,7 +207,7 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               /**
-               * @description
+               * @param
                * one
                * @vis vegalite
                * two
@@ -216,7 +216,7 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               /**
-               * @description
+               * @param
                * one
                * @vis vegalite
                * two
@@ -225,7 +225,7 @@ formatter-snapshots:
 
   - name: comment_regions_one_end_line
     input: |-
-      -- @description Revenue per region, which is long enough to be wrapped.
+      -- @param Revenue per region, which is long enough to be wrapped.
       -- @vis table
       -- @end
       select 1
@@ -238,14 +238,14 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               /**
-               * @description Revenue per region, which is long enough to be wrapped.
+               * @param Revenue per region, which is long enough to be wrapped.
                * @vis table
                */
               select 1;
           - mode: pretty
             expected: |-
               /**
-               * @description Revenue per region, which is long enough to be wrapped.
+               * @param Revenue per region, which is long enough to be wrapped.
                * @vis table
                */
               select 1;
@@ -281,7 +281,7 @@ formatter-snapshots:
   - name: vis_line_comments_several_tags
     input: |-
       -- Revenue dashboard.
-      -- @description Revenue per region.
+      -- @param Revenue per region.
       -- @board width=6 height=3
       -- @vis table
       -- @end
@@ -296,7 +296,7 @@ formatter-snapshots:
             expected: |-
               -- Revenue dashboard.
               /**
-               * @description Revenue per region.
+               * @param Revenue per region.
                * @board width=6 height=3
                * @vis table
                */
@@ -305,7 +305,7 @@ formatter-snapshots:
             expected: |-
               -- Revenue dashboard.
               /**
-               * @description Revenue per region.
+               * @param Revenue per region.
                * @board width=6 height=3
                * @vis table
                */
@@ -314,7 +314,7 @@ formatter-snapshots:
   - name: vis_block_comment_several_tags
     input: |-
       /* Revenue dashboard.
-            @description Revenue per region.
+            @param Revenue per region.
         @vis    card   width=6  height=3
             @vis vegalite {"mark":"bar"}
       */
@@ -329,7 +329,7 @@ formatter-snapshots:
             expected: |-
               /**
                * Revenue dashboard.
-               * @description Revenue per region.
+               * @param Revenue per region.
                * @board width=6 height=3
                * @vis vegalite
                * {"mark": "bar"}
@@ -339,7 +339,7 @@ formatter-snapshots:
             expected: |-
               /**
                * Revenue dashboard.
-               * @description Revenue per region.
+               * @param Revenue per region.
                * @board width=6 height=3
                * @vis vegalite
                * {"mark": "bar"}
@@ -515,7 +515,7 @@ formatter-snapshots:
 
   - name: annotation_comments_are_merged
     input: |-
-      -- @description
+      -- @param
       -- Add to and subtract from timestamps and measure the distance between them.
       -- @end
 
@@ -533,7 +533,7 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               /**
-               * @description
+               * @param
                * Add to and subtract from timestamps and measure the distance between them.
                * @vis vegalite
                * {"mark": "bar"}
@@ -543,7 +543,7 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               /**
-               * @description
+               * @param
                * Add to and subtract from timestamps and measure the distance between them.
                * @vis vegalite
                * {"mark": "bar"}
@@ -553,7 +553,7 @@ formatter-snapshots:
 
   - name: annotation_comments_with_ordinary_comments
     input: |-
-      /* @description Revenue. */
+      /* @param Revenue. */
       -- a note
       /* @vis table */
       select 1
@@ -565,13 +565,13 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              /** @description Revenue. */
+              /** @param Revenue. */
               -- a note
               /** @vis table */
               select 1;
           - mode: pretty
             expected: |-
-              /** @description Revenue. */
+              /** @param Revenue. */
               -- a note
               /** @vis table */
               select 1;

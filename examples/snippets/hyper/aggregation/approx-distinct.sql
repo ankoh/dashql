@@ -1,5 +1,4 @@
 /**
- * @description
  * Estimate the number of distinct values, much cheaper than an exact count on large tables.
  */
 

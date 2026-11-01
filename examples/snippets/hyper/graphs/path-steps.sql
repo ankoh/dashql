@@ -1,5 +1,4 @@
 /**
- * @description
  * Return one row for every hop of the matched paths instead of one row per path.
  */
 

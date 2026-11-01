@@ -1,5 +1,4 @@
 /**
- * @description
  * Accumulate a measure over time with a cumulative window sum.
  */
 

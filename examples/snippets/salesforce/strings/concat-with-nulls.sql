@@ -1,5 +1,4 @@
 /**
- * @description
  * Build display names from optional parts: `||` returns null if one part is null, `concat` skips the nulls.
  */
 

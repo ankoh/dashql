@@ -1,5 +1,4 @@
 /**
- * @description
  * Orders, revenue and the average order value per month.
  */
 

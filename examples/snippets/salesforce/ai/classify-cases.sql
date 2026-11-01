@@ -1,5 +1,4 @@
 /**
- * @description
  * Sort support cases into categories with the AI function `ai_classify`.
  * The AI functions are in beta and need the beta generative AI models of the org.
  * The categories have to be the same for every row, the text must not be null.

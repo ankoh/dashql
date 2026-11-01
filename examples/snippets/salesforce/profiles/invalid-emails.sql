@@ -1,5 +1,4 @@
 /**
- * @description
  * Email addresses that do not look like `name@domain.tld`, e.g. typos or placeholders of a source system.
  */
 

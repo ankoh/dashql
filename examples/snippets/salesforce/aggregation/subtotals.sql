@@ -1,5 +1,4 @@
 /**
- * @description
  * Revenue per region and channel with the subtotals of every combination using `cube`.
  * `grouping` tells the subtotal rows apart, it is 1 for a column that is summed up.
  */

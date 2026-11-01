@@ -1,5 +1,4 @@
 /**
- * @description
  * Concatenate the products of each order into one sorted, comma-separated text with `listagg`.
  */
 

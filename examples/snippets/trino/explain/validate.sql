@@ -1,5 +1,4 @@
 /**
- * @description
  * Check that a query is valid without planning or running it.
  */
 

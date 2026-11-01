@@ -18,12 +18,12 @@
 use crate::span::TextSpan;
 pub use dashql_buffers::parser::CommentBlockType;
 
-/// The prefix of comment tags, e.g. `-- @description`
+/// The prefix of comment tags, e.g. `-- @vis`
 pub const COMMENT_TAG_PREFIX: &str = "@";
 /// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
 pub const COMMENT_TAG_END: &str = "end";
 /// The known tags, any other `@word` is ordinary text
-pub const COMMENT_TAGS: &[&str] = &["description", "vis", "board", "flow", "param", COMMENT_TAG_END];
+pub const COMMENT_TAGS: &[&str] = &["vis", "board", "flow", "param", COMMENT_TAG_END];
 
 /// Is a tag name one of the known tags?
 pub fn is_comment_tag(name: &[u8]) -> bool {
@@ -37,7 +37,7 @@ pub struct CommentBlock {
     pub block_type: CommentBlockType,
     /// The whole block, including comment markers and tag lines
     pub text_span: TextSpan,
-    /// The tag name (e.g. `description`), empty for ordinary comments
+    /// The tag name (e.g. `vis`), empty for ordinary comments
     pub tag_span: TextSpan,
     /// Slice of the comments of the script
     pub comments_begin: u32,
@@ -470,12 +470,12 @@ mod tests {
 
     #[test]
     fn reads_tagged_regions() {
-        let text = "-- @description Sales\n-- per region\n-- @end\n/* @board width=6 */\n/* @vis table */";
+        let text = "-- @param Sales\n-- per region\n-- @end\n/* @board width=6 */\n/* @vis table */";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
             vec![
-                (CommentBlockType::DASHQL_TAG, "description"),
+                (CommentBlockType::DASHQL_TAG, "param"),
                 (CommentBlockType::DASHQL_TAG, "board"),
                 (CommentBlockType::DASHQL_TAG, "vis"),
             ]
@@ -497,13 +497,13 @@ mod tests {
 
     #[test]
     fn splits_block_comments_at_tags() {
-        let text = "/* Sales.\n   @description Revenue.\n   @vis board width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
+        let text = "/* Sales.\n   @param Revenue.\n   @vis board width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
             vec![
                 (CommentBlockType::COMMENT, ""),
-                (CommentBlockType::DASHQL_TAG, "description"),
+                (CommentBlockType::DASHQL_TAG, "param"),
                 (CommentBlockType::DASHQL_TAG, "vis"),
                 (CommentBlockType::DASHQL_TAG, "vis"),
             ]
@@ -519,18 +519,18 @@ mod tests {
 
     #[test]
     fn splits_line_comments_at_tags() {
-        let text = "-- @description Revenue.\n-- @vis board width=6\n-- @vis table\n-- @end";
+        let text = "-- @param Revenue.\n-- @vis board width=6\n-- @vis table\n-- @end";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
             vec![
-                (CommentBlockType::DASHQL_TAG, "description"),
+                (CommentBlockType::DASHQL_TAG, "param"),
                 (CommentBlockType::DASHQL_TAG, "vis"),
                 (CommentBlockType::DASHQL_TAG, "vis"),
             ]
         );
         assert_eq!(line_texts(text, &blocks, 1), vec!["board width=6"]);
-        assert_eq!(block_texts(text, &blocks), vec!["-- @description Revenue.", "-- @vis board width=6", "-- @vis table\n-- @end"]);
+        assert_eq!(block_texts(text, &blocks), vec!["-- @param Revenue.", "-- @vis board width=6", "-- @vis table\n-- @end"]);
         assert!(blocks.warnings.is_empty());
     }
 
@@ -539,7 +539,7 @@ mod tests {
         let text = "/* @vis markdown\n     - a\n       - b\n\n     * c\n*/";
         let blocks = group(text);
         assert_eq!(line_texts(text, &blocks, 0), vec!["markdown", "- a", "  - b", "", "* c"]);
-        let text = "/**\n * @description\n *   indented\n * plain\n */";
+        let text = "/**\n * @param\n *   indented\n * plain\n */";
         let blocks = group(text);
         assert_eq!(line_texts(text, &blocks, 0), vec!["  indented", "plain"]);
     }
@@ -547,29 +547,29 @@ mod tests {
     #[test]
     fn warns_about_end_tags_without_a_region() {
         // A blank line ends the run of line comments and the region, the end line after it closes nothing
-        let text = "-- @description\n-- x\n\n-- @end\n/* @end */";
+        let text = "-- @param\n-- x\n\n-- @end\n/* @end */";
         let blocks = group(text);
         let warnings: Vec<&str> = blocks.warnings.iter().map(|w| w.1.as_str()).collect();
         assert_eq!(warnings, vec!["@end without an opening tag", "@end without an opening tag"]);
         assert_eq!(
             tags(text, &blocks),
-            vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::COMMENT, ""), (CommentBlockType::COMMENT, "")]
+            vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::COMMENT, ""), (CommentBlockType::COMMENT, "")]
         );
     }
 
     #[test]
     fn closes_the_last_region_at_the_end_of_the_run() {
-        let text = "-- @description Revenue.\n-- per region\n-- @vis table\nselect 1";
+        let text = "-- @param Revenue.\n-- per region\n-- @vis table\nselect 1";
         let blocks = group(text);
-        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::DASHQL_TAG, "vis")]);
+        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::DASHQL_TAG, "vis")]);
         assert_eq!(line_texts(text, &blocks, 0), vec!["Revenue.", "per region"]);
         assert_eq!(line_texts(text, &blocks, 1), vec!["table"]);
         assert!(blocks.warnings.is_empty());
         // An end line still closes the region, comments after it are ordinary
-        let text = "-- @description Revenue.\n-- @end\n-- note";
+        let text = "-- @param Revenue.\n-- @end\n-- note";
         let blocks = group(text);
-        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::COMMENT, "")]);
-        assert_eq!(block_texts(text, &blocks), vec!["-- @description Revenue.\n-- @end", "-- note"]);
+        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::COMMENT, "")]);
+        assert_eq!(block_texts(text, &blocks), vec!["-- @param Revenue.\n-- @end", "-- note"]);
         assert!(blocks.warnings.is_empty());
     }
 }

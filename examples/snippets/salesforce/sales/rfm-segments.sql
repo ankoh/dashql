@@ -1,5 +1,4 @@
 /**
- * @description
  * Score customers by recency, frequency and monetary value and segment them.
  */
 

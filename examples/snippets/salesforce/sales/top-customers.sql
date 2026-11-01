@@ -1,5 +1,4 @@
 /**
- * @description
  * The customers with the highest revenue.
  * Joining on the key qualifier as well keeps equal ids of different data sources apart.
  */

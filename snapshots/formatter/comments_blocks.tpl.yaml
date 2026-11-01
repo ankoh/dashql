@@ -58,7 +58,7 @@ formatter-snapshots:
   # A tagged region of line comments ends with the run, it needs no end line
   - name: comment_region_without_end
     input: |-
-      -- @description
+      -- @param
       -- Text that is not closed and wraps because it is quite long.
       select 1
     dialects:
@@ -71,7 +71,7 @@ formatter-snapshots:
   - name: comment_region_after_comments
     input: |-
       -- Leading text that wraps because it is quite long.
-      -- @description extra
+      -- @param extra
       -- content inside the region
       -- @end
       -- @vis vegalite
@@ -88,7 +88,7 @@ formatter-snapshots:
   # Two regions directly after each other
   - name: comment_adjacent_regions
     input: |-
-      -- @description
+      -- @param
       -- one
       -- @end
       -- @vis vegalite
@@ -101,7 +101,7 @@ formatter-snapshots:
   # The next tag line closes a region, an end line of an older script is accepted
   - name: comment_regions_one_end_line
     input: |-
-      -- @description Revenue per region, which is long enough to be wrapped.
+      -- @param Revenue per region, which is long enough to be wrapped.
       -- @vis table
       -- @end
       select 1
@@ -122,7 +122,7 @@ formatter-snapshots:
   - name: vis_line_comments_several_tags
     input: |-
       -- Revenue dashboard.
-      -- @description Revenue per region.
+      -- @param Revenue per region.
       -- @board width=6 height=3
       -- @vis table
       -- @end
@@ -134,7 +134,7 @@ formatter-snapshots:
   - name: vis_block_comment_several_tags
     input: |-
       /* Revenue dashboard.
-            @description Revenue per region.
+            @param Revenue per region.
         @vis    card   width=6  height=3
             @vis vegalite {"mark":"bar"}
       */
@@ -193,7 +193,7 @@ formatter-snapshots:
   # The tagged comments of a statement are merged into one comment, blank lines between them go
   - name: annotation_comments_are_merged
     input: |-
-      -- @description
+      -- @param
       -- Add to and subtract from timestamps and measure the distance between them.
       -- @end
 
@@ -208,7 +208,7 @@ formatter-snapshots:
   # Ordinary comments between tagged comments keep them apart
   - name: annotation_comments_with_ordinary_comments
     input: |-
-      /* @description Revenue. */
+      /* @param Revenue. */
       -- a note
       /* @vis table */
       select 1

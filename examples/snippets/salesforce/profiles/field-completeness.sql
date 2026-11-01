@@ -1,5 +1,4 @@
 /**
- * @description
  * The share of profiles with a value in each field, a quick data quality check of a mapping.
  * `count` of a column skips the nulls.
  */

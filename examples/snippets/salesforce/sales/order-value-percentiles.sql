@@ -1,5 +1,4 @@
 /**
- * @description
  * The spread of the order values with exact percentiles and an approximate customer count.
  */
 

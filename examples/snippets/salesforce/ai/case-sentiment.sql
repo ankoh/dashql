@@ -1,5 +1,4 @@
 /**
- * @description
  * Label the sentiment of case descriptions with the AI function `ai_sentiment`.
  * The AI functions are in beta and need the beta generative AI models of the org.
  */

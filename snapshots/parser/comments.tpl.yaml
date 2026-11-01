@@ -61,10 +61,10 @@ parser-snapshots:
       /* block */
       -- after
       select 1
-  # A description header block
-  - name: description_line_form
+  # A tagged header block
+  - name: tag_line_form
     input: |
-      -- @description
+      -- @param
       -- Revenue of the open orders per market segment.
       --
       -- Example questions:
@@ -73,82 +73,82 @@ parser-snapshots:
 
       -- TPC-H query 3
       select 1
-  # Ordinary comments directly before a description become their own block
-  - name: description_line_form_after_comment
+  # Ordinary comments directly before a tag become their own block
+  - name: tag_line_form_after_comment
     input: |
       -- my own note
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @end
       -- another note
       select 1
   # Text after the opening tag is content
-  - name: description_line_form_inline_text
+  - name: tag_line_form_inline_text
     input: |
-      -- @description Revenue per segment.
+      -- @param Revenue per segment.
       -- Second line.
       -- @end
       select 1
   # Tags may be indented within the comment
-  - name: description_line_form_indented
+  - name: tag_line_form_indented
     input: |
-      --   @description
+      --   @param
       -- Revenue per segment.
       --   @end
       select 1
-  # A block comment is a description when its first text is the tag, the comment end closes it
-  - name: description_block_form
+  # A block comment is a tagged region when its first text is the tag, the comment end closes it
+  - name: tag_block_form
     input: |
-      /* @description
+      /* @param
          Revenue per segment.
 
          Example questions:
          - Which segment earns the most?
       */
       select 1
-  # A javadoc-style description
-  - name: description_block_form_gutter
+  # A javadoc-style tag
+  - name: tag_block_form_gutter
     input: |
       /**
-       * @description
+       * @param
        * Revenue per segment.
        */
       select 1
-  # A single line description block comment
-  - name: description_block_form_single_line
+  # A single line tag block comment
+  - name: tag_block_form_single_line
     input: |
-      /* @description Revenue per segment. */ select 1
-  # Each statement gets its own description block
-  - name: description_per_statement
+      /* @param Revenue per segment. */ select 1
+  # Each statement gets its own tag block
+  - name: tag_per_statement
     input: |
-      -- @description
+      -- @param
       -- First query.
       -- @end
       select 1;
 
-      -- @description
+      -- @param
       -- Second query.
       -- @end
       select 2;
       select 3
-  # A description separated from the statement by SQL is not the statement's description
-  - name: description_not_leading
+  # A tag separated from the statement by SQL is not the statement's tag
+  - name: tag_not_leading
     input: |
-      -- @description
+      -- @param
       -- First query.
       -- @end
       select 1; select 2
   # A region of line comments ends with the run, it needs no end line
-  - name: description_line_form_without_end
+  - name: tag_line_form_without_end
     input: |
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @vis table
       select 1
   # A blank line ends the run and the region, the end line after it closes nothing
-  - name: description_unterminated
+  - name: tag_unterminated
     input: |
-      -- @description
+      -- @param
       -- Revenue per segment.
 
       -- @end
@@ -169,16 +169,16 @@ parser-snapshots:
   # Text that only resembles a tag stays an ordinary comment
   - name: not_a_tag
     input: |
-      -- see @description
-      -- @description: Revenue
-      -- @descriptions
+      -- see @param
+      -- @param: Revenue
+      -- @params
       -- @
       -- @DESCRIPTION
       select 1
   # A closing tag with trailing text does not close the region
   - name: end_tag_with_text
     input: |
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @end of description
       -- @end
@@ -187,7 +187,7 @@ parser-snapshots:
   - name: block_comment_several_tags
     input: |
       /* Revenue dashboard.
-         @description Revenue per region.
+         @param Revenue per region.
          @board width=6 height=3
          @vis vegalite
          {"mark": "bar"}
@@ -197,14 +197,14 @@ parser-snapshots:
   - name: block_comment_several_tags_gutter
     input: |
       /**
-       * @description Revenue per region.
+       * @param Revenue per region.
        * @vis table
        */
       select 1
   # The next tag line closes a region of line comments, only the last region needs the end line
   - name: line_comments_several_tags
     input: |
-      -- @description Revenue per region.
+      -- @param Revenue per region.
       -- @board width=6 height=3
       -- @vis vegalite
       -- {"mark": "bar"}
@@ -213,7 +213,7 @@ parser-snapshots:
   # Without the end line, the last region stays an ordinary comment
   - name: line_comments_last_tag_unterminated
     input: |
-      -- @description Revenue per region.
+      -- @param Revenue per region.
       -- @vis table
       select 1
   # A Vega-Lite spec holds a pretty-printed JSON object
@@ -277,7 +277,7 @@ parser-snapshots:
       -- {"owner": "finance"}
       -- @end
       select 1
-  # A spec and a description side by side, the description stays the statement description
+  # A spec and a tag side by side, the tag stays the statement tag
   - name: vegalite_and_description
     input: |
       -- @vis vegalite
@@ -286,7 +286,7 @@ parser-snapshots:
       -- }
       -- @end
 
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @end
       select 1

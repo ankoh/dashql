@@ -1,5 +1,4 @@
 /**
- * @description
  * Extract, replace and match text with regular expressions.
  */
 

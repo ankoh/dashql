@@ -1,5 +1,4 @@
 /**
- * @description
  * The first and the last marketing touch before each conversion, for first- and last-touch attribution.
  * `first_value` and `last_value` read the window frame, which ends at the current row unless it spans the partition.
  */

@@ -32,7 +32,7 @@ analyzer-snapshots:
           create table sales (region text, revenue int, date timestamp);
     script:
       input: |
-        -- @description Revenue per region.
+        -- Revenue per region.
         -- @vis table
         select * from sales;
 

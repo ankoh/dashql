@@ -1,5 +1,4 @@
 /**
- * @description
  * Hash normalized email addresses, e.g. to match them with an advertising audience without sharing them.
  * `sha256` returns bytes, `encode` turns them into hex text.
  */

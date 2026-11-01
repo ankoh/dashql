@@ -15,7 +15,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() { } unobserve() { } disconnect() { } });
 
 function file(body: string): string {
-    return `/**\n * @description\n * Text.\n */\n${body}`;
+    return `/**\n * Text.\n */\n${body}`;
 }
 
 describe('shell snippets dialog', () => {

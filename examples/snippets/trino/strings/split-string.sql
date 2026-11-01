@@ -1,5 +1,4 @@
 /**
- * @description
  * Pick the parts of a delimited string by position.
  */
 

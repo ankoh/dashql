@@ -1,5 +1,4 @@
 /**
- * @description
  * Extract the UTM campaign from landing page URLs with `regexp_substr`, it returns null without a match.
  */
 

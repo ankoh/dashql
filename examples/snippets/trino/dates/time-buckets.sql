@@ -1,5 +1,4 @@
 /**
- * @description
  * Group timestamps into 15-minute buckets.
  */
 

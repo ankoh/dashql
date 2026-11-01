@@ -1,5 +1,4 @@
 /**
- * @description
  * Count the values of a measure in equally wide buckets.
  * Values below the range land in bucket 0, values above it in bucket 6.
  */

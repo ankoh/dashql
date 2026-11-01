@@ -509,9 +509,9 @@ parser-snapshots:
             - "after"
       comment-warnings: []
 
-  - name: description_line_form
+  - name: tag_line_form
     input: |-
-      -- @description
+      -- @param
       -- Revenue of the open orders per market segment.
       --
       -- Example questions:
@@ -547,16 +547,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [65,66]
-        - text: [68,69]
-        - text: [90,91]
-        - text: [125,126]
-        - text: [133,134]
-        - text: [134,135]
-        - text: [151,152]
+        - text: [9,10]
+        - text: [59,60]
+        - text: [62,63]
+        - text: [84,85]
+        - text: [119,120]
+        - text: [127,128]
+        - text: [128,129]
+        - text: [145,146]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Revenue..t segment."
         - text: "--"
         - text: "-- Example..questions:"
@@ -565,8 +565,8 @@ parser-snapshots:
         - text: "-- TPC-H query 3"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..t?\n-- @end"
-          tag: "description"
+          text: "-- @param\n..t?\n-- @end"
+          tag: "param"
           comments: [0,6]
           lines:
             - "Revenue of the open orders per market segment."
@@ -580,10 +580,10 @@ parser-snapshots:
             - "TPC-H query 3"
       comment-warnings: []
 
-  - name: description_line_form_after_comment
+  - name: tag_line_form_after_comment
     input: |-
       -- my own note
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @end
       -- another note
@@ -616,13 +616,13 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [14,15]
-        - text: [30,31]
-        - text: [54,55]
-        - text: [62,63]
-        - text: [78,79]
+        - text: [24,25]
+        - text: [48,49]
+        - text: [56,57]
+        - text: [72,73]
       comments:
         - text: "-- my own note"
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Revenue..r segment."
         - text: "-- @end"
         - text: "-- another note"
@@ -633,8 +633,8 @@ parser-snapshots:
           lines:
             - "my own note"
         - type: DASHQL_TAG
-          text: "-- @descri..t.\n-- @end"
-          tag: "description"
+          text: "-- @param\n..t.\n-- @end"
+          tag: "param"
           comments: [1,3]
           lines:
             - "Revenue per segment."
@@ -645,9 +645,9 @@ parser-snapshots:
             - "another note"
       comment-warnings: []
 
-  - name: description_line_form_inline_text
+  - name: tag_line_form_inline_text
     input: |-
-      -- @description Revenue per segment.
+      -- @param Revenue per segment.
       -- Second line.
       -- @end
       select 1
@@ -678,26 +678,26 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [36,37]
-        - text: [52,53]
-        - text: [60,61]
+        - text: [30,31]
+        - text: [46,47]
+        - text: [54,55]
       comments:
-        - text: "-- @descri..r segment."
+        - text: "-- @param ..r segment."
         - text: "-- Second line."
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..e.\n-- @end"
-          tag: "description"
+          text: "-- @param ..e.\n-- @end"
+          tag: "param"
           comments: [0,3]
           lines:
             - "Revenue per segment."
             - "Second line."
       comment-warnings: []
 
-  - name: description_line_form_indented
+  - name: tag_line_form_indented
     input: |-
-      --   @description
+      --   @param
       -- Revenue per segment.
       --   @end
       select 1
@@ -728,25 +728,25 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [17,18]
-        - text: [41,42]
-        - text: [51,52]
+        - text: [11,12]
+        - text: [35,36]
+        - text: [45,46]
       comments:
-        - text: "--   @description"
+        - text: "--   @param"
         - text: "-- Revenue..r segment."
         - text: "--   @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "--   @desc..\n--   @end"
-          tag: "description"
+          text: "--   @para..\n--   @end"
+          tag: "param"
           comments: [0,3]
           lines:
             - "Revenue per segment."
       comment-warnings: []
 
-  - name: description_block_form
+  - name: tag_block_form
     input: |-
-      /* @description
+      /* @param
          Revenue per segment.
 
          Example questions:
@@ -780,18 +780,18 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [39,40]
-        - text: [40,41]
-        - text: [62,63]
-        - text: [97,98]
-        - text: [100,101]
+        - text: [9,10]
+        - text: [33,34]
+        - text: [34,35]
+        - text: [56,57]
+        - text: [91,92]
+        - text: [94,95]
       comments:
-        - text: "/* @descri..e most?\n*/"
+        - text: "/* @param\n..e most?\n*/"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "/* @descri..e most?\n*/"
-          tag: "description"
+          text: "/* @param\n..e most?\n*/"
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per segment."
@@ -800,10 +800,10 @@ parser-snapshots:
             - "- Which segment earns the most?"
       comment-warnings: []
 
-  - name: description_block_form_gutter
+  - name: tag_block_form_gutter
     input: |-
       /**
-       * @description
+       * @param
        * Revenue per segment.
        */
       select 1
@@ -835,23 +835,23 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [3,4]
-        - text: [19,20]
-        - text: [43,44]
-        - text: [47,48]
+        - text: [13,14]
+        - text: [37,38]
+        - text: [41,42]
       comments:
-        - text: "/**\n * @de..gment.\n */"
+        - text: "/**\n * @pa..gment.\n */"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "/**\n * @de..gment.\n */"
-          tag: "description"
+          text: "/**\n * @pa..gment.\n */"
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per segment."
       comment-warnings: []
 
-  - name: description_block_form_single_line
+  - name: tag_block_form_single_line
     input: |-
-      /* @description Revenue per segment. */ select 1
+      /* @param Revenue per segment. */ select 1
     expected:
       statements:
         - type: SELECT
@@ -880,24 +880,24 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments:
-        - text: "/* @descri..egment. */"
+        - text: "/* @param ..egment. */"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "/* @descri..egment. */"
-          tag: "description"
+          text: "/* @param ..egment. */"
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per segment."
       comment-warnings: []
 
-  - name: description_per_statement
+  - name: tag_per_statement
     input: |-
-      -- @description
+      -- @param
       -- First query.
       -- @end
       select 1;
 
-      -- @description
+      -- @param
       -- Second query.
       -- @end
       select 2;
@@ -972,40 +972,40 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [31,32]
-        - text: [39,40]
-        - text: [49,50]
-        - text: [50,51]
-        - text: [66,67]
-        - text: [83,84]
-        - text: [91,92]
-        - text: [101,102]
+        - text: [9,10]
+        - text: [25,26]
+        - text: [33,34]
+        - text: [43,44]
+        - text: [44,45]
+        - text: [54,55]
+        - text: [71,72]
+        - text: [79,80]
+        - text: [89,90]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- First query."
         - text: "-- @end"
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Second query."
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..y.\n-- @end"
-          tag: "description"
+          text: "-- @param\n..y.\n-- @end"
+          tag: "param"
           comments: [0,3]
           lines:
             - "First query."
         - type: DASHQL_TAG
-          text: "-- @descri..y.\n-- @end"
-          tag: "description"
+          text: "-- @param\n..y.\n-- @end"
+          tag: "param"
           comments: [3,3]
           lines:
             - "Second query."
       comment-warnings: []
 
-  - name: description_not_leading
+  - name: tag_not_leading
     input: |-
-      -- @description
+      -- @param
       -- First query.
       -- @end
       select 1; select 2
@@ -1057,25 +1057,25 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [31,32]
-        - text: [39,40]
+        - text: [9,10]
+        - text: [25,26]
+        - text: [33,34]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- First query."
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..y.\n-- @end"
-          tag: "description"
+          text: "-- @param\n..y.\n-- @end"
+          tag: "param"
           comments: [0,3]
           lines:
             - "First query."
       comment-warnings: []
 
-  - name: description_line_form_without_end
+  - name: tag_line_form_without_end
     input: |-
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @vis table
       select 1
@@ -1106,17 +1106,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [39,40]
-        - text: [53,54]
+        - text: [9,10]
+        - text: [33,34]
+        - text: [47,48]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Revenue..r segment."
         - text: "-- @vis table"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..r segment."
-          tag: "description"
+          text: "-- @param\n..r segment."
+          tag: "param"
           comments: [0,2]
           lines:
             - "Revenue per segment."
@@ -1128,9 +1128,9 @@ parser-snapshots:
             - "table"
       comment-warnings: []
 
-  - name: description_unterminated
+  - name: tag_unterminated
     input: |-
-      -- @description
+      -- @param
       -- Revenue per segment.
 
       -- @end
@@ -1162,18 +1162,18 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [39,40]
-        - text: [40,41]
-        - text: [48,49]
+        - text: [9,10]
+        - text: [33,34]
+        - text: [34,35]
+        - text: [42,43]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Revenue..r segment."
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..r segment."
-          tag: "description"
+          text: "-- @param\n..r segment."
+          tag: "param"
           comments: [0,2]
           lines:
             - "Revenue per segment."
@@ -1296,9 +1296,9 @@ parser-snapshots:
 
   - name: not_a_tag
     input: |-
-      -- see @description
-      -- @description: Revenue
-      -- @descriptions
+      -- see @param
+      -- @param: Revenue
+      -- @params
       -- @
       -- @DESCRIPTION
       select 1
@@ -1329,32 +1329,32 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [19,20]
-        - text: [44,45]
-        - text: [61,62]
-        - text: [66,67]
-        - text: [82,83]
+        - text: [13,14]
+        - text: [32,33]
+        - text: [43,44]
+        - text: [48,49]
+        - text: [64,65]
       comments:
-        - text: "-- see @description"
-        - text: "-- @descri..n: Revenue"
-        - text: "-- @descriptions"
+        - text: "-- see @param"
+        - text: "-- @param: Revenue"
+        - text: "-- @params"
         - text: "-- @"
         - text: "-- @DESCRIPTION"
       comment-blocks:
         - type: COMMENT
-          text: "-- see @de..ESCRIPTION"
+          text: "-- see @pa..ESCRIPTION"
           comments: [0,5]
           lines:
-            - "see @description"
-            - "@description: Revenue"
-            - "@descriptions"
+            - "see @param"
+            - "@param: Revenue"
+            - "@params"
             - "@"
             - "@DESCRIPTION"
       comment-warnings: []
 
   - name: end_tag_with_text
     input: |-
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @end of description
       -- @end
@@ -1386,19 +1386,19 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [39,40]
-        - text: [62,63]
-        - text: [70,71]
+        - text: [9,10]
+        - text: [33,34]
+        - text: [56,57]
+        - text: [64,65]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Revenue..r segment."
         - text: "-- @end of..escription"
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..on\n-- @end"
-          tag: "description"
+          text: "-- @param\n..on\n-- @end"
+          tag: "param"
           comments: [0,4]
           lines:
             - "Revenue per segment."
@@ -1408,7 +1408,7 @@ parser-snapshots:
   - name: block_comment_several_tags
     input: |-
       /* Revenue dashboard.
-         @description Revenue per region.
+         @param Revenue per region.
          @board width=6 height=3
          @vis vegalite
          {"mark": "bar"}
@@ -1442,11 +1442,11 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [21,22]
-        - text: [57,58]
-        - text: [84,85]
-        - text: [101,102]
-        - text: [120,121]
-        - text: [123,124]
+        - text: [51,52]
+        - text: [78,79]
+        - text: [95,96]
+        - text: [114,115]
+        - text: [117,118]
       comments:
         - text: "/* Revenue.. \"bar\"}\n*/"
       comment-blocks:
@@ -1456,8 +1456,8 @@ parser-snapshots:
           lines:
             - "Revenue dashboard."
         - type: DASHQL_TAG
-          text: "@descripti..egion.\n   "
-          tag: "description"
+          text: "@param Rev..egion.\n   "
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per region."
@@ -1479,7 +1479,7 @@ parser-snapshots:
   - name: block_comment_several_tags_gutter
     input: |-
       /**
-       * @description Revenue per region.
+       * @param Revenue per region.
        * @vis table
        */
       select 1
@@ -1511,15 +1511,15 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [3,4]
-        - text: [39,40]
-        - text: [53,54]
-        - text: [57,58]
+        - text: [33,34]
+        - text: [47,48]
+        - text: [51,52]
       comments:
-        - text: "/**\n * @de.. table\n */"
+        - text: "/**\n * @pa.. table\n */"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "/**\n * @de..egion.\n * "
-          tag: "description"
+          text: "/**\n * @pa..egion.\n * "
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per region."
@@ -1533,7 +1533,7 @@ parser-snapshots:
 
   - name: line_comments_several_tags
     input: |-
-      -- @description Revenue per region.
+      -- @param Revenue per region.
       -- @board width=6 height=3
       -- @vis vegalite
       -- {"mark": "bar"}
@@ -1566,21 +1566,21 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [35,36]
-        - text: [62,63]
-        - text: [79,80]
-        - text: [98,99]
-        - text: [106,107]
+        - text: [29,30]
+        - text: [56,57]
+        - text: [73,74]
+        - text: [92,93]
+        - text: [100,101]
       comments:
-        - text: "-- @descri..er region."
+        - text: "-- @param ..er region."
         - text: "-- @board ..6 height=3"
         - text: "-- @vis vegalite"
         - text: "-- {\"mark\": \"bar\"}"
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..er region."
-          tag: "description"
+          text: "-- @param ..er region."
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per region."
@@ -1601,7 +1601,7 @@ parser-snapshots:
 
   - name: line_comments_last_tag_unterminated
     input: |-
-      -- @description Revenue per region.
+      -- @param Revenue per region.
       -- @vis table
       select 1
     expected:
@@ -1631,15 +1631,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [35,36]
-        - text: [49,50]
+        - text: [29,30]
+        - text: [43,44]
       comments:
-        - text: "-- @descri..er region."
+        - text: "-- @param ..er region."
         - text: "-- @vis table"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..er region."
-          tag: "description"
+          text: "-- @param ..er region."
+          tag: "param"
           comments: [0,1]
           lines:
             - "Revenue per region."
@@ -2035,7 +2035,7 @@ parser-snapshots:
       -- }
       -- @end
 
-      -- @description
+      -- @param
       -- Revenue per segment.
       -- @end
       select 1
@@ -2072,16 +2072,16 @@ parser-snapshots:
         - text: [50,51]
         - text: [58,59]
         - text: [59,60]
-        - text: [75,76]
-        - text: [99,100]
-        - text: [107,108]
+        - text: [69,70]
+        - text: [93,94]
+        - text: [101,102]
       comments:
         - text: "-- @vis vegalite"
         - text: "-- {"
         - text: "--   \"owne.. \"finance\""
         - text: "-- }"
         - text: "-- @end"
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Revenue..r segment."
         - text: "-- @end"
       comment-blocks:
@@ -2095,8 +2095,8 @@ parser-snapshots:
             - "  \"owner\": \"finance\""
             - "}"
         - type: DASHQL_TAG
-          text: "-- @descri..t.\n-- @end"
-          tag: "description"
+          text: "-- @param\n..t.\n-- @end"
+          tag: "param"
           comments: [5,3]
           lines:
             - "Revenue per segment."

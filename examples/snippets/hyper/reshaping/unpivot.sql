@@ -1,5 +1,4 @@
 /**
- * @description
  * Turn columns into rows, one row per quarter instead of one column per quarter.
  */
 

@@ -1,5 +1,4 @@
 /**
- * @description
  * Pick the value of one column at the row where another column is largest or smallest.
  * max_by and min_by replace a self-join or a window function.
  */

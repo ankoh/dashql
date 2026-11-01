@@ -3,10 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
 
-/// The comment tag of the description of a snippet
-const SNIPPET_DESCRIPTION_TAG = 'description';
-
-/// One snippet file, `<engine>/<category>/<name>.sql`, a leading `@description` block describes the snippet.
+/// One snippet file, `<engine>/<category>/<name>.sql`, a leading comment describes the snippet.
 /// The files of the engines with the same category and name are the variants of one snippet.
 export interface SnippetFile {
     /// The path of the file below the snippet folder
@@ -22,14 +19,15 @@ export interface SnippetFile {
 }
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
-/// The comment blocks of a snippet file
+/// The comments of a snippet file
 interface SnippetComments {
-    /// The comment tag blocks, e.g. the description
+    /// The comment tag blocks, a snippet has none
     tags: dashql.CommentTag[];
-    /// The number of ordinary comment blocks
-    plain: number;
+    /// The ordinary comment blocks that don't lead the file, a snippet has none
+    inner: number;
+    /// The number of statements
+    statements: number;
 }
 
 /// Read the comment blocks of a text with the DashQL parser
@@ -41,12 +39,16 @@ function readComments(core: dashql.DashQL, text: string, bytes: Uint8Array): Sni
         script.parse();
         const parsed = script.getParsed();
         const reader = parsed.read();
+        // The comments before the first statement describe the snippet
+        const statements = reader.statementsLength();
+        const bodyBegin = statements > 0 ? reader.statements(0)!.statementSpan()!.offset() : bytes.length;
         const block = new dashql.buffers.parser.CommentBlock();
-        let plain = 0;
+        let inner = 0;
         for (let i = 0; i < reader.commentBlocksLength(); ++i) {
-            if (reader.commentBlocks(i, block)!.blockType() === dashql.buffers.parser.CommentBlockType.COMMENT) ++plain;
+            reader.commentBlocks(i, block);
+            if (block.blockType() === dashql.buffers.parser.CommentBlockType.COMMENT && block.textSpan()!.offset() >= bodyBegin) ++inner;
         }
-        return { tags: dashql.readCommentTags(reader, bytes), plain };
+        return { tags: dashql.readCommentTags(reader, bytes), inner, statements };
     } finally {
         script.destroy();
         catalog.destroy();
@@ -66,24 +68,16 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
     }
 
     const bytes = encoder.encode(raw);
-    const { tags, plain } = readComments(core, raw, bytes);
+    const { tags, inner, statements } = readComments(core, raw, bytes);
     // The formatter of the preview moves comments within a statement, explanations belong into the description
-    if (plain > 0) {
-        throw new Error(`snippet ${path} has comments outside its comment tags, move them into the description`);
+    if (inner > 0) {
+        throw new Error(`snippet ${path} has comments after its description, move them into the description`);
     }
-    const otherTag = tags.find(tag => tag.name !== SNIPPET_DESCRIPTION_TAG);
-    if (otherTag != null) {
-        throw new Error(`snippet ${path} has a @${otherTag.name} block, snippets only have a description`);
+    if (tags.length > 0) {
+        throw new Error(`snippet ${path} has a @${tags[0].name} tag, snippets only have a description`);
     }
     // The description stays in the applied text, a snippet needs statements besides it
-    let statements = '';
-    let end = 0;
-    for (const tag of [...tags].sort((l, r) => l.offset - r.offset)) {
-        statements += decoder.decode(bytes.subarray(end, tag.offset));
-        end = tag.offset + tag.length;
-    }
-    statements += decoder.decode(bytes.subarray(end));
-    if (statements.trim().length === 0) {
+    if (statements === 0) {
         throw new Error(`snippet ${path} has no body`);
     }
     return {

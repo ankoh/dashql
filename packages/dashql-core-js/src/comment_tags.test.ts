@@ -44,7 +44,7 @@ function annotate(text: string, statementId: number, annotation: dashql.ScriptAn
 describe('Comment tags', () => {
     it('exposes every tag without interpreting it', () => {
         const text = [
-            '-- @description Sales',
+            '-- @param Sales',
             '-- per région',
             '/* @board width=6 */',
             '',
@@ -53,21 +53,21 @@ describe('Comment tags', () => {
         ].join('\n');
         const tags = withParsed(text, (parsed, bytes) => dashql.readCommentTags(parsed, bytes));
         expect(tags.map(tag => [tag.name, tag.text])).toEqual([
-            ['description', 'Sales\nper région'],
+            ['param', 'Sales\nper région'],
             ['board', 'width=6'],
         ]);
         // The spans are byte offsets of the whole block
         const bytes = encoder.encode(text);
         const first = new TextDecoder().decode(bytes.subarray(tags[0].offset, tags[0].offset + tags[0].length));
-        expect(first).toEqual('-- @description Sales\n-- per région');
+        expect(first).toEqual('-- @param Sales\n-- per région');
     });
 
     it('reads the tags of the description of a statement', () => {
-        const text = annotate('select 1;\n\nselect 2;', 1, { preamble: [], tags: [dashql.annotationTag('description', 'Second\nstatement')] });
-        expect(text).toEqual('select 1;\n\n/**\n * @description\n * Second\n * statement\n */\nselect 2;');
+        const text = annotate('select 1;\n\nselect 2;', 1, { preamble: [], tags: [dashql.annotationTag('param', 'Second\nstatement')] });
+        expect(text).toEqual('select 1;\n\n/**\n * @param\n * Second\n * statement\n */\nselect 2;');
         const tags = withParsed(text, (parsed, bytes) => [0, 1].map(id => dashql.readStatementCommentTags(parsed, bytes, id)));
         expect(tags[0]).toEqual([]);
-        expect(tags[1].map(tag => [tag.name, tag.text])).toEqual([['description', 'Second\nstatement']]);
+        expect(tags[1].map(tag => [tag.name, tag.text])).toEqual([['param', 'Second\nstatement']]);
     });
 });
 
@@ -75,17 +75,19 @@ describe('Annotations', () => {
     it('reads and rewrites the annotation of a statement', () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        script.insertTextAt(0, '-- @description\n-- Sales.\n-- @end\n\n/* @vis table */\nselect 1;');
+        // The text before the first tag describes the statement
+        script.insertTextAt(0, '/* Sales.\n   @param :min = 1\n   @vis table */\nselect 1;');
         const annotation = script.readAnnotation(0);
         expect(annotation).toEqual({
-            preamble: [],
-            tags: [{ name: 'description', lines: ['', 'Sales.'] }, { name: 'vis', lines: ['table'] }],
+            preamble: ['Sales.'],
+            tags: [{ name: 'param', lines: [':min = 1'] }, { name: 'vis', lines: ['table'] }],
         });
-        expect(dashql.annotationTagText(annotation.tags[0])).toEqual('Sales.');
-        annotation.tags[0] = dashql.annotationTag('description', 'Revenue.');
-        expect(script.rewriteAnnotation(0, annotation)).toEqual('/**\n * @description\n * Revenue.\n * @vis table\n */\nselect 1;');
+        expect(dashql.annotationTagText(annotation.tags[0])).toEqual(':min = 1');
+        annotation.preamble = ['Revenue.'];
+        annotation.tags[0] = dashql.annotationTag('param', ':min = 2');
+        expect(script.rewriteAnnotation(0, annotation)).toEqual('/**\n * Revenue.\n * @param\n * :min = 2\n * @vis table\n */\nselect 1;');
         expect(script.rewriteAnnotation(0, { preamble: [], tags: [] })).toEqual('select 1;');
-        expect(() => script.rewriteAnnotation(0, { preamble: [], tags: [dashql.annotationTag('description', 'a */ b')] })).toThrow('cannot contain');
+        expect(() => script.rewriteAnnotation(0, { preamble: [], tags: [dashql.annotationTag('param', 'a */ b')] })).toThrow('cannot contain');
         expect(() => script.rewriteAnnotation(0, { preamble: [], tags: [{ name: 'todo', lines: [] }] })).toThrow('unknown comment tag');
         script.destroy();
         catalog.destroy();

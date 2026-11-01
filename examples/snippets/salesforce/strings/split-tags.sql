@@ -1,5 +1,4 @@
 /**
- * @description
  * Split a text of tags into an array with `regexp_split_to_array`, ignoring the spaces around the separators.
  */
 

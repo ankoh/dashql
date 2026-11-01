@@ -1,5 +1,4 @@
 /**
- * @description
  * The days between two orders of the same customer.
  */
 

@@ -1,5 +1,4 @@
 /**
- * @description
  * Turn the elements of a list into rows, with their position in the list.
  */
 

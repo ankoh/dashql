@@ -1,5 +1,4 @@
 /**
- * @description
  * Show the optimized plan of a query as an operator tree without running it.
  */
 

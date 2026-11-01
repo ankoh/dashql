@@ -1,5 +1,4 @@
 /**
- * @description
  * Load the TPC-H tables at scale factor 0.01.
  * Existing tables are kept, drop them to load another scale factor.
  */

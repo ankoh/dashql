@@ -1,5 +1,4 @@
 /**
- * @description
  * Sum a measure over the last seven days of every row, even when days are missing.
  * A range frame counts in days, a rows frame would count in rows.
  */

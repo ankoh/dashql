@@ -1,5 +1,4 @@
 /**
- * @description
  * Deduplicate a change log by keeping only the newest version of every key.
  */
 

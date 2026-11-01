@@ -1,5 +1,4 @@
 /**
- * @description
  * Filter rows with like patterns, case-insensitively.
  * In a pattern, % matches any sequence of characters, _ a single one.
  */

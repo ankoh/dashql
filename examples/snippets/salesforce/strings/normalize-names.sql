@@ -1,5 +1,4 @@
 /**
- * @description
  * Normalize names from different sources: trim, collapse inner spaces and capitalize every word with `initcap`.
  */
 

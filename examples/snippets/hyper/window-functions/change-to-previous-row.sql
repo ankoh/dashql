@@ -1,5 +1,4 @@
 /**
- * @description
  * Compare every row with the one before it using lag.
  */
 

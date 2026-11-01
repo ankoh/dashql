@@ -1,5 +1,4 @@
 /**
- * @description
  * Show how every result column is computed from the columns of a pre-aggregation.
  * The average becomes a sum and a count that are divided after the aggregation.
  */

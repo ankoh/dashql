@@ -1,5 +1,4 @@
 /**
- * @description
  * Expand a taxonomy into all ancestors of every class with a recursive query.
  */
 

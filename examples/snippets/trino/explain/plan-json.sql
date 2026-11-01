@@ -1,5 +1,4 @@
 /**
- * @description
  * Show the distributed plan of a query as JSON.
  */
 

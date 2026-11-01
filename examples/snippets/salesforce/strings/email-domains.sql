@@ -1,5 +1,4 @@
 /**
- * @description
  * Count the individuals per email domain with `split_part`, the fields count from 1.
  */
 

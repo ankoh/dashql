@@ -1,5 +1,4 @@
 /**
- * @description
  * Add subtotals and a grand total to a grouped result with rollup.
  * grouping() tells the total rows apart from groups whose key is null.
  */

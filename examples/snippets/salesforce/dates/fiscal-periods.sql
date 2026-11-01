@@ -1,5 +1,4 @@
 /**
- * @description
  * Truncate dates to the fiscal month, quarter and year of the fiscal calendar configured in the org.
  */
 

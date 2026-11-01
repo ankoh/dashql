@@ -1,5 +1,4 @@
 /**
- * @description
  * Split an aggregation into a pre-aggregation that runs at the source and its stages.
  */
 

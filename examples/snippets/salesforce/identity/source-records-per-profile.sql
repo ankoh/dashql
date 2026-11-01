@@ -1,5 +1,4 @@
 /**
- * @description
  * The distribution of the number of source records per unified profile.
  * Profiles with very many source records hint at match rules that are too loose.
  */

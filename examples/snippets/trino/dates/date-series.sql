@@ -1,5 +1,4 @@
 /**
- * @description
  * Produce one row per day, e.g. to fill the gaps of a time series with a left join.
  */
 

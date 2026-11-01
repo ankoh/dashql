@@ -1,5 +1,4 @@
 /**
- * @description
  * Find streaks of consecutive days.
  * Consecutive days minus their row number land on the same date, which identifies the streak.
  */

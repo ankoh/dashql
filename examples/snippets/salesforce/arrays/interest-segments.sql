@@ -1,5 +1,4 @@
 /**
- * @description
  * Select individuals by the values of an array column with `array_contains` and `array_contains_any`.
  * The comparison of texts is case-sensitive.
  */

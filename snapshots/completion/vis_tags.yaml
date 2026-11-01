@@ -57,14 +57,6 @@ completion-snapshots:
     completions:
       limit: 3
       no-target: 1
-      strategy: DEFAULT
-      entries:
-        - score: 1
-          value: description
-          candidate-tags: [SUBSTRING_MATCH]
-          location: "e"
-          location-qualified: "e"
-          objects: []
 
   - name: vis_kind
     catalog: {}

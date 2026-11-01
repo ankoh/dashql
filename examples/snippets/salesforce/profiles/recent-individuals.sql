@@ -1,5 +1,4 @@
 /**
- * @description
  * The newest individuals with their email addresses, also those without one.
  */
 

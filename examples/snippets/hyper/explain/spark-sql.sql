@@ -1,5 +1,4 @@
 /**
- * @description
  * Translate a query into the SQL dialect of Spark.
  */
 

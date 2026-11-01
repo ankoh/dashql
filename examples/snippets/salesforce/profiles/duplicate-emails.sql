@@ -1,5 +1,4 @@
 /**
- * @description
  * Email addresses shared by several individuals, ignoring case and surrounding spaces.
  * Candidates for the match rules of identity resolution.
  */

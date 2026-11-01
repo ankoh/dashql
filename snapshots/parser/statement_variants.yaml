@@ -633,9 +633,9 @@ parser-snapshots:
             - "end"
       comment-warnings: []
 
-  - name: description_dashql_block
+  - name: tagged_dashql_block
     input: |-
-      -- @description
+      -- @param
       -- Some text
       -- @end
       select 1;
@@ -666,17 +666,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [15,16]
-        - text: [28,29]
-        - text: [36,37]
+        - text: [9,10]
+        - text: [22,23]
+        - text: [30,31]
       comments:
-        - text: "-- @description"
+        - text: "-- @param"
         - text: "-- Some text"
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @descri..xt\n-- @end"
-          tag: "description"
+          text: "-- @param\n..xt\n-- @end"
+          tag: "param"
           comments: [0,3]
           lines:
             - "Some text"

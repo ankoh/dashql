@@ -1,5 +1,4 @@
 /**
- * @description
  * Translate single expressions into the SQL dialect of Spark, with the columns they read.
  */
 

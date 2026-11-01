@@ -1,5 +1,4 @@
 /**
- * @description
  * Collect the products of each order into a JSON array with the aggregate `json_arrayagg`.
  */
 

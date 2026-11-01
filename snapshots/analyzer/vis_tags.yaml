@@ -181,7 +181,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        -- @description Revenue per region.
+        -- Revenue per region.
         -- @vis table
         select * from sales;
       catalog-id: 2

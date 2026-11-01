@@ -1,5 +1,4 @@
 /**
- * @description
  * The hours until the next engagement of the same individual with `lead`.
  */
 

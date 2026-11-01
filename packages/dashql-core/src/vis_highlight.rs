@@ -1,11 +1,11 @@
 //! The syntax spans of comments: comment tags are highlighted like code, everything else is a comment.
 //!
-//! Every tag, `@description`, `@vis`, `@board`, `@flow`, `@param` and the `@end` that older scripts close a region
+//! Every tag, `@vis`, `@board`, `@flow`, `@param` and the `@end` that older scripts close a region
 //! of line comments with, is a keyword, so the tags of an annotation read alike. The JSON of `@vis vegalite` is split
 //! into its tokens: keys are identifiers, strings, numbers and booleans are literals. In a `@vis` tag, the kind is a
 //! keyword and `{{field}}` placeholders of Markdown templates are identifiers. The keys of the args of `@board` and
 //! `@flow` (and of `@vis board` and `@vis flow` of older scripts) are identifiers. The rest of the comment stays a
-//! comment, e.g. the prose of a `@description`.
+//! comment, e.g. the value of a `@param`.
 //!
 //! The JSON objects of `vegalite` tags are found with the tokens, editors fold them.
 
@@ -278,12 +278,12 @@ mod tests {
     #[test]
     fn highlights_every_tag_alike() {
         use ScannerTokenType as T;
-        // The prose of a description stays a comment, the keys of the args of a board are identifiers
+        // The content of a tag without tokens stays a comment, the keys of the args of a board are identifiers
         assert_eq!(
-            spans("/* @description Sales.\n   @board width=6\n*/\nselect 1"),
+            spans("/* @param Sales.\n   @board width=6\n*/\nselect 1"),
             vec![
                 ("/* ", T::COMMENT),
-                ("@description", T::KEYWORD),
+                ("@param", T::KEYWORD),
                 (" Sales.\n   ", T::COMMENT),
                 ("@board", T::KEYWORD),
                 (" ", T::COMMENT),
@@ -294,10 +294,10 @@ mod tests {
             ]
         );
         assert_eq!(
-            spans("-- @description\n-- Sales.\n--   @end\nselect 1"),
+            spans("-- @param\n-- Sales.\n--   @end\nselect 1"),
             vec![
                 ("-- ", T::COMMENT),
-                ("@description", T::KEYWORD),
+                ("@param", T::KEYWORD),
                 ("-- Sales.", T::COMMENT),
                 ("--   ", T::COMMENT),
                 ("@end", T::KEYWORD),
@@ -305,8 +305,8 @@ mod tests {
         );
         // A region of line comments ends with the run, the end line is not needed
         assert_eq!(
-            spans("-- @description Sales.\nselect 1"),
-            vec![("-- ", T::COMMENT), ("@description", T::KEYWORD), (" Sales.", T::COMMENT)]
+            spans("-- @param Sales.\nselect 1"),
+            vec![("-- ", T::COMMENT), ("@param", T::KEYWORD), (" Sales.", T::COMMENT)]
         );
     }
 

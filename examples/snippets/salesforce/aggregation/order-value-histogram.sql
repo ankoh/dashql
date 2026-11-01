@@ -1,5 +1,4 @@
 /**
- * @description
  * Count the orders in equally wide value buckets with `width_bucket`.
  * Values below the range land in bucket 0, values above it in bucket 6.
  */

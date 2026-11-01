@@ -1,5 +1,4 @@
 /**
- * @description
  * Smooth a time series with the average over a sliding window of rows.
  * The window holds the current row and the two before it.
  */

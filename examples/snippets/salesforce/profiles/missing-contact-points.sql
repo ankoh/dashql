@@ -1,5 +1,4 @@
 /**
- * @description
  * Individuals that can be reached neither by email nor by phone.
  */
 

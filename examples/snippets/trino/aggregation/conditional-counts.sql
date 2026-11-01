@@ -1,5 +1,4 @@
 /**
- * @description
  * Count rows per condition in one pass, turning categories into columns.
  */
 

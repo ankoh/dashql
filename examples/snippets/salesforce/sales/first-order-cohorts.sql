@@ -1,5 +1,4 @@
 /**
- * @description
  * Group customers by the month of their first order and count how many of them order again in the following months.
  */
 

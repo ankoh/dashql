@@ -303,7 +303,7 @@ The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scann
 
 The scanner collects comments as trivia. After parsing, `comment_blocks.rs` groups them into blocks:
 a block comment, or a run of line comments on consecutive lines. Blocks are split at every line whose
-first text is a known tag, `@<tag>`. The known tags are `description`, `vis`, `board`, `flow`, `param` and `end`
+first text is a known tag, `@<tag>`. The known tags are `vis`, `board`, `flow`, `param` and `end`
 (`COMMENT_TAGS`), any other `@word` (`@todo`, `@see`) is ordinary text. A tag runs to the next tag
 line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
 closes the last tag, in a run of line comments the end of the run. Text before the first tag of a block
@@ -313,18 +313,19 @@ Javadoc-style comments (see `vis_comments.md`).
 
 ```sql
 /**
- * @description Revenue per segment.
+ * Revenue per segment.
+ *
+ * @vis table
  * @board width=6
  */
 select 1;
 
 /* Revenue dashboard.
-   @description Revenue per region.
    @vis table
 */
 select 2;
 
--- @description Revenue per market.
+-- @vis table
 select 3;
 ```
 

@@ -1,4 +1,4 @@
-//! The annotation of a statement: the comment tags in front of it (`@description`, `@vis`, `@board`, `@flow`, `@param`),
+//! The annotation of a statement: the comment tags in front of it (`@vis`, `@board`, `@flow`, `@param`),
 //! read as one list and written back as one comment.
 //!
 //! An annotation is the text before the first tag of a block comment (the preamble) and the tags in their
@@ -29,7 +29,7 @@ pub(crate) const ANNOTATION_GUTTER: &str = " * ";
 /// A tag of an annotation, as JSON `{"name": ..., "lines": [...]}`
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnnotationTag {
-    /// The tag name without `@`, e.g. `description`
+    /// The tag name without `@`, e.g. `vis`
     pub name: String,
     /// The content lines, the first one is the text on the line of the tag and may be empty
     #[serde(default)]
@@ -381,12 +381,12 @@ mod tests {
 
     #[test]
     fn reads_the_tags_of_every_comment() {
-        let text = "-- @description\n-- Sales.\n-- per region\n-- @end\n-- note\n/* Revenue.\n   @vis table */\nselect 1";
+        let text = "-- @param\n-- Sales.\n-- per region\n-- @end\n-- note\n/* Revenue.\n   @vis table */\nselect 1";
         let annotation = read_annotation(&parsed(text), 0).unwrap();
         assert_eq!(annotation.preamble, lines(&["Revenue."]));
         assert_eq!(
             annotation.tags,
-            vec![AnnotationTag::new("description", lines(&["", "Sales.", "per region"])), AnnotationTag::new("vis", lines(&["table"]))]
+            vec![AnnotationTag::new("param", lines(&["", "Sales.", "per region"])), AnnotationTag::new("vis", lines(&["table"]))]
         );
         assert_eq!(annotation.tags[0].text(), "Sales.\nper region");
         assert_eq!(annotation.tags[1].kind(), "table");
@@ -398,8 +398,8 @@ mod tests {
     fn prints_javadoc_style() {
         let mut annotation = Annotation { preamble: vec![], tags: vec![AnnotationTag::new("vis", lines(&["table"]))] };
         assert_eq!(annotation.print("").unwrap().0, "/** @vis table */");
-        annotation.tags.insert(0, AnnotationTag::with_text("description", "Sales.\n\n* per region"));
-        assert_eq!(annotation.print("  ").unwrap().0, "/**\n   * @description\n   * Sales.\n   *\n   * * per region\n   * @vis table\n   */");
+        annotation.tags.insert(0, AnnotationTag::with_text("param", "Sales.\n\n* per region"));
+        assert_eq!(annotation.print("  ").unwrap().0, "/**\n   * @param\n   * Sales.\n   *\n   * * per region\n   * @vis table\n   */");
     }
 
     #[test]
@@ -407,27 +407,27 @@ mod tests {
         let tag = |name: &str, content: &[&str]| Annotation { preamble: vec![], tags: vec![AnnotationTag::new(name, lines(content))] };
         assert!(tag("todo", &["x"]).print("").is_err());
         assert!(tag("end", &[""]).print("").is_err());
-        assert!(tag("description", &["", "a */ b"]).print("").is_err());
-        assert!(tag("description", &["", "a\nb"]).print("").is_err());
-        assert!(tag("description", &["", "@vis table"]).print("").is_err());
+        assert!(tag("param", &["", "a */ b"]).print("").is_err());
+        assert!(tag("param", &["", "a\nb"]).print("").is_err());
+        assert!(tag("param", &["", "@vis table"]).print("").is_err());
         // A tag on the line of the tag is text, `@word` that is no tag is text
-        assert!(tag("description", &["@vis table", "@todo"]).print("").is_ok());
+        assert!(tag("param", &["@vis table", "@todo"]).print("").is_ok());
     }
 
     #[test]
     fn writes_the_annotation_as_one_comment() {
-        let text = "-- @description Sales.\n\n/* @vis table */\nselect 1";
+        let text = "-- @param Sales.\n\n/* @vis table */\nselect 1";
         let script = parsed(text);
         let mut annotation = read_annotation(&script, 0).unwrap();
-        annotation.tags[0] = AnnotationTag::with_text("description", "Revenue.");
-        assert_eq!(write_annotation(text, &script, 0, &annotation).unwrap(), "/**\n * @description\n * Revenue.\n * @vis table\n */\nselect 1");
+        annotation.tags[0] = AnnotationTag::with_text("param", "Revenue.");
+        assert_eq!(write_annotation(text, &script, 0, &annotation).unwrap(), "/**\n * @param\n * Revenue.\n * @vis table\n */\nselect 1");
         // An unchanged annotation leaves the text alone, an empty one removes the comments
         assert_eq!(write_annotation(text, &script, 0, &read_annotation(&script, 0).unwrap()).unwrap(), text);
         assert_eq!(write_annotation(text, &script, 0, &Annotation::default()).unwrap(), "select 1");
         // Statements of every kind have annotations
         let text = "create table t (a int)";
-        let annotation = Annotation { preamble: vec![], tags: vec![AnnotationTag::new("description", lines(&["Tables."]))] };
-        assert_eq!(write_annotation(text, &parsed(text), 0, &annotation).unwrap(), "/** @description Tables. */\ncreate table t (a int)");
+        let annotation = Annotation { preamble: vec![], tags: vec![AnnotationTag::new("param", lines(&["Tables."]))] };
+        assert_eq!(write_annotation(text, &parsed(text), 0, &annotation).unwrap(), "/** @param Tables. */\ncreate table t (a int)");
     }
 
     #[test]

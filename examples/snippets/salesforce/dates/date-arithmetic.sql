@@ -1,5 +1,4 @@
 /**
- * @description
  * Add to and subtract from timestamps and measure the distance between them.
  * There is no `date_sub`, `date_add` with a negative amount goes back in time.
  */

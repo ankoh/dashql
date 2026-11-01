@@ -579,7 +579,7 @@ fn edit_can_synchronously_analyze_and_place_cursor() {
 
 #[test]
 fn projects_the_tagged_comment_regions() {
-    let text = "-- @description\n-- Two lines\n-- of text.\n-- @end\nselect 1;\n/* @vis table */\nselect 2";
+    let text = "-- @param\n-- Two lines\n-- of text.\n-- @end\nselect 1;\n/* @vis table */\nselect 2";
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     let update = analyze(&mut session, text);
@@ -596,7 +596,7 @@ fn projects_the_tagged_comment_regions() {
     assert_eq!(
         tags,
         vec![
-            ("description", "-- @description\n-- Two lines\n-- of text.\n-- @end", vec!["Two lines", "of text."]),
+            ("param", "-- @param\n-- Two lines\n-- of text.\n-- @end", vec!["Two lines", "of text."]),
             ("vis", "/* @vis table */", vec!["table"]),
         ]
     );

@@ -1,5 +1,4 @@
 /**
- * @description
  * How many source records identity resolution merged into how many unified profiles, per data source.
  */
 

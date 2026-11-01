@@ -176,7 +176,7 @@ formatter-snapshots:
       -- }
       -- @end
 
-      -- @description
+      -- @param
       -- Returns every row of the table with all of its columns, which is long enough to be wrapped.
       -- @end
       select 1
@@ -195,7 +195,7 @@ formatter-snapshots:
                *   "ctx": "{\"workload\":{\"name\":\"activation-engine\",\"group\":\"activation-engine\",\"type\":\"background\"}}",
                *   "rows": 1
                * }
-               * @description
+               * @param
                * Returns every row of the table with all of its columns, which is long enough to be wrapped.
                */
               select 1;
@@ -208,7 +208,7 @@ formatter-snapshots:
                *   "ctx": "{\"workload\":{\"name\":\"activation-engine\",\"group\":\"activation-engine\",\"type\":\"background\"}}",
                *   "rows": 1
                * }
-               * @description
+               * @param
                * Returns every row of the table with all of its columns, which is long enough to be wrapped.
                */
               select 1;

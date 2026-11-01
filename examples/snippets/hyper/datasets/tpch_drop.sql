@@ -1,5 +1,4 @@
 /**
- * @description
  * Drop any TPC-H tables.
  */
 

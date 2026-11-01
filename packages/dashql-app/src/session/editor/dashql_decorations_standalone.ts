@@ -45,33 +45,27 @@ function buildTagDecorations(state: EditorState, extraClass: string | null): Map
     return decorations;
 }
 
-/// The tag of the comment regions that describe a script, their text reads like prose
-const DESCRIPTION_TAG = 'description';
-
-/// A piece of a tagged comment region: the comment markers around its lines, or a line of a `@description`
+/// A piece of a tagged comment region: the comment markers around its lines
 interface TagPiece {
     from: number;
     to: number;
-    prose: boolean;
 }
 
-/// The pieces of the tagged comment regions of an update, sorted by offset. The lines of tags other than
-/// `@description` are no pieces, they keep the highlighting of comments.
+/// The pieces of the tagged comment regions of an update, sorted by offset. The lines of the tags are no pieces,
+/// they keep the highlighting of comments.
 function tagPieces(update: dashql.buffers.editor.EditorUpdateT): TagPiece[] {
     const pieces: TagPiece[] = [];
     for (const tag of update.commentTags) {
         if (tag.textSpan == null) continue;
-        const prose = tag.name === DESCRIPTION_TAG;
         let at = Number(tag.textSpan.offset);
         for (const line of tag.lines) {
             const from = Number(line.offset);
             const to = Number(line.offset + line.length);
-            if (from > at) pieces.push({ from: at, to: from, prose: false });
-            if (prose) pieces.push({ from, to, prose: true });
+            if (from > at) pieces.push({ from: at, to: from });
             at = to;
         }
         const end = Number(tag.textSpan.offset + tag.textSpan.length);
-        if (end > at) pieces.push({ from: at, to: end, prose: false });
+        if (end > at) pieces.push({ from: at, to: end });
     }
     return pieces;
 }
@@ -90,8 +84,7 @@ export function buildDecorationsForRanges(
     const decorations = buildTagDecorations(state, null);
     // The tags and the tokens of their content are highlighted quieter than the SQL around them
     const commentTokenDecorations = buildTagDecorations(state, 'dashql-comment-token');
-    // The comment markers of every tagged region step back, the text of a `@description` keeps the color of the text
-    const proseDecoration = Decoration.mark({ class: 'dashql-comment dashql-comment-description' });
+    // The comment markers of every tagged region step back
     const markerDecoration = buildTagDecorations(state, 'dashql-comment-tag').get(commentTag)!;
     const pieces = tagPieces(update);
     let pieceCursor = 0;
@@ -103,7 +96,7 @@ export function buildDecorationsForRanges(
             const pieceFrom = Math.max(piece.from, at);
             const pieceTo = Math.min(piece.to, to);
             if (pieceFrom > at) builder.add(at, pieceFrom, decoration);
-            builder.add(pieceFrom, pieceTo, piece.prose ? proseDecoration : markerDecoration);
+            builder.add(pieceFrom, pieceTo, markerDecoration);
             at = pieceTo;
         }
         if (to > at) builder.add(at, to, decoration);

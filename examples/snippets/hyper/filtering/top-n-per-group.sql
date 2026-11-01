@@ -1,5 +1,4 @@
 /**
- * @description
  * Keep the two best-selling products of every category with a ranking window function.
  */
 

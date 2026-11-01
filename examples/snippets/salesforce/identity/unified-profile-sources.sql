@@ -1,5 +1,4 @@
 /**
- * @description
  * Compare the unified profiles with the source records that identity resolution merged into them.
  */
 

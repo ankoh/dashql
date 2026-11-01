@@ -1,5 +1,4 @@
 /**
- * @description
  * The latest activity of each individual over all channels with `greatest`, which skips the nulls,
  * and the best way to reach them with `coalesce`, which takes the first value that is not null.
  */

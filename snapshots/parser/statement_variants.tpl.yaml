@@ -60,9 +60,9 @@ parser-snapshots:
       select 2; -- end
 
   # A dashql description block
-  - name: description_dashql_block
+  - name: tagged_dashql_block
     input: |-
-      -- @description
+      -- @param
       -- Some text
       -- @end
       select 1;
