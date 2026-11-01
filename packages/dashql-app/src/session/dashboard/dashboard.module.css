@@ -13,15 +13,15 @@
 /* The rows are explicit, the bar of the inputs is absent without inputs */
 .inputs {
     grid-row: 1;
-    /* The chips start at the left edge of the cards */
-    --session_input_strip_inline_padding: max(20px, calc((100% - 1600px) / 2));
+    /* The chips start at the left edge of the cards, 16px from the edge of the page like in the feed */
+    --session_input_strip_inline_padding: max(16px, calc((100% - 1600px) / 2));
 }
 
 .scroll {
     grid-row: 2;
     min-height: 0;
     overflow: auto;
-    padding: 20px;
+    padding: 16px;
 }
 
 .grid {
