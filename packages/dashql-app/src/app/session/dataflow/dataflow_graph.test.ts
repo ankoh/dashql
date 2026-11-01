@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { DataflowEdgeKind, deriveDataflowGraph, mergeDataflowGraph, statementTypeLabel, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';
+import { DataflowEdgeKind, deriveDataflowGraph, forgetDataflowGraph, mergeDataflowGraph, statementTypeLabel, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';
 import { analyzedTestSession } from './dataflow_test_session.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -32,8 +32,12 @@ describe('dataflow graph', () => {
             'schema.sql.1 -> report.sql.0 table t',
             'report.sql.0 -> chart.sql.0 inline report',
         ]);
-        // The same session gives the same graph
+        // The same session gives the same graph, until the session is forgotten
         expect(deriveDataflowGraph(session)).toBe(graph);
+        forgetDataflowGraph(session.sessionId);
+        const derived = deriveDataflowGraph(session);
+        expect(derived).not.toBe(graph);
+        expect(derived).toEqual(graph);
     });
 
     it('labels statement types with their first word', () => {
