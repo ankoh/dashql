@@ -11,7 +11,7 @@ import { TestLogger } from '../logger/test_logger.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_parquet_export.js';
 import { createExecutionMounts } from '../../app/session/scripts/session_execution.js';
-import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../app/storage/opfs_query_result_cache.js';
+import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
 import { getOPFSRoot, hyperOPFSRoot } from '../opfs_root.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {

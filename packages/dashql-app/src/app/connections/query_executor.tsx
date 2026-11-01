@@ -34,7 +34,7 @@ import { allocateQueryId, executeTrackedQuery } from '../../query/tracked_query_
 import { consumeQueryResponseStream, executeConnectionQuery } from './query_execution.js';
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 import { supportsParquet, type ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
-import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
+import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 
 const LOG_CTX = 'query_executor';
 

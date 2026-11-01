@@ -1,4 +1,4 @@
-import { STORAGE_SHELL_FOLDER } from '../app/storage/storage_backend.js';
+import { STORAGE_SHELL_FOLDER } from '../storage/storage_backend.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
 
 const HISTORY_FILE = 'salesforce-login-history.json';

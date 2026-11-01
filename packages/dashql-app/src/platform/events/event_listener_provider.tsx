@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { PlatformEventListener, EVENT_QUERY_PARAMETER, SESSION_QUERY_PARAMETER, readSessionUrlParameter } from './event_listener.js';
-import { LEGACY_SESSION_QUERY_PARAMETER } from '../../migration/legacy_links.js';
+import { LEGACY_SESSION_QUERY_PARAMETER } from '../../storage/migration/legacy_links.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
 import { AppHost, getAppHost } from '../native_globals.js';

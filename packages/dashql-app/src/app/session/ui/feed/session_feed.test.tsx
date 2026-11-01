@@ -11,7 +11,7 @@ import { SessionDataCard, type SessionDataCardProps } from './session_data_card.
 import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '../../../connections/connector_info.js';
 import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../../../platform/file/web_file_downloader.js';
-import { SessionTestBackend } from '../../../storage/session_test_backend.js';
+import { SessionTestBackend } from '../../../../storage/session_test_backend.js';
 import { SessionFeed, type SessionFeedDependencies } from './session_feed.js';
 import { SessionComposerVariant, type SessionComposerProps } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';

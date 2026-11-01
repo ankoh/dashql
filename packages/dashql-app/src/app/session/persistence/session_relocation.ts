@@ -1,6 +1,6 @@
 import type { Logger } from '../../../platform/logger/logger.js';
-import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
+import type { CompositeStorageBackend } from '../../../storage/composite_storage_backend.js';
+import { StorageWriter } from '../../../storage/storage_writer.js';
 
 const LOG_CTX = 'session_relocation';
 

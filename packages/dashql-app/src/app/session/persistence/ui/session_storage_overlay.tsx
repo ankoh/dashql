@@ -8,9 +8,9 @@ import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js'
 import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { OverlaySize } from '../../../../ui/foundations/overlay.js';
 import { PlatformType, usePlatformType } from '../../../../platform/platform_type.js';
-import { StorageBackendType } from '../../../storage/storage_backend.js';
-import { displayPath } from '../../../storage/session_locator.js';
-import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
+import { StorageBackendType } from '../../../../storage/storage_backend.js';
+import { displayPath } from '../../../../storage/session_locator.js';
+import { useStorageReader, useStorageWriter } from '../../../../storage/storage_provider.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { relocateSessionToNative } from '../session_relocation.js';
 

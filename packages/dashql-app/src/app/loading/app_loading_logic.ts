@@ -8,7 +8,7 @@ import type { ConnectionState } from '../connections/connection_state.js';
 import { Dispatch } from '../../utils/variant.js';
 import { SetSessionScriptsRegistryAction } from '../session/scripts/session_scripts_registry.js';
 import { ProgressCounter } from '../../utils/progress.js';
-import { InvalidSession } from '../storage/session_validation.js';
+import { InvalidSession } from '../../storage/session_validation.js';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';
 

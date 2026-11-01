@@ -10,9 +10,9 @@ import {
     SessionLinkTarget,
 } from './session_export.js';
 import { importSessionFromZip } from './session_import.js';
-import { sessionBundlesEqual } from '../../storage/session_bundle.js';
-import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testConnections, testSession } from '../../storage/session_test_backend.js';
-import type { SessionData } from '../../storage/storage_backend.js';
+import { sessionBundlesEqual } from '../../../storage/session_bundle.js';
+import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testConnections, testSession } from '../../../storage/session_test_backend.js';
+import type { SessionData } from '../../../storage/storage_backend.js';
 import { hyperOPFSRoot } from '../../../platform/opfs_root.js';
 
 describe('V2 session export', () => {

@@ -6,8 +6,8 @@ import type { ConnectionState } from './connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from './connection_import.js';
 import { connectionCatalogIsDurable } from './connection_params.js';
 import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog_batch.js';
-import type { SessionConnection, SessionRegistryBackend } from '../storage/storage_backend.js';
-import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS } from '../storage/storage_backend.js';
+import type { SessionConnection, SessionRegistryBackend } from '../../storage/storage_backend.js';
+import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS } from '../../storage/storage_backend.js';
 
 const LOG_CTX = "connection_restore";
 

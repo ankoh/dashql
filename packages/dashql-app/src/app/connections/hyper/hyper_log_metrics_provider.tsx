@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { useEmbeddedDatabaseSetup } from '../../../platform/database/embedded_database_provider.js';
-import { useStorageReader } from '../../storage/storage_provider.js';
-import { connectionMonitoringDatabasePath, isSessionRegistryBackend } from '../../storage/storage_backend.js';
+import { useStorageReader } from '../../../storage/storage_provider.js';
+import { connectionMonitoringDatabasePath, isSessionRegistryBackend } from '../../../storage/storage_backend.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useConnectionRegistryStore } from '../connection_registry.js';

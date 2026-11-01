@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
-import type { StorageBackend, SessionData, ScriptData, DataFileData, ConnectionParams } from '../../storage/storage_backend.js';
+import type { StorageBackend, SessionData, ScriptData, DataFileData, ConnectionParams } from '../../../storage/storage_backend.js';
 import {
     STORAGE_SESSION_FILE,
     STORAGE_ATTACHMENTS_FOLDER,
@@ -10,7 +10,7 @@ import {
     STORAGE_SCRIPTS_FOLDER,
     STORAGE_CATALOG_FUNCTIONS,
     STORAGE_CATALOG_RELATIONS,
-} from '../../storage/storage_backend.js';
+} from '../../../storage/storage_backend.js';
 import { BASE64URL_CODEC } from '../../../utils/base64.js';
 import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
 import {
@@ -21,7 +21,7 @@ import {
     regenerateBundleConnectionIds,
     type SessionBundle,
     type SessionBundleCatalog,
-} from '../../storage/session_bundle.js';
+} from '../../../storage/session_bundle.js';
 
 /// The target platform a shared session link points at.
 export enum SessionLinkTarget {

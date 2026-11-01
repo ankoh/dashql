@@ -1,12 +1,12 @@
 import JSZip from 'jszip';
 
-import type { ScriptData, StorageBackend } from '../../storage/storage_backend.js';
+import type { ScriptData, StorageBackend } from '../../../storage/storage_backend.js';
 import {
     STORAGE_ATTACHMENTS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
-} from '../../storage/storage_backend.js';
-import type { SessionBundle, SessionBundleWriteOptions } from '../../storage/session_bundle.js';
+} from '../../../storage/storage_backend.js';
+import type { SessionBundle, SessionBundleWriteOptions } from '../../../storage/session_bundle.js';
 import {
     assembleSessionBundle,
     isBundleCatalogPath,
@@ -14,8 +14,8 @@ import {
     regenerateBundleConnectionIds,
     seedConnectionCatalogs,
     writeSessionBundle,
-} from '../../storage/session_bundle.js';
-import { MemoryFolder } from '../../../migration/migration_folder.js';
+} from '../../../storage/session_bundle.js';
+import { MemoryFolder } from '../../../storage/migration/migration_folder.js';
 
 export interface SessionZipImportOptions extends SessionBundleWriteOptions {
     /// Generate fresh connection identities for a clone/create-new import

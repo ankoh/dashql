@@ -277,10 +277,10 @@ bazel build //packages/dashql-native:compile
 ## Implementation References
 
 - Check coordinator: `packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx`
-- Stamps and refused script writes: `packages/dashql-app/src/app/storage/native_storage_backend.ts`
-- Held writes: `packages/dashql-app/src/app/storage/storage_writer.ts`
+- Stamps and refused script writes: `packages/dashql-app/src/storage/native_storage_backend.ts`
+- Held writes: `packages/dashql-app/src/storage/storage_writer.ts`
 - Session scripts reconciliation: `packages/dashql-app/src/app/session/scripts/session_scripts.ts`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Stamp tests: `packages/dashql-app/src/app/storage/native_storage_backend.test.ts`
-- Writer tests: `packages/dashql-app/src/app/storage/storage_writer.test.ts`
+- Stamp tests: `packages/dashql-app/src/storage/native_storage_backend.test.ts`
+- Writer tests: `packages/dashql-app/src/storage/storage_writer.test.ts`
 - Session scripts reconciliation tests: `packages/dashql-app/src/app/session/scripts/session_scripts.test.ts`

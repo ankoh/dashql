@@ -11,7 +11,7 @@ import { useComputeDatabase } from '../../../compute/compute_connection_provider
 import { supportsParquet } from '../../../platform/hyperdb/hyperdb_parquet_export.js';
 import { registerScriptRunServices, type ScriptRunServices } from './script_run.js';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
-import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
+import { useQueryResultCache } from '../../../storage/query_result_cache_provider.js';
 import { scriptConnectionIds } from './session_scripts.js';
 import { QueryType } from '../../../query/query_execution_state.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';

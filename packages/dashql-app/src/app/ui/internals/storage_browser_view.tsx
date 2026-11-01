@@ -21,13 +21,13 @@ import { formatBytes } from '../../../utils/format.js';
 import { formatRelativeTime } from '../../../utils/time_format.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
-import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
+import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
 import {
     type OPFSCleanupCandidate,
     type OPFSCleanupResult,
     findOPFSCleanupCandidates,
     removeOPFSCleanupCandidates,
-} from '../../storage/opfs_cleanup.js';
+} from '../../../storage/opfs_cleanup.js';
 import {
     OPFS_TREE_ROOT_KEY,
     StorageTreeEntryKind,
@@ -36,7 +36,7 @@ import {
     type StorageTreeEntry,
     type StorageTreeFileStat,
     type StorageTreeRoot,
-} from '../../storage/storage_tree.js';
+} from '../../../storage/storage_tree.js';
 import { getOPFSRoot } from '../../../platform/opfs_root.js';
 
 const LOG_CTX = 'storage_browser';

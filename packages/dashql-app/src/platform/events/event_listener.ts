@@ -2,7 +2,7 @@ import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { LEGACY_SESSION_QUERY_PARAMETER, migrateAppEventData } from '../../migration/legacy_links.js';
+import { LEGACY_SESSION_QUERY_PARAMETER, migrateAppEventData } from '../../storage/migration/legacy_links.js';
 import { Logger } from '../logger/logger.js';
 import { PlatformDragDropEventVariant, SETUP_SESSION, SETUP_SESSION_URL, SetupEventVariant } from './event.js';
 import { parseHyperLinkTarget, type HyperLinkTarget } from '../../app/hyper_link/hyper_link.js';

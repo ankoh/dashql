@@ -11,7 +11,7 @@ import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import { loadApp, selectStartupSession, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../config/app_config.js';
-import { useStorage } from '../storage/storage_provider.js';
+import { useStorage } from '../../storage/storage_provider.js';
 import { useSessionScriptsRegistrySetter } from '../session/scripts/session_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';

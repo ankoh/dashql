@@ -9,14 +9,14 @@ import { addSessionScriptsForConnection, copySessionScriptsRegistry, type Sessio
 import { createEmptyScriptData, destroySessionScripts, replaceScriptSessionText, scriptConnectionOf, sessionConnectionIds } from '../scripts/session_scripts.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection, restoreConnectionCatalog } from '../../connections/connection_restore.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '../../connections/connector_info.js';
-import type { StorageBackend, SessionEntry, SessionData, SessionRegistryBackend, ConnectionEntry, SessionConnection, SessionScript } from '../../storage/storage_backend.js';
-import { StorageBackendType, isSessionRegistryBackend } from '../../storage/storage_backend.js';
+import type { StorageBackend, SessionEntry, SessionData, SessionRegistryBackend, ConnectionEntry, SessionConnection, SessionScript } from '../../../storage/storage_backend.js';
+import { StorageBackendType, isSessionRegistryBackend } from '../../../storage/storage_backend.js';
 import { connectionParamsEqual, createDefaultConnectionParamsForConnector } from '../../connections/connection_params.js';
 import { findEmbeddedConnection } from '../../connections/embedded_connection.js';
-import { patchSessionConnection, upsertConnectionEntry } from '../../storage/storage_writer.js';
-import { sanitizeSessionFiles, sessionConnectionIdsOf, withSessionScripts } from '../../storage/session_files.js';
+import { patchSessionConnection, upsertConnectionEntry } from '../../../storage/storage_writer.js';
+import { sanitizeSessionFiles, sessionConnectionIdsOf, withSessionScripts } from '../../../storage/session_files.js';
 import { resolveSessionScripts, sessionScriptsResolutionChanged, type SessionConnectionResolver } from './session_script_connections.js';
-import { validateSessionData, describeInvalidSession, isLocalHyperWasmParams, isValidUuid, SessionValidationError, type InvalidSession } from '../../storage/session_validation.js';
+import { validateSessionData, describeInvalidSession, isLocalHyperWasmParams, isValidUuid, SessionValidationError, type InvalidSession } from '../../../storage/session_validation.js';
 import type { BatchProcessor } from '../../connections/catalog_batch.js';
 
 const LOG_CTX = "app_state_loader";

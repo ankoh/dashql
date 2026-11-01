@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { StorageTreeEntryKind, type StorageTreeRoot } from '../../storage/storage_tree.js';
+import { StorageTreeEntryKind, type StorageTreeRoot } from '../../../storage/storage_tree.js';
 import { flattenStorageTree, storageTreeNodeKey, type StorageTreeListing } from './storage_browser_view.js';
 
 const { File: F, Directory: D } = StorageTreeEntryKind;

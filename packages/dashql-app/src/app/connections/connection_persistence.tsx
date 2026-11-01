@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { useStorageWriter } from '../storage/storage_provider.js';
+import { useStorageWriter } from '../../storage/storage_provider.js';
 import {
     groupConnectionEntryWrites,
     groupSessionConnectionCopyWrites,
     PATCH_SESSION_CONNECTION,
     WRITE_CONNECTION_ENTRY,
     type StorageWriteResult,
-} from '../storage/storage_writer.js';
+} from '../../storage/storage_writer.js';
 import { COMMIT_CONNECTION_PARAMS, type ConnectionState } from './connection_state.js';
 import {
     connectionEntryFromState,
@@ -17,7 +17,7 @@ import {
     useConnectionRegistryStore,
 } from './connection_registry.js';
 import { connectionParamsWithoutDraftRows, type ConnectionParams } from './connection_params.js';
-import type { SessionConnection } from '../storage/storage_backend.js';
+import type { SessionConnection } from '../../storage/storage_backend.js';
 
 /// The copy of a connection with saved params that the sessions store
 function sessionCopy(connection: ConnectionState, params: ConnectionParams): SessionConnection {

@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, HttpFetchResult } from '../../../platform/http/http_client.js';
 import { readSessionBundleFromHttp } from './http_session_bundle.js';
-import { TEST_CONNECTION_ID, testSession } from '../../storage/session_test_backend.js';
-import { SESSION_FORMAT_VERSION } from '../../../migration/versions.js';
+import { TEST_CONNECTION_ID, testSession } from '../../../storage/session_test_backend.js';
+import { SESSION_FORMAT_VERSION } from '../../../storage/migration/versions.js';
 
 const URL = new globalThis.URL('https://example.com/session/dashql-session.json');
 

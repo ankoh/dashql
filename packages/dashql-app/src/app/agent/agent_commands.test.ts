@@ -14,8 +14,8 @@ import {
 } from '../session/scripts/session_scripts.js';
 import { createScriptRef } from '../session/scripts/script_types.js';
 import { acquireSessionExecution, isSessionExecutionRunning, releaseSessionExecution } from '../session/scripts/session_execution.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
-import { StorageWriter } from '../storage/storage_writer.js';
+import { SessionTestBackend } from '../../storage/session_test_backend.js';
+import { StorageWriter } from '../../storage/storage_writer.js';
 
 /// A script with a text and the diagnostics of its analysis
 function script(scriptKey: number, fileName: string, text: string, diagnostics: unknown[] = []) {

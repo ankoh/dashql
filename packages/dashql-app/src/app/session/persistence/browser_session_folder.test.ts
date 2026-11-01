@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readSessionBundleFromBrowserFolder } from './browser_session_folder.js';
-import { TEST_CONNECTION_ID, testSession } from '../../storage/session_test_backend.js';
+import { TEST_CONNECTION_ID, testSession } from '../../../storage/session_test_backend.js';
 
 function file(path: string, text: string): File {
     const value = new File([text], path.split('/').pop()!);

@@ -1,12 +1,12 @@
-import type { ScriptData } from '../../storage/storage_backend.js';
+import type { ScriptData } from '../../../storage/storage_backend.js';
 import {
     STORAGE_ATTACHMENTS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
-} from '../../storage/storage_backend.js';
-import type { SessionBundle } from '../../storage/session_bundle.js';
-import { assembleSessionBundle, isBundleCatalogPath, readSessionBundleHead } from '../../storage/session_bundle.js';
-import { MemoryFolder } from '../../../migration/migration_folder.js';
+} from '../../../storage/storage_backend.js';
+import type { SessionBundle } from '../../../storage/session_bundle.js';
+import { assembleSessionBundle, isBundleCatalogPath, readSessionBundleHead } from '../../../storage/session_bundle.js';
+import { MemoryFolder } from '../../../storage/migration/migration_folder.js';
 
 interface BrowserFolderEntry {
     path: string;

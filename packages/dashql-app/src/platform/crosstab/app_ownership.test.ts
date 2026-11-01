@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
-import { OPFSStorageBackend } from '../../app/storage/opfs_storage_backend.js';
-import { STORAGE_SESSIONS_FOLDER } from '../../app/storage/storage_backend.js';
-import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '../../app/storage/storage_writer.js';
+import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
+import { STORAGE_SESSIONS_FOLDER } from '../../storage/storage_backend.js';
+import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '../../storage/storage_writer.js';
 import { Logger } from '../logger/logger.js';
 import { getOPFSRoot } from '../opfs_root.js';
 

@@ -6,15 +6,15 @@ import { sessionScriptsMatchStorageSnapshot, replaceSessionScriptsFromStorage, s
 import { isDesktopHost } from '../../../platform/native_globals.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
-import { useStorage } from '../../storage/storage_provider.js';
+import { useStorage } from '../../../storage/storage_provider.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import type { SessionScriptsStorageSnapshot, SessionScripts } from '../scripts/session_scripts.js';
-import type { NamedFileStamp } from '../../storage/native_storage_backend.js';
+import type { NamedFileStamp } from '../../../storage/native_storage_backend.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection } from '../../connections/connection_restore.js';
 import { resolveSessionScripts, sessionScriptsResolutionChanged } from './session_script_connections.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { findEmbeddedConnection } from '../../connections/embedded_connection.js';
-import { isLocalHyperWasmParams } from '../../storage/session_validation.js';
+import { isLocalHyperWasmParams } from '../../../storage/session_validation.js';
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_SESSION_WRITE,
@@ -27,12 +27,12 @@ import {
     WRITE_SCRIPT,
     WRITE_SESSION_SCRIPTS,
     type StorageWriter,
-} from '../../storage/storage_writer.js';
+} from '../../../storage/storage_writer.js';
 import {
     STORAGE_SCRIPTS_FOLDER,
     type ScriptData,
     type SessionData,
-} from '../../storage/storage_backend.js';
+} from '../../../storage/storage_backend.js';
 
 const LOG_CTX = 'native_session_sync';
 

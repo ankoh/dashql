@@ -6,9 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import type { ConnectionState } from '../connections/connection_state.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import type { StorageWriter } from '../storage/storage_writer.js';
-import { SessionTestBackend, TEST_CONNECTION_ID } from '../storage/session_test_backend.js';
+import { StorageProvider, useStorageWriter } from '../../storage/storage_provider.js';
+import type { StorageWriter } from '../../storage/storage_writer.js';
+import { SessionTestBackend, TEST_CONNECTION_ID } from '../../storage/session_test_backend.js';
 import { SessionScriptsRegistryProvider, useSessionScriptsRegistry, type SessionScriptsRegistry } from './scripts/session_scripts_registry.js';
 import { freeSessionName, useSessionCreation, type SessionCreation } from './session_creation.js';
 

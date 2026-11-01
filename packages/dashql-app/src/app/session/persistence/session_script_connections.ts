@@ -1,6 +1,6 @@
 import type { ConnectionState } from '../../connections/connection_state.js';
-import type { SessionConnection, SessionData, SessionScript } from '../../storage/storage_backend.js';
-import { reconcileSessionScripts, sanitizeSessionFiles, withSessionScripts } from '../../storage/session_files.js';
+import type { SessionConnection, SessionData, SessionScript } from '../../../storage/storage_backend.js';
+import { reconcileSessionScripts, sanitizeSessionFiles, withSessionScripts } from '../../../storage/session_files.js';
 
 /// A script of a session file with the connection it runs on
 export interface ResolvedSessionScript {

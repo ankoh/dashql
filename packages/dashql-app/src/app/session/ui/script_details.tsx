@@ -23,7 +23,7 @@ import {
 } from '../scripts/session_scripts.js';
 import { runSessionScript } from './rerun_query.js';
 import { useSessionExecution } from '../scripts/session_execution_provider.js';
-import { useStorageReader } from '../../storage/storage_provider.js';
+import { useStorageReader } from '../../../storage/storage_provider.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { useAppConfig } from '../../config/app_config.js';
@@ -40,8 +40,8 @@ import { VerticalSplit } from '../../../ui/foundations/vertical_split.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
 import { scriptConnectionView, usePickScriptConnection } from './script_connection_picker.js';
 import { useConnectionLabeler } from './connection_labels.js';
-import { displayPath } from '../../storage/session_locator.js';
-import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
+import { displayPath } from '../../../storage/session_locator.js';
+import { STORAGE_SCRIPTS_FOLDER } from '../../../storage/storage_backend.js';
 import { queryIsDone } from '../../../query/query_execution_state.js';
 
 export { ScriptDetailsTab as TabKey };

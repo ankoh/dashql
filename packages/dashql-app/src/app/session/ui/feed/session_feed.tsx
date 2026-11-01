@@ -36,9 +36,9 @@ import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { runSessionScript } from '../rerun_query.js';
 import { computeScriptResultCacheKey, scriptRunServices } from '../../scripts/script_run.js';
-import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
-import { useQueryResultCache } from '../../../storage/query_result_cache_provider.js';
-import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '../../../storage/storage_writer.js';
+import { useStorageReader, useStorageWriter } from '../../../../storage/storage_provider.js';
+import { useQueryResultCache } from '../../../../storage/query_result_cache_provider.js';
+import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '../../../../storage/storage_writer.js';
 import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { observeSize } from '../../../../ui/foundations/size_observer.js';
@@ -46,7 +46,7 @@ import { revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.
 import { ScriptFeedRow, type ScriptFeedRowProps } from './session_feed_row.js';
 import { getKeywordCase } from '../script_format.js';
 import { reorderFeedEntries } from './session_feed_drag.js';
-import type { DataFile } from '../../../storage/storage_backend.js';
+import type { DataFile } from '../../../../storage/storage_backend.js';
 import { stringifyError } from '../../../../platform/logger/logger.js';
 import { SessionDataCard } from './session_data_card.js';
 import {

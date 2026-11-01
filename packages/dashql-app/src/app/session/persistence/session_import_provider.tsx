@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import { filterInvalidSessionCatalogs, renameBundleCatalogs, type SessionBundle } from '../../storage/session_bundle.js';
-import type { PreparedNativeSession } from '../../storage/composite_storage_backend.js';
-import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
+import { filterInvalidSessionCatalogs, renameBundleCatalogs, type SessionBundle } from '../../../storage/session_bundle.js';
+import type { PreparedNativeSession } from '../../../storage/composite_storage_backend.js';
+import type { CompositeStorageBackend } from '../../../storage/composite_storage_backend.js';
 import {
     findSessionImportConflict,
     type SessionImportConflict,
@@ -11,9 +11,9 @@ import {
     replaceSessionWithNativeFolder,
     replaceSessionWithPortableBundle,
     writePortableSessionFresh,
-} from '../../storage/session_import_transaction.js';
-import { displayPath } from '../../storage/session_locator.js';
-import { useStorage } from '../../storage/storage_provider.js';
+} from '../../../storage/session_import_transaction.js';
+import { displayPath } from '../../../storage/session_locator.js';
+import { useStorage } from '../../../storage/storage_provider.js';
 import { restoreSingleSession } from './app_state_loader.js';
 import { mergeRestoredSessionIntoConnections, mergeRestoredSessionIntoScripts } from './app_state_loader.js';
 import { connectionEntryFromState, findSessionQueries, useConnectionReferences, useConnectionRegistrySetter, useConnectionRegistryStore } from '../../connections/connection_registry.js';
@@ -25,7 +25,7 @@ import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useCancelQuery } from '../../connections/query_executor.js';
 import { SessionImportConflictDialog } from '../ui/session_import_conflict_dialog.js';
 import { SessionConnectionImportDialog } from '../ui/session_connection_import_dialog.js';
-import { StorageBackendType, type ConnectionEntry } from '../../storage/storage_backend.js';
+import { StorageBackendType, type ConnectionEntry } from '../../../storage/storage_backend.js';
 import {
     applyConnectionImportPlan,
     connectionImportQuestions,

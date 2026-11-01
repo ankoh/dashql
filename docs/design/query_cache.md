@@ -40,7 +40,7 @@ If the executor cannot recover connection parameters or derive a signature, it t
 
 The query result cache belongs to the app, not to a session: every session and connection writes into the folder
 `cache/` at the root of the origin private file system, also native sessions. `createOPFSQueryResultCache`
-(`packages/dashql-app/src/app/storage/opfs_query_result_cache.ts`) implements the `QueryResultCache` interface
+(`packages/dashql-app/src/storage/opfs_query_result_cache.ts`) implements the `QueryResultCache` interface
 (`packages/dashql-app/src/query/query_result_cache.ts`), and `QueryResultCacheProvider` hands it to the executor and
 the session runs.
 
@@ -170,8 +170,8 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 
 - Key derivation: `packages/dashql-app/src/query/query_result_cache_key.ts`
 - Cache contract: `packages/dashql-app/src/query/query_result_cache.ts`
-- OPFS implementation: `packages/dashql-app/src/app/storage/opfs_query_result_cache.ts`
+- OPFS implementation: `packages/dashql-app/src/storage/opfs_query_result_cache.ts`
 - Executor integration: `packages/dashql-app/src/app/connections/query_executor.tsx`
-- Eviction policy: `packages/dashql-app/src/app/storage/query_result_cache_eviction.ts`
+- Eviction policy: `packages/dashql-app/src/storage/query_result_cache_eviction.ts`
 - Files of runs: `createExecutionMounts` in `packages/dashql-app/src/app/session/scripts/session_execution.ts`
 - Cache inspection UI: `packages/dashql-app/src/app/session/persistence/ui/query_cache_view.tsx`

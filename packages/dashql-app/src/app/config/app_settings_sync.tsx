@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useAppConfig, useAppReconfigure } from './app_config.js';
-import { useStorageReader } from '../storage/storage_provider.js';
+import { useStorageReader } from '../../storage/storage_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppFlavorSelect } from '../flavor/flavor_provider.js';
 

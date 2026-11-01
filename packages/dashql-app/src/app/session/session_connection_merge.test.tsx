@@ -15,8 +15,8 @@ import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from
 import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
 import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { QueryExecutorProvider, useQueryExecutor } from '../connections/query_executor.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
-import { StorageProvider } from '../storage/storage_provider.js';
+import { SessionTestBackend } from '../../storage/session_test_backend.js';
+import { StorageProvider } from '../../storage/storage_provider.js';
 import { SessionScriptsRegistryProvider } from './scripts/session_scripts_registry.js';
 import { useMergeConnections } from './session_connection_merge.js';
 

@@ -17,7 +17,7 @@ import { QUERY_PROGRESS_UPDATED, QUERY_RECEIVED_BATCH } from '../../query/query_
 import { Dispatch } from '../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../utils/store.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
-import { useStorageWriter } from '../storage/storage_provider.js';
+import { useStorageWriter } from '../../storage/storage_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import type { Logger } from '../../platform/logger/logger.js';
 
@@ -32,8 +32,8 @@ import {
     PATCH_SESSION_CONNECTION,
     DELETE_CONNECTION_ENTRY,
     type StorageWriter,
-} from '../storage/storage_writer.js';
-import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../storage/storage_backend.js';
+} from '../../storage/storage_writer.js';
+import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../../storage/storage_backend.js';
 import { connectionCatalogIsDurable, connectionParamsEqual, type ConnectionParams } from './connection_params.js';
 
 /// Drafts are written to the app manifest only, edits arrive with every keystroke

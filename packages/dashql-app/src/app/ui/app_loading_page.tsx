@@ -8,7 +8,7 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../r
 import { getStatusFromProgressCounter, IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { AppLoadingProgress } from '../loading/app_loading_progress.js';
-import { useStorageMigrationStatus } from '../storage/storage_provider.js';
+import { useStorageMigrationStatus } from '../../storage/storage_provider.js';
 import { AppSetupPage } from './app_setup_page.js';
 
 interface Props {

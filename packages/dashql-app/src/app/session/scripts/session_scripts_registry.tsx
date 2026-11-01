@@ -5,11 +5,11 @@ import { forgetDataflowGraph } from '../dataflow/dataflow_graph.js';
 import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, isAnalysisOutdated, newScriptConnection, reduceSessionScripts, SessionScriptsEffects, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../../utils/store.js';
-import { useStorageWriter } from '../../storage/storage_provider.js';
+import { useStorageWriter } from '../../../storage/storage_provider.js';
 import { ConnectionReferencesProvider, type ConnectionReferences } from '../../connections/connection_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
-import type { InvalidSession } from '../../storage/session_validation.js';
+import type { InvalidSession } from '../../../storage/session_validation.js';
 import {
     REPLACE_SESSION_SCRIPTS,
     DEBOUNCE_DURATION_SESSION_WRITE,
@@ -17,7 +17,7 @@ import {
     groupSessionScriptListWrites,
     groupSessionWrites,
     WRITE_SESSION_SCRIPTS,
-} from "../../storage/storage_writer.js";
+} from "../../../storage/storage_writer.js";
 
 const LOG_CTX = 'session_scripts_registry';
 

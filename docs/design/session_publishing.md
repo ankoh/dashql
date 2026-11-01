@@ -53,14 +53,14 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
   of the name, and reordering scripts only rewrites the list.
 - The attachment list is kept in natural order.
 - `connections/<id>/` carries the relation and function catalogs of each connection of the session
-  (`bundleCatalogPath`, `packages/dashql-app/src/app/storage/session_bundle.ts`). The catalog changes of
+  (`bundleCatalogPath`, `packages/dashql-app/src/storage/session_bundle.ts`). The catalog changes of
   executed statements are not published. Bundles of format 6 and older carry top-level catalog files, which
   are read for the default connection of that format.
 
 ## Reconciling Lists and Files
 
 Every loader, local or remote, reconciles the lists with the files it finds
-(`packages/dashql-app/src/app/storage/session_files.ts`):
+(`packages/dashql-app/src/storage/session_files.ts`):
 
 - `sanitizeSessionFiles` drops entries with unsafe names (empty, longer than 255 characters, separators, NUL,
   `.` or `..`), non-`.sql` scripts, `dashql-draft.sql`, and invalid connection ids. Duplicates are detected
@@ -72,7 +72,7 @@ Every loader, local or remote, reconciles the lists with the files it finds
 
 Older formats are migrated: v5 moved the order of `dashql-session-index.json` into the script list, v6
 turned `mainDatabase` and `attachedDatabases` into the connection list, and v7 moved the catalogs out of the
-session folder into the connections (`packages/dashql-app/src/migration/session/`). Remote sessions of older
+session folder into the connections (`packages/dashql-app/src/storage/migration/session/`). Remote sessions of older
 formats are migrated in memory.
 
 ## Links and Loading
@@ -128,7 +128,7 @@ Remote trees use the portable import path of `.dashql` files and inline ZIP link
 - No conflict: keep the published UUID.
 - Create new: allocate a fresh UUID and append ` (copy)` to a non-empty name.
 - Replace: stage the bundle under a fresh UUID, verify it, then swap it in
-  (`packages/dashql-app/src/app/storage/session_import_transaction.ts`).
+  (`packages/dashql-app/src/storage/session_import_transaction.ts`).
 - Close: no storage changes.
 
 OPFS and registered native sessions both participate in the UUID check.

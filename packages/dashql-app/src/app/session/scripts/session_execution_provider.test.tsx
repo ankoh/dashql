@@ -14,8 +14,8 @@ import { ConnectionRegistry, useConnectionRegistry } from '../../connections/con
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
 import { QueryExecutorProvider } from '../../connections/query_executor.js';
-import { SessionTestBackend } from '../../storage/session_test_backend.js';
-import { StorageProvider } from '../../storage/storage_provider.js';
+import { SessionTestBackend } from '../../../storage/session_test_backend.js';
+import { StorageProvider } from '../../../storage/storage_provider.js';
 import { SessionExecutionProvider, sessionExecutionIsBusy, useSessionExecution } from './session_execution_provider.js';
 import { isSessionExecutionRunning, type SessionExecutionState } from './session_execution.js';
 import { REGISTER_QUERY, type SessionScripts } from './session_scripts.js';

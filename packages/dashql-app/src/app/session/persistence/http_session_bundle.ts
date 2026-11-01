@@ -1,14 +1,14 @@
 import type { HttpClient, HttpFetchResult } from '../../../platform/http/http_client.js';
-import type { DataFileData, ScriptData } from '../../storage/storage_backend.js';
+import type { DataFileData, ScriptData } from '../../../storage/storage_backend.js';
 import {
     STORAGE_SESSION_FILE,
     STORAGE_ATTACHMENTS_FOLDER,
     STORAGE_SCRIPTS_FOLDER,
-} from '../../storage/storage_backend.js';
-import type { SessionBundle } from '../../storage/session_bundle.js';
-import { assembleSessionBundle, readSessionBundleHead } from '../../storage/session_bundle.js';
-import { type MigrationFolder, OverlayFolder } from '../../../migration/migration_folder.js';
-import { LEGACY_SESSION_FILE } from '../../../migration/legacy_links.js';
+} from '../../../storage/storage_backend.js';
+import type { SessionBundle } from '../../../storage/session_bundle.js';
+import { assembleSessionBundle, readSessionBundleHead } from '../../../storage/session_bundle.js';
+import { type MigrationFolder, OverlayFolder } from '../../../storage/migration/migration_folder.js';
+import { LEGACY_SESSION_FILE } from '../../../storage/migration/legacy_links.js';
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_SCRIPT_BYTES = 8 * 1024 * 1024;

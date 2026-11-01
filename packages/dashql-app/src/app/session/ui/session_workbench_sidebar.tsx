@@ -58,19 +58,19 @@ import { ConnectionSettingsOverlay } from '../../connections/ui/connection_setti
 import { renderSessionName } from './session_name.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
 import { VerticalScrollShadows } from '../../../ui/foundations/vertical_scroll_shadows.js';
-import { displayPath } from '../../storage/session_locator.js';
-import { StorageBackendType } from '../../storage/storage_backend.js';
+import { displayPath } from '../../../storage/session_locator.js';
+import { StorageBackendType } from '../../../storage/storage_backend.js';
 import { SessionStorageOverlay } from '../persistence/ui/session_storage_overlay.js';
-import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
+import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
 import { readSessionBundleFromBrowserFolder } from '../persistence/browser_session_folder.js';
-import { cloneSession } from '../../storage/session_transfer.js';
+import { cloneSession } from '../../../storage/session_transfer.js';
 import {
     mergeRestoredSessionIntoConnections,
     mergeRestoredSessionIntoScripts,
     restoreSingleSession,
 } from '../persistence/app_state_loader.js';
 import { useSessionImport } from '../persistence/session_import_provider.js';
-import { describeSessionValidationError } from '../../storage/session_validation.js';
+import { describeSessionValidationError } from '../../../storage/session_validation.js';
 import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SET_PENDING_CONNECTION, type SessionScripts } from '../scripts/session_scripts.js';
 import {
     useInvalidSessions,
