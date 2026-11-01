@@ -152,6 +152,12 @@ analyzer-snapshots:
             width: 4
             height: 2
           vegalite: "{\"mark\":\"line\",\"encoding\":{\"x\":{\"field\":\"date\"},\"y\":{\"field\":\"total\"}}}"
+      board:
+        statement-id: 0
+        row: 1
+        column: 2
+        width: 4
+        height: 2
 
   - name: vis_tag_line_comments
     catalog:
@@ -542,6 +548,10 @@ analyzer-snapshots:
           dashboard:
             width: 6
             height: 3
+      board:
+        statement-id: 0
+        width: 6
+        height: 3
 
   - name: vis_tag_board_normalized
     script:
@@ -586,6 +596,11 @@ analyzer-snapshots:
             column: 6
             width: 6
             height: 1
+      board:
+        statement-id: 0
+        column: 6
+        width: 6
+        height: 1
 
   - name: vis_tag_legacy_layout
     script:
@@ -641,6 +656,10 @@ analyzer-snapshots:
           dashboard:
             width: 3
             height: 3
+      board:
+        statement-id: 1
+        width: 3
+        height: 3
       flow:
         statement-id: 0
         x: 8
@@ -652,11 +671,7 @@ analyzer-snapshots:
         /* @board width=6 */
         select 1 as a;
       catalog-id: 1
-      errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@board places a visualization, the statement needs @vis vegalite, markdown or table'
-          text: "board"
+      errors: []
       expressions:
         - expression-idx: 0
           type: literal/integer
@@ -672,6 +687,54 @@ analyzer-snapshots:
             - name: a
               expression: 0
           text: "select 1 as a"
+      board:
+        statement-id: 0
+        width: 6
+        height: 3
+
+  - name: vis_tag_board_not_a_query
+    script:
+      input: |
+        /* @board row=4 width=3 */
+        select 1 as a;
+        /* @board row=1 column=2 width=4 height=2 */
+        create table t (a int);
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: t
+          text: "create tab.. t (a int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+              text: "a int"
+      catalog-changes:
+        - statement-id: 1
+          type: create
+          name: t
+          columns: [a]
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+      board:
+        statement-id: 1
+        row: 1
+        column: 2
+        width: 4
+        height: 2
 
   - name: vis_tag_flow
     script:

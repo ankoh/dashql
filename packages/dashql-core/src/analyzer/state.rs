@@ -64,6 +64,7 @@ impl<'a> AnalysisState<'a> {
             constant_expressions: Vec::new(),
             parameters: Vec::new(),
             visualization_specs: Vec::new(),
+            board: None,
             flow: None,
             param_values: Vec::new(),
             manual: false,

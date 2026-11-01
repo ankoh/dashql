@@ -394,6 +394,21 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
         out.insert("param-values", Node::seq(items));
     }
 
+    // Board placement
+    if let Some(board) = &script.board {
+        let mut m = Map::new();
+        m.int("statement-id", board.statement_id as i64);
+        if let Some(row) = board.dashboard.row {
+            m.int("row", row as i64);
+        }
+        if let Some(column) = board.dashboard.column {
+            m.int("column", column as i64);
+        }
+        m.int("width", board.dashboard.width as i64);
+        m.int("height", board.dashboard.height as i64);
+        out.insert("board", m.into_node());
+    }
+
     // Flow position
     if let Some(flow) = &script.flow {
         let mut m = Map::new();

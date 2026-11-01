@@ -81,7 +81,9 @@ describe('DashQL @vis tags', () => {
             '/**\n * @vis vegalite\n * {"mark": "bar"}\n */\nselect 1 as a;\n/* @vis table */\nselect 2 as b');
         expect(session.rewriteVisRenderer(1, null)).toBe('select 1 as a;\nselect 2 as b');
         expect(() => session.rewriteVisRenderer(1, 'vegalite', '[1]')).toThrow('JSON object');
-        expect(() => session.rewriteVisBoard(0, null, null, 6, 3)).toThrow('no @vis renderer');
+        // A query without a renderer is placed too, it is a collapsed card on the board
+        expect(session.rewriteVisBoard(0, null, null, 6, 3)).toBe(
+            '/** @board width=6 height=3 */\nselect 1 as a;\n/* @vis table */\nselect 2 as b');
         session.destroy();
         catalog.destroy();
     });

@@ -3,7 +3,8 @@
 //!
 //! The tags are edited in the annotation of the query (see `annotation`), so an edit leaves the annotation
 //! consolidated in one comment. The edited tag is printed anew, the other tags keep their content. A new
-//! renderer goes before the other `@vis` tags, a new board placement after the renderer. The tags of older
+//! renderer goes before the other `@vis` tags, a new board placement after the renderer or, without one, where a
+//! renderer would go. Any statement can be placed on the board, only queries have a renderer. The tags of older
 //! scripts, `@vis board`, `@vis card` and `@vis flow`, are replaced by `@board` and `@flow`. `/*` and `*/` in
 //! the strings of a Vega-Lite spec are escaped, they would nest or end the comment.
 
@@ -193,9 +194,10 @@ pub fn rewrite_vis_renderer(text: &str, parsed: &ParsedScript, statement_id: usi
     Ok(rewrite_vis_renderer_tag(text, parsed, statement_id, renderer)?.0)
 }
 
-/// Set or remove the board placement of a query, a query needs a renderer to be placed
+/// Set or remove the board placement of a statement. Any statement is placed, a statement without a renderer is a
+/// collapsed card on the board.
 pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize, board: Option<&VisBoard>) -> Result<String> {
-    let (text, _) = rewrite_query(text, parsed, statement_id, |annotation| {
+    let (text, _) = crate::annotation::rewrite(text, parsed, statement_id, |annotation| {
         let tags = &mut annotation.tags;
         Ok(match (board, tags.iter().position(is_board)) {
             (Some(board), Some(i)) => {
@@ -203,9 +205,13 @@ pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize,
                 Some(i)
             }
             (Some(board), None) => {
-                let renderer = tags.iter().position(is_renderer).ok_or_else(|| Error::invalid_argument("the query has no @vis renderer"))?;
-                tags.insert(renderer + 1, board.tag());
-                Some(renderer + 1)
+                // After the renderer, or where a renderer would go
+                let i = match tags.iter().position(is_renderer) {
+                    Some(renderer) => renderer + 1,
+                    None => tags.iter().position(is_vis_family).unwrap_or(tags.len()),
+                };
+                tags.insert(i, board.tag());
+                Some(i)
             }
             (None, Some(i)) => {
                 tags.remove(i);

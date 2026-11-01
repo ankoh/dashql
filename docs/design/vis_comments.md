@@ -57,8 +57,8 @@ SELECT metric, value, status FROM metrics;
 ```
 
 A statement has at most one renderer (`@vis vegalite`, `markdown` or `table`) and at most one `@board`.
-The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. A `@flow` tag may
-annotate any statement, it places the whole script; see Dataflow placement.
+The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. `@board` and `@flow` tags may
+annotate any statement and need no renderer; see Dashboard placement and Dataflow placement.
 
 Like in Javadoc, the text before the first tag describes the statement, it is an ordinary comment, and so is
 text after a tag that ends at its line. DashQL
@@ -85,7 +85,7 @@ tag of the statement it shows (see Rewriting tags).
 The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@flow x=.. y=..` is the
 position of the top left corner of the box in canvas pixels, negative coordinates are fine. A script has one
 position: the first `@flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or
-missing coordinate is ignored. Unlike `@board`, it needs no renderer and may annotate a statement that is no
+missing coordinate is ignored. Like `@board`, it needs no renderer and may annotate a statement that is no
 query, so a script that only creates a table is placed too. A `@flow` tag alone does not make a query a
 visualization. A script without a position is placed automatically.
 
@@ -140,8 +140,8 @@ WHERE year = :year;                       * @board width=6 height=3
   before the first tag of a block comment, separated from the tags by an empty line. After a tag it would read as
   the content of the tag. Other blank lines between the comments of the annotation are removed.
 - A new renderer goes before the other `@vis`, `@board` and `@flow` tags, after the parameters. A new board placement
-  goes after the renderer. A statement without comments gets a new comment on the line before it. A board placement
-  needs a renderer.
+  goes after the renderer, or where a renderer would go. A statement without comments gets a new comment on the line
+  before it. A renderer needs a query, a board placement any statement.
 - Removing the last tag leaves the description as the comment, without a description it removes the comment.
 - An annotation that would not read back unchanged is an error: an unknown tag name, a line with a line
   break, a continuation line that starts with a tag.
@@ -165,7 +165,8 @@ with warnings (`INVALID_VIS_TAG`, `INVALID_DASHBOARD_LAYOUT`) whose spans point 
 A renderer with an invalid body leaves the query a plain query.
 
 The position of the script is `AnalyzedScript::flow`, the editor session passes it to the app as
-`flow_position` of the script annotations.
+`flow_position` of the script annotations. The dashboard placement of the script is `AnalyzedScript::board`, the
+`@board` of the last statement with or without a renderer, passed as `board_position`.
 
 ## Compilation and rendering
 

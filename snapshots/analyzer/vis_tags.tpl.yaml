@@ -132,12 +132,21 @@ analyzer-snapshots:
            @vis board width=3 */
         select 2 as b;
 
-  # A board placement without a renderer
+  # A board placement without a renderer, the script is a collapsed card
   - name: vis_tag_board_only
     script:
       input: |
         /* @board width=6 */
         select 1 as a;
+
+  # A statement that is no query is placed too, the board takes the placement of the last statement
+  - name: vis_tag_board_not_a_query
+    script:
+      input: |
+        /* @board row=4 width=3 */
+        select 1 as a;
+        /* @board row=1 column=2 width=4 height=2 */
+        create table t (a int);
 
   # The flow position of a script, on a statement that is no query
   - name: vis_tag_flow

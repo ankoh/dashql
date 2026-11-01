@@ -678,6 +678,16 @@ impl Default for DashboardSpec {
     }
 }
 
+/// The dashboard placement of a script, the `@board` tag of its last statement. A statement without a renderer is a
+/// collapsed card.
+#[derive(Clone, Debug)]
+pub struct BoardSpec {
+    /// The statement whose annotation holds the tag, the last statement
+    pub statement_id: u32,
+    /// The placement
+    pub dashboard: DashboardSpec,
+}
+
 /// The position of a script on the dataflow canvas, its `@flow` tag
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FlowSpec {

@@ -39,7 +39,7 @@ use dashql_buffers::editor::{
     EditorCommentTagT, EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
     EditorDiagnosticSource, EditorDiagnosticT, EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin,
     EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorAnalysisVersionT, EditorScriptAnnotationsT,
-    EditorFlowPositionT,
+    EditorBoardPositionT, EditorFlowPositionT,
     EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT,
     EditorStatementDescriptionT, EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT,
     EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
@@ -931,6 +931,15 @@ impl ScriptSession {
             Box::new(position)
         });
         annotations.manual = analyzed.manual;
+        annotations.board_position = analyzed.board.as_ref().map(|board| {
+            let mut position = EditorBoardPositionT::default();
+            position.statement_id = board.statement_id;
+            position.row = board.dashboard.row;
+            position.column = board.dashboard.column;
+            position.width = board.dashboard.width;
+            position.height = board.dashboard.height;
+            Box::new(position)
+        });
         let mut statements = Vec::with_capacity(parsed.statements.len());
         let mut statement_descriptions = Vec::new();
         for (statement_id, (statement, metadata)) in

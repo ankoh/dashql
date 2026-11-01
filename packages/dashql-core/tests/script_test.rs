@@ -333,6 +333,27 @@ fn rewrite_vis_tags_consolidate_the_annotation() {
 }
 
 #[test]
+fn rewrite_vis_board_places_a_statement_without_a_renderer() {
+    // A query without a renderer is a collapsed card, the placement goes where a renderer would go
+    let mut script = parsed_script("select 1");
+    assert_eq!(script.rewrite_vis_board(0, Some(&board(Some(1), Some(0), 4, 3)), false).unwrap(), "/** @board row=1 column=0 width=4 height=3 */\nselect 1");
+    let mut script = parsed_script("-- @param :a = 1\n-- @flow x=1 y=2\nselect :a");
+    assert_eq!(
+        script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
+        "/**\n * @param :a = 1\n * @board width=6 height=3\n * @flow x=1 y=2\n */\nselect :a"
+    );
+    // Any statement is placed
+    let mut script = parsed_script("create table t (a int)");
+    assert_eq!(script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(), "/** @board width=6 height=3 */\ncreate table t (a int)");
+    // A new renderer goes in front of the placement
+    let mut script = parsed_script("/** @board width=4 height=3 */\nselect 1");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
+        "/**\n * @vis table\n * @board width=4 height=3\n */\nselect 1"
+    );
+}
+
+#[test]
 fn rewrite_vis_board_targets_a_statement() {
     let text = "/* @vis table */\nselect 1;\ndelete from t;\n/* @vis table */\nselect 2";
     let mut script = parsed_script(text);
@@ -479,8 +500,7 @@ fn rewrite_vis_tags_check_the_statement() {
     assert_eq!(parsed_script("/* @vis table */ select 1 +").rewrite_vis_renderer(0, table, false).unwrap_err().status, not_parsed);
     assert!(parsed_script("create table t (a int)").rewrite_vis_renderer(0, table, false).is_err());
     assert!(parsed_script("select 1").rewrite_vis_renderer(1, table, false).is_err());
-    // A board placement needs a renderer
-    assert!(parsed_script("select 1").rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).is_err());
+    assert!(parsed_script("select 1").rewrite_vis_board(1, Some(&board(None, None, 6, 3)), false).is_err());
     assert!(VisRenderer::from_parts("vegalite", "[1]").is_err());
     assert!(VisRenderer::from_parts("markdown", " ").is_err());
     assert!(VisRenderer::from_parts("chart", "").is_err());

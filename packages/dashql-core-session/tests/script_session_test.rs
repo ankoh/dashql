@@ -786,6 +786,7 @@ fn projects_script_annotations_and_plain_processing_statistics() {
     assert_eq!(definitions[0].statement_id, 0);
     assert_eq!(annotations.referenced_table_names.as_deref(), Some(&["result".to_string()][..]));
     assert!(!annotations.has_visualization_compilation);
+    assert!(annotations.board_position.is_none());
     let statements = annotations.statements.as_ref().unwrap();
     assert_eq!(statements.len(), 2);
     assert_eq!(statements[0].statement_id, 0);
@@ -801,6 +802,21 @@ fn projects_script_annotations_and_plain_processing_statistics() {
     assert!(statistics.scanner_last_elapsed_ns >= 0.0);
     assert!(statistics.parser_last_elapsed_ns >= 0.0);
     assert!(statistics.analyzer_last_elapsed_ns >= 0.0);
+}
+
+#[test]
+fn projects_the_board_position_of_the_last_statement() {
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    // The placement of the last statement places the script, also without a renderer
+    let update = analyze(&mut session, "/* @board width=2 */\nselect 1;\n/* @board row=1 column=3 width=4 height=2 */\ncreate table t (a int)");
+    let position = update.script_annotations.as_ref().unwrap().board_position.as_ref().unwrap();
+    assert_eq!(
+        (position.statement_id, position.row, position.column, position.width, position.height),
+        (1, Some(1), Some(3), 4, 2)
+    );
+    let update = analyze(&mut session, "/* @board width=2 */\nselect 1;\nselect 2");
+    assert!(update.script_annotations.as_ref().unwrap().board_position.is_none());
 }
 
 #[test]
@@ -1063,12 +1079,12 @@ fn reports_memory_statistics_of_the_latest_analysis() {
 }
 
 #[test]
-fn rejects_board_placements_without_a_renderer() {
+fn places_queries_with_and_without_a_renderer() {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
     script.replace_text("select 1");
     let board = VisBoard { row: Some(-1), column: Some(20), width: 20, height: 0 };
-    assert!(script.rewrite_vis_board(0, Some(&board), true).is_err());
+    assert_eq!(script.rewrite_vis_board(0, Some(&board), true).unwrap(), "/** @board column=0 width=12 height=1 */\nselect 1");
     script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board), true).unwrap(),

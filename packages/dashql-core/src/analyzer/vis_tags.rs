@@ -10,8 +10,9 @@
 //!
 //! A `@vis` tag starts with its kind. `vegalite` takes a Vega-Lite spec as JSON object without `data`,
 //! `markdown` takes a row template and `table` takes nothing. `@board` takes the dashboard placement as
-//! `key=value` args. A statement has at most one renderer (`vegalite`, `markdown` or `table`) and at most
-//! one board placement, the first one wins. `@flow` takes the position of the script on the dataflow canvas
+//! `key=value` args, on any statement: the board places a script by the `@board` of its last statement, a statement
+//! without a renderer is a collapsed card. A statement has at most one renderer (`vegalite`, `markdown` or `table`)
+//! and at most one board placement, the first one wins. `@flow` takes the position of the script on the dataflow canvas
 //! as `x=.. y=..`, on any statement, and a script has at most one, the first one in statement order wins.
 //! Older scripts write `@vis board` (or `@vis card`) and `@vis flow`, they are read like `@board` and
 //! `@flow`. Problems are warnings with a span inside the comment.
@@ -379,16 +380,12 @@ fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &Comment
     &text[begin..end]
 }
 
-/// Does a statement have a `@vis` or `@board` tag? The compiler visualizes such a query. The flow position of the
-/// script is no visualization.
+/// Does a statement have a `@vis` tag that names a renderer? The compiler visualizes such a query. The board
+/// placement and the flow position are no visualization, a query with only a `@board` is a collapsed card.
 pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> bool {
     let descriptions = parsed.associate_descriptions();
     descriptions.get(statement_id).is_some_and(|d| {
-        statement_tags(parsed, d, VIS_FAMILY).any(|(block, name)| match name {
-            VIS_TAG => tag_kind(parsed, block) != "flow",
-            BOARD_TAG => true,
-            _ => false,
-        })
+        statement_tags(parsed, d, &[VIS_TAG]).any(|(block, _)| !matches!(tag_kind(parsed, block), "flow" | "board" | "card"))
     })
 }
 
@@ -450,13 +447,13 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                 read_flow(state, &tag, rest, kind_span, statement_id as u32);
                 continue;
             }
+            // Any statement is placed on the board, only queries are visualized
+            if matches!(kind, "board" | "card") {
+                out.read_board(state, &tag, rest, kind_span);
+                continue;
+            }
             if !query {
-                let message = if matches!(kind, "board" | "card") {
-                    "@board places the visualization of a query, this statement returns no rows"
-                } else {
-                    "@vis visualizes a query, this statement returns no rows"
-                };
-                warn(state, block.tag_span, message.into());
+                warn(state, block.tag_span, "@vis visualizes a query, this statement returns no rows".into());
                 continue;
             }
             match kind {
@@ -478,18 +475,20 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                         warn(state, tag.span(rest, tag.text.len()), "@vis table takes no args, they are ignored".into());
                     }
                 }
-                "board" | "card" => out.read_board(state, &tag, rest, kind_span),
                 "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown or table".into()),
                 _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected vegalite, markdown or table")),
+            }
+        }
+        // The board places the script by its last statement, a statement without a renderer is a collapsed card
+        if statement_id + 1 == parsed.statements.len() {
+            if let Some((dashboard, _)) = &out.board {
+                state.out.board = Some(BoardSpec { statement_id: statement_id as u32, dashboard: dashboard.clone() });
             }
         }
         if !query {
             continue;
         }
         let Some((renderer, _)) = out.renderer else {
-            if let Some((_, span)) = out.board {
-                warn(state, span, "@board places a visualization, the statement needs @vis vegalite, markdown or table".into());
-            }
             continue;
         };
         // A renderer without a valid body was a warning, the statement stays a plain query

@@ -177,6 +177,16 @@ table EditorStatement {
     text_span: EditorTextSpan;
 }
 
+/// The dashboard placement of the script, the `@board` tag of its last statement
+table EditorBoardPosition {
+    /// The statement whose annotation holds the tag
+    statement_id: uint32;
+    row: int32 = null;
+    column: int32 = null;
+    width: int32 = 6;
+    height: int32 = 3;
+}
+
 /// The position of the script on the dataflow canvas, its `@vis flow` tag
 table EditorFlowPosition {
     /// The statement whose annotation holds the tag
@@ -196,6 +206,8 @@ table EditorScriptAnnotations {
     /// Does the script run only on request, its `@manual` tag? Runs of the whole session and of input changes leave
     /// it out.
     manual: bool;
+    /// Absent if the last statement of the script has no `@board` tag
+    board_position: EditorBoardPosition;
 }
 
 /// Plain processing values copied from ScriptStatistics.
