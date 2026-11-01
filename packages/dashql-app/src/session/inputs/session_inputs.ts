@@ -204,8 +204,7 @@ export function sessionInputControl(type: SessionInputType): SessionInputControl
 export function sessionInputLiteral(instance: core.DashQL, type: SessionInputType, value: string): { literal: string } | { error: string } {
     if (value.trim().length === 0) return { error: 'The input has no value' };
     try {
-        const typed = type.known && type.arrayDimensions === 0 ? { kind: type.kind, withTimeZone: type.withTimeZone } : null;
-        return { literal: instance.inputLiteral(value, typed) };
+        return { literal: instance.inputLiteral(value, type.known ? type.sql : null) };
     } catch (e: any) {
         return { error: String(e?.message ?? e) };
     }

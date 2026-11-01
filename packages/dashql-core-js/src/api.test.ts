@@ -233,12 +233,13 @@ describe('DashQL planner', () => {
             expect(() => b.rewriteParamTag('min', 'now()')).toThrow();
             expect(a.removeParamTag('span')).toBe('/** @param :min = 10 */\nselect * from (select 1 as x) t where x > :min::int and now() - :span < now()');
             // The literal of the value of a control follows the type of the input
-            const Kind = dashql.buffers.analyzer.SqlTypeKind;
-            expect(dql!.inputLiteral('3 day', { kind: Kind.INTERVAL })).toBe("interval '3' day");
-            expect(() => dql!.inputLiteral('3 days', { kind: Kind.INTERVAL })).toThrow();
+            expect(dql!.inputLiteral('3 day', 'interval')).toBe("interval '3' day");
+            expect(() => dql!.inputLiteral('3 days', 'interval')).toThrow();
             expect(dql!.inputLiteral("it's", null)).toBe("'it''s'");
             expect(dql!.inputLiteral('10', null)).toBe('10');
-            expect(() => dql!.inputLiteral('ten', { kind: Kind.INT4 })).toThrow();
+            expect(() => dql!.inputLiteral('ten', 'integer')).toThrow();
+            expect(dql!.inputLiteral('2024-01-01 10:00+02', 'timestamp with time zone')).toBe("timestamptz '2024-01-01 10:00+02'");
+            expect(() => dql!.inputLiteral('1.5', 'numeric(10, 2)[]')).not.toThrow();
             const dataflow = dql!.deriveSessionDataflow(request).unpack() as execution.SessionDataflowT;
             expect(dataflow.inputs.map(i => i.name)).toEqual(['min', 'span', 'region', 'flag']);
             const inputEdges = dataflow.edges.filter(e => e.kind === execution.DataflowEdgeKind.INPUT).map(e => [e.fromScript, e.toScript, e.name]);

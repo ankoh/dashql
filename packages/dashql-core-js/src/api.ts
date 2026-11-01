@@ -390,10 +390,10 @@ export class DashQL {
 
     /// The literal of the value of an input control in the Hyper dialect, the value of an `@param` tag: a number,
     /// `true` or `false`, a date, a time, a timestamp, an interval or a string, as the type of the input says. Without
-    /// a type a number is a number, `true` and `false` are booleans, and any other value is a string. Throws if the
-    /// type doesn't read the value.
-    public inputLiteral(value: string, type: { kind: buffers.analyzer.SqlTypeKind; withTimeZone?: boolean } | null): string {
-        return this.bindings.inputLiteral(value, type?.kind ?? -1, type?.withTimeZone ?? false);
+    /// a type a number is a number, `true` and `false` are booleans, and any other value is a string. The type is its
+    /// SQL text, `SqlType.sql`. Throws if the type doesn't read the value.
+    public inputLiteral(value: string, type: string | null): string {
+        return this.bindings.inputLiteral(value, type ?? undefined);
     }
 
     /// Create the results of the scripts of a session, which their table parameters read

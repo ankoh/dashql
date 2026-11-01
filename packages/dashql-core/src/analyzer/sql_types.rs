@@ -10,7 +10,8 @@
 use dashql_buffers::parser::{AttributeKey as K, CharacterType, IntervalType as IntervalTypeEnum, Node, NodeType, NumericType};
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
-use dashql_parser::parser::ParsedScript;
+use dashql_parser::parser::{parse, ParsedScript};
+use dashql_parser::scanner::scan;
 use std::fmt;
 use std::sync::Arc;
 
@@ -250,6 +251,16 @@ pub fn read_sql_type(parsed: &ParsedScript, node: &Node) -> Option<SqlType> {
         _ => 0,
     };
     Some(SqlType { kind, array_dimensions })
+}
+
+/// Read a type from its text, `numeric(10, 2)`, None if the text is no single type
+pub fn parse_sql_type(text: &str) -> Option<SqlType> {
+    let parsed = parse(Arc::new(scan(&format!("select null::{text}"), 0, 0)));
+    let mut types = parsed.nodes.iter().filter(|n| n.node_type() == NodeType::OBJECT_SQL_TYPENAME);
+    match (parsed.errors.is_empty(), types.next(), types.next()) {
+        (true, Some(node), None) => read_sql_type(&parsed, node),
+        _ => None,
+    }
 }
 
 /// The name of an interval field

@@ -1045,28 +1045,11 @@ fn pack_session_input(input: &dashql_core_session::session_inputs::SessionInput)
     out
 }
 
-/// The literal of the value of an input control, in the Hyper dialect: `kind` is the `SqlTypeKind` of the type of the
-/// input, negative without a type
+/// The literal of the value of an input control, in the Hyper dialect: `sql_type` is the SQL text of the type of the
+/// input, `SqlType.sql`, absent without a type
 #[wasm_bindgen(js_name = inputLiteral)]
-pub fn input_literal(value: &str, kind: i32, with_time_zone: bool) -> Result<String, JsError> {
-    use dashql_core::analyzer::{SqlType, SqlTypeKind as Kind};
-    use dashql_buffers::analyzer::SqlTypeKind as Packed;
-    let kind = (kind >= 0).then(|| match Packed(kind as u8) {
-        Packed::BOOL => Kind::Bool,
-        Packed::INT1 => Kind::Int1,
-        Packed::INT2 => Kind::Int2,
-        Packed::INT4 => Kind::Int4,
-        Packed::INT8 => Kind::Int8,
-        Packed::FLOAT4 => Kind::Float4,
-        Packed::FLOAT8 => Kind::Float8,
-        Packed::NUMERIC => Kind::Numeric { precision: None, scale: None },
-        Packed::DATE => Kind::Date,
-        Packed::TIME => Kind::Time { precision: None, with_time_zone },
-        Packed::TIMESTAMP => Kind::Timestamp { precision: None, with_time_zone },
-        Packed::INTERVAL => Kind::Interval { fields: None, precision: None },
-        _ => Kind::Text,
-    });
-    let ty = kind.map(SqlType::scalar);
+pub fn input_literal(value: &str, sql_type: Option<String>) -> Result<String, JsError> {
+    let ty = sql_type.as_deref().and_then(dashql_core::analyzer::sql_types::parse_sql_type);
     dashql_core::sql_literal::SqlLiteral::from_value(value, ty.as_ref()).map(|l| l.to_hyper()).map_err(|e| JsError::new(&e))
 }
 
