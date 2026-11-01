@@ -796,13 +796,22 @@ pub struct SessionPlanRequest {
     materialized: Vec<u32>,
     /// The directory the host mounts materialized results in
     mount_prefix: String,
+    /// The attachments: the name, the file name, the stamp of the file and its columns if the host read them
+    attachments: Vec<(String, String, String, Option<Vec<std::sync::Arc<str>>>)>,
 }
 
 #[wasm_bindgen]
 impl SessionPlanRequest {
     #[wasm_bindgen(constructor)]
     pub fn new() -> SessionPlanRequest {
-        SessionPlanRequest { connections: Vec::new(), scripts: Vec::new(), targets: None, materialized: Vec::new(), mount_prefix: String::new() }
+        SessionPlanRequest {
+            connections: Vec::new(),
+            scripts: Vec::new(),
+            targets: None,
+            materialized: Vec::new(),
+            mount_prefix: String::new(),
+            attachments: Vec::new(),
+        }
     }
 
     /// Add a connection, returns its index
@@ -818,6 +827,16 @@ impl SessionPlanRequest {
     pub fn add_script(&mut self, name: String, connection: u32, session: &ScriptSession, materialization_file: Option<String>) -> u32 {
         self.scripts.push((name, connection, session.inner.clone(), materialization_file));
         (self.scripts.len() - 1) as u32
+    }
+
+    /// Add an attachment, a Parquet file of the session that the table parameter `:name` reads, returns its index. The
+    /// stamp changes when the file changes, e.g. its size and modification time. The columns are absent if the host
+    /// didn't read them yet.
+    #[wasm_bindgen(js_name = addAttachment)]
+    pub fn add_attachment(&mut self, name: String, file: String, stamp: String, columns: Option<Vec<String>>) -> u32 {
+        let columns = columns.map(|columns| columns.into_iter().map(std::sync::Arc::from).collect());
+        self.attachments.push((name, file, stamp, columns));
+        (self.attachments.len() - 1) as u32
     }
 
     /// Plan the target scripts and what they need instead of the whole session
@@ -1085,9 +1104,9 @@ impl TableParameters {
         TableParameters { current: RefCell::new(None) }
     }
 
-    /// Derive the results from the analyses of the scripts of a request and give them to their sessions. Returns the
-    /// indexes of the scripts whose analysis is outdated by the results, every script if the results changed. A
-    /// script whose analysis lags behind its text keeps its previous result.
+    /// Derive the table parameters from the analyses of the scripts and the attachments of a request and give them to
+    /// the sessions of the scripts. Returns the indexes of the scripts whose analysis is outdated by them, every script
+    /// if they changed. A script whose analysis lags behind its text keeps its previous result.
     pub fn publish(&self, request: &SessionPlanRequest) -> Vec<u32> {
         use dashql_core::table_parameters::TableParameters as CoreResults;
         let previous = self.current.borrow().clone();
@@ -1102,7 +1121,12 @@ impl TableParameters {
                     (name.as_str(), script.current_analysis().map(|(_, _, analyzed)| analyzed.as_ref()))
                 })
                 .collect();
-            CoreResults::derive(&inputs, previous.as_deref())
+            let attachments: Vec<_> = request
+                .attachments
+                .iter()
+                .map(|(name, _, _, columns)| dashql_core::table_parameters::TableParameterAttachment { name, columns: columns.as_deref() })
+                .collect();
+            CoreResults::derive(&inputs, &attachments, previous.as_deref())
         };
         let results = match previous {
             Some(previous) if previous.same_as(&derived) => previous,

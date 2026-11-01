@@ -857,8 +857,9 @@ pub fn pack_completion(
     use crate::completion::CandidateObjectRef;
     use crate::utils::quote_identifier;
     use dashql_buffers::completion::{
-        CompletionCandidateObjectT, CompletionCandidateObjectType, CompletionCandidateT, CompletionT,
+        CompletionCandidateObjectT, CompletionCandidateObjectType, CompletionCandidateT, CompletionT, CompletionTableParameter,
     };
+    use crate::table_parameters::TableParameterSource;
 
     let candidates = completion
         .top_candidates
@@ -896,6 +897,11 @@ pub fn pack_completion(
                             o.catalog_schema_id = schema;
                         }
                         CandidateObjectRef::Table(loc) => {
+                            o.table_parameter = match completion.table_parameter_source(loc) {
+                                Some(TableParameterSource::Script(_)) => CompletionTableParameter::SCRIPT,
+                                Some(TableParameterSource::Attachment(_)) => CompletionTableParameter::ATTACHMENT,
+                                None => CompletionTableParameter::NONE,
+                            };
                             if let Some(table) = completion.table(loc) {
                                 let (db, schema) = table.catalog_schema_id.unpack_schema_id();
                                 o.catalog_database_id = db;

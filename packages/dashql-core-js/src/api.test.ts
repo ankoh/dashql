@@ -287,6 +287,26 @@ describe('DashQL planner', () => {
         }
     });
 
+    it('publishes the columns of attachments that table parameters read', () => {
+        const catalog = dql!.createCatalog();
+        const registry = dql!.createTableParameters();
+        try {
+            const bar = prepare(catalog, 'select s.region from :sales s');
+            const scripts = [{ name: 'bar', session: bar }];
+            const sales = { name: 'sales', file: 'sales.parquet', stamp: '1', columns: ['region'] };
+            expect(registry.publish(scripts, [sales])).toEqual([0]);
+            const columns = bar.analyze().semanticSpans.filter(span =>
+                span.kind === dashql.buffers.editor.EditorSemanticReferenceKind.COLUMN);
+            expect(columns.map(span => span.resolution)).toEqual([dashql.buffers.editor.EditorSemanticResolution.RESOLVED]);
+            // Another stamp with the same columns outdates nothing
+            expect(registry.publish(scripts, [{ ...sales, stamp: '2' }])).toEqual([]);
+            bar.destroy();
+        } finally {
+            registry.destroy();
+            catalog.destroy();
+        }
+    });
+
     it('returns an owned empty graph', () => {
         const result = dql!.planSession({ connections: [], scripts: [] });
         const reader = result.read(new execution.ExecutionGraph());

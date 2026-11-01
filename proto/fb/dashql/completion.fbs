@@ -11,6 +11,16 @@ enum CompletionCandidateObjectType: uint8 {
     FUNCTION = 5
 }
 
+/// What the table of a table parameter `:foo` reads
+enum CompletionTableParameter: uint8 {
+    /// The table is no table parameter
+    NONE = 0,
+    /// The result of a script of the session
+    SCRIPT = 1,
+    /// An attachment of the session
+    ATTACHMENT = 2
+}
+
 table CompletionCandidateObject {
     /// The object type
     object_type: CompletionCandidateObjectType;
@@ -37,6 +47,8 @@ table CompletionCandidateObject {
     qualified_name_target_idx: uint32;
     /// Prefer the qualification
     prefer_qualified: bool;
+    /// What a table that is a table parameter reads
+    table_parameter: CompletionTableParameter;
 }
 
 enum CandidateTag: uint32 {

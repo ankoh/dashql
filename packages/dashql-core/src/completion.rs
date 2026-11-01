@@ -12,7 +12,7 @@ use crate::analyzer::{AnalyzedScript, ColumnResolution, ReferencedTable, ScopeId
 use crate::catalog::*;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
 use crate::hash::HashMap;
-use crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID;
+use crate::table_parameters::{TableParameterSource, TABLE_PARAMETERS_ENTRY_ID};
 use crate::utils::topk::TopKHeap;
 use crate::utils::{ci_cmp, ci_find, ci_starts_with};
 use dashql_buffers::analyzer::NameTag;
@@ -452,8 +452,13 @@ impl<'c, 'a> Completion<'c, 'a> {
         self.entry_data(loc.entry)?.table_declarations.get(loc.index as usize)
     }
 
-    /// Complete the name of a table parameter `:foo` in table position with the names of the scripts of the session
-    /// that have a result. Returns false if the cursor is not at the name of a table parameter.
+    /// What the table parameter of a table reads, None for the tables of the catalog
+    pub fn table_parameter_source(&self, loc: TableLoc) -> Option<TableParameterSource> {
+        self.analyzed()?.table_parameters.as_ref()?.source(loc)
+    }
+
+    /// Complete the name of a table parameter `:foo` in table position with the names of the scripts and attachments
+    /// of the session that have columns. Returns false if the cursor is not at the name of a table parameter.
     fn complete_table_parameter(&mut self, location: &crate::cursor::LocationInfo) -> bool {
         let symbols = self.symbols();
         let offset = self.cursor.text_offset as u32;
@@ -502,7 +507,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             None => (Vec::new(), SymbolSpan::new(offset, 0)),
         };
         self.strategy = CompletionStrategy::TABLE_REF;
-        for (index, script) in results.scripts.iter().enumerate() {
+        for (index, script) in results.entries.iter().enumerate() {
             if script.table.is_none() || script.name.is_empty() {
                 continue;
             }

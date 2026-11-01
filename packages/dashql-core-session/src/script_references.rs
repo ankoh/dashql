@@ -140,7 +140,7 @@ impl ScriptReferences {
                     out.push(reference);
                     continue;
                 }
-                TableParameterLookup::Ambiguous => {
+                TableParameterLookup::Ambiguous(_) => {
                     reporter.error(script, Some(text_span), format!("the script reference {label} matches several scripts"));
                     out.push(reference);
                     continue;

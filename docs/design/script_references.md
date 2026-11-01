@@ -121,23 +121,31 @@ reference of the analysis that resolves to the result: the cursor on it, on its 
 the reference and the columns like those of a table. The planner and the check of the script references skip these
 table references, they read the script through the script reference.
 
-### Results and Completion
+### Table Parameters and Completion
 
-`TableParameters` (`dashql-core/src/table_parameters.rs`) holds the output columns of every script of a session that is
-a single SELECT, as table declarations of the reserved catalog entry `TABLE_PARAMETERS_ENTRY_ID`. Scripts on a cycle
-of references have no result. Every script session of the session holds the same results
-(`DashQLTableParameters.publish`): the analyzer resolves a named table parameter that reads a script with a result
-as a FROM source with the columns of the result, named by its alias or the parameter name. The source yields its
-name to the other FROM items, like the planner renames its common table expression. A table parameter that is the
-target of a write, positional or names no script with a result resolves nothing. An analysis that reads table
-parameters is current only with the results it was analyzed with: the app publishes the results after every change
-of the scripts and analyzes the scripts again whose analysis they outdate. The results of a script follow the
-results of the scripts it reads, they converge along the references.
+`TableParameters` (`dashql-core/src/table_parameters.rs`) holds the tables that table parameters read: the output
+columns of every script of a session that is a single SELECT, in session order, then the columns of the attachments
+of the session, as table declarations of the reserved catalog entry `TABLE_PARAMETERS_ENTRY_ID`.
+Scripts on a cycle of references have no result, an attachment whose columns the host didn't read has no table.
+Every script session of the session holds the same table parameters (`DashQLTableParameters.publish`): the analyzer
+resolves a named table parameter that finds a table as a FROM source with its columns, named by its alias or the
+parameter name. The source yields its name to the other FROM items, like the planner renames its common table
+expression. A table parameter that is the target of a write, positional, ambiguous or names nothing with a table
+resolves nothing. An analysis that reads table parameters is current only with the table parameters it was analyzed
+with: the app publishes them after every change of the scripts and analyzes the scripts again
+whose analysis they outdate. The results of a script follow the results of the scripts it reads, they converge
+along the references.
 
-Completion offers the names of the scripts with a result after the `:` of a table parameter in table position,
-where the parser takes a join after the parameter: `from :|` and `from :fo|`, not `where x = :|`. The columns of a
-result complete like the columns of a table, `from :foo f where f.|`. The prompt of the composer reads the results
-too. In natural language, the prompt hints the rest of the name of a script after `:`.
+Scripts and attachments share one namespace (`find_table_parameter`): a name finds the only exact name, or the only
+name that differs in ASCII case. Several matches are ambiguous, e.g. the script `sales.sql` and the attachment
+`sales.parquet`.
+
+Completion offers the names of the scripts with a result and of the attachments with columns after the `:` of a
+table parameter in table position, where the parser takes a join after the parameter: `from :|` and `from :fo|`, not
+`where x = :|`. A candidate says whether it reads a script or an attachment (`CompletionCandidateObject.table_parameter`).
+The columns of a table parameter complete like the columns of a table, `from :foo f where f.|`. The prompt of the
+composer reads the table parameters too. In natural language, the prompt hints the rest of the name of a script
+after `:`.
 
 ### Mentions and Renames
 

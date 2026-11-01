@@ -1,14 +1,19 @@
-//! The results of the scripts of a session: table parameters `:foo` read the output columns of `foo.sql`, the
-//! analyzer resolves columns through them and completion offers the names of the scripts.
+//! The table parameters of a session: `:foo` reads the output columns of `foo.sql` or the columns of the attachment
+//! `foo.parquet`, the analyzer resolves columns through them and completion offers their names.
 
 use dashql_core::analyzer::{AnalyzedScript, ColumnResolution};
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
-use dashql_core::table_parameters::{TableParameters, TABLE_PARAMETERS_ENTRY_ID};
+use dashql_core::table_parameters::{TableParameterAttachment, TableParameterSource, TableParameters, TABLE_PARAMETERS_ENTRY_ID};
 use std::sync::Arc;
 
-/// Analyze scripts and derive their results
+/// Analyze scripts and derive their table parameters
 fn session(catalog: &Catalog, scripts: &[(&str, &str)]) -> Arc<TableParameters> {
+    session_with(catalog, scripts, &[])
+}
+
+/// Analyze scripts and derive their table parameters with attachments
+fn session_with(catalog: &Catalog, scripts: &[(&str, &str)], attachments: &[TableParameterAttachment]) -> Arc<TableParameters> {
     let analyzed: Vec<Script> = scripts
         .iter()
         .map(|(_, text)| {
@@ -20,7 +25,7 @@ fn session(catalog: &Catalog, scripts: &[(&str, &str)]) -> Arc<TableParameters> 
         .collect();
     let inputs: Vec<(&str, Option<&AnalyzedScript>)> =
         scripts.iter().zip(&analyzed).map(|((name, _), s)| (*name, s.analyzed.as_deref())).collect();
-    Arc::new(TableParameters::derive(&inputs, None))
+    Arc::new(TableParameters::derive(&inputs, attachments, None))
 }
 
 /// Analyze a script with the results of a session
@@ -64,7 +69,7 @@ fn complete(script: &mut Script, catalog: &Catalog, offset: usize) -> Vec<String
 fn results_are_the_output_columns_of_single_selects() {
     let catalog = Catalog::new();
     let results = session(&catalog, &[("foo", "select 1 as a, 2 as b"), ("cmds", "create table t (x int); select 1"), ("bar", "select * from :foo")]);
-    let columns = |i: usize| results.scripts[i].table.as_ref().map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>());
+    let columns = |i: usize| results.entries[i].table.as_ref().map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>());
     assert_eq!(columns(0), Some(vec!["a".to_string(), "b".to_string()]));
     assert_eq!(columns(1), None);
 }
@@ -90,20 +95,20 @@ fn results_flow_through_chains_and_stars() {
     let first = session(&catalog, &[("foo", "select 1 as a"), ("bar", "select 1")]);
     let bar = consumer(&catalog, &first, "select *, 2 as z from :foo");
     let inputs = [("foo", None), ("bar", bar.analyzed.as_deref())];
-    let results = Arc::new(TableParameters::derive(&inputs, Some(&first)));
-    let columns: Vec<String> = results.scripts[1].table.as_ref().unwrap().table_columns.iter().map(|c| c.column_name.text().to_string()).collect();
+    let results = Arc::new(TableParameters::derive(&inputs, &[], Some(&first)));
+    let columns: Vec<String> = results.entries[1].table.as_ref().unwrap().table_columns.iter().map(|c| c.column_name.text().to_string()).collect();
     assert_eq!(columns, ["a", "z"]);
     // The script without an analysis kept its columns
-    assert!(results.scripts[0].table.is_some());
+    assert!(results.entries[0].table.is_some());
 }
 
 #[test]
 fn cycles_have_no_results() {
     let catalog = Catalog::new();
     let results = session(&catalog, &[("a", "select * from :b"), ("b", "select * from :a"), ("c", "select 1 as x")]);
-    assert!(results.scripts[0].table.is_none());
-    assert!(results.scripts[1].table.is_none());
-    assert!(results.scripts[2].table.is_some());
+    assert!(results.entries[0].table.is_none());
+    assert!(results.entries[1].table.is_none());
+    assert!(results.entries[2].table.is_some());
 }
 
 #[test]
@@ -146,5 +151,64 @@ fn completion_of_columns_through_a_result() {
     let text = "select f.re from :foo f";
     let mut script = consumer(&catalog, &results, text);
     let names = complete(&mut script, &catalog, "select f.re".len());
+    assert_eq!(names.first().map(String::as_str), Some("region"));
+}
+
+#[test]
+fn attachments_follow_the_scripts() {
+    let catalog = Catalog::new();
+    let columns: Vec<Arc<str>> = vec!["region".into(), "amount".into()];
+    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }, TableParameterAttachment { name: "raw", columns: None }];
+    let results = session_with(&catalog, &[("foo", "select 1 as a")], &attachments);
+    let sources: Vec<_> = results.entries.iter().map(|e| (e.name.to_string(), e.source, e.table.is_some())).collect();
+    assert_eq!(
+        sources,
+        [
+            ("foo".to_string(), TableParameterSource::Script(0), true),
+            ("sales".to_string(), TableParameterSource::Attachment(0), true),
+            ("raw".to_string(), TableParameterSource::Attachment(1), false),
+        ]
+    );
+}
+
+#[test]
+fn table_parameters_resolve_columns_of_attachments() {
+    let catalog = Catalog::new();
+    let columns: Vec<Arc<str>> = vec!["region".into(), "amount".into()];
+    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }, TableParameterAttachment { name: "raw", columns: None }];
+    let results = session_with(&catalog, &[("foo", "select 1 as a")], &attachments);
+    let script = consumer(&catalog, &results, "select s.region, amount, s.nope from :sales s");
+    assert_eq!(resolve(&script, &results), ["region -> sales.region", "amount -> sales.amount", "nope -> ?"]);
+    let script = consumer(&catalog, &results, "select region from :SALES");
+    assert_eq!(resolve(&script, &results), ["region -> sales.region"]);
+    // An attachment whose columns are unknown resolves nothing
+    let script = consumer(&catalog, &results, "select x from :raw");
+    assert_eq!(resolve(&script, &results), ["x -> ?"]);
+}
+
+#[test]
+fn a_script_and_an_attachment_with_one_name_are_ambiguous() {
+    let catalog = Catalog::new();
+    let columns: Vec<Arc<str>> = vec!["region".into()];
+    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }];
+    let results = session_with(&catalog, &[("sales", "select 1 as a")], &attachments);
+    let script = consumer(&catalog, &results, "select a, region from :sales");
+    assert_eq!(resolve(&script, &results), ["a -> ?", "region -> ?"]);
+}
+
+#[test]
+fn completion_offers_attachments_after_the_colon_of_a_table() {
+    let catalog = Catalog::new();
+    let columns: Vec<Arc<str>> = vec!["region".into()];
+    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }, TableParameterAttachment { name: "salt", columns: None }];
+    let results = session_with(&catalog, &[("sample", "select 1 as a")], &attachments);
+    let text = "select * from :sa";
+    let mut script = consumer(&catalog, &results, text);
+    let mut names = complete(&mut script, &catalog, text.len());
+    names.sort();
+    assert_eq!(names, ["sales", "sample"]);
+    let text = "select s.re from :sales s";
+    let mut script = consumer(&catalog, &results, text);
+    let names = complete(&mut script, &catalog, "select s.re".len());
     assert_eq!(names.first().map(String::as_str), Some("region"));
 }

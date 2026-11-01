@@ -100,6 +100,18 @@ export interface SessionPlanScript {
     materializationFile?: string;
 }
 
+/// An attachment of a session, a Parquet file that the table parameter `:name` reads
+export interface SessionPlanAttachment {
+    /// The name, `foo` for `foo.parquet`
+    name: string;
+    /// The file name below the attachment prefix
+    file: string;
+    /// Changes when the file changes, e.g. its size and modification time
+    stamp: string;
+    /// The columns of the file, absent if the host didn't read them yet
+    columns?: string[] | null;
+}
+
 /// A request to plan the scripts of a session
 export interface SessionPlanRequest {
     /// The connections
@@ -112,6 +124,8 @@ export interface SessionPlanRequest {
     materialized?: number[];
     /// The directory the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
     mountPrefix?: string;
+    /// The attachments of the session
+    attachments?: SessionPlanAttachment[];
 }
 
 /// A listener for panics of the core
@@ -333,6 +347,9 @@ export class DashQL {
             }
             native.setMaterialized(Uint32Array.from(request.materialized ?? []));
             native.setMountPrefix(request.mountPrefix ?? '');
+            for (const attachment of request.attachments ?? []) {
+                native.addAttachment(attachment.name, attachment.file, attachment.stamp, attachment.columns ?? undefined);
+            }
             return native;
         } catch (e) {
             native.free();
@@ -472,9 +489,9 @@ export class DashQLTableParameters {
     public destroy(): void {
         this.ptr.destroy();
     }
-    /// Derive the table parameters from the analyses of the scripts and give them to their sessions. Returns the
-    /// indexes of the scripts whose analysis is outdated by them.
-    public publish(scripts: TableParametersScript[]): number[] {
+    /// Derive the table parameters from the analyses of the scripts and the attachments and give them to the sessions
+    /// of the scripts. Returns the indexes of the scripts whose analysis is outdated by them.
+    public publish(scripts: TableParametersScript[], attachments: SessionPlanAttachment[] = []): number[] {
         const api = this.ptr.api;
         const native = new api.bindings.SessionPlanRequest();
         try {
@@ -483,6 +500,9 @@ export class DashQLTableParameters {
                     throw new Error('script session belongs to a different DashQL instance');
                 }
                 native.addScript(script.name, 0, script.session.ptr.assertNotNull(), undefined);
+            }
+            for (const attachment of attachments) {
+                native.addAttachment(attachment.name, attachment.file, attachment.stamp, attachment.columns ?? undefined);
             }
             return Array.from(this.ptr.assertNotNull().publish(native));
         } finally {

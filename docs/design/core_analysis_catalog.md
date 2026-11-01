@@ -248,7 +248,7 @@ built after the scan:
 | - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `session_inputs.md`) |
 
 `analyze_with(parsed, catalog, table_parameters)` also takes the `TableParameters` of the session
-(`table_parameters.rs`): the output columns of its single-SELECT scripts, declared as the tables of the
+(`table_parameters.rs`): the output columns of its single-SELECT scripts and of its attachments, declared as the tables of the
 reserved entry `TABLE_PARAMETERS_ENTRY_ID`, which named table parameters read (see `script_references.md`).
 `analyze` passes none.
 

@@ -9,10 +9,9 @@ export enum CompletionCandidateType {
     IDENTITY = 6,
     /// The result of a script of the session, a table parameter `:foo`
     SCRIPT = 7,
+    /// An attachment of the session, a table parameter `:foo`
+    ATTACHMENT = 8,
 }
-
-/// The catalog entry of the results of scripts, see `TABLE_PARAMETERS_ENTRY_ID` of the core
-export const TABLE_PARAMETERS_ENTRY_ID = 0xFFFFFFFE;
 
 export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "SQL",
@@ -22,6 +21,7 @@ export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "COL",
     "FN",
     "ID",
+    ":",
     ":",
 ];
 
@@ -34,6 +34,7 @@ export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
     "#0E7A00",
     "#666",
     "#0969da",
+    "#1a7f37",
 ];
 
 export function getCandidateTypeSymbolText(type: CompletionCandidateType) {

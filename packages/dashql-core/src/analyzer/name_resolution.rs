@@ -399,8 +399,9 @@ impl NameResolutionPass {
         (name, column_aliases)
     }
 
-    /// The FROM item of a table parameter `:foo` that reads the result of the script `foo.sql`, None if the parameter
-    /// is positional, the target of a write, or names no script with a result
+    /// The FROM item of a table parameter `:foo` that reads the result of the script `foo.sql` or the attachment
+    /// `foo.parquet`, None if the parameter is positional, the target of a write, ambiguous, or names no table parameter
+    /// with columns
     fn table_parameter_source(state: &mut AnalysisState, node_id: u32, node: &Node, table_node: Option<&Node>, alias_node: Option<&Node>) -> Option<(ScopeSource, TableRefId)> {
         let parameter = table_node.filter(|n| n.node_type() == NodeType::OBJECT_SQL_PARAMETER_REF)?;
         if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_DELETE_TARGET) {
@@ -414,7 +415,7 @@ impl NameResolutionPass {
             None => name,
         };
         let TableParameterLookup::Found(index) = results.find(&name) else { return None };
-        let table = results.scripts[index].table.as_ref()?;
+        let table = results.entries[index].table.as_ref()?;
         let (alias, column_aliases) = Self::read_alias(state, alias_node);
         // A table reference that is resolved already, the cursor, the focus and the semantic spans see the parameter
         // like a table. Scope resolution, the planner and the script references skip it.
@@ -449,7 +450,7 @@ impl NameResolutionPass {
         Some((source, id))
     }
 
-    /// Is a FROM item the result of a script?
+    /// Is a FROM item a table parameter?
     fn is_table_parameter(source: &ScopeSource) -> bool {
         matches!(source.table, ReferencedTable::Table(loc) if loc.entry == TABLE_PARAMETERS_ENTRY_ID)
     }

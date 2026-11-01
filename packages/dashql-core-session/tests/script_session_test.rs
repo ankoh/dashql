@@ -1271,7 +1271,7 @@ fn table_parameters_resolve_columns_of_table_parameters() {
     bar.replace_text(&catalog, 0, "select f.amount from :foo f");
     bar.analyze(&catalog);
     let inputs = [("foo", foo.script().analyzed.as_deref()), ("bar", bar.script().analyzed.as_deref())];
-    let results = Arc::new(TableParameters::derive(&inputs, None));
+    let results = Arc::new(TableParameters::derive(&inputs, &[], None));
     bar.set_table_parameters(Some(results.clone()));
     let update = bar.analyze(&catalog);
     assert!(update.analysis_updated, "{:?} {:?}", update.status, update.status_message);
@@ -1302,7 +1302,7 @@ fn the_cursor_relates_table_parameters_like_tables() {
     let _schema = load_schema(&catalog, "create table foo (a int)");
     let mut producer = session(&catalog, UTF8);
     analyze(&mut producer, "select 1 as a");
-    let results = Arc::new(TableParameters::derive(&[("patient_fox", producer.script().analyzed.as_deref())], None));
+    let results = Arc::new(TableParameters::derive(&[("patient_fox", producer.script().analyzed.as_deref())], &[], None));
     let mut consumer = session(&catalog, UTF8);
     consumer.set_table_parameters(Some(results));
     let text = "select * from :patient_fox f, foo b where f.a = b.a";
