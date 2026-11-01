@@ -42,10 +42,11 @@ have a current analysis, `ExecutionGraphScript.planned` marks them. `ExecutionGr
 a plan includes in full: the targets, in a plan of the session the scripts whose results the host doesn't provide, in a
 tolerant plan every script. A plan of targets runs like a
 single script: the statements of a script are chained with SEQUENCE edges and a target that does not parse becomes
-one barrier node with its text as written. In both scopes statements keep their SQL whatever their kind and the
+one barrier node with its text as written. In every scope statements keep their SQL whatever their kind and the
 diagnostics of statements are warnings: a statement that the planner can't classify is a barrier and runs in session
-order. Syntax errors in a plan of the session, diagnostics of script references, stale analysis, inputs without a
-value, visualizations that fail to compile and a referenced script that runs later are errors.
+order. Syntax errors in a plan of the session, diagnostics of script references, stale analysis (outside a tolerant
+plan), inputs without a value, visualizations that fail to compile and a referenced script that runs later are
+errors.
 
 A tolerant plan (`PlanScope::Tolerant`) is the plan of the [dataflow](dataflow.md) of a session, which is never run.
 It plans every script like a plan of targets that targets all of them, but errors leave something out instead of
@@ -95,8 +96,9 @@ by analysis. Valid graphs have equal `text_version` and `analyzed_text_version`.
 A plan is a snapshot, not a live view. Before execution, consumers must compare
 each captured `(text_version, analyzed_catalog_revision)` pair for equality with
 the corresponding current `(session.getTextVersion(), catalog revision)` pair
-and reject the graph if either value changed. Planning rejects missing or stale
-input analysis with diagnostics and no executable partial nodes.
+and reject the graph if either value changed. A plan of the session or of targets rejects missing or stale
+input analysis with diagnostics and no executable partial nodes, a tolerant plan leaves the script out or takes an
+analysis of an earlier catalog revision.
 
 Each `ExecutionGraphEntity` requires a typed `catalog_object_id` struct containing
 `object_type`, `object_id` (`uint64`), and `sub_object_id` (`uint32`). It also carries

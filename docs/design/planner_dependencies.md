@@ -129,7 +129,7 @@ DDL targets, session, locking, constraint or graph effects (reported once per st
 execution-enabled EXPLAIN, analyzer errors, unresolved relations, unresolved DROP targets, and reads, writes and DROPs
 of a view (a view of the catalog or one that a planned CREATE VIEW created), since views are not expanded. The
 diagnostics of barriers are warnings in every scope, the statement runs as written in session order. A visualization
-that does not compile is an invalid barrier in both scopes.
+that does not compile is an invalid barrier in every scope.
 
 Barriers order the nodes of their connection only. In node order, every node gets a BARRIER edge from the last
 barrier of its connection, and a barrier node also gets a BARRIER edge from every node of its connection since the
