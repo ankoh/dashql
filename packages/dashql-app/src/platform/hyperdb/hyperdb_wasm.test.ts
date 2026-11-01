@@ -65,19 +65,11 @@ function directoryHandle(name: string): FileSystemDirectoryHandle {
     } as unknown as FileSystemDirectoryHandle;
 }
 
-/// Record the object URLs that HyperDB creates and revokes for mounted files
-function trackObjectURLs(url: string): string[] {
-    const revoked: string[] = [];
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue(url);
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(revokedURL => { revoked.push(revokedURL); });
-    return revoked;
-}
-
 class FakeHyperDBEngineClient implements HyperDBClient {
     readonly calls: string[] = [];
     readonly queryResults = new Map<string, Uint8Array>();
     readonly temporaryFiles = new Map<string, Uint8Array>();
-    readonly externalFiles = new Map<string, { url: string; size: number }>();
+    readonly externalFiles = new Map<string, File>();
     readonly externalDirectories = new Map<string, { handle: FileSystemDirectoryHandle; mode: 'read' | 'readwrite' }>();
     readonly insertedTables = new Map<string, arrow.Table>();
     /// The column descriptors of the external scans by target table
@@ -137,7 +129,7 @@ class FakeHyperDBEngineClient implements HyperDBClient {
                 this.queries.set(query, [{ state: 'error', error: `missing external file: ${path}` }]);
                 return handle(query);
             }
-            const table = arrow.tableFromIPC(new Uint8Array(await (await fetch(file.url)).arrayBuffer()));
+            const table = arrow.tableFromIPC(new Uint8Array(await file.arrayBuffer()));
             const previous = this.insertedTables.get(target);
             if (statement === 'INSERT INTO' && !previous) {
                 this.queries.set(query, [{ state: 'error', error: `missing table: ${target}` }]);
@@ -220,7 +212,7 @@ class FakeHyperDBEngineClient implements HyperDBClient {
     mount(source: MountSource, path: string, mode: 'read' | 'readwrite'): Promise<HyperDBResult> {
         this.calls.push(`mount:${path}:${mode}`);
         if (source.kind === 'browser-file') {
-            this.externalFiles.set(path, { url: source.url, size: source.size });
+            this.externalFiles.set(path, source.file);
         } else if (source.kind === 'browser-directory') {
             this.externalDirectories.set(path, { handle: source.handle as FileSystemDirectoryHandle, mode });
         }
@@ -291,19 +283,20 @@ describe('HyperDB embedded database adapter', () => {
         vi.restoreAllMocks();
     });
 
-    it('owns browser object URLs for external files', async () => {
+    it('mounts and removes browser files', async () => {
         const client = new FakeHyperDBEngineClient();
-        const revoked = trackObjectURLs('blob:test-file');
         const database = await createDatabase(client);
 
         const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
         expect(path).toBe('/mnt/external/data.csv');
         expect(client.calls).toContain(`mount:${path}:read`);
-        expect(client.externalFiles.get(path)).toEqual({ url: 'blob:test-file', size: 5 });
-        expect(revoked).toEqual([]);
+        const file = client.externalFiles.get(path);
+        expect(file?.name).toBe('data.csv');
+        expect(await file?.text()).toBe('id\n1\n');
 
         await database.removeExternalFile(path);
-        expect(revoked).toEqual(['blob:test-file']);
+        expect(client.calls).toContain(`unmount:${path}`);
+        expect(client.externalFiles.has(path)).toBe(false);
         await database.terminate();
     });
 
@@ -388,14 +381,13 @@ describe('HyperDB embedded database adapter', () => {
         await second.terminate();
     });
 
-    it('revokes object URLs when mounting fails', async () => {
+    it('rejects when mounting fails', async () => {
         const client = new FakeHyperDBEngineClient();
         client.mount = async () => ({ state: 'error', error: 'mount failed' });
-        const revoked = trackObjectURLs('blob:failed-mount');
         const database = await createDatabase(client);
 
         await expect(database.registerExternalFile('data.csv', new Blob(['1']))).rejects.toThrow('mount failed');
-        expect(revoked).toEqual(['blob:failed-mount']);
+        expect(client.externalFiles.size).toBe(0);
         await database.terminate();
     });
 
@@ -408,13 +400,11 @@ describe('HyperDB embedded database adapter', () => {
             abort.abort();
             return result;
         };
-        const revoked = trackObjectURLs('blob:cancelled-mount');
         const database = await createDatabase(client);
 
         await expect(database.registerExternalFile('data.csv', new Blob(['1']), undefined, abort.signal))
             .rejects.toThrow('aborted');
         expect(client.externalFiles.size).toBe(0);
-        expect(revoked).toEqual(['blob:cancelled-mount']);
         await database.terminate();
     });
 
@@ -432,31 +422,29 @@ describe('HyperDB embedded database adapter', () => {
         expect(client.externalDirectories.has(path)).toBe(false);
     });
 
-    it('retains object URLs when external-file removal is busy', async () => {
+    it('keeps external files mounted when removal is busy', async () => {
         const client = new FakeHyperDBEngineClient();
-        const revoked = trackObjectURLs('blob:busy-file');
         const database = await createDatabase(client);
         const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
         client.failExternalFileRemoval = true;
 
         await expect(database.removeExternalFile(path)).rejects.toThrow('External file has active readers');
-        expect(revoked).toEqual([]);
+        expect(client.externalFiles.has(path)).toBe(true);
 
         client.failExternalFileRemoval = false;
         await database.terminate();
-        expect(revoked).toEqual(['blob:busy-file']);
+        expect(client.externalFiles.has(path)).toBe(false);
     });
 
     it('cleans external files during wrapper termination with a shared client', async () => {
         const client = new FakeHyperDBEngineClient();
-        const revoked = trackObjectURLs('blob:shared-file');
         const database = await createDatabase(client, { terminateEngine: false });
         const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
 
         await database.terminate();
 
         expect(client.calls).toContain(`unmount:${path}`);
-        expect(revoked).toEqual(['blob:shared-file']);
+        expect(client.externalFiles.has(path)).toBe(false);
         expect(client.terminateCount).toBe(0);
     });
 
