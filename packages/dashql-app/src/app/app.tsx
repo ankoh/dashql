@@ -21,18 +21,14 @@ import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { HyperSetupProvider } from '../connections/hyper/hyper_connection_setup.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_client_provider.js';
-import { HyperPlanDemoPage } from './component_demos/plan_demo.js';
-import { JsonViewerExperimentPage } from './component_demos/json_demo.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { NavBarContainer } from './navbar.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';
-import { PromptDemoPage } from './component_demos/prompt_demo.js';
 import { QueryExecutorProvider } from '../connections/query_executor.js';
 import { RouterReset } from './router/router_reset.js';
 import { SalesforceConnector } from '../connections/salesforce/salesforce_connector.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TrinoConnector } from '../connections/trino/trino_connector.js';
-import { UIExperimentPage } from './component_demos/ui_demo.js';
 import { VersionCheck } from '../platform/version/version_check.js';
 import { SessionCommands } from '../session/scripts/session_commands.js';
 import { SessionViewModeProvider } from '../session/session_view_mode.js';
@@ -42,7 +38,6 @@ import { QueryResultCacheProvider } from '../storage/query_result_cache_provider
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
-import { isDebugBuild } from '../globals.js';
 import { NativeSessionSync } from '../session/persistence/native_session_sync_react.js';
 import { SessionComputeQueryExecutionProvider } from './session_compute_query_execution.js';
 import { SessionImportProvider } from '../session/persistence/session_import_provider.js';
@@ -189,14 +184,6 @@ root.render(
                             <Route index Component={SessionPage} />
                             <Route path="/session" Component={SessionPage} />
                             <Route path="/sessions/:sessionId" Component={SessionPage} />
-                            {isDebugBuild() && (
-                                <>
-                                    <Route path="/demo/ui" Component={UIExperimentPage} />
-                                    <Route path="/demo/plan" Component={HyperPlanDemoPage} />
-                                    <Route path="/demo/json" Component={JsonViewerExperimentPage} />
-                                    <Route path="/demo/prompt" Component={PromptDemoPage} />
-                                </>
-                            )}
                             <Route path="*" element={<NavigateWithState to="/" />} />
                         </Routes>
                     </NavBarContainer>

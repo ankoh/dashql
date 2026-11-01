@@ -18,7 +18,7 @@ describe('Nav rail', () => {
     });
 
     it('leaves other pages outside the workspace', () => {
-        expect(isWorkspacePath('/demo/ui')).toBe(false);
+        expect(isWorkspacePath('/oauth')).toBe(false);
         expect(isWorkspacePath('/sessionsx')).toBe(false);
     });
 });
