@@ -107,6 +107,10 @@ configuration points at the corresponding `bazel-bin` output. TypeScript resolve
 the path mapping and module declaration described below; the type-check target does not consume the
 SVG contents.
 
+The website builds its own atlas from the same inputs (`//packages/dashql-org:svg_symbols`): every logo,
+and only the icons listed in `_SVG_ICONS` of `packages/dashql-org/BUILD.bazel`, by file name. An icon
+that the website uses must be added to that list.
+
 ## Import Resolution
 
 Application code imports a virtual module rather than a source SVG:

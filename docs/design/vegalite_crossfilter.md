@@ -2,10 +2,13 @@
 
 ## Overview
 
-The result details screen renders brushable column summaries alongside a Vega-Lite
-visualization of the same query result. DashQL owns cross-filter evaluation: histogram
-brushes update `TableComputationState.crossFilters`, and the compute layer produces a
-`filterTable` containing the stable row numbers that satisfy all active filters.
+Brushable column summaries of a query result filter the Vega-Lite visualizations of the
+same result. `VegaLiteView` renders every Vega-Lite chart of the app: through
+`visualization_dispatch.tsx` in the feed, the dashboard cards, the dataflow canvas and the
+script output details, and directly in the chart builder preview. DashQL owns cross-filter
+evaluation: histogram brushes update `TableComputationState.crossFilters`, and the compute
+layer produces a `filterTable` containing the stable row numbers that satisfy all active
+filters.
 
 Vega-Lite consumes that existing row-ID relation as a selection mask. The full chart
 source remains resident in a retained Vega View, while each brush updates only a small
@@ -16,6 +19,7 @@ The implementation lives in:
 
 - `packages/dashql-app/src/views/visualization/vegalite_crossfilter.ts`
 - `packages/dashql-app/src/views/visualization/vegalite_view.tsx`
+- `packages/dashql-app/src/ui/vegalite/vegalite_rows.ts` (Arrow to Vega rows)
 
 ## Data flow
 
@@ -114,8 +118,8 @@ rather than relying on Vega-Lite-generated names such as `source_0`.
 ## Source dataset lifecycle
 
 `VegaLiteView` converts the analyzed Arrow table to Vega-compatible JavaScript row
-objects once per source-table identity. BigInts are converted to numbers and Dates to
-ISO strings.
+objects once per source-table identity (`arrowTableToRows`). BigInts are converted to
+numbers and Dates to ISO strings.
 
 The rows are not embedded in `data.values`. After `vegaEmbed` creates the View, the
 renderer loads them through:

@@ -97,8 +97,9 @@ hyperd.
 
 - **Receiving**: the app event of a link arrives like every app event, from the address of the page, from the native
   app, or pasted (`PlatformEventListener.dispatchAppEvent`). The listener keeps the latest link until `useHyperLinks`
-  (`app/hyper_link/hyper_links.ts`) subscribes.
-- **Following**: once the app opened its first session, `useHyperLinks`
+  (`app/hyper_links.ts`) subscribes.
+- **Following**: once the app opened its first session, `useHyperLinks` (with the helpers of
+  `connections/hyper/hyper_link.ts`)
   1. confirms the host of a link to another machine, unless a connection to it exists (`confirmHyperLink`),
   2. binds the link to a connection (`bindHyperLink`): the connection to the endpoint of the link, otherwise the user
      may reuse the connection of the latest link, which is saved with the new endpoint, otherwise a new connection,
@@ -109,7 +110,7 @@ hyperd.
   `authorization` header (`hyperLinkChannelParams`). Without a token the setup asks to open the link again. The
   connection of an open session connects right away, as the embedded Hyper does, and again for every new link
   (`useInitialMemorySetup`).
-- **New sessions**: `newSessionConnection` (`app/connections/embedded_connection.ts`) starts new sessions on the
+- **New sessions**: `newSessionConnection` (`connections/embedded_connection.ts`) starts new sessions on the
   connection of the latest link of the tab, otherwise on the embedded Hyper. A session has a single default
   connection, so the composer prompt and new scripts run on it. Detaching the connection falls back to the embedded
   Hyper. Sessions that existed before keep their default connection.
