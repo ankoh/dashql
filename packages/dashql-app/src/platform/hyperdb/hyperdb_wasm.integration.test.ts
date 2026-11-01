@@ -67,6 +67,10 @@ class CountingClient implements HyperDBClient {
         return this.client.unmount(path);
     }
 
+    refreshMount(path: string): Promise<HyperDBResult> {
+        return this.client.refreshMount(path);
+    }
+
     pollQuery(query: number): Promise<HyperDBResult> {
         return this.client.pollQuery(query);
     }

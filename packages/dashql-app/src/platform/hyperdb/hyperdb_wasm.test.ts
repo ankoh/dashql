@@ -235,6 +235,12 @@ class FakeHyperDBEngineClient implements HyperDBClient {
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
+    refreshMount(path: string): Promise<HyperDBResult> {
+        this.calls.push(`refresh:${path}`);
+        if (!this.externalDirectories.has(path)) return Promise.resolve({ state: 'error', error: 'External directory registration was not found' });
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
     pollQuery(query: number): Promise<HyperDBResult> {
         this.calls.push(`poll:${query}`);
         const results = this.queries.get(query);
