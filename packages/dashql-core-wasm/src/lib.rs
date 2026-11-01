@@ -700,7 +700,7 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
     }
 
-    /// Set the `@vis board` tag of a query, negative rows and columns are absent. Returns the new text.
+    /// Set the `@board` tag of a query, negative rows and columns are absent. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisBoard)]
     pub fn rewrite_vis_board(
         &self,
@@ -715,13 +715,13 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated).map_err(js_error)
     }
 
-    /// Set the `@vis flow` tag of the script, its position on the dataflow canvas. Returns the new text.
+    /// Set the `@flow` tag of the script, its position on the dataflow canvas. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisFlow)]
     pub fn rewrite_vis_flow(&self, x: i32, y: i32, parse_if_outdated: bool) -> Result<String, JsError> {
         self.inner.borrow_mut().rewrite_vis_flow(Some(&VisFlow { x, y }), parse_if_outdated).map_err(js_error)
     }
 
-    /// Remove the `@vis flow` tag of the script. Returns the new text.
+    /// Remove the `@flow` tag of the script. Returns the new text.
     #[wasm_bindgen(js_name = removeVisFlow)]
     pub fn remove_vis_flow(&self, parse_if_outdated: bool) -> Result<String, JsError> {
         self.inner.borrow_mut().rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)

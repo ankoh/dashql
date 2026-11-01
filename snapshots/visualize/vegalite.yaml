@@ -176,7 +176,7 @@ visualize-snapshots:
     script:
       input: |
         /* @vis vegalite {"mark": "bar"}
-           @vis board row=1 width=12 height=4 */
+           @board row=1 width=12 height=4 */
         SELECT 1 AS a;
     dashboard:
       row: 1

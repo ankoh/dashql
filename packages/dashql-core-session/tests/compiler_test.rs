@@ -136,7 +136,7 @@ fn blank_text_with_errors_has_no_statement() {
 
 #[test]
 fn vis_tag_table() {
-    let result = compile_text("/* @vis table\n   @vis board row=2 column=3 width=4 height=5 */\nselect 1 as a");
+    let result = compile_text("/* @vis table\n   @board row=2 column=3 width=4 height=5 */\nselect 1 as a");
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     assert_eq!(result.kind, StatementKind::VISUALIZE);
     assert_eq!(result.sql.as_deref(), Some("select 1 as a"));
@@ -171,7 +171,7 @@ fn vis_tag_markdown() {
 
 #[test]
 fn invalid_vis_tags_run_the_query() {
-    for text in ["/* @vis vegalite {\"mark\": */ select 1", "/* @vis board width=6 */ select 1", "/* @vis chart */ select 1"] {
+    for text in ["/* @vis vegalite {\"mark\": */ select 1", "/* @board width=6 */ select 1", "/* @vis chart */ select 1"] {
         let result = compile_text(text);
         assert!(result.errors.as_ref().unwrap().is_empty(), "{text}: {:?}", result.errors);
         assert_eq!(result.kind, StatementKind::QUERY, "{text}");
@@ -183,13 +183,13 @@ fn invalid_vis_tags_run_the_query() {
 #[test]
 fn a_flow_position_is_no_visualization() {
     // The query keeps its text as written, it is not formatted like a visualized query
-    let result = compile_text("/* @vis flow x=1 y=2 */\nSELECT   1");
+    let result = compile_text("/* @flow x=1 y=2 */\nSELECT   1");
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     assert_eq!(result.kind, StatementKind::QUERY);
     assert_eq!(result.sql.as_deref(), Some("SELECT   1"));
     assert!(result.visualization.is_none());
     // With a renderer, the flow position does not change the visualization
-    let result = compile_text("/* @vis table\n   @vis flow x=1 y=2 */\nselect 1 as a");
+    let result = compile_text("/* @vis table\n   @flow x=1 y=2 */\nselect 1 as a");
     assert_eq!(result.kind, StatementKind::VISUALIZE);
     assert_eq!(result.visualization.as_ref().unwrap().renderer.as_deref(), Some("table"));
 }

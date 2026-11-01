@@ -1,7 +1,7 @@
 //! The dataflow snapshot encoder: the statements of every script, the edges between them and the boxes of the
 //! canvas, for sessions described like the planner snapshots.
 //!
-//! The boxes are laid out like the app lays them out on its first render: a script with a `@vis flow` tag is fixed
+//! The boxes are laid out like the app lays them out on its first render: a script with a `@flow` tag is fixed
 //! at its position, the chart of a visualized terminal statement follows its row, and the scripts of `collapsed` are
 //! collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide.
 

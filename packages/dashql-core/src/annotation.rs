@@ -1,4 +1,4 @@
-//! The annotation of a statement: the comment tags in front of it (`@description`, `@metadata`, `@vis`),
+//! The annotation of a statement: the comment tags in front of it (`@description`, `@vis`, `@board`, `@flow`, `@param`),
 //! read as one list and written back as one comment.
 //!
 //! An annotation is the text before the first tag of a block comment (the preamble) and the tags in their

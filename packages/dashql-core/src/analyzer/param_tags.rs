@@ -8,7 +8,7 @@
 //!
 //! A tag names a scalar parameter as it is written in the query and gives its value as a SQL literal in the Hyper
 //! dialect (`sql_literal`), whatever the connection of the script speaks. A tag without a value, `@param :min`, leaves
-//! the input unset. The tags hold the values of the script, like `@vis flow` they may annotate any statement, and the
+//! the input unset. The tags hold the values of the script, like `@flow` they may annotate any statement, and the
 //! first tag of a name in statement order wins. Problems are warnings with a span inside the comment, a tag whose
 //! value is no literal leaves the input unset. A `@param` that names no `:parameter`, e.g. the `@param x the x` of a
 //! Javadoc comment, is no value and stays quiet.

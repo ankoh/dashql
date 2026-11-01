@@ -100,7 +100,7 @@ analyzer-snapshots:
     script:
       input: |
         /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "total"}}}
-           @vis board row=1 column=2 width=4 height=2 */
+           @board row=1 column=2 width=4 height=2 */
         select date, sum(revenue) as total from sales group by date;
       catalog-id: 2
       errors: []
@@ -483,18 +483,18 @@ analyzer-snapshots:
            @vis
            @vis table extra
            @vis markdown {{a}}
-           @vis board width=x depth=2 row
-           @vis board width=3 */
+           @board width=x depth=2 row
+           @board width=3 */
         select 1 as a;
       catalog-id: 1
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "chart", expected vegalite, markdown, table, board or flow'
+          message: 'unknown @vis kind "chart", expected vegalite, markdown or table'
           text: "chart"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis needs a kind: vegalite, markdown, table, board or flow'
+          message: '@vis needs a kind: vegalite, markdown or table'
           text: "vis"
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -506,19 +506,19 @@ analyzer-snapshots:
           text: "markdown"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis board width must be an integer'
+          message: '@board width must be an integer'
           text: "width=x"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis board arg "depth", expected row, column, width or height'
+          message: 'unknown @board arg "depth", expected row, column, width or height'
           text: "depth=2"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis board takes key=value args, not "row"'
+          message: '@board takes key=value args, not "row"'
           text: "row"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'the statement already has a @vis board, this tag is ignored'
+          message: 'the statement already has a @board, this tag is ignored'
           text: "board"
       expressions:
         - expression-idx: 0
@@ -547,7 +547,7 @@ analyzer-snapshots:
     script:
       input: |
         /* @vis table
-           @vis board row=-1 column=9 width=6 height=0 */
+           @board row=-1 column=9 width=6 height=0 */
         select 1 as a;
       catalog-id: 1
       errors:
@@ -587,12 +587,16 @@ analyzer-snapshots:
             width: 6
             height: 1
 
-  - name: vis_tag_card_alias
+  - name: vis_tag_legacy_layout
     script:
       input: |
         /* @vis table
-           @vis card row=1 column=2 width=4 height=2 */
+           @vis card row=1 column=2 width=4 height=2
+           @vis flow x=8 y=16 */
         select 1 as a;
+        /* @vis table
+           @vis board width=3 */
+        select 2 as b;
       catalog-id: 1
       errors: []
       expressions:
@@ -601,15 +605,27 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
       constants:
         - expression: 0
           text: "1"
+        - expression: 1
+          text: "2"
       name-scopes:
         - scope-id: 0
           columns:
             - name: a
               expression: 0
           text: "select 1 as a"
+        - scope-id: 1
+          columns:
+            - name: b
+              expression: 1
+          text: "select 2 as b"
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -619,17 +635,27 @@ analyzer-snapshots:
             column: 2
             width: 4
             height: 2
+        - statement-id: 1
+          source: "select 2 as b"
+          renderer: table
+          dashboard:
+            width: 3
+            height: 3
+      flow:
+        statement-id: 0
+        x: 8
+        y: 16
 
   - name: vis_tag_board_only
     script:
       input: |
-        /* @vis board width=6 */
+        /* @board width=6 */
         select 1 as a;
       catalog-id: 1
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis board places a visualization, the statement needs @vis vegalite, markdown or table'
+          message: '@board places a visualization, the statement needs @vis vegalite, markdown or table'
           text: "board"
       expressions:
         - expression-idx: 0
@@ -650,7 +676,7 @@ analyzer-snapshots:
   - name: vis_tag_flow
     script:
       input: |
-        /* @vis flow x=-40 y=120 */
+        /* @flow x=-40 y=120 */
         create table t (a int);
         /* @vis table */
         select a from t;
@@ -705,10 +731,10 @@ analyzer-snapshots:
   - name: vis_tag_flow_twice
     script:
       input: |
-        /* @vis flow x=1 y=2 */
+        /* @flow x=1 y=2 */
         create table t (a int);
         /* @vis table
-           @vis flow x=3 y=4 */
+           @flow x=3 y=4 */
         select a from t;
       catalog-id: 1
       tables:
@@ -727,7 +753,7 @@ analyzer-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'the script already has a @vis flow, this tag is ignored'
+          message: 'the script already has a @flow, this tag is ignored'
           text: "flow"
       table-refs:
         - type: name/internal
@@ -765,37 +791,37 @@ analyzer-snapshots:
   - name: vis_tag_flow_args
     script:
       input: |
-        /* @vis flow x=1 depth=3 z */
+        /* @flow x=1 depth=3 z */
         select 1;
-        /* @vis flow x=y y=99999999999 */
+        /* @flow x=y y=99999999999 */
         select 2;
-        /* @vis flow y=5 x=6 */
+        /* @flow y=5 x=6 */
         select 3;
       catalog-id: 1
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis flow arg "depth", expected x or y'
+          message: 'unknown @flow arg "depth", expected x or y'
           text: "depth=3"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow takes key=value args, not "z"'
+          message: '@flow takes key=value args, not "z"'
           text: "z"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow needs y'
+          message: '@flow needs y'
           text: "flow"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow x must be an integer'
+          message: '@flow x must be an integer'
           text: "x=y"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow needs x'
+          message: '@flow needs x'
           text: "flow"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow y is out of range'
+          message: '@flow y is out of range'
           text: "y=99999999999"
       expressions:
         - expression-idx: 0

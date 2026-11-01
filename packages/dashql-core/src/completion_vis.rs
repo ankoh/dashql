@@ -1,7 +1,8 @@
-//! Completion inside comments: the names of comment tags and the content of `@vis` tags.
+//! Completion inside comments: the names of comment tags and the content of `@vis`, `@board` and `@flow` tags.
 //!
 //! - `@` at the start of a comment line completes the tag names.
-//! - `@vis ` completes the kinds, `@vis board ` and `@vis flow ` their args.
+//! - `@vis ` completes the kinds, `@board ` and `@flow ` their args, like the `@vis board ` and `@vis flow ` of
+//!   older scripts.
 //! - In the JSON of `@vis vegalite`, a tolerant scanner finds the key path at the cursor and whether a
 //!   key or a value follows, also in JSON that is not complete yet. Keys come from a table per path,
 //!   values from the Vega-Lite enums and, for `field`, from the output columns of the query.
@@ -21,11 +22,15 @@ use std::sync::Arc;
 
 /// The tag of visualizations
 const VIS_TAG: &[u8] = b"vis";
+/// The tag of the dashboard placement
+const BOARD_TAG: &[u8] = b"board";
+/// The tag of the position on the dataflow canvas
+const FLOW_TAG: &[u8] = b"flow";
 /// The kinds of `@vis` tags
-const VIS_KINDS: &[&str] = &["vegalite", "markdown", "table", "board", "flow"];
-/// The args of `@vis board`
+const VIS_KINDS: &[&str] = &["vegalite", "markdown", "table"];
+/// The args of `@board`
 const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
-/// The args of `@vis flow`
+/// The args of `@flow`
 const FLOW_ARGS: &[&str] = &["x", "y"];
 
 /// The top-level properties of a Vega-Lite spec
@@ -304,16 +309,18 @@ fn statement_of_block(parsed: &ParsedScript, block: usize) -> Option<usize> {
     })
 }
 
-/// Complete the content of a `@vis` tag
+/// Complete the content of a `@vis`, `@board` or `@flow` tag
 fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usize, k: usize) -> Option<Vec<Candidate>> {
     let script = parsed.scanned.text.as_bytes();
     let blocks = &parsed.comment_blocks;
+    let name_of = |b: &CommentBlock| &script[b.tag_span.offset as usize..b.tag_span.end() as usize];
     let (block_id, block): (usize, &CommentBlock) = blocks.blocks.iter().enumerate().find(|(_, b)| {
         b.block_type == CommentBlockType::DASHQL_TAG
-            && &script[b.tag_span.offset as usize..b.tag_span.end() as usize] == VIS_TAG
+            && matches!(name_of(b), VIS_TAG | BOARD_TAG | FLOW_TAG)
             && b.tag_span.end() as usize <= offset
             && offset <= b.text_span.end() as usize
     })?;
+    let name = name_of(block);
     let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
     let columns = || {
         let statement = statement_of_block(parsed, block_id)?;
@@ -324,13 +331,19 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
     let at = if lines.is_empty() || offset < lines[0].offset as usize { 0 } else { tag.to_joined(offset) };
     let text = tag.text.as_bytes();
     let span = |begin: usize, end: usize| if tag.is_empty() { TextSpan::new(offset as u32, 0) } else { tag.span(begin, end) };
-    let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
-    if at <= kind_end {
-        let mut candidates = Candidates::new(span(0, kind_end), &text[..at]);
-        candidates.add_all(VIS_KINDS, false);
-        return Some(candidates.finish(k));
-    }
-    match &text[..kind_end] {
+    // `@board` and `@flow` start with their args, `@vis` with its kind
+    let (kind, kind_end): (&[u8], usize) = if name == VIS_TAG {
+        let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
+        if at <= kind_end {
+            let mut candidates = Candidates::new(span(0, kind_end), &text[..at]);
+            candidates.add_all(VIS_KINDS, false);
+            return Some(candidates.finish(k));
+        }
+        (&text[..kind_end], kind_end)
+    } else {
+        (name, 0)
+    };
+    match kind {
         kind @ (b"board" | b"card" | b"flow") => {
             let args = if kind == b"flow" { FLOW_ARGS } else { BOARD_ARGS };
             let first_line_end = text.iter().position(|&c| c == b'\n').unwrap_or(text.len());

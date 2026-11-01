@@ -119,11 +119,11 @@ fn parsed_scripts_carry_statements_descriptions_and_errors() {
 
 #[test]
 fn comment_blocks_are_packed() {
-    let (_, packed) = parsed("-- @metadata\n-- {\"a\": 1}\n-- @end\nselect 1");
+    let (_, packed) = parsed("-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end\nselect 1");
     let blocks = packed.comment_blocks.as_ref().unwrap();
     assert_eq!(blocks.len(), 1);
     assert_eq!(blocks[0].block_type, CommentBlockType::DASHQL_TAG);
-    assert_eq!(packed.comment_lines.as_ref().unwrap().len(), 1);
+    assert_eq!(packed.comment_lines.as_ref().unwrap().len(), 2);
     let statements = packed.statements.as_ref().unwrap();
     assert_eq!((statements[0].description_blocks_begin, statements[0].description_blocks_count), (0, 1));
     let (_, without) = parsed("select 1");

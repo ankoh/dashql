@@ -3,7 +3,7 @@
 //! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
 //! sequences (see docs/design/core_quirks.md).
 
-use crate::annotation::{Annotation, ANNOTATION_GUTTER};
+use crate::annotation::{AnnotationTag, Annotation, ANNOTATION_GUTTER};
 use dashql_parser::comment_blocks::{
     group_comment_bytes, is_comment_tag, CommentBlockType, COMMENT_TAG_END, COMMENT_TAG_PREFIX,
 };
@@ -204,6 +204,10 @@ fn read_comment_tag<'a>(input: &'a [u8], comment: &TextSpan) -> Option<CommentTa
 
 /// The tag of visualizations, `@vis <kind> ...`
 const VIS_TAG: &str = "vis";
+/// The tag of the dashboard placement, `@board <args>`
+const BOARD_TAG: &str = "board";
+/// The tag of the position on the dataflow canvas, `@flow <args>`
+const FLOW_TAG: &str = "flow";
 
 /// Split a line at its first whitespace, the rest is trimmed
 fn split_word(line: &str) -> (&str, &str) {
@@ -225,7 +229,7 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
             let compact = crate::compact_json::to_string_compact(&value, width);
             std::iter::once(kind.to_string()).chain(compact.lines().map(str::to_string)).collect()
         }
-        "table" | "board" | "card" | "flow" => {
+        "table" => {
             // Args are separated by single spaces
             let header = std::iter::once(kind).chain(rest.split_whitespace()).collect::<Vec<_>>().join(" ");
             std::iter::once(header).chain(body.iter().cloned()).collect()
@@ -234,8 +238,30 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
     }
 }
 
+/// The canonical content lines of a `@board` or `@flow` tag: its args, separated by single spaces
+fn args_tag_lines(lines: &[String]) -> Vec<String> {
+    let Some((header, body)) = lines.split_first() else { return Vec::new() };
+    std::iter::once(header.split_whitespace().collect::<Vec<_>>().join(" ")).chain(body.iter().cloned()).collect()
+}
+
+/// The `@board` or `@flow` tag of the `@vis board`, `@vis card` or `@vis flow` of an older script, with its args
+fn legacy_layout_tag(tag: &AnnotationTag) -> Option<AnnotationTag> {
+    if tag.name != VIS_TAG {
+        return None;
+    }
+    let name = match tag.kind() {
+        "board" | "card" => BOARD_TAG,
+        "flow" => FLOW_TAG,
+        _ => return None,
+    };
+    let (_, args) = split_word(tag.lines.first().map(String::as_str).unwrap_or("").trim_start());
+    let lines = std::iter::once(args.to_string()).chain(tag.lines.iter().skip(1).cloned()).collect();
+    Some(AnnotationTag::new(name, lines))
+}
+
 /// Print comments that hold tags as one canonical tagged comment, like an annotation (see `annotation`):
-/// the tags keep their order, `@vis` tags are normalized, the text before the first tag of a block comment
+/// the tags keep their order, `@vis`, `@board` and `@flow` tags are normalized and the `@vis board` and `@vis flow` of
+/// older scripts become `@board` and `@flow`, the text before the first tag of a block comment
 /// goes in front of them. Returns None if the comments stay as written: without a tag, with malformed tags,
 /// or with text that would end or nest a block comment.
 fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -> Option<Vec<u8>> {
@@ -244,8 +270,16 @@ fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -
         return None;
     }
     let mut annotation = Annotation::from_blocks(input, &blocks, blocks.blocks.iter());
-    for tag in annotation.tags.iter_mut().filter(|t| t.name == VIS_TAG) {
-        tag.lines = vis_tag_lines(&tag.lines, max_width);
+    for tag in annotation.tags.iter_mut() {
+        // Older scripts place visualizations with `@vis board` and scripts with `@vis flow`
+        if let Some(layout) = legacy_layout_tag(tag) {
+            *tag = layout;
+        }
+        match tag.name.as_str() {
+            VIS_TAG => tag.lines = vis_tag_lines(&tag.lines, max_width),
+            BOARD_TAG | FLOW_TAG => tag.lines = args_tag_lines(&tag.lines),
+            _ => {}
+        }
     }
     annotation.print("").ok().map(|(comment, _)| comment.into_bytes())
 }
@@ -450,9 +484,9 @@ mod tests {
     #[test]
     fn prints_tagged_regions() {
         // A tagged region ends with the run or with an end line, comments after it are rewrapped
-        let input = "-- @metadata\n-- {\"a\":   1}\n-- @end\n\n-- x   y";
-        let out = format(input, &["-- @metadata", "-- {\"a\":   1}", "-- @end", "-- x   y"], 120);
-        assert_eq!(out, "/**\n * @metadata\n * {\"a\":   1}\n */\n\n-- x y");
+        let input = "-- @vis markdown\n-- **{{a}}**   x\n-- @end\n\n-- x   y";
+        let out = format(input, &["-- @vis markdown", "-- **{{a}}**   x", "-- @end", "-- x   y"], 120);
+        assert_eq!(out, "/**\n * @vis markdown\n * **{{a}}**   x\n */\n\n-- x y");
         let input = "-- @description Sales.\n-- @end\n-- x   y";
         assert_eq!(format(input, &["-- @description Sales.", "-- @end", "-- x   y"], 120), "/** @description Sales. */\n-- x y");
     }
@@ -471,7 +505,12 @@ mod tests {
 
     #[test]
     fn prints_vis_block_comments() {
-        assert_eq!(format_comments("/*   @vis   board  width=6   height=3 */"), "/** @vis board width=6 height=3 */");
+        assert_eq!(format_comments("/*   @board  width=6   height=3 */"), "/** @board width=6 height=3 */");
+        assert_eq!(format_comments("/* @flow   x=1  y=2 */"), "/** @flow x=1 y=2 */");
+        // The placements of older scripts become their own tags
+        assert_eq!(format_comments("/*   @vis   board  width=6   height=3 */"), "/** @board width=6 height=3 */");
+        assert_eq!(format_comments("/* @vis card width=6 */"), "/** @board width=6 */");
+        assert_eq!(format_comments("/* @vis table\n   @vis flow x=1 y=2 */"), "/**\n * @vis table\n * @flow x=1 y=2\n */");
         assert_eq!(format_comments("/* @vis table */"), "/** @vis table */");
         let input = "/* @vis vegalite {\"mark\":\"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */";
         assert_eq!(format_comments(input), "/**\n * @vis vegalite\n * {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n */");
@@ -487,7 +526,7 @@ mod tests {
 
     #[test]
     fn prints_tagged_line_comments_as_block_comment() {
-        let expected = "/**\n * @description Revenue.\n * @vis board width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
+        let expected = "/**\n * @description Revenue.\n * @board width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
         for input in [
             "-- @description Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}",
             "-- @description Revenue.\n-- @vis board width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end",

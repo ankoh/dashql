@@ -73,7 +73,7 @@ describe('DashQL @vis tags', () => {
         session.replaceText(0n, 'select 1 as a;\n/* @vis table */\nselect 2 as b');
 
         expect(session.rewriteVisBoard(1, null, 3, 6, 4)).toBe(
-            'select 1 as a;\n/**\n * @vis table\n * @vis board column=3 width=6 height=4\n */\nselect 2 as b');
+            'select 1 as a;\n/**\n * @vis table\n * @board column=3 width=6 height=4\n */\nselect 2 as b');
         // The gutter keeps a template line that starts with `*`
         expect(session.rewriteVisRenderer(1, 'markdown', '**{{b}}**')).toBe(
             'select 1 as a;\n/**\n * @vis markdown\n * **{{b}}**\n */\nselect 2 as b');
@@ -92,7 +92,7 @@ describe('DashQL @vis tags', () => {
         session.replaceText(0n, 'create table t (a int);\nselect a from t');
 
         const placed = session.rewriteVisFlow(-16.4, 240);
-        expect(placed).toBe('create table t (a int);\n/** @vis flow x=-16 y=240 */\nselect a from t');
+        expect(placed).toBe('create table t (a int);\n/** @flow x=-16 y=240 */\nselect a from t');
         session.replaceText(1n, placed);
         const position = session.analyze().scriptAnnotations?.flowPosition;
         expect([position?.statementId, position?.x, position?.y]).toEqual([1, -16, 240]);

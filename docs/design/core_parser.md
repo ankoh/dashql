@@ -303,7 +303,7 @@ The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scann
 
 The scanner collects comments as trivia. After parsing, `comment_blocks.rs` groups them into blocks:
 a block comment, or a run of line comments on consecutive lines. Blocks are split at every line whose
-first text is a known tag, `@<tag>`. The known tags are `metadata`, `description`, `vis`, `param` and `end`
+first text is a known tag, `@<tag>`. The known tags are `description`, `vis`, `board`, `flow`, `param` and `end`
 (`COMMENT_TAGS`), any other `@word` (`@todo`, `@see`) is ordinary text. A tag runs to the next tag
 line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
 closes the last tag, in a run of line comments the end of the run. Text before the first tag of a block
@@ -313,9 +313,8 @@ Javadoc-style comments (see `vis_comments.md`).
 
 ```sql
 /**
- * @metadata
- * {"owner": "finance"}
  * @description Revenue per segment.
+ * @board width=6
  */
 select 1;
 
@@ -332,9 +331,9 @@ select 3;
 The parser does not interpret the content. Every tag is a `DASHQL_TAG` block with its tag name
 (`tag_span`) and its content lines (`comment_lines`). Text after the tag on the same line is the first
 content line. The blocks of one block comment share the comment and cover it without gaps
-(`text_span`). Readers pick blocks by name and parse the content themselves: `readCommentTags` and
-`parseCommentTagObject` in `dashql-core-js/src/comment_tags.ts`, e.g. `readMetadata` reads the first
-`metadata` tag as a JSON object. A statement points to the blocks of its description comments
+(`text_span`). Readers pick blocks by name and parse the content themselves, e.g. `readCommentTags` in
+`dashql-core-js/src/comment_tags.ts` and the analyzer, which reads `@vis`, `@board`, `@flow` and `@param`. A
+statement points to the blocks of its description comments
 (`description_blocks_begin` / `description_blocks_count`). Only structural problems are warnings
 (`MALFORMED_COMMENT_TAG`): an `@end` without an opening tag. The formatter prints tagged comments as one
 Javadoc-style comment (see `vis_comments.md`).

@@ -55,7 +55,7 @@ describe('scanner decorations', () => {
     });
 
     it('highlights the tokens of @vis tags in comments quieter than the SQL', () => {
-        const text = '/* @vis vegalite {"mark": "bar", "size": 3} */select 1;\n-- @vis board width=2\n-- @end\nselect 2';
+        const text = '/* @vis vegalite {"mark": "bar", "size": 3} */select 1;\n-- @board width=2\n-- @end\nselect 2';
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
@@ -74,7 +74,7 @@ describe('scanner decorations', () => {
             },
         );
 
-        expect(quiet).toEqual(['@vis', 'vegalite', '"mark"', '"bar"', '"size"', '3', '@vis', 'board', 'width', '2', '@end']);
+        expect(quiet).toEqual(['@vis', 'vegalite', '"mark"', '"bar"', '"size"', '3', '@board', 'width', '2', '@end']);
         expect(loud).toEqual(['select', '1', 'select', '2']);
         session.destroy();
         catalog.destroy();

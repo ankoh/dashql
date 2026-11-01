@@ -1,11 +1,11 @@
 //! The syntax spans of comments: comment tags are highlighted like code, everything else is a comment.
 //!
-//! Every tag, `@description`, `@metadata`, `@vis` and the `@end` that older scripts close a region of
-//! line comments with, is a keyword, so the tags of an annotation read alike. The JSON of `@metadata` and `@vis vegalite` is
-//! split into its tokens: keys are identifiers, strings, numbers and booleans are literals. In a `@vis`
-//! tag, the kind is a keyword, the keys of `board` and `flow` args are identifiers and `{{field}}` placeholders of
-//! Markdown templates are identifiers. The rest of the comment stays a comment, e.g. the prose of a
-//! `@description`.
+//! Every tag, `@description`, `@vis`, `@board`, `@flow`, `@param` and the `@end` that older scripts close a region
+//! of line comments with, is a keyword, so the tags of an annotation read alike. The JSON of `@vis vegalite` is split
+//! into its tokens: keys are identifiers, strings, numbers and booleans are literals. In a `@vis` tag, the kind is a
+//! keyword and `{{field}}` placeholders of Markdown templates are identifiers. The keys of the args of `@board` and
+//! `@flow` (and of `@vis board` and `@vis flow` of older scripts) are identifiers. The rest of the comment stays a
+//! comment, e.g. the prose of a `@description`.
 //!
 //! The JSON objects of `vegalite` tags are found with the tokens, editors fold them.
 
@@ -17,8 +17,10 @@ use dashql_parser::span::TextSpan;
 
 /// The tag of visualizations
 const VIS_TAG: &[u8] = b"vis";
-/// The tag of the metadata of a script, a JSON object
-const METADATA_TAG: &[u8] = b"metadata";
+/// The tag of the dashboard placement
+const BOARD_TAG: &[u8] = b"board";
+/// The tag of the position on the dataflow canvas
+const FLOW_TAG: &[u8] = b"flow";
 
 /// The tokens of the content lines of a `board` or `markdown` tag
 struct Lines<'a> {
@@ -141,9 +143,11 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             lines.push(begin, end, ScannerTokenType::KEYWORD);
         }
         let content = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
-        if name == METADATA_TAG {
-            let text = TagText::new(&parsed.scanned.text, content, block.text_span);
-            json_tokens(&text, 0, &mut out, None);
+        // `@board` and `@flow` are args
+        if name == BOARD_TAG || name == FLOW_TAG {
+            if let Some(first) = content.first() {
+                lines.args(first.offset as usize, first.end() as usize);
+            }
             continue;
         }
         if name != VIS_TAG {
@@ -274,19 +278,19 @@ mod tests {
     #[test]
     fn highlights_every_tag_alike() {
         use ScannerTokenType as T;
-        // The prose of a description stays a comment, the JSON of the metadata is split like Vega-Lite
+        // The prose of a description stays a comment, the keys of the args of a board are identifiers
         assert_eq!(
-            spans("/* @description Sales.\n   @metadata {\"a\": 1}\n*/\nselect 1"),
+            spans("/* @description Sales.\n   @board width=6\n*/\nselect 1"),
             vec![
                 ("/* ", T::COMMENT),
                 ("@description", T::KEYWORD),
                 (" Sales.\n   ", T::COMMENT),
-                ("@metadata", T::KEYWORD),
-                (" {", T::COMMENT),
-                ("\"a\"", T::IDENTIFIER),
-                (": ", T::COMMENT),
-                ("1", T::LITERAL_INTEGER),
-                ("}\n*/", T::COMMENT),
+                ("@board", T::KEYWORD),
+                (" ", T::COMMENT),
+                ("width", T::IDENTIFIER),
+                ("=", T::COMMENT),
+                ("6", T::LITERAL_INTEGER),
+                ("\n*/", T::COMMENT),
             ]
         );
         assert_eq!(

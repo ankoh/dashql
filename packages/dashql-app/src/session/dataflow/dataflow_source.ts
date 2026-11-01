@@ -2,7 +2,7 @@ import type { ModifySessionScripts } from '../scripts/session_scripts_registry.j
 import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '../scripts/session_scripts.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
 
-/// Write the position of a script into its `@vis flow` tag. Returns whether the script has the position, a script
+/// Write the position of a script into its `@flow` tag. Returns whether the script has the position, a script
 /// that does not parse or has no statement can't be placed.
 export function persistFlowPosition(script: ScriptData, x: number, y: number, modifySessionScripts: ModifySessionScripts): boolean {
     const position = script.annotations.flowPosition;
@@ -18,7 +18,7 @@ export function persistFlowPosition(script: ScriptData, x: number, y: number, mo
     return true;
 }
 
-/// Remove the `@vis flow` tags of scripts, the layout places them again
+/// Remove the `@flow` tags of scripts, the layout places them again
 export function removeFlowPositions(scripts: ScriptData[], modifySessionScripts: ModifySessionScripts): void {
     for (const script of scripts) {
         if (script.annotations.flowPosition == null) continue;
@@ -35,7 +35,7 @@ export function removeFlowPositions(scripts: ScriptData[], modifySessionScripts:
 
 /// The text of a new script, at a position of the canvas if given, a query of the result of `producer` if given
 export function newFlowScriptText(position: { x: number; y: number } | null, producer: ScriptData | null, quoteIdentifier: (name: string) => string): string {
-    const tag = position != null ? `/** @vis flow x=${Math.round(position.x)} y=${Math.round(position.y)} */\n` : '';
+    const tag = position != null ? `/** @flow x=${Math.round(position.x)} y=${Math.round(position.y)} */\n` : '';
     if (producer == null) return `${tag}select 1`;
     return `${tag}select * from :${quoteIdentifier(scriptDisplayName(producer.fileName))}`;
 }

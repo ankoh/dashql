@@ -169,7 +169,7 @@ formatter-snapshots:
 
   - name: tagged_comment_regions_are_merged
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "ctx": "{\"workload\":{\"name\":\"activation-engine\",\"group\":\"activation-engine\",\"type\":\"background\"}}",
       --   "rows": 1
@@ -190,7 +190,7 @@ formatter-snapshots:
             width: 40
             expected: |-
               /**
-               * @metadata
+               * @vis vegalite
                * {
                *   "ctx": "{\"workload\":{\"name\":\"activation-engine\",\"group\":\"activation-engine\",\"type\":\"background\"}}",
                *   "rows": 1
@@ -203,7 +203,7 @@ formatter-snapshots:
             width: 40
             expected: |-
               /**
-               * @metadata
+               * @vis vegalite
                * {
                *   "ctx": "{\"workload\":{\"name\":\"activation-engine\",\"group\":\"activation-engine\",\"type\":\"background\"}}",
                *   "rows": 1

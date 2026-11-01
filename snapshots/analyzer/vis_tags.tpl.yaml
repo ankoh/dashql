@@ -21,7 +21,7 @@ analyzer-snapshots:
     script:
       input: |
         /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "total"}}}
-           @vis board row=1 column=2 width=4 height=2 */
+           @board row=1 column=2 width=4 height=2 */
         select date, sum(revenue) as total from sales group by date;
 
   # The line comment form
@@ -108,8 +108,8 @@ analyzer-snapshots:
            @vis
            @vis table extra
            @vis markdown {{a}}
-           @vis board width=x depth=2 row
-           @vis board width=3 */
+           @board width=x depth=2 row
+           @board width=3 */
         select 1 as a;
 
   # The board placement is normalized like the dashboard placement
@@ -117,29 +117,33 @@ analyzer-snapshots:
     script:
       input: |
         /* @vis table
-           @vis board row=-1 column=9 width=6 height=0 */
+           @board row=-1 column=9 width=6 height=0 */
         select 1 as a;
 
-  # `card` is an alias of `board`
-  - name: vis_tag_card_alias
+  # Older scripts place with `@board`, `@board` and `@flow`
+  - name: vis_tag_legacy_layout
     script:
       input: |
         /* @vis table
-           @vis card row=1 column=2 width=4 height=2 */
+           @vis card row=1 column=2 width=4 height=2
+           @vis flow x=8 y=16 */
         select 1 as a;
+        /* @vis table
+           @vis board width=3 */
+        select 2 as b;
 
   # A board placement without a renderer
   - name: vis_tag_board_only
     script:
       input: |
-        /* @vis board width=6 */
+        /* @board width=6 */
         select 1 as a;
 
   # The flow position of a script, on a statement that is no query
   - name: vis_tag_flow
     script:
       input: |
-        /* @vis flow x=-40 y=120 */
+        /* @flow x=-40 y=120 */
         create table t (a int);
         /* @vis table */
         select a from t;
@@ -148,21 +152,21 @@ analyzer-snapshots:
   - name: vis_tag_flow_twice
     script:
       input: |
-        /* @vis flow x=1 y=2 */
+        /* @flow x=1 y=2 */
         create table t (a int);
         /* @vis table
-           @vis flow x=3 y=4 */
+           @flow x=3 y=4 */
         select a from t;
 
   # Invalid args leave the script without a position, a later valid tag places it
   - name: vis_tag_flow_args
     script:
       input: |
-        /* @vis flow x=1 depth=3 z */
+        /* @flow x=1 depth=3 z */
         select 1;
-        /* @vis flow x=y y=99999999999 */
+        /* @flow x=y y=99999999999 */
         select 2;
-        /* @vis flow y=5 x=6 */
+        /* @flow y=5 x=6 */
         select 3;
 
   # A statement that returns no rows

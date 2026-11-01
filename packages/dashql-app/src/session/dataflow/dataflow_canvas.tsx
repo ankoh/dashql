@@ -90,7 +90,7 @@ function truncate(text: string, length: number): string {
 }
 
 /// The dataflow of a session: every script is a box of its statements, edges show the flow of data between them.
-/// The boxes keep the positions of their `@vis flow` tags, the others are placed by the layout of the core. A box
+/// The boxes keep the positions of their `@flow` tags, the others are placed by the layout of the core. A box
 /// that was placed keeps its position while the scripts are edited, unless a neighbour grows over it, Arrange lays
 /// out every box again.
 export function DataflowCanvas(props: Props): React.ReactElement {
@@ -107,7 +107,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
 
-    // Where the layout placed the boxes without `@vis flow` tags, by script key. The boxes keep these positions while
+    // Where the layout placed the boxes without `@flow` tags, by script key. The boxes keep these positions while
     // the session changes, so that only new boxes are placed. A box that a growing neighbour would overlap is placed
     // again, a tag always wins.
     const placedRef = React.useRef(new Map<number, Position>());

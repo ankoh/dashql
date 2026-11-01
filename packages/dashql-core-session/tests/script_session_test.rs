@@ -946,16 +946,16 @@ fn compatibility_query_formatting_and_diff_apis() {
 fn rewrites_the_board_placement_through_the_parsed_comments() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);
-    let source = "/* \u{1F4CA} @vis board is text here\n   @vis table\n   @vis board row=1 width=4 */\nselect '\u{1F4CA}' as label";
+    let source = "/* \u{1F4CA} @vis board is text here\n   @vis table\n   @board row=1 width=4 */\nselect '\u{1F4CA}' as label";
     assert_eq!(session.replace_text(0, source).status, EditorUpdateStatus::OK);
 
     assert_eq!(
         session.rewrite_vis_board(0, Some(&VisBoard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
-        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @vis board row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
+        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @board row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
         session.rewrite_vis_board(0, Some(&VisBoard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
-        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @vis board width=6 height=3\n */\nselect '\u{1F4CA}' as label"
+        "/**\n * \u{1F4CA} @vis board is text here\n * @vis table\n * @board width=6 height=3\n */\nselect '\u{1F4CA}' as label"
     );
 }
 
@@ -966,7 +966,7 @@ fn inserts_a_board_placement_into_a_visualization() {
     assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
         session.rewrite_vis_board(0, Some(&VisBoard { row: Some(0), column: Some(0), width: 6, height: 3 }), true).unwrap(),
-        "/**\n * @vis table\n * @vis board row=0 column=0 width=6 height=3\n */\nselect 1"
+        "/**\n * @vis table\n * @board row=0 column=0 width=6 height=3\n */\nselect 1"
     );
 }
 
@@ -1072,7 +1072,7 @@ fn rejects_board_placements_without_a_renderer() {
     script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board), true).unwrap(),
-        "/**\n * @vis vegalite {\"mark\": \"bar\"}\n * @vis board column=0 width=12 height=1\n */\nselect 1"
+        "/**\n * @vis vegalite {\"mark\": \"bar\"}\n * @board column=0 width=12 height=1\n */\nselect 1"
     );
 }
 

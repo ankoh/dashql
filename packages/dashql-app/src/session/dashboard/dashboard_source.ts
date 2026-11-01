@@ -2,7 +2,7 @@ import type { ModifySessionScripts } from '../scripts/session_scripts_registry.j
 import { SET_SCRIPT_TEXT, type ScriptData } from '../scripts/session_scripts.js';
 import type { DashboardPlacement } from './dashboard_layout.js';
 
-/// Write a placement into the `@vis board` tag of the statement that the card shows
+/// Write a placement into the `@board` tag of the statement that the card shows
 export function persistDashboardPlacement(
     script: ScriptData,
     placement: DashboardPlacement,

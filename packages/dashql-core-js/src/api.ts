@@ -51,7 +51,7 @@ export interface DataflowLayoutBox {
     /// The statement whose chart follows its row
     chartStatement?: number | null;
     collapsed?: boolean;
-    /// The position of the box if it is fixed, e.g. by its `@vis flow` tag
+    /// The position of the box if it is fixed, e.g. by its `@flow` tag
     fixed?: { x: number; y: number } | null;
     /// The width of the box, the width of the config if absent
     width?: number | null;
@@ -728,7 +728,7 @@ export class DashQLScriptSession {
         return this.ptr.assertNotNull().rewriteAnnotation(statementId, JSON.stringify(annotation), parseIfOutdated);
     }
 
-    /// Set the dashboard placement of a query, its `@vis board` tag. Returns the new text, the script is not changed.
+    /// Set the dashboard placement of a query, its `@board` tag. Returns the new text, the script is not changed.
     public rewriteVisBoard(
         statementId: number,
         row: number | null,
@@ -740,13 +740,13 @@ export class DashQLScriptSession {
         return this.ptr.assertNotNull().rewriteVisBoard(statementId, row ?? -1, column ?? -1, width, height, parseIfOutdated);
     }
 
-    /// Set the position of the script on the dataflow canvas, its `@vis flow` tag. Returns the new text, the
+    /// Set the position of the script on the dataflow canvas, its `@flow` tag. Returns the new text, the
     /// script is not changed.
     public rewriteVisFlow(x: number, y: number, parseIfOutdated: boolean = true): string {
         return this.ptr.assertNotNull().rewriteVisFlow(Math.round(x), Math.round(y), parseIfOutdated);
     }
 
-    /// Remove the `@vis flow` tag of the script. Returns the new text, the script is not changed.
+    /// Remove the `@flow` tag of the script. Returns the new text, the script is not changed.
     public removeVisFlow(parseIfOutdated: boolean = true): string {
         return this.ptr.assertNotNull().removeVisFlow(parseIfOutdated);
     }

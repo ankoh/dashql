@@ -193,7 +193,7 @@ fn analyzed_output() {
 
 #[test]
 fn analyzed_output_packs_functions_and_visualizations() {
-    let text = "create function f(x int) returns int;\n/* @vis table\n   @vis board row=1 */\n\
+    let text = "create function f(x int) returns int;\n/* @vis table\n   @board row=1 */\n\
                 select f(1) as v, count(*) as n from (select 1) x";
     let result = run_one(text, ANALYZED, vec![]);
     assert!(result.failure.is_none());

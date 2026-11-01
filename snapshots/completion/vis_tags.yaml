@@ -59,12 +59,6 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: metadata
-          candidate-tags: [SUBSTRING_MATCH]
-          location: "e"
-          location-qualified: "e"
-          objects: []
         - score: 1
           value: description
           candidate-tags: [SUBSTRING_MATCH]
@@ -82,7 +76,7 @@ completion-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "ve", expected vegalite, markdown, table, board or flow'
+          message: 'unknown @vis kind "ve", expected vegalite, markdown or table'
           text: "ve"
       expressions:
         - expression-idx: 0
@@ -114,13 +108,13 @@ completion-snapshots:
     editor:
       input: |
         /* @vis table
-           @vis board width=6 h */
+           @board width=6 h */
         select 1
       catalog-id: 1
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis board takes key=value args, not "h"'
+          message: '@board takes key=value args, not "h"'
           text: "h"
       expressions:
         - expression-idx: 0
@@ -158,7 +152,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |
-        /* @vis flow x=4 y */
+        /* @flow x=4 y */
         create table t (a int)
       catalog-id: 1
       tables:
@@ -177,11 +171,11 @@ completion-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow takes key=value args, not "y"'
+          message: '@flow takes key=value args, not "y"'
           text: "y"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis flow needs y'
+          message: '@flow needs y'
           text: "flow"
     cursor:
       search:

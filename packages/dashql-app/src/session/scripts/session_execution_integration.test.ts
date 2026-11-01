@@ -443,7 +443,7 @@ describe('session execution with real core planning', () => {
     it('lowers multiple visualizations and retains the last output after trailing DELETE', async () => {
         const f = fixture([['1_visualize.sql',
             'create table items (id int);\n/* @vis table */\nselect id from items;\n'
-            + '/* @vis table\n   @vis board row=2 column=4 width=8 height=5 */\nselect 2 as value;\n'
+            + '/* @vis table\n   @board row=2 column=4 width=8 height=5 */\nselect 2 as value;\n'
             + 'delete from items;']]);
         await f.run();
 
@@ -460,7 +460,7 @@ describe('session execution with real core planning', () => {
         // The card of the captured statement can be moved although a DELETE follows it
         expect(f.script('1_visualize.sql').scriptSession.rewriteVisBoard(2, 0, 0, 6, 3)).toBe(
             'create table items (id int);\n/* @vis table */\nselect id from items;\n'
-            + '/**\n * @vis table\n * @vis board row=0 column=0 width=6 height=3\n */\nselect 2 as value;\n'
+            + '/**\n * @vis table\n * @board row=0 column=0 width=6 height=3\n */\nselect 2 as value;\n'
             + 'delete from items;');
         const actions = f.modifySessionScripts.mock.calls.map(([action]) => action);
         const captured = actions.findIndex(action => action.type === SET_SCRIPT_EXECUTION_VISUALIZATION);
@@ -472,7 +472,7 @@ describe('session execution with real core planning', () => {
     it('uses captured visualization despite live edits during execution', async () => {
         const f = fixture([['1_visualize.sql',
             'create table items (id int, other int);\n'
-            + '/* @vis table\n   @vis board row=2 column=4 */\nselect id from items;']]);
+            + '/* @vis table\n   @board row=2 column=4 */\nselect id from items;']]);
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
             const execution = executor(connectionId, args);

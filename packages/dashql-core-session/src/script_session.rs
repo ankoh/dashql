@@ -1151,12 +1151,12 @@ impl ScriptSession {
         self.script.rewrite_vis_renderer(statement_id, renderer, parse_if_outdated)
     }
 
-    /// Set or remove the dashboard placement of a query, its `@vis board` tag, returns the new text
+    /// Set or remove the dashboard placement of a query, its `@board` tag, returns the new text
     pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
         self.script.rewrite_vis_board(statement_id, board, parse_if_outdated)
     }
 
-    /// Set or remove the position of the script on the dataflow canvas, its `@vis flow` tag, returns the new
+    /// Set or remove the position of the script on the dataflow canvas, its `@flow` tag, returns the new
     /// text
     pub fn rewrite_vis_flow(&mut self, flow: Option<&VisFlow>, parse_if_outdated: bool) -> Result<String> {
         self.script.rewrite_vis_flow(flow, parse_if_outdated)

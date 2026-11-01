@@ -71,7 +71,7 @@ pub struct AnalyzedScript {
     pub parameters: Vec<Parameter>,
     /// The visualization specs
     pub visualization_specs: Vec<VisualizationSpec>,
-    /// The flow position of the script, the first `@vis flow` tag in statement order
+    /// The flow position of the script, the first `@flow` tag in statement order
     pub flow: Option<FlowSpec>,
     /// The values of the parameters of the script, the first `@param` tag of every name in statement order
     pub param_values: Vec<ParamTag>,

@@ -364,14 +364,14 @@ impl Script {
         crate::vis_rewrite::rewrite_vis_renderer(&self.text.to_string(), &parsed, statement_id, renderer)
     }
 
-    /// Set or remove the dashboard placement of a query, its `@vis board` tag. Returns the new text like
+    /// Set or remove the dashboard placement of a query, its `@board` tag. Returns the new text like
     /// `rewrite_vis_renderer`.
     pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
         crate::vis_rewrite::rewrite_vis_board(&self.text.to_string(), &parsed, statement_id, board)
     }
 
-    /// Set or remove the position of the script on the dataflow canvas, its `@vis flow` tag. Returns the new
+    /// Set or remove the position of the script on the dataflow canvas, its `@flow` tag. Returns the new
     /// text like `rewrite_vis_renderer`.
     pub fn rewrite_vis_flow(&mut self, flow: Option<&VisFlow>, parse_if_outdated: bool) -> Result<String> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;

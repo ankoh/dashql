@@ -678,7 +678,7 @@ impl Default for DashboardSpec {
     }
 }
 
-/// The position of a script on the dataflow canvas, its `@vis flow` tag
+/// The position of a script on the dataflow canvas, its `@flow` tag
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FlowSpec {
     /// The statement whose annotation holds the tag

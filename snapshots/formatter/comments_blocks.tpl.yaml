@@ -74,7 +74,7 @@ formatter-snapshots:
       -- @description extra
       -- content inside the region
       -- @end
-      -- @metadata
+      -- @vis vegalite
       -- { "a": 1 }
       -- @end
       -- trailing text
@@ -91,7 +91,7 @@ formatter-snapshots:
       -- @description
       -- one
       -- @end
-      -- @metadata
+      -- @vis vegalite
       -- two
       -- @end
       select 1
@@ -123,7 +123,7 @@ formatter-snapshots:
     input: |-
       -- Revenue dashboard.
       -- @description Revenue per region.
-      -- @vis board width=6 height=3
+      -- @board width=6 height=3
       -- @vis table
       -- @end
       select 1
@@ -200,7 +200,7 @@ formatter-snapshots:
       /* @vis vegalite
          {"mark": "bar"}
       */
-      /* @vis board width=6 */
+      /* @board width=6 */
       select 1
     dialects:
       hyper:

@@ -78,7 +78,7 @@ describe('DataflowCanvas', () => {
         const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
         expect(action?.type).toBe(SET_SCRIPT_TEXT);
         expect(action?.value.scriptKey).toBe(key('report.sql'));
-        expect(action?.value.text).toMatch(/^\/\*\* @vis flow x=-?\d+ y=-?\d+ \*\/\nselect a from t$/);
+        expect(action?.value.text).toMatch(/^\/\*\* @flow x=-?\d+ y=-?\d+ \*\/\nselect a from t$/);
     });
 
     it('keeps the boxes in place and places a new script right of the box it reads, in a free slot', () => {

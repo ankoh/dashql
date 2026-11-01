@@ -543,18 +543,18 @@ describe('V2 flat session script mutations', () => {
         expect(current.scripts[scriptKey].scriptSession.getText()).toBe('create table t (a int);\nselect 2 as x, 3 as y');
 
         // A card tag survives a rewrite of the renderer
-        const cardText = '/* @vis vegalite {"mark":"bar"}\n   @vis board width=4 height=2 */\nselect 2 as x, 3 as y';
+        const cardText = '/* @vis vegalite {"mark":"bar"}\n   @board width=4 height=2 */\nselect 2 as x, 3 as y';
         current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: cardText } });
         current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"line","encoding":{"x":{"field":"x"}}}' } });
         text = current.scripts[scriptKey].scriptSession.getText();
-        expect(text).toContain('@vis board width=4 height=2');
+        expect(text).toContain('@board width=4 height=2');
         expect(text).not.toContain('"bar"');
         expect(specOf()).toMatchObject({ mark: 'line', encoding: { x: { field: 'x' } } });
 
         // Every edit of the builder restages the diff against the text before the first edit
         current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"point"}' } });
         text = current.scripts[scriptKey].scriptSession.getText();
-        expect(text).toContain('@vis board width=4 height=2');
+        expect(text).toContain('@board width=4 height=2');
         expect(specOf()).toEqual(expect.objectContaining({ mark: 'point' }));
         expect(current.scripts[scriptKey].pendingDiff?.priorText).toBe(cardText);
 

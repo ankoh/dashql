@@ -1,7 +1,8 @@
-# Visualizations as `@vis` comments
+# Visualizations as comment tags
 
-A query is visualized by `@vis` tags in the comments directly before it. The script stays plain SQL:
-every engine and tool runs it unmodified, and only DashQL reads the tags.
+A query is visualized by a `@vis` tag in the comments directly before it, `@board` places it on the
+dashboard and `@flow` places its script on the dataflow canvas. The script stays plain SQL: every engine and
+tool runs it unmodified, and only DashQL reads the tags.
 
 ```sql
 /**
@@ -14,30 +15,33 @@ every engine and tool runs it unmodified, and only DashQL reads the tags.
  *     "y": {"field": "revenue", "aggregate": "sum"}
  *   }
  * }
- * @vis board width=6 height=3
+ * @board width=6 height=3
  */
 SELECT region, revenue FROM sales;
 ```
 
 ## Tags
 
-The tags are comment tags (see `core_parser.md`): a line whose first text is `@vis` starts a tag that
-runs to the next tag line or the end of the comment, like the block tags of Javadoc, so one comment can
-hold several tags. A tag starts with its kind, what follows depends on the kind:
+The tags are comment tags (see `core_parser.md`): a line whose first text is `@vis`, `@board` or `@flow`
+starts a tag that runs to the next tag line or the end of the comment, like the block tags of Javadoc, so one
+comment can hold several tags.
 
-| Kind | After the kind |
+| Tag | Content |
 |---|---|
-| `vegalite` | A Vega-Lite spec as JSON object, on the same line or the next. The statement is the data, `data` is ignored with a warning. |
-| `markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. |
-| `table` | Nothing, the result table is the visualization. |
-| `board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. `card` is an alias. |
-| `flow` | The position of the script on the dataflow canvas as `key=value` args: `x` and `y`, both integers. |
+| `@vis vegalite` | A Vega-Lite spec as JSON object, on the same line or the next. The statement is the data, `data` is ignored with a warning. |
+| `@vis markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. |
+| `@vis table` | Nothing, the result table is the visualization. |
+| `@board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
+| `@flow` | The position of the script on the dataflow canvas as `key=value` args: `x` and `y`, both integers. |
+
+Older scripts write `@vis board` (or `@vis card`) and `@vis flow`. They are read like `@board` and `@flow`, and
+the rewrites and the formatter write them as `@board` and `@flow`.
 
 ```sql
 /**
  * @description Revenue per region.
  * @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}}
- * @vis board row=0 column=6 width=6 height=4
+ * @board row=0 column=6 width=6 height=4
  */
 SELECT region, sum(revenue) AS revenue FROM sales GROUP BY region;
 
@@ -49,8 +53,8 @@ SELECT region, sum(revenue) AS revenue FROM sales GROUP BY region;
 SELECT metric, value, status FROM metrics;
 ```
 
-A statement has at most one renderer tag (`vegalite`, `markdown` or `table`) and at most one `board`.
-The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. A `flow` tag may
+A statement has at most one renderer (`@vis vegalite`, `markdown` or `table`) and at most one `@board`.
+The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. A `@flow` tag may
 annotate any statement, it places the whole script; see Dataflow placement.
 
 DashQL writes the Javadoc-style form, but any block comment and runs of line comments work too. The last
@@ -59,7 +63,7 @@ accepted:
 
 ```sql
 -- @vis table
--- @vis board width=12
+-- @board width=12
 SELECT * FROM orders;
 ```
 
@@ -68,20 +72,20 @@ SELECT * FROM orders;
 The dashboard is a 12-column grid with zero-based coordinates. `row` and `column` are optional starting
 hints, `width` defaults to 6 columns and `height` to 3 rows. Invalid values are warnings and normalized:
 coordinates must be non-negative, the width is clamped to 1 through 12, the height is at least 1, and a
-card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `board`
+card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `@board`
 tag of the statement it shows (see Rewriting tags).
 
 ## Dataflow placement
 
-The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@vis flow x=.. y=..` is the
+The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@flow x=.. y=..` is the
 position of the top left corner of the box in canvas pixels, negative coordinates are fine. A script has one
-position: the first `flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or
-missing coordinate is ignored. Unlike `board`, it needs no renderer and may annotate a statement that is no
-query, so a script that only creates a table is placed too. A `flow` tag alone does not make a query a
+position: the first `@flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or
+missing coordinate is ignored. Unlike `@board`, it needs no renderer and may annotate a statement that is no
+query, so a script that only creates a table is placed too. A `@flow` tag alone does not make a query a
 visualization. A script without a position is placed automatically.
 
 ```sql
-/** @vis flow x=-40 y=120 */
+/** @flow x=-40 y=120 */
 CREATE TABLE trips AS SELECT * FROM external('trips.parquet');
 ```
 
@@ -89,25 +93,24 @@ CREATE TABLE trips AS SELECT * FROM external('trips.parquet');
 
 `vis_rewrite.rs` sets, replaces or removes the tags of a statement, addressed by its statement id:
 `Script::rewrite_vis_renderer` the renderer (`VisRenderer`: a Vega-Lite object, a Markdown template or
-the table) and `Script::rewrite_vis_board` the board placement (`VisBoard`), which replaces a `card` tag
-by `board`. They return the new text, the app writes it as an edit of the script (`rewriteVisRenderer`
+the table) and `Script::rewrite_vis_board` the board placement (`VisBoard`), which replaces the `@vis board`
+or `@vis card` of an older script by `@board`. They return the new text, the app writes it as an edit of the script (`rewriteVisRenderer`
 and `rewriteVisBoard` of the script session). The visualization of a script in the app carries the
 statement id, from the compiler for the terminal query and from the planner for any visualized query, so
 a card moves also when a statement follows the query.
 
 `Script::rewrite_vis_flow` sets or removes the position of a script (`VisFlow`), addressed by the script
-instead of a statement: it replaces the first `flow` tag where it is and removes the others, a new one goes after
-the `@vis` tags of the terminal statement, and removing the position removes every `flow` tag (`rewriteVisFlow`
-and `removeVisFlow` of the script session).
+instead of a statement: it replaces the first `@flow` tag where it is and removes the others, a new one goes after
+the `@vis` and `@board` tags of the terminal statement, and removing the position removes every `@flow` tag
+(`rewriteVisFlow` and `removeVisFlow` of the script session).
 
 The tags are edited in the annotation of the statement (`annotation.rs`): its comment tags
-(`@description`, `@metadata`, `@vis`) as one list, the `Annotation` with the text before the first tag
+(`@description`, `@vis`, `@board`, `@flow`, `@param`) as one list, the `Annotation` with the text before the first tag
 (`preamble`) and the tags, each a name and content lines whose first line is the text on the line of
 the tag. `Script::read_annotation` reads it, `Script::rewrite_annotation` replaces it; the app and
 core-js reach both as `readAnnotation` and `rewriteAnnotation` of a script or script session, with the
 annotation as JSON (`{"preamble": [...], "tags": [{"name": ..., "lines": [...]}]}`). The `@vis` rewrites
-are small edits of the annotation, any other tag, e.g. a description or metadata, is written the same
-way. The annotation printer is shared with the formatter, so an edit and a formatting print the same
+are small edits of the annotation, any other tag, e.g. a description, is written the same way. The annotation printer is shared with the formatter, so an edit and a formatting print the same
 comment.
 
 Writing an annotation consolidates it. The comments with tags in front of the statement become one
@@ -119,7 +122,7 @@ comment, in place of the first of them:
 -- @end                           =>      * Revenue per region.
 /* @vis vegalite {"mark": "bar"} */       * @vis vegalite
 SELECT region, revenue FROM sales;        * {"mark": "bar"}
-                                          * @vis board width=6 height=3
+                                          * @board width=6 height=3
                                           */
                                          SELECT region, revenue FROM sales;
 ```
@@ -131,8 +134,8 @@ SELECT region, revenue FROM sales;        * {"mark": "bar"}
 - Text before the first tag of a block comment goes in front of the tags, after a tag it would read as
   the content of the tag. Ordinary comments stay where they are. Blank lines between the comments of the
   annotation are removed.
-- A new renderer goes before the other `@vis` tags, after a description or metadata. A new board
-  placement goes after the renderer. A statement without tags gets a new comment on the line before it. A
+- A new renderer goes before the other `@vis`, `@board` and `@flow` tags, after a description and the
+  parameters. A new board placement goes after the renderer. A statement without tags gets a new comment on the line before it. A
   board placement needs a renderer.
 - Removing the last tag removes the comment.
 - An annotation that would not read back unchanged is an error: an unknown tag name, a line with a line
@@ -179,8 +182,8 @@ the tags are plain comments.
 
 Completion works inside comments (`completion_vis.rs`), although the rest of the completion skips them:
 
-- `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@vis board ` and
-  `@vis flow ` the args that are not used yet.
+- `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@board ` and `@flow ` the
+  args that are not used yet.
 - In the JSON of `vegalite`, a tolerant scanner (`vis_text.rs`) finds the key path at the cursor and whether
   a key or a value follows, also in JSON that is still typed. Keys come from a table per path (spec, mark,
   encoding channels, field definition, scale, axis, legend; nested `layer` and `spec` specs are specs),
@@ -196,10 +199,10 @@ the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or ad
 the annotation like the other rewrites (see Rewriting tags); the spec is printed compactly (see Formatting).
 
 The editor highlights comment tags like code (`vis_highlight.rs`), so the tags of an annotation read
-alike: every tag (`@description`, `@metadata`, `@vis` and an `@end` of older scripts) is a keyword, the JSON of
-`@metadata` and `vegalite` is split into keys (identifiers) and strings, numbers and booleans
-(literals), the kind of a `@vis` tag is a keyword, `board` and `flow` keys and `{{field}}` placeholders are
-identifiers. The comment markers of every tagged region step back, the text of a `@description` keeps
+alike: every tag (`@description`, `@vis`, `@board`, `@flow`, `@param` and an `@end` of older scripts) is a
+keyword, the JSON of `vegalite` is split into keys (identifiers) and strings, numbers and booleans (literals),
+the kind of a `@vis` tag is a keyword, the keys of the args of `@board` and `@flow` and `{{field}}` placeholders
+are identifiers. The comment markers of every tagged region step back, the text of a `@description` keeps
 the color of text. Other editors show the tags as plain comments.
 
 Highlighting, completion and the spans of analyzer warnings read the JSON of `vegalite` tags with the same
@@ -218,8 +221,9 @@ nothing but whitespace between them (block comments and tagged regions of line c
 one, so the annotation of a statement reads as one block, the same comment that a rewrite prints.
 Ordinary comments between them keep them apart.
 
-`table`, `board` and `flow` tags are printed on one line, the JSON of `vegalite` compactly with the key order kept
-(`compact_json.rs`), descriptions, metadata and Markdown verbatim. A JSON value that fits in the rest of
+`@vis table`, `@board` and `@flow` tags are printed on one line, the `@vis board` and `@vis flow` of older scripts
+as `@board` and `@flow`, the JSON of `vegalite` compactly with the key order kept (`compact_json.rs`),
+descriptions and Markdown verbatim. A JSON value that fits in the rest of
 its line stays on one line, objects and arrays that don't fit put each entry on a line of its own with
 2-space indentation, so a spec reads like the Vega editor prints it instead of one key per line. The
 JSON fills the formatting width behind the gutter; rewrites, which have no formatting width, use 80

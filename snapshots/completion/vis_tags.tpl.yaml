@@ -44,7 +44,7 @@ completion-snapshots:
     editor:
       input: |
         /* @vis table
-           @vis board width=6 h */
+           @board width=6 h */
         select 1
     cursor:
       search:
@@ -57,7 +57,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |
-        /* @vis flow x=4 y */
+        /* @flow x=4 y */
         create table t (a int)
     cursor:
       search:

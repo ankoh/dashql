@@ -41,7 +41,7 @@ Layout), the inputs with their type, value and box, and the edges, an input edge
 
 ## Layout
 
-The position of a script on the canvas is its `@vis flow x=.. y=..` tag, see [vis_comments.md](vis_comments.md).
+The position of a script on the canvas is its `@flow x=.. y=..` tag, see [vis_comments.md](vis_comments.md).
 `dataflow_layout::compute_dataflow_layout` in `dashql-core-view` (core-js `computeDataflowLayout`) places the
 others. The layout has two levels:
 
@@ -62,7 +62,7 @@ others. The layout has two levels:
 
 Boxes that are not fixed snap to an 8px grid. With the default sizes every row center is a multiple of the grid,
 so edges between snapped boxes stay straight. The dataflow snapshots lay out their boxes like the first render of
-the canvas: `@vis flow` tags fix boxes, a visualized terminal statement gets its chart.
+the canvas: `@flow` tags fix boxes, a visualized terminal statement gets its chart.
 
 ## The canvas
 
@@ -87,12 +87,12 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
   change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,
   the canvas remembers where the layout or a drag placed it while the canvas is open, Arrange places it again.
-- `dataflow_source.ts` writes the changes into the scripts: a dragged box writes its `@vis flow` tag, the `+` of a
+- `dataflow_source.ts` writes the changes into the scripts: a dragged box writes its `@flow` tag, the `+` of a
   box creates `select * from :<script>` on its connection, New script creates a query, a double click on the canvas
-  creates a query at that position, the trash button deletes the script, and Arrange removes every `@vis flow` tag
+  creates a query at that position, the trash button deletes the script, and Arrange removes every `@flow` tag
   and lays out every box again.
 
-The layout always lays out full boxes, collapsing a box only changes how it is drawn. A box with a `@vis flow` tag is
+The layout always lays out full boxes, collapsing a box only changes how it is drawn. A box with a `@flow` tag is
 fixed at its tag. The canvas remembers where the layout placed the other boxes and passes these positions to the
 layout as fixed boxes, so a box keeps its position while the session changes and only new boxes are placed: a script
 that reads a box goes right of it, in the nearest free slot. A remembered box that a neighbour grows over is placed

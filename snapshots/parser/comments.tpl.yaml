@@ -188,7 +188,7 @@ parser-snapshots:
     input: |
       /* Revenue dashboard.
          @description Revenue per region.
-         @vis board width=6 height=3
+         @board width=6 height=3
          @vis vegalite
          {"mark": "bar"}
       */
@@ -205,7 +205,7 @@ parser-snapshots:
   - name: line_comments_several_tags
     input: |
       -- @description Revenue per region.
-      -- @vis board width=6 height=3
+      -- @board width=6 height=3
       -- @vis vegalite
       -- {"mark": "bar"}
       -- @end
@@ -216,27 +216,27 @@ parser-snapshots:
       -- @description Revenue per region.
       -- @vis table
       select 1
-  # A metadata block holds a pretty-printed JSON object
-  - name: metadata_line_form
+  # A Vega-Lite spec holds a pretty-printed JSON object
+  - name: vegalite_line_form
     input: |
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "owner": "finance",
       --   "avg_runtime_ms": 1834
       -- }
       -- @end
       select 1
-  # Metadata in a block comment
-  - name: metadata_block_form
+  # A Vega-Lite spec in a block comment
+  - name: vegalite_block_form
     input: |
-      /* @metadata
+      /* @vis vegalite
        * {"owner": "finance"}
        */
       select 1
   # Values can be any JSON, strings that look like tags stay inside the JSON
-  - name: metadata_nested_values
+  - name: vegalite_nested_values
     input: |
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "tags": [
       --     "weekly",
@@ -252,35 +252,35 @@ parser-snapshots:
       -- }
       -- @end
       select 1
-  # Invalid JSON keeps the block but yields no metadata
-  - name: metadata_invalid_json
+  # Invalid JSON keeps the block, readers check the JSON
+  - name: vegalite_invalid_json
     input: |
-      -- @metadata
+      -- @vis vegalite
       -- owner: finance
       -- @end
       select 1
-  # The metadata must be an object
-  - name: metadata_not_an_object
+  # The parser keeps any content, readers check that it is an object
+  - name: vegalite_not_an_object
     input: |
-      -- @metadata
+      -- @vis vegalite
       -- ["finance"]
       -- @end
       select 1
-  # Only the first metadata block counts, even if it is invalid
-  - name: metadata_twice
+  # Two blocks of the same tag
+  - name: vegalite_twice
     input: |
-      -- @metadata
+      -- @vis vegalite
       -- {
       -- @end
 
-      -- @metadata
+      -- @vis vegalite
       -- {"owner": "finance"}
       -- @end
       select 1
-  # Metadata and a description side by side, the description stays the statement description
-  - name: metadata_and_description
+  # A spec and a description side by side, the description stays the statement description
+  - name: vegalite_and_description
     input: |
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "owner": "finance"
       -- }

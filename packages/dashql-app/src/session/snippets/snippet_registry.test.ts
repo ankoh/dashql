@@ -111,14 +111,14 @@ describe('Snippet registry', () => {
             'hyper/json/Bad Name.sql': file(),
             'json/no-engine.sql': file(),
             'oracle/json/unknown-engine.sql': file(),
-            'hyper/json/metadata.sql': `-- @metadata\n-- {"tags": []}\n-- @end\n${file()}`,
+            'hyper/json/vis.sql': `-- @vis table\n-- @end\n${file()}`,
             'hyper/json/no-body.sql': '/**\n * @description\n * Nothing.\n */',
             'hyper/json/inline-comment.sql': file('select 1\n-- one\nwhere true;'),
             'hyper/json/no-description.sql': 'select 1;',
             'hyper/json/fine.sql': file(),
         });
         expect(registry.errors).toHaveLength(6);
-        expect(registry.errors).toContainEqual(expect.stringContaining('metadata.sql has a @metadata block'));
+        expect(registry.errors).toContainEqual(expect.stringContaining('vis.sql has a @vis block'));
         expect(registry.errors).toContainEqual(expect.stringContaining('inline-comment.sql has comments outside its comment tags'));
         expect(registry.snippets.map(snippet => snippet.id)).toEqual(['json/fine', 'json/no-description']);
     });

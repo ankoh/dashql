@@ -114,7 +114,7 @@ describe('DashQL batches', () => {
             {
                 id: 'warning',
                 text: 'create table items(id int);\n/* @vis vegalite {"mark": "bar"}\n   ' +
-                    '@vis board row=-1 column=15 width=20 height=0 */\nselect 1 as value',
+                    '@board row=-1 column=15 width=20 height=0 */\nselect 1 as value',
                 outputs: ['catalogDescriptor'],
             },
         ] });

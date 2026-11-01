@@ -71,7 +71,7 @@ pub fn rewrite_param_tag(text: &str, parsed: &ParsedScript, name: &str, literal:
                         tags.iter()
                             .rposition(|t| t.name == PARAM_TAG)
                             .map(|i| i + 1)
-                            .or_else(|| tags.iter().position(|t| t.name == "vis"))
+                            .or_else(|| tags.iter().position(|t| matches!(t.name.as_str(), "vis" | "board" | "flow")))
                             .unwrap_or(tags.len())
                     })
                     .min(tags.len());

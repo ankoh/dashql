@@ -10,7 +10,7 @@
 //!   is connected to in the layer before or after it, so that edges between statement rows run straight where
 //!   they can. The connected parts of the graph are
 //!   stacked, boxes without edges go into rows below them.
-//! - With fixed boxes, e.g. the positions of `@vis flow` tags, only the others are placed, one at a time in
+//! - With fixed boxes, e.g. the positions of `@flow` tags, only the others are placed, one at a time in
 //!   topological order: right of their producers, left of their consumers, or below everything, at the median of
 //!   their connected rows, and moved to the nearest free slot.
 //!

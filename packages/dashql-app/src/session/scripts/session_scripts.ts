@@ -1098,7 +1098,7 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
 
         case SET_SCRIPT_VIS_SPEC: {
             // Rewrite the `@vis vegalite` tag of the charted statement and stage the rewrite as a diff to accept or
-            // reject, like a formatting. The rewrite keeps the other tags, e.g. `@vis board`.
+            // reject, like a formatting. The rewrite keeps the other tags, e.g. `@board`.
             // The chart builder sends every edit, each one restages the diff against the text before the first edit,
             // so the script shows the whole chart edit as one diff. The builder only opens without a staged diff.
             const { scriptKey, spec } = action.value;

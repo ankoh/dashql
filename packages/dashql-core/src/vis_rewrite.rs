@@ -1,11 +1,11 @@
-//! Rewrite the `@vis` tags of a query: set, replace or remove its renderer and its board placement, and
-//! the flow position of a script.
+//! Rewrite the visualization tags of a query: set, replace or remove its renderer (`@vis`) and its board
+//! placement (`@board`), and the flow position of a script (`@flow`).
 //!
 //! The tags are edited in the annotation of the query (see `annotation`), so an edit leaves the annotation
 //! consolidated in one comment. The edited tag is printed anew, the other tags keep their content. A new
-//! renderer goes before the other `@vis` tags, a new board placement after the renderer, and a `card` tag,
-//! the alias of `board`, is replaced by `board`. `/*` and `*/` in the strings of a Vega-Lite spec are
-//! escaped, they would nest or end the comment.
+//! renderer goes before the other `@vis` tags, a new board placement after the renderer. The tags of older
+//! scripts, `@vis board`, `@vis card` and `@vis flow`, are replaced by `@board` and `@flow`. `/*` and `*/` in
+//! the strings of a Vega-Lite spec are escaped, they would nest or end the comment.
 
 use crate::annotation::{Annotation, AnnotationTag};
 use crate::error::{Error, Result};
@@ -17,6 +17,10 @@ use serde_json::{Map, Value};
 
 /// The tag of visualizations
 const VIS_TAG: &str = "vis";
+/// The tag of the dashboard placement of a visualization
+const BOARD_TAG: &str = "board";
+/// The tag of the position of a script on the dataflow canvas
+const FLOW_TAG: &str = "flow";
 /// The width of the JSON in `@vis vegalite` tags: 80 columns behind a comment prefix of 3 characters
 pub(crate) const VIS_JSON_WIDTH: usize = 77;
 /// The dashboard grid has 12 columns
@@ -82,19 +86,19 @@ pub struct VisBoard {
 }
 
 impl VisBoard {
-    /// The `@vis board` tag. Negative rows are dropped, the width is limited to the grid, the column to the
+    /// The `@board` tag. Negative rows are dropped, the width is limited to the grid, the column to the
     /// free space.
     pub fn tag(&self) -> AnnotationTag {
         let width = self.width.clamp(1, GRID_COLUMNS);
-        let mut line = String::from("board");
+        let mut args = Vec::new();
         if let Some(row) = self.row.filter(|&r| r >= 0) {
-            line.push_str(&format!(" row={row}"));
+            args.push(format!("row={row}"));
         }
         if let Some(column) = self.column {
-            line.push_str(&format!(" column={}", column.clamp(0, GRID_COLUMNS - width)));
+            args.push(format!("column={}", column.clamp(0, GRID_COLUMNS - width)));
         }
-        line.push_str(&format!(" width={width} height={}", self.height.max(1)));
-        AnnotationTag::new(VIS_TAG, vec![line])
+        args.push(format!("width={width} height={}", self.height.max(1)));
+        AnnotationTag::new(BOARD_TAG, vec![args.join(" ")])
     }
 }
 
@@ -108,9 +112,9 @@ pub struct VisFlow {
 }
 
 impl VisFlow {
-    /// The `@vis flow` tag
+    /// The `@flow` tag
     pub fn tag(&self) -> AnnotationTag {
-        AnnotationTag::new(VIS_TAG, vec![format!("flow x={} y={}", self.x, self.y)])
+        AnnotationTag::new(FLOW_TAG, vec![format!("x={} y={}", self.x, self.y)])
     }
 }
 
@@ -119,19 +123,24 @@ fn is_vis(tag: &AnnotationTag) -> bool {
     tag.name == VIS_TAG
 }
 
+/// Is a tag a tag of the visualization: `@vis`, `@board` or `@flow`?
+fn is_vis_family(tag: &AnnotationTag) -> bool {
+    matches!(tag.name.as_str(), VIS_TAG | BOARD_TAG | FLOW_TAG)
+}
+
 /// Is a tag the renderer of a visualization?
 fn is_renderer(tag: &AnnotationTag) -> bool {
     is_vis(tag) && matches!(tag.kind(), "vegalite" | "markdown" | "table")
 }
 
-/// Is a tag the dashboard placement of a visualization?
+/// Is a tag the dashboard placement of a visualization, `@board` or the `@vis board` of older scripts?
 fn is_board(tag: &AnnotationTag) -> bool {
-    is_vis(tag) && matches!(tag.kind(), "board" | "card")
+    tag.name == BOARD_TAG || (is_vis(tag) && matches!(tag.kind(), "board" | "card"))
 }
 
-/// Is a tag the flow position of a script?
+/// Is a tag the flow position of a script, `@flow` or the `@vis flow` of older scripts?
 fn is_flow(tag: &AnnotationTag) -> bool {
-    is_vis(tag) && tag.kind() == "flow"
+    tag.name == FLOW_TAG || (is_vis(tag) && tag.kind() == "flow")
 }
 
 /// Rewrite the annotation of a query
@@ -166,7 +175,7 @@ pub(crate) fn rewrite_vis_renderer_tag(
                 Some(i)
             }
             (Some(renderer), None) => {
-                let i = tags.iter().position(is_vis).unwrap_or(tags.len());
+                let i = tags.iter().position(is_vis_family).unwrap_or(tags.len());
                 tags.insert(i, renderer.tag());
                 Some(i)
             }
@@ -208,9 +217,9 @@ pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize,
     Ok(text)
 }
 
-/// Set or remove the flow position of a script. The position is a tag of any statement: the first `@vis flow` tag in
-/// statement order is replaced where it is, the others are removed, and a new one goes after the `@vis` tags of the
-/// terminal statement. Removing the position removes every `@vis flow` tag.
+/// Set or remove the flow position of a script. The position is a tag of any statement: the first `@flow` tag in
+/// statement order is replaced where it is, the others are removed, and a new one goes after the visualization tags of
+/// the terminal statement. Removing the position removes every `@flow` tag.
 pub fn rewrite_vis_flow(text: &str, parsed: &ParsedScript, flow: Option<&VisFlow>) -> Result<String> {
     if !parsed.errors.is_empty() {
         return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
@@ -240,7 +249,7 @@ pub fn rewrite_vis_flow(text: &str, parsed: &ParsedScript, flow: Option<&VisFlow
             let first = tags.iter().position(is_flow);
             tags.retain(|t| !is_flow(t));
             Ok(place.map(|flow| {
-                let i = first.unwrap_or_else(|| tags.iter().rposition(is_vis).map_or(tags.len(), |i| i + 1)).min(tags.len());
+                let i = first.unwrap_or_else(|| tags.iter().rposition(is_vis_family).map_or(tags.len(), |i| i + 1)).min(tags.len());
                 tags.insert(i, flow.tag());
                 i
             }))

@@ -23,7 +23,7 @@ pub const COMMENT_TAG_PREFIX: &str = "@";
 /// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
 pub const COMMENT_TAG_END: &str = "end";
 /// The known tags, any other `@word` is ordinary text
-pub const COMMENT_TAGS: &[&str] = &["metadata", "description", "vis", "param", COMMENT_TAG_END];
+pub const COMMENT_TAGS: &[&str] = &["description", "vis", "board", "flow", "param", COMMENT_TAG_END];
 
 /// Is a tag name one of the known tags?
 pub fn is_comment_tag(name: &[u8]) -> bool {
@@ -470,19 +470,19 @@ mod tests {
 
     #[test]
     fn reads_tagged_regions() {
-        let text = "-- @description Sales\n-- per region\n-- @end\n/* @metadata {\"a\": 1} */\n/* @vis table */";
+        let text = "-- @description Sales\n-- per region\n-- @end\n/* @board width=6 */\n/* @vis table */";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
             vec![
                 (CommentBlockType::DASHQL_TAG, "description"),
-                (CommentBlockType::DASHQL_TAG, "metadata"),
+                (CommentBlockType::DASHQL_TAG, "board"),
                 (CommentBlockType::DASHQL_TAG, "vis"),
             ]
         );
         assert_eq!(line_texts(text, &blocks, 0), vec!["Sales", "per region"]);
         // The content is not interpreted, readers check whether it is JSON
-        assert_eq!(line_texts(text, &blocks, 1), vec!["{\"a\": 1}"]);
+        assert_eq!(line_texts(text, &blocks, 1), vec!["width=6"]);
         assert_eq!(line_texts(text, &blocks, 2), vec!["table"]);
         assert!(blocks.warnings.is_empty());
     }

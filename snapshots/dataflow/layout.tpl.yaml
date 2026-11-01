@@ -129,16 +129,16 @@ dataflow-snapshots:
         input: |
           select x from t;
 
-  # Boxes with @vis flow tags stay, a consumer goes right of its producers at the median of their rows
+  # Boxes with @flow tags stay, a consumer goes right of its producers at the median of their rows
   - name: LayoutRightOfFixedProducers
     scripts:
       - name: orders
         input: |
-          /** @vis flow x=400 y=800 */
+          /** @flow x=400 y=800 */
           create table orders (id int);
       - name: regions
         input: |
-          /** @vis flow x=400 y=100 */
+          /** @flow x=400 y=100 */
           create table regions (id int);
       - name: report
         input: |
@@ -153,7 +153,7 @@ dataflow-snapshots:
       - name: report
         input: |
           create table ids (id int);
-          /** @vis flow x=600 y=40 */
+          /** @flow x=600 y=40 */
           select id from orders;
 
   # Two consumers that want the same slot, the second one moves to the nearest free slot
@@ -161,7 +161,7 @@ dataflow-snapshots:
     scripts:
       - name: orders
         input: |
-          /** @vis flow x=0 y=0 */
+          /** @flow x=0 y=0 */
           create table orders (id int);
       - name: by_id
         input: |
@@ -175,12 +175,12 @@ dataflow-snapshots:
     scripts:
       - name: orders
         input: |
-          /** @vis flow x=120 y=0 */
+          /** @flow x=120 y=0 */
           create table orders (id int);
           create table regions (id int);
       - name: report
         input: |
-          /** @vis flow x=480 y=200 */
+          /** @flow x=480 y=200 */
           select 1;
       - name: alone
         input: |

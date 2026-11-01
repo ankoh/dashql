@@ -1409,7 +1409,7 @@ parser-snapshots:
     input: |-
       /* Revenue dashboard.
          @description Revenue per region.
-         @vis board width=6 height=3
+         @board width=6 height=3
          @vis vegalite
          {"mark": "bar"}
       */
@@ -1443,10 +1443,10 @@ parser-snapshots:
       line-breaks:
         - text: [21,22]
         - text: [57,58]
-        - text: [88,89]
-        - text: [105,106]
-        - text: [124,125]
-        - text: [127,128]
+        - text: [84,85]
+        - text: [101,102]
+        - text: [120,121]
+        - text: [123,124]
       comments:
         - text: "/* Revenue.. \"bar\"}\n*/"
       comment-blocks:
@@ -1462,11 +1462,11 @@ parser-snapshots:
           lines:
             - "Revenue per region."
         - type: DASHQL_TAG
-          text: "@vis board..ight=3\n   "
-          tag: "vis"
+          text: "@board wid..ight=3\n   "
+          tag: "board"
           comments: [0,1]
           lines:
-            - "board width=6 height=3"
+            - "width=6 height=3"
         - type: DASHQL_TAG
           text: "@vis vegal.. \"bar\"}\n*/"
           tag: "vis"
@@ -1534,7 +1534,7 @@ parser-snapshots:
   - name: line_comments_several_tags
     input: |-
       -- @description Revenue per region.
-      -- @vis board width=6 height=3
+      -- @board width=6 height=3
       -- @vis vegalite
       -- {"mark": "bar"}
       -- @end
@@ -1567,13 +1567,13 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [35,36]
-        - text: [66,67]
-        - text: [83,84]
-        - text: [102,103]
-        - text: [110,111]
+        - text: [62,63]
+        - text: [79,80]
+        - text: [98,99]
+        - text: [106,107]
       comments:
         - text: "-- @descri..er region."
-        - text: "-- @vis bo..6 height=3"
+        - text: "-- @board ..6 height=3"
         - text: "-- @vis vegalite"
         - text: "-- {\"mark\": \"bar\"}"
         - text: "-- @end"
@@ -1585,11 +1585,11 @@ parser-snapshots:
           lines:
             - "Revenue per region."
         - type: DASHQL_TAG
-          text: "-- @vis bo..6 height=3"
-          tag: "vis"
+          text: "-- @board ..6 height=3"
+          tag: "board"
           comments: [1,1]
           lines:
-            - "board width=6 height=3"
+            - "width=6 height=3"
         - type: DASHQL_TAG
           text: "-- @vis ve..\"}\n-- @end"
           tag: "vis"
@@ -1651,9 +1651,9 @@ parser-snapshots:
             - "table"
       comment-warnings: []
 
-  - name: metadata_line_form
+  - name: vegalite_line_form
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "owner": "finance",
       --   "avg_runtime_ms": 1834
@@ -1687,14 +1687,14 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [17,18]
-        - text: [42,43]
-        - text: [70,71]
-        - text: [75,76]
-        - text: [83,84]
+        - text: [16,17]
+        - text: [21,22]
+        - text: [46,47]
+        - text: [74,75]
+        - text: [79,80]
+        - text: [87,88]
       comments:
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- {"
         - text: "--   \"owne..\"finance\","
         - text: "--   \"avg_.._ms\": 1834"
@@ -1702,19 +1702,20 @@ parser-snapshots:
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @metada.. }\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve.. }\n-- @end"
+          tag: "vis"
           comments: [0,6]
           lines:
+            - "vegalite"
             - "{"
             - "  \"owner\": \"finance\","
             - "  \"avg_runtime_ms\": 1834"
             - "}"
       comment-warnings: []
 
-  - name: metadata_block_form
+  - name: vegalite_block_form
     input: |-
-      /* @metadata
+      /* @vis vegalite
        * {"owner": "finance"}
        */
       select 1
@@ -1745,23 +1746,24 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [36,37]
+        - text: [16,17]
         - text: [40,41]
+        - text: [44,45]
       comments:
-        - text: "/* @metada..ance\"}\n */"
+        - text: "/* @vis ve..ance\"}\n */"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "/* @metada..ance\"}\n */"
-          tag: "metadata"
+          text: "/* @vis ve..ance\"}\n */"
+          tag: "vis"
           comments: [0,1]
           lines:
+            - "vegalite"
             - "{\"owner\": \"finance\"}"
       comment-warnings: []
 
-  - name: metadata_nested_values
+  - name: vegalite_nested_values
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "tags": [
       --     "weekly",
@@ -1804,23 +1806,23 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [17,18]
-        - text: [32,33]
-        - text: [49,50]
-        - text: [59,60]
-        - text: [67,68]
-        - text: [84,85]
-        - text: [122,123]
-        - text: [164,165]
-        - text: [172,173]
-        - text: [193,194]
-        - text: [214,215]
-        - text: [238,239]
-        - text: [243,244]
-        - text: [251,252]
+        - text: [16,17]
+        - text: [21,22]
+        - text: [36,37]
+        - text: [53,54]
+        - text: [63,64]
+        - text: [71,72]
+        - text: [88,89]
+        - text: [126,127]
+        - text: [168,169]
+        - text: [176,177]
+        - text: [197,198]
+        - text: [218,219]
+        - text: [242,243]
+        - text: [247,248]
+        - text: [255,256]
       comments:
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- {"
         - text: "--   \"tags\": ["
         - text: "--     \"weekly\","
@@ -1837,10 +1839,11 @@ parser-snapshots:
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @metada.. }\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve.. }\n-- @end"
+          tag: "vis"
           comments: [0,15]
           lines:
+            - "vegalite"
             - "{"
             - "  \"tags\": ["
             - "    \"weekly\","
@@ -1856,9 +1859,9 @@ parser-snapshots:
             - "}"
       comment-warnings: []
 
-  - name: metadata_invalid_json
+  - name: vegalite_invalid_json
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- owner: finance
       -- @end
       select 1
@@ -1889,25 +1892,26 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [30,31]
-        - text: [38,39]
+        - text: [16,17]
+        - text: [34,35]
+        - text: [42,43]
       comments:
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- owner: finance"
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @metada..ce\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve..ce\n-- @end"
+          tag: "vis"
           comments: [0,3]
           lines:
+            - "vegalite"
             - "owner: finance"
       comment-warnings: []
 
-  - name: metadata_not_an_object
+  - name: vegalite_not_an_object
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- ["finance"]
       -- @end
       select 1
@@ -1938,29 +1942,30 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [27,28]
-        - text: [35,36]
+        - text: [16,17]
+        - text: [31,32]
+        - text: [39,40]
       comments:
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- [\"finance\"]"
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @metada..\"]\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve..\"]\n-- @end"
+          tag: "vis"
           comments: [0,3]
           lines:
+            - "vegalite"
             - "[\"finance\"]"
       comment-warnings: []
 
-  - name: metadata_twice
+  - name: vegalite_twice
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- {
       -- @end
 
-      -- @metadata
+      -- @vis vegalite
       -- {"owner": "finance"}
       -- @end
       select 1
@@ -1991,38 +1996,40 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [17,18]
-        - text: [25,26]
-        - text: [26,27]
-        - text: [39,40]
-        - text: [63,64]
+        - text: [16,17]
+        - text: [21,22]
+        - text: [29,30]
+        - text: [30,31]
+        - text: [47,48]
         - text: [71,72]
+        - text: [79,80]
       comments:
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- {"
         - text: "-- @end"
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- {\"owner..\"finance\"}"
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @metada.. {\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve.. {\n-- @end"
+          tag: "vis"
           comments: [0,3]
           lines:
+            - "vegalite"
             - "{"
         - type: DASHQL_TAG
-          text: "-- @metada..\"}\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve..\"}\n-- @end"
+          tag: "vis"
           comments: [3,3]
           lines:
+            - "vegalite"
             - "{\"owner\": \"finance\"}"
       comment-warnings: []
 
-  - name: metadata_and_description
+  - name: vegalite_and_description
     input: |-
-      -- @metadata
+      -- @vis vegalite
       -- {
       --   "owner": "finance"
       -- }
@@ -2059,17 +2066,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [12,13]
-        - text: [17,18]
-        - text: [41,42]
-        - text: [46,47]
-        - text: [54,55]
-        - text: [55,56]
-        - text: [71,72]
-        - text: [95,96]
-        - text: [103,104]
+        - text: [16,17]
+        - text: [21,22]
+        - text: [45,46]
+        - text: [50,51]
+        - text: [58,59]
+        - text: [59,60]
+        - text: [75,76]
+        - text: [99,100]
+        - text: [107,108]
       comments:
-        - text: "-- @metadata"
+        - text: "-- @vis vegalite"
         - text: "-- {"
         - text: "--   \"owne.. \"finance\""
         - text: "-- }"
@@ -2079,10 +2086,11 @@ parser-snapshots:
         - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @metada.. }\n-- @end"
-          tag: "metadata"
+          text: "-- @vis ve.. }\n-- @end"
+          tag: "vis"
           comments: [0,5]
           lines:
+            - "vegalite"
             - "{"
             - "  \"owner\": \"finance\""
             - "}"

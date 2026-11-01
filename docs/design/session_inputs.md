@@ -37,7 +37,7 @@ An input has:
 
 The value of an input is a comment tag (`core_parser.md`, Comment Tags) of every script that uses it:
 `@param :name = <literal>`. The parameter is written like in the query, double-quoted if it is no plain word
-(`@param :"foo 2" = 'x'`). `@param :min` leaves the input unset. Like `@vis flow` the tag annotates any statement of the
+(`@param :"foo 2" = 'x'`). `@param :min` leaves the input unset. Like `@flow` the tag annotates any statement of the
 script, the first tag of a name in statement order wins, a second one is a warning (`INVALID_PARAM_TAG`). The analyzer
 collects the tags in `AnalyzedScript.inputs` (`analyzer::param_tags`).
 

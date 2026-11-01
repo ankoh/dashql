@@ -28,7 +28,7 @@ fn select_source() {
 
 #[test]
 fn normalizes_dashboard_layout_with_warnings() {
-    let analyzed = analyze_text("/* @vis table\n   @vis board row=-1 column=15 width=20 height=0 */\nSELECT 1 AS value");
+    let analyzed = analyze_text("/* @vis table\n   @board row=-1 column=15 width=20 height=0 */\nSELECT 1 AS value");
     assert!(!analyzed.visualization_specs.is_empty());
     let dashboard = &analyzed.visualization_specs[0].dashboard;
     assert_eq!(dashboard.row, None);
@@ -45,7 +45,7 @@ fn normalizes_dashboard_layout_with_warnings() {
 #[test]
 fn accepts_a_board_placement_for_every_renderer() {
     for renderer in ["vegalite {\"mark\": \"bar\"}", "markdown {{value}}", "table"] {
-        let analyzed = analyze_text(&format!("/* @vis {renderer}\n   @vis board width=7 */\nSELECT 1 AS value"));
+        let analyzed = analyze_text(&format!("/* @vis {renderer}\n   @board width=7 */\nSELECT 1 AS value"));
         assert!(!analyzed.visualization_specs.is_empty(), "{renderer}");
         assert_eq!(analyzed.visualization_specs[0].dashboard.width, 7, "{renderer}");
     }
