@@ -4,6 +4,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { QueryExecutionStatus } from '../../query/query_execution_state.js';
 import type { ScriptData } from '../scripts/session_scripts.js';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 
@@ -44,6 +45,9 @@ describe('DashboardCard', () => {
                     onResize={vi.fn()}
                     onResizeCancel={vi.fn()}
                     shifted={false}
+                    onVisualize={vi.fn()}
+                    onOpenChart={vi.fn()}
+                    onOpenEditor={vi.fn()}
                     dependencies={dependencies}
                 />
             </DndContext>,
@@ -82,6 +86,9 @@ describe('DashboardCard', () => {
                     onResize={vi.fn()}
                     onResizeCancel={vi.fn()}
                     shifted={false}
+                    onVisualize={vi.fn()}
+                    onOpenChart={vi.fn()}
+                    onOpenEditor={vi.fn()}
                     dependencies={dependencies}
                 />
             </DndContext>,
@@ -89,5 +96,71 @@ describe('DashboardCard', () => {
 
         expect(container.querySelector('[data-testid="output"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="content"]')).toBeNull();
+    });
+
+    describe('without a visualization', () => {
+        const plainScript = {
+            ...script,
+            annotations: { visualizeQuery: null, lastStatementIsQuery: true },
+        } as unknown as ScriptData;
+        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onOpenEditor: vi.fn() };
+
+        function renderCollapsed(card: ScriptData, queryState: unknown) {
+            const collapsedDependencies = { ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies;
+            act(() => root.render(
+                <DndContext>
+                    <DashboardCard
+                        sessionId="session"
+                        script={card}
+                        placement={{ id: 1, row: 0, column: 0, width: 6, height: 1 }}
+                        columnStep={100}
+                        rowStep={108}
+                        onResize={vi.fn()}
+                        onResizeCancel={vi.fn()}
+                        shifted={false}
+                        {...callbacks}
+                        dependencies={collapsedDependencies}
+                    />
+                </DndContext>,
+            ));
+        }
+        const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)!;
+
+        beforeEach(() => {
+            callbacks.onVisualize.mockReset();
+            callbacks.onOpenChart.mockReset();
+            callbacks.onOpenEditor.mockReset();
+        });
+
+        it('collapses to its header with the renderers and an editor', () => {
+            const result = { schema: { fields: [{ name: 'region' }, { name: 'revenue' }, { name: 'year' }] } };
+            renderCollapsed(plainScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: result });
+            expect(container.querySelector('[data-testid="output"]')).toBeNull();
+            expect(container.querySelector('[data-testid="dashboard-card-output-tab"]')).toBeNull();
+
+            act(() => button('dashboard-card-table').click());
+            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'table', '');
+            act(() => button('dashboard-card-markdown').click());
+            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}} · {{year}}');
+            act(() => button('dashboard-card-chart').click());
+            expect(callbacks.onOpenChart).toHaveBeenCalledWith(1);
+            act(() => button('dashboard-card-edit').click());
+            expect(callbacks.onOpenEditor).toHaveBeenCalledWith(1);
+        });
+
+        it('needs a result for a Markdown template', () => {
+            renderCollapsed(plainScript, null);
+            expect(button('dashboard-card-table').disabled).toBe(false);
+            expect(button('dashboard-card-markdown').disabled).toBe(true);
+        });
+
+        it('visualizes only a query', () => {
+            const ddl = { ...plainScript, annotations: { visualizeQuery: null, lastStatementIsQuery: false } } as unknown as ScriptData;
+            renderCollapsed(ddl, null);
+            expect(button('dashboard-card-table').disabled).toBe(true);
+            expect(button('dashboard-card-chart').disabled).toBe(true);
+            expect(button('dashboard-card-markdown').disabled).toBe(true);
+            expect(button('dashboard-card-edit').disabled).toBe(false);
+        });
     });
 });

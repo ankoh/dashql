@@ -1,9 +1,12 @@
 import * as React from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter } from '@dnd-kit/core';
 
-import type { SessionScripts } from '../scripts/session_scripts.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { SET_SCRIPT_VIS_SPEC, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
+import type { DashboardSpec } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { DashboardCard } from './dashboard_card.js';
+import { DashboardChartOverlay, DashboardEditorOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
     DASHBOARD_COLUMN_COUNT,
     DASHBOARD_ROW_HEIGHT,
@@ -12,7 +15,7 @@ import {
     resizeDashboardItem,
     type DashboardPlacement,
 } from './dashboard_layout.js';
-import { persistDashboardPlacement } from './dashboard_source.js';
+import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer } from './dashboard_source.js';
 import { SessionInputStrip } from '../inputs/session_input_strip.js';
 import * as styles from './dashboard.module.css';
 
@@ -44,14 +47,30 @@ interface Props {
     modifySessionScripts: ModifySessionScripts;
 }
 
-function readLayout(sessionScripts: SessionScripts): DashboardPlacement[] {
-    return placeDashboardItems(sessionScripts.scriptOrder
+/// Every script of the session is a card, in the order of the session
+function readScripts(sessionScripts: SessionScripts): ScriptData[] {
+    return sessionScripts.scriptOrder
         .map(fileName => sessionScripts.scripts[sessionScripts.scriptRefs[fileName].scriptId])
-        .filter(script => script?.annotations.visualizeQuery != null)
-        .map(script => ({
+        .filter(script => script != null);
+}
+
+/// The placement that a script asks for: its visualization's, or the `@board` tag of a script without one
+function preferredPlacement(script: ScriptData): DashboardSpec | null {
+    return script.annotations.visualizeQuery?.dashboardSpec ?? script.annotations.boardPosition ?? null;
+}
+
+function readLayout(sessionScripts: SessionScripts): DashboardPlacement[] {
+    return placeDashboardItems(readScripts(sessionScripts).map(script => {
+        const spec = preferredPlacement(script);
+        return {
             id: script.scriptKey,
-            ...script.annotations.visualizeQuery!.dashboardSpec,
-        })));
+            row: spec?.row,
+            column: spec?.column,
+            width: spec?.width,
+            // A script without a visualization is a collapsed card of one row
+            height: script.annotations.visualizeQuery == null ? 1 : spec?.height,
+        };
+    }));
 }
 
 export function Dashboard(props: Props): React.ReactElement {
@@ -60,12 +79,13 @@ export function Dashboard(props: Props): React.ReactElement {
     const [layout, setLayout] = React.useState(() => readLayout(props.sessionScripts));
     const [gridWidth, setGridWidth] = React.useState(0);
     const [announcement, setAnnouncement] = React.useState('');
-    const scripts = props.sessionScripts.scriptOrder
-        .map(fileName => props.sessionScripts.scripts[props.sessionScripts.scriptRefs[fileName].scriptId])
-        .filter(script => script?.annotations.visualizeQuery != null);
+    const [overlay, setOverlay] = React.useState<DashboardOverlayState>(null);
+    const logger = useLogger();
+    const scripts = readScripts(props.sessionScripts);
     const layoutSourceKey = scripts.map(script => {
-        const spec = script.annotations.visualizeQuery!.dashboardSpec;
-        return `${script.scriptKey}:${spec?.row ?? ''}:${spec?.column ?? ''}:${spec?.width ?? ''}:${spec?.height ?? ''}`;
+        const spec = preferredPlacement(script);
+        const collapsed = script.annotations.visualizeQuery == null ? 'c' : '';
+        return `${script.scriptKey}${collapsed}:${spec?.row ?? ''}:${spec?.column ?? ''}:${spec?.width ?? ''}:${spec?.height ?? ''}`;
     }).join('|');
 
     React.useEffect(() => setLayout(readLayout(props.sessionScripts)), [layoutSourceKey]);
@@ -146,9 +166,29 @@ export function Dashboard(props: Props): React.ReactElement {
         resizeBaselineRef.current = null;
     }, []);
 
+    // The renderers of a collapsed card. A Markdown template is a start, the editor opens to adjust it.
+    const scriptsRef = React.useRef(props.sessionScripts.scripts);
+    scriptsRef.current = props.sessionScripts.scripts;
+    const handleVisualize = React.useCallback((scriptKey: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => {
+        const script = scriptsRef.current[scriptKey];
+        if (script == null) return;
+        if (setDashboardRenderer(script, renderer, body, props.modifySessionScripts, logger) && renderer === 'markdown') {
+            setOverlay({ scriptKey, kind: 'editor' });
+        }
+    }, [props.modifySessionScripts, logger]);
+    const handleOpenChart = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'chart' }), []);
+    const handleOpenEditor = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'editor' }), []);
+    const closeOverlay = React.useCallback(() => setOverlay(null), []);
+    // The chart builder stages every edit of its spec as a diff of the script, like in the feed
+    const handleSetVisSpec = React.useCallback((spec: string) => {
+        if (overlay == null) return;
+        props.modifySessionScripts({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey: overlay.scriptKey, spec } });
+    }, [overlay, props.modifySessionScripts]);
+    const overlayScript = overlay == null ? null : props.sessionScripts.scripts[overlay.scriptKey] ?? null;
+
     const placementById = new Map(layout.map(item => [item.id, item]));
     const scriptOrder = new Map(scripts.map((script, index) => [script.scriptKey, index]));
-    const visualScripts = [...scripts].sort((left, right) => {
+    const cardScripts = [...scripts].sort((left, right) => {
         const a = placementById.get(left.scriptKey);
         const b = placementById.get(right.scriptKey);
         if (a == null || b == null) return (scriptOrder.get(left.scriptKey) ?? 0) - (scriptOrder.get(right.scriptKey) ?? 0);
@@ -167,8 +207,8 @@ export function Dashboard(props: Props): React.ReactElement {
             />
             {scripts.length === 0 ? (
                 <div className={styles.empty_state}>
-                    <strong>No visualizations yet</strong>
-                    <span>Queries with @vis comments appear here automatically.</span>
+                    <strong>No scripts yet</strong>
+                    <span>Every script of the session appears here, queries with @vis comments as visualizations.</span>
                 </div>
             ) : (
                 <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -177,9 +217,9 @@ export function Dashboard(props: Props): React.ReactElement {
                         className={styles.grid}
                         style={{ minHeight: rows * DASHBOARD_ROW_HEIGHT + Math.max(0, rows - 1) * GRID_GAP }}
                     >
-                        {visualScripts.map(script => {
+                        {cardScripts.map(script => {
                             const placement = placementById.get(script.scriptKey);
-                            const preferred = script.annotations.visualizeQuery!.dashboardSpec;
+                            const preferred = preferredPlacement(script);
                             const shifted = (preferred?.row != null && preferred.row !== placement?.row)
                                 || (preferred?.column != null && preferred.column !== placement?.column);
                             return placement == null ? null : (
@@ -193,11 +233,25 @@ export function Dashboard(props: Props): React.ReactElement {
                                     onResize={handleResize}
                                     onResizeCancel={handleResizeCancel}
                                     shifted={shifted}
+                                    onVisualize={handleVisualize}
+                                    onOpenChart={handleOpenChart}
+                                    onOpenEditor={handleOpenEditor}
                                 />
                             );
                         })}
                     </div>
                 </DndContext>
+            )}
+            {overlayScript != null && overlay?.kind === 'editor' && (
+                <DashboardEditorOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
+            )}
+            {overlayScript != null && overlay?.kind === 'chart' && (
+                <DashboardChartOverlay
+                    sessionId={props.sessionScripts.sessionId}
+                    script={overlayScript}
+                    onChange={handleSetVisSpec}
+                    onClose={closeOverlay}
+                />
             )}
         </section>
     );

@@ -80,6 +80,19 @@ coordinates must be non-negative, the width is clamped to 1 through 12, the heig
 card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `@board`
 tag of the statement it shows (see Rewriting tags).
 
+Every script of the session is a card, placed by the `@board` tag of its last statement. A script whose last
+statement has no renderer is a collapsed card: a header of one row whose width can change, but not its height. Its
+`@board` keeps the height of the card that it becomes with a renderer. The header offers the renderers of a query:
+
+- **Table** writes `@vis table`.
+- **Chart** opens the chart builder, which stages its `@vis vegalite` as a diff, like in the feed.
+- **Markdown** writes a template from the columns of the latest result, the first column as heading and the others
+  in a line below, and opens the editor to adjust it.
+
+An edit button opens the script in an editor over the board. A script whose last statement is no query, e.g. one
+that only creates a table, is a collapsed card without renderers. A `@board` tag alone does not make a query a
+visualization.
+
 ## Dataflow placement
 
 The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@flow x=.. y=..` is the

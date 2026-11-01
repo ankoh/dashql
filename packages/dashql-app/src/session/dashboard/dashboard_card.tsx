@@ -9,9 +9,13 @@ import { useQueryState } from '../../connections/query_executor.js';
 import type { ScriptData } from '../scripts/session_scripts.js';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
+import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { PencilIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import type { DashboardPlacement } from './dashboard_layout.js';
+import { markdownTemplate, type DashboardRenderer } from './dashboard_source.js';
 import * as styles from './dashboard.module.css';
 
 const DragHandleIcon = SymbolIcon('drag_handle_16');
@@ -39,14 +43,21 @@ interface Props {
     onResize: (scriptId: number, width: number, height: number, commit: boolean) => void;
     onResizeCancel: () => void;
     shifted: boolean;
+    /// Give a collapsed card a renderer, the chart opens the chart builder instead
+    onVisualize: (scriptId: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => void;
+    onOpenChart: (scriptId: number) => void;
+    onOpenEditor: (scriptId: number) => void;
     dependencies?: DashboardCardDependencies;
 }
 
-/// Memoized, a resize of one card only renders the cards whose placement changed
+/// Memoized, a resize of one card only renders the cards whose placement changed.
+/// A script without a visualization is a collapsed card: a header of one row that offers the renderers and an editor.
 export const DashboardCard = React.memo(function DashboardCard(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const query = dependencies.useQueryState(props.sessionId, props.script.latestQueryId);
-    const visualizeQuery = props.script.annotations.visualizeQuery as ResolvedVisualizeQuery;
+    const visualizeQuery: ResolvedVisualizeQuery | null = props.script.annotations.visualizeQuery;
+    const collapsed = visualizeQuery == null;
+    const displayName = scriptDisplayName(props.script.fileName);
     const [contentSelected, setContentSelected] = React.useState(false);
     const resizeStart = React.useRef<{ x: number; y: number; width: number; height: number; pointerId: number } | null>(null);
     const draggable = useDraggable({ id: props.script.scriptKey });
@@ -56,10 +67,11 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         const start = resizeStart.current;
         if (start == null || event.pointerId !== start.pointerId) return;
         const width = start.width + Math.round((event.clientX - start.x) / Math.max(1, props.columnStep));
-        const height = start.height + Math.round((event.clientY - start.y) / Math.max(1, props.rowStep));
+        // A collapsed card is one row high, it only changes its width
+        const height = collapsed ? start.height : start.height + Math.round((event.clientY - start.y) / Math.max(1, props.rowStep));
         props.onResize(props.script.scriptKey, width, height, commit);
         if (commit) resizeStart.current = null;
-    }, [props.columnStep, props.rowStep, props.onResize, props.script.scriptKey]);
+    }, [props.columnStep, props.rowStep, props.onResize, props.script.scriptKey, collapsed]);
 
     const startResize = React.useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
         event.preventDefault();
@@ -96,17 +108,25 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         let height = props.placement.height;
         if (event.key === 'ArrowLeft') width -= 1;
         else if (event.key === 'ArrowRight') width += 1;
-        else if (event.key === 'ArrowUp') height -= 1;
-        else if (event.key === 'ArrowDown') height += 1;
+        else if (event.key === 'ArrowUp' && !collapsed) height -= 1;
+        else if (event.key === 'ArrowDown' && !collapsed) height += 1;
         else return;
         event.preventDefault();
         props.onResize(props.script.scriptKey, width, height, true);
-    }, [props.placement, props.onResize, props.script.scriptKey]);
+    }, [props.placement, props.onResize, props.script.scriptKey, collapsed]);
+
+    // The Markdown template starts with the columns of the latest result
+    const resultColumns = query?.status === QueryExecutionStatus.SUCCEEDED
+        ? query.resultTable?.schema.fields.map(field => field.name) ?? []
+        : [];
+    const template = markdownTemplate(resultColumns);
+    const visualizable = props.script.annotations.lastStatementIsQuery === true;
+    const notVisualizable = 'Only a query is visualized';
 
     return (
         <article
             ref={draggable.setNodeRef}
-            className={`${styles.card} ${contentSelected ? styles.card_content : ''}`}
+            className={`${styles.card} ${collapsed ? styles.card_collapsed : contentSelected ? styles.card_content : ''}`}
             data-dashboard-card={props.script.scriptKey}
             style={{
                 gridColumn: `${props.placement.column + 1} / span ${props.placement.width}`,
@@ -121,25 +141,65 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 <button
                     type="button"
                     className={styles.drag_handle}
-                    aria-label={`Move ${scriptDisplayName(props.script.fileName)}`}
+                    aria-label={`Move ${displayName}`}
                     {...draggable.listeners}
                     {...draggable.attributes}
                 >
                     <DragHandleIcon />
                 </button>
-                <h2 className={styles.card_title}>{scriptDisplayName(props.script.fileName)}</h2>
+                <h2 className={styles.card_title}>{displayName}</h2>
                 {props.shifted && <span className={styles.shifted_badge} title="Moved to avoid overlapping another dashboard card">Shifted</span>}
-                <SegmentedControl
-                    aria-label={`Card view for ${scriptDisplayName(props.script.fileName)}`}
-                    className={styles.card_segments}
-                    size={SegmentedControlSize.Tiny}
-                    onChange={index => setContentSelected(index === 1)}
-                >
-                    <SegmentedControl.Button data-testid="dashboard-card-output-tab" selected={!contentSelected}>Output</SegmentedControl.Button>
-                    <SegmentedControl.Button data-testid="dashboard-card-content-tab" selected={contentSelected}>Content</SegmentedControl.Button>
-                </SegmentedControl>
+                {collapsed ? (
+                    <>
+                        <ButtonGroup className={styles.card_segments} aria-label={`Visualize ${displayName}`}>
+                            <Button
+                                size={ButtonSize.Tiny}
+                                variant={ButtonVariant.Default}
+                                disabled={!visualizable}
+                                title={visualizable ? 'Show the result table' : notVisualizable}
+                                data-testid="dashboard-card-table"
+                                onClick={() => props.onVisualize(props.script.scriptKey, 'table', '')}
+                            >Table</Button>
+                            <Button
+                                size={ButtonSize.Tiny}
+                                variant={ButtonVariant.Default}
+                                disabled={!visualizable}
+                                title={visualizable ? 'Build a chart' : notVisualizable}
+                                data-testid="dashboard-card-chart"
+                                onClick={() => props.onOpenChart(props.script.scriptKey)}
+                            >Chart</Button>
+                            <Button
+                                size={ButtonSize.Tiny}
+                                variant={ButtonVariant.Default}
+                                disabled={!visualizable || template == null}
+                                title={!visualizable ? notVisualizable : template == null ? 'Run the script first' : 'Render every row as Markdown'}
+                                data-testid="dashboard-card-markdown"
+                                onClick={() => template != null && props.onVisualize(props.script.scriptKey, 'markdown', template)}
+                            >Markdown</Button>
+                        </ButtonGroup>
+                        <IconButton
+                            size={ButtonSize.Tiny}
+                            variant={ButtonVariant.Invisible}
+                            aria-label={`Edit ${displayName}`}
+                            data-testid="dashboard-card-edit"
+                            onClick={() => props.onOpenEditor(props.script.scriptKey)}
+                        >
+                            <PencilIcon size={14} />
+                        </IconButton>
+                    </>
+                ) : (
+                    <SegmentedControl
+                        aria-label={`Card view for ${displayName}`}
+                        className={styles.card_segments}
+                        size={SegmentedControlSize.Tiny}
+                        onChange={index => setContentSelected(index === 1)}
+                    >
+                        <SegmentedControl.Button data-testid="dashboard-card-output-tab" selected={!contentSelected}>Output</SegmentedControl.Button>
+                        <SegmentedControl.Button data-testid="dashboard-card-content-tab" selected={contentSelected}>Content</SegmentedControl.Button>
+                    </SegmentedControl>
+                )}
             </header>
-            <div className={styles.card_body}>
+            {!collapsed && <div className={styles.card_body}>
                 {contentSelected ? (
                     <dependencies.ScriptEditor
                         sessionId={props.sessionId}
@@ -162,11 +222,13 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                         hideLegend={props.placement.width < 5}
                     />
                 )}
-            </div>
+            </div>}
             <button
                 type="button"
                 className={styles.resize_handle}
-                aria-label={`Resize ${scriptDisplayName(props.script.fileName)}. Current size ${props.placement.width} columns by ${props.placement.height} rows`}
+                aria-label={collapsed
+                    ? `Resize ${displayName}. Current width ${props.placement.width} columns`
+                    : `Resize ${displayName}. Current size ${props.placement.width} columns by ${props.placement.height} rows`}
                 onPointerDown={startResize}
                 onKeyDown={resizeWithKeyboard}
             />

@@ -62,8 +62,19 @@ export interface ScriptAnnotations {
     visualizeQuery: ResolvedVisualizeQuery | null;
     // The position of the script on the dataflow canvas, its `@flow` tag, if any.
     flowPosition?: FlowPosition | null;
+    // The dashboard placement of the script, the `@board` tag of its last statement, if any. A script without a
+    // visualization is a collapsed card on the board.
+    boardPosition?: BoardPosition | null;
+    // Is the last statement a query? Only a query is visualized.
+    lastStatementIsQuery?: boolean;
     // Does the script run only on request, its `@manual` tag? Execute All and input changes leave it out.
     manual?: boolean;
+}
+
+/// The dashboard placement of a script
+export interface BoardPosition extends DashboardSpec {
+    // The statement whose annotation holds the `@board` tag
+    statementId: number;
 }
 
 /// The position of a script on the dataflow canvas
@@ -88,6 +99,8 @@ export function createEmptyAnnotations(): ScriptAnnotations {
         tableDefs: [],
         visualizeQuery: null,
         flowPosition: null,
+        boardPosition: null,
+        lastStatementIsQuery: false,
     };
 }
 

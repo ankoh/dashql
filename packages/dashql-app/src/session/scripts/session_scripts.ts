@@ -1536,10 +1536,17 @@ function deriveScriptAnnotations(
     const visualizeQuery = compileVisualizeQuery(scriptSession, connectorType, logger);
 
     const flow = update.scriptAnnotations?.flowPosition;
+    const board = update.scriptAnnotations?.boardPosition;
+    const lastStatement = (update.scriptAnnotations?.statements ?? [])
+        .reduce<core.buffers.editor.EditorStatementT | null>((last, statement) => last == null || statement.statementId > last.statementId ? statement : last, null);
     return {
         tableDefs: tableDefsFlat,
         visualizeQuery,
         flowPosition: flow != null ? { statementId: flow.statementId, x: flow.x, y: flow.y } : null,
+        boardPosition: board != null
+            ? { statementId: board.statementId, row: board.row, column: board.column, width: board.width, height: board.height }
+            : null,
+        lastStatementIsQuery: lastStatement?.statementType === core.buffers.parser.StatementType.SELECT,
         manual: update.scriptAnnotations?.manual ?? false,
     };
 }
