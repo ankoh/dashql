@@ -166,6 +166,37 @@ describe('DashQL planner', () => {
         }
     });
 
+    it('derives the dataflow of a session in UTF-16 offsets', () => {
+        const catalog = dql!.createCatalog();
+        try {
+            const schema = prepare(catalog, "create table t (a text);\ninsert into t values ('é')", true);
+            const report = prepare(catalog, 'select a from t');
+            const chart = prepare(catalog, 'select * from :report');
+            const dataflow = dql!.deriveSessionDataflow({
+                connections: [{ id: 'c', local: false, catalog }],
+                scripts: [
+                    { name: 'schema', connection: 0, session: schema },
+                    { name: 'report', connection: 0, session: report },
+                    { name: 'chart', connection: 0, session: chart },
+                ],
+            }).unpack() as execution.SessionDataflowT;
+            expect(dataflow.scripts.map(s => s.analyzed)).toEqual([true, true, true]);
+            const [create, insert] = dataflow.scripts[0].statements;
+            expect([create.statementType, create.target]).toEqual([dashql.buffers.parser.StatementType.CREATE_TABLE, 't']);
+            expect(insert.textSpan!.offset).toBe('create table t (a text);\n'.length);
+            expect(insert.textSpan!.length).toBe("insert into t values ('é')".length);
+            const edges = dataflow.edges.map(e => [e.fromScript, e.fromStatement, e.toScript, e.toStatement, e.kind, e.name]);
+            expect(edges).toEqual([
+                [0, 0, 0, 1, execution.DataflowEdgeKind.TABLE, 't'],
+                [0, 1, 1, 0, execution.DataflowEdgeKind.TABLE, 't'],
+                [1, 0, 2, 0, execution.DataflowEdgeKind.INLINE_REFERENCE, 'report'],
+            ]);
+            for (const session of [schema, report, chart]) session.destroy();
+        } finally {
+            catalog.destroy();
+        }
+    });
+
     it('finds the script references of a session in its analysis', () => {
         const catalog = dql!.createCatalog();
         try {

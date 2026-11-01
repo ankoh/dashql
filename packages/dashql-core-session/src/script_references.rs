@@ -90,6 +90,22 @@ impl ScriptReferences {
         out
     }
 
+    /// Unlink the references that a plan cannot splice: invalid references, references with errors (by script, offset
+    /// and length of the parameter) and references of scripts that were not prepared. A tolerant plan keeps going
+    /// after their errors.
+    pub(crate) fn unlink_unplannable(&mut self, prepared: &[Option<Prepared>], errors: &BTreeSet<(u32, u32, u32)>) {
+        for (script, references) in self.by_script.iter_mut().enumerate() {
+            for r in references.iter_mut() {
+                let unprepared = r.producer.is_some_and(|p| prepared[p as usize].is_none());
+                let failed = errors.contains(&(script as u32, r.text_span.offset, r.text_span.length));
+                if r.kind == ReferenceKind::Invalid || unprepared || failed {
+                    r.producer = None;
+                    r.kind = ReferenceKind::Invalid;
+                }
+            }
+        }
+    }
+
     /// Resolve the table parameters of a script to the scripts they reference
     pub(crate) fn resolve(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, prepared: &Prepared) {
         let (scanned, parsed, analyzed) = (prepared.scanned, prepared.parsed, prepared.analyzed);
@@ -308,6 +324,8 @@ pub enum CheckedReferenceKind {
 /// A checked table parameter that references a script
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CheckedReference {
+    /// The statement of the parameter, absent for the errors of parameters that reference no script
+    pub statement_id: Option<u32>,
     /// The parameter in the text of the script, with the prefix, in UTF-8 bytes
     pub text_span: TextSpan,
     /// The parameter name, empty for a positional parameter
@@ -378,7 +396,14 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
                     ReferenceKind::Scan => CheckedReferenceKind::Scan,
                     ReferenceKind::Invalid => CheckedReferenceKind::Invalid,
                 };
-                CheckedReference { text_span: r.text_span, parameter: r.name.clone(), script: r.producer, kind, errors }
+                CheckedReference {
+                    statement_id: Some(r.statement_id),
+                    text_span: r.text_span,
+                    parameter: r.name.clone(),
+                    script: r.producer,
+                    kind,
+                    errors,
+                }
             })
             .collect();
         // Errors of parameters that reference no script, e.g. positional ones
@@ -386,6 +411,7 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
         for key in rest {
             let (_, offset, length) = key;
             checked.push(CheckedReference {
+                statement_id: None,
                 text_span: TextSpan { offset, length },
                 parameter: String::new(),
                 script: None,

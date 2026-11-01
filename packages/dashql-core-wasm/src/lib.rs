@@ -931,6 +931,71 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
     })
 }
 
+/// Derive the dataflow of the scripts of a session (`dataflow::derive_session_dataflow`), returns the packed
+/// `SessionDataflow`. The text spans are in the offset unit of the session of each script.
+#[wasm_bindgen(js_name = deriveSessionDataflow)]
+pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
+    use dashql_buffers::execution::{DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT};
+    use dashql_core_session::dataflow::DataflowEdgeKind as Kind;
+    with_session_plan_request(request, |core, sessions| {
+        let dataflow = dashql_core_session::dataflow::derive_session_dataflow(core);
+        let mut out = SessionDataflowT::default();
+        out.scripts = Some(
+            dataflow
+                .scripts
+                .into_iter()
+                .zip(sessions)
+                .map(|(script, session)| {
+                    let spans = session.project_text_spans(script.statements.iter().map(|s| s.text_span));
+                    let mut packed = DataflowScriptT::default();
+                    packed.analyzed = script.analyzed;
+                    packed.text_version = script.text_version;
+                    let statements: Vec<_> = script
+                        .statements
+                        .into_iter()
+                        .zip(spans)
+                        .map(|(statement, span)| {
+                            let mut t = DataflowStatementT::default();
+                            t.statement_type = statement.statement_type;
+                            t.target = statement.target;
+                            t.text_span = span.map(|span| {
+                                let mut text_span = dashql_buffers::parser::TextSpanT::default();
+                                text_span.offset = span.offset as u32;
+                                text_span.length = span.length as u32;
+                                text_span
+                            });
+                            t
+                        })
+                        .collect();
+                    packed.statements = (!statements.is_empty()).then_some(statements);
+                    packed
+                })
+                .collect(),
+        );
+        let edges: Vec<_> = dataflow
+            .edges
+            .into_iter()
+            .map(|e| {
+                let mut t = DataflowEdgeT::default();
+                t.from_script = e.from.script;
+                t.from_statement = e.from.statement;
+                t.to_script = e.to.script;
+                t.to_statement = e.to.statement;
+                t.kind = match e.kind {
+                    Kind::InlineReference => DataflowEdgeKind::INLINE_REFERENCE,
+                    Kind::ScanReference => DataflowEdgeKind::SCAN_REFERENCE,
+                    Kind::InvalidReference => DataflowEdgeKind::INVALID_REFERENCE,
+                    Kind::Table => DataflowEdgeKind::TABLE,
+                };
+                t.name = Some(e.name);
+                t
+            })
+            .collect();
+        out.edges = (!edges.is_empty()).then_some(edges);
+        finish!(out)
+    })
+}
+
 /// The results of the scripts of a session that their table parameters read (`script_results::ScriptResults`)
 #[wasm_bindgen]
 pub struct ScriptResults {

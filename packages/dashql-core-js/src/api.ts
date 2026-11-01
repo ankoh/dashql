@@ -19,6 +19,7 @@ export type DashQLBindings = Pick<
     | 'ScriptResults'
     | 'planSession'
     | 'checkScriptReferences'
+    | 'deriveSessionDataflow'
     | 'quoteIdentifier'
     | 'processBatch'
     | 'appendCatalogChangesSql'
@@ -128,6 +129,7 @@ const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
 const EXECUTION_GRAPH_TYPE = Symbol('EXECUTION_GRAPH_TYPE');
 const SCRIPT_REFERENCE_CHECK_TYPE = Symbol('SCRIPT_REFERENCE_CHECK_TYPE');
+const SESSION_DATAFLOW_TYPE = Symbol('SESSION_DATAFLOW_TYPE');
 const SCRIPT_RESULTS_TYPE = Symbol('SCRIPT_RESULTS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
@@ -305,6 +307,19 @@ export class DashQL {
         const native = this.buildSessionPlanRequest(request);
         try {
             return new FlatBufferPtr(SCRIPT_REFERENCE_CHECK_TYPE, this, this.bindings.checkScriptReferences(native), () => new buffers.execution.ScriptReferenceCheck());
+        } finally {
+            native.free();
+        }
+    }
+
+    /// Derive the dataflow of the scripts of a session: the statements of the scripts and the edges between them,
+    /// see docs/design/dataflow.md. Takes every analysis that is current with the text of its script. The text spans
+    /// are in the offset unit of the session of each script. Ignores the targets, the materialized scripts and the
+    /// mount prefix.
+    public deriveSessionDataflow(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.SessionDataflow> {
+        const native = this.buildSessionPlanRequest(request);
+        try {
+            return new FlatBufferPtr(SESSION_DATAFLOW_TYPE, this, this.bindings.deriveSessionDataflow(native), () => new buffers.execution.SessionDataflow());
         } finally {
             native.free();
         }

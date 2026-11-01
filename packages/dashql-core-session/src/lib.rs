@@ -7,6 +7,7 @@
 pub mod batch;
 pub mod catalog_changes;
 pub mod compiler;
+pub mod dataflow;
 pub mod planner;
 pub mod script_references;
 pub mod script_session;

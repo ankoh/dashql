@@ -191,10 +191,61 @@ pub struct PlannedFixture {
     pub checks: Vec<CheckedScript>,
 }
 
-/// Plan a fixture
-pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
-    use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
-    use dashql_core_session::script_references::check_script_references;
+/// The analyzed scripts and catalogs of a fixture
+pub struct PreparedFixture {
+    /// The connections, the implicit one of a fixture without connections
+    pub connections: Vec<FixtureConnection>,
+    /// The catalogs of the connections
+    pub catalogs: Vec<Catalog>,
+    /// The scripts of the catalogs of the connections
+    pub catalog_scripts: Vec<Script>,
+    /// The script names
+    pub names: Vec<String>,
+    /// The scripts and their connections
+    pub scripts: Vec<(Script, usize)>,
+    /// The target scripts of a plan of targets
+    pub targets: Option<Vec<u32>>,
+    /// The scripts whose materialized results the host provides
+    pub materialized: Vec<u32>,
+}
+
+impl PreparedFixture {
+    /// Pass the plan request of the fixture to `f`, with `scope` in place of the scope of the fixture if given
+    pub fn with_request<R>(&self, scope: Option<dashql_core_session::planner::PlanScope>, f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest) -> R) -> R {
+        use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
+        let connections: Vec<PlannerConnection> = self
+            .connections
+            .iter()
+            .zip(&self.catalogs)
+            .map(|(c, catalog)| PlannerConnection {
+                id: &c.name,
+                kind: if c.local { ConnectionKind::Local } else { ConnectionKind::Remote },
+                catalog,
+            })
+            .collect();
+        let scripts: Vec<PlannerScript> = self
+            .scripts
+            .iter()
+            .zip(&self.names)
+            .map(|((script, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None })
+            .collect();
+        let request = SessionPlanRequest {
+            connections: &connections,
+            scripts: &scripts,
+            scope: scope.unwrap_or(match &self.targets {
+                Some(t) => PlanScope::Targets(t),
+                None => PlanScope::Session,
+            }),
+            materialized: &self.materialized,
+            mount_prefix: PLANNER_MOUNT_PREFIX,
+        };
+        f(&request)
+    }
+}
+
+/// Analyze the scripts of a fixture like the app: the declarations of every connection are published before the
+/// scripts are analyzed again, then the stale prepends are applied
+pub fn prepare_fixture(fixture: &Fixture) -> Result<PreparedFixture, String> {
     // The connections and their catalogs, an implicit connection without connections
     let declared = !fixture.connections.is_empty();
     let connections: Vec<FixtureConnection> = if declared {
@@ -253,33 +304,18 @@ pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
     let index_of = |name: &String| names.iter().position(|n| n == name).map(|i| i as u32).ok_or_else(|| format!("unknown planner fixture script {name}"));
     let targets = fixture.targets.as_ref().map(|t| t.iter().map(index_of).collect::<Result<Vec<_>, _>>()).transpose()?;
     let materialized = fixture.materialized.iter().map(index_of).collect::<Result<Vec<_>, _>>()?;
-    let planner_connections: Vec<PlannerConnection> = connections
-        .iter()
-        .zip(&catalogs)
-        .map(|(c, catalog)| PlannerConnection {
-            id: &c.name,
-            kind: if c.local { ConnectionKind::Local } else { ConnectionKind::Remote },
-            catalog,
-        })
-        .collect();
-    let planner_scripts: Vec<PlannerScript> =
-        scripts.iter().zip(&names).map(|((script, _, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None }).collect();
-    let request = SessionPlanRequest {
-        connections: &planner_connections,
-        scripts: &planner_scripts,
-        scope: match &targets {
-            Some(t) => PlanScope::Targets(t),
-            None => PlanScope::Session,
-        },
-        materialized: &materialized,
-        mount_prefix: PLANNER_MOUNT_PREFIX,
-    };
-    let graph = plan_session(&request);
-    let checks = check_script_references(&request);
-    drop(planner_scripts);
-    drop(planner_connections);
-    drop(catalog_scripts);
-    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _, _)| s).collect(), checks })
+    let scripts = scripts.into_iter().map(|(s, _, c)| (s, c)).collect();
+    Ok(PreparedFixture { connections, catalogs, catalog_scripts, names, scripts, targets, materialized })
+}
+
+/// Plan a fixture
+pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
+    use dashql_core_session::planner::plan_session;
+    use dashql_core_session::script_references::check_script_references;
+    let prepared = prepare_fixture(fixture)?;
+    let (graph, checks) = prepared.with_request(None, |request| (plan_session(request), check_script_references(request)));
+    let PreparedFixture { connections, names, scripts, .. } = prepared;
+    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _)| s).collect(), checks })
 }
 
 /// Encode an execution graph. `connections` are the names of the declared connections, a fixture without them

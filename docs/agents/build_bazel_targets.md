@@ -100,7 +100,7 @@ bazel test //...
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
-| `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner and visualize snapshot tests, and the Hyper validation of the planner |
+| `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
 | `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
@@ -140,6 +140,7 @@ bazel run //snapshots/analyzer:update
 bazel run //snapshots/formatter:update
 bazel run //snapshots/completion:update
 bazel run //snapshots/planner:update
+bazel run //snapshots/dataflow:update
 bazel run //snapshots/visualize:update
 bazel run //snapshots/diff:update
 bazel run //snapshots/plans/hyper/tests:update

@@ -185,3 +185,45 @@ table CheckedScript {
 table ScriptReferenceCheck {
     scripts: [CheckedScript];
 }
+
+/// What carries the data of a dataflow edge
+enum DataflowEdgeKind: uint8 { INLINE_REFERENCE, SCAN_REFERENCE, INVALID_REFERENCE, TABLE }
+
+/// A statement of a script in the dataflow of a session
+table DataflowStatement {
+    statement_type: dashql.buffers.parser.StatementType;
+    /// The relation that the statement creates, writes or drops
+    target: string;
+    /// The text of the statement, in the offset unit of the script session
+    text_span: dashql.buffers.parser.TextSpan;
+}
+
+/// A script in the dataflow of a session
+table DataflowScript {
+    /// Was the script analyzed? A script whose analysis is not current with its text is not, its statements and
+    /// the edges that start or end at it are unknown.
+    analyzed: bool;
+    /// The text version of the analysis
+    text_version: uint64;
+    /// The statements in script order
+    statements: [DataflowStatement];
+}
+
+/// The flow of data from one statement to another
+table DataflowEdge {
+    from_script: uint32;
+    from_statement: uint32;
+    to_script: uint32;
+    to_statement: uint32;
+    kind: DataflowEdgeKind;
+    /// The parameter name of a reference, the relation name of a table edge
+    name: string;
+}
+
+/// The dataflow of the scripts of a session, see docs/design/dataflow.md
+table SessionDataflow {
+    /// The scripts in session order
+    scripts: [DataflowScript];
+    /// The edges, sorted and without duplicates
+    edges: [DataflowEdge];
+}

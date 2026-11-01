@@ -44,6 +44,13 @@ SEQUENCE edges, a target that does not parse becomes one barrier node with its t
 diagnostics of statements are warnings. Diagnostics of script references, stale analysis, visualizations that fail
 to compile and a referenced script that runs later stay errors.
 
+A tolerant plan (`PlanScope::Tolerant`) is the plan of the [dataflow](dataflow.md) of a session, which is never run.
+It plans every script like a plan of targets that targets all of them, but errors leave something out instead of
+stopping the plan: a script without a current analysis is not planned, an analysis of an earlier catalog revision
+is taken as it is, and script references with errors or to scripts that were not planned are not spliced. The
+diagnostics keep their error flag, and a plan that left something out is not valid. An invalid request, e.g. two
+scripts of the same name, still stops it.
+
 Every run in the app executes a plan: a run of the session plans every script without a cached result, a run of one script plans
 that script as the target (`script_references.md`). Scripts without names can't be referenced, so a plan of
 scripts without names is a plan of their statement dependencies.

@@ -1,0 +1,227 @@
+dataflow-snapshots:
+
+  - name: LastWriter
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+          select a from t;
+      - name: more
+        input: |
+          insert into t select a + 1 from t;
+      - name: read
+        input: |
+          select count(*) from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+            - type: SELECT
+              text: "select a from t"
+        - name: more
+          statements:
+            - type: INSERT
+              target: t
+              text: "insert int..+ 1 from t"
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select cou..(*) from t"
+      edges:
+        - from: schema.0
+          to: schema.1
+          kind: table
+          name: t
+        - from: schema.1
+          to: schema.2
+          kind: table
+          name: t
+        - from: schema.1
+          to: more.0
+          kind: table
+          name: t
+        - from: more.0
+          to: read.0
+          kind: table
+          name: t
+
+  - name: ReadBeforeTheWriter
+    scripts:
+      - name: read
+        input: |
+          select a from t;
+      - name: schema
+        input: |
+          create table t (a int);
+    expected:
+      scripts:
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select a from t"
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+      edges: []
+
+  - name: DropAndRecreate
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: drop
+        input: |
+          drop table t;
+          create table t (b int);
+      - name: read
+        input: |
+          select b from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+        - name: drop
+          statements:
+            - type: DROP_TABLE
+              target: t
+              text: "drop table t"
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (b int)"
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select b from t"
+      edges:
+        - from: schema.0
+          to: schema.1
+          kind: table
+          name: t
+        - from: drop.1
+          to: read.0
+          kind: table
+          name: t
+
+  - name: CreateTableAs
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: load
+        input: |
+          create table big as select * from orders where amount > 10;
+      - name: report
+        input: |
+          select count(*) from big;
+    expected:
+      scripts:
+        - name: load
+          statements:
+            - type: CREATE_TABLE_AS
+              target: big
+              text: "create tab..mount > 10"
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select cou..) from big"
+      edges:
+        - from: load.0
+          to: report.0
+          kind: table
+          name: big
+
+  - name: CatalogRelations
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: a
+        input: |
+          select * from orders;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * f..rom orders"
+      edges: []
+
+  - name: RelationsPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: remote
+        connection: trino
+        input: |
+          create table t (a int);
+          select a from t;
+      - name: local
+        connection: local
+        input: |
+          select a from t;
+    expected:
+      scripts:
+        - name: remote
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: SELECT
+              text: "select a from t"
+        - name: local
+          statements:
+            - type: SELECT
+              text: "select a from t"
+      edges:
+        - from: remote.0
+          to: remote.1
+          kind: table
+          name: t
+
+  - name: StaleAnalysis
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: read
+        input: |
+          select a from t;
+        stale-prepend: "select 1;\n"
+      - name: other
+        input: |
+          select a from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+        - name: read
+          analyzed: false
+        - name: other
+          statements:
+            - type: SELECT
+              text: "select a from t"
+      edges:
+        - from: schema.0
+          to: other.0
+          kind: table
+          name: t

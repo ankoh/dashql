@@ -11,6 +11,7 @@ snapshot_library(
     files_srcs = [
         "//snapshots/analyzer:files",
         "//snapshots/completion:files",
+        "//snapshots/dataflow:files",
         "//snapshots/diff:files",
         "//snapshots/formatter:files",
         "//snapshots/parser:files",

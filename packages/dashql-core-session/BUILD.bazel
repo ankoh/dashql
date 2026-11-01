@@ -54,6 +54,7 @@ DASHQL_CORE_SESSION_TESTS = [
 
 # Snapshot tests: one target per category, each a libtest-mimic binary
 DASHQL_CORE_SESSION_SNAPSHOT_TESTS = {
+    "dataflow_snapshot_test": ("dataflow_snapshots.rs", "//snapshots/dataflow:files"),
     "planner_snapshot_test": ("planner_snapshots.rs", "//snapshots/planner:files"),
     "visualize_snapshot_test": ("visualize_snapshots.rs", "//snapshots/visualize:files"),
 }

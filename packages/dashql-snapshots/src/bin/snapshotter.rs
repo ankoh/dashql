@@ -1,11 +1,11 @@
 //! Regenerates the snapshot files `snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
 //!
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
-//! completion, formatter, hyper_plan, visualize, diff. An empty filter updates all of them.
+//! dataflow, completion, formatter, hyper_plan, visualize, diff. An empty filter updates all of them.
 //!
 //! The output keeps the format of the checked-in snapshot files (the emitter style of rapidyaml):
 //! - parser, formatter, diff and hyper_plan build new files from the inputs of the templates,
-//! - analyzer, completion, planner and visualize write the templates back with the results appended,
+//! - analyzer, completion, planner, dataflow and visualize write the templates back with the results appended,
 //! - comments of the templates are dropped,
 //! - a blank line separates the cases and no line ends with a space.
 
@@ -26,7 +26,7 @@ use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
 use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
 use dashql_snapshots::encode::visualize::encode_markdown_spec;
-use dashql_snapshots::encode::{analyzer, diff, encode_location_text, parser, planner, Map};
+use dashql_snapshots::encode::{analyzer, dataflow, diff, encode_location_text, parser, planner, Map};
 use dashql_snapshots::ryml::{self, Node};
 use dashql_snapshots::trim_input;
 use std::fs;
@@ -356,6 +356,28 @@ fn generate_planner_snapshots(dir: &Path) -> Result<(), String> {
 }
 
 // ---------------------------------------------------------------------------
+// Dataflow
+
+fn generate_dataflow_snapshots(dir: &Path) -> Result<(), String> {
+    for path in templates(dir) {
+        let text =
+            fs::read_to_string(&path).map_err(|e| format!("cannot read dataflow template {}: {e}", path.display()))?;
+        let mut template = ryml::parse(&text)?.unwrap_or_else(Node::map);
+        let out = output_path(&path);
+        println!("FILE {}", out.display());
+        let fixtures = template.get_mut("dataflow-snapshots").ok_or("missing dataflow-snapshots")?;
+        for fixture in fixtures.children_mut() {
+            println!("  TEST {}", fixture.get("name").and_then(Node::val).unwrap_or(""));
+            fixture.remove("expected");
+            let expected = dataflow::encode_dataflow_fixture(&planner::Fixture::from_node(fixture))?;
+            fixture.push("expected", expected);
+        }
+        write_snapshot(&out, ryml::emit_root(&template));
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 // Formatter
 
 /// The index of a mode in the order the snapshots list the modes
@@ -544,7 +566,7 @@ fn main() -> ExitCode {
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!("Usage: snapshotter --source_dir <dir> [--filter <category>]");
         println!(
-            "Categories: parser, analyzer, planner, completion, formatter, hyper_plan, visualize, diff. Empty = all."
+            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_plan, visualize, diff. Empty = all."
         );
         return ExitCode::SUCCESS;
     }
@@ -564,6 +586,12 @@ fn main() -> ExitCode {
     }
     if selected("planner") {
         if let Err(e) = generate_planner_snapshots(&snapshots.join("planner")) {
+            println!("ERROR {e}");
+            return ExitCode::FAILURE;
+        }
+    }
+    if selected("dataflow") {
+        if let Err(e) = generate_dataflow_snapshots(&snapshots.join("dataflow")) {
             println!("ERROR {e}");
             return ExitCode::FAILURE;
         }

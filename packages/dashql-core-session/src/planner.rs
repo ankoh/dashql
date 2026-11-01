@@ -95,6 +95,11 @@ pub enum PlanScope<'a> {
     Session,
     /// The target scripts and what they need
     Targets(&'a [u32]),
+    /// Every statement of every script whose analysis is current with its text, for the dataflow of a session. Like a
+    /// plan of targets, but problems are diagnostics that don't stop the plan: a script without a current analysis,
+    /// with an analysis of an earlier catalog revision or with invalid script references is planned without them.
+    /// A plan that left something out is not valid.
+    Tolerant,
 }
 
 /// A plan request
@@ -169,6 +174,12 @@ struct PlanState {
     diagnostics: Vec<ExecutionGraphDiagnosticT>,
     /// Are diagnostics of statements warnings? Plans of targets run statements of every kind.
     lenient: bool,
+    /// Do errors leave something out of the plan instead of stopping it? See `PlanScope::Tolerant`.
+    tolerant: bool,
+    /// Did a tolerant plan leave something out?
+    partial: bool,
+    /// The script references with errors: (script, offset, length) of the parameter
+    reference_errors: BTreeSet<(u32, u32, u32)>,
 }
 
 impl PlanState {
@@ -186,7 +197,9 @@ impl PlanState {
         });
         d.error = error;
         self.diagnostics.push(d);
-        if error {
+        if error && self.tolerant {
+            self.partial = true;
+        } else if error {
             self.graph.valid = false;
         }
     }
@@ -273,7 +286,8 @@ fn prepare<'a>(state: &mut PlanState, index: u32, script: &'a Script, catalog: &
         state.report(NONE, index, None, "script was analyzed with another catalog than the one of its connection".into(), true);
         return None;
     }
-    if !catalog.is_current(&analyzed.snapshot) {
+    // A tolerant plan takes the analysis of an earlier catalog revision, its declarations keep their ids
+    if !catalog.is_current(&analyzed.snapshot) && !state.tolerant {
         state.report(NONE, index, None, "stale catalog analysis".into(), true);
         return None;
     }
@@ -313,13 +327,15 @@ fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
     match request.scope {
         PlanScope::Session => (0..request.scripts.len() as u32).filter(|i| !request.materialized.contains(i)).collect(),
         PlanScope::Targets(targets) => targets.to_vec(),
+        PlanScope::Tolerant => (0..request.scripts.len() as u32).collect(),
     }
 }
 
 /// Plan the statements of the scripts of a session. Consumes the current analysis without analyzing, publishing or
 /// changing scripts.
 pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
-    let lenient = matches!(request.scope, PlanScope::Targets(_));
+    let lenient = matches!(request.scope, PlanScope::Targets(_) | PlanScope::Tolerant);
+    let tolerant = matches!(request.scope, PlanScope::Tolerant);
     let mut state = PlanState {
         graph: ExecutionGraphT::default(),
         entities: BTreeMap::new(),
@@ -328,6 +344,9 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         unresolved_list: Vec::new(),
         diagnostics: Vec::new(),
         lenient,
+        tolerant,
+        partial: false,
+        reference_errors: BTreeSet::new(),
     };
     state.graph.valid = true;
     let script_count = request.scripts.len();
@@ -357,7 +376,9 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
     if targets.iter().chain(request.materialized).any(|&t| t as usize >= script_count) {
         state.report(NONE, NONE, None, "unknown planner script".into(), true);
     }
-    if !state.graph.valid {
+    // An invalid request stops every plan, also a tolerant one
+    if !state.graph.valid || state.partial {
+        state.graph.valid = false;
         return finish(state, request, &[], &[], None, Vec::new(), Vec::new(), Vec::new(), Vec::new());
     }
 
@@ -387,6 +408,9 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
     }
     references.check(&mut state_reporter(&mut state), request, &prepared);
+    if tolerant {
+        references.unlink_unplannable(&prepared, &state.reference_errors);
+    }
     if !state.graph.valid {
         return finish(state, request, &prepared, &planned, Some(&references), Vec::new(), Vec::new(), Vec::new(), Vec::new());
     }
@@ -1040,6 +1064,9 @@ struct Reporter<'s> {
 
 impl ReferenceErrors for Reporter<'_> {
     fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
+        if let Some(span) = text_span {
+            self.state.reference_errors.insert((script, span.offset, span.length));
+        }
         self.state.report(NONE, script, text_span, message, true);
     }
 }
@@ -1072,6 +1099,9 @@ fn finish(
 ) -> ExecutionGraphT {
     let targets: BTreeSet<u32> = seeds(request).into_iter().collect();
     let mut graph = state.graph;
+    if state.partial {
+        graph.valid = false;
+    }
     graph.connections = opt_vec(
         request
             .connections

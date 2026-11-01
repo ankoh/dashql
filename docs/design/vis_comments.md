@@ -73,7 +73,7 @@ tag of the statement it shows (see Rewriting tags).
 
 ## Dataflow placement
 
-The dataflow view draws every script as a box on a canvas. `@vis flow x=.. y=..` is the position of the
+The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@vis flow x=.. y=..` is the position of the
 top left corner of the box in canvas pixels, negative coordinates are fine. A script has one position: the
 first `flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or missing
 coordinate is ignored. Unlike `board`, it needs no renderer and may annotate a statement that is no query,

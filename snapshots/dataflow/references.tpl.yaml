@@ -1,0 +1,83 @@
+dataflow-snapshots:
+  # A table parameter flows from the terminal query of the referenced script
+  - name: InlineReferences
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select x from :a;
+      - name: c
+        input: |
+          select * from :b, :a;
+
+  # A referenced script is a single SELECT, the reference is invalid but still an edge
+  - name: InvalidReferenceToScriptWithCommands
+    scripts:
+      - name: a
+        input: |
+          create table t (y int);
+          select 1 as x;
+      - name: b
+        input: |
+          select x from :a;
+
+  # A statement of the LOCAL connection scans the result of a script of another connection
+  - name: ScanReference
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: remote
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: report
+        connection: local
+        input: |
+          select sum(amount) from :remote;
+
+  # A REMOTE connection cannot read a script of another connection
+  - name: InvalidReferenceAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: a
+        connection: local
+        input: |
+          select 1 as x;
+      - name: b
+        connection: trino
+        input: |
+          select * from :a;
+
+  # An inlined query reads its relations through the inlined script
+  - name: InlinedReadsFlowThroughTheScript
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: filtered
+        input: |
+          select a from t where a > 1;
+      - name: report
+        input: |
+          select count(*) from :filtered;
+
+  # A cycle of references is invalid, the edges stay
+  - name: ReferenceCycle
+    scripts:
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;

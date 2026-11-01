@@ -1,0 +1,196 @@
+dataflow-snapshots:
+
+  - name: InlineReferences
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select x from :a;
+      - name: c
+        input: |
+          select * from :b, :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select x from :a"
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select * f..rom :b, :a"
+      edges:
+        - from: a.0
+          to: b.0
+          kind: inline
+          name: a
+        - from: a.0
+          to: c.0
+          kind: inline
+          name: a
+        - from: b.0
+          to: c.0
+          kind: inline
+          name: b
+
+  - name: InvalidReferenceToScriptWithCommands
+    scripts:
+      - name: a
+        input: |
+          create table t (y int);
+          select 1 as x;
+      - name: b
+        input: |
+          select x from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (y int)"
+            - type: SELECT
+              text: "select 1 as x"
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select x from :a"
+      edges:
+        - from: a.1
+          to: b.0
+          kind: invalid
+          name: a
+
+  - name: ScanReference
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: remote
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: report
+        connection: local
+        input: |
+          select sum(amount) from :remote;
+    expected:
+      scripts:
+        - name: remote
+          statements:
+            - type: SELECT
+              text: "select id,..rom orders"
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select sum..om :remote"
+      edges:
+        - from: remote.0
+          to: report.0
+          kind: scan
+          name: remote
+
+  - name: InvalidReferenceAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: a
+        connection: local
+        input: |
+          select 1 as x;
+      - name: b
+        connection: trino
+        input: |
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+      edges:
+        - from: a.0
+          to: b.0
+          kind: invalid
+          name: a
+
+  - name: InlinedReadsFlowThroughTheScript
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: filtered
+        input: |
+          select a from t where a > 1;
+      - name: report
+        input: |
+          select count(*) from :filtered;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+        - name: filtered
+          statements:
+            - type: SELECT
+              text: "select a f..here a > 1"
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select cou.. :filtered"
+      edges:
+        - from: schema.0
+          to: filtered.0
+          kind: table
+          name: t
+        - from: filtered.0
+          to: report.0
+          kind: inline
+          name: filtered
+
+  - name: ReferenceCycle
+    scripts:
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :b"
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+      edges:
+        - from: a.0
+          to: b.0
+          kind: invalid
+          name: a
+        - from: b.0
+          to: a.0
+          kind: inline
+          name: b

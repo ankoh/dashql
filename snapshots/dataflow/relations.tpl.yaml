@@ -1,0 +1,93 @@
+dataflow-snapshots:
+  # Statements read a relation from the statement that wrote it last, a write continues the flow
+  - name: LastWriter
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+          select a from t;
+      - name: more
+        input: |
+          insert into t select a + 1 from t;
+      - name: read
+        input: |
+          select count(*) from t;
+
+  # A table created after the read in session order is read before it is written
+  - name: ReadBeforeTheWriter
+    scripts:
+      - name: read
+        input: |
+          select a from t;
+      - name: schema
+        input: |
+          create table t (a int);
+
+  # A drop reads no data, a new table of the same name starts a new flow
+  - name: DropAndRecreate
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: drop
+        input: |
+          drop table t;
+          create table t (b int);
+      - name: read
+        input: |
+          select b from t;
+
+  # A table created from a query reads the relations of the query
+  - name: CreateTableAs
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: load
+        input: |
+          create table big as select * from orders where amount > 10;
+      - name: report
+        input: |
+          select count(*) from big;
+
+  # Relations of the catalog have no writer in the session
+  - name: CatalogRelations
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: a
+        input: |
+          select * from orders;
+
+  # Relations of different connections are different
+  - name: RelationsPerConnection
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: remote
+        connection: trino
+        input: |
+          create table t (a int);
+          select a from t;
+      - name: local
+        connection: local
+        input: |
+          select a from t;
+
+  # A script whose analysis is behind its text is left out, the others are still planned
+  - name: StaleAnalysis
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: read
+        input: |
+          select a from t;
+        stale-prepend: "select 1;\n"
+      - name: other
+        input: |
+          select a from t;
