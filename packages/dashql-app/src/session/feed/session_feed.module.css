@@ -382,8 +382,8 @@
 }
 
 .feed_entry_action_bar {
-    background-color: var(--session_feed_entry_headerbar_background);
-    border-bottom: 1px solid var(--log_border_color);
+    /* background-color: var(--session_feed_entry_headerbar_background); */ 
+    /* border-bottom: 1px solid var(--log_border_color); */
     border-radius: var(--border_radius) var(--border_radius) 0 0;
     display: flex;
     flex-direction: row;
@@ -429,7 +429,7 @@
     padding: 0 8px;
     border: 1px solid var(--base_color_neutral_2);
     border-radius: 6px;
-    background-color: var(--base_color_neutral_1);
+    background-color: var(--base_color_neutral_0);
     color: var(--base_color_neutral_6);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
@@ -459,7 +459,7 @@ button.feed_entry_mention {
 }
 
 .feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: color-mix(in srgb, var(--base_color_neutral_2) 50%, var(--base_color_neutral_1));
+    background-color: color-mix(in srgb, var(--base_color_neutral_1) 50%, var(--base_color_neutral_0));
 }
 
 .feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
