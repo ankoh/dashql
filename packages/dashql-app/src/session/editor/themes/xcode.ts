@@ -11,6 +11,7 @@ export const defaultSettingsXcodeLight: CreateThemeOptions['settings'] = {
     selectionMatch: light.selectionMatch,
     gutterBackground: light.gutterBackground,
     gutterForeground: light.gutterForeground,
+    gutterBorder: 'transparent',
     lineHighlight: light.lineHighlight,
 };
 
