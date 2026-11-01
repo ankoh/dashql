@@ -28,7 +28,7 @@ import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
 import { checkSessionScriptReferences } from '../scripts/script_reference_reports.js';
-import { sessionScriptResults } from '../scripts/script_results_publisher.js';
+import { sessionTableParameters } from '../scripts/table_parameters_publisher.js';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
@@ -832,7 +832,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         scriptNames={scriptNames}
                         targetScriptRef={composerTargetScriptRef}
                         renameScriptRef={composerRenameScriptRef}
-                        scriptResults={sessionScriptResults(props.sessionScripts)}
+                        tableParameters={sessionTableParameters(props.sessionScripts)}
                         snippetConnector={composerConnection.connectorInfo.connectorType}
                         offlineSessionId={scriptConnections.get(composerConnection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE
                             ? null : props.sessionScripts.sessionId}

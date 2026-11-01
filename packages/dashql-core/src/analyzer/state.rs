@@ -70,7 +70,7 @@ impl<'a> AnalysisState<'a> {
             inferred_table_schemas: Vec::new(),
             inferred_table_schemas_by_name: Default::default(),
             name_search_index: Default::default(),
-            script_results: None,
+            table_parameters: None,
         };
         Self {
             parsed,
@@ -366,8 +366,8 @@ impl<'a> AnalysisState<'a> {
     pub fn table(&self, loc: TableLoc) -> Option<&TableDeclaration> {
         if loc.entry == self.entry_id {
             self.out.entry.table_declarations.get(loc.index as usize)
-        } else if loc.entry == crate::script_results::SCRIPT_RESULTS_ENTRY_ID {
-            self.out.script_results.as_ref()?.table(loc)
+        } else if loc.entry == crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID {
+            self.out.table_parameters.as_ref()?.table(loc)
         } else {
             self.catalog.table(loc)
         }

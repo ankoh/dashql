@@ -247,9 +247,9 @@ built after the scan:
 | - | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries, `flow` of the first `@flow` tag |
 | - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `session_inputs.md`) |
 
-`analyze_with(parsed, catalog, script_results)` also takes the `ScriptResults` of the session
-(`script_results.rs`): the output columns of its single-SELECT scripts, declared as the tables of the
-reserved entry `SCRIPT_RESULTS_ENTRY_ID`, which named table parameters read (see `script_references.md`).
+`analyze_with(parsed, catalog, table_parameters)` also takes the `TableParameters` of the session
+(`table_parameters.rs`): the output columns of its single-SELECT scripts, declared as the tables of the
+reserved entry `TABLE_PARAMETERS_ENTRY_ID`, which named table parameters read (see `script_references.md`).
 `analyze` passes none.
 
 All passes share `AnalysisState` (`analyzer/state.rs`): the parsed script, the catalog, the name
@@ -297,7 +297,7 @@ snapshot it resolved against:
 pub snapshot: Arc<CatalogSnapshot>
 ```
 
-`AnalyzedScript::table(loc)` resolves through the script's own entry, then its `ScriptResults`, then
+`AnalyzedScript::table(loc)` resolves through the script's own entry, then its `TableParameters`, then
 the snapshot. Encoding
 (`pack.rs`), the cursor and completion read the catalog only through it
 (`catalog_test::analyses_keep_the_snapshot_they_resolved_against`). The snapshot also contains the
@@ -332,8 +332,8 @@ An analysis is current when nothing it read has changed. Three counters exist:
 - the parsed and scanned scripts of the analysis are the current ones (`Arc::ptr_eq` along the
   chain) and were scanned from the current text version
 - `catalog.is_current(&analyzed.snapshot)`
-- if the script has table parameters, the analysis holds the script's current `ScriptResults`
-  (`Script::script_results_current`, `Arc::ptr_eq`)
+- if the script has table parameters, the analysis holds the script's current `TableParameters`
+  (`Script::table_parameters_current`, `Arc::ptr_eq`)
 
 The planner applies the same catalog check per input (`planner.rs`, "stale catalog analysis").
 

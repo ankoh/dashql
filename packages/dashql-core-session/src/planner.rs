@@ -788,7 +788,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             for table_ref in &analyzed.table_references {
                 // A table parameter reads its script through the script references
-                if table_ref.ast_statement_id != Some(statement_id as u32) || table_ref.reads_script_result() {
+                if table_ref.ast_statement_id != Some(statement_id as u32) || table_ref.reads_table_parameter() {
                     continue;
                 }
                 let Some(relation) = &table_ref.inner else {
@@ -835,7 +835,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 for table_ref in &producer_analyzed.table_references {
                     if table_ref.ast_statement_id != Some(producer_statement)
                         || is_cte_reference(producer_analyzed, table_ref)
-                        || table_ref.reads_script_result()
+                        || table_ref.reads_table_parameter()
                     {
                         continue;
                     }

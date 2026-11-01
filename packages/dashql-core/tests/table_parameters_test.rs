@@ -4,11 +4,11 @@
 use dashql_core::analyzer::{AnalyzedScript, ColumnResolution};
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
-use dashql_core::script_results::{ScriptResults, SCRIPT_RESULTS_ENTRY_ID};
+use dashql_core::table_parameters::{TableParameters, TABLE_PARAMETERS_ENTRY_ID};
 use std::sync::Arc;
 
 /// Analyze scripts and derive their results
-fn session(catalog: &Catalog, scripts: &[(&str, &str)]) -> Arc<ScriptResults> {
+fn session(catalog: &Catalog, scripts: &[(&str, &str)]) -> Arc<TableParameters> {
     let analyzed: Vec<Script> = scripts
         .iter()
         .map(|(_, text)| {
@@ -20,20 +20,20 @@ fn session(catalog: &Catalog, scripts: &[(&str, &str)]) -> Arc<ScriptResults> {
         .collect();
     let inputs: Vec<(&str, Option<&AnalyzedScript>)> =
         scripts.iter().zip(&analyzed).map(|((name, _), s)| (*name, s.analyzed.as_deref())).collect();
-    Arc::new(ScriptResults::derive(&inputs, None))
+    Arc::new(TableParameters::derive(&inputs, None))
 }
 
 /// Analyze a script with the results of a session
-fn consumer(catalog: &Catalog, results: &Arc<ScriptResults>, text: &str) -> Script {
+fn consumer(catalog: &Catalog, results: &Arc<TableParameters>, text: &str) -> Script {
     let mut script = Script::new(catalog);
-    script.script_results = Some(results.clone());
+    script.table_parameters = Some(results.clone());
     script.insert_text_at(0, text);
     script.analyze(catalog, true).unwrap();
     script
 }
 
 /// The column refs of a script in text order, `name -> script.column` or `name -> ?`
-fn resolve(script: &Script, results: &ScriptResults) -> Vec<String> {
+fn resolve(script: &Script, results: &TableParameters) -> Vec<String> {
     let analyzed = script.analyzed.as_ref().unwrap();
     let mut expressions: Vec<_> = analyzed.expressions.iter().filter_map(|e| Some((e, e.column_ref()?))).collect();
     expressions.sort_by_key(|(e, _)| analyzed.parsed.nodes[e.ast_node_id as usize].symbol_span().offset());
@@ -42,7 +42,7 @@ fn resolve(script: &Script, results: &ScriptResults) -> Vec<String> {
         .map(|(_, column_ref)| {
             let name = column_ref.column_name.column_name.text();
             let target = match column_ref.resolved {
-                ColumnResolution::TableColumn(loc) if loc.table.entry == SCRIPT_RESULTS_ENTRY_ID => {
+                ColumnResolution::TableColumn(loc) if loc.table.entry == TABLE_PARAMETERS_ENTRY_ID => {
                     let table = results.table(loc.table).unwrap();
                     format!("{}.{}", table.table_name.table_name.text(), table.table_columns[loc.column as usize].column_name.text())
                 }
@@ -90,7 +90,7 @@ fn results_flow_through_chains_and_stars() {
     let first = session(&catalog, &[("foo", "select 1 as a"), ("bar", "select 1")]);
     let bar = consumer(&catalog, &first, "select *, 2 as z from :foo");
     let inputs = [("foo", None), ("bar", bar.analyzed.as_deref())];
-    let results = Arc::new(ScriptResults::derive(&inputs, Some(&first)));
+    let results = Arc::new(TableParameters::derive(&inputs, Some(&first)));
     let columns: Vec<String> = results.scripts[1].table.as_ref().unwrap().table_columns.iter().map(|c| c.column_name.text().to_string()).collect();
     assert_eq!(columns, ["a", "z"]);
     // The script without an analysis kept its columns

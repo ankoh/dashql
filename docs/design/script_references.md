@@ -123,10 +123,10 @@ table references, they read the script through the script reference.
 
 ### Results and Completion
 
-`ScriptResults` (`dashql-core/src/script_results.rs`) holds the output columns of every script of a session that is
-a single SELECT, as table declarations of the reserved catalog entry `SCRIPT_RESULTS_ENTRY_ID`. Scripts on a cycle
+`TableParameters` (`dashql-core/src/table_parameters.rs`) holds the output columns of every script of a session that is
+a single SELECT, as table declarations of the reserved catalog entry `TABLE_PARAMETERS_ENTRY_ID`. Scripts on a cycle
 of references have no result. Every script session of the session holds the same results
-(`DashQLScriptResults.publish`): the analyzer resolves a named table parameter that reads a script with a result
+(`DashQLTableParameters.publish`): the analyzer resolves a named table parameter that reads a script with a result
 as a FROM source with the columns of the result, named by its alias or the parameter name. The source yields its
 name to the other FROM items, like the planner renames its common table expression. A table parameter that is the
 target of a write, positional or names no script with a result resolves nothing. An analysis that reads table

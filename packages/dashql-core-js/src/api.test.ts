@@ -267,7 +267,7 @@ describe('DashQL planner', () => {
 
     it('publishes the results of scripts that table parameters read', () => {
         const catalog = dql!.createCatalog();
-        const results = dql!.createScriptResults();
+        const results = dql!.createTableParameters();
         try {
             const foo = prepare(catalog, 'select 1 as amount');
             const bar = prepare(catalog, 'select f.amount from :foo f');

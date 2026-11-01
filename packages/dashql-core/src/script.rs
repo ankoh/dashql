@@ -9,7 +9,7 @@
 //! drops the script from the catalog explicitly (`Catalog::drop_script`).
 
 use crate::analyzer::{analyze_with, AnalyzedScript};
-use crate::script_results::ScriptResults;
+use crate::table_parameters::TableParameters;
 use crate::catalog::{Catalog, CatalogEntryId};
 use crate::completion::Completion;
 use crate::cursor::{ScriptCursor, ScriptView};
@@ -55,7 +55,7 @@ pub struct Script {
     /// The latest analyzed script
     pub analyzed: Option<Arc<AnalyzedScript>>,
     /// The results of the scripts of the session that the table parameters read, the next analysis uses them
-    pub script_results: Option<Arc<ScriptResults>>,
+    pub table_parameters: Option<Arc<TableParameters>>,
     /// The text offset of the cursor, reset by every analysis
     cursor_offset: Option<usize>,
     /// The durations of the last scan, parse and analysis
@@ -105,7 +105,7 @@ impl Script {
             scanned: None,
             parsed: None,
             analyzed: None,
-            script_results: None,
+            table_parameters: None,
             cursor_offset: None,
             timings: ProcessingTimings::default(),
         }
@@ -239,7 +239,7 @@ impl Script {
         };
         self.cursor_offset = None;
         let watch = Stopwatch::start();
-        self.analyzed = Some(Arc::new(analyze_with(parsed, catalog, self.script_results.as_ref())?));
+        self.analyzed = Some(Arc::new(analyze_with(parsed, catalog, self.table_parameters.as_ref())?));
         self.timings.analyzer_ns = watch.elapsed_ns();
         Ok(())
     }
@@ -254,12 +254,12 @@ impl Script {
 
     /// Is the analysis current with the script results of the script? An analysis without table parameters reads
     /// no results, any other was analyzed with the same results.
-    pub fn script_results_current(&self) -> bool {
+    pub fn table_parameters_current(&self) -> bool {
         let Some(analyzed) = self.analyzed.as_ref() else { return true };
         if !analyzed.parameters.iter().any(|p| p.kind == crate::analyzer::ParameterKind::Table) {
             return true;
         }
-        match (analyzed.script_results.as_ref(), self.script_results.as_ref()) {
+        match (analyzed.table_parameters.as_ref(), self.table_parameters.as_ref()) {
             (None, None) => true,
             (Some(l), Some(r)) => Arc::ptr_eq(l, r),
             _ => false,

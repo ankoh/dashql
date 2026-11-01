@@ -12,7 +12,7 @@ Completion::compute(cursor, k)
 ├─ [inside a comment] complete comment tags and `@vis` tags, then stop (see vis_comments.md)
 ├─ Validate cursor has scanner location
 ├─ [the name of a table parameter in table position, `from :fo|`] the names of the scripts with a result, then stop
-│  (complete_script_reference, see script_references.md)
+│  (complete_table_parameter, see script_references.md)
 ├─ Select target symbol (current vs. previous)
 ├─ Detect dot-completion context
 ├─ Skip non-completable symbols (constants, operators, punctuation)

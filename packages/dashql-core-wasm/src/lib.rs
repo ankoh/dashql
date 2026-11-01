@@ -1071,25 +1071,25 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> Vec<u8> {
     })
 }
 
-/// The results of the scripts of a session that their table parameters read (`script_results::ScriptResults`)
+/// The table parameters of a session (`table_parameters::TableParameters`)
 #[wasm_bindgen]
-pub struct ScriptResults {
-    /// The published results
-    current: RefCell<Option<std::sync::Arc<dashql_core::script_results::ScriptResults>>>,
+pub struct TableParameters {
+    /// The published table parameters
+    current: RefCell<Option<std::sync::Arc<dashql_core::table_parameters::TableParameters>>>,
 }
 
 #[wasm_bindgen]
-impl ScriptResults {
+impl TableParameters {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> ScriptResults {
-        ScriptResults { current: RefCell::new(None) }
+    pub fn new() -> TableParameters {
+        TableParameters { current: RefCell::new(None) }
     }
 
     /// Derive the results from the analyses of the scripts of a request and give them to their sessions. Returns the
     /// indexes of the scripts whose analysis is outdated by the results, every script if the results changed. A
     /// script whose analysis lags behind its text keeps its previous result.
     pub fn publish(&self, request: &SessionPlanRequest) -> Vec<u32> {
-        use dashql_core::script_results::ScriptResults as CoreResults;
+        use dashql_core::table_parameters::TableParameters as CoreResults;
         let previous = self.current.borrow().clone();
         let derived = {
             let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
@@ -1112,11 +1112,11 @@ impl ScriptResults {
         let mut outdated = Vec::new();
         for (i, (_, _, session, _)) in request.scripts.iter().enumerate() {
             let mut session = session.borrow_mut();
-            let attached = session.script().script_results.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results));
+            let attached = session.script().table_parameters.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results));
             if !attached {
-                session.set_script_results(Some(results.clone()));
+                session.set_table_parameters(Some(results.clone()));
                 // An analysis without table parameters reads no results
-                if !session.script().script_results_current() {
+                if !session.script().table_parameters_current() {
                     outdated.push(i as u32);
                 }
             }
@@ -1124,19 +1124,19 @@ impl ScriptResults {
         outdated
     }
 
-    /// Give the published results to a session that is no script of the session, e.g. a draft
+    /// Give the published table parameters to a session that is no script of the session, e.g. a draft
     pub fn attach(&self, session: &ScriptSession) -> bool {
         let Some(results) = self.current.borrow().clone() else { return false };
         let mut session = session.inner.borrow_mut();
-        if session.script().script_results.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results)) {
+        if session.script().table_parameters.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results)) {
             return false;
         }
-        session.set_script_results(Some(results));
-        !session.script().script_results_current()
+        session.set_table_parameters(Some(results));
+        !session.script().table_parameters_current()
     }
 }
 
-impl Default for ScriptResults {
+impl Default for TableParameters {
     fn default() -> Self {
         Self::new()
     }

@@ -58,7 +58,7 @@ export interface SessionComposerProps {
     /// Receives the function that references a session script in a question, by its display name
     targetScriptRef?: React.RefObject<((name: string) => void) | null>;
     /// The results of the session scripts, the table parameters of the draft read them
-    scriptResults?: core.DashQLScriptResults | null;
+    tableParameters?: core.DashQLTableParameters | null;
     /// Receives the function that renames the references to a session script in the draft, by display names
     renameScriptRef?: React.RefObject<((from: string, to: string) => void) | null>;
     /// Picks the connection that the draft runs on
@@ -122,7 +122,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     // The draft reads the results of the session scripts, its next analysis completes their names after `:`.
     // Attaching the current results is cheap, the results change with any session script.
     React.useEffect(() => {
-        props.scriptResults?.attach(scriptSession);
+        props.tableParameters?.attach(scriptSession);
     });
 
     const [view, setView] = React.useState<EditorView | null>(null);

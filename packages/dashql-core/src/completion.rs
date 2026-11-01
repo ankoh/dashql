@@ -12,7 +12,7 @@ use crate::analyzer::{AnalyzedScript, ColumnResolution, ReferencedTable, ScopeId
 use crate::catalog::*;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
 use crate::hash::HashMap;
-use crate::script_results::SCRIPT_RESULTS_ENTRY_ID;
+use crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID;
 use crate::utils::topk::TopKHeap;
 use crate::utils::{ci_cmp, ci_find, ci_starts_with};
 use dashql_buffers::analyzer::NameTag;
@@ -446,7 +446,7 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     pub fn table(&self, loc: TableLoc) -> Option<&'a TableDeclaration> {
-        if loc.entry == SCRIPT_RESULTS_ENTRY_ID {
+        if loc.entry == TABLE_PARAMETERS_ENTRY_ID {
             return self.analyzed()?.table(loc);
         }
         self.entry_data(loc.entry)?.table_declarations.get(loc.index as usize)
@@ -454,7 +454,7 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// Complete the name of a table parameter `:foo` in table position with the names of the scripts of the session
     /// that have a result. Returns false if the cursor is not at the name of a table parameter.
-    fn complete_script_reference(&mut self, location: &crate::cursor::LocationInfo) -> bool {
+    fn complete_table_parameter(&mut self, location: &crate::cursor::LocationInfo) -> bool {
         let symbols = self.symbols();
         let offset = self.cursor.text_offset as u32;
         let ends_at = |s: &Symbol| s.location.offset + s.location.length == offset;
@@ -493,7 +493,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         if !expected.contains(&S_JOIN) {
             return false;
         }
-        let Some(results) = self.analyzed().and_then(|a| a.script_results.clone()) else { return true };
+        let Some(results) = self.analyzed().and_then(|a| a.table_parameters.clone()) else { return true };
         let (prefix, target) = match name {
             Some(name) => {
                 let text = self.text_at(name.location.offset, offset.saturating_sub(name.location.offset));
@@ -517,8 +517,8 @@ impl<'c, 'a> Completion<'c, 'a> {
             let candidate = self.candidates.len();
             self.candidates.push(Candidate::new(script.name.clone(), NameTag::TABLE_NAME.0, tags, target, target));
             self.candidates_by_name.insert(script.name.clone(), candidate);
-            let loc = TableLoc { entry: SCRIPT_RESULTS_ENTRY_ID, index: index as u32 };
-            let object_id = QualifiedCatalogObjectId::table(CatalogTableId::new(SCRIPT_RESULTS_ENTRY_ID, index as u32));
+            let loc = TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID, index: index as u32 };
+            let object_id = QualifiedCatalogObjectId::table(CatalogTableId::new(TABLE_PARAMETERS_ENTRY_ID, index as u32));
             self.add_object(candidate, tags, object_id, CandidateObjectRef::Table(loc));
         }
         self.select_top_candidates();
@@ -581,7 +581,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let Some(location) = cursor.scanner_location else { return completion };
         completion.target_symbol = Some(location.current);
         // The name of a table parameter, the scripts of the session
-        if completion.complete_script_reference(&location) {
+        if completion.complete_table_parameter(&location) {
             return completion;
         }
         let mut previous_symbol = location.previous;

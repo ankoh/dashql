@@ -28,7 +28,7 @@ use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::{Script, TextVersion};
-use dashql_core::script_results::ScriptResults;
+use dashql_core::table_parameters::TableParameters;
 use dashql_core::script_diff::ScriptDiff;
 use dashql_core::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
@@ -342,17 +342,17 @@ impl ScriptSession {
 
     /// Set the results of the scripts of the session that the table parameters read. An analysis with other results
     /// is not current.
-    pub fn set_script_results(&mut self, results: Option<Arc<ScriptResults>>) {
-        self.script.script_results = results;
+    pub fn set_table_parameters(&mut self, results: Option<Arc<TableParameters>>) {
+        self.script.table_parameters = results;
     }
 
     /// The named table parameters of the analysis that reference scripts, `:foo`, with the script that each finds among
-    /// `names` (`find_script`), in text order and in the offset unit of the session. Positional parameters and the
+    /// `names` (`find_table_parameter`), in text order and in the offset unit of the session. Positional parameters and the
     /// targets of writes reference no script. Empty if the analysis lags behind the text.
     pub fn script_references(&self, names: &[String]) -> Vec<(EditorTextSpanT, Option<usize>)> {
         use dashql_buffers::parser::AttributeKey;
         use dashql_core::analyzer::ParameterKind;
-        use dashql_core::script_results::{find_script, ScriptLookup};
+        use dashql_core::table_parameters::{find_table_parameter, TableParameterLookup};
         let Some((scanned, parsed, analyzed)) = self.script.current_analysis() else {
             return Vec::new();
         };
@@ -367,8 +367,8 @@ impl ScriptSession {
             if matches!(tableref.attribute_key(), AttributeKey::SQL_INSERT_TARGET | AttributeKey::SQL_DELETE_TARGET) {
                 continue;
             }
-            let script = match find_script(names.iter().map(String::as_str), name) {
-                ScriptLookup::Found(i) => Some(i),
+            let script = match find_table_parameter(names.iter().map(String::as_str), name) {
+                TableParameterLookup::Found(i) => Some(i),
                 _ => None,
             };
             found.push((span, script));
@@ -396,7 +396,7 @@ impl ScriptSession {
     /// The analysis is current if it was analyzed from the current text, and against a snapshot of
     /// the catalog that is still current.
     fn is_analysis_current(&self, catalog: &Catalog) -> bool {
-        self.script.current_analysis().is_some_and(|(_, _, analyzed)| catalog.is_current(&analyzed.snapshot)) && self.script.script_results_current()
+        self.script.current_analysis().is_some_and(|(_, _, analyzed)| catalog.is_current(&analyzed.snapshot)) && self.script.table_parameters_current()
     }
 
     /// The revision and selection part of an update

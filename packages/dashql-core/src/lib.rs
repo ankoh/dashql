@@ -16,7 +16,7 @@ pub mod param_rewrite;
 pub mod pack;
 pub mod script;
 pub mod script_diff;
-pub mod script_results;
+pub mod table_parameters;
 pub mod signature;
 pub mod sql_literal;
 pub mod utils;

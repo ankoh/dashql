@@ -21,7 +21,7 @@ use crate::planner::{script_label, ConnectionKind, Prepared, SessionPlanRequest}
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
-use dashql_core::script_results::{find_script, ScriptLookup};
+use dashql_core::table_parameters::{find_table_parameter, TableParameterLookup};
 use dashql_core::utils::quote_identifier;
 use dashql_parser::attrs;
 use dashql_parser::keywords::Keyword;
@@ -133,14 +133,14 @@ impl ScriptReferences {
                 continue;
             }
             // An exact name, or a single name that differs in case
-            let producer = match find_script(request.scripts.iter().map(|s| s.name), &name) {
-                ScriptLookup::Found(i) => i,
-                ScriptLookup::Unknown => {
+            let producer = match find_table_parameter(request.scripts.iter().map(|s| s.name), &name) {
+                TableParameterLookup::Found(i) => i,
+                TableParameterLookup::Unknown => {
                     reporter.error(script, Some(text_span), format!("unknown script {label}"));
                     out.push(reference);
                     continue;
                 }
-                ScriptLookup::Ambiguous => {
+                TableParameterLookup::Ambiguous => {
                     reporter.error(script, Some(text_span), format!("the script reference {label} matches several scripts"));
                     out.push(reference);
                     continue;
@@ -452,7 +452,7 @@ fn identifier(name: &str) -> String {
 
 /// The relation names that a statement uses unqualified, lower-cased
 fn relation_names(prepared: &Prepared, statement_id: u32, out: &mut BTreeSet<String>) {
-    for table_ref in prepared.analyzed.table_references.iter().filter(|t| t.ast_statement_id == Some(statement_id) && !t.reads_script_result()) {
+    for table_ref in prepared.analyzed.table_references.iter().filter(|t| t.ast_statement_id == Some(statement_id) && !t.reads_table_parameter()) {
         let Some(relation) = &table_ref.inner else { continue };
         let name = &relation.table_name;
         if name.database_name.text.is_empty() && name.schema_name.text.is_empty() {

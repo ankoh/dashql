@@ -13,7 +13,7 @@
 use super::state::{quote_identifier, AnalysisState};
 use super::types::*;
 use crate::catalog::*;
-use crate::script_results::{ScriptLookup, SCRIPT_RESULTS_ENTRY_ID};
+use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::{AttributeKey as K, JoinType, Node, NodeType, StatementType, SymbolSpan};
 use dashql_parser::attrs;
@@ -401,19 +401,19 @@ impl NameResolutionPass {
 
     /// The FROM item of a table parameter `:foo` that reads the result of the script `foo.sql`, None if the parameter
     /// is positional, the target of a write, or names no script with a result
-    fn script_result_source(state: &mut AnalysisState, node_id: u32, node: &Node, table_node: Option<&Node>, alias_node: Option<&Node>) -> Option<(ScopeSource, TableRefId)> {
+    fn table_parameter_source(state: &mut AnalysisState, node_id: u32, node: &Node, table_node: Option<&Node>, alias_node: Option<&Node>) -> Option<(ScopeSource, TableRefId)> {
         let parameter = table_node.filter(|n| n.node_type() == NodeType::OBJECT_SQL_PARAMETER_REF)?;
         if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_DELETE_TARGET) {
             return None;
         }
-        let results = state.out.script_results.clone()?;
+        let results = state.out.table_parameters.clone()?;
         let [name] = attrs!(state.children(parameter), [K::SQL_PARAMETER_NAME]);
         let name = name.and_then(|n| state.read_name_path(n).last().map(|&id| state.name(id).text))?;
         let name: Arc<str> = match name.strip_prefix('\'').and_then(|n| n.strip_suffix('\'')) {
             Some(inner) => inner.into(),
             None => name,
         };
-        let ScriptLookup::Found(index) = results.find(&name) else { return None };
+        let TableParameterLookup::Found(index) = results.find(&name) else { return None };
         let table = results.scripts[index].table.as_ref()?;
         let (alias, column_aliases) = Self::read_alias(state, alias_node);
         // A table reference that is resolved already, the cursor, the focus and the semantic spans see the parameter
@@ -444,14 +444,14 @@ impl NameResolutionPass {
             ast_node_id: node_id,
             name: Some(alias.map(|(alias, _)| alias.text).unwrap_or(name)),
             column_aliases,
-            table: ReferencedTable::Table(TableLoc { entry: SCRIPT_RESULTS_ENTRY_ID, index: index as u32 }),
+            table: ReferencedTable::Table(TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID, index: index as u32 }),
         };
         Some((source, id))
     }
 
     /// Is a FROM item the result of a script?
-    fn is_script_result(source: &ScopeSource) -> bool {
-        matches!(source.table, ReferencedTable::Table(loc) if loc.entry == SCRIPT_RESULTS_ENTRY_ID)
+    fn is_table_parameter(source: &ScopeSource) -> bool {
+        matches!(source.table, ReferencedTable::Table(loc) if loc.entry == TABLE_PARAMETERS_ENTRY_ID)
     }
 
     /// Add a FROM item to a scope, unless its name is taken
@@ -475,7 +475,7 @@ impl NameResolutionPass {
             let table_ref = &state.out.table_references[table_ref_id as usize];
             let Some(relation) = &table_ref.inner else { continue };
             // The result of a script is a FROM item already
-            if table_ref.reads_script_result() {
+            if table_ref.reads_table_parameter() {
                 continue;
             }
             if relation.resolved_table.is_some() {
@@ -562,8 +562,8 @@ impl NameResolutionPass {
         sources.sort_by_key(|s| s.ast_node_id);
         // The result of a script yields its name to the other FROM items, the planner renames its common table
         // expression as well
-        let taken: HashSet<Arc<str>> = sources.iter().filter(|s| !Self::is_script_result(s)).filter_map(|s| s.name.clone()).collect();
-        for source in sources.iter_mut().filter(|s| Self::is_script_result(s)) {
+        let taken: HashSet<Arc<str>> = sources.iter().filter(|s| !Self::is_table_parameter(s)).filter_map(|s| s.name.clone()).collect();
+        for source in sources.iter_mut().filter(|s| Self::is_table_parameter(s)) {
             if source.name.as_ref().is_some_and(|n| taken.contains(n)) {
                 source.name = None;
             }
@@ -1177,7 +1177,7 @@ impl NameResolutionPass {
                     });
                     node_state.table_references.push(id);
                     state.mark(node_id, SemanticNodeMarkerType::TABLE_REFERENCE);
-                } else if let Some((source, table_ref)) = Self::script_result_source(state, node_id, node, table_node, alias_node) {
+                } else if let Some((source, table_ref)) = Self::table_parameter_source(state, node_id, node, table_node, alias_node) {
                     // A table parameter that reads the result of a script of the session
                     node_state.derived_tables.push(source);
                     node_state.table_references.push(table_ref);

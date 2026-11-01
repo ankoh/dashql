@@ -4,7 +4,7 @@ import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
 import { DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
-import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText, SCRIPT_RESULTS_ENTRY_ID } from './dashql_completion_candidate_type.js';
+import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText, TABLE_PARAMETERS_ENTRY_ID } from './dashql_completion_candidate_type.js';
 
 import * as styles from './dashql_completion_list.module.css';
 import icons from '@ankoh/dashql-svg-symbols';
@@ -440,7 +440,7 @@ class CompletionList {
                 const co = ca.catalogObjects(0, tmpCatalogObject)!;
                 candidateType = (co.objectType() as number) as CompletionCandidateType;
                 // The result of a script is a table of the reserved entry of script results
-                if (candidateType === CompletionCandidateType.TABLE && Number(co.catalogTableId() >> 32n) === SCRIPT_RESULTS_ENTRY_ID) {
+                if (candidateType === CompletionCandidateType.TABLE && Number(co.catalogTableId() >> 32n) === TABLE_PARAMETERS_ENTRY_ID) {
                     candidateType = CompletionCandidateType.SCRIPT;
                 }
             } else {

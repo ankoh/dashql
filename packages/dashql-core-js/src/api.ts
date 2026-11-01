@@ -17,7 +17,7 @@ export type DashQLBindings = Pick<
     | 'PlanViewModel'
     | 'DataflowLayout'
     | 'SessionPlanRequest'
-    | 'ScriptResults'
+    | 'TableParameters'
     | 'planSession'
     | 'checkScriptReferences'
     | 'deriveSessionDataflow'
@@ -181,7 +181,7 @@ const EXECUTION_GRAPH_TYPE = Symbol('EXECUTION_GRAPH_TYPE');
 const SCRIPT_REFERENCE_CHECK_TYPE = Symbol('SCRIPT_REFERENCE_CHECK_TYPE');
 const SESSION_DATAFLOW_TYPE = Symbol('SESSION_DATAFLOW_TYPE');
 const SESSION_INPUTS_TYPE = Symbol('SESSION_INPUTS_TYPE');
-const SCRIPT_RESULTS_TYPE = Symbol('SCRIPT_RESULTS_TYPE');
+const TABLE_PARAMETERS_TYPE = Symbol('TABLE_PARAMETERS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
@@ -396,9 +396,9 @@ export class DashQL {
         return this.bindings.inputLiteral(value, type ?? undefined);
     }
 
-    /// Create the results of the scripts of a session, which their table parameters read
-    public createScriptResults(): DashQLScriptResults {
-        return new DashQLScriptResults(new Ptr(SCRIPT_RESULTS_TYPE, this, new this.bindings.ScriptResults()));
+    /// Create the table parameters of a session, the tables that `:foo` in table position reads
+    public createTableParameters(): DashQLTableParameters {
+        return new DashQLTableParameters(new Ptr(TABLE_PARAMETERS_TYPE, this, new this.bindings.TableParameters()));
     }
 
     /// Quote an identifier if it would not read back unquoted, e.g. the name of a script reference `:"foo-2"`
@@ -452,29 +452,29 @@ export class DashQL {
 
 export const NULL_POINTER_EXCEPTION = new Error('tried to access a null pointer');
 
-/// A script of the results of a session
-export interface ScriptResultsScript {
+/// A script of the table parameters of a session
+export interface TableParametersScript {
     /// The script name, `foo` for `foo.sql`
     name: string;
     /// The script session
     session: DashQLScriptSession;
 }
 
-/// The results of the scripts of a session: the output columns of the scripts that are a single SELECT, which the
-/// table parameters `:foo` of the scripts read. The analyzer resolves columns through them and completion offers the
-/// names of the scripts after `:`. See docs/design/script_references.md.
-export class DashQLScriptResults {
-    public readonly ptr: Ptr<typeof SCRIPT_RESULTS_TYPE>;
+/// The table parameters of a session: the tables that `:foo` in table position reads, the output columns of the
+/// scripts that are a single SELECT. The analyzer resolves columns through them and completion offers their names
+/// after `:`. See docs/design/script_references.md.
+export class DashQLTableParameters {
+    public readonly ptr: Ptr<typeof TABLE_PARAMETERS_TYPE>;
 
-    public constructor(ptr: Ptr<typeof SCRIPT_RESULTS_TYPE>) {
+    public constructor(ptr: Ptr<typeof TABLE_PARAMETERS_TYPE>) {
         this.ptr = ptr;
     }
     public destroy(): void {
         this.ptr.destroy();
     }
-    /// Derive the results from the analyses of the scripts and give them to their sessions. Returns the indexes of
-    /// the scripts whose analysis is outdated by the results.
-    public publish(scripts: ScriptResultsScript[]): number[] {
+    /// Derive the table parameters from the analyses of the scripts and give them to their sessions. Returns the
+    /// indexes of the scripts whose analysis is outdated by them.
+    public publish(scripts: TableParametersScript[]): number[] {
         const api = this.ptr.api;
         const native = new api.bindings.SessionPlanRequest();
         try {
@@ -489,8 +489,8 @@ export class DashQLScriptResults {
             native.free();
         }
     }
-    /// Give the results to a session that is no script of the session, e.g. a draft. Returns whether the analysis of
-    /// the session is outdated by them.
+    /// Give the table parameters to a session that is no script of the session, e.g. a draft. Returns whether the
+    /// analysis of the session is outdated by them.
     public attach(session: DashQLScriptSession): boolean {
         return this.ptr.assertNotNull().attach(session.ptr.assertNotNull());
     }

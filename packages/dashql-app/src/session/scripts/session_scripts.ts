@@ -30,7 +30,7 @@ import { Logger, LoggerLike, stringifyError } from '../../platform/logger/logger
 import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 
 import { chartStatementId, compileVisualizeQuery } from './script_compilation.js';
-import { dropSessionScriptResults, publishScriptResults } from './script_results_publisher.js';
+import { dropSessionTableParameters, publishTableParameters } from './table_parameters_publisher.js';
 import { applyScriptTextChanges, computeScriptReferenceReports, renameScriptReferenceChanges, type ScriptTextChange } from './script_reference_check.js';
 
 const LOG_CTX = 'session_scripts';
@@ -419,7 +419,7 @@ function writeSessionProperties(state: SessionScripts, storage: SessionScriptsSt
 
 export function reduceSessionScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
     // The table parameters of the scripts read the results of the scripts, which follow every change
-    return publishScriptResults(state, reduceScripts(state, action, storage, logger));
+    return publishTableParameters(state, reduceScripts(state, action, storage, logger));
 }
 
 function reduceScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
@@ -1293,7 +1293,7 @@ export function destroySessionScripts(state: SessionScripts): SessionScripts {
         const script = state.scripts[key];
         destroyScriptData(script);
     }
-    dropSessionScriptResults(state.sessionId);
+    dropSessionTableParameters(state.sessionId);
     return state;
 }
 

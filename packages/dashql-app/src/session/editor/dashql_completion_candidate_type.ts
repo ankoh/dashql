@@ -11,8 +11,8 @@ export enum CompletionCandidateType {
     SCRIPT = 7,
 }
 
-/// The catalog entry of the results of scripts, see `SCRIPT_RESULTS_ENTRY_ID` of the core
-export const SCRIPT_RESULTS_ENTRY_ID = 0xFFFFFFFE;
+/// The catalog entry of the results of scripts, see `TABLE_PARAMETERS_ENTRY_ID` of the core
+export const TABLE_PARAMETERS_ENTRY_ID = 0xFFFFFFFE;
 
 export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "SQL",

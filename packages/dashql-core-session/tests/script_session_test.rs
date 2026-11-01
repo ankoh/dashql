@@ -1260,8 +1260,8 @@ fn cursor_context_points_into_the_catalog_script_that_declares_the_table() {
 }
 
 #[test]
-fn script_results_resolve_columns_of_table_parameters() {
-    use dashql_core::script_results::ScriptResults;
+fn table_parameters_resolve_columns_of_table_parameters() {
+    use dashql_core::table_parameters::TableParameters;
     use std::sync::Arc;
     let catalog = Catalog::new();
     let mut foo = ScriptSession::new(&catalog, EditorOffsetUnit::UTF16_CODE_UNITS).unwrap();
@@ -1271,8 +1271,8 @@ fn script_results_resolve_columns_of_table_parameters() {
     bar.replace_text(&catalog, 0, "select f.amount from :foo f");
     bar.analyze(&catalog);
     let inputs = [("foo", foo.script().analyzed.as_deref()), ("bar", bar.script().analyzed.as_deref())];
-    let results = Arc::new(ScriptResults::derive(&inputs, None));
-    bar.set_script_results(Some(results.clone()));
+    let results = Arc::new(TableParameters::derive(&inputs, None));
+    bar.set_table_parameters(Some(results.clone()));
     let update = bar.analyze(&catalog);
     assert!(update.analysis_updated, "{:?} {:?}", update.status, update.status_message);
 }
@@ -1296,15 +1296,15 @@ fn script_references_are_table_parameters_of_the_analysis() {
 
 #[test]
 fn the_cursor_relates_table_parameters_like_tables() {
-    use dashql_core::script_results::ScriptResults;
+    use dashql_core::table_parameters::TableParameters;
     use std::sync::Arc;
     let catalog = new_catalog();
     let _schema = load_schema(&catalog, "create table foo (a int)");
     let mut producer = session(&catalog, UTF8);
     analyze(&mut producer, "select 1 as a");
-    let results = Arc::new(ScriptResults::derive(&[("patient_fox", producer.script().analyzed.as_deref())], None));
+    let results = Arc::new(TableParameters::derive(&[("patient_fox", producer.script().analyzed.as_deref())], None));
     let mut consumer = session(&catalog, UTF8);
-    consumer.set_script_results(Some(results));
+    consumer.set_table_parameters(Some(results));
     let text = "select * from :patient_fox f, foo b where f.a = b.a";
     let update = analyze(&mut consumer, text);
     assert_eq!(update.status, EditorUpdateStatus::OK);
