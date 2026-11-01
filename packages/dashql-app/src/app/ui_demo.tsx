@@ -9,6 +9,9 @@ import { TextInputAction } from '../ui/foundations/text_input_action.js';
 import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
 
+/// The path of the UI demo, served in debug builds
+export const UI_DEMO_PATH = '/demo/ui';
+
 export function UIExperimentPage(): React.ReactElement {
     const [selectedView, setSelectedView] = React.useState(0);
     const [selectedTab, setSelectedTab] = React.useState(0);
