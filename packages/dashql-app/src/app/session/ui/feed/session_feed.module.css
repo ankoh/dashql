@@ -431,9 +431,8 @@
     min-width: 0;
 }
 
-/* The ":<script>" tag that mentions the script in the prompt, in the dark of the backdrop on a light wash of it */
+/* The ":<script>" tag that mentions the script in the prompt, colored like the muted protocol tags of the connections */
 .feed_entry_mention {
-    --feed_entry_mention_color: var(--background_color_80);
     display: inline-flex;
     align-items: center;
     flex-shrink: 1;
@@ -444,10 +443,10 @@
     /* Keep the tag clear of the icon buttons that follow it */
     margin-right: 6px;
     padding: 0 8px;
-    border: 1px solid var(--feed_entry_mention_color);
+    border: 1px solid var(--base_color_neutral_2);
     border-radius: 6px;
-    background-color: color-mix(in srgb, var(--feed_entry_mention_color) 10%, white);
-    color: var(--feed_entry_mention_color);
+    background-color: var(--base_color_neutral_1);
+    color: var(--base_color_neutral_6);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
     font-weight: 500;
@@ -465,29 +464,29 @@ button.feed_entry_mention {
 }
 
 .feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: color-mix(in srgb, var(--feed_entry_mention_color) 16%, white);
+    background-color: color-mix(in srgb, var(--base_color_neutral_2) 50%, var(--base_color_neutral_1));
 }
 
 .feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: color-mix(in srgb, var(--feed_entry_mention_color) 22%, white);
+    background-color: var(--base_color_neutral_2);
+    border-color: var(--base_color_neutral_3);
 }
 
 .feed_entry_mention:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--feed_entry_mention_color) 60%, transparent);
+    outline: 2px solid var(--base_color_neutral_3);
     outline-offset: 1px;
 }
 
 /* Without an agent the tag can not mention the script, a double click still renames it */
 .feed_entry_mention[aria-disabled="true"] {
-    border-color: var(--base_color_neutral_2);
-    background-color: var(--base_color_neutral_1);
-    color: var(--base_color_neutral_6);
+    background-color: var(--base_color_neutral_0);
+    color: var(--base_color_neutral_4);
     cursor: default;
 }
 
 /* While editing, the tag keeps its single border, only a darker one */
 .feed_entry_mention[data-editing] {
-    border-color: var(--background_color_100);
+    border-color: var(--base_color_neutral_4);
     cursor: text;
 }
 
