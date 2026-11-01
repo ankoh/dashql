@@ -14,7 +14,7 @@
 //!
 //! A plan covers the whole session or the target scripts and what they need: the statements that an inlined
 //! reference needs before it, and the scripts that a scan reference scans unless the host provides
-//! their results. A plan of targets treats statements like a run of a single script: statements of every
+//! their results. A plan of the session leaves out the scripts whose results the host provides. A plan of targets treats statements like a run of a single script: statements of every
 //! kind keep their SQL, and the statements of a script run in their order.
 
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
@@ -91,7 +91,7 @@ pub struct PlannerScript<'a> {
 /// What a plan covers
 #[derive(Clone, Copy)]
 pub enum PlanScope<'a> {
-    /// Every statement of every script, in session order
+    /// Every statement of every script whose result the host doesn't provide, in session order
     Session,
     /// The target scripts and what they need
     Targets(&'a [u32]),
@@ -106,7 +106,8 @@ pub struct SessionPlanRequest<'a> {
     pub scripts: &'a [PlannerScript<'a>],
     /// What the plan covers
     pub scope: PlanScope<'a>,
-    /// The scripts whose materialized results the host provides, plans of targets don't compute them
+    /// The scripts whose materialized results the host provides. A plan computes them only for its targets, a scan
+    /// reads the file of the result.
     pub materialized: &'a [u32],
     /// The directory that the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
     pub mount_prefix: &'a str,
@@ -306,6 +307,15 @@ fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
     }
 }
 
+/// The scripts whose statements a plan includes in full before their references: the targets, or the scripts of the
+/// session whose results the host doesn't provide
+fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
+    match request.scope {
+        PlanScope::Session => (0..request.scripts.len() as u32).filter(|i| !request.materialized.contains(i)).collect(),
+        PlanScope::Targets(targets) => targets.to_vec(),
+    }
+}
+
 /// Plan the statements of the scripts of a session. Consumes the current analysis without analyzing, publishing or
 /// changing scripts.
 pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
@@ -343,10 +353,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             state.report(NONE, i as u32, None, format!("duplicate script name: {}", s.name), true);
         }
     }
-    let targets: Vec<u32> = match request.scope {
-        PlanScope::Session => (0..script_count as u32).collect(),
-        PlanScope::Targets(targets) => targets.to_vec(),
-    };
+    let targets = seeds(request);
     if targets.iter().chain(request.materialized).any(|&t| t as usize >= script_count) {
         state.report(NONE, NONE, None, "unknown planner script".into(), true);
     }
@@ -354,12 +361,12 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
         return finish(state, request, &[], &[], None, Vec::new(), Vec::new(), Vec::new(), Vec::new());
     }
 
-    // Prepare the scripts: all of them in a plan of the session, the targets and the scripts they reference in a plan
-    // of targets
+    // Prepare the scripts: all of them in a plan of the session, also those whose results the host provides, the
+    // targets and the scripts they reference in a plan of targets
     let mut prepared: Vec<Option<Prepared>> = (0..script_count).map(|_| None).collect();
     let mut planned = vec![false; script_count];
     let mut references = ScriptReferences::new(script_count);
-    let mut pending: Vec<u32> = targets.clone();
+    let mut pending: Vec<u32> = if lenient { targets.clone() } else { (0..script_count as u32).collect() };
     while let Some(i) = pending.pop() {
         if planned[i as usize] {
             continue;
@@ -398,7 +405,7 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 let Some(producer) = r.producer else { continue };
                 match r.kind {
                     ReferenceKind::Inline => pending.push((producer, Include::Inlined)),
-                    ReferenceKind::Scan if lenient && request.materialized.contains(&producer) => {}
+                    ReferenceKind::Scan if request.materialized.contains(&producer) => {}
                     ReferenceKind::Scan => pending.push((producer, Include::All)),
                     ReferenceKind::Invalid => {}
                 }
@@ -1063,10 +1070,7 @@ fn finish(
     materializations: Vec<ExecutionGraphMaterializationT>,
     references: Vec<ExecutionGraphScriptReferenceT>,
 ) -> ExecutionGraphT {
-    let targets: BTreeSet<u32> = match request.scope {
-        PlanScope::Session => (0..request.scripts.len() as u32).collect(),
-        PlanScope::Targets(t) => t.iter().copied().collect(),
-    };
+    let targets: BTreeSet<u32> = seeds(request).into_iter().collect();
     let mut graph = state.graph;
     graph.connections = opt_vec(
         request

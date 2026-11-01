@@ -100,6 +100,50 @@ planner-snapshots:
     targets: [bar]
     materialized: [foo]
 
+  # A plan of the session leaves out the script whose materialized result the host provides
+  - name: SessionReusesMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    materialized: [foo]
+
+  # A plan of the session leaves out a provided script, a script that inlines it still reads its query
+  - name: SessionInlinesProvidedScript
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: foo
+        connection: trino
+        input: |
+          select id from :base;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    materialized: [base]
+
   # A target that does not parse runs as written
   - name: TargetWithSyntaxErrors
     scripts:

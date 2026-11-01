@@ -34,7 +34,8 @@ table ExecutionGraphScript {
     connection: uint32;
     /// Was the analysis of the script used? Plans of target scripts use the targets and the scripts they reference.
     planned: bool;
-    /// Is the script a target of the plan?
+    /// Is the script a target of the plan? A plan of the session targets the scripts whose results the host doesn't
+    /// provide.
     target: bool;
     /// The cache signature of the AST of the script, empty if it does not parse
     signature: string;

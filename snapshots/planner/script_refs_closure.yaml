@@ -460,6 +460,211 @@ planner-snapshots:
               target: foo
               kind: scan
 
+  - name: SessionReusesMaterialization
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    materialized: [foo]
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges: []
+      materializations:
+        - script: foo
+          reused: true
+          path: /mnt/external/dashql-run-test/s0.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan
+
+  - name: SessionInlinesProvidedScript
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: base
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: foo
+        connection: trino
+        input: |
+          select id from :base;
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+    materialized: [base]
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: base
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7a31229d5ad98fe47594bd7c66d829bd"
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b136dbde45641078620ce56ac946d341"
+          references: [base]
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          references: [foo]
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with base as (
+            select id, amount from orders
+            )
+            select id from base
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 0
+          inlined-scripts: [0]
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: MATERIALIZATION
+      materializations:
+        - script: foo
+          node: 0
+          path: /mnt/external/dashql-run-test/s1.parquet
+      references:
+        - node: 0
+          script: foo
+          text: ":base"
+          target: base
+          cte: base
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+      checked-references:
+        - script: foo
+          references:
+            - text: ":base"
+              target: base
+              kind: inline
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan
+
   - name: TargetWithSyntaxErrors
     scripts:
       - name: bar

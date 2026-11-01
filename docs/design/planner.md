@@ -34,8 +34,9 @@ analyzed with another catalog than the one of its connection, duplicate scripts 
 that share a catalog and unknown indexes invalidate the plan. The connection kind comes from the host: LOCAL
 is the embedded Hyper, every other connection is REMOTE.
 
-The scope is the whole session (`PlanScope::Session`) or target scripts (`PlanScope::Targets`). A plan of
-targets includes every statement of the targets and the queries of the scripts that they materialize, unless the
+The scope is the whole session (`PlanScope::Session`) or target scripts (`PlanScope::Targets`). A plan of the
+session includes every statement of the scripts whose materialized results the host doesn't provide, it checks every
+script. A plan of targets includes every statement of the targets and the queries of the scripts that they materialize, unless the
 host provides the materialized result. The targets, the scripts they reference and the scripts those reference must
 have a current analysis, `ExecutionGraphScript.planned` marks them. A plan of targets runs like a
 single script: statements keep their SQL whatever their kind, the statements of a script are chained with
@@ -43,7 +44,7 @@ SEQUENCE edges, a target that does not parse becomes one barrier node with its t
 diagnostics of statements are warnings. Diagnostics of script references, stale analysis, visualizations that fail
 to compile and a referenced script that runs later stay errors.
 
-Every run in the app executes a plan: a run of the session plans every script, a run of one script plans
+Every run in the app executes a plan: a run of the session plans every script without a cached result, a run of one script plans
 that script as the target (`script_references.md`). Scripts without names can't be referenced, so a plan of
 scripts without names is a plan of their statement dependencies.
 The core-js API is:
