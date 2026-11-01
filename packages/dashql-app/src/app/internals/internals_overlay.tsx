@@ -83,7 +83,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     tabId: TabKey.QueryCache,
                     group: TAB_GROUP_CONNECTIONS,
                     icon: `${icons}#cache_24`,
-                    labelShort: 'Query Cache',
+                    labelShort: 'Cache',
                     ariaLabel: 'Query result cache',
                     description: 'Inspect and evict cached query results',
                     disabled: false,

@@ -150,7 +150,7 @@ export function QueryCacheView(props: { onClose: () => void; }) {
         <div className={styles.overlay}>
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
-                    <div className={styles.title}>Query Cache</div>
+                    <div className={styles.title}>Cache</div>
                     {entries.length > 0 && (
                         <div className={styles.summary}>
                             {entries.length} {entries.length === 1 ? 'entry' : 'entries'} · {formatBytes(totalBytes)}
