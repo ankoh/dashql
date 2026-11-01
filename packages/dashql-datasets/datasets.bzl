@@ -352,8 +352,7 @@ def declare_datasets(name = "datasets", index_tool = "//packages/dashql-datasets
     )
 
     # index.json = { dataset -> version -> files[{url,bytes,sha256}] }, computed by
-    # walking the assembled tree. Rust, not a py_binary (no Python toolchain is
-    # registered in this repo).
+    # walking the assembled tree.
     native.genrule(
         name = "index_json",
         srcs = [":" + tree],

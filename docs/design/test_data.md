@@ -9,11 +9,12 @@ CSV/Parquet is committed anywhere.
 ## Design constraints
 
 - **Nothing raw committed, no standalone scripts.** Datasets are produced entirely by Bazel:
-  sources are hash-pinned downloads, conversion runs in a genrule via a vendored DuckDB CLI,
-  and the result is an assembled directory tree — a normal, cacheable build artifact.
+  sources are hash-pinned downloads, conversion runs in build actions (a vendored DuckDB CLI, or
+  Hyper for folder outputs), and the result is an assembled directory tree — a normal, cacheable
+  build artifact.
 - **The upload tool is a dumb mirror.** It takes a locally-built directory and mirrors it to
   the R2 bucket (skip-if-present for immutable files, always re-put `index.json`). It knows
-  nothing about dataset definitions, DuckDB, or fetching.
+  nothing about dataset definitions, engines, or fetching.
 - **Independent from the release tool.** The mirror lives in `packages/dashql-datasets`, *not* as a
   subcommand of `dashql-pack` (which owns get.dashql.app: git/semver/minisign/channels). They
   share only ~10 lines of S3-client setup, intentionally duplicated rather than coupled, so the
@@ -25,29 +26,30 @@ CSV/Parquet is committed anywhere.
 Bazel build actions are offline; network is allowed only in the fetch phase (repo rules like
 `http_file`, which *require* a pinned `sha256`). This is exactly how the repo already pulls
 duckdb/arrow/flatbuffers in `bazel/core_dependencies.bzl`, with hashes maintained by
-`scripts/update_bazel_hashes.py` + Renovate. Each dataset source is an `http_file`; the genrule
+`scripts/update_bazel_hashes.py` + Renovate. Each dataset source is an `http_file`; the build
 reads the **local** fetched file (`read_json_auto('<path>')`), never over HTTPFS. Conversion is
-deterministic and remote-cacheable — re-runs are free unless a source hash or the DuckDB version
-changes. Everything is produced by the same DuckDB engine, so the output is exactly what
-consumers see.
+remote-cacheable — re-runs are free unless a source hash or an engine version changes.
 
 ## Architecture
 
 ```
-packages/dashql-datasets/datasets.bzl   (DATASETS: url+sha256 sources, outputs = {file, sql})
+packages/dashql-datasets/datasets.bzl   (DATASETS: url+sha256 sources, outputs = {engine, file|folder, sql})
         │
-        │  ── fetch phase (hash-pinned) ──►  @dataset_<name>_<as>//file   (http_file, via deps.bzl)
-        ▼
+        │  ── fetch phase (hash-pinned) ──►  @dataset_<name>_<as>//file, @tpch_extension_<platform>//file
+        ▼                                     (http_file, via deps.bzl)
 packages/dashql-datasets/BUILD.bazel    (declare_datasets() expands each dataset)
-   genrule       ─ DuckDB CLI (exec tool) runs each output's verbatim SQL ─►  <file>
-   copy_to_directory ─ assemble  <name>/v<version>/<file>  ───────────────►
+   genrule       ─ DuckDB CLI runs each duckdb output's verbatim SQL ─────►  <file>
+   genrule       ─ DuckDB CLI loads the tpch extension, CALL dbgen ──────►  <table>.parquet
+   hyper rule    ─ hyper_sql runs each hyper output's SQL, folder-index ─►  <folder>/ + <folder>/index.json
+   copy_to_directory ─ assemble  <name>/v<version>/<file|folder>  ────────►
    index_json    ─ dashql-datasets index: walk tree → {url,bytes,sha256} ──►  index.json
         ▼
    :datasets     (one directory: all outputs + index.json)   ← the build artifact
         │
         ▼   bazel run //packages/dashql-datasets:sync   (mirror :datasets → R2)
    dashql-datasets sync (Rust): walk dir, per-file head_object on `dashql-data`,
-     skip-if-present (immutable), else put_object; index.json always re-put, LAST.
+     skip-if-present (immutable), else put_object; folder indexes after their files,
+     index.json always re-put, LAST.
         ▼
 R2 bucket `dashql-data`  ──►  data.dashql.app
    /<dataset>/v<version>/<file>   (immutable, cache-forever)
@@ -64,11 +66,18 @@ tool.
 the fetch phase (`deps.bzl`) and the build phase (`declare_datasets()`). Source hashes sit beside
 `# renovate:` markers so Renovate can bump a tag and its hash together.
 
-The schema is **format-agnostic**: each dataset declares `sources` (fetched inputs) and `outputs`
-(files to produce). Each output is an explicit `{file, sql}` pair — the `sql` is a **verbatim**
-DuckDB statement run through the CLI, so the author writes the whole thing (reader + `COPY … TO …
-(FORMAT …)`) and picks the output format. There is no reader inference and no auto-assembled
-SELECT/COPY.
+A dataset has a `kind`: `sql` (the default) or `tpch`.
+
+### `sql` datasets
+
+The schema is **format-agnostic**: each dataset declares `sources` (fetched inputs) and `outputs`.
+Each output names its `engine` and runs a **verbatim** statement, so the author writes the whole
+thing (reader + `COPY … TO …`) and picks the output format. There is no reader inference and no
+auto-assembled SELECT/COPY.
+
+- `"engine": "duckdb"` outputs declare a `file`. Their `sql` runs through the DuckDB CLI.
+- `"engine": "hyper"` outputs declare a `folder` (and no `file`). Their `sql` runs in Hyper, for
+  formats that are a directory of files such as Iceberg.
 
 ```python
 DATASETS = [
@@ -82,26 +91,51 @@ DATASETS = [
             "sha256": "f686a536…",
         }],
         "outputs": [
-            {"file": "cars.parquet",
+            {"file": "cars.parquet", "engine": "duckdb",
              "sql": "COPY (SELECT * FROM read_json_auto('{cars}')) TO '{output}' (FORMAT PARQUET)"},
-            {"file": "cars.csv",
+            {"file": "cars.csv", "engine": "duckdb",
              "sql": "COPY (SELECT * FROM read_json_auto('{cars}')) TO '{output}' (FORMAT CSV, HEADER)"},
         ],
+    },
+    {
+        "name": "vega-stocks",
+        "version": "1",
+        "sources": [{"as": "stocks", "url": "https://cdn.jsdelivr.net/npm/vega-datasets@3.2.1/data/stocks.csv", "sha256": "…"}],
+        "outputs": [{
+            "folder": "iceberg", "engine": "hyper",
+            "sql": "COPY (SELECT … FROM external('{stocks}', format => 'csv', …)) TO '{output}' WITH (format => 'iceberg')",
+        }],
     },
 ]
 ```
 
 Only two placeholders are substituted into `sql`; everything else passes through untouched:
 
-| Placeholder     | Expands to                                            |
-| --------------- | ----------------------------------------------------- |
-| `{output}`      | the output file's build path (the `COPY` target)      |
-| `{<source as>}` | `$(location …)` of that fetched source (e.g. `{cars}`) |
+| Placeholder     | Expands to                                                          |
+| --------------- | ------------------------------------------------------------------- |
+| `{output}`      | the output file's build path, or `.` in the output folder for Hyper |
+| `{<source as>}` | the path of that fetched source (e.g. `{cars}`)                     |
 
-The SQL is fed to the CLI via a quoted heredoc, so arbitrary author SQL — single **and** double
-quotes — passes through verbatim. A literal `$` must be written `$$` (standard Bazel genrule
-escaping). The output `.ext` is cosmetic: it becomes the R2 key and drives the upload
-`Content-Type`, but does not drive conversion (DuckDB reads sources by content, not extension).
+DuckDB outputs of a dataset run in one genrule. Their SQL is fed to the CLI via a quoted heredoc,
+so arbitrary author SQL — single **and** double quotes — passes through verbatim. A literal `$`
+must be written `$$` (standard Bazel genrule escaping). The output `.ext` is cosmetic: it becomes
+the R2 key and drives the upload `Content-Type`, but does not drive conversion (DuckDB reads
+sources by content, not extension).
+
+A Hyper output is a directory artifact of its own. The rule runs
+`//packages/hyper-api:hyper_sql --hyperd <hyperd> --output <folder> --source <as> <path> --sql <sql>`
+with the `hyperd` of `//packages/hyper-api`, which starts a Hyper process in the output folder and
+executes the statement. Then `dashql-datasets folder-index --dir <folder>` writes the folder's own
+`index.json`, `{ files: [{path, bytes, sha256}] }`. That inventory is the folder's completion
+marker (see `sync`).
+
+### `tpch` datasets
+
+`{"name": "tpch-0.01", "version": "1", "kind": "tpch", "scale_factor": "0.01"}` has no sources and
+no outputs. Its genrule loads the vendored DuckDB tpch extension offline
+(`autoinstall`/`autoload` disabled, `LOAD` of the gunzipped extension), runs
+`CALL dbgen(sf=<scale_factor>)`, and copies the 8 TPC-H tables to `<table>.parquet`. `DATASETS`
+declares `tpch-0.001`, `tpch-0.01`, `tpch-0.1` and `tpch-1`.
 
 ### The vendored DuckDB CLI
 
@@ -112,26 +146,36 @@ are registered in `scripts/update_bazel_hashes.py`). `//bazel:duckdb_cli` is an 
 per `@platforms//os`. Parquet/CSV/JSON are core CLI features, so no extension install is needed —
 conversion is fully offline.
 
+The tpch extension is not linked into the CLI. `deps.bzl` fetches the signed
+`tpch.duckdb_extension.gz` per platform (`osx_arm64`, `osx_amd64`, `linux_amd64`, `linux_arm64`;
+hashes in `TPCH_EXTENSION_SHA256`), and `//packages/dashql-datasets:tpch_extension` selects one per
+OS × CPU. `TPCH_DUCKDB_VERSION` must equal `_DUCKDB_VERSION`, an extension only loads into the CLI
+build it was compiled against.
+
 ## The `dashql-datasets` binary
 
-A small Rust crate (`packages/dashql-datasets`, a member of the root Cargo workspace and the `crates`
-crate_universe) with two subcommands, both operating on the assembled directory tree:
+A small Rust crate (`packages/dashql-datasets`). Its dependencies come from the `crates` universe
+(`bazel/crates/native.MODULE.bazel`); there are no Cargo manifests. It has three subcommands:
 
 - **`index --dir <tree> --base-url <url> --out index.json`** — walks the tree and emits
-  `{ dataset → version → files[{url,bytes,sha256}] }`. Run inside the hermetic build (a genrule),
-  so it touches no network. It walks with `follow_links(true)` because `copy_to_directory`
+  `{ dataset → version → files[{url,bytes,sha256}] }`. A folder output is listed only by the URL
+  of its folder `index.json`, without `bytes` and `sha256`, so the registry stays stable when a
+  rebuild produces new Iceberg file names. Run inside the hermetic build (a genrule), so it
+  touches no network. It walks with `follow_links(true)` because `copy_to_directory`
   TreeArtifact contents are staged as symlinks inside the genrule sandbox.
 
-  > This replaces the originally-planned `py_binary`: the repo declares `rules_python` but
-  > registers no Python toolchain and has no `py_binary` anywhere, so generating the index from
-  > the Rust binary we already build avoids new toolchain wiring.
+- **`folder-index --dir <folder>`** — writes the `index.json` inventory inside a folder artifact.
+  Run by the Hyper folder rule.
 
 - **`sync --dir <tree> [--dry-run]`** — mirrors the tree to R2. Reads three env vars
   (`DASHQL_DATA_R2_{ENDPOINT,ACCESS_KEY_ID,SECRET_ACCESS_KEY}`), builds the R2 client the same way
   `dashql-pack`'s `publish_command.rs` does, then walks the dir: the key is each file's path
   relative to `--dir`; immutable versioned files are skipped when `head_object` finds them, else
-  `put_object` (single-shot — files are KB–MB, no multipart). `index.json` is always re-put and is
-  uploaded **last**, so it only becomes visible after the files it references exist.
+  `put_object` (single-shot — files are KB–MB, no multipart). A folder whose `index.json` exists on
+  R2 is complete and skipped as a whole; a folder without one is a partial publication, its prefix
+  is deleted before the upload. Folder indexes are uploaded after their files, and `index.json` is
+  always re-put and uploaded **last**, so it only becomes visible after the files it references
+  exist.
 
 The `sync` run target has `data = [":datasets"]` and `args = ["sync", "--dir", "$(rootpath
 :datasets)"]`, so `bazel run //packages/dashql-datasets:sync` builds the hermetic tree and then mirrors
@@ -139,18 +183,18 @@ it. It is `tags = ["manual"]`, excluded from wildcard builds (like `dashql-pack:
 
 ## Continuous deployment
 
-`.github/workflows/publish_data.yml` runs on `workflow_dispatch` and on push to
-`packages/dashql-datasets/**` — decoupled from the release pipeline, not on every main push. It checks
-out, runs `.github/actions/setup-bazel`, and `bazel run --config=release
-//packages/dashql-datasets:sync` with the three R2 secrets mapped to the `DASHQL_DATA_R2_*` env vars.
-No Python/pip — Bazel provides the DuckDB CLI and the index generator.
+`.github/workflows/publish_data.yml` runs only on `workflow_dispatch` — decoupled from the release
+pipeline, not on every main push. It checks out, runs `.github/actions/setup-bazel`, and
+`bazel run --config=release //packages/dashql-datasets:sync` with the three R2 secrets mapped to the
+`DASHQL_DATA_R2_*` env vars. No Python/pip — Bazel provides the DuckDB CLI, Hyper and the index
+generator.
 
 ## Adding a dataset
 
-1. Add an entry to `DATASETS` in `datasets.bzl` (source `url` + `sha256`, one or more
-   `{file, sql}` outputs).
-2. Add the generated `http_file` repo to `use_repo(dashql_datasets, …)` in `MODULE.bazel`. The
-   repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`.
+1. Add an entry to `DATASETS` in `datasets.bzl` (source `url` + `sha256`, one or more outputs
+   with `engine` and `file` or `folder`; or a `tpch` entry with a `scale_factor`).
+2. Add the generated `http_file` repo of each source to `use_repo(dashql_datasets, …)` in
+   `MODULE.bazel`. The repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`.
 3. Pin the source hash (`shasum -a 256`, or `scripts/update_bazel_hashes.py`).
 4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old sessions
    keep working against the old version.
@@ -176,5 +220,5 @@ See `packages/dashql-datasets/README.md` for the operational walkthrough.
    (index last) without uploading — no credentials needed.
 4. **End-to-end**: set the three env vars, `bazel run //packages/dashql-datasets:sync`, then
    `curl https://data.dashql.app/index.json` and query the Parquet from Hyper over HTTP.
-5. **Idempotency**: re-run `:sync`; every versioned file is skipped (HeadObject hit), only
-   `index.json` re-uploads.
+5. **Idempotency**: re-run `:sync`; every versioned file and complete folder is skipped (HeadObject
+   hit), only `index.json` re-uploads.

@@ -1,13 +1,15 @@
 //! `dashql-datasets` — build-artifact indexer + R2 mirror for data.dashql.app.
 //!
-//! Two subcommands, both operating on a locally-built directory tree (the Bazel
-//! `//packages/dashql-datasets:datasets` artifact — a versioned Parquet tree):
+//! Three subcommands, operating on locally-built directory trees (the Bazel
+//! `//packages/dashql-datasets:datasets` artifact — a versioned dataset tree):
 //!
 //!   * `index` — walk the tree and emit `index.json`
 //!     (`{ dataset -> version -> files[{url,bytes,sha256}] }`). Run inside the
 //!     hermetic Bazel build (genrule), so it touches no network.
 //!   * `sync`  — mirror the tree to the `dashql-data` R2 bucket: versioned files are
 //!     immutable (skip-if-present via HeadObject), `index.json` is always re-put.
+//!   * `folder-index` — write the file inventory of a folder output (e.g. a Hyper
+//!     Iceberg table) into that folder. Run by the Hyper folder rule.
 //!
 //! The mirror is deliberately dumb: it knows nothing about dataset definitions,
 //! DuckDB, or fetching. It shares only ~10 lines of S3-client setup with

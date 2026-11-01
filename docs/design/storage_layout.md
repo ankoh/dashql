@@ -109,7 +109,7 @@ Every app window runs one embedded hyperdb-wasm instance, `setupWebHyperDB` give
   `hyper_log()` reads them. The monitors of the connections copy them into `connections/<id>/monitoring.hyper`.
 
 The databases are scratch space: data frames are computed again when queries run in a new window. `HyperDB.terminate()`
-drops both databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,
+drops the three databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,
 and the startup of the next instance removes every instance folder whose lock is free, e.g. after a crash.
 
 Earlier app versions kept these folders in the OPFS root as `dashql-session-<uuid>/` and let Hyper write its logs
@@ -158,12 +158,12 @@ cleanup of the app lists `tests/` as files of the browser tests.
 Two versions describe the stored data:
 
 - The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` brings an older
-  root to the current version at startup with the steps in `migration/storage/`, e.g. version 5 moves `dashql-shell/`
+  root to the current version at startup with the steps in `src/storage/migration/storage/`, e.g. version 5 moves `dashql-shell/`
   to `shell/` and version 6 drops the `aliases` of the connections.
 - The session format version, `formatVersion` in `dashql-session.json`, describes one session folder. The steps in
-  `migration/session/` run for every reachable session folder, and for folders that are registered later.
+  `src/storage/migration/session/` run for every reachable session folder, and for folders that are registered later.
 
-The current versions are in `migration/versions.ts`. A migration step spells out every file and folder name it
+The current versions are in `src/storage/migration/versions.ts`. A migration step spells out every file and folder name it
 touches instead of using the storage constants of the app: the constants describe the current layout, a step the
 layout of its version. Steps are idempotent, because an interrupted migration repeats its last step.
 

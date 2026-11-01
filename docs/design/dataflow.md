@@ -61,7 +61,7 @@ the canvas: `@vis flow` tags fix boxes, a visualized terminal statement gets its
 ## The canvas
 
 The dataflow view is an experimental view of a session (`experimental_dataflow` in the app settings, `?view=dataflow`
-in the URL), next to the feed and the dashboard in the view switch. `app/session/dataflow/` holds it:
+in the URL), next to the feed and the dashboard in the view switch. `src/session/dataflow/` holds it:
 
 - `dataflow_graph.ts` derives the graph of a session with `deriveSessionDataflow`, memoized on the names,
   connections and analyses of the scripts. A script whose analysis is behind its text keeps its last statements and
@@ -73,7 +73,7 @@ in the URL), next to the feed and the dashboard in the view switch. `app/session
   two turns to a target on the right, around the boxes to a target on the left or at the same x. Edges inside a box
   run along the left of its rows. Collapsed boxes merge their edges and leave out the edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
-  (`compute/ui/graph/graph.module.css`, `GraphPort`): boxes are fragments, statements are node frames, inline
+  (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are fragments, statements are node frames, inline
   references and table edges are solid, scans and invalid references are dashed, the relation of a table edge is a
   badge, and a selection redraws its edges in the highlight layer and highlights their ports. Charts are
   `foreignObject`s below their statement. d3-zoom pans and zooms, below half the size every box is drawn collapsed.

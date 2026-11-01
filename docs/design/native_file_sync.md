@@ -120,13 +120,14 @@ Session scripts reconciliation stays in
 `packages/dashql-app/src/session/scripts/session_scripts.ts`:
 
 - `SessionScriptsStorageSnapshot` is the storage-shaped boundary type.
-- `sessionScriptsMatchStorageSnapshot` detects content and page-structure differences.
+- `sessionScriptsMatchStorageSnapshot` detects differences in script order, connection and text.
 - `replaceSessionScriptsFromStorage` applies a complete snapshot without persistence side effects.
-- Scripts at unchanged page/file paths retain their WASM script identity and query history.
+- Scripts at an unchanged file path on the same connection retain their WASM script identity and query
+  history. A script that moved to another connection gets a new script session in that connection's catalog.
 - Added scripts allocate new WASM state; removed scripts are detached from the catalog before destruction.
 - Changed script text clears stale completion and pending-diff buffers.
-- Existing page/script focus is retained when that path still exists; otherwise focus falls back to
-  the first sorted entry.
+- The focused script is retained when its path still exists; otherwise focus falls back to the first
+  script in session order.
 - Any session change invalidates affected session analysis. Scripts are reanalyzed on
   demand when an editor, execution, or diagnostics flow needs current analysis.
 
@@ -252,7 +253,7 @@ Focused tests cover:
 - Refusing writes, deletes and renames that would lose an external change.
 - Unchecked writes for scripts that were never acknowledged.
 - Holding a refused write in a paused session until it resumes, and superseding it.
-- Detection of page-only structural changes.
+- Detection of order-only and connection-only changes.
 - Same-path script identity preservation and added/changed content reconciliation.
 
 Relevant Bazel targets:

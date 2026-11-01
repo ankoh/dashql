@@ -75,7 +75,7 @@ connections. `useLiveQuery` opens one connection per query.
 - **Queries**:
   - the tickers every 500ms (`live_board.sql`, last 24 hours; the retention cuts this to 30 minutes);
   - the price of the selected symbol per second, and the trades per second, every 1s.
-  - Each card and the table show the time of their latest query.
+  - The table shows the time of its latest query.
 
 ## UI Foundations
 

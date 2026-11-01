@@ -44,13 +44,14 @@ network access is only allowed in the fetch phase (repo rules requiring a pinned
            "sha256": "…",                   # pin the hash (see below); Renovate can bump it
        }],
        "outputs": [{
+           "engine": "duckdb",              # or "hyper", which writes a "folder"
            "file": "points.parquet",        # -> my-dataset/v1/points.parquet
            "sql": "COPY (SELECT id, CAST(embedding AS FLOAT[]) AS embedding "
                   "FROM read_json_auto('{raw}')) TO '{output}' (FORMAT PARQUET)",
        }],
    }
    ```
-   Each output's `sql` runs verbatim through the DuckDB CLI. Two placeholders are
+   Each `duckdb` output's `sql` runs verbatim through the DuckDB CLI. Two placeholders are
    substituted: `{output}` (the COPY target) and `{<source as>}` (a fetched source's
    local path, e.g. `{raw}`). You choose the reader and the output format — e.g.
    `(FORMAT CSV, HEADER)` to emit CSV, `read_csv_auto('{raw}')` / `read_parquet('{raw}')`

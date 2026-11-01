@@ -113,7 +113,8 @@ flowchart TD
   exceeded.
 
 The app loads the bundle during setup with progress phases and shows it on a `SessionImportCard`
-(`packages/dashql-app/src/app/loading/shared_session_import.tsx`), including where a session with the same
+(`packages/dashql-app/src/app/loading/shared_session_import.tsx`,
+`packages/dashql-app/src/session/persistence/session_import_card.tsx`), including where a session with the same
 UUID already lives. Imported catalogs are parse-validated and only seed connections that have no catalog
 yet.
 
