@@ -5,9 +5,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppOwnershipGate } from './app_ownership_gate.js';
-import { useAppHandOver, useAppRestart, type AppRestart } from '../../platform/crosstab/app_hand_over.js';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import type { AppOwnershipEnvironment } from '../../platform/crosstab/app_ownership.js';
+import { useAppHandOver, useAppRestart, type AppRestart } from '../platform/crosstab/app_hand_over.js';
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import type { AppOwnershipEnvironment } from '../platform/crosstab/app_ownership.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

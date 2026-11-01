@@ -91,7 +91,7 @@ import { SessionURLShareOverlay } from './persistence/session_url_share_overlay.
 import { SessionFileSaveOverlay } from './persistence/session_file_save_overlay.js';
 import * as styles from './session_workbench_sidebar.module.css';
 import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../connections/connection_tree.js';
-import * as actionMenuStyles from '../app/ui/action_menu.module.css';
+import * as actionMenuStyles from '../app/action_menu.module.css';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';

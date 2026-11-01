@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import * as baseStyles from '../../ui/banner/banner_page.module.css';
+import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as styles from './narrow_screen_warning.module.css';
 
-import { Button, ButtonVariant } from '../../ui/foundations/button.js';
-import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
+import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { ParticleFlowBackground } from '../ui/particle_flow/particle_flow_background.js';
 import { CompactNavBar } from './navbar.js';
 
 const NARROW_SCREEN_QUERY = '(max-width: 799px)';

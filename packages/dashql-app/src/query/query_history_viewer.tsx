@@ -3,17 +3,17 @@ import * as styles from './query_history_viewer.module.css';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { ListImperativeAPI, RowComponentProps } from 'react-window';
-import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
+import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../ui/foundations/symbol_icon.js';
 
-import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../../ui/foundations/overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { JsonView } from '../../ui/json/json_view.js';
-import { QueryExecutionState, QueryExecutionStatus } from '../query_execution_state.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
-import { useKeyEvents } from '../../utils/key_events.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
+import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
+import { OverlaySize } from '../ui/foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { JsonView } from '../ui/json/json_view.js';
+import { QueryExecutionState, QueryExecutionStatus } from './query_execution_state.js';
+import { observeSize } from '../ui/foundations/size_observer.js';
+import { useKeyEvents } from '../utils/key_events.js';
+import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
 
 export const ROW_HEIGHT = 32;
 

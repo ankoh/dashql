@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
-import { GitHubTheme } from '../theme/github_theme.js';
+import { GitHubTheme } from '../styles/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';

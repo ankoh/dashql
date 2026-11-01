@@ -1,15 +1,15 @@
 import * as React from 'react';
 import icons from '@ankoh/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
-import { StorageWriterView } from '../../../session/persistence/storage_writer_view.js';
-import { LogViewer } from '../../../ui/logs/log_viewer.js';
-import { OverlaySize } from '../../../ui/foundations/overlay.js';
-import { QueryViewer } from '../../../connections/query_viewer.js';
-import { QueryCacheView } from '../../../session/persistence/query_cache_view.js';
-import { VerticalTabs, VerticalTabVariant } from '../../../ui/foundations/vertical_tabs.js';
+import { StorageWriterView } from '../../session/persistence/storage_writer_view.js';
+import { LogViewer } from '../../ui/logs/log_viewer.js';
+import { OverlaySize } from '../../ui/foundations/overlay.js';
+import { QueryViewer } from '../../connections/query_viewer.js';
+import { QueryCacheView } from '../../session/persistence/query_cache_view.js';
+import { VerticalTabs, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
 import { StorageBrowserView } from './storage_browser_view.js';
 
 interface InternalsViewerProps {

@@ -11,23 +11,23 @@ import {
     StackCheckIcon,
     SyncIcon,
     XIcon,
-} from '../../../ui/foundations/symbol_icon.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
-import { TreeEntry, TreeEntryName } from '../../../ui/foundations/tree_entry.js';
-import { VerticalScrollShadows } from '../../../ui/foundations/vertical_scroll_shadows.js';
-import { observeSize } from '../../../ui/foundations/size_observer.js';
-import { classNames } from '../../../utils/classnames.js';
-import { formatBytes } from '../../../utils/format.js';
-import { formatRelativeTime } from '../../../utils/time_format.js';
-import { useLogger } from '../../../platform/logger/logger_provider.js';
-import { stringifyError } from '../../../platform/logger/logger.js';
-import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
+} from '../../ui/foundations/symbol_icon.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
+import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
+import { observeSize } from '../../ui/foundations/size_observer.js';
+import { classNames } from '../../utils/classnames.js';
+import { formatBytes } from '../../utils/format.js';
+import { formatRelativeTime } from '../../utils/time_format.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { stringifyError } from '../../platform/logger/logger.js';
+import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import {
     type OPFSCleanupCandidate,
     type OPFSCleanupResult,
     findOPFSCleanupCandidates,
     removeOPFSCleanupCandidates,
-} from '../../../storage/opfs_cleanup.js';
+} from '../../storage/opfs_cleanup.js';
 import {
     OPFS_TREE_ROOT_KEY,
     StorageTreeEntryKind,
@@ -36,8 +36,8 @@ import {
     type StorageTreeEntry,
     type StorageTreeFileStat,
     type StorageTreeRoot,
-} from '../../../storage/storage_tree.js';
-import { getOPFSRoot } from '../../../platform/opfs_root.js';
+} from '../../storage/storage_tree.js';
+import { getOPFSRoot } from '../../platform/opfs_root.js';
 
 const LOG_CTX = 'storage_browser';
 /// The height of a row: a 32px entry with 1px of space above and below, as in the catalog tree

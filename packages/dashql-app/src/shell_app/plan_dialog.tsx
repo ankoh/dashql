@@ -14,7 +14,7 @@ import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
 import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../ui/foundations/symbol_icon.js';
-import { CopyToClipboardButton } from '../utils/clipboard.js';
+import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import * as styles from './plan_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};

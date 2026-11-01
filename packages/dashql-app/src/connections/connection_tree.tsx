@@ -40,7 +40,7 @@ import {
 } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import * as styles from './connection_tree.module.css';
-import * as actionMenuStyles from '../app/ui/action_menu.module.css';
+import * as actionMenuStyles from '../app/action_menu.module.css';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ColumnsIcon = SymbolIcon('columns_16');

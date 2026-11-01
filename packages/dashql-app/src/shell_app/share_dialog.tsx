@@ -15,7 +15,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.
 import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { AlertIcon, XIcon } from '../ui/foundations/symbol_icon.js';
-import { CopyToClipboardButton } from '../utils/clipboard.js';
+import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import { buildShareUrl, encodeShareScript } from './shell_share.js';
 import * as styles from './share_dialog.module.css';
 

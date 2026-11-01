@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './text_input_action.module.css';
 
 import { Tooltip } from './tooltip.js';
-import { CopyToClipboardButton } from '../../utils/clipboard.js';
+import { CopyToClipboardButton } from './clipboard.js';
 import { ButtonSize, ButtonVariant, IconButton } from './button.js';
 
 interface TextInputActionProps {

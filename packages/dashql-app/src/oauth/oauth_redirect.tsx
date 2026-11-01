@@ -1,6 +1,6 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as baseStyles from '../ui/banner/banner_page.module.css';
+import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
 import type { OAuthState, AppEventData } from './oauth_types.js';
@@ -11,11 +11,11 @@ import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { CopyToClipboardButton } from '../utils/clipboard.js';
+import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { FlavorLogo, FlavorProvider, useAppFlavor } from '../config/flavor_provider.js';
-import { GitHubTheme } from '../theme/github_theme.js';
-import { LogsOverlay } from '../ui/logs_overlay.js';
+import { GitHubTheme } from '../styles/github_theme.js';
+import { LogsOverlay } from '../ui/logs/logs_overlay.js';
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';

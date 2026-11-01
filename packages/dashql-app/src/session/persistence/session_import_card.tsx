@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import * as baseStyles from '../../ui/banner/banner_page.module.css';
+import * as baseStyles from '../../ui/foundations/banner_page.module.css';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ProgressBar } from '../../ui/foundations/progress_bar.js';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
@@ -8,7 +8,7 @@ import { AlertIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
 import { formatBytes } from '../../utils/format.js';
 import type { SessionBundle } from '../../storage/session_bundle.js';
-import { CompactNavBar } from '../../app/ui/navbar.js';
+import { CompactNavBar } from '../../app/navbar.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { HttpSessionLoadProgress, HttpSessionLoadResult } from './http_session_bundle.js';
 import * as styles from './session_import_card.module.css';

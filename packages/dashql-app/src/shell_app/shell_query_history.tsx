@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { QueryType, type QueryExecutionState } from '../query/query_execution_state.js';
-import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../query/ui/query_history_viewer.js';
+import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../query/query_history_viewer.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
 
 /// The id under which the queries of the shell are listed

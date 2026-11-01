@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../utils/classnames.js';
 
 import * as styles from './navbar_button.module.css';
-import { RouteContext } from '../router/router.js';
+import { RouteContext } from './router/router.js';
 
 export enum HoverMode {
     Invert,

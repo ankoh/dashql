@@ -9,7 +9,7 @@ import { stringifyError } from '../platform/logger/logger.js';
 import { migrateStorage } from './migration/storage_migration.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
-import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/ui/app_setup_page.js';
+import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
 
 // Storage context for the writer
 const StorageWriterContext = React.createContext<StorageWriter | null>(null);

@@ -7,7 +7,7 @@ import type { StorageReader } from '../../storage/storage_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../platform/logger/logger.js';
-import { CopyToClipboardButton } from '../../utils/clipboard.js';
+import { CopyToClipboardButton } from '../../ui/foundations/clipboard.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { DownloadIcon, FileIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';
 import { formatBytes } from '../../utils/format.js';

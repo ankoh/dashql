@@ -8,7 +8,7 @@
     "formatVersion": {
       "type": "integer",
       "enum": [9],
-      "description": "Session persistence format. The app migrates older versions at startup and on import, see packages/dashql-app/src/migration."
+      "description": "Session persistence format. The app migrates older versions at startup and on import, see packages/dashql-app/src/storage/migration."
     },
     "sessionId": {
       "type": "string",

@@ -5,7 +5,7 @@ import { HashRouter, Link, Navigate, Route, Routes, useParams } from 'react-rout
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { GitHubTheme } from '../theme/github_theme.js';
+import { GitHubTheme } from '../styles/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { FLAVOR_QUERY_PARAMETER, getRequestedFlavor, resolveFlavor } from '../config/flavor_resolution.js';

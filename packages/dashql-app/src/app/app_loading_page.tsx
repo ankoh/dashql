@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import * as baseStyles from '../../ui/banner/banner_page.module.css';
+import * as baseStyles from '../ui/foundations/banner_page.module.css';
 
-import { AppLoadingStatus } from '../loading/app_loading_status.js';
-import { Button, ButtonVariant } from '../../ui/foundations/button.js';
-import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { getStatusFromProgressCounter, IndicatorStatus } from '../../ui/foundations/status_indicator.js';
-import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { AppLoadingProgress } from '../loading/app_loading_progress.js';
-import { useStorageMigrationStatus } from '../../storage/storage_provider.js';
+import { AppLoadingStatus } from './loading/app_loading_status.js';
+import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router/router.js';
+import { getStatusFromProgressCounter, IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { useDashQLCoreSetup } from '../runtime/core_provider.js';
+import { AppLoadingProgress } from './loading/app_loading_progress.js';
+import { useStorageMigrationStatus } from '../storage/storage_provider.js';
 import { AppSetupPage } from './app_setup_page.js';
 
 interface Props {

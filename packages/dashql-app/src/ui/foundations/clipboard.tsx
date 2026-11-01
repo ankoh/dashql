@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { CheckIcon, CopyIcon } from '../ui/foundations/symbol_icon.js';
-import type { Icon } from '../ui/foundations/symbol_icon.js';
+import { CheckIcon, CopyIcon } from './symbol_icon.js';
+import type { Icon } from './symbol_icon.js';
 
-import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '../platform/logger/logger.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { stringifyError } from '../../platform/logger/logger.js';
+import { ButtonSize, ButtonVariant, IconButton } from './button.js';
 
 const DEFAULT_COPY_TIMEOUT = 2000;
 

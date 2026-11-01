@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './plan_demo.module.css';
 
-import { useDashQLCoreSetup } from '../../../runtime/core_provider.js';
-import { createPlanLayoutConfig, PlanView } from '../../../views/plan/plan_view.js';
+import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
+import { createPlanLayoutConfig, PlanView } from '../../views/plan/plan_view.js';
 import { HYPER_EXAMPLE_PLAN } from './plan_demo_example.js';
 
 export function HyperPlanDemoPage(): React.ReactElement {

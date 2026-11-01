@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import * as baseStyles from '../../ui/banner/banner_page.module.css';
+import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 
-import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
-import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
+import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { ParticleFlowBackground } from '../ui/particle_flow/particle_flow_background.js';
 import { CompactNavBar } from './navbar.js';
 
 /// The steps of the setup of the app, in the order they are shown

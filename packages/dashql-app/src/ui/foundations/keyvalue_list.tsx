@@ -8,7 +8,7 @@ import { classNames } from '../../utils/classnames.js';
 import { TextInput } from './text_input.js';
 import { TextInputAction } from './text_input_action.js';
 import { ButtonSize, ButtonVariant, IconButton } from './button.js';
-import { CopyToClipboardButton } from '../../utils/clipboard.js';
+import { CopyToClipboardButton } from './clipboard.js';
 
 export interface KeyValueListElement {
     key: string;

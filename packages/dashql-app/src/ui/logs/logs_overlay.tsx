@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { AnchoredOverlay } from './foundations/anchored_overlay.js';
-import { OverlaySize } from './foundations/overlay.js';
-import { LogViewer } from './logs/log_viewer.js';
+import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
+import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
+import { OverlaySize } from '../foundations/overlay.js';
+import { LogViewer } from './log_viewer.js';
 
 interface Props {
     isOpen: boolean;

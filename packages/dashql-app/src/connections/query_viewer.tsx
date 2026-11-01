@@ -4,7 +4,7 @@ import {
     getQueryTarget,
     QueryHistoryViewer,
     type QueryEntry,
-} from '../query/ui/query_history_viewer.js';
+} from '../query/query_history_viewer.js';
 import { QueryType } from '../query/query_execution_state.js';
 import { useConnectionRegistry } from './connection_registry.js';
 

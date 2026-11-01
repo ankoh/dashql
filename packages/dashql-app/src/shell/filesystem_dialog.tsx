@@ -6,7 +6,7 @@ import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { FileDirectoryIcon, FileIcon, PlusIcon, UnlinkIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import type { DashQLShellCommand } from './api.js';
 import type { ExternalDirectoryMode } from '../platform/database/embedded_database.js';
-import { CopyToClipboardButton } from '../utils/clipboard.js';
+import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import {
     createShellFilesCommand,
     selectPlatformDirectory,
