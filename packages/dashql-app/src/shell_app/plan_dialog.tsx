@@ -6,7 +6,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../app/session/compute/ui/plan/plan_view.js';
+import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../views/plan/plan_view.js';
 import { CodeMirror } from '../app/session/scripts/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';

@@ -4,16 +4,16 @@ import * as styles from './feed_entry_footer.module.css';
 import icons from '@ankoh/dashql-svg-symbols';
 
 import { QueryExecutionState } from '../../../../query/query_execution_state.js';
-import { QueryResultView } from '../../compute/ui/query_result/query_result_view.js';
-import { TableColumnHeader } from '../../compute/ui/query_result/data_table_cell.js';
+import { QueryResultView } from '../../../../views/query_result/query_result_view.js';
+import { TableColumnHeader } from '../../../../views/query_result/data_table_cell.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../../../../ui/foundations/vertical_tabs.js';
-import { VisualizationDispatch } from '../../compute/ui/visualization/visualization_dispatch.js';
+import { VisualizationDispatch } from '../../../../views/visualization/visualization_dispatch.js';
 import { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
-import { QueryResultToolbar, useQueryResultRowCounts } from '../../compute/ui/query_result/query_result_toolbar.js';
-import { QueryResultDownloadButton } from '../../compute/ui/query_result/query_result_download_button.js';
-import { ChartDownloadButton } from '../../compute/ui/visualization/chart_download_button.js';
+import { QueryResultToolbar, useQueryResultRowCounts } from '../../../../views/query_result/query_result_toolbar.js';
+import { QueryResultDownloadButton } from '../../../../views/query_result/query_result_download_button.js';
+import { ChartDownloadButton } from '../../../../views/visualization/chart_download_button.js';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).

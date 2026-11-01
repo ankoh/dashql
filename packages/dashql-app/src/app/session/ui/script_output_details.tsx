@@ -6,10 +6,10 @@ import type { QueryExecutionState } from '../../../query/query_execution_state.j
 import { QueryExecutionStatus } from '../../../query/query_execution_state.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
-import { QueryResultDetails } from '../compute/ui/query_result/query_result_details.js';
-import { VisualizationDispatch } from '../compute/ui/visualization/visualization_dispatch.js';
-import { ChartDownloadButton } from '../compute/ui/visualization/chart_download_button.js';
-import { ColumnAggregationBar } from '../compute/ui/visualization/column_aggregation_bar.js';
+import { QueryResultDetails } from '../../../views/query_result/query_result_details.js';
+import { VisualizationDispatch } from '../../../views/visualization/visualization_dispatch.js';
+import { ChartDownloadButton } from '../../../views/visualization/chart_download_button.js';
+import { ColumnAggregationBar } from '../../../views/visualization/column_aggregation_bar.js';
 import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '../../../ui/foundations/vertical_tabs.js';
 import { IndicatorStatus } from '../../../ui/foundations/status_indicator.js';
 import { EntryStatusBar } from './entry_status_bar.js';

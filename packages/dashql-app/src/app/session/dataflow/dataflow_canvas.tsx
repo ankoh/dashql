@@ -6,9 +6,9 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/found
 import { ChevronDownIcon, ChevronRightIcon, PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useQueryState } from '../../connections/query_executor.js';
 import { QueryExecutionStatus } from '../../../query/query_execution_state.js';
-import { VisualizationDispatch } from '../compute/ui/visualization/visualization_dispatch.js';
-import { GraphPort } from '../compute/ui/graph/graph_port.js';
-import * as graphStyles from '../compute/ui/graph/graph.module.css';
+import { VisualizationDispatch } from '../../../views/visualization/visualization_dispatch.js';
+import { GraphPort } from '../../../ui/graph/graph_port.js';
+import * as graphStyles from '../../../ui/graph/graph.module.css';
 import type { ScriptData, SessionScripts } from '../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';

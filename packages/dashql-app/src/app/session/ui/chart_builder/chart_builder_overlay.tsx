@@ -8,7 +8,7 @@ import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundatio
 import { AlertIcon, BracesIcon, ScreenFullIcon, ScreenNormalIcon, ToolsIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { checkVegaLiteSpec } from '../../../../ui/vegalite/vegalite_check.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '../../../../query/query_execution_state.js';
-import { VegaLiteView } from '../../compute/ui/visualization/vegalite_view.js';
+import { VegaLiteView } from '../../../../views/visualization/vegalite_view.js';
 import type { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { chartColumns } from './chart_columns.js';
 import { ChartSpecBuilder } from './chart_spec_builder.js';

@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus } from '../../../../query/query_execution_state.js';
 import { ComputationRegistry } from '../../../../compute/computation_registry.js';
-import { QueryResultDownloadButton } from '../../compute/ui/query_result/query_result_download_button.js';
-import { ChartDownloadButton } from '../../compute/ui/visualization/chart_download_button.js';
+import { QueryResultDownloadButton } from '../../../../views/query_result/query_result_download_button.js';
+import { ChartDownloadButton } from '../../../../views/visualization/chart_download_button.js';
 import type { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { FeedEntryFooter, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 

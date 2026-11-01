@@ -11,9 +11,9 @@ import type { EmbeddedClientContext } from '../../../platform/database/embedded_
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { allocateQueryId } from '../../../query/tracked_query_execution.js';
-import { DataTable } from '../../session/compute/ui/query_result/data_table.js';
-import { TableColumnHeader } from '../../session/compute/ui/query_result/data_table_cell.js';
-import { createOrderingTask } from '../../session/compute/ui/query_result/data_table_ordering.js';
+import { DataTable } from '../../../views/query_result/data_table.js';
+import { TableColumnHeader } from '../../../views/query_result/data_table_cell.js';
+import { createOrderingTask } from '../../../views/query_result/data_table_ordering.js';
 
 const LOG_CTX = 'connection_overview';
 
