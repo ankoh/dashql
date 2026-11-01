@@ -16,6 +16,37 @@ import { AppFlavor, FLAVORS } from '../../config/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../../config/flavor_provider.js';
 import { useAppRestart } from '../../platform/crosstab/app_hand_over.js';
 
+/// The boolean settings that the panel toggles directly
+type ToggleSettingKey =
+    | 'narrowScreenLayout'
+    | 'macWindowLayout'
+    | 'scriptDebugMode'
+    | 'tableDebugMode'
+    | 'formattingDebugMode'
+    | 'forceReLogin'
+    | 'experimental_dashboards'
+    | 'experimental_dataflow'
+    | 'experimental_file_attachments';
+
+const LOG_LEVELS = [
+    { level: LogLevel.Trace, label: 'Trace' },
+    { level: LogLevel.Debug, label: 'Debug' },
+    { level: LogLevel.Info, label: 'Info' },
+    { level: LogLevel.Warn, label: 'Warn' },
+    { level: LogLevel.Error, label: 'Error' },
+];
+
+function SettingsSection(props: { title: string; children: React.ReactNode; }) {
+    return (
+        <section className={styles.settings_section} aria-label={props.title}>
+            <h3 className={styles.section_title}>{props.title}</h3>
+            <div className={styles.settings_container}>
+                {props.children}
+            </div>
+        </section>
+    );
+}
+
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
@@ -29,72 +60,10 @@ export function AppSettings(props: { onClose: () => void; }) {
     const [isClearing, setIsClearing] = React.useState(false);
     const [isRestarting, setIsRestarting] = React.useState(false);
 
-    const toggleNarrowScreenLayout = () => {
-        reconfigure(value => value == null ? null : {
-            ...value,
-            settings: { ...value.settings, narrowScreenLayout: !value.settings?.narrowScreenLayout },
-        });
-    };
-
-    const toggleMacWindowLayout = () => {
-        reconfigure(value => value == null ? null : {
-            ...value,
-            settings: { ...value.settings, macWindowLayout: !value.settings?.macWindowLayout },
-        });
-    };
-
-    const toggleScriptDebugMode = React.useCallback(() => {
+    const toggleSetting = React.useCallback((key: ToggleSettingKey) => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                scriptDebugMode: !value.settings?.scriptDebugMode,
-            }
-        }));
-    }, [reconfigure]);
-    const toggleTableDebugMode = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                tableDebugMode: !value.settings?.tableDebugMode,
-            }
-        }));
-    }, [reconfigure]);
-    const toggleFormattingDebugMode = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                formattingDebugMode: !value.settings?.formattingDebugMode,
-            }
-        }));
-    }, [reconfigure]);
-    const toggleExperimentalDashboards = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                experimental_dashboards: !value.settings?.experimental_dashboards,
-            }
-        }));
-    }, [reconfigure]);
-    const toggleExperimentalDataflow = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                experimental_dataflow: !value.settings?.experimental_dataflow,
-            }
-        }));
-    }, [reconfigure]);
-    const toggleExperimentalFileAttachments = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                experimental_file_attachments: !value.settings?.experimental_file_attachments,
-            }
+            settings: { ...(value.settings ?? {}), [key]: !value.settings?.[key] },
         }));
     }, [reconfigure]);
     // The embedded database reads the backend when it starts, the app restarts to apply it.
@@ -121,15 +90,6 @@ export function AppSettings(props: { onClose: () => void; }) {
             setIsRestarting(false);
         }
     }, [config, reconfigure, restartApp, storageReader, logger]);
-    const toggleForceReLogin = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                forceReLogin: !value.settings?.forceReLogin,
-            }
-        }));
-    }, [reconfigure]);
     const revertSetupConfirmation = React.useCallback(() => {
         // Enable pause after setup, then reload
         reconfigure((value: AppConfig | null) => (value == null ? null : {
@@ -207,6 +167,27 @@ export function AppSettings(props: { onClose: () => void; }) {
         }
     }, [storageReader, queryResultCache, logger]);
 
+    // A row with the name of a boolean setting and its switch
+    const toggle = (key: ToggleSettingKey, name: string) => {
+        const id = `app-setting-${key}`;
+        return (
+            <React.Fragment key={key}>
+                <div id={id} className={styles.setting_name}>
+                    {name}
+                </div>
+                <div className={styles.setting_switch}>
+                    <ToggleSwitch
+                        size="medium"
+                        checked={config?.settings?.[key] ?? false}
+                        onClick={() => toggleSetting(key)}
+                        disabled={config == null}
+                        aria-labelledby={id}
+                    />
+                </div>
+            </React.Fragment>
+        );
+    };
+
     // Apply log level from config on mount
     React.useEffect(() => {
         logger.buffer.setMinLogLevel(minLogLevel);
@@ -229,7 +210,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                 </div>
             </div>
             <div className={styles.internals_container}>
-                <div className={styles.settings_container}>
+                <SettingsSection title="General">
                     <div
                         id="app-setting-flavor"
                         className={styles.setting_name}
@@ -253,34 +234,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                             ))}
                         </SegmentedControl>
                     </div>
-                    <div id="app-setting-min-log-level" className={styles.setting_name}>
-                        Minimum Log Level
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <SegmentedControl
-                            aria-labelledby="app-setting-min-log-level"
-                            onChange={(index) => {
-                                const levels = [LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error];
-                                setMinLogLevel(levels[index]);
-                            }}
-                        >
-                            <SegmentedControl.Button selected={minLogLevel === LogLevel.Trace}>
-                                Trace
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button selected={minLogLevel === LogLevel.Debug}>
-                                Debug
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button selected={minLogLevel === LogLevel.Info}>
-                                Info
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button selected={minLogLevel === LogLevel.Warn}>
-                                Warn
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button selected={minLogLevel === LogLevel.Error}>
-                                Error
-                            </SegmentedControl.Button>
-                        </SegmentedControl>
-                    </div>
                     <div id="app-setting-keyword-case" className={styles.setting_name}>
                         SQL Keyword Case
                     </div>
@@ -297,120 +250,21 @@ export function AppSettings(props: { onClose: () => void; }) {
                             </SegmentedControl.Button>
                         </SegmentedControl>
                     </div>
-                    <div id="app-setting-narrow-screen-layout" className={styles.setting_name}>
-                        Narrow Screen Layout
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.narrowScreenLayout ?? false}
-                            onClick={toggleNarrowScreenLayout}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-narrow-screen-layout"
-                        />
-                    </div>
-                    <div id="app-setting-mac-window-layout" className={styles.setting_name}>
-                        Mac Window Layout
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.macWindowLayout ?? false}
-                            onClick={toggleMacWindowLayout}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-mac-window-layout"
-                        />
-                    </div>
-                    <div id="app-setting-script-debug-mode" className={styles.setting_name}>
-                        Script Debug Mode
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.scriptDebugMode ?? false}
-                            onClick={toggleScriptDebugMode}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-script-debug-mode"
-                        />
-                    </div>
-                    <div id="app-setting-table-debug-mode" className={styles.setting_name}>
-                        Table Debug Mode
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.tableDebugMode ?? false}
-                            onClick={toggleTableDebugMode}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-table-debug-mode"
-                        />
-                    </div>
-                    <div id="app-setting-formatting-debug-mode" className={styles.setting_name}>
-                        Formatting Debug Mode
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.formattingDebugMode ?? false}
-                            onClick={toggleFormattingDebugMode}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-formatting-debug-mode"
-                        />
-                    </div>
-                    <div id="app-setting-force-relogin" className={styles.setting_name}>
-                        Force Re-Login
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.forceReLogin ?? false}
-                            onClick={toggleForceReLogin}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-force-relogin"
-                        />
-                    </div>
-                    <div id="app-setting-experimental-dashboards" className={styles.setting_name}>
-                        Experimental Dashboards
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.experimental_dashboards ?? false}
-                            onClick={toggleExperimentalDashboards}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-experimental-dashboards"
-                        />
-                    </div>
-                    <div id="app-setting-experimental-dataflow" className={styles.setting_name}>
-                        Experimental Dataflow
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.experimental_dataflow ?? false}
-                            onClick={toggleExperimentalDataflow}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-experimental-dataflow"
-                        />
-                    </div>
-                    <div id="app-setting-experimental-file-attachments" className={styles.setting_name}>
-                        Experimental File Attachments
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.experimental_file_attachments ?? false}
-                            onClick={toggleExperimentalFileAttachments}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-experimental-file-attachments"
-                        />
-                    </div>
+                </SettingsSection>
+                <SettingsSection title="Layout">
+                    {toggle('narrowScreenLayout', 'Narrow Screen Layout')}
+                    {toggle('macWindowLayout', 'Mac Window Layout')}
+                </SettingsSection>
+                <SettingsSection title="Experimental">
+                    {toggle('experimental_dashboards', 'Dashboards')}
+                    {toggle('experimental_dataflow', 'Dataflows')}
+                    {toggle('experimental_file_attachments', 'File Attachments')}
                     <div
                         id="app-setting-experimental-wasm-backend"
                         className={styles.setting_name}
                         title="Runs the embedded Hyper on its experimental wasm backend. Changing it restarts the app."
                     >
-                        Experimental Wasm Backend
+                        Wasm Backend
                     </div>
                     <div className={styles.setting_switch}>
                         <ToggleSwitch
@@ -421,6 +275,29 @@ export function AppSettings(props: { onClose: () => void; }) {
                             aria-labelledby="app-setting-experimental-wasm-backend"
                         />
                     </div>
+                </SettingsSection>
+                <SettingsSection title="Debugging">
+                    <div id="app-setting-min-log-level" className={styles.setting_name}>
+                        Minimum Log Level
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <SegmentedControl
+                            aria-labelledby="app-setting-min-log-level"
+                            onChange={index => setMinLogLevel(LOG_LEVELS[index].level)}
+                        >
+                            {LOG_LEVELS.map(({ level, label }) => (
+                                <SegmentedControl.Button key={level} selected={minLogLevel === level}>
+                                    {label}
+                                </SegmentedControl.Button>
+                            ))}
+                        </SegmentedControl>
+                    </div>
+                    {toggle('scriptDebugMode', 'Script Debug Mode')}
+                    {toggle('tableDebugMode', 'Table Debug Mode')}
+                    {toggle('formattingDebugMode', 'Formatting Debug Mode')}
+                </SettingsSection>
+                <SettingsSection title="Login & Setup">
+                    {toggle('forceReLogin', 'Force Re-Login')}
                     <div className={styles.setting_name}>
                         Revert Setup Confirmation
                     </div>
@@ -429,7 +306,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                             Restart
                         </Button>
                     </div>
-                </div>
+                </SettingsSection>
                 <div className={styles.reset_section}>
                     <div className={styles.reset_actions}>
                         <Button

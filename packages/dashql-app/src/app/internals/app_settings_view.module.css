@@ -53,8 +53,23 @@
     min-height: 0;
 }
 
+.settings_section {
+    padding: 16px;
+}
+
+.settings_section + .settings_section {
+    border-top: 1px solid var(--border_color_primary);
+}
+
+.section_title {
+    margin: 0 0 4px 0;
+    font-size: var(--font_size_small);
+    font-weight: 500;
+    color: var(--base_color_neutral_5);
+}
+
 .settings_container {
-    padding: 16px 16px;
+    padding: 4px 0 0 0;
     width: 100%;
     min-width: 240px;
     display: grid;
