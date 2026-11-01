@@ -27,6 +27,7 @@ import {
     SessionScriptsEffects,
     isAnalysisOutdated,
     RENAME_SCRIPT,
+    RENAME_ATTACHMENT,
     SET_SESSION_ATTACHMENTS,
     RENAME_SESSION,
     UPDATE_FROM_PROCESSOR,
@@ -275,6 +276,22 @@ describe('V2 flat session script mutations', () => {
         // Other references keep their names
         expect(next.scripts[key('baz.sql')].scriptSession.getText()).toBe('select * from :bar, :foo_other');
         expect(writer.records).toContainEqual(expect.objectContaining({ value: [current.sessionId, 'bar.sql', bar.scriptSession.getText()] }));
+    });
+
+    it('renames the references to a renamed attachment in the scripts', () => {
+        let current = state(['foo.sql', 'bar.sql']);
+        const key = (file: string) => current.scriptRefs[file].scriptId;
+        current = reduce(current, { type: SET_SESSION_ATTACHMENTS, value: [{ name: 'sales.parquet', sizeBytes: 1, mtimeMs: 1 }] });
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('foo.sql'), text: 'select * from :sales s join :SALES t on true' } });
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('bar.sql'), text: 'select * from :foo' } });
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const next = reduce(current, { type: RENAME_ATTACHMENT, value: { fileName: 'sales.parquet', newFileName: 'sales 2024.parquet' } }, writer);
+        const foo = next.scripts[key('foo.sql')];
+        expect(foo.scriptSession.getText()).toBe('select * from :"sales 2024" s join :"sales 2024" t on true');
+        expect(foo.externalChanges?.fromText).toBe('select * from :sales s join :SALES t on true');
+        expect(next.scripts[key('bar.sql')].scriptSession.getText()).toBe('select * from :foo');
+        expect(next.attachments?.map(a => [a.fileName, a.name])).toEqual([['sales 2024.parquet', 'sales 2024']]);
+        expect(writer.records).toContainEqual(expect.objectContaining({ value: [current.sessionId, 'foo.sql', foo.scriptSession.getText()] }));
     });
 
     it('writes the value of an input into the scripts that use it', () => {

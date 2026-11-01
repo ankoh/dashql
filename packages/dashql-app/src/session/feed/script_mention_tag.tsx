@@ -16,10 +16,12 @@ interface Props {
     onRenamingChange: (renaming: boolean) => void;
     /// Rename the script, the name is the new display name
     onRename: (name: string) => void;
+    /// What the table parameter reads, for the labels: a script by default, or an attachment
+    subject?: 'script' | 'attachment';
 }
 
-/// The ":<script>" tag of a script card.
-/// A click mentions the script at the cursor of the editor that had the focus last, another script or the prompt.
+/// The ":<name>" tag of a table parameter, of a script card or of an attachment card.
+/// A click mentions the table parameter at the cursor of the editor that had the focus last, a script or the prompt.
 /// While the name is being edited, the tag is an input.
 export const ScriptMentionTag: React.FC<Props> = (props) => {
     if (props.renaming) {
@@ -71,7 +73,7 @@ function ScriptNameInput(props: Props) {
                 ref={inputRef}
                 className={styles.feed_entry_mention_input}
                 type="text"
-                aria-label={`Rename ${props.scriptName} script`}
+                aria-label={`Rename ${props.scriptName} ${props.subject ?? 'script'}`}
                 data-testid="script-name-input"
                 value={draft}
                 size={Math.max(draft.length, 1)}

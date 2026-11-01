@@ -8,7 +8,8 @@ import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DownloadIcon, FileIcon, LinkIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';
+import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';
+import { ScriptMentionTag } from './script_mention_tag.js';
 import { formatBytes } from '../../utils/format.js';
 import { attachmentParameterName } from '../attachments/session_attachments.js';
 
@@ -20,6 +21,8 @@ export interface SessionDataCardProps {
     onRemoved: () => void;
     /// Insert the table parameter of the attachment, `:sales`, where the user last wrote
     onMention?: (name: string) => void;
+    /// Rename the attachment, the name is the new name of its table parameter
+    onRename?: (name: string) => void;
     /// Is the name of the table parameter the name of a script too? A table parameter with the name is ambiguous.
     collides?: boolean;
 }
@@ -28,6 +31,7 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
     const downloader = useFileDownloader();
     const logger = useLogger();
     const [busy, setBusy] = React.useState(false);
+    const [renaming, setRenaming] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const enabled = connectionReadsAttachments(props.conn?.details);
     const disabled = !enabled || busy;
@@ -73,16 +77,27 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
                 </div>
                 <div className={styles.feed_data_title}>
                     <span className={styles.feed_data_name}>{props.file.name}</span>
-                    <span className={styles.feed_data_size}>
-                        {parameter != null && <span data-testid="data-file-parameter">:{parameter} · </span>}
-                        {formatBytes(props.file.sizeBytes)}
-                    </span>
+                    <span className={styles.feed_data_size}>{formatBytes(props.file.sizeBytes)}</span>
                 </div>
                 <div className={styles.feed_data_actions}>
-                    {parameter != null && props.onMention != null && (
+                    {parameter != null && (
+                        // The table parameter of the attachment, mentioned and renamed like a script
+                        <ScriptMentionTag
+                            scriptName={parameter}
+                            subject="attachment"
+                            canTarget={!disabled && props.onMention != null}
+                            onTarget={() => props.onMention?.(parameter)}
+                            renaming={renaming}
+                            onRenamingChange={setRenaming}
+                            onRename={name => props.onRename?.(name)}
+                        />
+                    )}
+                    {parameter != null && props.onRename != null && (
                         <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium} disabled={disabled}
-                            onClick={() => props.onMention?.(parameter)} aria-label={`Insert :${parameter}`} data-testid="data-file-mention">
-                            <LinkIcon size={16} />
+                            // The input takes the focus, a click while it is open keeps the edit
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => setRenaming(true)} aria-label={`Rename ${props.file.name}`} data-testid="data-file-rename">
+                            <PencilIcon size={16} />
                         </IconButton>
                     )}
                     <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}

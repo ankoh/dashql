@@ -25,6 +25,7 @@ import {
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../connections/connection_state.js';
 import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SESSION_ATTACHMENTS } from '../scripts/session_scripts.js';
 import { markSessionAttachmentsChanged } from '../attachments/attachment_mounts.js';
+import { renameAttachment } from '../attachments/attachment_rename.js';
 import { attachmentParameterName, readSessionAttachments, sameSessionAttachments, uniqueAttachmentFileName } from '../attachments/session_attachments.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../scripts/session_scripts_registry.js';
@@ -471,6 +472,15 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     }, [lastFocusedEditor, composerView, props.sessionScripts.scripts, props.sessionScripts.instance]);
     const handleTargetScript = React.useCallback((fileName: string) => handleMention(scriptDisplayName(fileName), fileName), [handleMention]);
     const handleMentionAttachment = React.useCallback((name: string) => handleMention(name, null), [handleMention]);
+    // An attachment renames like a script, the scripts and the draft that read it follow
+    const handleRenameAttachment = React.useCallback((fileName: string, name: string) => {
+        void renameAttachment(latest.current.sessionScripts, props.modifySessionScripts, storageReader.backend, fileName, name, composerRenameScriptRef.current)
+            .then(renamed => { if (renamed != null) refreshDataFiles(); })
+            .catch(e => {
+                setAttachmentError('Renaming attachment failed');
+                logger.error('Renaming session attachment failed', { error: stringifyError(e) }, LOG_CTX);
+            });
+    }, [props.modifySessionScripts, storageReader.backend, composerRenameScriptRef, refreshDataFiles, logger]);
     const scriptNames = React.useMemo(() => props.sessionScripts.scriptOrder.map(scriptDisplayName), [props.sessionScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
@@ -783,6 +793,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                                         <SessionDataCard key={`${sessionId}/${file.name}`} sessionId={sessionId}
                                             file={file} conn={props.conn} storageReader={storageReader} onRemoved={refreshDataFiles}
                                             onMention={handleMentionAttachment}
+                                            onRename={name => handleRenameAttachment(file.name, name)}
                                             collides={scriptNames.some(name => name.toLowerCase() === attachmentParameterName(file.name)?.toLowerCase())} />
                                     ))}
                                     {pinnedDataFiles.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}

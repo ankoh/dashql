@@ -35,12 +35,37 @@ export function attachmentNames(attachments: readonly SessionAttachment[] | unde
 /// same name in another case neither: `sales.parquet` becomes `sales-2.parquet`. A file with the name of an attachment
 /// replaces it and keeps its name. Files that are no Parquet file keep their name.
 export function uniqueAttachmentFileName(fileName: string, scriptNames: Iterable<string>, attachments: readonly SessionAttachment[]): string {
-    const base = attachmentParameterName(fileName);
-    if (base == null || attachments.some(attachment => attachment.fileName === fileName)) return fileName;
+    if (attachmentParameterName(fileName) == null || attachments.some(attachment => attachment.fileName === fileName)) return fileName;
+    return freeAttachmentFileName(fileName, scriptNames, attachments);
+}
+
+/// The file name of a renamed attachment: the requested name with the extension of the file unless it names one, past
+/// the names of the scripts and the other attachments like a new attachment. Null for a name that is no plain file name.
+export function renamedAttachmentFileName(
+    fileName: string,
+    requested: string,
+    scriptNames: Iterable<string>,
+    attachments: readonly SessionAttachment[],
+): string | null {
+    const trimmed = requested.trim();
+    const extension = /\.[^.]*$/.exec(fileName)?.[0] ?? '';
+    const name = extension.length > 0 && trimmed.toLowerCase().endsWith(extension.toLowerCase()) ? trimmed : `${trimmed}${extension}`;
+    if (name.length === extension.length || name === '.' || name === '..' || /[/\\\0]/.test(name)) return null;
+    return freeAttachmentFileName(name, scriptNames, attachments.filter(attachment => attachment.fileName !== fileName));
+}
+
+/// A file name that is taken by no attachment, whose table parameter takes no name of a script or another attachment
+/// in any case, suffixing "-2", "-3", ... to the name
+function freeAttachmentFileName(fileName: string, scriptNames: Iterable<string>, attachments: readonly SessionAttachment[]): string {
+    const parameter = attachmentParameterName(fileName);
+    const base = parameter ?? fileName.replace(/\.[^.]*$/, '');
     const extension = fileName.slice(base.length);
-    const taken = new Set([...scriptNames, ...attachmentNames(attachments)].map(name => name.toLowerCase()));
+    const takenNames = new Set([...(parameter == null ? [] : scriptNames), ...attachmentNames(attachments)].map(name => name.toLowerCase()));
+    const takenFiles = new Set(attachments.map(attachment => attachment.fileName.toLowerCase()));
+    const taken = (candidate: string) => takenFiles.has(`${candidate}${extension}`.toLowerCase())
+        || (parameter != null && takenNames.has(candidate.toLowerCase()));
     let candidate = base;
-    for (let suffix = 2; taken.has(candidate.toLowerCase()); ++suffix) {
+    for (let suffix = 2; taken(candidate); ++suffix) {
         candidate = `${base}-${suffix}`;
     }
     return `${candidate}${extension}`;

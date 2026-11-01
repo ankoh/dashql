@@ -105,23 +105,36 @@ describe('V2 session feed rows', () => {
         }
     });
 
-    it('mentions the table parameter of a Parquet attachment and flags a script of the same name', () => {
+    it('mentions and renames the table parameter of a Parquet attachment and flags a script of the same name', async () => {
         const onMention = vi.fn();
+        const onRename = vi.fn();
+        const wasm = { details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any;
         act(() => root.render(<LoggerProvider>
-            <SessionDataCard sessionId="session" file={{ name: 'sales.parquet', sizeBytes: 3 }}
-                conn={{ details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any}
-                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} collides />
+            <SessionDataCard sessionId="session" file={{ name: 'sales.parquet', sizeBytes: 3 }} conn={wasm}
+                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
         </LoggerProvider>));
-        expect(container.querySelector('[data-testid="data-file-parameter"]')?.textContent).toContain(':sales');
+        const tag = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
+        expect(tag.textContent).toBe(':sales');
         expect(container.querySelector('[data-testid="data-file-collision"]')).not.toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="data-file-mention"]')!.click());
+        act(() => tag.click());
         expect(onMention).toHaveBeenCalledExactlyOnceWith('sales');
+        // The pencil turns the tag into the input of the name, like the tag of a script
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="data-file-rename"]')!.click());
+        const input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
+        expect(input.getAttribute('aria-label')).toBe('Rename sales attachment');
+        act(() => {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'revenue');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+        expect(onRename).toHaveBeenCalledExactlyOnceWith('revenue');
         // Other files are no table parameter
         act(() => root.render(<LoggerProvider>
-            <SessionDataCard sessionId="session" file={{ name: 'sales.csv', sizeBytes: 3 }} conn={null}
-                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} collides />
+            <SessionDataCard sessionId="session" file={{ name: 'sales.csv', sizeBytes: 3 }} conn={wasm}
+                storageReader={{ backend: new SessionTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
         </LoggerProvider>));
-        expect(container.querySelector('[data-testid="data-file-mention"]')).toBeNull();
+        expect(container.querySelector('[data-testid="script-mention"]')).toBeNull();
+        expect(container.querySelector('[data-testid="data-file-rename"]')).toBeNull();
         expect(container.querySelector('[data-testid="data-file-collision"]')).toBeNull();
     });
 

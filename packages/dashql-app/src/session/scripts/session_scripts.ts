@@ -31,10 +31,10 @@ import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, R
 
 import { chartStatementId, compileVisualizeQuery } from './script_compilation.js';
 import { dropSessionTableParameters, publishTableParameters } from './table_parameters_publisher.js';
-import { attachmentNames, attachmentStamp, readSessionAttachments, sameSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
+import { attachmentNames, attachmentParameterName, attachmentStamp, readSessionAttachments, sameSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
 import { unmountSessionAttachments } from '../attachments/attachment_mounts.js';
 import type { DataFile } from '../../storage/storage_backend.js';
-import { applyScriptTextChanges, computeScriptReferenceReports, renameScriptReferenceChanges, type ScriptTextChange } from './script_reference_check.js';
+import { applyScriptTextChanges, computeScriptReferenceReports, renameReferenceChanges, type ScriptTextChange, type TableParameterTarget } from './script_reference_check.js';
 
 const LOG_CTX = 'session_scripts';
 
@@ -272,6 +272,7 @@ export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
 export const DETACH_CONNECTION = Symbol('DETACH_CONNECTION');
 export const SET_SESSION_ATTACHMENTS = Symbol('SET_SESSION_ATTACHMENTS');
 export const SET_ATTACHMENT_COLUMNS = Symbol('SET_ATTACHMENT_COLUMNS');
+export const RENAME_ATTACHMENT = Symbol('RENAME_ATTACHMENT');
 
 export type SessionScriptsAction =
     | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
@@ -302,6 +303,8 @@ export type SessionScriptsAction =
     | VariantKind<typeof SET_SESSION_ATTACHMENTS, DataFile[]>
     /// The columns of an attachment, read from the file with the stamp
     | VariantKind<typeof SET_ATTACHMENT_COLUMNS, { fileName: string, stamp: string, columns: string[] }>
+    /// An attachment whose file was renamed, the scripts that read it read the new name
+    | VariantKind<typeof RENAME_ATTACHMENT, { fileName: string, newFileName: string }>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -438,12 +441,79 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
     return publishTableParameters(state, reduceScripts(state, action, storage, logger));
 }
 
+/// Rewrite the table parameters that read a renamed script or attachment to read `name`, in `scripts`. The references
+/// are those of a plan with the names before the rename, the scripts are analyzed first if their analysis lags behind
+/// their text. The script `keep` keeps its text. Returns the rewritten scripts.
+function rewriteRenamedReferences(
+    state: SessionScripts,
+    scripts: ScriptDataMap,
+    target: TableParameterTarget,
+    name: string,
+    keep: ScriptKey | null,
+    logger: Logger,
+): ScriptData[] {
+    for (const [key, script] of Object.entries(scripts)) {
+        if (script.editorUpdate?.textVersion !== script.scriptSession.getTextVersion()) {
+            scripts[Number(key)] = analyzeScriptData(script, logger);
+        }
+    }
+    let changes = new Map<number, ScriptTextChange[]>();
+    try {
+        const reports = computeScriptReferenceReports({ ...state, scripts });
+        changes = renameReferenceChanges(reports, target, `:${state.instance.quoteIdentifier(name)}`);
+    } catch (e: any) {
+        logger.error("Failed to find the references of a renamed table parameter", { target: JSON.stringify(target), error: stringifyError(e) }, LOG_CTX);
+    }
+    const rewritten: ScriptData[] = [];
+    for (const [key, scriptChanges] of changes) {
+        const script = scripts[key];
+        if (script == null || key === keep) continue;
+        const fromText = script.scriptSession.getText();
+        replaceScriptSessionText(script.scriptSession, applyScriptTextChanges(fromText, scriptChanges));
+        const next = analyzeScriptData({ ...script, pendingDiff: null }, logger);
+        next.externalChanges = { fromText, changes: scriptChanges };
+        scripts[key] = next;
+        rewritten.push(next);
+    }
+    return rewritten;
+}
+
+/// Write the scripts whose references were renamed
+function writeRewrittenScripts(state: SessionScripts, rewritten: readonly ScriptData[], storage: SessionScriptsStorage): void {
+    for (const script of rewritten) {
+        storage.write(
+            groupScriptWrites(state.sessionId, script.fileName),
+            { type: WRITE_SCRIPT, value: [state.sessionId, script.fileName, script.scriptSession.getText()] },
+            DEBOUNCE_DURATION_SCRIPT_WRITE
+        );
+    }
+}
+
 function reduceScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
     switch (action.type) {
         case SET_SESSION_ATTACHMENTS: {
             const attachments = readSessionAttachments(action.value, state.attachments);
             if (state.attachments != null && sameSessionAttachments(state.attachments, attachments)) return state;
             return { ...state, attachments };
+        }
+        case RENAME_ATTACHMENT: {
+            // The file was renamed already, the scripts that read the attachment read the new name
+            const { fileName, newFileName } = action.value;
+            const index = state.attachments?.findIndex(a => a.fileName === fileName) ?? -1;
+            const name = attachmentParameterName(newFileName);
+            if (index < 0 || fileName === newFileName) return state;
+            const newScripts = { ...state.scripts };
+            const rewritten = name == null || state.attachments![index].name == null
+                ? []
+                : rewriteRenamedReferences(state, newScripts, { attachment: fileName }, name, null, logger);
+            for (const script of rewritten) {
+                markOtherScriptsOutdatedInPlace(newScripts, script);
+            }
+            const attachments = [...state.attachments!];
+            attachments[index] = { ...attachments[index], fileName: newFileName, name };
+            const next = { ...state, scripts: newScripts, attachments };
+            writeRewrittenScripts(next, rewritten, storage);
+            return next;
         }
         case SET_ATTACHMENT_COLUMNS: {
             const { fileName, stamp, columns } = action.value;
@@ -844,34 +914,11 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
             const scriptId = entry.scriptId;
             const updatedScriptData = state.scripts[scriptId];
             const newScripts = { ...state.scripts };
-            // The scripts that reference the script read the new name. The references are those of a plan, the
-            // scripts are analyzed first if their analysis lags behind their text.
-            const rewritten: ScriptData[] = [];
-            if (renamed) {
-                for (const [key, script] of Object.entries(newScripts)) {
-                    if (script.editorUpdate?.textVersion !== script.scriptSession.getTextVersion()) {
-                        newScripts[Number(key)] = analyzeScriptData(script, logger);
-                    }
-                }
-                let changes = new Map<number, ScriptTextChange[]>();
-                try {
-                    const reports = computeScriptReferenceReports({ ...state, scripts: newScripts });
-                    changes = renameScriptReferenceChanges(reports, oldFileName, `:${state.instance.quoteIdentifier(cleanBase)}`);
-                } catch (e: any) {
-                    logger.error("Failed to find the references of a renamed script", { fileName: oldFileName, error: stringifyError(e) }, LOG_CTX);
-                }
-                for (const [key, scriptChanges] of changes) {
-                    const script = newScripts[key];
-                    // A script that references itself is a cycle, it keeps the name
-                    if (script == null || key === scriptId) continue;
-                    const fromText = script.scriptSession.getText();
-                    replaceScriptSessionText(script.scriptSession, applyScriptTextChanges(fromText, scriptChanges));
-                    const next = analyzeScriptData({ ...script, pendingDiff: null }, logger);
-                    next.externalChanges = { fromText, changes: scriptChanges };
-                    newScripts[key] = next;
-                    rewritten.push(next);
-                }
-            }
+            // The scripts that reference the script read the new name. A script that references itself is a cycle, it
+            // keeps the name.
+            const rewritten = renamed
+                ? rewriteRenamedReferences(state, newScripts, { script: oldFileName }, cleanBase, scriptId, logger)
+                : [];
             if (newScripts[scriptId]) {
                 const renamedScriptData: ScriptData = { ...newScripts[scriptId], fileName: newFileName };
                 if (renamed) {
@@ -897,14 +944,7 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
                 scripts: newScripts,
                 scriptFocus: { ...state.scriptFocus, fileName: focusFile },
             };
-            // The scripts whose references were renamed
-            for (const script of rewritten) {
-                storage.write(
-                    groupScriptWrites(next.sessionId, script.fileName),
-                    { type: WRITE_SCRIPT, value: [next.sessionId, script.fileName, script.scriptSession.getText()] },
-                    DEBOUNCE_DURATION_SCRIPT_WRITE
-                );
-            }
+            writeRewrittenScripts(next, rewritten, storage);
             if (renamed) {
                 // Rename the file in place: its SQL is unchanged, so move it rather than delete-old +
                 // rewrite-new. The new clean base is disambiguated unique within the page, so the

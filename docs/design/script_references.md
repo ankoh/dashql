@@ -190,3 +190,9 @@ cursor and undoes the rewrite as one step (`ScriptData.externalChanges`). Once t
 composer to rename the references in its draft. The SQL draft follows the rename through its own analysis: the table parameters that find the script among the names before the rename
 (`DashQLScriptSession.findScriptReferences`), never the text of string literals or comments. A question in natural
 language has no syntax tree, its `:foo` mentions follow by name.
+
+An attachment renames the same way (`renameAttachment`, `RENAME_ATTACHMENT`): the tag of its card turns into the
+input of the name, the file moves first, then the scripts whose table parameters read the attachment and the draft
+read the new name. The new name takes no name of a script or another attachment, `sales` becomes `sales-2` then, and
+the file keeps its extension. The rewrite of the references is the one of a script rename, matched on the attachment
+instead of the script (`renameReferenceChanges`).

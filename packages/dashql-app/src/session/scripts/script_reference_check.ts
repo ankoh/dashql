@@ -27,8 +27,8 @@ interface ScriptReferenceMark {
     parameter: string;
     /// The file name of the referenced script, null if the name finds none
     target: string | null;
-    /// The index of the referenced attachment, null if the name finds none
-    attachment: number | null;
+    /// The file name of the referenced attachment, null if the name finds none
+    attachment: string | null;
     /// What the reference reads
     kind: ScriptReferenceKind;
     /// The errors of the reference
@@ -49,9 +49,8 @@ export function computeScriptReferenceReports(session: SessionScripts): Map<numb
     const scripts = orderedSessionScripts(session);
     const reports = new Map<number, ScriptReferenceReport>();
     if (scripts.length === 0) return reports;
-    const check: core.buffers.execution.ScriptReferenceCheckT = session.instance.checkScriptReferences(
-        sessionPlanRequest(scripts, scripts.map(script => script.fileName), session),
-    ).unpack();
+    const request = sessionPlanRequest(scripts, scripts.map(script => script.fileName), session);
+    const check: core.buffers.execution.ScriptReferenceCheckT = session.instance.checkScriptReferences(request).unpack();
     check.scripts.forEach((checked, index) => {
         if (!checked.checked) return;
         const marks = checked.references.map(reference => {
@@ -72,7 +71,7 @@ export function computeScriptReferenceReports(session: SessionScripts): Map<numb
                 to: from + (span?.length ?? 0),
                 parameter: String(reference.parameter ?? ''),
                 target: reference.script !== NONE ? scripts[reference.script]?.fileName ?? null : null,
-                attachment: reference.attachment !== NONE ? reference.attachment : null,
+                attachment: reference.attachment !== NONE ? request.attachments?.[reference.attachment]?.file ?? null : null,
                 kind,
                 errors: reference.errors.map(String),
             };
@@ -89,17 +88,21 @@ export interface ScriptTextChange {
     insert: string;
 }
 
-/// The changes that rename the references to a script: every table parameter that references the script reads
+/// What a table parameter reads, by file name: a script or an attachment
+export type TableParameterTarget = { script: string } | { attachment: string };
+
+/// The changes that rename the references to a script or an attachment: every table parameter that reads it reads
 /// `reference` instead, e.g. `:"foo-2"`
-export function renameScriptReferenceChanges(
+export function renameReferenceChanges(
     reports: ReadonlyMap<number, ScriptReferenceReport>,
-    fileName: string,
+    target: TableParameterTarget,
     reference: string,
 ): Map<number, ScriptTextChange[]> {
+    const reads = (mark: ScriptReferenceMark) => 'script' in target ? mark.target === target.script : mark.attachment === target.attachment;
     const out = new Map<number, ScriptTextChange[]>();
     for (const [scriptKey, report] of reports) {
         const changes = report.marks
-            .filter(mark => mark.target === fileName && mark.parameter.length > 0)
+            .filter(mark => reads(mark) && mark.parameter.length > 0)
             .map(mark => ({ from: mark.from, to: mark.to, insert: reference }));
         if (changes.length > 0) out.set(scriptKey, changes);
     }
