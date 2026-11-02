@@ -8,6 +8,8 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel } from './trino_channel.js';
 import { setupTrinoConnection } from './trino_connection_setup.js';
+import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from './trino_connection_state.js';
+import type { Dispatch } from '../../utils/variant.js';
 
 const OAUTH_PARAMS: connection.TrinoConnectionParams = {
     endpoint: 'https://trino.example.com',
@@ -56,9 +58,14 @@ function installBridge(callback: (authUrl: URL) => DashQLOAuthLoopbackResult) {
     return bridge;
 }
 
-async function setup(httpClient: HttpClient) {
+async function setup(
+    httpClient: HttpClient,
+    params = OAUTH_PARAMS,
+    dispatch: Dispatch<TrinoConnectorAction> = () => { },
+    signal = new AbortController().signal,
+) {
     const logger = new TestLogger();
-    return await setupTrinoConnection(() => { }, logger, OAUTH_PARAMS, {} as never, new TrinoApiClient(logger, httpClient), httpClient, PlatformType.WEB, false, new AbortController().signal);
+    return await setupTrinoConnection(dispatch, logger, params, {} as never, new TrinoApiClient(logger, httpClient), httpClient, PlatformType.WEB, false, signal);
 }
 
 describe('Trino OAuth setup', () => {
@@ -95,6 +102,28 @@ describe('Trino OAuth setup', () => {
     it('forwards authorization errors', async () => {
         installBridge(() => ({ error: 'access_denied', errorDescription: 'User denied access' }));
         await expect(setup(new FakeHttpClient())).rejects.toThrow('User denied access');
+    });
+});
+
+describe('Trino basic setup', () => {
+    const BASIC_PARAMS = {
+        endpoint: 'https://trino.example.com',
+        catalogName: 'hive',
+        auth: { authType: 'AUTH_BASIC', basic: { username: 'user', secret: 'secret' } },
+    } as connection.TrinoConnectionParams;
+
+    it('creates a channel for the endpoint and catalog', async () => {
+        const dispatch = vi.fn();
+        const channel = await setup(new FakeHttpClient(), BASIC_PARAMS, dispatch) as TrinoChannel;
+        expect(channel.catalogName).toBe('hive');
+        expect(channel.endpoint.endpoint).toBe('https://trino.example.com');
+        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_READY]);
+    });
+
+    it('reports a cancelled setup', async () => {
+        const dispatch = vi.fn();
+        await expect(setup(new FakeHttpClient(), BASIC_PARAMS, dispatch, AbortSignal.abort())).rejects.toThrow();
+        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_SETUP_CANCELLED]);
     });
 });
 

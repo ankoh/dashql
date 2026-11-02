@@ -147,7 +147,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     // Have result data but not schema yet?
                     // This is unexpected.
                     if (!this.resultSchema.isResolved()) {
-                        throw new Error("Result schema is mssing");
+                        throw new Error("Result schema is missing");
                     }
                     // Translate the trino batch
                     const schema = this.resultSchema.getResolvedValue();
