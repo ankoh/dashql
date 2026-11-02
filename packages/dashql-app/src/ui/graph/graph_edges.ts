@@ -81,7 +81,8 @@ export const PORTS_TO = new Uint8Array([
 
 /// Atan2 circle https://commons.wikimedia.org/wiki/File:Atan2_circle.svg
 export function selectEdgeTypeFromAngle(angle: number): EdgeType {
-    const sector = angle / 90; // [-2, 2[
+    // atan2 returns 180 for a target straight west, which is the sector -2 (West) as well
+    const sector = angle === 180 ? -2 : angle / 90; // [-2, 2[
     if (sector == Math.floor(sector)) {
         // One of [-2, -1, 0, 1, 2]
         //
@@ -358,7 +359,7 @@ export function buildEdgePathBetweenRectangles(
         //  |
         //  +-B
         case EdgeType.SouthEast: {
-            fromCenterY += fromHeight / 2;
+            fromCenterY -= fromHeight / 2;
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
