@@ -6,7 +6,7 @@
 //! the ports, searches the shortest route with few bends through it, and spreads routes that share a channel apart.
 
 use crate::layout::{DataflowBoxGeometry, DataflowEdgeRoute, DataflowLayoutConfig, DataflowLayoutEdge};
-use ortho_router::{Connector, Options, Point, Port, Rect, Router, Side};
+use crate::ortho_router::{Connector, Options, Point, Port, Rect, Router, Side};
 use std::collections::BTreeSet;
 
 /// The clearance between a route and a box, and the length of the straight stub out of a port

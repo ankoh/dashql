@@ -900,12 +900,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ortho-router"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19e0fe04ea4a6498b8f70fdf6a68c6958f4785d753aa4cd8c2430b5d1101ea19"
-
-[[package]]
 name = "parking_lot"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

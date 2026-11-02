@@ -17,7 +17,6 @@ rust_library(
         "@core_crates//:org-eclipse-elk-alg-layered",
         "@core_crates//:org-eclipse-elk-core",
         "@core_crates//:org-eclipse-elk-graph",
-        "@core_crates//:ortho-router",
     ],
 )
 
