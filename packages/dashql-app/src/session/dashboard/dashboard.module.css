@@ -81,7 +81,6 @@
 /* The renderers stay clear of the resize handle in the corner */
 .card_collapsed .card_header {
     padding-right: 16px;
-    border-bottom: 0;
     background: transparent;
 }
 
@@ -114,7 +113,6 @@
     gap: 8px;
     min-width: 0;
     padding: 0 8px 0 6px;
-    border-bottom: 1px solid var(--log_border_color);
     background: white;
 }
 
