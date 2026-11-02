@@ -91,7 +91,7 @@ function createFloatData<T extends arrow.Float>(type: T, values: any[], tmpIsNul
 function createInt64Data(type: arrow.Int64, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.Int64> {
     const n = values.length;
     tmpIsNull.fill(0);
-    const buffer = new BigInt64Array(n);
+    const buffer = new type.ArrayType(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
@@ -352,52 +352,41 @@ function createBinaryData(type: arrow.Binary, values: any[], tmpIsNull: Uint8Arr
     return arrow.makeData({ type, offset: 0, length: n, nullCount, valueOffsets: offsets, data: dataBuffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
-/// Create Arrow Data for a column based on its type
+/// Create Arrow Data for a column based on its type.
+/// Instances report the type family as typeId (Type.Int, Type.Date, Type.Time), never the flattened ids like
+/// Type.Int32 or Type.DateDay, so we dispatch on the family and then on the bit width or the unit.
 function createColumnData(field: arrow.Field, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const type = field.type;
-    const typeId = type.typeId;
-
-    switch (typeId) {
-        case arrow.Type.Bool:
-            return createBoolData(type as arrow.Bool, values, tmpIsNull);
-
-        case arrow.Type.Int8:
-        case arrow.Type.Int16:
-        case arrow.Type.Int32:
-            return createIntData(type as arrow.Int, values, tmpIsNull);
-
-        case arrow.Type.Float32:
-        case arrow.Type.Float:
-        case arrow.Type.Float64:
-            return createFloatData(type as arrow.Float, values, tmpIsNull);
-
-        case arrow.Type.Int64:
-            return createInt64Data(type as arrow.Int64, values, tmpIsNull);
-
-        case arrow.Type.Decimal:
-            return createDecimalData(type as arrow.Decimal, values, tmpIsNull);
-
-        case arrow.Type.DateDay:
-            return createDateDayData(type as arrow.DateDay, values, tmpIsNull);
-
-        case arrow.Type.DateMillisecond:
-            return createDateMillisecondData(type as arrow.DateMillisecond, values, tmpIsNull);
-
-        case arrow.Type.TimeMillisecond:
-            return createTimeMillisecondData(type as arrow.TimeMillisecond, values, tmpIsNull);
-
-        case arrow.Type.TimestampMillisecond:
-        case arrow.Type.Timestamp:
-            return createTimestampData(type as arrow.Timestamp, values, tmpIsNull);
-
-        case arrow.Type.Binary:
-            return createBinaryData(type as arrow.Binary, values, tmpIsNull);
-
-        case arrow.Type.Utf8:
-        default:
-            // Utf8 and all other types (including complex types as JSON)
-            return createUtf8Data(new arrow.Utf8(), values, tmpIsNull);
+    if (arrow.DataType.isBool(type)) {
+        return createBoolData(type, values, tmpIsNull);
     }
+    if (arrow.DataType.isInt(type)) {
+        return type.bitWidth === 64
+            ? createInt64Data(type as arrow.Int64, values, tmpIsNull)
+            : createIntData(type, values, tmpIsNull);
+    }
+    if (arrow.DataType.isFloat(type)) {
+        return createFloatData(type, values, tmpIsNull);
+    }
+    if (arrow.DataType.isDecimal(type)) {
+        return createDecimalData(type, values, tmpIsNull);
+    }
+    if (arrow.DataType.isDate(type)) {
+        return type.unit === arrow.DateUnit.DAY
+            ? createDateDayData(type as arrow.DateDay, values, tmpIsNull)
+            : createDateMillisecondData(type as arrow.DateMillisecond, values, tmpIsNull);
+    }
+    if (arrow.DataType.isTime(type) && type.unit === arrow.TimeUnit.MILLISECOND && type.bitWidth === 32) {
+        return createTimeMillisecondData(type as arrow.TimeMillisecond, values, tmpIsNull);
+    }
+    if (arrow.DataType.isTimestamp(type)) {
+        return createTimestampData(type, values, tmpIsNull);
+    }
+    if (arrow.DataType.isBinary(type)) {
+        return createBinaryData(type, values, tmpIsNull);
+    }
+    // Utf8 and all other types (including complex types as JSON)
+    return createUtf8Data(new arrow.Utf8(), values, tmpIsNull);
 }
 
 /// Translate any[] with a schema to an arrow batch
