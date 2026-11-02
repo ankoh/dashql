@@ -119,15 +119,15 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   loop around the boxes to a target on the left. Edges inside a box run along the left of its rows with rounded
   corners. Collapsed boxes merge their edges and leave out the edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
-  (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are white cards with a solid neutral border like the entries
-  of the feed, statements are node frames, inline references and table edges are solid, scans and invalid references
-  are dashed, the relation of a table edge is a badge. Edges between boxes and their badges pass behind the cards, the
-  edges between the rows of one box run on its card. Selecting a box, a statement or an input, or hovering a box,
-  redraws its edges and their badges in the highlight layer on top of the boxes and highlights their ports, a drag
-  drops the hover. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under
-  its port. Charts are `foreignObject`s below their statement, on the card without a frame of their
-  own. A Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
-  horizontal x labels and no legends, fitted into the card with an 8px inset. The scene takes the height of a chart
+  (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are neutral outlines with a faint fill, the statements inside
+  them are node frames, inline references and table edges are solid, scans and invalid references are dashed, the
+  relation of a table edge is a badge. Edges between boxes and their badges pass behind the boxes, the edges between
+  the rows of one box run inside its outline. Selecting a box, a statement or an input, or hovering a box, redraws its
+  edges and their badges in the highlight layer on top of the boxes and highlights their ports, a drag drops the
+  hover. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under its port.
+  Charts are `foreignObject`s below their statement, in a white frame with a 1px border like the statements. A
+  Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
+  horizontal x labels and no legends, fitted into the frame with an 8px inset. The scene takes the height of a chart
   from the layout of its box. A script box has a resize handle in its bottom right corner, like the cards of the
   board: dragging it changes the width of the box and the height of its chart on the 8px grid, a box without a chart
   only changes its width, the arrow keys change them by 16px. The box follows the pointer, the other boxes make room

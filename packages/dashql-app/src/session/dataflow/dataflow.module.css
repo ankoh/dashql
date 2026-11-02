@@ -175,11 +175,15 @@
     overflow: hidden;
 }
 
-/* The chart sits on the card of its script, without a frame of its own */
+/* The chart is a white frame inside the outline of its script, like the statement rows */
 .chart_body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    box-sizing: border-box;
+    border: 1px solid hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    border-radius: 6px;
+    background: white;
 }
 
 .chart_placeholder {
@@ -213,11 +217,11 @@
     stroke-linecap: round;
 }
 
-/* Scripts and inputs are cards like the entries of the feed: white with a solid neutral border */
+/* Scripts and inputs are neutral outlines with a faint fill, their rows and charts are the white frames inside */
 .card {
     pointer-events: none;
-    fill: white;
-    stroke: var(--log_border_color);
+    fill: hsla(var(--neutral_hue), calc(20% * var(--neutral_tint)), 94%, 0.6);
+    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 70%);
     stroke-width: 1px;
     vector-effect: non-scaling-stroke;
 }

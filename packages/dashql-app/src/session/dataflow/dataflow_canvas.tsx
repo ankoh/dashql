@@ -48,6 +48,8 @@ const LABEL_CHAR_WIDTH = 8;
 const TITLE_CHAR_WIDTH = 7.5;
 /// The size of the icons of a box header
 const HEADER_ICON = 12;
+/// The border of the frame of a chart, see `.chart_body`
+const CHART_BORDER = 1;
 /// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
 const RESIZE_HANDLE = 16;
 const RESIZE_KEY_STEP = 16;
@@ -849,8 +851,8 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                             ? <props.dependencies.VisualizationDispatch
                                 query={query}
                                 visualizeQuery={script.annotations.visualizeQuery}
-                                width={box.chart.width}
-                                height={box.chart.height}
+                                width={box.chart.width - 2 * CHART_BORDER}
+                                height={box.chart.height - 2 * CHART_BORDER}
                                 preview
                             />
                             : <div className={styles.chart_placeholder}>Run the script to see the chart</div>}
