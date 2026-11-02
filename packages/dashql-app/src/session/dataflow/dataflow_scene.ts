@@ -24,9 +24,14 @@ export const DATAFLOW_COLLAPSE_SCALE = 0.5;
 /// The space between an edge inside a box and the left border of the box, per statement that it spans
 const INTERNAL_EDGE_GUTTER = 3;
 const INTERNAL_EDGE_GUTTER_STEP = 2;
-/// The straight run of an edge out of its source and into its target before a turn
+/// The least horizontal distance between the ports of an edge to a target on the right
 const EDGE_STUB = 12;
-const EDGE_CORNER_RADIUS = 4;
+/// The least reach of the control points of a curve between rows at different heights
+const EDGE_CURVE = 40;
+/// The reach of the control points of the bends of an edge back to a target on the left
+const EDGE_LOOP = 48;
+/// The space around the badge on the straight trunk of a bus
+const EDGE_TRUNK_MARGIN = 8;
 export const EDGE_BADGE_HEIGHT = 15;
 const EDGE_BADGE_MIN_WIDTH = 25;
 
@@ -145,8 +150,8 @@ function portFrameWidth(box: EdgeEnd, config: core.DataflowLayoutConfig): number
     return box.collapsed ? box.width : box.width - 2 * config.rowPadding;
 }
 
-/// An orthogonal path through points with rounded corners, like the edges of the plan view
-function roundedPath(points: [number, number][], radius = EDGE_CORNER_RADIUS): string {
+/// An orthogonal path through points with rounded corners
+function roundedPath(points: [number, number][], radius: number): string {
     const out = [`M ${points[0][0]} ${points[0][1]}`];
     for (let i = 1; i < points.length - 1; ++i) {
         const [px, py] = points[i - 1];
@@ -178,39 +183,43 @@ function inputX(to: EdgeEnd, config: core.DataflowLayoutConfig): number {
 }
 
 /// The route of an edge from the output port of a row to the input port of a row of another box. A target to the
-/// right is reached with at most two turns at the spine of the source port, the middle by default. A box in front
-/// of the target row is passed above the target, through the gaps to its top and left. A target to the left is
-/// reached with an S around the boxes. Returns the path and the middle of the route.
+/// right is reached with a cubic curve that leaves and enters its ports horizontally, after a straight trunk out of
+/// the source when the edge is part of a bus. A target to the left is reached with a loop around the boxes: a bend
+/// out of the source, a straight run back between the boxes or below both, and a bend into the target. Returns the
+/// path and the middle of the route.
 function routeEdge(
     from: EdgeEnd,
     fromY: number,
     to: EdgeEnd,
     toY: number,
     config: core.DataflowLayoutConfig,
-    spine: number | null = null,
-    obstacles: readonly Rect[] = [],
+    trunk: number | null = null,
 ): { path: string; middle: [number, number] } {
     const x1 = outputX(from, config);
     const x2 = inputX(to, config);
-    const stub = EDGE_STUB;
-    if (x2 - x1 >= 2 * stub) {
-        const mx = Math.min(Math.max(spine ?? Math.round((x1 + x2) / 2), x1 + stub), x2 - stub);
-        const blocked = obstacles.some(b => b !== to && b.x < to.x && b.x + b.width > mx && b.y < toY && toY < b.y + b.height);
-        if (blocked) {
-            const [gx, cy] = [to.x - config.boxGap / 2, to.y - config.boxGap / 2];
-            return { path: roundedPath([[x1, fromY], [mx, fromY], [mx, cy], [gx, cy], [gx, toY], [x2, toY]]), middle: [mx, (fromY + cy) / 2] };
-        }
-        if (fromY === toY) return { path: roundedPath([[x1, fromY], [x2, toY]]), middle: [(x1 + x2) / 2, fromY] };
-        return { path: roundedPath([[x1, fromY], [mx, fromY], [mx, toY], [x2, toY]]), middle: [mx, (fromY + toY) / 2] };
+    if (x2 - x1 >= 2 * EDGE_STUB) {
+        if (fromY === toY) return { path: `M ${x1} ${fromY} L ${x2} ${toY}`, middle: [(x1 + x2) / 2, fromY] };
+        const xs = trunk != null && x2 - trunk >= 2 * EDGE_STUB ? trunk : x1;
+        const d = Math.max((x2 - xs) / 2, Math.min(Math.abs(toY - fromY), EDGE_CURVE));
+        const head = xs === x1 ? `M ${x1} ${fromY}` : `M ${x1} ${fromY} L ${xs} ${fromY}`;
+        // A symmetric cubic passes through the middle of its ends
+        return { path: `${head} C ${xs + d} ${fromY}, ${x2 - d} ${toY}, ${x2} ${toY}`, middle: [(xs + x2) / 2, (fromY + toY) / 2] };
     }
     // Back around the boxes: between them if there is space, below both otherwise
-    const [ox, ix] = [x1 + stub, x2 - stub];
     const [fromBottom, toBottom] = [from.y + from.height, to.y + to.height];
     let cy: number;
-    if (to.y - fromBottom >= 2 * stub) cy = (fromBottom + to.y) / 2;
-    else if (from.y - toBottom >= 2 * stub) cy = (toBottom + from.y) / 2;
+    if (to.y - fromBottom >= 2 * EDGE_STUB) cy = (fromBottom + to.y) / 2;
+    else if (from.y - toBottom >= 2 * EDGE_STUB) cy = (toBottom + from.y) / 2;
     else cy = Math.max(fromBottom, toBottom) + config.boxGap / 2;
-    return { path: roundedPath([[x1, fromY], [ox, fromY], [ox, cy], [ix, cy], [ix, toY], [x2, toY]]), middle: [(ox + ix) / 2, cy] };
+    // The bends turn at the ports, or both at the middle when the target is slightly right of the source
+    const [ox, ix] = x2 <= x1 ? [x1, x2] : [(x1 + x2) / 2, (x1 + x2) / 2];
+    const path = [
+        `M ${x1} ${fromY}`,
+        `C ${x1 + EDGE_LOOP} ${fromY}, ${ox + EDGE_LOOP} ${cy}, ${ox} ${cy}`,
+        `L ${ix} ${cy}`,
+        `C ${ix - EDGE_LOOP} ${cy}, ${x2 - EDGE_LOOP} ${toY}, ${x2} ${toY}`,
+    ].join(' ');
+    return { path, middle: [(ox + ix) / 2, cy] };
 }
 
 /// The path of an edge between two rows of one box, along the left border of the rows inside the padding of the box
@@ -258,10 +267,9 @@ export function buildDataflowScene(
         return [{ input, collapsed: inputsCollapsed, x: p.x, y: p.y, width: p.width, height, rowY: p.y + (p.rows[0] ?? 0), output: false }];
     });
     const inputOf = new Map(inputs.map(i => [i.input.name, i]));
-    const obstacles: Rect[] = [...boxes, ...inputs];
 
-    // The edges of a source port share a spine, halfway to the nearest target on the right. The table edges of a
-    // port with the same relation are a bus with one badge, on the trunk before the spine.
+    // The table edges of a port with the same relation are a bus: they share a straight trunk out of the port with one
+    // badge on it, when the nearest target on the right leaves room for it, and curve apart after it.
     const sourceOf = (edge: DataflowEdge): { key: string; end: EdgeEnd; y: number } | null => {
         if (edge.input != null) {
             const source = inputOf.get(edge.input);
@@ -282,9 +290,11 @@ export function buildDataflowScene(
         if (x2 - x1 >= 2 * EDGE_STUB) nearest.set(source.key, Math.min(nearest.get(source.key) ?? Infinity, x2));
         if (edge.kind === DataflowEdgeKind.Table) buses.set(`${source.key}:${edge.name}`, (buses.get(`${source.key}:${edge.name}`) ?? 0) + 1);
     }
-    const spineOf = (key: string, end: EdgeEnd): number | null => {
-        const x2 = nearest.get(key);
-        return x2 == null ? null : Math.round((outputX(end, config) + x2) / 2);
+    const trunkOf = (sourceKey: string, end: EdgeEnd, name: string): number | null => {
+        if ((buses.get(`${sourceKey}:${name}`) ?? 0) < 2) return null;
+        const x2 = nearest.get(sourceKey);
+        const trunk = outputX(end, config) + edgeBadgeWidth(name) + 2 * EDGE_TRUNK_MARGIN;
+        return x2 != null && x2 - trunk >= 2 * EDGE_STUB ? trunk : null;
     };
     const badged = new Set<string>();
 
@@ -304,7 +314,7 @@ export function buildDataflowScene(
                 merged.add(key);
             }
             const fromY = source.collapsed ? source.y + config.headerHeight / 2 : source.rowY + config.rowHeight / 2;
-            const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config, spineOf(`:${edge.input}`, source), obstacles);
+            const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config);
             source.output = true;
             const toRow = to.rows[edge.to.statementId];
             if (to.collapsed || toRow == null) to.input = true;
@@ -326,13 +336,13 @@ export function buildDataflowScene(
         const fromY = portY(from, edge.from.statementId, config);
         const toY = portY(to, edge.to.statementId, config);
         const sourceKey = `${from.script.scriptKey}.${fromStatement}`;
-        const spine = internal ? null : spineOf(sourceKey, from);
+        const trunk = internal || edge.kind !== DataflowEdgeKind.Table ? null : trunkOf(sourceKey, from, edge.name);
         let path: string;
         let middle: [number, number] = [0, 0];
         if (internal) {
             path = internalEdgePath(from, fromY, toY, Math.abs(edge.to.statementId - edge.from.statementId), config);
         } else {
-            ({ path, middle } = routeEdge(from, fromY, to, toY, config, spine, obstacles));
+            ({ path, middle } = routeEdge(from, fromY, to, toY, config, trunk));
         }
         // Collapsed boxes have one port per side, rows have their own
         const fromRow = from.rows[edge.from.statementId];
@@ -345,10 +355,10 @@ export function buildDataflowScene(
         let badge: DataflowSceneEdge['badge'] = null;
         if (edge.kind === DataflowEdgeKind.Table && !internal && edge.name.length > 0) {
             const bus = `${sourceKey}:${edge.name}`;
-            if ((buses.get(bus) ?? 0) > 1 && spine != null) {
+            if (trunk != null) {
                 if (!badged.has(bus)) {
                     badged.add(bus);
-                    badge = { x: (outputX(from, config) + spine) / 2, y: fromY, width: edgeBadgeWidth(edge.name), text: edge.name };
+                    badge = { x: (outputX(from, config) + trunk) / 2, y: fromY, width: edgeBadgeWidth(edge.name), text: edge.name };
                 }
             } else {
                 badge = { x: middle[0], y: middle[1], width: edgeBadgeWidth(edge.name), text: edge.name };

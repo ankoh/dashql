@@ -73,8 +73,8 @@ describe('dataflow scene', () => {
     it('routes an edge between boxes stacked at the same x around them', () => {
         const stacked = [POSITIONS[0], { x: 0, y: 200, width: 280, height: 80, rows: [40] }];
         const edge = buildDataflowScene(GRAPH, stacked, () => null, () => false).edges[1];
-        expect(edge.path.startsWith(`M ${280 - DATAFLOW_LAYOUT.rowPadding} 88`)).toBe(true);
-        expect(edge.path.endsWith(`L ${DATAFLOW_LAYOUT.rowPadding} 256`)).toBe(true);
+        // A bend out of the source port, back through the gap between the boxes, a bend into the target port
+        expect(edge.path).toBe('M 272 88 C 320 88, 320 160, 272 160 L 8 160 C -40 160, -40 256, 8 256');
     });
 
     it('merges the edges of collapsed boxes and leaves out the edges inside them', () => {
@@ -125,7 +125,7 @@ describe('dataflow scene', () => {
         expect(start(collapsed.edges.find(e => e.key === 'i')!.path)).toEqual([INPUT_BOX_WIDTH, 200 + DATAFLOW_LAYOUT.headerHeight / 2]);
     });
 
-    it('routes a fan-out as a bus into the grid of its consumers', () => {
+    it('curves a fan-out into the grid of its consumers after a trunk with one badge', () => {
         // A base box and five consumers in a grid of three columns, like the core lays them out
         const graph: DataflowGraph = {
             scripts: [script(1, 1), ...[2, 3, 4, 5, 6].map(key => script(key, 1))],
@@ -142,19 +142,16 @@ describe('dataflow scene', () => {
         const cell = (x: number, y: number) => ({ x, y, width: 280, height: 288, rows: [40] });
         const positions = [{ x: 0, y: 0, width: 280, height: 80, rows: [40] }, cell(376, 0), cell(688, 0), cell(1000, 0), cell(376, 320), cell(688, 320)];
         const scene = buildDataflowScene(graph, positions, () => null, () => false);
-        const [x1, spine] = [280 - DATAFLOW_LAYOUT.rowPadding, (272 + 384) / 2];
-        // Into the first column straight from the trunk or down the spine
+        // The trunk leaves room for the badge of 34 and a margin of 8 on both sides
+        const [x1, trunk] = [280 - DATAFLOW_LAYOUT.rowPadding, 272 + 34 + 16];
+        // Into the first row straight, behind the boxes in front of a later column
         expect(scene.edges[0].path).toBe(`M ${x1} 56 L 384 56`);
-        expect(scene.edges[3].path).toContain(`Q ${spine} 376`);
-        // Into the third column over the boxes in front of it: up the spine, along the gap above, down the gap left
-        const third = scene.edges[2].path;
-        expect(third.startsWith(`M ${x1} 56`)).toBe(true);
-        for (const corner of [`Q ${spine} 56`, `Q ${spine} -16`, 'Q 984 -16', 'Q 984 56']) expect(third).toContain(corner);
-        expect(third.endsWith('L 1008 56')).toBe(true);
-        // Into the second row of the second column through the gap above it
-        expect(scene.edges[4].path).toContain('Q 672 304');
+        expect(scene.edges[2].path).toBe(`M ${x1} 56 L 1008 56`);
+        // Into the second row with a curve after the trunk, reaching at least 40 when the ports are close
+        expect(scene.edges[3].path).toBe(`M ${x1} 56 L ${trunk} 56 C ${trunk + 40} 56, 344 376, 384 376`);
+        expect(scene.edges[4].path).toBe(`M ${x1} 56 L ${trunk} 56 C ${trunk + 187} 56, ${696 - 187} 376, 696 376`);
         // One badge for the bus, on the trunk
-        expect(scene.edges.map(e => e.badge).filter(b => b != null)).toEqual([{ x: (x1 + spine) / 2, y: 56, width: 34, text: 'base' }]);
+        expect(scene.edges.map(e => e.badge).filter(b => b != null)).toEqual([{ x: (x1 + trunk) / 2, y: 56, width: 34, text: 'base' }]);
     });
 
     it('fits a scene into a viewport at most at its real size', () => {

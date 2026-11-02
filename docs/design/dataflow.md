@@ -90,13 +90,14 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   edited.
 - `dataflow_scene.ts` turns the graph and the layout into the scene: boxes, statement rows with their ports, charts,
   edge paths and badges. An edge between boxes runs from the output port on the right of its source row to the input
-  port on the left of its target row, orthogonal with rounded corners like the edges of the plan view: with at most
-  two turns to a target on the right, around the boxes to a target on the left or at the same x. The edges of an
-  output port share a spine halfway to its nearest target on the right, so a fan-out is a bus. An edge whose target
-  row has a box in front of it, e.g. a later column of a grid, leaves the spine through the gap above the target and
-  comes down the gap left of it. The table edges of a port with the same relation have one badge, on the trunk before
-  the spine. Edges inside a box run along the left of its rows. Collapsed boxes merge their edges and leave out the
-  edges inside them.
+  port on the left of its target row. To a target on the right it is a cubic curve that leaves and enters its ports
+  horizontally, with control points halfway between the ports, at least 40 apart from them between rows at different
+  heights. Edges never share a segment between their ends, a curve may pass behind a box in front of its target. To
+  a target on the left or at the same x the edge loops around the boxes: a bend out of the source, a straight run
+  back through the gap between the boxes or below both, a bend into the target. The table edges of a port with the
+  same relation are a bus: they share a straight trunk out of the port with one badge on it and curve apart after
+  it. Edges inside a box run along the left of its rows with rounded corners. Collapsed boxes merge their edges and
+  leave out the edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
   (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are white cards with a solid neutral border like the entries
   of the feed, statements are node frames, inline references and table edges are solid, scans and invalid references
