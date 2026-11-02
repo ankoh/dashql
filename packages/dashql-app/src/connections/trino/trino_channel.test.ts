@@ -6,8 +6,10 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ChannelError } from '../../platform/channel_common.js';
 import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
 import type { TrinoApiClientInterface, TrinoQueryResult } from './trino_api_client.js';
-import { TrinoApiEndpoint } from './trino_api_client.js';
-import { TrinoQueryResultStream } from './trino_channel.js';
+import { TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
+import { TrinoChannel, TrinoQueryResultStream } from './trino_channel.js';
+import * as proto from '../../proto.js';
+import * as buf from '@bufbuild/protobuf';
 
 const COLUMNS = [{ name: 'customer_id', type: 'bigint' }];
 const state = (name: string) => ({ state: name }) as TrinoQueryResult['stats'];
@@ -85,3 +87,32 @@ describe('TrinoQueryResultStream', () => {
         expect(apiClient.cancelQuery).toHaveBeenCalledWith(expect.any(TrinoApiEndpoint), 'query-id');
     });
 });
+
+describe('TrinoChannel', () => {
+    /// A channel with basic auth whose HTTP client answers every request with the response
+    function channel(response: () => Response) {
+        const fetch = vi.fn(async () => response());
+        const endpoint = new TrinoApiEndpoint('https://trino.example.com', { authType: 'AUTH_BASIC', basic: { username: 'user', secret: 'secret' } } as never);
+        return { fetch, channel: new TrinoChannel(new TestLogger(), new TrinoApiClient(new TestLogger(), { fetch }), endpoint, 'hive') };
+    }
+    const query = (text: string) => buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, { query: text });
+
+    it('posts the statement to the catalog and opens the result stream', async () => {
+        const { fetch, channel: trino } = channel(() => new Response(JSON.stringify({ id: 'q1', columns: COLUMNS, stats: { state: 'FINISHED' } })));
+        const stream = await trino.executeQuery(query('select 1'));
+
+        const [url, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+        expect(url.toString()).toBe('https://trino.example.com/v1/statement');
+        expect(init.body).toBe('select 1');
+        const headers = new Headers(init.headers);
+        expect([headers.get('X-Trino-Catalog'), headers.get('X-Trino-User'), headers.get('Authorization')]).toEqual(['hive', 'user', `Basic ${btoa('user:secret')}`]);
+        expect((await stream.getSchema())?.fields.map(field => field.name)).toEqual(['customer_id']);
+        expect(stream.getMetrics()).toMatchObject({ totalQueryRequestsStarted: 1, totalQueryRequestsSucceeded: 1 });
+    });
+
+    it('fails on statements that Trino rejects', async () => {
+        const { channel: trino } = channel(() => new Response('denied', { status: 403, statusText: 'Forbidden' }));
+        await expect(trino.executeQuery(query('select 1'))).rejects.toMatchObject({ message: 'Query failed', keyValues: { status: '403', message: 'Forbidden' } });
+    });
+});
+
