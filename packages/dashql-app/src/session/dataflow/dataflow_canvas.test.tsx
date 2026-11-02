@@ -4,7 +4,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
+import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
+import { CREATE_SCRIPT,DELETE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
 import { analyzedTestSession, withTestScript } from './dataflow_test_session.js';
 import { loadDataflowModule } from './dataflow_module.js';
@@ -98,6 +99,18 @@ describe('DataflowCanvas', () => {
         const edges = [...container.querySelectorAll('[data-dataflow-edge]')].map(e => e.getAttribute('data-kind'));
         expect(edges).toEqual(['table', 'table']);
         expect([...container.querySelectorAll('[data-dataflow-badge] text')].map(t => t.textContent)).toEqual(['t']);
+    });
+
+    it('shows the status of the last run in the header of a box', () => {
+        const status = () => box('report.sql').querySelector('[data-dataflow-status]')!;
+        render();
+        expect(status().getAttribute('data-dataflow-status')).toBe('None');
+        expect(status().querySelector('title')?.textContent).toBe('Not run yet');
+        const failed = { status: QueryExecutionStatus.FAILED, error: null, statementIndex: null, statementCount: null } as unknown as QueryExecutionState;
+        act(() => root.render(
+            <DataflowCanvas sessionScripts={session} modifySessionScripts={modify} dependencies={{ ...dependencies, useQueryState: () => failed }} />,
+        ));
+        expect(status().getAttribute('data-dataflow-status')).toBe('Failed');
     });
 
     it('draws the edges on the outlines of the boxes and below their statements', () => {

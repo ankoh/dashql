@@ -94,13 +94,6 @@
     pointer-events: none;
 }
 
-.status {
-    fill: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
-}
-.status[data-status="running"] { fill: hsl(41, 92%, 52%); }
-.status[data-status="succeeded"] { fill: hsl(137, 55%, 40%); }
-.status[data-status="failed"] { fill: hsl(356, 72%, 52%); }
-
 .action {
     cursor: pointer;
     color: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 34%);

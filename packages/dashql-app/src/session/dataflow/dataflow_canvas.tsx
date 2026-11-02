@@ -6,7 +6,8 @@ import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
 import { useQueryState } from '../../connections/query_executor.js';
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
+import { deriveEntryStatus } from '../entry_status_model.js';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
@@ -735,12 +736,17 @@ function DataflowInputPorts(props: { box: DataflowSceneInput; highlighted: boole
     return <GraphPort x={x} y={y} side="right" highlighted={props.highlighted} data-dataflow-port="output" />;
 }
 
-/// The status of the last run of a script
-function runStatus(status: QueryExecutionStatus | undefined): 'running' | 'succeeded' | 'failed' | 'idle' {
-    if (status == null) return 'idle';
-    if (status === QueryExecutionStatus.SUCCEEDED) return 'succeeded';
-    if (status === QueryExecutionStatus.FAILED || status === QueryExecutionStatus.CANCELLED) return 'failed';
-    return 'running';
+/// The size of the status indicator in a box header
+const STATUS_SIZE = 14;
+
+/// The status indicator of a box header, centered where the title starts. The message shows as a tooltip.
+function DataflowBoxStatus(props: { x: number; y: number; status: IndicatorStatus; message: string }): React.ReactElement {
+    return (
+        <g transform={`translate(${props.x - STATUS_SIZE / 2}, ${props.y - STATUS_SIZE / 2})`} data-dataflow-status={IndicatorStatus[props.status]}>
+            <title>{props.message}</title>
+            <StatusIndicator status={props.status} width={`${STATUS_SIZE}px`} height={`${STATUS_SIZE}px`} />
+        </g>
+    );
 }
 
 /// A script box: the header with the name and the actions, the statement rows, and the chart. The ports are drawn
@@ -749,7 +755,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
     const { box, script } = props;
     const config = props.config;
     const query = props.dependencies.useQueryState(props.sessionId, script?.latestQueryId ?? null);
-    const status = runStatus(query?.status);
+    const status = deriveEntryStatus(query ?? null);
     const name = scriptDisplayName(box.script.fileName);
     const scriptKey = box.script.scriptKey;
     const terminal = box.rows.length - 1;
@@ -790,7 +796,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 }}
             >
                 <rect x={box.x} y={box.y} width={box.width} height={config.headerHeight} rx={8} ry={8} className={styles.header_hit} />
-                <circle className={styles.status} data-status={status} cx={box.x + 14} cy={box.y + config.headerHeight / 2} r={4} />
+                <DataflowBoxStatus x={box.x + 14} y={box.y + config.headerHeight / 2} status={status.indicator} message={status.message} />
                 <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(name, titleChars)}</text>
             </g>
             {actions.map((action, i) => {
@@ -960,7 +966,12 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
                 }}
             >
                 <rect x={box.x} y={box.y} width={box.width} height={config.headerHeight} rx={8} ry={8} className={styles.header_hit} />
-                <circle className={styles.status} data-status={props.busy ? 'running' : 'idle'} cx={box.x + 14} cy={box.y + config.headerHeight / 2} r={4} />
+                <DataflowBoxStatus
+                    x={box.x + 14}
+                    y={box.y + config.headerHeight / 2}
+                    status={props.busy ? IndicatorStatus.Running : IndicatorStatus.None}
+                    message={props.busy ? 'Running the scripts that use the input' : 'Idle'}
+                />
                 <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(`:${name}`, 16)}</text>
                 <text className={styles.input_type} x={box.x + box.width - 12} y={box.y + config.headerHeight / 2} data-inferred={!input.type.cast || undefined}>
                     {truncate(input.type.sql, 14)}
