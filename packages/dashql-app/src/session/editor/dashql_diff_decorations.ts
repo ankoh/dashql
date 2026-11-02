@@ -34,7 +34,7 @@ class DeleteMarker extends GutterMarker {
     }
 }
 
-interface DiffDecorationState {
+export interface DiffDecorationState {
     /// The pending diff this state was built from (identity used to skip rebuilds)
     pendingDiff: DashQLPendingDiff | null;
     /// The in-place highlight decorations
@@ -49,7 +49,7 @@ interface DiffDecorationState {
 /// into the current document; no token resolution is needed on the JS side. Deletions have no
 /// target span, so we anchor their gutter marker at the end of the most recently seen surviving
 /// statement (falling back to the document start).
-function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): DiffDecorationState {
+export function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): DiffDecorationState {
     if (pending == null) {
         return { pendingDiff: null, decorations: Decoration.none, deleteLines: new Set() };
     }
