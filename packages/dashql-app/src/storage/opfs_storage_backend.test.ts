@@ -40,6 +40,35 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         files.set(`sessions/${TEST_SESSION_ID}/scripts/dashql-draft.sql`, 'SELECT 1');
         await expect(backend.loadScripts(TEST_SESSION_ID)).rejects.toThrow('dashql-draft.sql is not supported');
     });
+    it('reorders the sessions of the manifest and keeps unlisted ones at the end', async () => {
+        const ids = ['a', 'b', 'c'].map(c => `${c.repeat(8)}-0000-4000-8000-000000000000`);
+        for (const id of ids) await backend.saveSessionManifest(id, testSession({ sessionId: id }));
+        await backend.reorderSessions([ids[2], 'unknown', ids[0], ids[2]]);
+        expect((await backend.listSessions(STORAGE_MANIFEST_FILE)).map(entry => entry.path)).toEqual([ids[2], ids[0], ids[1]]);
+    });
+
+    it('renames scripts and skips scripts that are not written yet', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveScript(TEST_SESSION_ID, '01_old.sql', 'SELECT 1');
+        await backend.renameScript(TEST_SESSION_ID, '01_old.sql', '01_old.sql');
+        await backend.renameScript(TEST_SESSION_ID, '01_old.sql', '02_new.sql');
+        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '02_new.sql', sql: 'SELECT 1' }]);
+        await expect(backend.renameScript(TEST_SESSION_ID, 'missing.sql', 'other.sql')).resolves.toBeUndefined();
+        await expect(backend.renameScript('ffffffff-0000-4000-8000-000000000000', 'a.sql', 'b.sql')).resolves.toBeUndefined();
+    });
+
+    it('clears the app folders and the sessions of the manifest but no other storage', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveScript(TEST_SESSION_ID, '01.sql', 'SELECT 1');
+        await backend.createConnectionFolder('connection');
+        files.set('other/file.txt', 'kept');
+        await backend.clearAllStorage();
+        expect(await backend.listSessions(STORAGE_MANIFEST_FILE)).toEqual([]);
+        expect([...files.keys()].filter(path => path.startsWith('sessions/') || path.startsWith('connections/'))).toEqual([]);
+        expect(dirs.has('connections/connection')).toBe(false);
+        expect(files.get('other/file.txt')).toBe('kept');
+    });
+
     it('preserves binary data through rename fallback and deletion', async () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40]);
         await backend.saveDataFile(TEST_SESSION_ID, 'payload.parquet', bytes);
