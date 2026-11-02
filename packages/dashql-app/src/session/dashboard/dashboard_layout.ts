@@ -4,6 +4,8 @@ export const DASHBOARD_ROW_HEIGHT = 40;
 export const DASHBOARD_GRID_GAP = 12;
 export const DASHBOARD_DEFAULT_WIDTH = 6;
 export const DASHBOARD_DEFAULT_HEIGHT = 6;
+/// A script without a visualization only offers its renderers, a third of the board is enough
+export const DASHBOARD_COLLAPSED_WIDTH = 4;
 
 export interface DashboardLayoutHint {
     row?: number | null;

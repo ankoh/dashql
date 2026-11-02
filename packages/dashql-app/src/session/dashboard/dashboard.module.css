@@ -58,13 +58,46 @@
 /* A script without a visualization, its header fills the single row of the card */
 .card_collapsed {
     grid-template-rows: minmax(0, 1fr);
-    border-style: dashed;
+    background: rgba(255, 255, 255, 0.6);
     box-shadow: none;
 }
 
+/* Inset from the sides of the card, the renderers are the only controls */
 .card_collapsed .card_header {
+    gap: 8px;
+    /* Clear of the resize handle in the corner */
+    padding: 0 16px 0 6px;
     border-bottom: 0;
     background: transparent;
+}
+
+/* A narrower handle, the grip sits closer to the edge and the title */
+.card_collapsed .drag_handle {
+    flex-basis: 20px;
+    width: 20px;
+}
+
+.card_collapsed .card_title {
+    color: var(--base_color_neutral_7);
+}
+
+/* The renderers and the editor of a collapsed card, small and muted until hovered */
+.card_renderers {
+    flex: 0 0 auto;
+}
+
+.card_collapsed .card_renderers button {
+    width: 26px;
+    height: 24px;
+    color: var(--base_color_neutral_5);
+}
+
+.card_collapsed .card_renderers button:hover:not(:disabled) {
+    color: var(--base_color_neutral_8);
+}
+
+.card_collapsed .card_renderers button:disabled {
+    color: var(--base_color_neutral_3);
 }
 
 .card_header {

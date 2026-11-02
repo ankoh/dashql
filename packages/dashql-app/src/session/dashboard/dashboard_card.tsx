@@ -10,15 +10,16 @@ import type { ScriptData } from '../scripts/session_scripts.js';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { PencilIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { GraphIcon, PencilIcon, SymbolIcon, TableIcon } from '../../ui/foundations/symbol_icon.js';
 import { dashboardCardHeight, type DashboardPlacement } from './dashboard_layout.js';
 import { markdownTemplate, type DashboardRenderer } from './dashboard_source.js';
 import * as styles from './dashboard.module.css';
 
 const DragHandleIcon = SymbolIcon('drag_handle_16');
+const MarkdownIcon = SymbolIcon('mark_text_16');
 
 export interface DashboardCardDependencies {
     useQueryState: typeof useQueryState;
@@ -151,41 +152,51 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 {props.shifted && <span className={styles.shifted_badge} title="Moved to avoid overlapping another dashboard card">Shifted</span>}
                 {collapsed ? (
                     <>
-                        <ButtonGroup className={styles.card_segments} aria-label={`Visualize ${displayName}`}>
-                            <Button
-                                size={ButtonSize.Tiny}
+                        <ButtonGroup className={styles.card_renderers} aria-label={`Visualize or edit ${displayName}`}>
+                            <IconButton
+                                size={ButtonSize.Small}
                                 variant={ButtonVariant.Default}
                                 disabled={!visualizable}
-                                title={visualizable ? 'Show the result table' : notVisualizable}
+                                aria-label="Table"
+                                description={visualizable ? 'Show the result table' : notVisualizable}
                                 data-testid="dashboard-card-table"
                                 onClick={() => props.onVisualize(props.script.scriptKey, 'table', '')}
-                            >Table</Button>
-                            <Button
-                                size={ButtonSize.Tiny}
+                            >
+                                <TableIcon size={12} />
+                            </IconButton>
+                            <IconButton
+                                size={ButtonSize.Small}
                                 variant={ButtonVariant.Default}
                                 disabled={!visualizable}
-                                title={visualizable ? 'Build a chart' : notVisualizable}
+                                aria-label="Chart"
+                                description={visualizable ? 'Build a chart' : notVisualizable}
                                 data-testid="dashboard-card-chart"
                                 onClick={() => props.onOpenChart(props.script.scriptKey)}
-                            >Chart</Button>
-                            <Button
-                                size={ButtonSize.Tiny}
+                            >
+                                <GraphIcon size={12} />
+                            </IconButton>
+                            <IconButton
+                                size={ButtonSize.Small}
                                 variant={ButtonVariant.Default}
                                 disabled={!visualizable || template == null}
-                                title={!visualizable ? notVisualizable : template == null ? 'Run the script first' : 'Render every row as Markdown'}
+                                aria-label="Markdown"
+                                description={!visualizable ? notVisualizable : template == null ? 'Run the script first' : 'Render every row as Markdown'}
                                 data-testid="dashboard-card-markdown"
                                 onClick={() => template != null && props.onVisualize(props.script.scriptKey, 'markdown', template)}
-                            >Markdown</Button>
+                            >
+                                <MarkdownIcon size={12} />
+                            </IconButton>
+                            <IconButton
+                                size={ButtonSize.Small}
+                                variant={ButtonVariant.Default}
+                                aria-label={`Edit ${displayName}`}
+                                description="Edit the script"
+                                data-testid="dashboard-card-edit"
+                                onClick={() => props.onOpenEditor(props.script.scriptKey)}
+                            >
+                                <PencilIcon size={12} />
+                            </IconButton>
                         </ButtonGroup>
-                        <IconButton
-                            size={ButtonSize.Tiny}
-                            variant={ButtonVariant.Invisible}
-                            aria-label={`Edit ${displayName}`}
-                            data-testid="dashboard-card-edit"
-                            onClick={() => props.onOpenEditor(props.script.scriptKey)}
-                        >
-                            <PencilIcon size={14} />
-                        </IconButton>
                     </>
                 ) : (
                     <SegmentedControl

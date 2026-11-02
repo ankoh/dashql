@@ -8,6 +8,7 @@ import type { ModifySessionScripts } from '../scripts/session_scripts_registry.j
 import { DashboardCard } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
+    DASHBOARD_COLLAPSED_WIDTH,
     DASHBOARD_COLUMN_COUNT,
     DASHBOARD_GRID_GAP,
     DASHBOARD_ROW_HEIGHT,
@@ -63,13 +64,14 @@ function preferredPlacement(script: ScriptData): DashboardSpec | null {
 function readLayout(sessionScripts: SessionScripts): DashboardPlacement[] {
     return placeDashboardItems(readScripts(sessionScripts).map(script => {
         const spec = preferredPlacement(script);
+        // A script without a visualization is a collapsed card of one row
+        const collapsed = script.annotations.visualizeQuery == null;
         return {
             id: script.scriptKey,
             row: spec?.row,
             column: spec?.column,
-            width: spec?.width,
-            // A script without a visualization is a collapsed card of one row
-            height: script.annotations.visualizeQuery == null ? 1 : spec?.height,
+            width: spec?.width ?? (collapsed ? DASHBOARD_COLLAPSED_WIDTH : undefined),
+            height: collapsed ? 1 : spec?.height,
         };
     }));
 }
