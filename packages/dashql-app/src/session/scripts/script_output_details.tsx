@@ -1,24 +1,23 @@
 import * as React from 'react';
 
-import icons from '@ankoh/dashql-svg-symbols';
-
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
 import type { ResolvedVisualizeQuery } from './script_types.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 import { ColumnAggregationBar } from '../../views/visualization/column_aggregation_bar.js';
-import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { TabHeader, formatRowCountDetail, useResultRowCount } from '../tab_header.js';
+import { FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from '../feed/feed_entry_footer.js';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import * as styles from './script_output_details.module.css';
 import { classNames } from '../../utils/classnames.js';
 
+/// The tabs a Details view can be opened on. The result tabs map onto the tabs of the feed entry
+/// card, whose tab strip the Details view shares.
 export enum ScriptDetailsTab {
     Editor = 0,
     QueryStatusPanel = 1,
@@ -40,132 +39,62 @@ interface Props {
     contentId?: string;
 }
 
+const RESULT_TABS: Partial<Record<ScriptDetailsTab, FeedEntryTab>> = {
+    [ScriptDetailsTab.QueryStatusPanel]: FeedEntryTab.ExecutionLog,
+    [ScriptDetailsTab.QueryResultView]: FeedEntryTab.Table,
+    [ScriptDetailsTab.Visualization]: FeedEntryTab.Visualization,
+};
+
+/// The result card of the Details view. It follows the feed entry card: the result tabs sit in the
+/// status bar and the selected tab fills the content below it.
 export const ScriptOutputDetails: React.FC<Props> = (props) => {
-    const queryTraceId = props.query?.traceId ?? null;
-    const { hasResult, totalRows } = useResultRowCount(props.query);
-    const hasVisualization = hasResult && props.visualizeQuery != null && props.visualizeQuery.renderer !== 'table';
+    const { totalRows } = useResultRowCount(props.query);
     const entryStatus = deriveEntryStatus(props.query);
+    const resultTabs = useFeedEntryTabs(props.query, props.visualizeQuery, undefined,
+        props.initialTab != null ? RESULT_TABS[props.initialTab] : undefined);
 
-    const defaultTab = () => {
-        if (props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor) return props.initialTab;
-        if (hasVisualization) return ScriptDetailsTab.Visualization;
-        if (hasResult) return ScriptDetailsTab.QueryResultView;
-        if (queryTraceId != null) return ScriptDetailsTab.QueryStatusPanel;
-        return ScriptDetailsTab.QueryStatusPanel;
-    };
-    const [selectedTab, selectTab] = React.useState<ScriptDetailsTab>(defaultTab);
-
-    const tabProps = React.useMemo<Record<ScriptDetailsTab, VerticalTabProps>>(() => ({
-        [ScriptDetailsTab.Editor]: {
-            tabId: ScriptDetailsTab.Editor,
-            icon: '',
-            labelShort: 'Editor',
-            disabled: true,
-        },
-        [ScriptDetailsTab.QueryStatusPanel]: {
-            tabId: ScriptDetailsTab.QueryStatusPanel,
-            icon: `${icons}#log_24`,
-            labelShort: 'Log',
-            ariaLabel: 'Execution log',
-            description: 'Execution log',
-            disabled: queryTraceId == null,
-        },
-        [ScriptDetailsTab.QueryResultView]: {
-            tabId: ScriptDetailsTab.QueryResultView,
-            icon: `${icons}#table_24`,
-            labelShort: 'Data',
-            ariaLabel: 'Query results',
-            description: 'Query results',
-            disabled: !hasResult,
-        },
-        [ScriptDetailsTab.Visualization]: {
-            tabId: ScriptDetailsTab.Visualization,
-            icon: `${icons}#graph_24`,
-            labelShort: 'Chart',
-            ariaLabel: 'Visualization',
-            description: 'Visualization',
-            disabled: !hasVisualization,
-        },
-    }), [hasResult, hasVisualization, queryTraceId]);
-
-    const tabKeys = React.useMemo(() => {
-        const tabs = [ScriptDetailsTab.QueryStatusPanel];
-        if (hasResult) tabs.push(ScriptDetailsTab.QueryResultView);
-        if (hasVisualization) tabs.push(ScriptDetailsTab.Visualization);
-        return tabs;
-    }, [hasResult, hasVisualization]);
-    const enabledTabs = React.useMemo(
-        () => tabKeys.filter(tab => !tabProps[tab].disabled),
-        [tabKeys, tabProps],
-    );
-
-    React.useEffect(() => {
-        if (enabledTabs.length > 0 && !enabledTabs.includes(selectedTab)) {
-            selectTab(enabledTabs[0]);
-        }
-    }, [enabledTabs, selectedTab]);
-
-    const previousStatus = React.useRef<QueryExecutionStatus | null>(props.query?.status ?? null);
-    React.useEffect(() => {
-        const status = props.query?.status ?? null;
-        if (status === previousStatus.current) return;
-        previousStatus.current = status;
-        if (status === QueryExecutionStatus.SUCCEEDED) {
-            selectTab(props.visualizeQuery != null && props.visualizeQuery.renderer !== 'table'
-                ? ScriptDetailsTab.Visualization
-                : ScriptDetailsTab.QueryResultView);
-        } else if (status != null) {
-            selectTab(ScriptDetailsTab.QueryStatusPanel);
-        }
-    }, [props.query?.status, props.visualizeQuery]);
-
-    // A chart for the shown result, e.g. written by the agent after it ran the query
-    const previousHasVisualization = React.useRef(hasVisualization);
-    React.useEffect(() => {
-        if (hasVisualization && !previousHasVisualization.current) selectTab(ScriptDetailsTab.Visualization);
-        previousHasVisualization.current = hasVisualization;
-    }, [hasVisualization]);
-
+    const { tabs, selectTab } = resultTabs;
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [{
         key: 'j',
         ctrlKey: true,
         callback: () => {
-            if (enabledTabs.length === 0) return;
-            selectTab(current => {
-                const currentIndex = enabledTabs.indexOf(current);
-                return enabledTabs[(currentIndex + 1) % enabledTabs.length];
-            });
+            if (tabs.length === 0) return;
+            const currentIndex = tabs.findIndex(t => t.tab === resultTabs.selectedTab);
+            selectTab(tabs[(currentIndex + 1) % tabs.length].tab);
         },
-    }], [enabledTabs]);
+    }], [tabs, selectTab, resultTabs.selectedTab]);
     useKeyEvents(keyHandlers);
 
-    const cancel = entryStatus.kind === EntryStatusKind.Query ? props.onCancelQuery : undefined;
-    const tabRenderers = React.useMemo(() => ({
-        [ScriptDetailsTab.QueryStatusPanel]: () => (
-            <div className={styles.tab_body}>
-                <TraceLogPanel traceId={queryTraceId} title="Execution Logs" />
-            </div>
-        ),
-        [ScriptDetailsTab.QueryResultView]: () => (
-            <QueryResultDetails query={props.query!} debugMode={props.tableDebugMode} />
-        ),
-        [ScriptDetailsTab.Visualization]: () => (
-            <div className={styles.visualization}>
-                <TabHeader
-                    title="Visualization"
-                    detail={formatRowCountDetail(totalRows)}
-                    actions={props.query != null && props.visualizeQuery?.renderer === 'vegalite' ? (
-                        <ChartDownloadButton query={props.query} spec={props.visualizeQuery.vegaLiteSpec} />
-                    ) : undefined}
-                />
-                <ColumnAggregationBar query={props.query} debugMode={props.tableDebugMode} />
-                <div className={styles.visualization_body}>
-                    <VisualizationDispatch query={props.query!} visualizeQuery={props.visualizeQuery} />
+    const renderTab = () => {
+        switch (resultTabs.selectedTab) {
+            case FeedEntryTab.ExecutionLog: return (
+                <div className={styles.tab_body}>
+                    <TraceLogPanel traceId={props.query?.traceId ?? null} title="Execution Logs" />
                 </div>
-            </div>
-        ),
-    }), [props.query, props.tableDebugMode, props.visualizeQuery, queryTraceId, totalRows]);
+            );
+            case FeedEntryTab.Table: return props.query != null && (
+                <QueryResultDetails query={props.query} debugMode={props.tableDebugMode} />
+            );
+            case FeedEntryTab.Visualization: return props.query != null && (
+                <div className={styles.visualization}>
+                    <TabHeader
+                        title="Visualization"
+                        detail={formatRowCountDetail(totalRows)}
+                        actions={props.visualizeQuery?.renderer === 'vegalite' ? (
+                            <ChartDownloadButton query={props.query} spec={props.visualizeQuery.vegaLiteSpec} />
+                        ) : undefined}
+                    />
+                    <ColumnAggregationBar query={props.query} debugMode={props.tableDebugMode} />
+                    <div className={styles.visualization_body}>
+                        <VisualizationDispatch query={props.query} visualizeQuery={props.visualizeQuery} />
+                    </div>
+                </div>
+            );
+        }
+    };
 
+    const cancel = entryStatus.kind === EntryStatusKind.Query ? props.onCancelQuery : undefined;
+    const expanded = props.expanded !== false;
     return (
         <div className={classNames(styles.card, props.className, { [styles.embedded]: props.embedded })}>
             <EntryStatusBar
@@ -175,20 +104,18 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
                 controls={props.contentId}
                 onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancel : undefined}
                 cancelLabel="Cancel query"
+                compact
+                tabs={
+                    <FeedEntryTabStrip
+                        tabs={resultTabs}
+                        expanded={expanded}
+                        onSelect={!expanded ? props.onToggleExpanded : undefined}
+                    />
+                }
                 actions={props.statusActions}
             />
-            <div id={props.contentId} className={styles.content} hidden={props.expanded === false}>
-                {enabledTabs.length > 0 && (
-                    <VerticalTabs
-                        className={styles.tabs}
-                        variant={VerticalTabVariant.Stacked}
-                        selectedTab={selectedTab}
-                        selectTab={tab => selectTab(tab as ScriptDetailsTab)}
-                        tabProps={tabProps}
-                        tabKeys={tabKeys}
-                        tabRenderers={tabRenderers}
-                    />
-                )}
+            <div id={props.contentId} className={styles.content} hidden={!expanded}>
+                {tabs.length > 0 && renderTab()}
             </div>
         </div>
     );

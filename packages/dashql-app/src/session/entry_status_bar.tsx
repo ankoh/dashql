@@ -123,7 +123,6 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
 
     return (
         <div className={classNames(styles.status_bar, {
-            [styles.status_bar_collapsed]: expanded === false,
             [styles.status_bar_compact]: compact,
         })}>
             {tabs != null ? (

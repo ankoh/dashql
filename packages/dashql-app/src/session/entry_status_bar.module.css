@@ -5,12 +5,7 @@
     align-items: center;
     height: 40px;
     font-size: var(--font_size_small);
-    border-bottom: 1px solid var(--log_border_color);
     color: var(--card_control_color);
-}
-
-.status_bar_collapsed {
-    border-bottom-color: transparent;
 }
 
 .status_bar_compact {

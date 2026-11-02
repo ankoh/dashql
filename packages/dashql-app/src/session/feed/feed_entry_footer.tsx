@@ -62,18 +62,21 @@ export interface FeedEntryTabs {
 }
 
 /// Track the tabs of a feed entry result. A result that arrives switches to its table (or to its chart
-/// when the script visualizes it), a result that goes away falls back to the log.
+/// when the script visualizes it), a result that goes away falls back to the log. The Details view
+/// passes the tab it was opened on as `initialTab`.
 export function useFeedEntryTabs(
     queryState: QueryExecutionState | null,
     visualizeQuery: ResolvedVisualizeQuery | null,
     dependencies: Pick<FeedEntryFooterDependencies, 'useResultRowCount'> = DEFAULT_DEPENDENCIES,
+    initialTab?: FeedEntryTab,
 ): FeedEntryTabs {
     const { hasResult } = dependencies.useResultRowCount(queryState);
     const hasVisualization = hasResult && visualizeQuery != null && visualizeQuery.renderer !== 'table';
     const hasLog = queryState?.traceId != null;
 
     const [selectedTab, selectTab] = React.useState<FeedEntryTab>(
-        () => hasVisualization ? FeedEntryTab.Visualization
+        () => initialTab != null ? initialTab
+            : hasVisualization ? FeedEntryTab.Visualization
             : hasResult ? FeedEntryTab.Table
                 : FeedEntryTab.ExecutionLog
     );
