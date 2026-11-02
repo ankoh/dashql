@@ -14,7 +14,7 @@ describe('dashboard layout', () => {
         expect(placeDashboardItems([{ id: 1 }, { id: 2 }, { id: 3 }])).toEqual([
             { id: 1, row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
             { id: 2, row: 0, column: 6, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 3, row: 3, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 
@@ -32,9 +32,9 @@ describe('dashboard layout', () => {
         const initial = placeDashboardItems([{ id: 1 }, { id: 2 }, { id: 3 }]);
         const moved = moveDashboardItem(initial, 3, 0, 0);
         expect(moved).toEqual([
-            { id: 1, row: 0, column: 6, width: 6, height: 3 },
-            { id: 2, row: 3, column: 0, width: 6, height: 3 },
-            { id: 3, row: 0, column: 0, width: 6, height: 3 },
+            { id: 1, row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 
@@ -43,7 +43,7 @@ describe('dashboard layout', () => {
         const resized = resizeDashboardItem(initial, 1, 20, 4);
         expect(resized).toEqual([
             { id: 1, row: 0, column: 0, width: 12, height: 4 },
-            { id: 2, row: 4, column: 0, width: 6, height: 3 },
+            { id: 2, row: 4, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 });

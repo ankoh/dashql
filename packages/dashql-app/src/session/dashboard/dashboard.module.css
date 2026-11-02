@@ -27,7 +27,8 @@
 .grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-auto-rows: 96px;
+    /* A row is as high as a collapsed card */
+    grid-auto-rows: 40px;
     gap: 12px;
     width: 100%;
     max-width: 1600px;

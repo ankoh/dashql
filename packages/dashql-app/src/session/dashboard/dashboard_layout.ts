@@ -1,7 +1,9 @@
 export const DASHBOARD_COLUMN_COUNT = 12;
-export const DASHBOARD_ROW_HEIGHT = 96;
+/// A row is a single line, as high as a collapsed card
+export const DASHBOARD_ROW_HEIGHT = 40;
+export const DASHBOARD_GRID_GAP = 12;
 export const DASHBOARD_DEFAULT_WIDTH = 6;
-export const DASHBOARD_DEFAULT_HEIGHT = 3;
+export const DASHBOARD_DEFAULT_HEIGHT = 6;
 
 export interface DashboardLayoutHint {
     row?: number | null;
@@ -93,4 +95,9 @@ export function resizeDashboardItem(
     height: number,
 ): DashboardPlacement[] {
     return placeDashboardItems(items.map(item => item.id === ownerId ? { ...item, width, height } : item), ownerId);
+}
+
+/// The height of a card in pixels, with the gaps between its rows
+export function dashboardCardHeight(rows: number): number {
+    return rows * DASHBOARD_ROW_HEIGHT + Math.max(0, rows - 1) * DASHBOARD_GRID_GAP;
 }

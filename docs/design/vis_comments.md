@@ -74,9 +74,9 @@ SELECT * FROM orders;
 
 ## Dashboard placement
 
-The dashboard is a 12-column grid with zero-based coordinates. `row` and `column` are optional starting
-hints, `width` defaults to 6 columns and `height` to 3 rows. Invalid values are warnings and normalized:
-coordinates must be non-negative, the width is clamped to 1 through 12, the height is at least 1, and a
+The dashboard is a 12-column grid with zero-based coordinates. A row is as high as a collapsed card. `row` and
+`column` are optional starting hints, `width` defaults to 6 columns and `height` to 6 rows. Invalid values are warnings
+and normalized: coordinates must be non-negative, the width is clamped to 1 through 12, the height is at least 1, and a
 card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `@board`
 tag of the statement it shows (see Rewriting tags).
 

@@ -663,7 +663,7 @@ pub struct DashboardSpec {
     pub column: Option<i32>,
     /// The width in grid columns (1-12)
     pub width: i32,
-    /// The height in grid rows (at least 1)
+    /// The height in grid rows (at least 1), a row is as high as a collapsed card
     pub height: i32,
 }
 
@@ -673,7 +673,7 @@ impl Default for DashboardSpec {
             row: None,
             column: None,
             width: 6,
-            height: 3,
+            height: 6,
         }
     }
 }

@@ -9,6 +9,7 @@ import { DashboardCard } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
     DASHBOARD_COLUMN_COUNT,
+    DASHBOARD_GRID_GAP,
     DASHBOARD_ROW_HEIGHT,
     moveDashboardItem,
     placeDashboardItems,
@@ -19,7 +20,7 @@ import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer
 import { SessionInputStrip } from '../inputs/session_input_strip.js';
 import * as styles from './dashboard.module.css';
 
-const GRID_GAP = 12;
+const GRID_GAP = DASHBOARD_GRID_GAP;
 
 function samePlacement(a: DashboardPlacement | undefined, b: DashboardPlacement): boolean {
     return a != null && a.id === b.id && a.row === b.row && a.column === b.column && a.width === b.width && a.height === b.height;

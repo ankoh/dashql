@@ -14,7 +14,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundati
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { PencilIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import type { DashboardPlacement } from './dashboard_layout.js';
+import { dashboardCardHeight, type DashboardPlacement } from './dashboard_layout.js';
 import { markdownTemplate, type DashboardRenderer } from './dashboard_source.js';
 import * as styles from './dashboard.module.css';
 
@@ -134,7 +134,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 transform,
                 zIndex: draggable.isDragging ? 2 : undefined,
                 '--dashboard-card-rows': props.placement.height,
-                '--dashboard-card-height': `${props.placement.height * 96}px`,
+                '--dashboard-card-height': `${dashboardCardHeight(props.placement.height)}px`,
             } as React.CSSProperties}
         >
             <header className={styles.card_header}>
