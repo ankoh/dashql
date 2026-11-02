@@ -3,8 +3,8 @@
 //!
 //! The boxes are laid out like the app lays them out on its first render: a script with a `@flow` tag is laid out
 //! from its position, the chart of a visualized terminal statement follows its row, and the scripts of `collapsed`
-//! are collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide, the
-//! attachments follow the inputs the same way.
+//! are collapsed to their headers. The inputs follow the scripts as boxes of one row, the attachments follow the
+//! inputs the same way.
 
 use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
@@ -24,8 +24,6 @@ pub fn collapsed_of(fixture: &Node) -> Vec<String> {
     fixture.get("collapsed").map(Node::children).unwrap_or_default().into_iter().filter_map(|n| n.val().map(str::to_string)).collect()
 }
 
-/// The width of the box of an input, like the canvas of the app
-pub const INPUT_BOX_WIDTH: f64 = 200.0;
 
 /// Lay out the boxes of the scripts of a dataflow, then the boxes of its inputs
 fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collapsed: &[bool]) -> Vec<(f64, f64, f64, f64)> {
@@ -53,8 +51,8 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
                 dropped: false,
             }
         })
-        .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), input: true, ..Default::default() }))
-        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), input: true, ..Default::default() }))
+        .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, input: true, ..Default::default() }))
+        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, input: true, ..Default::default() }))
         .collect();
     let scripts = dataflow.scripts.len() as u32;
     let inputs = dataflow.inputs.len() as u32;

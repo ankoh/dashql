@@ -31,12 +31,12 @@ dataflow-snapshots:
             - type: INSERT
               target: t
               text: "insert int..+ 1 from t"
-          box: [376,32,280,80]
+          box: [424,32,280,80]
         - name: read
           statements:
             - type: SELECT
               text: "select cou..(*) from t"
-          box: [752,32,280,80]
+          box: [848,32,280,80]
       edges:
         - from: schema.0
           to: schema.1
@@ -75,7 +75,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: t
               text: "create tab.. t (a int)"
-          box: [312,0,280,80]
+          box: [328,0,280,80]
       edges: []
 
   - name: DropAndRecreate
@@ -101,7 +101,7 @@ dataflow-snapshots:
             - type: INSERT
               target: t
               text: "insert int..values (1)"
-          box: [0,176,280,112]
+          box: [0,208,280,112]
         - name: drop
           statements:
             - type: DROP_TABLE
@@ -115,7 +115,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select b from t"
-          box: [376,32,280,80]
+          box: [424,32,280,80]
       edges:
         - from: schema.0
           to: schema.1
@@ -148,7 +148,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select cou..) from big"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: load.0
           to: report.0
@@ -201,7 +201,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select a from t"
-          box: [312,0,280,80]
+          box: [328,0,280,80]
       edges:
         - from: remote.0
           to: remote.1
@@ -230,12 +230,12 @@ dataflow-snapshots:
           box: [0,0,280,80]
         - name: read
           analyzed: false
-          box: [0,144,280,32]
+          box: [0,176,280,32]
         - name: other
           statements:
             - type: SELECT
               text: "select a from t"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: schema.0
           to: other.0
@@ -298,12 +298,12 @@ dataflow-snapshots:
           box: [0,0,280,112]
         - name: more
           analyzed: false
-          box: [0,176,280,32]
+          box: [0,208,280,32]
         - name: read
           statements:
             - type: SELECT
               text: "select cou..(*) from t"
-          box: [376,32,280,80]
+          box: [424,32,280,80]
       edges:
         - from: schema.0
           to: schema.1

@@ -20,6 +20,66 @@ pub fn install_panic_hook() {
     });
 }
 
+/// The sizes of the dataflow canvas (`layout::DataflowLayoutConfig`), the one place where they are set
+#[wasm_bindgen]
+pub struct DataflowConfig {
+    #[wasm_bindgen(js_name = boxWidth)]
+    pub box_width: f64,
+    #[wasm_bindgen(js_name = chartBoxWidth)]
+    pub chart_box_width: f64,
+    #[wasm_bindgen(js_name = inputBoxWidth)]
+    pub input_box_width: f64,
+    #[wasm_bindgen(js_name = headerHeight)]
+    pub header_height: f64,
+    #[wasm_bindgen(js_name = rowHeight)]
+    pub row_height: f64,
+    #[wasm_bindgen(js_name = rowPadding)]
+    pub row_padding: f64,
+    #[wasm_bindgen(js_name = chartHeight)]
+    pub chart_height: f64,
+    #[wasm_bindgen(js_name = minBoxWidth)]
+    pub min_box_width: f64,
+    #[wasm_bindgen(js_name = maxBoxWidth)]
+    pub max_box_width: f64,
+    #[wasm_bindgen(js_name = minChartHeight)]
+    pub min_chart_height: f64,
+    #[wasm_bindgen(js_name = maxChartHeight)]
+    pub max_chart_height: f64,
+    #[wasm_bindgen(js_name = layerGap)]
+    pub layer_gap: f64,
+    #[wasm_bindgen(js_name = boxGap)]
+    pub box_gap: f64,
+    #[wasm_bindgen(js_name = edgeGap)]
+    pub edge_gap: f64,
+    #[wasm_bindgen(js_name = edgeBoxGap)]
+    pub edge_box_gap: f64,
+    pub grid: f64,
+}
+
+/// The sizes of the dataflow canvas
+#[wasm_bindgen(js_name = dataflowConfig)]
+pub fn dataflow_config() -> DataflowConfig {
+    let c = dashql_dataflow::layout::DataflowLayoutConfig::default();
+    DataflowConfig {
+        box_width: c.box_width,
+        chart_box_width: c.chart_box_width,
+        input_box_width: c.input_box_width,
+        header_height: c.header_height,
+        row_height: c.row_height,
+        row_padding: c.row_padding,
+        chart_height: c.chart_height,
+        min_box_width: c.min_box_width,
+        max_box_width: c.max_box_width,
+        min_chart_height: c.min_chart_height,
+        max_chart_height: c.max_chart_height,
+        layer_gap: c.layer_gap,
+        box_gap: c.box_gap,
+        edge_gap: c.edge_gap,
+        edge_box_gap: c.edge_box_gap,
+        grid: c.grid,
+    }
+}
+
 /// Route the edges of the dataflow canvas around its boxes (`routing::route_edges`). The boxes are x, y,
 /// width and height, the edges x and y of the source on the right border of its box and x and y of the target on the
 /// left border of its box. Returns per edge the number of points of its route, 0 without a route, followed by x and
@@ -30,7 +90,7 @@ pub fn route_dataflow_edges(boxes: &[f64], edges: &[f64]) -> Vec<f64> {
     let boxes: Vec<RouteBox> = boxes.chunks_exact(4).map(|b| RouteBox { x: b[0], y: b[1], width: b[2], height: b[3] }).collect();
     let edges: Vec<RouteRequestEdge> = edges.chunks_exact(4).map(|e| RouteRequestEdge { from: (e[0], e[1]), to: (e[2], e[3]) }).collect();
     let mut out = Vec::new();
-    for route in route_edges(&boxes, &edges) {
+    for route in route_edges(&boxes, &edges, &dashql_dataflow::layout::DataflowLayoutConfig::default()) {
         let points = route.unwrap_or_default();
         out.push(points.len() as f64);
         out.extend(points.iter().flat_map(|p| [p.0, p.1]));
@@ -57,35 +117,6 @@ impl DataflowLayout {
         DataflowLayout { config: Default::default(), boxes: Vec::new(), edges: Vec::new(), geometry: Vec::new(), routes: Vec::new() }
     }
 
-    /// Set the sizes of the canvas, the defaults of the core otherwise
-    #[wasm_bindgen(js_name = setConfig)]
-    #[allow(clippy::too_many_arguments)]
-    pub fn set_config(
-        &mut self,
-        box_width: f64,
-        chart_box_width: f64,
-        header_height: f64,
-        row_height: f64,
-        row_padding: f64,
-        chart_height: f64,
-        layer_gap: f64,
-        box_gap: f64,
-        wrap_siblings: u32,
-    ) {
-        self.config = dashql_dataflow::layout::DataflowLayoutConfig {
-            box_width,
-            chart_box_width,
-            header_height,
-            row_height,
-            row_padding,
-            chart_height,
-            layer_gap,
-            box_gap,
-            wrap_siblings: wrap_siblings as usize,
-            ..self.config
-        };
-    }
-
     /// Set the width over the height that the parts of the graph are packed for, e.g. of the viewport
     #[wasm_bindgen(js_name = setAspectRatio)]
     pub fn set_aspect_ratio(&mut self, aspect_ratio: f64) {
@@ -93,8 +124,8 @@ impl DataflowLayout {
     }
 
     /// Add a box, returns its index. A negative chart statement is absent, a width or a chart height that is not
-    /// positive is the one of the config, the chart box width for a box with a chart, the box of an input does not
-    /// tie its consumers into a fan-out. A hinted box is laid out from where it was, a dropped one from where the
+    /// positive is the one of the config, the chart box width for a box with a chart, the input box width for an
+    /// input, which does not tie its consumers into a fan-out. A hinted box is laid out from where it was, a dropped one from where the
     /// user dropped it.
     #[wasm_bindgen(js_name = addBox)]
     #[allow(clippy::too_many_arguments)]

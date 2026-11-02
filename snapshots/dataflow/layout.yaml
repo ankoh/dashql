@@ -31,12 +31,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select sum..rom orders"
-          box: [376,64,280,80]
+          box: [424,64,280,80]
         - name: chart
           statements:
             - type: SELECT
               text: "select tot..om :report"
-          box: [752,64,280,80]
+          box: [848,64,280,80]
       edges:
         - from: orders.0
           to: orders.2
@@ -75,12 +75,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,0,480,288]
+          box: [424,0,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select * f..:by_region"
-          box: [952,0,280,80]
+          box: [1048,0,280,80]
       edges:
         - from: sales.0
           to: by_region.0
@@ -114,12 +114,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select id ..rom orders"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..rom orders"
-          box: [376,112,280,80]
+          box: [424,128,280,80]
       edges:
         - from: orders.0
           to: by_id.0
@@ -164,37 +164,37 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: sales
               text: "create tab..mount int)"
-          box: [0,309,280,80]
+          box: [0,321,280,80]
         - name: by_region
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,0,480,288]
+          box: [424,0,480,288]
         - name: total
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [376,309,480,288]
+          box: [424,321,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select reg..c limit 10"
-          box: [952,242,480,288]
+          box: [1048,248,480,288]
         - name: regions
           statements:
             - type: SELECT
               text: "select dis..from sales"
-          box: [952,562,480,288]
+          box: [1048,584,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [376,618,480,288]
+          box: [424,642,480,288]
       inputs:
         - name: min
           type: "integer"
           value: "10"
-          box: [80,197,200,80]
+          box: [80,193,200,80]
       edges:
         - from: sales.0
           to: by_region.0
@@ -249,22 +249,22 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: sales
               text: "create tab..mount int)"
-          box: [0,320,280,80]
+          box: [0,336,280,80]
         - name: by_region
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,0,480,288]
+          box: [424,0,480,288]
         - name: total
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [376,320,480,288]
+          box: [424,336,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [376,640,480,288]
+          box: [424,672,480,288]
       edges:
         - from: sales.0
           to: by_region.0
@@ -305,18 +305,18 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select id,..ere id > 1"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: regions
           statements:
             - type: CREATE_TABLE
               target: regions
               text: "create tab..name text)"
-          box: [376,112,280,80]
+          box: [424,128,280,80]
         - name: report
           statements:
             - type: SELECT
               text: "select f.i..ion = r.id"
-          box: [752,0,280,80]
+          box: [848,0,280,80]
       edges:
         - from: orders.0
           to: filtered.0
@@ -358,17 +358,17 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: b
               text: "create tab.. b (x int)"
-          box: [0,144,280,80]
+          box: [0,176,280,80]
         - name: from_b
           statements:
             - type: SELECT
               text: "select x from b"
-          box: [376,144,280,80]
+          box: [424,176,280,80]
         - name: from_a
           statements:
             - type: SELECT
               text: "select x from a"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: a.0
           to: from_a.0
@@ -393,12 +393,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :b"
-          box: [386,0,280,80]
+          box: [440,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [10,0,280,80]
+          box: [16,0,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -451,45 +451,45 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select x from a"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: b
           statements:
             - type: CREATE_TABLE
               target: b
               text: "create tab.. b (x int)"
-          box: [0,144,280,80]
+          box: [0,176,280,80]
         - name: from_b
           statements:
             - type: SELECT
               text: "select x from b"
-          box: [376,144,280,80]
+          box: [424,176,280,80]
         - name: alone_1
           statements:
             - type: SELECT
               text: "select 1"
             - type: SELECT
               text: "select 2"
-          box: [0,288,280,112]
+          box: [0,352,280,112]
         - name: alone_2
           statements:
             - type: SELECT
               text: "select 3"
-          box: [312,288,280,80]
+          box: [328,352,280,80]
         - name: alone_3
           statements:
             - type: SELECT
               text: "select 4"
-          box: [624,288,280,80]
+          box: [656,352,280,80]
         - name: alone_4
           statements:
             - type: SELECT
               text: "select 5"
-          box: [936,288,280,80]
+          box: [984,352,280,80]
         - name: alone_5
           statements:
             - type: SELECT
               text: "select 6"
-          box: [0,432,280,80]
+          box: [0,512,280,80]
       edges:
         - from: a.0
           to: from_a.0
@@ -533,7 +533,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select x from t"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: schema.3
           to: report.0
@@ -571,7 +571,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select o.i...id = r.id"
-          box: [776,100,280,80]
+          box: [824,100,280,80]
       edges:
         - from: orders.0
           to: report.0
@@ -599,7 +599,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: orders
               text: "create tab..s (id int)"
-          box: [224,40,280,80]
+          box: [176,40,280,80]
         - name: report
           statements:
             - type: CREATE_TABLE
@@ -634,7 +634,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: orders
               text: "create tab..s (id int)"
-          box: [104,0,400,80]
+          box: [56,0,400,80]
         - name: report
           statements:
             - type: SELECT
@@ -670,12 +670,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select id ..rom orders"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..rom orders"
-          box: [376,112,280,80]
+          box: [424,128,280,80]
       edges:
         - from: orders.0
           to: by_id.0
@@ -720,7 +720,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select 2"
-          box: [120,344,280,80]
+          box: [120,376,280,80]
       edges: []
 
   - name: LayoutCrossing
@@ -744,7 +744,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: a
               text: "create tab.. a (x int)"
-          box: [0,112,280,80]
+          box: [0,128,280,80]
         - name: b
           statements:
             - type: CREATE_TABLE
@@ -755,12 +755,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select x from b"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: from_a
           statements:
             - type: SELECT
               text: "select a.x.. from a, b"
-          box: [376,112,280,80]
+          box: [424,128,280,80]
       edges:
         - from: a.0
           to: from_a.0
@@ -793,17 +793,17 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: a
               text: "create tab.. a (x int)"
-          box: [0,34,280,80]
+          box: [0,40,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select x from a"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: c
           statements:
             - type: SELECT
               text: "select * from a, :b"
-          box: [752,34,280,80]
+          box: [848,40,280,80]
       edges:
         - from: a.0
           to: b.0

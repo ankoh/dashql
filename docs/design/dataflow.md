@@ -54,7 +54,11 @@ The position of a script on the canvas is its `@flow x=.. y=..` tag, the size of
 Kernel (elk-rs, `org-eclipse-elk-alg-layered`) and returns the routes of the edges between them. ELK makes the layout
 a wasm module of its own (`dashql-dataflow-wasm`, `dashql_dataflow.wasm` of `@ankoh/dashql-core`), the core module
 stays without it: the app loads the layout module when it opens the dataflow canvas and shows that it loads until
-then (`dataflow_module.ts`). The layout has two levels:
+then (`dataflow_module.ts`).
+
+The sizes of the canvas are set in one place, `DataflowLayoutConfig` in `dashql-dataflow/src/layout.rs`: the boxes,
+the bounds of a resize, the gaps between columns, boxes and edges, and the grid that drags and resizes snap to. The
+dataflow snapshots use them, the app reads them from the module (`DashQLDataflow.config`). The layout has two levels:
 
 - **Inside a box** the statements are stacked in script order below a header. The box of an input is one row below
   its header, 200px wide, a box with a chart (a Vega-Lite chart, a table or markdown) is 480px wide, so that the
@@ -64,6 +68,8 @@ then (`dataflow_module.ts`). The layout has two levels:
 - **Between boxes** every box is a node of ELK with a port per connected statement row, inputs on its left border and
   outputs on its right border at the centers of the rows, so the node placement lines up the rows at both ends of an
   edge where it can. Edges are routed orthogonally, edges out of one port share their first segments (merged edges).
+  Columns are at least `layer_gap` (144) apart and wider where the edges between them need more rails, boxes of a
+  column at least `box_gap` (48), parallel edges `edge_gap` (16) and edges and boxes `edge_box_gap` (16).
   The routes run from the right border of the source box to the left border of the target box.
 - **Without positions** (`hint` of a layout box, a new session or Arrange) ELK arranges every connected box in layers
   from left to right, network simplex placement, in the order of the session. The sinks of a fan-out, e.g. the
@@ -86,8 +92,8 @@ snapshots lay out their boxes like the first render of the canvas: `@flow` tags 
 visualized terminal statement gets its chart.
 
 `routing::route_edges` (core-js `DashQLDataflow.routeDataflowEdges`) routes edges around boxes at any position with
-the vendored ortho-router (`ortho_router`): orthogonal routes with few bends, a margin of 12 to the boxes, routes that
-share a channel spread apart. The canvas uses it while a box is dragged or resized.
+the vendored ortho-router (`ortho_router`): orthogonal routes with few bends, `edge_box_gap` to the boxes, routes that
+share a channel spread `edge_gap` apart. The canvas uses it while a box is dragged or resized.
 
 ## The canvas
 

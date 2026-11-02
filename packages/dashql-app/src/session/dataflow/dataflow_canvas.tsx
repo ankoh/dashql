@@ -25,11 +25,6 @@ import {
     type DataflowHint,
     type DataflowLaidOutRoute,
     type DataflowRouting,
-    DATAFLOW_LAYOUT,
-    DATAFLOW_MAX_BOX_WIDTH,
-    DATAFLOW_MAX_CHART_HEIGHT,
-    DATAFLOW_MIN_BOX_WIDTH,
-    DATAFLOW_MIN_CHART_HEIGHT,
     dataflowLayoutInput,
     EDGE_BADGE_HEIGHT,
     fitDataflowScene,
@@ -98,8 +93,7 @@ function scriptOfNodeKey(key: string): number {
 }
 
 /// Snap a size to the grid, within its bounds
-function snapSize(value: number, min: number, max: number): number {
-    const grid = DATAFLOW_LAYOUT.grid;
+function snapSize(value: number, min: number, max: number, grid: number): number {
     return Math.min(max, Math.max(min, Math.round(value / grid) * grid));
 }
 
@@ -128,6 +122,8 @@ export function DataflowCanvas(props: Props): React.ReactElement {
 
 function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDependencies; layoutModule: core.DashQLDataflow }): React.ReactElement {
     const { sessionScripts, modifySessionScripts, dependencies, layoutModule } = props;
+    // The sizes of the canvas, set by the layout
+    const config = layoutModule.config;
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
     const svgRef = React.useRef<SVGSVGElement | null>(null);
     const sceneRef = React.useRef<SVGGElement | null>(null);
@@ -201,7 +197,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         // Parts of the graph without any position are packed for the shape of the viewport
         const viewport = viewportRef.current;
         const aspectRatio = viewport != null && viewport.clientHeight > 0 ? viewport.clientWidth / viewport.clientHeight : undefined;
-        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { ...DATAFLOW_LAYOUT, aspectRatio });
+        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { aspectRatio });
         const boxes = result.boxes;
         const rect = (i: number) => ({ x: boxes[i].x, y: boxes[i].y, width: boxes[i].width, height: boxes[i].height });
         const laidOut = new Map(result.routes.map(r => [
@@ -254,7 +250,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         if (resize != null) {
             const index = graph.scripts.findIndex(s => s.scriptKey === resize.scriptKey);
             if (index >= 0 && out[index] != null) {
-                out[index] = resizeDataflowBox(out[index], chartStatement(graph.scripts[index]), resize.size.width, resize.size.chartHeight);
+                out[index] = resizeDataflowBox(out[index], chartStatement(graph.scripts[index]), resize.size.width, resize.size.chartHeight, config);
             }
         }
         return out;
@@ -265,7 +261,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         () => ({ laidOut: layout.laidOut, route: (boxes, edges) => layoutModule.routeDataflowEdges(boxes, edges) }),
         [layout, layoutModule],
     );
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, routing), [graph, shown, chartStatement, isCollapsed, routing]);
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, config, routing), [graph, shown, chartStatement, isCollapsed, routing]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
@@ -355,7 +351,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             const dx = (event.clientX - current.startX) / k;
             const dy = (event.clientY - current.startY) / k;
             if (current.position == null && Math.hypot(dx * k, dy * k) < 4) return;
-            const grid = DATAFLOW_LAYOUT.grid;
+            const grid = config.grid;
             current.position = { x: Math.round((current.origin.x + dx) / grid) * grid, y: Math.round((current.origin.y + dy) / grid) * grid };
             setDrag({ node: current.node, position: current.position });
         };
@@ -403,10 +399,10 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             const current = resizeRef.current;
             if (current == null || current.pointerId !== event.pointerId) return;
             const k = transformRef.current.k;
-            const width = snapSize(current.origin.width + (event.clientX - current.startX) / k, DATAFLOW_MIN_BOX_WIDTH, DATAFLOW_MAX_BOX_WIDTH);
+            const width = snapSize(current.origin.width + (event.clientX - current.startX) / k, config.minBoxWidth, config.maxBoxWidth, config.grid);
             const chartHeight = current.origin.chartHeight == null
                 ? null
-                : snapSize(current.origin.chartHeight + (event.clientY - current.startY) / k, DATAFLOW_MIN_CHART_HEIGHT, DATAFLOW_MAX_CHART_HEIGHT);
+                : snapSize(current.origin.chartHeight + (event.clientY - current.startY) / k, config.minChartHeight, config.maxChartHeight, config.grid);
             if (width === current.size.width && chartHeight === current.size.chartHeight) return;
             current.size = { width, chartHeight };
             setResize({ scriptKey: current.scriptKey, size: current.size });
@@ -440,8 +436,8 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         event.preventDefault();
         event.stopPropagation();
         const size = {
-            width: snapSize(width, DATAFLOW_MIN_BOX_WIDTH, DATAFLOW_MAX_BOX_WIDTH),
-            chartHeight: chartHeight == null ? null : snapSize(chartHeight, DATAFLOW_MIN_CHART_HEIGHT, DATAFLOW_MAX_CHART_HEIGHT),
+            width: snapSize(width, config.minBoxWidth, config.maxBoxWidth, config.grid),
+            chartHeight: chartHeight == null ? null : snapSize(chartHeight, config.minChartHeight, config.maxChartHeight, config.grid),
         };
         // A box at a bound of its size stays as it is
         if (size.width === box.width && size.chartHeight === (box.chart?.height ?? null)) return;
@@ -462,7 +458,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         if (event.target !== svgRef.current) return;
         const rect = svgRef.current.getBoundingClientRect();
         const [x, y] = transformRef.current.invert([event.clientX - rect.left, event.clientY - rect.top]);
-        const grid = DATAFLOW_LAYOUT.grid;
+        const grid = config.grid;
         createAt({ x: Math.round(x / grid) * grid, y: Math.round(y / grid) * grid }, null);
     }, [createAt]);
     const arrange = React.useCallback(() => {
@@ -595,6 +591,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                     <g>
                         {scene.boxes.map(box => (
                             <DataflowBox
+                                config={config}
                                 key={box.script.scriptKey}
                                 box={box}
                                 sessionId={sessionScripts.sessionId}
@@ -616,6 +613,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                         ))}
                         {scene.inputs.map(box => (
                             <DataflowInputBox
+                                config={config}
                                 key={box.input.name}
                                 box={box}
                                 input={sessionInputs.find(i => i.name === box.input.name) ?? null}
@@ -637,11 +635,12 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                     </g>
                     {/* The ports are drawn on top of the highlighted edges that end in them */}
                     <g aria-hidden="true" data-dataflow-port-layer>
-                        {scene.boxes.map(box => <DataflowBoxPorts key={box.script.scriptKey} box={box} highlighted={highlighted} />)}
+                        {scene.boxes.map(box => <DataflowBoxPorts key={box.script.scriptKey} box={box} highlighted={highlighted} config={config} />)}
                         {scene.inputs.map(box => (
                             <DataflowInputPorts
                                 key={box.input.name}
                                 box={box}
+                                config={config}
                                 highlighted={highlighted.length > 0 && highlighted.some(e => e.input === box.input.name)}
                             />
                         ))}
@@ -666,6 +665,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
 
 interface BoxProps {
     box: DataflowSceneBox;
+    config: core.DataflowLayoutConfig;
     sessionId: string;
     script: ScriptData | undefined;
     selection: DataflowSelection | null;
@@ -685,9 +685,9 @@ interface BoxProps {
 }
 
 /// The ports of a script box: one per side of a collapsed box, the ports of the statement rows otherwise
-function DataflowBoxPorts(props: { box: DataflowSceneBox; highlighted: DataflowSceneEdge[] }): React.ReactElement {
+function DataflowBoxPorts(props: { box: DataflowSceneBox; highlighted: DataflowSceneEdge[]; config: core.DataflowLayoutConfig }): React.ReactElement {
     const { box } = props;
-    const config = DATAFLOW_LAYOUT;
+    const config = props.config;
     const scriptKey = box.script.scriptKey;
     const touches = (statementId: number | null, side: 'from' | 'to') => props.highlighted.some(edge => {
         const port = edge[side];
@@ -719,9 +719,9 @@ function DataflowBoxPorts(props: { box: DataflowSceneBox; highlighted: DataflowS
 }
 
 /// The output port of an input box, on its value row
-function DataflowInputPorts(props: { box: DataflowSceneInput; highlighted: boolean }): React.ReactElement | null {
+function DataflowInputPorts(props: { box: DataflowSceneInput; highlighted: boolean; config: core.DataflowLayoutConfig }): React.ReactElement | null {
     const { box } = props;
-    const config = DATAFLOW_LAYOUT;
+    const config = props.config;
     if (!box.output) return null;
     const y = box.rowY + config.rowHeight / 2;
     const x = box.x + box.width - config.rowPadding;
@@ -740,7 +740,7 @@ function runStatus(status: QueryExecutionStatus | undefined): 'running' | 'succe
 /// by `DataflowBoxPorts` in a layer of their own.
 function DataflowBox(props: BoxProps): React.ReactElement {
     const { box, script } = props;
-    const config = DATAFLOW_LAYOUT;
+    const config = props.config;
     const query = props.dependencies.useQueryState(props.sessionId, script?.latestQueryId ?? null);
     const status = runStatus(query?.status);
     const name = scriptDisplayName(box.script.fileName);
@@ -908,6 +908,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
 
 interface InputBoxProps {
     box: DataflowSceneInput;
+    config: core.DataflowLayoutConfig;
     /// The input of the session, null while the inputs follow the graph
     input: SessionInput | null;
     selected: boolean;
@@ -925,7 +926,7 @@ interface InputBoxProps {
 /// and runs the scripts that use the input.
 function DataflowInputBox(props: InputBoxProps): React.ReactElement {
     const { box } = props;
-    const config = DATAFLOW_LAYOUT;
+    const config = props.config;
     const input: DataflowInput = box.input;
     const name = input.name;
     const select = () => props.onSelect({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: name });

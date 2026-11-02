@@ -1,13 +1,16 @@
 import * as glue from './wasm/dashql_dataflow.js';
 
 /// The wasm-bindgen module of the layout of the dataflow canvas (`packages/dashql-dataflow-wasm`)
-export type DashQLDataflowBindings = Pick<typeof glue, 'DataflowLayout' | 'routeDataflowEdges' | 'installPanicHook'>;
+export type DashQLDataflowBindings = Pick<typeof glue, 'DataflowLayout' | 'routeDataflowEdges' | 'dataflowConfig' | 'installPanicHook'>;
 
-/// The sizes of the dataflow canvas, in canvas pixels
+/// The sizes of the dataflow canvas, in canvas pixels. They are set in the Rust layout (`DataflowLayoutConfig` of
+/// `dashql-dataflow`), the module tells them (`DashQLDataflow.config`).
 export interface DataflowLayoutConfig {
     boxWidth: number;
     /// The width of a box with a chart, a chart or a table is wider than high
     chartBoxWidth: number;
+    /// The width of the box of an input or an attachment
+    inputBoxWidth: number;
     /// The height of the header of a box, a collapsed box is its header
     headerHeight: number;
     rowHeight: number;
@@ -15,13 +18,26 @@ export interface DataflowLayoutConfig {
     rowPadding: number;
     /// The height of the chart below a visualized statement
     chartHeight: number;
+    /// The bounds of the width of a resized box and of the height of a resized chart
+    minBoxWidth: number;
+    maxBoxWidth: number;
+    minChartHeight: number;
+    maxChartHeight: number;
+    /// The least horizontal space between the columns
     layerGap: number;
+    /// The least vertical space between the boxes of a column
     boxGap: number;
+    /// The space between two parallel edges
+    edgeGap: number;
+    /// The space between an edge and a box
+    edgeBoxGap: number;
     /// The grid that drags and resizes on the canvas snap to, the layout does not snap
     grid: number;
-    /// The fewest sinks of a fan-out that alternate between sub-layers, 0 never
-    wrapSiblings: number;
-    /// The width over the height that the parts of the graph are packed for, e.g. of the viewport
+}
+
+/// The options of one layout
+export interface DataflowLayoutOptions {
+    /// The width over the height that parts of the graph without positions are packed for, e.g. of the viewport
     aspectRatio?: number;
 }
 
@@ -35,7 +51,7 @@ export interface DataflowLayoutBox {
     width?: number | null;
     /// The height of the chart of the box, the chart height of the config if absent
     chartHeight?: number | null;
-    /// Is the box an input or an attachment? Its consumers are grouped as if it were absent.
+    /// Is the box an input or an attachment? Its consumers are grouped as if it were absent, it is `inputBoxWidth` wide.
     input?: boolean;
     /// Where the box was, e.g. saved in its `@flow` tag. With hints the boxes keep their columns, their order in a
     /// column and their y.
@@ -109,10 +125,35 @@ let instantiated: Promise<void> | null = null;
 /// opens. A wasm-bindgen module is instantiated once per JS module, the instances share it.
 export class DashQLDataflow {
     bindings: DashQLDataflowBindings;
+    /// The sizes of the canvas
+    readonly config: Readonly<DataflowLayoutConfig>;
 
     public constructor(bindings: DashQLDataflowBindings) {
         this.bindings = bindings;
         bindings.installPanicHook();
+        const c = bindings.dataflowConfig();
+        try {
+            this.config = Object.freeze({
+                boxWidth: c.boxWidth,
+                chartBoxWidth: c.chartBoxWidth,
+                inputBoxWidth: c.inputBoxWidth,
+                headerHeight: c.headerHeight,
+                rowHeight: c.rowHeight,
+                rowPadding: c.rowPadding,
+                chartHeight: c.chartHeight,
+                minBoxWidth: c.minBoxWidth,
+                maxBoxWidth: c.maxBoxWidth,
+                minChartHeight: c.minChartHeight,
+                maxChartHeight: c.maxChartHeight,
+                layerGap: c.layerGap,
+                boxGap: c.boxGap,
+                edgeGap: c.edgeGap,
+                edgeBoxGap: c.edgeBoxGap,
+                grid: c.grid,
+            });
+        } finally {
+            c.free();
+        }
     }
 
     /// Create a layout instance, the module is instantiated by the first one
@@ -133,8 +174,8 @@ export class DashQLDataflow {
 
     /// Lay out the boxes of the dataflow canvas, see docs/design/dataflow.md: from scratch without hints, from where
     /// the boxes were with hints
-    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], config?: DataflowLayoutConfig): DataflowBoxGeometry[] {
-        return this.computeDataflowLayoutWithRoutes(boxes, edges, config).boxes;
+    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], options?: DataflowLayoutOptions): DataflowBoxGeometry[] {
+        return this.computeDataflowLayoutWithRoutes(boxes, edges, options).boxes;
     }
 
     /// Lay out the boxes of the dataflow canvas like `computeDataflowLayout`, with the routes of the edges between
@@ -142,14 +183,11 @@ export class DashQLDataflow {
     public computeDataflowLayoutWithRoutes(
         boxes: DataflowLayoutBox[],
         edges: DataflowLayoutEdge[],
-        config?: DataflowLayoutConfig,
+        options?: DataflowLayoutOptions,
     ): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
         const layout = new this.bindings.DataflowLayout();
         try {
-            if (config) {
-                layout.setConfig(config.boxWidth, config.chartBoxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.wrapSiblings);
-                if (config.aspectRatio != null && config.aspectRatio > 0) layout.setAspectRatio(config.aspectRatio);
-            }
+            if (options?.aspectRatio != null && options.aspectRatio > 0) layout.setAspectRatio(options.aspectRatio);
             for (const box of boxes) {
                 layout.addBox(
                     box.statements,

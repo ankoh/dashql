@@ -17,17 +17,17 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select 1 as x"
-          box: [0,34,280,80]
+          box: [0,40,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select x from :a"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: c
           statements:
             - type: SELECT
               text: "select * f..rom :b, :a"
-          box: [752,34,280,80]
+          box: [848,40,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -63,7 +63,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select x f..here x > 0"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -93,7 +93,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select x from :a"
-          box: [376,32,280,80]
+          box: [424,32,280,80]
       edges:
         - from: a.1
           to: b.0
@@ -128,7 +128,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select sum..om :remote"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: remote.0
           to: report.0
@@ -161,7 +161,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -191,12 +191,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select a f..here a > 1"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: report
           statements:
             - type: SELECT
               text: "select cou.. :filtered"
-          box: [752,0,280,80]
+          box: [848,0,280,80]
       edges:
         - from: schema.0
           to: filtered.0
@@ -221,12 +221,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :b"
-          box: [386,0,280,80]
+          box: [440,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [10,0,280,80]
+          box: [16,0,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -255,7 +255,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * f..om :report"
-          box: [312,0,280,80]
+          box: [328,0,280,80]
       edges: []
 
   - name: InlinedAndDirectRead
@@ -276,17 +276,17 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: t
               text: "create tab.. t (a int)"
-          box: [0,34,280,80]
+          box: [0,40,280,80]
         - name: filtered
           statements:
             - type: SELECT
               text: "select a f..here a > 1"
-          box: [376,0,280,80]
+          box: [424,0,280,80]
         - name: report
           statements:
             - type: SELECT
               text: "select * f.. t.a = f.a"
-          box: [752,34,280,80]
+          box: [848,40,280,80]
       edges:
         - from: schema.0
           to: filtered.0

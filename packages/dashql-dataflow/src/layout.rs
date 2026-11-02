@@ -17,13 +17,16 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-/// The sizes of the canvas, in canvas pixels
+/// The sizes of the dataflow canvas, in canvas pixels. The defaults are the sizes of the canvas of the app and of
+/// the dataflow snapshots: the app reads them from the dataflow wasm module, this is the one place to change them.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DataflowLayoutConfig {
     /// The width of a box
     pub box_width: f64,
     /// The width of a box with a chart, a chart or a table is wider than high
     pub chart_box_width: f64,
+    /// The width of the box of an input or an attachment
+    pub input_box_width: f64,
     /// The height of the header of a box, a collapsed box is its header
     pub header_height: f64,
     /// The height of a statement row
@@ -32,16 +35,28 @@ pub struct DataflowLayoutConfig {
     pub row_padding: f64,
     /// The height of the chart below a visualized statement
     pub chart_height: f64,
-    /// The horizontal space between the layers
+    /// The bounds of the width of a resized box
+    pub min_box_width: f64,
+    pub max_box_width: f64,
+    /// The bounds of the height of a resized chart
+    pub min_chart_height: f64,
+    pub max_chart_height: f64,
+    /// The least horizontal space between the columns, wider where the edges between them need more rails
     pub layer_gap: f64,
-    /// The vertical space between the boxes of a layer
+    /// The least vertical space between the boxes of a column
     pub box_gap: f64,
+    /// The space between two parallel edges
+    pub edge_gap: f64,
+    /// The space between an edge and a box
+    pub edge_box_gap: f64,
     /// The boxes without edges per row
     pub isolated_per_row: usize,
     /// The fewest sinks of a fan-out that alternate between sub-layers, 0 never
     pub wrap_siblings: usize,
     /// The width over the height that the connected parts are packed for, e.g. of the viewport
     pub aspect_ratio: f64,
+    /// The grid that drags and resizes on the canvas snap to, the layout does not snap
+    pub grid: f64,
 }
 
 impl Default for DataflowLayoutConfig {
@@ -49,15 +64,23 @@ impl Default for DataflowLayoutConfig {
         Self {
             box_width: 280.0,
             chart_box_width: 480.0,
+            input_box_width: 200.0,
             header_height: 32.0,
             row_height: 32.0,
             row_padding: 8.0,
             chart_height: 200.0,
-            layer_gap: 96.0,
-            box_gap: 32.0,
+            min_box_width: 200.0,
+            max_box_width: 1600.0,
+            min_chart_height: 96.0,
+            max_chart_height: 1200.0,
+            layer_gap: 144.0,
+            box_gap: 48.0,
+            edge_gap: 16.0,
+            edge_box_gap: 16.0,
             isolated_per_row: 4,
             wrap_siblings: 4,
             aspect_ratio: 2.0,
+            grid: 8.0,
         }
     }
 }
@@ -75,7 +98,8 @@ pub struct DataflowLayoutBox {
     pub width: Option<f64>,
     /// The height of the chart, the chart height of the config if absent
     pub chart_height: Option<f64>,
-    /// Is the box an input or an attachment? Its consumers are grouped as if it were absent.
+    /// Is the box an input or an attachment? Its consumers are grouped as if it were absent, it is `input_box_width`
+    /// wide by default.
     pub input: bool,
     /// Where the box was, e.g. saved in its `@flow` tag or where the last layout put it
     pub hint: Option<(f64, f64)>,
@@ -120,7 +144,13 @@ pub type DataflowEdgeRoute = ((u32, u32, u32, u32), Vec<(f64, f64)>);
 
 /// The geometry of a box without its position
 fn box_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> DataflowBoxGeometry {
-    let default_width = if b.chart_statement.is_some() { config.chart_box_width } else { config.box_width };
+    let default_width = if b.input {
+        config.input_box_width
+    } else if b.chart_statement.is_some() {
+        config.chart_box_width
+    } else {
+        config.box_width
+    };
     let mut geometry = DataflowBoxGeometry { width: b.width.unwrap_or(default_width), ..Default::default() };
     if b.collapsed || b.statements == 0 {
         geometry.rows = vec![0.0; b.statements as usize];
@@ -382,6 +412,10 @@ fn elk(
     set_node(&graph, LayeredOptions::SPACING_NODE_NODE, config.box_gap);
     set_node(&graph, LayeredOptions::SPACING_NODE_NODE_BETWEEN_LAYERS, config.layer_gap);
     set_node(&graph, LayeredOptions::SPACING_COMPONENT_COMPONENT, config.box_gap * 2.0);
+    set_node(&graph, LayeredOptions::SPACING_EDGE_EDGE, config.edge_gap);
+    set_node(&graph, LayeredOptions::SPACING_EDGE_EDGE_BETWEEN_LAYERS, config.edge_gap);
+    set_node(&graph, LayeredOptions::SPACING_EDGE_NODE, config.edge_box_gap);
+    set_node(&graph, LayeredOptions::SPACING_EDGE_NODE_BETWEEN_LAYERS, config.edge_box_gap);
     // Orthogonal routes, the edges out of one port share their first segments
     set_node(&graph, LayeredOptions::EDGE_ROUTING, EdgeRouting::Orthogonal);
     set_node(&graph, LayeredOptions::MERGE_EDGES, true);

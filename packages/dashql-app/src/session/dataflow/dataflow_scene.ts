@@ -2,29 +2,6 @@ import type * as core from '@ankoh/dashql-core';
 
 import { type DataflowEdge, DataflowEdgeKind, type DataflowGraph, type DataflowInput, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
 
-/// The sizes of the canvas. Drags and resizes snap to the grid.
-export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
-    boxWidth: 280,
-    chartBoxWidth: 480,
-    headerHeight: 32,
-    rowHeight: 32,
-    rowPadding: 8,
-    chartHeight: 200,
-    layerGap: 96,
-    boxGap: 32,
-    grid: 8,
-    wrapSiblings: 4,
-};
-
-/// The width of the box of an input, like the dataflow snapshots of the core
-export const INPUT_BOX_WIDTH = 200;
-
-/// The bounds of the size of a resized box: its width and the height of its chart
-export const DATAFLOW_MIN_BOX_WIDTH = 200;
-export const DATAFLOW_MAX_BOX_WIDTH = 1600;
-export const DATAFLOW_MIN_CHART_HEIGHT = 96;
-export const DATAFLOW_MAX_CHART_HEIGHT = 1200;
-
 /// The space between an edge inside a box and the left border of the box, per statement that it spans
 const INTERNAL_EDGE_GUTTER = 3;
 const INTERNAL_EDGE_GUTTER_STEP = 2;
@@ -149,7 +126,7 @@ export function dataflowLayoutInput(
         };
     });
     for (const input of graph.inputs) {
-        boxes.push({ statements: 1, width: INPUT_BOX_WIDTH, input: true, ...hintOf(hintInput(input)) });
+        boxes.push({ statements: 1, input: true, ...hintOf(hintInput(input)) });
     }
     const edges = graph.edges.flatMap(edge => {
         const fromBox = edge.input != null ? inputIndex.get(edge.input) : index.get(edge.from.scriptKey);
@@ -161,7 +138,7 @@ export function dataflowLayoutInput(
 }
 
 /// The height of the chart of a laid out box: the space between the row of the chart and the next row, or the bottom
-export function dataflowChartHeight(p: DataflowBoxPosition, chartAt: number, config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT): number {
+export function dataflowChartHeight(p: DataflowBoxPosition, chartAt: number, config: core.DataflowLayoutConfig): number {
     const top = (p.rows[chartAt] ?? 0) + config.rowHeight + config.rowPadding;
     const bottom = p.rows[chartAt + 1] ?? p.height - config.rowPadding;
     return Math.max(0, bottom - top);
@@ -173,7 +150,7 @@ export function resizeDataflowBox(
     chartAt: number | null,
     width: number,
     chartHeight: number | null,
-    config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT,
+    config: core.DataflowLayoutConfig,
 ): DataflowBoxPosition {
     if (chartAt == null || chartHeight == null) return { ...p, width };
     const delta = chartHeight - dataflowChartHeight(p, chartAt, config);
@@ -341,7 +318,7 @@ export function buildDataflowScene(
     positions: DataflowBoxPosition[],
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
-    config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT,
+    config: core.DataflowLayoutConfig,
     /// Routes the edges between boxes, the edges keep their curves without it or where it has no route
     routing: DataflowRouting | null = null,
 ): DataflowScene {

@@ -18,12 +18,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select id .. :min::int"
-          box: [296,0,280,80]
+          box: [344,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select cou.. :min::int"
-          box: [296,112,280,80]
+          box: [344,128,280,80]
       inputs:
         - name: min
           type: "integer"
@@ -57,7 +57,7 @@ dataflow-snapshots:
               text: "create tem.. = :region"
             - type: SELECT
               text: "select * f..unt > :min"
-          box: [296,0,280,112]
+          box: [344,0,280,112]
       inputs:
         - name: region
           type: "text"
@@ -67,7 +67,7 @@ dataflow-snapshots:
         - name: min
           type: "text"
           cast: false
-          box: [0,112,200,80]
+          box: [0,128,200,80]
       edges:
         - from: ":region"
           to: a.0
@@ -102,17 +102,17 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select id,..unt > :min"
-          box: [296,0,280,80]
+          box: [344,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select cou..*) from :a"
-          box: [672,0,280,80]
+          box: [768,0,280,80]
         - name: c
           statements:
             - type: SELECT
               text: "select 1"
-          box: [0,144,280,80]
+          box: [0,176,280,80]
       inputs:
         - name: min
           type: "bigint"

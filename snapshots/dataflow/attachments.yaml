@@ -25,21 +25,21 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select reg..amount > 5"
-          box: [296,0,280,80]
+          box: [344,0,280,80]
         - name: bar
           statements:
             - type: SELECT
               text: "select cou.. from :foo"
             - type: SELECT
               text: "select * f..= f.region"
-          box: [672,0,280,112]
+          box: [768,0,280,112]
       attachments:
         - name: sales
           file: sales.parquet
-          box: [0,34,200,80]
+          box: [0,40,200,80]
         - name: unused
           file: unused.parquet
-          box: [0,178,200,80]
+          box: [0,216,200,80]
       edges:
         - from: sales.parquet
           to: foo.0
@@ -80,5 +80,5 @@ dataflow-snapshots:
       attachments:
         - name: sales
           file: sales.parquet
-          box: [312,0,200,80]
+          box: [328,0,200,80]
       edges: []
