@@ -577,21 +577,4 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         }
         return currentDir;
     }
-
-    private async getFolderDir(
-        sessionId: string,
-        folderName: string,
-        create: boolean
-    ): Promise<FileSystemDirectoryHandle> {
-        const sessionDir = await this.getSessionDir(sessionId, create);
-        try {
-            const scriptsDir = await sessionDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create });
-            return await scriptsDir.getDirectoryHandle(folderName, { create });
-        } catch (error) {
-            if ((error as any).name === 'NotFoundError') {
-                throw new Error(`Directory not found: opfs://${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
-            }
-            throw error;
-        }
-    }
 }
