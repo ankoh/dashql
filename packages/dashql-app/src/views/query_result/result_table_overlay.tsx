@@ -6,8 +6,8 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { useFocusTrap } from '../../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
 import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
-import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
+import { QueryResultDetails } from './query_result_details.js';
+import { TableColumnHeader } from './data_table_cell.js';
 
 export interface ResultTableOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;
@@ -31,8 +31,8 @@ const HEADER_HEIGHT = 44;
 const IGNORE_OUTSIDE_CLICK = () => {};
 const CloseIcon = SymbolIcon('x_16');
 
-/// The full result table of a feed entry in a card over the feed: the table with its column plots under
-/// a header with the name of the script, a button to enlarge the card to the window and a close button.
+/// The full result table of a feed entry or a dashboard card in a card over the page: the table with its column plots
+/// under a header with the name of the script, a button to enlarge the card to the window and a close button.
 export function ResultTableOverlay(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const dialogRef = React.useRef<HTMLElement | null>(null);

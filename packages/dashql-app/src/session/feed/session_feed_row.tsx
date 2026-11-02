@@ -36,7 +36,7 @@ import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
-import { ResultTableOverlay } from './result_table_overlay.js';
+import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { FEED_TOP_PADDING } from './session_feed_layout.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
