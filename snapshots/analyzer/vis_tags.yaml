@@ -68,7 +68,7 @@ analyzer-snapshots:
           renderer: vegalite
           dashboard:
             width: 6
-            height: 3
+            height: 6
           vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"region\"},\"y\":{\"field\":\"revenue\",\"aggregate\":\"sum\"}}}"
 
   - name: vis_tag_vegalite_inline_and_board
@@ -217,7 +217,7 @@ analyzer-snapshots:
           renderer: table
           dashboard:
             width: 6
-            height: 3
+            height: 6
 
   - name: vis_tag_markdown
     script:
@@ -269,7 +269,7 @@ analyzer-snapshots:
           renderer: markdown
           dashboard:
             width: 6
-            height: 3
+            height: 6
           markdown: "### {{metric}}\n- {{value}}\n  - {{detail}}"
 
   - name: vis_tag_unknown_field
@@ -359,7 +359,7 @@ analyzer-snapshots:
           renderer: vegalite
           dashboard:
             width: 6
-            height: 3
+            height: 6
           vegalite: "{\"transform\":[{\"calculate\":\"datum.revenue * 2\",\"as\":\"double\"}],\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"regoin\"},\"y\":{\"field\":\"double\"},\"color\":{\"field\":\"date.month\"}}}"
 
   - name: vis_tag_unknown_columns
@@ -386,7 +386,7 @@ analyzer-snapshots:
           renderer: vegalite
           dashboard:
             width: 6
-            height: 3
+            height: 6
           vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"anything\"}}}"
 
   - name: vis_tag_malformed_json
@@ -479,7 +479,7 @@ analyzer-snapshots:
           renderer: vegalite
           dashboard:
             width: 6
-            height: 3
+            height: 6
           vegalite: "{\"mark\":\"bar\"}"
 
   - name: vis_tag_invalid
@@ -547,11 +547,11 @@ analyzer-snapshots:
           renderer: table
           dashboard:
             width: 6
-            height: 3
+            height: 6
       board:
         statement-id: 0
         width: 6
-        height: 3
+        height: 6
 
   - name: vis_tag_board_normalized
     script:
@@ -655,11 +655,11 @@ analyzer-snapshots:
           renderer: table
           dashboard:
             width: 3
-            height: 3
+            height: 6
       board:
         statement-id: 1
         width: 3
-        height: 3
+        height: 6
       flow:
         statement-id: 0
         x: 8
@@ -690,7 +690,7 @@ analyzer-snapshots:
       board:
         statement-id: 0
         width: 6
-        height: 3
+        height: 6
 
   - name: vis_tag_board_not_a_query
     script:
@@ -785,7 +785,7 @@ analyzer-snapshots:
           renderer: table
           dashboard:
             width: 6
-            height: 3
+            height: 6
       flow:
         statement-id: 0
         x: -40
@@ -845,7 +845,7 @@ analyzer-snapshots:
           renderer: table
           dashboard:
             width: 6
-            height: 3
+            height: 6
       flow:
         statement-id: 0
         x: 1
@@ -1107,11 +1107,11 @@ analyzer-snapshots:
           renderer: table
           dashboard:
             width: 6
-            height: 3
+            height: 6
         - statement-id: 1
           source: "select 2 as b"
           renderer: markdown
           dashboard:
             width: 6
-            height: 3
+            height: 6
           markdown: "{{b}}"
