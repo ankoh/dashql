@@ -54,8 +54,12 @@ describe('TrinoQueryResultStream', () => {
     });
 
     it.each<[string, string]>([
-        ['boolean', 'Float64'],
-        ['integer', 'Float64'],
+        ['boolean', 'Bool'],
+        ['tinyint', 'Int8'],
+        ['smallint', 'Int16'],
+        ['integer', 'Int32'],
+        ['bigint', 'Int64'],
+        ['real', 'Float32'],
         ['double', 'Float64'],
         ['decimal(10, 2)', 'Decimal[10e+2]'],
         ['decimal', 'Decimal[38e0]'],
@@ -86,7 +90,7 @@ describe('TrinoQueryResultStream', () => {
         ]);
         const batches = await produceAll(stream);
         expect(vi.mocked(apiClient.getQueryResult).mock.calls.map(call => call[1])).toEqual(['next-1', 'next-2', 'next-3']);
-        expect(batches.map(batch => batch.toArray().map(row => row.customer_id))).toEqual([[1, 2], [3]]);
+        expect(batches.map(batch => batch.toArray().map(row => row.customer_id))).toEqual([[1n, 2n], [3n]]);
         expect(stream.getMetrics()).toMatchObject({ totalQueryRequestsStarted: 3, totalQueryRequestsSucceeded: 3, totalBatchesReceived: 2, totalRowsReceived: 3 });
     });
 
@@ -98,7 +102,7 @@ describe('TrinoQueryResultStream', () => {
         ]);
         const batches = await produceAll(stream);
         expect(vi.mocked(apiClient.getQueryResult).mock.calls.map(call => call[1])).toEqual(['next-1', 'next-2', 'next-3']);
-        expect(batches.map(batch => batch.toArray().map(row => row.customer_id))).toEqual([[1], [2]]);
+        expect(batches.map(batch => batch.toArray().map(row => row.customer_id))).toEqual([[1n], [2n]]);
     });
 
     it('requests the next page before producing the current one', async () => {

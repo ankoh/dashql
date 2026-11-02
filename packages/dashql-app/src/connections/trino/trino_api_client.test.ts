@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { TARGET_RESULT_SIZE, TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
+import { parseTrinoJson, TARGET_RESULT_SIZE, TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
 
 const NEXT_URI = 'https://trino.example.com/v1/statement/executing/q1/y1/1';
 
@@ -57,6 +57,11 @@ describe('TrinoApiClient', () => {
         const { fetch, endpoint, client } = retryingTrinoApi(5, [() => { abort.abort(new Error('stop')); return new Response('', { status: 503 }); }]);
         await expect(client.getQueryResult(endpoint, NEXT_URI, abort.signal)).rejects.toThrow('stop');
         expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('parses integers beyond the safe integers as BigInt', () => {
+        const parsed = parseTrinoJson('{"data":[[9007199254740993, 1e20, 2, "1234567890123456"]]}');
+        expect(parsed.data).toEqual([[9007199254740993n, 1e20, 2, '1234567890123456']]);
     });
 
     it('cancels a query by deleting its next URI', async () => {

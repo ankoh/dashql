@@ -308,7 +308,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
                 continue;
             }
             if (rawResponse.status == 200) {
-                return await rawResponse.json() as TrinoQueryResult;
+                return parseTrinoJson(await rawResponse.text()) as TrinoQueryResult;
             }
             // Retry responses of a busy or restarting coordinator or gateway
             if (retriesLeft && RETRIED_STATUS_CODES.has(rawResponse.status)) {
@@ -399,6 +399,26 @@ async function sleepUnlessAborted(ms: number, abort?: AbortSignal): Promise<void
             resolve();
         }, ms);
         abort?.addEventListener('abort', onAbort, { once: true });
+    });
+}
+
+/// Integers with 16 or more digits may exceed the safe integers of JavaScript numbers
+const LONG_INTEGER_PATTERN = /\d{16}/;
+/// The source text of an integer
+const INTEGER_TEXT_PATTERN = /^-?\d+$/;
+
+/// Parse a JSON response of Trino.
+/// Trino writes bigint values as JSON numbers, integers beyond the safe integers are parsed from their source text as BigInt.
+/// Only texts with a long digit run pay for the reviver.
+export function parseTrinoJson(text: string): any {
+    if (!LONG_INTEGER_PATTERN.test(text)) {
+        return JSON.parse(text);
+    }
+    return JSON.parse(text, (_key: string, value: any, context?: { source?: string }) => {
+        if (typeof value === 'number' && !Number.isSafeInteger(value) && context?.source != null && INTEGER_TEXT_PATTERN.test(context.source)) {
+            return BigInt(context.source);
+        }
+        return value;
     });
 }
 

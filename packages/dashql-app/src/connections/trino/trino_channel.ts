@@ -245,37 +245,24 @@ function parseTrinoType(typeStr: string): arrow.DataType {
 
     // Boolean
     if (type === "boolean") {
-        // return new arrow.Bool();
-        // DEMO HACK
-        return new arrow.Float64();
+        return new arrow.Bool();
     }
     // Integer types
     if (type === "tinyint") {
-        // return new arrow.Int8();
-        // DEMO HACK
-        return new arrow.Float64();
+        return new arrow.Int8();
     }
     if (type === "smallint") {
-        // return new arrow.Int16();
-        // DEMO HACK
-        return new arrow.Float64();
+        return new arrow.Int16();
     }
     if (type === "integer" || type === "int") {
-        // DEMO HACK
-        // return new arrow.Int32();
-        return new arrow.Float64();
+        return new arrow.Int32();
     }
     if (type === "bigint") {
-        // return new arrow.Utf8();
-        // return new arrow.Int64();
-        // DEMO HACK
-        return new arrow.Float64();
+        return new arrow.Int64();
     }
     // Floating-point types
     if (type === "real") {
-        // return new arrow.Float32();
-        // DEMO HACK
-        return new arrow.Float64();
+        return new arrow.Float32();
     }
     if (type === "double") {
         return new arrow.Float64();
