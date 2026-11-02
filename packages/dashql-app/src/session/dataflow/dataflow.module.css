@@ -72,6 +72,11 @@
     fill: transparent;
 }
 
+/* The whole box takes the pointer, so the hover stays in the padding between the rows */
+.hover_hit {
+    fill: transparent;
+}
+
 .box[data-selected="true"] .header_hit,
 .header:focus-visible .header_hit {
     fill: hsla(211, 100%, 45%, 0.08);

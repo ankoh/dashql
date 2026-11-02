@@ -100,8 +100,10 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
   (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are white cards with a solid neutral border like the entries
   of the feed, statements are node frames, inline references and table edges are solid, scans and invalid references
-  are dashed, the relation of a table edge is a badge, and a selection redraws its edges in the highlight layer and
-  highlights their ports. Charts are `foreignObject`s below their statement, on the card without a frame of their
+  are dashed, the relation of a table edge is a badge. Edges between boxes and their badges pass behind the cards, the
+  edges between the rows of one box run on its card. Selecting a box, a statement or an input, or hovering a box,
+  redraws its edges and their badges in the highlight layer on top of the boxes and highlights their ports, a drag
+  drops the hover. Charts are `foreignObject`s below their statement, on the card without a frame of their
   own. A Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
   horizontal x labels and no legends, fitted into the card with an 8px inset. d3-zoom pans and zooms, below half the
   size every box is drawn collapsed.

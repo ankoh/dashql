@@ -104,6 +104,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const [zoomCollapsed, setZoomCollapsed] = React.useState(false);
     const [collapsed, setCollapsed] = React.useState<ReadonlySet<number>>(new Set());
     const [selection, setSelection] = React.useState<DataflowSelection | null>(null);
+    const [hover, setHover] = React.useState<DataflowSelection | null>(null);
     const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
 
@@ -182,7 +183,13 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         return out;
     }, [positions, drag, graph.scripts, graph.inputs]);
     const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, zoomCollapsed), [graph, shown, chartStatement, isCollapsed, zoomCollapsed]);
-    const highlighted = React.useMemo(() => selectedEdges(scene, selection), [scene, selection]);
+    // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
+    const dragging = drag != null;
+    const highlighted = React.useMemo(() => {
+        const edges = new Set(selectedEdges(scene, selection));
+        if (!dragging) for (const edge of selectedEdges(scene, hover)) edges.add(edge);
+        return scene.edges.filter(edge => edges.has(edge));
+    }, [scene, selection, hover, dragging]);
     const highlightedSet = React.useMemo(() => new Set(highlighted), [highlighted]);
 
     // Zoom and pan, the transform is applied to the DOM directly
@@ -339,6 +346,34 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const internal = scene.edges.filter(e => e.internal);
     const between = scene.edges.filter(e => !e.internal);
     const solid = (e: DataflowSceneEdge) => e.kind === DataflowEdgeKind.Inline || e.kind === DataflowEdgeKind.Table || e.kind === DataflowEdgeKind.Input;
+    const renderHighlight = (edge: DataflowSceneEdge) => (
+        <path
+            key={edge.key}
+            className={solid(edge) || edge.internal ? graphStyles.edgeHighlight : graphStyles.crossEdgeHighlight}
+            d={edge.path}
+            style={solid(edge) || edge.internal ? { strokeWidth: 2 } : undefined}
+            data-dataflow-edge-highlight={edge.key}
+        />
+    );
+    const renderBadge = (edge: DataflowSceneEdge) => edge.badge == null ? null : (
+        <g
+            key={edge.key}
+            className={graphStyles.edgeBadge}
+            transform={`translate(${edge.badge.x}, ${edge.badge.y})`}
+            data-highlighted={highlightedSet.has(edge) || undefined}
+            data-dataflow-badge={edge.key}
+        >
+            <rect
+                className={styles.badge}
+                x={-edge.badge.width / 2}
+                y={-EDGE_BADGE_HEIGHT / 2}
+                width={edge.badge.width}
+                height={EDGE_BADGE_HEIGHT}
+                rx={EDGE_BADGE_HEIGHT / 2}
+            />
+            <text className={styles.badge_text}>{edge.badge.text}</text>
+        </g>
+    );
     // The inputs as the feed and the dashboard show them, with their warnings
     const sessionInputs = deriveSessionInputs(sessionScripts);
     return (
@@ -359,6 +394,20 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                 onDoubleClick={onCanvasDoubleClick}
             >
                 <g ref={sceneRef}>
+                    {/* The edges between boxes pass behind the cards */}
+                    <g aria-hidden="true">
+                        {between.filter(solid).map(edge => (
+                            <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />
+                        ))}
+                    </g>
+                    <g aria-hidden="true">
+                        {between.filter(e => !solid(e)).map(edge => (
+                            <path key={edge.key} className={graphStyles.crossEdge} d={edge.path} data-dataflow-edge={edge.key} data-kind={edge.kind} />
+                        ))}
+                    </g>
+                    <g className={graphStyles.edgeBadgeLayer}>
+                        {between.filter(e => !highlightedSet.has(e)).map(renderBadge)}
+                    </g>
                     <g>
                         {scene.boxes.map(box => (
                             <rect
@@ -386,47 +435,11 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                             />
                         ))}
                     </g>
+                    {/* The edges between the rows of a box run inside its padding, on its card */}
                     <g aria-hidden="true">
-                        {between.filter(solid).concat(internal).map(edge => (
+                        {internal.map(edge => (
                             <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />
                         ))}
-                    </g>
-                    <g aria-hidden="true">
-                        {between.filter(e => !solid(e)).map(edge => (
-                            <path key={edge.key} className={graphStyles.crossEdge} d={edge.path} data-dataflow-edge={edge.key} data-kind={edge.kind} />
-                        ))}
-                    </g>
-                    <g className={graphStyles.edgeHighlightLayer} aria-hidden="true">
-                        {highlighted.map(edge => (
-                            <path
-                                key={edge.key}
-                                className={solid(edge) || edge.internal ? graphStyles.edgeHighlight : graphStyles.crossEdgeHighlight}
-                                d={edge.path}
-                                style={solid(edge) || edge.internal ? { strokeWidth: 2 } : undefined}
-                                data-dataflow-edge-highlight={edge.key}
-                            />
-                        ))}
-                    </g>
-                    <g className={graphStyles.edgeBadgeLayer}>
-                        {between.flatMap(edge => edge.badge == null ? [] : [(
-                            <g
-                                key={edge.key}
-                                className={graphStyles.edgeBadge}
-                                transform={`translate(${edge.badge.x}, ${edge.badge.y})`}
-                                data-highlighted={highlightedSet.has(edge) || undefined}
-                                data-dataflow-badge={edge.key}
-                            >
-                                <rect
-                                    className={styles.badge}
-                                    x={-edge.badge.width / 2}
-                                    y={-EDGE_BADGE_HEIGHT / 2}
-                                    width={edge.badge.width}
-                                    height={EDGE_BADGE_HEIGHT}
-                                    rx={EDGE_BADGE_HEIGHT / 2}
-                                />
-                                <text className={styles.badge_text}>{edge.badge.text}</text>
-                            </g>
-                        )])}
                     </g>
                     <g>
                         {scene.boxes.map(box => (
@@ -441,6 +454,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 dependencies={dependencies}
                                 onHandleDown={onHandleDown}
                                 onSelect={setSelection}
+                                onHover={setHover}
                                 onToggleCollapsed={toggleCollapsed}
                                 onInspect={props.onInspect}
                                 onDelete={script => deleteFlowScript(script, modifySessionScripts)}
@@ -458,10 +472,16 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 busy={busyInputs.has(box.input.name)}
                                 onHandleDown={onInputHandleDown}
                                 onSelect={setSelection}
+                                onHover={setHover}
                                 literalOf={literalOf}
                                 onCommit={applyInput}
                             />
                         ))}
+                    </g>
+                    {/* The highlighted edges and their badges are drawn on top of the boxes */}
+                    <g className={graphStyles.edgeHighlightLayer} aria-hidden="true" data-dataflow-highlight-layer>
+                        {highlighted.map(renderHighlight)}
+                        {highlighted.filter(e => !e.internal).map(renderBadge)}
                     </g>
                 </g>
             </svg>
@@ -491,6 +511,8 @@ interface BoxProps {
     dependencies: DataflowCanvasDependencies;
     onHandleDown: (event: React.PointerEvent, box: DataflowSceneBox) => void;
     onSelect: (selection: DataflowSelection) => void;
+    /// The pointer enters a box with its selection or leaves it with null
+    onHover: (selection: DataflowSelection | null) => void;
     onToggleCollapsed: (scriptKey: number) => void;
     onInspect?: (scriptKey: number) => void;
     onDelete: (script: ScriptData) => void;
@@ -531,7 +553,10 @@ function DataflowBox(props: BoxProps): React.ReactElement {
             data-dataflow-box={scriptKey}
             data-selected={props.selection != null && props.selection.statementId == null}
             data-dragging={props.dragging || undefined}
+            onPointerEnter={() => props.onHover({ scriptKey, statementId: null })}
+            onPointerLeave={() => props.onHover(null)}
         >
+            <rect className={styles.hover_hit} x={box.x} y={box.y} width={box.width} height={box.height} rx={8} ry={8} />
             <g
                 className={styles.header}
                 data-dataflow-handle
@@ -665,6 +690,8 @@ interface InputBoxProps {
     busy: boolean;
     onHandleDown: (event: React.PointerEvent, box: DataflowSceneInput) => void;
     onSelect: (selection: DataflowSelection) => void;
+    /// The pointer enters a box with its selection or leaves it with null
+    onHover: (selection: DataflowSelection | null) => void;
     literalOf: (input: SessionInput, value: string) => { literal: string } | { error: string };
     onCommit: (name: string, literal: string) => void;
 }
@@ -685,7 +712,10 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
             data-dataflow-input={name}
             data-selected={props.selected}
             data-dragging={props.dragging || undefined}
+            onPointerEnter={() => props.onHover({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: name })}
+            onPointerLeave={() => props.onHover(null)}
         >
+            <rect className={styles.hover_hit} x={box.x} y={box.y} width={box.width} height={box.height} rx={8} ry={8} />
             <g
                 className={styles.header}
                 data-dataflow-handle

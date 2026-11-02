@@ -59,6 +59,44 @@ describe('DataflowCanvas', () => {
         expect([...container.querySelectorAll('[data-dataflow-badge] text')].map(t => t.textContent)).toEqual(['t']);
     });
 
+    it('draws the edges between boxes behind the cards and the edges inside a box on its card', () => {
+        render();
+        const card = container.querySelector('rect[data-dataflow-card]')!;
+        const precedes = (a: Node, b: Node) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        // The report reads the table from the other box, the edge with the badge, the insert reads it in its own box
+        const badge = container.querySelector('[data-dataflow-badge]')!;
+        const betweenKey = badge.getAttribute('data-dataflow-badge')!;
+        const edges = [...container.querySelectorAll('[data-dataflow-edge]')];
+        const between = edges.filter(e => e.getAttribute('data-dataflow-edge') === betweenKey);
+        const inside = edges.filter(e => e.getAttribute('data-dataflow-edge') !== betweenKey);
+        expect([between.length, inside.length]).toEqual([1, 1]);
+        expect(precedes(between[0], card)).toBe(true);
+        expect(precedes(badge, card)).toBe(true);
+        expect(precedes(card, inside[0])).toBe(true);
+    });
+
+    it('highlights the edges of a hovered box on top of the boxes', async () => {
+        render();
+        const report = box('report.sql');
+        const svg = container.querySelector('svg')!;
+        const hit = report.querySelector('rect')!;
+        // React derives enter and leave from the out event of the element the pointer leaves. A pointer event is
+        // continuous, React renders its update in a task of its own.
+        const move = async (from: Element, to: Element) => act(async () => {
+            from.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerId: 1, relatedTarget: to }));
+            await new Promise(resolve => setTimeout(resolve, 0));
+        });
+        await move(svg, hit);
+        const highlights = [...container.querySelectorAll('[data-dataflow-edge-highlight]')];
+        expect(highlights.length).toBe(1);
+        expect(report.compareDocumentPosition(highlights[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(container.querySelector('[data-dataflow-highlight-layer] [data-dataflow-badge]')?.getAttribute('data-highlighted')).toBe('true');
+        expect(report.querySelector('[data-dataflow-port="input"]')?.getAttribute('data-highlighted')).toBe('true');
+        await move(hit, svg);
+        expect(container.querySelectorAll('[data-dataflow-edge-highlight]').length).toBe(0);
+        expect(container.querySelectorAll('[data-dataflow-badge]').length).toBe(1);
+    });
+
     it('highlights the edges of a selected statement', () => {
         render();
         const insert = box('schema.sql').querySelectorAll<SVGGElement>('[data-dataflow-statement]')[1];
