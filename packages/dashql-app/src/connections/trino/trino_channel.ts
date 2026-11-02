@@ -55,9 +55,10 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         }
     }
 
+    /// Cancel the query, a query without a next URI is done already
     async cancel(): Promise<void> {
-        const queryId = this.latestQueryResult?.id;
-        if (queryId != null) await this.apiClient.cancelQuery(this.endpoint, queryId);
+        const nextUri = this.latestQueryResult?.nextUri;
+        if (nextUri != null) await this.apiClient.cancelQuery(this.endpoint, nextUri);
     }
 
     /// Fetch the next query result

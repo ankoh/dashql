@@ -206,8 +206,8 @@ export interface TrinoApiClientInterface {
     getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query info
     getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryInfo>;
-    /// Cancel a query
-    cancelQuery(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryResult>;
+    /// Cancel a query by its next URI
+    cancelQuery(endpoint: TrinoApiEndpoint, nextUri: string): Promise<void>;
 }
 
 
@@ -323,24 +323,21 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         return response;
     }
 
-    /// Cancel a query
-    async cancelQuery(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryResult> {
-        this.logger.debug("Cancelling query", { "query": queryId }, LOG_CTX);
-        const url = new URL(`${endpoint.endpoint}/v1/query/${queryId}`);
+    /// Cancel a query by deleting its next URI, Trino answers with 204 No Content
+    async cancelQuery(endpoint: TrinoApiEndpoint, nextUri: string): Promise<void> {
+        this.logger.debug("Cancelling query", { "nextUri": nextUri }, LOG_CTX);
+        const url = new URL(nextUri);
         const headers = await this.getHeaders(endpoint);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'DELETE',
             headers
         });
-        if (rawResponse.status != 200) {
+        if (rawResponse.status < 200 || rawResponse.status >= 300) {
             throw new LoggableException(`Cancelling a query failed`, {
                 status: rawResponse.status.toString(),
                 message: rawResponse.statusText.toString()
             }, LOG_CTX);
         }
-        const responseJson = await rawResponse.json() as TrinoQueryResult;
-        const response = responseJson as TrinoQueryResult;
-        return response;
     }
 }
 

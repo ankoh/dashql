@@ -131,10 +131,16 @@ describe('TrinoQueryResultStream', () => {
         await expect(produceAll(stream)).rejects.toThrow('Result schema is missing');
     });
 
-    it('cancels the query by its id', async () => {
-        const { stream, apiClient } = resultStream({ stats: state('RUNNING') });
+    it('cancels the query by its next URI', async () => {
+        const { stream, apiClient } = resultStream({ nextUri: 'next-1', stats: state('RUNNING') });
         await stream.cancel();
-        expect(apiClient.cancelQuery).toHaveBeenCalledWith(expect.any(TrinoApiEndpoint), 'query-id');
+        expect(apiClient.cancelQuery).toHaveBeenCalledWith(expect.any(TrinoApiEndpoint), 'next-1');
+    });
+
+    it('does not cancel a query without a next URI', async () => {
+        const { stream, apiClient } = resultStream({ stats: state('FINISHED') });
+        await stream.cancel();
+        expect(apiClient.cancelQuery).not.toHaveBeenCalled();
     });
 });
 
