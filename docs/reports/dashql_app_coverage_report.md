@@ -16,10 +16,10 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 73.1% (44,121 / 60,339 lines) in 543 files**, up from 69.1% before the tests of the Trino and Salesforce
-connection reducers and channel, the Trino Arrow conversion, the log buffer, the graph edges, more Arrow value formats,
-the column aggregation and data search tasks, the completion focus, the diff decorations, the router navigation, the
-cross filters and the query result search.
+**Overall: 74.6% (45,028 / 60,346 lines) in 543 files**, up from 69.1% before the tests of the Trino and
+Salesforce connection reducers and channel, the Trino Arrow conversion, the log buffer, the graph edges, more Arrow value
+formats, the column aggregation and data search tasks, the completion focus, list and keys, the diff decorations, the
+router navigation, the cross filters, the query result search and the native gRPC clients.
 
 ## Gaps in logic (`.ts`)
 
@@ -27,26 +27,26 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/session/editor/dashql_completion_list.ts:45-154` | CandidateRenderer | 82 |
-| `src/session/editor/dashql_completion_listener.ts:103-176` | onTab | 59 |
-| `src/session/editor/dashql_processor.ts:535-597` | updateCompletion | 52 |
-| `src/platform/grpc/native_grpc_client.ts:85-143` | read | 47 |
 | `src/session/persistence/app_state_loader.ts:555-599` | restoreSingleSession | 40 |
 | `src/app/hyper_links.ts:41-75` | useHyperLinks | 33 |
-| `src/connections/hyper/platform/native_hyperdb_grpc_client.ts:121-159` | produce | 32 |
-| `src/session/editor/dashql_completion_list.ts:213-261` | render | 32 |
 | `src/storage/session_import_transaction.ts:127-158` | replaceSessionWithNativeFolder | 27 |
 | `src/storage/composite_storage_backend.ts:461-496` | relocateSessionToNative | 25 |
-| `src/platform/grpc/native_grpc_client.ts:311-342` | connect | 24 |
 | `src/compute/computation_state.ts:891-913` | updateTask | 22 |
-| `src/views/plan/plan_execution_controller.ts:29-51` | applyChangeEvents | 22 |
-| `src/platform/grpc/native_grpc_client.ts:198-223` | next | 21 |
-| `src/storage/session_bundle.ts:239-259` | filterInvalidSessionCatalogs | 21 |
-| `src/connections/hyper/platform/native_hyperdb_grpc_client.ts:178-199` | executeQuery | 20 |
 | `src/connections/query_execution_mock.ts:47-69` | produce | 20 |
-| `src/connections/trino/trino_channel.ts:205-228` | executeQuery | 20 |
-| `src/session/editor/dashql_completion_list.ts:391-424` | computePosition | 20 |
-| `src/connections/hyper/platform/native_hyperdb_grpc_client.ts:59-81` | next | 19 |
+| `src/connections/trino/trino_connection_setup.ts:306-324` | createTrinoSetup | 19 |
+| `src/demos/stock_analysis/synthetic_feed.ts:142-161` | start | 19 |
+| `src/platform/events/electron_event_listener.ts:9-29` | listenForAppEvents | 19 |
+| `src/query/query_execution_state.ts:354-374` | reduceQueryAction | 19 |
+| `src/views/query_result/data_table_column_resize.ts:141-162` | onPointerDownCapture | 19 |
+| `src/compute/computation_state.ts:576-596` | reduceComputationState | 18 |
+| `src/connections/connection_state.ts:351-370` | reduceConnectionState | 18 |
+| `src/shell/api.ts:104-121` | fetchShellWasm | 18 |
+| `src/query/query_execution_state.ts:421-438` | reduceQueryAction | 17 |
+| `src/views/query_result/data_table_column_resize.ts:164-183` | onPointerMove | 17 |
+| `src/views/query_result/data_table_ordering.ts:37-53` | createOrderingTask | 17 |
+| `src/compute/tasks/column_aggregation.ts:212-227` | computeFilteredColumnAggregates | 16 |
+| `src/connections/trino/trino_api_client.ts:298-315` | getQueryInfo | 16 |
+| `src/connections/trino/trino_api_client.ts:318-335` | cancelQuery | 16 |
 
 ## Gaps in components (`.tsx`)
 
@@ -89,9 +89,10 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
 
 ## Suggested next tests
 
-1. `CandidateRenderer`, `render` and `computePosition` of the completion list, `onTab` of the completion listener and
-   `updateCompletion` of the processor: drive the editor with a completion like `dashql_processor.test.ts`.
-2. `restoreSingleSession` of the app state loader and `filterInvalidSessionCatalogs` of the session bundle.
-3. The native gRPC clients (`native_grpc_client.ts`, `native_hyperdb_grpc_client.ts`) with a fake Electron bridge.
-4. `updateTask` of the computation state and `applyChangeEvents` of the plan execution controller.
+1. `restoreSingleSession` of the app state loader, `replaceSessionWithNativeFolder` of the session import transaction and
+   `relocateSessionToNative` of the composite storage backend, with the session test backend.
+2. The reducers: `updateTask` and `SET_CROSS_FILTERS` of the computation state, `reduceConnectionState` and
+   `reduceQueryAction`.
+3. `useHyperLinks` and `listenForAppEvents` of the Electron event listener, with a fake Electron bridge.
+4. `onPointerDownCapture` of the column resize of the data table.
 5. Render tests of `TrinoConnectorSettings` and `HyperConnectorSettings` like the Salesforce settings tests.
