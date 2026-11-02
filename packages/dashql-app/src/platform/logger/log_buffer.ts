@@ -171,8 +171,8 @@ export class LogBuffer {
 
         // Buffer entries before compacting
         this.lastEntries_.push(entry);
-        // Freeze chunk if forced or above threshold
-        if (this.lastEntries_.length > TARGET_CHUNK_SIZE) {
+        // Freeze full chunks, at() and length expect exactly TARGET_CHUNK_SIZE entries per chunk
+        if (this.lastEntries_.length >= TARGET_CHUNK_SIZE) {
             this.frozenChunks_.push(new FrozenLogChunk(this.lastEntries_));
             this.lastEntries_ = [];
         }

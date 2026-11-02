@@ -1,4 +1,20 @@
+import type { LogRecord } from './log_buffer.js';
+import { LogLevel } from './log_buffer.js';
 import { Logger } from './logger.js';
+
+/// A log record for tests, an info message unless overridden
+export function testLogRecord(fields: Partial<LogRecord> = {}): LogRecord {
+    return {
+        timestamp: 0,
+        level: LogLevel.Info,
+        target: 'test',
+        message: 'test message',
+        context: null,
+        tracing: null,
+        keyValues: {},
+        ...fields,
+    };
+}
 
 export class TestLogger extends Logger {
     constructor() {

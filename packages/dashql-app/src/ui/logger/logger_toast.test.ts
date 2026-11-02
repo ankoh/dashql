@@ -1,19 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { LogLevel, type LogRecord } from '../../platform/logger/log_buffer.js';
+import { LogLevel } from '../../platform/logger/log_buffer.js';
+import { testLogRecord } from '../../platform/logger/test_logger.js';
 import { shouldShowLoggerToast } from './logger_toast.js';
 
-function record(level: LogLevel): LogRecord {
-    return {
-        timestamp: 0,
-        level,
-        target: 'test',
-        message: 'test message',
-        context: null,
-        tracing: null,
-        keyValues: {},
-    };
-}
+const record = (level: LogLevel) => testLogRecord({ level });
 
 describe('shouldShowLoggerToast', () => {
     it('does not show warnings', () => {
