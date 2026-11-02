@@ -7,9 +7,18 @@ import {
     QUERY_CACHE_DELETED,
     QUERY_CACHE_RECORDED,
     QUERY_FAILED,
+    QUERY_PREPARING,
+    QUERY_PROCESSED_RESULTS,
+    QUERY_PROCESSING_RESULTS,
+    QUERY_PROGRESS_UPDATED,
     QUERY_RECEIVED_ALL_BATCHES,
     QUERY_RECEIVED_BATCH,
+    QUERY_RUNNING,
+    QUERY_SENDING,
     QUERY_SUCCEEDED,
+    QueryExecutionStatus,
+    type QueryExecutionAction,
+    type QueryExecutionProgress,
     QueryType,
     createQueryExecutionMetrics,
     createQueryExecutionState,
@@ -121,6 +130,29 @@ describe('query cache bookkeeping', () => {
         const state = history();
         expect(reduceQueryAction(state, { type: QUERY_CACHE_DELETED, value: [9] })).toBe(state);
         expect(reduceQueryAction(state, { type: QUERY_SUCCEEDED, value: [9] })).toBe(state);
+    });
+});
+
+describe('active queries', () => {
+    it('move through the execution statuses and become queued only while sending', () => {
+        let state = start(history(), 1, metadata(QueryType.USER_PROVIDED));
+        const progress = { isQueued: true } as QueryExecutionProgress;
+        const steps: [QueryExecutionAction, QueryExecutionStatus][] = [
+            [{ type: QUERY_PREPARING, value: [1] }, QueryExecutionStatus.PREPARING],
+            [{ type: QUERY_SENDING, value: [1] }, QueryExecutionStatus.SENDING],
+            [{ type: QUERY_PROGRESS_UPDATED, value: [1, progress] }, QueryExecutionStatus.QUEUED],
+            [{ type: QUERY_RUNNING, value: [1, null] }, QueryExecutionStatus.RUNNING],
+            [{ type: QUERY_PROGRESS_UPDATED, value: [1, progress] }, QueryExecutionStatus.RUNNING],
+            [{ type: QUERY_PROCESSING_RESULTS, value: [1] }, QueryExecutionStatus.PROCESSING_RESULTS],
+            [{ type: QUERY_PROCESSED_RESULTS, value: [1] }, QueryExecutionStatus.PROCESSED_RESULTS],
+        ];
+        for (const [action, status] of steps) {
+            state = reduceQueryAction(state, action);
+            expect(state.queriesActive.get(1)?.status).toBe(status);
+        }
+        const metrics = state.queriesActive.get(1)!.metrics;
+        expect(metrics.progressUpdatesReceived).toBe(2);
+        expect([metrics.queryPreparingStartedAt, metrics.querySendingStartedAt, metrics.queryQueuedStartedAt, metrics.queryRunningStartedAt, metrics.processedResultsAt].every(at => at != null)).toBe(true);
     });
 });
 

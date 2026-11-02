@@ -53,6 +53,31 @@ describe('TrinoQueryResultStream', () => {
         expect([decimal.precision, decimal.scale, decimal.bitWidth]).toEqual([21, 1, 128]);
     });
 
+    it.each<[string, string]>([
+        ['boolean', 'Float64'],
+        ['integer', 'Float64'],
+        ['double', 'Float64'],
+        ['decimal(10, 2)', 'Decimal[10e+2]'],
+        ['decimal', 'Decimal[38e0]'],
+        ['varchar(20)', 'Utf8'],
+        ['char(3)', 'Utf8'],
+        ['varbinary', 'Binary'],
+        ['json', 'Utf8'],
+        ['date', 'Date32<DAY>'],
+        ['time(3)', 'Time32<MILLISECOND>'],
+        ['timestamp(3)', 'Timestamp<MILLISECOND>'],
+        ['timestamp(3) with time zone', 'Timestamp<MILLISECOND, UTC>'],
+        ['interval day to second', 'Utf8'],
+        ['uuid', 'Utf8'],
+        ['ipaddress', 'Utf8'],
+        ['array(integer)', 'Utf8'],
+        ['row(a integer)', 'Utf8'],
+        ['hyperloglog', 'Utf8'],
+    ])('translates the Trino type %s', async (type, arrowType) => {
+        const { stream } = resultStream({ columns: [{ name: 'c', type }], stats: state('FINISHED') });
+        expect((await stream.getSchema())!.fields[0].type.toString()).toBe(arrowType);
+    });
+
     it('follows the next URIs until the query finished and translates the data', async () => {
         const { stream, apiClient } = resultStream({ nextUri: 'next-1', stats: state('QUEUED') }, [
             { nextUri: 'next-2', columns: COLUMNS, stats: state('RUNNING') },
