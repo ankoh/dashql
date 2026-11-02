@@ -546,7 +546,8 @@ function DataflowBox(props: BoxProps): React.ReactElement {
         ...(props.onInspect != null ? [{ key: 'open', label: `Open ${name}`, icon: PencilIcon, run: () => props.onInspect!(scriptKey) }] : []),
         ...(script != null ? [{ key: 'delete', label: `Delete ${name}`, icon: TrashIcon, run: () => props.onDelete(script) }] : []),
     ];
-    const outputY = box.collapsed || terminal < 0 ? box.y + config.headerHeight / 2 : box.rows[terminal].y + config.rowHeight / 2;
+    // A new script reads the whole script, so the add button sits at the vertical middle of the box
+    const addY = box.y + box.height / 2;
     return (
         <g
             className={styles.box}
@@ -664,7 +665,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 tabIndex={0}
                 aria-label={`Add a script that reads ${name}`}
                 data-dataflow-action="add"
-                transform={`translate(${box.x + box.width + 14}, ${outputY})`}
+                transform={`translate(${box.x + box.width + 14}, ${addY})`}
                 onPointerDown={event => event.stopPropagation()}
                 onClick={event => { event.stopPropagation(); props.onCreateDownstream(box); }}
                 onKeyDown={event => {
