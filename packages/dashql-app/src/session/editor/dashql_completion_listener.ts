@@ -218,7 +218,6 @@ function onArrowDown(view: EditorView) {
     const processor = view.state.field(DashQLProcessorPlugin);
     if (processor == null) { return false; }
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        console.log(processor.scriptCompletion?.status);
         return false;
     }
     if (processor.scriptCompletion?.passiveHint) { return false; }
@@ -238,7 +237,6 @@ function onArrowRight(view: EditorView) {
     const processor = view.state.field(DashQLProcessorPlugin);
     if (processor == null) { return false; }
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        console.log(processor.scriptCompletion?.status);
         return false;
     }
     const completion = processor.scriptCompletion.buffer.read();
@@ -258,7 +256,6 @@ function onArrowLeft(view: EditorView) {
     const processor = view.state.field(DashQLProcessorPlugin);
     if (processor == null) { return false; }
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        console.log(processor.scriptCompletion?.status);
         return false;
     }
     const completion = processor.scriptCompletion.buffer.read();
