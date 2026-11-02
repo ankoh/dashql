@@ -7,9 +7,8 @@
 //! its right border at the centers of the rows, and the edges are routed orthogonally, the edges out of one port
 //! share their first segments.
 //!
-//! - Without hints ELK arranges the connected boxes in layers in the order of the session. The sinks of a fan-out,
-//!   e.g. the charts of one base table, alternate between sub-layers once there are `wrap_siblings` of them. The
-//!   connected parts are packed by ELK, boxes without edges go into rows below them.
+//! - Without hints ELK arranges the connected boxes in layers in the order of the session, the consumers of a box
+//!   stack in one column. The connected parts are packed by ELK, boxes without edges go into rows below them.
 //! - With hints, where the boxes were, ELK lays out interactively, every connected part on its own: the columns follow
 //!   the x of the boxes, the order in a column their y, and a box keeps its y where it does not overlap another. A
 //!   dropped box goes into the column under its center, or into a new column in a gap between two columns. A layout
@@ -54,8 +53,6 @@ pub struct DataflowLayoutConfig {
     pub align_snap: f64,
     /// The boxes without edges per row
     pub isolated_per_row: usize,
-    /// The fewest sinks of a fan-out that alternate between sub-layers, 0 never
-    pub wrap_siblings: usize,
     /// The grid that drags and resizes on the canvas snap to, the layout does not snap
     pub grid: f64,
 }
@@ -80,7 +77,6 @@ impl Default for DataflowLayoutConfig {
             edge_box_gap: 24.0,
             align_snap: 24.0,
             isolated_per_row: 4,
-            wrap_siblings: 4,
             grid: 8.0,
         }
     }
@@ -99,8 +95,7 @@ pub struct DataflowLayoutBox {
     pub width: Option<f64>,
     /// The height of the chart, the chart height of the config if absent
     pub chart_height: Option<f64>,
-    /// Is the box an input or an attachment? Its consumers are grouped as if it were absent, it is `input_box_width`
-    /// wide by default.
+    /// Is the box an input or an attachment? It is `input_box_width` wide by default.
     pub input: bool,
     /// Where the box was, e.g. saved in its `@flow` tag or where the last layout put it
     pub hint: Option<(f64, f64)>,
@@ -173,23 +168,6 @@ fn box_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> Dataflo
 /// The edges between different boxes
 fn box_edges(edges: &[DataflowLayoutEdge], count: usize) -> Vec<DataflowLayoutEdge> {
     edges.iter().filter(|e| e.from_box != e.to_box && (e.from_box as usize) < count && (e.to_box as usize) < count).copied().collect()
-}
-
-/// Does no edge start at a box?
-fn is_sink(b: usize, edges: &[DataflowLayoutEdge]) -> bool {
-    !edges.iter().any(|e| e.from_box as usize == b)
-}
-
-/// The boxes that tie the sinks of a fan-out together: the producers of a box without the inputs, or the inputs if
-/// it only reads inputs
-fn sibling_key(b: usize, edges: &[DataflowLayoutEdge], inputs: &[bool]) -> BTreeSet<usize> {
-    let all: BTreeSet<usize> = edges.iter().filter(|e| e.to_box as usize == b).map(|e| e.from_box as usize).collect();
-    let scripts: BTreeSet<usize> = all.iter().copied().filter(|&p| !inputs[p]).collect();
-    if scripts.is_empty() {
-        all
-    } else {
-        scripts
-    }
 }
 
 /// The connected parts of the graph, by their first box. Boxes without edges are left out.
@@ -416,7 +394,7 @@ fn elk(
 ) -> Vec<DataflowEdgeRoute> {
     use org_eclipse_elk_alg_layered::org::eclipse::elk::alg::layered::layered_layout_provider::LayeredLayoutProvider;
     use org_eclipse_elk_alg_layered::org::eclipse::elk::alg::layered::options::{
-        CrossingMinimizationStrategy, CycleBreakingStrategy, LayerUnzippingStrategy, LayeredOptions, LayeringStrategy, NodePlacementStrategy,
+        CrossingMinimizationStrategy, CycleBreakingStrategy, LayeredOptions, LayeringStrategy, NodePlacementStrategy,
         OrderingStrategy,
     };
     use org_eclipse_elk_alg_layered::org::eclipse::elk::alg::layered::plain_java_initialization::initialize_plain_java_layout;
@@ -459,10 +437,9 @@ fn elk(
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::None);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, false);
     } else {
-        // The order of the session, the sinks of a fan-out alternate between sub-layers, ELK packs the parts
+        // The order of the session, ELK packs the parts
         set_node(&graph, LayeredOptions::NODE_PLACEMENT_STRATEGY, NodePlacementStrategy::NetworkSimplex);
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::NodesAndEdges);
-        set_node(&graph, LayeredOptions::LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy::Alternating);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, true);
     }
 
@@ -478,26 +455,6 @@ fn elk(
         connected[e.from_box as usize].1.insert(e.from_statement);
         unique.insert((e.from_box, e.from_statement, e.to_box, e.to_statement));
     }
-    // The sinks of the fan-outs of at least `wrap_siblings` boxes alternate between two sub-layers, three beyond six.
-    // The split of a layer is the smallest one of its boxes, every other box has 1.
-    let inputs: Vec<bool> = boxes.iter().map(|b| b.input).collect();
-    let mut fan_outs: Vec<(BTreeSet<usize>, Vec<usize>)> = Vec::new();
-    for b in subset.iter().copied().filter(|&b| is_sink(b, &edges)) {
-        let key = sibling_key(b, &edges, &inputs);
-        if key.is_empty() {
-            continue;
-        }
-        match fan_outs.iter_mut().find(|(k, _)| *k == key) {
-            Some((_, members)) => members.push(b),
-            None => fan_outs.push((key, vec![b])),
-        }
-    }
-    let mut split = vec![1i32; geometry.len()];
-    for (_, members) in fan_outs.iter().filter(|(_, m)| config.wrap_siblings > 0 && m.len() >= config.wrap_siblings.max(2)) {
-        for &m in members {
-            split[m] = if members.len() <= 6 { 2 } else { 3 };
-        }
-    }
     let mut nodes = Vec::with_capacity(subset.len());
     let mut ports: BTreeMap<(u32, bool, u32), ElkPortRef> = BTreeMap::new();
     for &b in subset {
@@ -509,9 +466,6 @@ fn elk(
         }
         set_node(&node, CoreOptions::NODE_SIZE_CONSTRAINTS, SizeConstraint::fixed());
         set_node(&node, CoreOptions::PORT_CONSTRAINTS, PortConstraints::FixedPos);
-        if !interactive {
-            set_node(&node, LayeredOptions::LAYER_UNZIPPING_LAYER_SPLIT, split[b]);
-        }
         for (output, statements) in [(false, ins), (true, outs)] {
             for &statement in statements {
                 let port = ElkGraphUtil::create_port(Some(node.clone()));
@@ -682,28 +636,15 @@ mod tests {
     }
 
     #[test]
-    fn a_fan_out_alternates_between_two_columns() {
+    fn a_fan_out_stays_one_column() {
         let config = DataflowLayoutConfig::default();
         let boxes = [data(1), chart(), chart(), chart(), chart(), chart()];
         let edges: Vec<_> = (1..6).map(|i| edge(0, 0, i, 0)).collect();
         let g = compute_dataflow_layout(&boxes, &edges, &config);
-        let columns: BTreeSet<i64> = g[1..].iter().map(|g| g.x as i64).collect();
-        assert_eq!(columns.len(), 2);
-        assert_no_overlaps(&g);
-        // Below the threshold the consumers stay a column
-        let g = compute_dataflow_layout(&boxes[..4], &edges[..3], &config);
         assert_eq!(g[1..].iter().map(|g| g.x as i64).collect::<BTreeSet<_>>().len(), 1);
-    }
-
-    #[test]
-    fn an_input_does_not_split_a_fan_out() {
-        let config = DataflowLayoutConfig::default();
-        let input = DataflowLayoutBox { statements: 1, width: Some(200.0), input: true, ..Default::default() };
-        let boxes = [data(1), chart(), chart(), chart(), chart(), input];
-        let mut edges: Vec<_> = (1..5).map(|i| edge(0, 0, i, 0)).collect();
-        edges.push(edge(5, 0, 1, 0));
-        let g = compute_dataflow_layout(&boxes, &edges, &config);
-        assert_eq!(g[1..5].iter().map(|g| g.x as i64).collect::<BTreeSet<_>>().len(), 2);
+        // In the order of the session, from top to bottom
+        assert!(g[1..].windows(2).all(|w| w[0].y < w[1].y));
+        assert_no_overlaps(&g);
     }
 
     #[test]

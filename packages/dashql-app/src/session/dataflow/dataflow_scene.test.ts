@@ -201,7 +201,7 @@ describe('dataflow scene', () => {
         expect(selectedEdges(scene, { scriptKey: 2, statementId: null }).map(e => e.key)).toEqual(['b', 'i']);
     });
 
-    it('curves a fan-out into the grid of its consumers after a trunk with one badge', () => {
+    it('curves a fan-out into its consumers after a trunk with one badge', () => {
         // A base box and five consumers in a grid of three columns, like the core lays them out
         const graph: DataflowGraph = {
             scripts: [script(1, 1), ...[2, 3, 4, 5, 6].map(key => script(key, 1))],

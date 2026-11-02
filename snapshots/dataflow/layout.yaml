@@ -170,7 +170,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: sales
               text: "create tab..mount int)"
-          box: [0,337,280,80]
+          box: [0,672,280,80]
         - name: by_region
           statements:
             - type: SELECT
@@ -180,63 +180,63 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [424,337,480,288]
+          box: [424,672,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select reg..c limit 10"
-          box: [1048,256,480,288]
+          box: [424,336,480,288]
         - name: regions
           statements:
             - type: SELECT
               text: "select dis..from sales"
-          box: [1048,593,480,288]
+          box: [424,1008,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [424,674,480,288]
+          box: [424,1344,480,288]
       inputs:
         - name: min
           type: "integer"
           value: "10"
-          box: [80,209,200,80]
+          box: [80,336,200,80]
       edges:
         - from: sales.0
           to: by_region.0
           kind: table
           name: sales
-          route: [[280,393],[352,393],[352,56],[424,56]]
+          route: [[280,728],[352,728],[352,56],[424,56]]
         - from: ":min"
           to: by_region.0
           kind: input
           name: min
-          route: [[280,265],[352,265],[352,56],[424,56]]
+          route: [[280,392],[352,392],[352,56],[424,56]]
         - from: sales.0
           to: total.0
           kind: table
           name: sales
-          route: [[280,393],[424,393]]
+          route: [[280,728],[424,728]]
         - from: sales.0
           to: top.0
           kind: table
           name: sales
-          route: [[280,393],[352,393],[352,312],[1048,312]]
+          route: [[280,728],[352,728],[352,392],[424,392]]
         - from: ":min"
           to: top.0
           kind: input
           name: min
-          route: [[280,265],[352,265],[352,312],[1048,312]]
+          route: [[280,392],[424,392]]
         - from: sales.0
           to: regions.0
           kind: table
           name: sales
-          route: [[280,393],[352,393],[352,649],[1048,649]]
+          route: [[280,728],[352,728],[352,1064],[424,1064]]
         - from: sales.0
           to: count.0
           kind: table
           name: sales
-          route: [[280,393],[352,393],[352,730],[424,730]]
+          route: [[280,728],[352,728],[352,1400],[424,1400]]
 
   - name: LayoutFanoutBelowThreshold
     scripts:

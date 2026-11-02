@@ -41,8 +41,7 @@ dataflow-snapshots:
         input: |
           select count(*) from orders;
 
-  # Five charts of one base table alternate between two columns. An input read by two of them does not split the
-  # fan-out.
+  # Five charts of one base table stack in one column, an input read by two of them goes before them
   - name: LayoutFanoutGrid
     scripts:
       - name: sales
