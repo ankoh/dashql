@@ -9,7 +9,8 @@ import { ComputationRegistry } from '../../compute/computation_registry.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
-import { FeedEntryFooter, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
+import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
+import type { QueryExecutionState } from '../../query/query_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -36,6 +37,24 @@ const dependencies = {
     }} />,
 } as FeedEntryFooterDependencies;
 
+/// The feed row owns the tab selection, the strip sits in the status bar and the panel below it
+const FooterWithTabs: React.FC<{ queryState: QueryExecutionState; visualizeQuery: ResolvedVisualizeQuery | null }> = ({ queryState, visualizeQuery }) => {
+    const tabs = useFeedEntryTabs(queryState, visualizeQuery, dependencies);
+    return (
+        <>
+            <FeedEntryTabStrip tabs={tabs} />
+            <FeedEntryFooter
+                sessionId="session"
+                queryState={queryState}
+                visualizeQuery={visualizeQuery}
+                selectedTab={tabs.selectedTab}
+                onShowTable={onShowTable}
+                dependencies={dependencies}
+            />
+        </>
+    );
+};
+
 describe('FeedEntryFooter', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -59,12 +78,9 @@ describe('FeedEntryFooter', () => {
         // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
             <ComputationRegistry>
-                <FeedEntryFooter
-                    sessionId="session"
+                <FooterWithTabs
                     queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
                     visualizeQuery={visualizeQuery}
-                    onShowTable={onShowTable}
-                    dependencies={dependencies}
                 />
             </ComputationRegistry>,
         ));
@@ -147,5 +163,19 @@ describe('FeedEntryFooter', () => {
         // The tab switches in an effect
         await vi.waitFor(() => expect(container.querySelector('[data-testid="download-chart-png"]')).not.toBeNull());
         expect(container.querySelector('[data-testid="download-query-result"]')).toBeNull();
+    });
+
+    it('lists the usable tabs and switches the panel from the tab strip', () => {
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
+        renderFooter(arrow.tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
+        const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+        expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Execution log', 'Query results', 'Visualization']);
+        expect(tabs[2].getAttribute('aria-selected')).toBe('true');
+
+        act(() => tabs[1].click());
+
+        expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+        expect(container.querySelector('[data-testid="download-query-result"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="download-chart-png"]')).toBeNull();
     });
 });

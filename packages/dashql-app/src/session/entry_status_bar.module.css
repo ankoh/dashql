@@ -39,6 +39,28 @@
     font-size: inherit;
 }
 
+.status_bar_caret {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding: 0 6px 0 12px;
+    border: none;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* With result tabs, the status message sits at the right edge, next to the actions */
+.status_bar_content_trailing {
+    justify-content: flex-end;
+    padding: 0 8px 0 16px;
+}
+
+.status_bar_content_trailing .status_bar_message {
+    flex: 0 1 auto;
+}
+
 .status_bar_cancel {
     flex-shrink: 0;
 }

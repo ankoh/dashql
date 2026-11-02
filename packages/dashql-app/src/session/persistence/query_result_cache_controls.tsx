@@ -7,14 +7,58 @@ import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_exe
 import { useRelativeTime } from '../../utils/time_format.js';
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { Tag } from '../../ui/foundations/tag.js';
+import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 
 interface QueryResultCacheControlsProps {
     query: QueryExecutionState | null;
 }
 
-export const CachedResultBean: React.FC = () => (
-    <Tag className={styles.cached_result_bean}>Cached</Tag>
-);
+interface CachedResultBeanProps {
+    /// The time the cached result was written
+    cachedAtMs: number;
+}
+
+/// The "Cached" tag of a result card. Clicking it tells since when the result is cached.
+export const CachedResultBean: React.FC<CachedResultBeanProps> = ({ cachedAtMs }) => {
+    const [open, setOpen] = React.useState(false);
+    const relativeTime = useRelativeTime(cachedAtMs);
+    return (
+        <AnchoredOverlay
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+            side={AnchorSide.OutsideBottom}
+            align={AnchorAlignment.End}
+            anchorOffset={4}
+            renderAnchor={(p: object) => (
+                <button
+                    {...(p as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+                    type="button"
+                    className={styles.cached_result_button}
+                    aria-label="Show since when the result is cached"
+                    data-testid="cached-result"
+                >
+                    <Tag className={styles.cached_result_bean}>Cached</Tag>
+                </button>
+            )}
+        >
+            <div className={styles.cached_result_detail} role="dialog" aria-label="Cached result" data-testid="cached-result-detail">
+                <div className={styles.cached_result_detail_title}>
+                    Cached {relativeTime != null ? lowerFirst(relativeTime) : null}
+                </div>
+                <div className={styles.cached_result_detail_time}>
+                    {new Date(cachedAtMs).toLocaleString()}
+                </div>
+            </div>
+        </AnchoredOverlay>
+    );
+};
+
+/// Lowercase the first letter so "Just now"/"Yesterday" read naturally after a verb
+function lowerFirst(text: string): string {
+    return text.charAt(0).toLowerCase() + text.slice(1);
+}
 
 /// Whether the query has a result to describe (succeeded, not since cache-deleted).
 function hasResult(query: QueryExecutionState | null): boolean {
@@ -43,11 +87,9 @@ export const QueryResultCacheLabel: React.FC<QueryResultCacheControlsProps> = ({
     if (!hasResult(query) || relativeTime == null) {
         return null;
     }
-    // Lowercase the first letter so "Just now"/"Yesterday" read naturally after "Executed".
-    const relative = relativeTime.charAt(0).toLowerCase() + relativeTime.slice(1);
     return (
         <span className={styles.cache_label}>
-            Executed {relative}
+            Executed {lowerFirst(relativeTime)}
         </span>
     );
 };

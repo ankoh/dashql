@@ -1,4 +1,42 @@
-.footer_container {
+/* The result tabs in the entry status bar, between the expand caret and the status message */
+.tab_strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Follows the buttons of the vertical tabs: a bordered, grey button on hover and when selected */
+.tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 28px;
+    width: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    background: transparent;
+    color: var(--button_fg);
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+.tab:hover {
+    background-color: var(--vtabs_tabs_background_hover);
+    border-color: var(--border_color_primary);
+}
+
+.tab_active {
+    color: var(--vtabs_tabs_foreground_active);
+    background-color: var(--vtabs_tabs_background_active);
+    border-color: var(--border_color_primary);
+}
+
+.tab svg {
+    flex-shrink: 0;
 }
 
 /* The visualization tab stacks a fixed-height header over a chart that must fill the rest of the

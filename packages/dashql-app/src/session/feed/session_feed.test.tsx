@@ -20,6 +20,9 @@ import { AgentQuestionStore } from '../../agent/agent_question_store.js';
 import { AgentConnectionStatus } from '../../agent/agent_client.js';
 import { CREATE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../connections/connector_info.js';
+import { EntryStatusBar } from '../entry_status_bar.js';
+import { CachedResultBean } from '../persistence/query_result_cache_controls.js';
+import { FeedEntryTabStrip } from './feed_entry_footer.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -46,10 +49,10 @@ const dependencies = {
             args[3]('SELECT 1;');
         },
         CachedResultBean: () => null,
-        QueryResultCacheLabel: () => null,
         QueryResultRerunButton: () => null,
         EntryStatusBar: (props: any) => <button data-testid="status" onClick={props.onToggleExpanded}>{props.status.message}</button>,
         FeedEntryFooter: () => <div data-testid="integrated-footer">footer</div>,
+        FeedEntryTabStrip: () => null,
     },
 } as unknown as ScriptFeedRowDependencies;
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -168,6 +171,28 @@ describe('V2 session feed rows', () => {
         expect(props.onCreate).toHaveBeenLastCalledWith(0);
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-below"]')!.click());
         expect(props.onCreate).toHaveBeenLastCalledWith(1);
+    });
+
+    it('marks a result that was loaded from the cache as cached in the status bar', async () => {
+        const props = baseProps();
+        props.scripts[1] = { ...props.scripts[1], latestQueryId: 42, analysisOutdated: false } as any;
+        Object.assign(props, {
+            connections: new Map([['database', {
+                connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { type: TRINO_CONNECTOR, value: {} },
+                connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino', labelParts: { name: 'Trino', detail: '' },
+            }]]),
+            computeCacheKey: vi.fn(async () => 'key'),
+            lookupCachedResult: vi.fn(async () => Date.now() - 8 * 60_000),
+            dependencies: { ...dependencies, scriptCard: { ...dependencies.scriptCard, EntryStatusBar, CachedResultBean, FeedEntryTabStrip } },
+        });
+        state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {}, servedFromCache: true };
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+        expect(container.textContent).toContain('Result loaded from cache');
+        await vi.waitFor(() => expect(container.querySelector('[data-testid="cached-result"]')).not.toBeNull());
+
+        // Clicking the tag tells since when the result is cached
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="cached-result"]')!.click());
+        expect(document.querySelector('[data-testid="cached-result-detail"]')?.textContent).toContain('8 minutes ago');
     });
 
     it('focuses on pointer entry and exposes integrated execution footer', () => {

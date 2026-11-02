@@ -33,6 +33,9 @@ interface EntryStatusBarProps {
     /// Result-level actions such as execution age and Refresh. Kept outside the clickable log strip
     /// so the bar never nests interactive controls.
     actions?: React.ReactNode;
+    /// Result tabs shown right of the expand caret. With tabs, the caret toggles on its own and the
+    /// status message moves to the right, next to the actions.
+    tabs?: React.ReactNode;
     compact?: boolean;
     dependencies?: EntryStatusBarDependencies;
 }
@@ -69,7 +72,7 @@ const ErrorDetailCard: React.FC<{
 /// The result-card header: it renders a spinner (or check/cross) plus a one-line status message and
 /// optionally toggles the result content below it. Failed-query details are available from a
 /// separate control so the toggle never contains nested interactive elements.
-export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions, compact, dependencies = DEFAULT_DEPENDENCIES }) => {
+export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions, tabs, compact, dependencies = DEFAULT_DEPENDENCIES }) => {
     const [showDetail, setShowDetail] = React.useState(false);
     const hasErrorDetail = status.errorDetail != null;
     const CancelIcon = SymbolIcon('x_16');
@@ -123,7 +126,27 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
             [styles.status_bar_collapsed]: expanded === false,
             [styles.status_bar_compact]: compact,
         })}>
-            {onToggleExpanded != null ? (
+            {tabs != null ? (
+                <>
+                    {onToggleExpanded != null && (
+                        <button
+                            type="button"
+                            className={styles.status_bar_caret}
+                            onClick={onToggleExpanded}
+                            aria-label={`${expanded ? 'Collapse' : 'Expand'} result: ${status.message}`}
+                            aria-expanded={expanded}
+                            aria-controls={controls}
+                        >
+                            {expanded ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
+                        </button>
+                    )}
+                    {tabs}
+                    <div className={classNames(styles.status_bar_content, styles.status_bar_content_trailing)}>
+                        {indicator}
+                        {message}
+                    </div>
+                </>
+            ) : onToggleExpanded != null ? (
                 <button
                     type="button"
                     className={styles.status_bar_log_button}

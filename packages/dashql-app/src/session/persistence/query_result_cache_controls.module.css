@@ -13,7 +13,38 @@
     flex-shrink: 0;
 }
 
-.cached_result_bean {
+.cached_result_button {
+    display: inline-flex;
+    align-items: center;
     margin-right: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.cached_result_bean {
     text-transform: uppercase;
+}
+
+.cached_result_button:hover .cached_result_bean {
+    border-color: var(--border_color_primary);
+}
+
+/* The card chrome comes from the shared Overlay foundation */
+.cached_result_detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+}
+
+.cached_result_detail_title {
+    font-size: var(--font_size_small);
+    font-weight: 600;
+}
+
+.cached_result_detail_time {
+    font-size: var(--font_size_caption);
+    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 40%);
 }

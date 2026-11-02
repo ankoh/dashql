@@ -315,8 +315,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         dependencies.runSessionScript(sessionScripts, scriptData, executeQuery, props.modifySessionScripts, logger, { refresh: true });
     }, [props.modifySessionScripts, executeQuery, logger]);
 
-    // The cache indicator of a script checks the key of a run of the script in the cache of the app
-    const hasCachedResult = React.useCallback(async (cacheKey: string) => (await queryResultCache?.has(cacheKey)) ?? false, [queryResultCache]);
+    // The cache indicator of a script looks up the key of a run of the script in the cache of the app
+    const lookupCachedResult = React.useCallback(async (cacheKey: string) => (await queryResultCache?.lookup(cacheKey))?.cachedAtMs ?? null, [queryResultCache]);
 
     // The cache key of a run of a script, the cache indicator of the script checks it. A new callback when connections
     // start or stop caching, so the indicators check again.
@@ -682,7 +682,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         scriptReferences,
         connections: scriptConnections,
         computeCacheKey,
-        hasCachedResult,
+        lookupCachedResult,
         entries,
         storageReader: storageReader,
         scripts: props.sessionScripts.scripts,
@@ -717,7 +717,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 

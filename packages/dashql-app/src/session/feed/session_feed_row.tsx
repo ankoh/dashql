@@ -24,12 +24,12 @@ import { getScriptRefs, type SessionScripts, type ScriptData } from '../scripts/
 import { scriptDisplayName } from '../scripts/script_types.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
-import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../persistence/query_result_cache_controls.js';
+import { CachedResultBean, QueryResultRerunButton } from '../persistence/query_result_cache_controls.js';
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import { ScriptStatisticsBar } from '../scripts/script_statistics_bar.js';
 import { formatScriptEditor, formattingDialectForConnector, isScriptFormattable } from '../scripts/script_format.js';
-import { FeedEntryFooter } from './feed_entry_footer.js';
+import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
 import { ScriptActionMenu, type ScriptStorage } from '../scripts/script_action_menu.js';
 import { displayPath } from '../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
@@ -55,7 +55,8 @@ export interface ScriptCardProps {
     /// The cache key of the result of a script, the key that a run of the script reads and writes
     computeCacheKey: (scriptKey: number) => Promise<string | null>;
     /// Is a cache key cached in the query result cache of the app?
-    hasCachedResult: (cacheKey: string) => Promise<boolean>;
+    /// The time the result of a cache key was written, null if the key is not cached
+    lookupCachedResult: (cacheKey: string) => Promise<number | null>;
     storageReader: StorageReader;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
@@ -114,10 +115,10 @@ export interface ScriptCardDependencies {
     formatScriptEditor: typeof formatScriptEditor;
     isScriptFormattable: typeof isScriptFormattable;
     CachedResultBean: typeof CachedResultBean;
-    QueryResultCacheLabel: typeof QueryResultCacheLabel;
     QueryResultRerunButton: typeof QueryResultRerunButton;
     EntryStatusBar: typeof EntryStatusBar;
     FeedEntryFooter: typeof FeedEntryFooter;
+    FeedEntryTabStrip: typeof FeedEntryTabStrip;
     ChartBuilderOverlay: typeof ChartBuilderOverlay;
 }
 
@@ -130,10 +131,10 @@ const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
     formatScriptEditor,
     isScriptFormattable,
     CachedResultBean,
-    QueryResultCacheLabel,
     QueryResultRerunButton,
     EntryStatusBar,
     FeedEntryFooter,
+    FeedEntryTabStrip,
     ChartBuilderOverlay,
 };
 
@@ -159,17 +160,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     // Is the script cached?
     // Planning the script is a full pass over the scripts it needs, only re-check when the text, the catalog,
     // the queries or their cache entries changed (and not on every cursor move).
-    const [isCached, setIsCached] = React.useState<boolean | null>(null);
+    // The time the cached result of a run of the script was written, null if it is not cached
+    const [cachedAtMs, setCachedAtMs] = React.useState<number | null>(null);
     React.useEffect(() => {
         const cancel = new AbortController();
-        const wasCached = isCached;
         const connectionDetails = props.connectionDetails;
         const run = async () => {
             // Not script data? Clear cache indicator.
             if (props.scriptData == null || !connectionDetails) {
-                if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
-                    setIsCached(null);
-                }
+                setCachedAtMs(null);
                 return;
             }
             // Outdated analysis? Keep the last known indicator until the script is re-analyzed.
@@ -180,17 +179,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
             try {
                 // The key of a run of the script, null if its result is not cacheable
                 const cacheKey = await props.computeCacheKey(props.scriptData.scriptKey);
-                // Cache key is null, then clear the cache if required
-                if (cacheKey == null) {
-                    if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
-                        setIsCached(false);
-                    }
-                    return;
-                }
-                // Check with the cache of the app if the result is cached
-                const isCached = await props.hasCachedResult(cacheKey);
+                // Look up the key in the cache of the app
+                const cachedAt = cacheKey != null ? await props.lookupCachedResult(cacheKey) : null;
                 if (!cancel.signal.aborted) {
-                    setIsCached(isCached);
+                    setCachedAtMs(cachedAt);
                 }
             } catch { }
         };
@@ -207,7 +199,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         queryState?.cacheDeleted,
         props.connectionDetails,
         props.computeCacheKey,
-        props.hasCachedResult,
+        props.lookupCachedResult,
         props.sessionId,
     ]);
 
@@ -215,6 +207,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     // result body without affecting its cancel, cache, and rerun actions.
     const entryStatus = deriveEntryStatus(queryState);
     const scriptKey = props.scriptData?.scriptKey ?? null;
+    // The result tabs live in the status bar, their panel below it
+    const resultTabs = useFeedEntryTabs(queryState, props.scriptData?.annotations.visualizeQuery ?? null);
+    // Picking a tab of a collapsed result shows it
+    const expandResult = React.useCallback(() => {
+        if (scriptKey != null && !props.resultExpanded) props.onToggleResultExpanded(scriptKey);
+    }, [scriptKey, props.resultExpanded, props.onToggleResultExpanded]);
     React.useEffect(() => {
         if (scriptKey == null) return;
         if (queryState?.status !== QueryExecutionStatus.SUCCEEDED || queryState.resultTable !== null) {
@@ -510,10 +508,16 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
                             cancelLabel="Cancel query"
                             compact
+                            tabs={
+                                <dependencies.FeedEntryTabStrip
+                                    tabs={resultTabs}
+                                    expanded={props.resultExpanded}
+                                    onSelect={expandResult}
+                                />
+                            }
                             actions={
                                 <>
-                                    {isCached && <dependencies.CachedResultBean />}
-                                    <dependencies.QueryResultCacheLabel query={queryState} />
+                                    {cachedAtMs != null && <dependencies.CachedResultBean cachedAtMs={cachedAtMs} />}
                                     <dependencies.QueryResultRerunButton
                                         query={queryState}
                                         onRerun={props.connectionHealth === ConnectionHealth.ONLINE && !sessionExecution.runActive
@@ -528,6 +532,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                                     sessionId={props.sessionId}
                                     queryState={queryState}
                                     visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
+                                    selectedTab={resultTabs.selectedTab}
                                     onShowStatus={showStatus}
                                     onShowTable={showTable}
                                     onShowVisualization={showVisualization}
@@ -548,7 +553,8 @@ export interface ScriptFeedRowProps {
     /// The cache key of the result of a script, the key that a run of the script reads and writes
     computeCacheKey: (scriptKey: number) => Promise<string | null>;
     /// Is a cache key cached in the query result cache of the app?
-    hasCachedResult: (cacheKey: string) => Promise<boolean>;
+    /// The time the result of a cache key was written, null if the key is not cached
+    lookupCachedResult: (cacheKey: string) => Promise<number | null>;
     storageReader: StorageReader;
     entries: ReturnType<typeof getScriptRefs>;
     scripts: SessionScripts['scripts'];
@@ -698,7 +704,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     connectorType={scriptData?.connection.connectorInfo.connectorType ?? ConnectorType.HYPER}
                     connection={connection}
                     computeCacheKey={props.computeCacheKey}
-                    hasCachedResult={props.hasCachedResult}
+                    lookupCachedResult={props.lookupCachedResult}
                     storageReader={props.storageReader}
                     isFocused={scriptFileName === props.focusedFileName}
                     scriptData={scriptData}
