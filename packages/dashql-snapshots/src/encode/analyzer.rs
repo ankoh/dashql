@@ -413,8 +413,16 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
     if let Some(flow) = &script.flow {
         let mut m = Map::new();
         m.int("statement-id", flow.statement_id as i64);
-        m.int("x", flow.x as i64);
-        m.int("y", flow.y as i64);
+        if let Some((x, y)) = flow.position {
+            m.int("x", x as i64);
+            m.int("y", y as i64);
+        }
+        if let Some(width) = flow.width {
+            m.int("width", width as i64);
+        }
+        if let Some(height) = flow.height {
+            m.int("height", height as i64);
+        }
         out.insert("flow", m.into_node());
     }
 

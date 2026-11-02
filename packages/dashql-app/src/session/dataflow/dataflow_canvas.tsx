@@ -20,25 +20,35 @@ import {
     buildDataflowScene,
     DATAFLOW_COLLAPSE_SCALE,
     DATAFLOW_LAYOUT,
+    DATAFLOW_MAX_BOX_WIDTH,
+    DATAFLOW_MAX_CHART_HEIGHT,
+    DATAFLOW_MIN_BOX_WIDTH,
+    DATAFLOW_MIN_CHART_HEIGHT,
     dataflowLayoutInput,
     EDGE_BADGE_HEIGHT,
     fitDataflowScene,
+    resizeDataflowBox,
     selectedEdges,
     type DataflowBoxPosition,
+    type DataflowBoxSize,
     type DataflowSceneBox,
     type DataflowSceneEdge,
     type DataflowSceneInput,
     type DataflowSelection,
 } from './dataflow_scene.js';
-import { createFlowScript, deleteFlowScript, persistFlowPosition, removeFlowPositions } from './dataflow_source.js';
+import { createFlowScript, deleteFlowScript, persistFlowPosition, persistFlowSize, removeFlowPositions } from './dataflow_source.js';
 import * as styles from './dataflow.module.css';
 
 const FitIcon = SymbolIcon('graph_align');
 
-/// The longest label of a statement row
-const MAX_LABEL_CHARS = 30;
+/// The approximate width of a character of a statement label and of a box title, labels are truncated to the box
+const LABEL_CHAR_WIDTH = 8;
+const TITLE_CHAR_WIDTH = 7.5;
 /// The size of the icons of a box header
 const HEADER_ICON = 12;
+/// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
+const RESIZE_HANDLE = 16;
+const RESIZE_KEY_STEP = 16;
 
 export interface DataflowCanvasDependencies {
     useQueryState: typeof useQueryState;
@@ -63,6 +73,12 @@ interface Position {
     y: number;
 }
 
+/// The size of a box during a resize: its width and the height of its chart, null without a chart
+interface ResizedBox {
+    width: number;
+    chartHeight: number | null;
+}
+
 /// The key of the box of a script or of an input, the drag and the layout follow it
 function nodeKeyOfScript(scriptKey: number): string {
     return `script:${scriptKey}`;
@@ -83,6 +99,12 @@ function scriptOfNodeKey(key: string): number {
 /// Do two boxes overlap?
 function boxesOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
     return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+/// Snap a size to the grid, within its bounds
+function snapSize(value: number, min: number, max: number): number {
+    const grid = DATAFLOW_LAYOUT.grid;
+    return Math.min(max, Math.max(min, Math.round(value / grid) * grid));
 }
 
 function truncate(text: string, length: number): string {
@@ -106,6 +128,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const [selection, setSelection] = React.useState<DataflowSelection | null>(null);
     const [hover, setHover] = React.useState<DataflowSelection | null>(null);
     const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
+    const [resize, setResize] = React.useState<{ scriptKey: number; size: ResizedBox } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
 
     // Where the layout placed the boxes without `@flow` tags, by script key. The boxes keep these positions while
@@ -131,7 +154,11 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         const placedInputs = placedInputsRef.current;
         const tagOf = (script: DataflowScript): Position | null => {
             const flow = scriptOf(script)?.annotations.flowPosition;
-            return flow != null ? { x: flow.x, y: flow.y } : null;
+            return flow?.x != null && flow.y != null ? { x: flow.x, y: flow.y } : null;
+        };
+        const sizeOf = (script: DataflowScript): DataflowBoxSize | null => {
+            const flow = scriptOf(script)?.annotations.flowPosition;
+            return flow != null ? { width: flow.width, chartHeight: flow.height } : null;
         };
         const keys = [...graph.scripts.map(script => nodeKeyOfScript(script.scriptKey)), ...graph.inputs.map(input => nodeKeyOfInput(input.name))];
         const isTagged = (i: number) => i < graph.scripts.length && tagOf(graph.scripts[i]) != null;
@@ -143,6 +170,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                 chartStatement,
                 () => false,
                 input => soft(nodeKeyOfInput(input.name), placedInputs.get(input.name)),
+                sizeOf,
             );
             return sessionScripts.instance.computeDataflowLayout(input.boxes, input.edges, DATAFLOW_LAYOUT);
         };
@@ -171,17 +199,25 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         return layout;
     }, [graph, scriptOf, chartStatement, arrangeRevision, sessionScripts.instance]);
 
-    // A dragged box follows the pointer
+    // A dragged box follows the pointer, a resized box takes the size of the pointer. The other boxes make room once
+    // the size is written.
     const shown = React.useMemo(() => {
-        if (drag == null) return positions;
-        const scriptIndex = graph.scripts.findIndex(s => nodeKeyOfScript(s.scriptKey) === drag.node);
-        const inputIndex = graph.inputs.findIndex(i => nodeKeyOfInput(i.name) === drag.node);
-        const index = scriptIndex >= 0 ? scriptIndex : inputIndex >= 0 ? graph.scripts.length + inputIndex : -1;
-        if (index < 0 || positions[index] == null) return positions;
+        if (drag == null && resize == null) return positions;
         const out = positions.slice();
-        out[index] = { ...positions[index], x: drag.position.x, y: drag.position.y };
+        if (drag != null) {
+            const scriptIndex = graph.scripts.findIndex(s => nodeKeyOfScript(s.scriptKey) === drag.node);
+            const inputIndex = graph.inputs.findIndex(i => nodeKeyOfInput(i.name) === drag.node);
+            const index = scriptIndex >= 0 ? scriptIndex : inputIndex >= 0 ? graph.scripts.length + inputIndex : -1;
+            if (index >= 0 && out[index] != null) out[index] = { ...out[index], x: drag.position.x, y: drag.position.y };
+        }
+        if (resize != null) {
+            const index = graph.scripts.findIndex(s => s.scriptKey === resize.scriptKey);
+            if (index >= 0 && out[index] != null) {
+                out[index] = resizeDataflowBox(out[index], chartStatement(graph.scripts[index]), resize.size.width, resize.size.chartHeight);
+            }
+        }
         return out;
-    }, [positions, drag, graph.scripts, graph.inputs]);
+    }, [positions, drag, resize, graph.scripts, graph.inputs, chartStatement]);
     const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, zoomCollapsed), [graph, shown, chartStatement, isCollapsed, zoomCollapsed]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
@@ -298,6 +334,72 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         event.stopPropagation();
         dragRef.current = { node: nodeKeyOfInput(box.input.name), pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: { x: box.x, y: box.y }, position: null };
     }, []);
+
+    // Resizing a box by the handle in its bottom right corner: the width of the box and the height of its chart, a box
+    // without a chart only changes its width. The size is written into the `@flow` tag of the script on release.
+    const resizeRef = React.useRef<{ scriptKey: number; pointerId: number; startX: number; startY: number; origin: ResizedBox; size: ResizedBox } | null>(null);
+    const writeSize = React.useCallback((scriptKey: number, size: ResizedBox) => {
+        const script = sessionScripts.scripts[scriptKey];
+        if (script == null) return;
+        // A box without a chart keeps the chart height of its tag
+        const height = size.chartHeight ?? script.annotations.flowPosition?.height ?? null;
+        persistFlowSize(script, size.width, height, modifySessionScripts);
+    }, [sessionScripts.scripts, modifySessionScripts]);
+    const finishResizeRef = React.useRef<(event: PointerEvent, commit: boolean) => void>(() => {});
+    finishResizeRef.current = (event: PointerEvent, commit: boolean) => {
+        const current = resizeRef.current;
+        if (current == null || current.pointerId !== event.pointerId) return;
+        resizeRef.current = null;
+        setResize(null);
+        const { size, origin } = current;
+        if (commit && (size.width !== origin.width || size.chartHeight !== origin.chartHeight)) writeSize(current.scriptKey, size);
+    };
+    React.useEffect(() => {
+        const move = (event: PointerEvent) => {
+            const current = resizeRef.current;
+            if (current == null || current.pointerId !== event.pointerId) return;
+            const k = transformRef.current.k;
+            const width = snapSize(current.origin.width + (event.clientX - current.startX) / k, DATAFLOW_MIN_BOX_WIDTH, DATAFLOW_MAX_BOX_WIDTH);
+            const chartHeight = current.origin.chartHeight == null
+                ? null
+                : snapSize(current.origin.chartHeight + (event.clientY - current.startY) / k, DATAFLOW_MIN_CHART_HEIGHT, DATAFLOW_MAX_CHART_HEIGHT);
+            if (width === current.size.width && chartHeight === current.size.chartHeight) return;
+            current.size = { width, chartHeight };
+            setResize({ scriptKey: current.scriptKey, size: current.size });
+        };
+        const up = (event: PointerEvent) => finishResizeRef.current(event, true);
+        const cancel = (event: PointerEvent) => finishResizeRef.current(event, false);
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', cancel);
+        return () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', cancel);
+        };
+    }, []);
+    const onResizeDown = React.useCallback((event: React.PointerEvent, box: DataflowSceneBox) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const origin = { width: box.width, chartHeight: box.chart?.height ?? null };
+        resizeRef.current = { scriptKey: box.script.scriptKey, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin, size: origin };
+    }, []);
+    const onResizeKey = React.useCallback((event: React.KeyboardEvent, box: DataflowSceneBox) => {
+        let width = box.width;
+        let chartHeight = box.chart?.height ?? null;
+        if (event.key === 'ArrowLeft') width -= RESIZE_KEY_STEP;
+        else if (event.key === 'ArrowRight') width += RESIZE_KEY_STEP;
+        else if (event.key === 'ArrowUp' && chartHeight != null) chartHeight -= RESIZE_KEY_STEP;
+        else if (event.key === 'ArrowDown' && chartHeight != null) chartHeight += RESIZE_KEY_STEP;
+        else return;
+        event.preventDefault();
+        event.stopPropagation();
+        writeSize(box.script.scriptKey, {
+            width: snapSize(width, DATAFLOW_MIN_BOX_WIDTH, DATAFLOW_MAX_BOX_WIDTH),
+            chartHeight: chartHeight == null ? null : snapSize(chartHeight, DATAFLOW_MIN_CHART_HEIGHT, DATAFLOW_MAX_CHART_HEIGHT),
+        });
+    }, [writeSize]);
 
     // Creating and removing scripts
     const quoteIdentifier = React.useCallback((name: string) => sessionScripts.instance.quoteIdentifier(name), [sessionScripts.instance]);
@@ -450,8 +552,11 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 script={sessionScripts.scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
                                 dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
+                                resizing={resize?.scriptKey === box.script.scriptKey}
                                 dependencies={dependencies}
                                 onHandleDown={onHandleDown}
+                                onResizeDown={onResizeDown}
+                                onResizeKey={onResizeKey}
                                 onSelect={setSelection}
                                 onHover={setHover}
                                 onToggleCollapsed={toggleCollapsed}
@@ -516,8 +621,11 @@ interface BoxProps {
     script: ScriptData | undefined;
     selection: DataflowSelection | null;
     dragging: boolean;
+    resizing: boolean;
     dependencies: DataflowCanvasDependencies;
     onHandleDown: (event: React.PointerEvent, box: DataflowSceneBox) => void;
+    onResizeDown: (event: React.PointerEvent, box: DataflowSceneBox) => void;
+    onResizeKey: (event: React.KeyboardEvent, box: DataflowSceneBox) => void;
     onSelect: (selection: DataflowSelection) => void;
     /// The pointer enters a box with its selection or leaves it with null
     onHover: (selection: DataflowSelection | null) => void;
@@ -597,12 +705,16 @@ function DataflowBox(props: BoxProps): React.ReactElement {
     ];
     // A new script reads the whole script, so the add button sits at the vertical middle of the box
     const addY = box.y + box.height / 2;
+    // The title and the labels are truncated to the width of the box
+    const titleChars = Math.max(8, Math.floor((box.width - 26 - actions.length * (HEADER_ICON + 10) - 8) / TITLE_CHAR_WIDTH));
+    const labelChars = (badgeWidth: number) => Math.max(4, Math.floor((box.width - 2 * config.rowPadding - 16 - badgeWidth - 8) / LABEL_CHAR_WIDTH));
     return (
         <g
             className={styles.box}
             data-dataflow-box={scriptKey}
             data-selected={props.selection != null && props.selection.statementId == null}
             data-dragging={props.dragging || undefined}
+            data-resizing={props.resizing || undefined}
             onPointerEnter={() => props.onHover({ scriptKey, statementId: null })}
             onPointerLeave={() => props.onHover(null)}
         >
@@ -624,7 +736,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
             >
                 <rect x={box.x} y={box.y} width={box.width} height={config.headerHeight} rx={8} ry={8} className={styles.header_hit} />
                 <circle className={styles.status} data-status={status} cx={box.x + 14} cy={box.y + config.headerHeight / 2} r={4} />
-                <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(name, 24)}</text>
+                <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(name, titleChars)}</text>
             </g>
             {actions.map((action, i) => {
                 const x = box.x + box.width - 8 - (actions.length - i) * (HEADER_ICON + 10);
@@ -679,7 +791,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                             <text x={badgeWidth / 2}>{badge}</text>
                         </g>
                         <text className={styles.label} x={box.x + config.rowPadding + 16 + badgeWidth} y={row.y + config.rowHeight / 2}>
-                            {truncate(row.statement.label, MAX_LABEL_CHARS - badge.length)}
+                            {truncate(row.statement.label, labelChars(badgeWidth))}
                         </text>
                     </g>
                 );
@@ -722,6 +834,25 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 <circle r={8} />
                 <path d="M -4 0 L 4 0 M 0 -4 L 0 4" />
             </g>
+            {!box.collapsed && (
+                <g
+                    className={styles.resize_handle}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={box.chart != null
+                        ? `Resize ${name}. Current width ${box.width}, chart height ${box.chart.height}`
+                        : `Resize ${name}. Current width ${box.width}`}
+                    data-dataflow-resize={scriptKey}
+                    data-chart={box.chart != null || undefined}
+                    transform={`translate(${box.x + box.width - RESIZE_HANDLE}, ${box.y + box.height - RESIZE_HANDLE})`}
+                    onPointerDown={event => props.onResizeDown(event, box)}
+                    onClick={event => event.stopPropagation()}
+                    onKeyDown={event => props.onResizeKey(event, box)}
+                >
+                    <rect width={RESIZE_HANDLE} height={RESIZE_HANDLE} className={styles.resize_hit} />
+                    <path d="M 12 6 V 12 H 6 Z" />
+                </g>
+            )}
         </g>
     );
 }

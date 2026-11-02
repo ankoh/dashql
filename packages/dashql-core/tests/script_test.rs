@@ -264,7 +264,7 @@ fn rewrite_vis_board_replaces_or_inserts_the_placement() {
 
 #[test]
 fn rewrite_vis_flow_places_the_script() {
-    let flow = VisFlow { x: -16, y: 240 };
+    let flow = VisFlow { position: Some((-16, 240)), ..Default::default() };
     // A new position goes on the terminal statement, after its `@vis` tags
     let mut script = parsed_script("create table t (a int);\n/* Rows.\n   @vis table */\nselect a from t");
     assert_eq!(
@@ -295,6 +295,17 @@ fn rewrite_vis_flow_places_the_script() {
     assert_eq!(script.rewrite_vis_flow(None, false).unwrap(), "select 1");
     // A script without statements has nothing to place
     assert!(parsed_script("").rewrite_vis_flow(Some(&flow), false).is_err());
+    // A resized box has a width and a chart height, with or without a position
+    let sized = VisFlow { width: Some(400), height: Some(96), ..flow };
+    assert_eq!(
+        parsed_script("select 1").rewrite_vis_flow(Some(&sized), false).unwrap(),
+        "/** @flow x=-16 y=240 width=400 height=96 */\nselect 1"
+    );
+    let unplaced = VisFlow { position: None, ..sized };
+    assert_eq!(
+        parsed_script("/* @flow x=1 y=2 */\nselect 1").rewrite_vis_flow(Some(&unplaced), false).unwrap(),
+        "/** @flow width=400 height=96 */\nselect 1"
+    );
 }
 
 #[test]

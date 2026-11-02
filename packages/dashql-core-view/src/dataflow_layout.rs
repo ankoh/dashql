@@ -76,6 +76,8 @@ pub struct DataflowLayoutBox {
     pub fixed: Option<(f64, f64)>,
     /// The width of the box, the width of the config if absent
     pub width: Option<f64>,
+    /// The height of the chart, the chart height of the config if absent
+    pub chart_height: Option<f64>,
     /// Is the box an input or an attachment? Its consumers are grouped as if it were absent.
     pub input: bool,
 }
@@ -123,7 +125,7 @@ fn box_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> Dataflo
         geometry.rows.push(y);
         y += config.row_height;
         if b.chart_statement == Some(statement) {
-            y += config.row_padding + config.chart_height;
+            y += config.row_padding + b.chart_height.unwrap_or(config.chart_height);
         }
     }
     geometry.height = y + config.row_padding;
@@ -685,6 +687,17 @@ mod tests {
         let g = box_geometry(&DataflowLayoutBox { statements: 2, chart_statement: Some(0), ..Default::default() }, &config);
         assert_eq!(g.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 200.0]);
         assert_eq!(g.height, 40.0 + 32.0 + 8.0 + 200.0 + 32.0 + 8.0);
+        // A box with its own size, e.g. from a resized `@flow` tag
+        let sized = DataflowLayoutBox {
+            statements: 2,
+            chart_statement: Some(0),
+            width: Some(400.0),
+            chart_height: Some(96.0),
+            ..Default::default()
+        };
+        let sized = box_geometry(&sized, &config);
+        assert_eq!(sized.width, 400.0);
+        assert_eq!(sized.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 96.0]);
         let collapsed = box_geometry(&DataflowLayoutBox { statements: 2, collapsed: true, ..Default::default() }, &config);
         assert_eq!(collapsed.height, 32.0);
         assert_eq!(collapsed.port(1, &config), 16.0);

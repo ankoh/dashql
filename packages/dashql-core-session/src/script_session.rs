@@ -926,8 +926,10 @@ impl ScriptSession {
         annotations.flow_position = analyzed.flow.map(|flow| {
             let mut position = EditorFlowPositionT::default();
             position.statement_id = flow.statement_id;
-            position.x = flow.x;
-            position.y = flow.y;
+            position.x = flow.position.map(|(x, _)| x);
+            position.y = flow.position.map(|(_, y)| y);
+            position.width = flow.width;
+            position.height = flow.height;
             Box::new(position)
         });
         annotations.manual = analyzed.manual;

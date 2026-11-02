@@ -36,6 +36,7 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
         .zip(collapsed)
         .map(|((script, input), &collapsed)| {
             let analyzed = input.analyzed.as_ref();
+            let flow = analyzed.and_then(|a| a.flow);
             let terminal = script.statements.len().checked_sub(1).map(|t| t as u32);
             let chart_statement = analyzed
                 .filter(|_| script.analyzed && !collapsed)
@@ -45,8 +46,9 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
                 statements: script.statements.len() as u32,
                 chart_statement,
                 collapsed,
-                fixed: analyzed.and_then(|a| a.flow).map(|flow| (flow.x as f64, flow.y as f64)),
-                width: None,
+                fixed: flow.and_then(|f| f.position).map(|(x, y)| (x as f64, y as f64)),
+                width: flow.and_then(|f| f.width).map(f64::from),
+                chart_height: flow.and_then(|f| f.height).map(f64::from),
                 input: false,
             }
         })

@@ -187,12 +187,17 @@ table EditorBoardPosition {
     height: int32 = 3;
 }
 
-/// The position of the script on the dataflow canvas, its `@vis flow` tag
+/// The placement of the script on the dataflow canvas, its `@flow` tag
 table EditorFlowPosition {
     /// The statement whose annotation holds the tag
     statement_id: uint32;
-    x: int32;
-    y: int32;
+    /// The top left corner of the box, both absent if the layout places the box
+    x: int32 = null;
+    y: int32 = null;
+    /// The width of the box, absent for the default width
+    width: int32 = null;
+    /// The height of the chart of the box, absent for the default height
+    height: int32 = null;
 }
 
 table EditorScriptAnnotations {

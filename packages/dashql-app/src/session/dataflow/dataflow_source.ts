@@ -1,35 +1,63 @@
+import type * as core from '@ankoh/dashql-core';
+
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '../scripts/session_scripts.js';
-import { scriptDisplayName } from '../scripts/script_types.js';
+import { scriptDisplayName, type FlowPosition } from '../scripts/script_types.js';
 
-/// Write the position of a script into its `@flow` tag. Returns whether the script has the position, a script
-/// that does not parse or has no statement can't be placed.
-export function persistFlowPosition(script: ScriptData, x: number, y: number, modifySessionScripts: ModifySessionScripts): boolean {
-    const position = script.annotations.flowPosition;
-    if (position != null && position.x === Math.round(x) && position.y === Math.round(y)) return true;
+/// The placement of the `@flow` tag of a script, null without a tag
+function placementOf(flow: FlowPosition | null | undefined): core.DataflowPlacement | null {
+    if (flow == null) return null;
+    return { position: flow.x != null && flow.y != null ? { x: flow.x, y: flow.y } : null, width: flow.width, height: flow.height };
+}
+
+/// Write a placement into the `@flow` tag of a script, the tag is removed if the placement is empty. Returns whether
+/// the script has the placement, a script that does not parse or has no statement can't be placed.
+function writeFlow(script: ScriptData, placement: core.DataflowPlacement, modifySessionScripts: ModifySessionScripts): boolean {
+    const round = (value: number | null | undefined) => (value == null ? null : Math.round(value));
+    const next = {
+        position: placement.position == null ? null : { x: Math.round(placement.position.x), y: Math.round(placement.position.y) },
+        width: round(placement.width),
+        height: round(placement.height),
+    };
+    const empty = next.position == null && next.width == null && next.height == null;
+    const current = placementOf(script.annotations.flowPosition);
+    const unchanged = current == null
+        ? empty
+        : current.position?.x === next.position?.x && current.position?.y === next.position?.y
+            && (current.width ?? null) === next.width && (current.height ?? null) === next.height;
+    if (unchanged) return true;
     let text: string;
     try {
-        text = script.scriptSession.rewriteVisFlow(x, y);
+        text = empty ? script.scriptSession.removeVisFlow() : script.scriptSession.rewriteVisFlow(next);
     } catch (e) {
-        console.warn('cannot write the position of the script', e);
+        console.warn('cannot write the placement of the script', e);
         return false;
     }
     modifySessionScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
     return true;
 }
 
-/// Remove the `@flow` tags of scripts, the layout places them again
+/// Write the position of a script into its `@flow` tag, the size of the box stays. Returns whether the script has
+/// the position.
+export function persistFlowPosition(script: ScriptData, x: number, y: number, modifySessionScripts: ModifySessionScripts): boolean {
+    const current = placementOf(script.annotations.flowPosition);
+    return writeFlow(script, { ...current, position: { x, y } }, modifySessionScripts);
+}
+
+/// Write the size of a box into the `@flow` tag of its script: its width and the height of its chart, null for the
+/// default. The position stays, a box without one is still placed by the layout. Returns whether the script has
+/// the size.
+export function persistFlowSize(script: ScriptData, width: number | null, height: number | null, modifySessionScripts: ModifySessionScripts): boolean {
+    const current = placementOf(script.annotations.flowPosition);
+    return writeFlow(script, { position: current?.position ?? null, width, height }, modifySessionScripts);
+}
+
+/// Remove the positions from the `@flow` tags of scripts, the layout places them again. The sizes of the boxes stay.
 export function removeFlowPositions(scripts: ScriptData[], modifySessionScripts: ModifySessionScripts): void {
     for (const script of scripts) {
-        if (script.annotations.flowPosition == null) continue;
-        let text: string;
-        try {
-            text = script.scriptSession.removeVisFlow();
-        } catch (e) {
-            console.warn('cannot remove the position of the script', e);
-            continue;
-        }
-        modifySessionScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
+        const current = placementOf(script.annotations.flowPosition);
+        if (current?.position == null) continue;
+        writeFlow(script, { ...current, position: null }, modifySessionScripts);
     }
 }
 

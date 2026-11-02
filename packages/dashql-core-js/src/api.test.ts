@@ -93,11 +93,17 @@ describe('DashQL @vis tags', () => {
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'create table t (a int);\nselect a from t');
 
-        const placed = session.rewriteVisFlow(-16.4, 240);
+        const placed = session.rewriteVisFlow({ position: { x: -16.4, y: 240 } });
         expect(placed).toBe('create table t (a int);\n/** @flow x=-16 y=240 */\nselect a from t');
         session.replaceText(1n, placed);
         const position = session.analyze().scriptAnnotations?.flowPosition;
-        expect([position?.statementId, position?.x, position?.y]).toEqual([1, -16, 240]);
+        expect([position?.statementId, position?.x, position?.y, position?.width, position?.height]).toEqual([1, -16, 240, null, null]);
+        // A resized box without a position
+        const sized = session.rewriteVisFlow({ width: 400.2, height: 96 });
+        expect(sized).toBe('create table t (a int);\n/** @flow width=400 height=96 */\nselect a from t');
+        session.replaceText(2n, sized);
+        const size = session.analyze().scriptAnnotations?.flowPosition;
+        expect([size?.x, size?.y, size?.width, size?.height]).toEqual([null, null, 400, 96]);
         expect(session.removeVisFlow()).toBe('create table t (a int);\nselect a from t');
         session.destroy();
         catalog.destroy();

@@ -31,7 +31,7 @@ const VIS_KINDS: &[&str] = &["vegalite", "markdown", "table"];
 /// The args of `@board`
 const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
 /// The args of `@flow`
-const FLOW_ARGS: &[&str] = &["x", "y"];
+const FLOW_ARGS: &[&str] = &["x", "y", "width", "height"];
 
 /// The top-level properties of a Vega-Lite spec
 const SPEC_KEYS: &[&str] = &[

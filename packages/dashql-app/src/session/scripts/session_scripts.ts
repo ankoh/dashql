@@ -1542,7 +1542,9 @@ function deriveScriptAnnotations(
     return {
         tableDefs: tableDefsFlat,
         visualizeQuery,
-        flowPosition: flow != null ? { statementId: flow.statementId, x: flow.x, y: flow.y } : null,
+        flowPosition: flow != null
+            ? { statementId: flow.statementId, x: flow.x, y: flow.y, width: flow.width, height: flow.height }
+            : null,
         boardPosition: board != null
             ? { statementId: board.statementId, row: board.row, column: board.column, width: board.width, height: board.height }
             : null,

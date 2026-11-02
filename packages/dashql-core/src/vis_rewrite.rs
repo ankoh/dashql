@@ -103,19 +103,31 @@ impl VisBoard {
     }
 }
 
-/// The position of a script on the dataflow canvas
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// The placement of a script on the dataflow canvas: a position, a size, or both
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct VisFlow {
-    /// The x coordinate of the left edge
-    pub x: i32,
-    /// The y coordinate of the top edge
-    pub y: i32,
+    /// The x and y coordinates of the top left corner, None places the box automatically
+    pub position: Option<(i32, i32)>,
+    /// The width of the box, None for the default width
+    pub width: Option<i32>,
+    /// The height of the chart of the box, None for the default height
+    pub height: Option<i32>,
 }
 
 impl VisFlow {
-    /// The `@flow` tag
+    /// The `@flow` tag, sizes are at least 1
     pub fn tag(&self) -> AnnotationTag {
-        AnnotationTag::new(FLOW_TAG, vec![format!("x={} y={}", self.x, self.y)])
+        let mut args = Vec::new();
+        if let Some((x, y)) = self.position {
+            args.push(format!("x={x} y={y}"));
+        }
+        if let Some(width) = self.width {
+            args.push(format!("width={}", width.max(1)));
+        }
+        if let Some(height) = self.height {
+            args.push(format!("height={}", height.max(1)));
+        }
+        AnnotationTag::new(FLOW_TAG, vec![args.join(" ")])
     }
 }
 

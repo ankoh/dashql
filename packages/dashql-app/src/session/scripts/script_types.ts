@@ -60,7 +60,7 @@ export interface ScriptAnnotations {
     tableDefs: string[];
     // The resolved visualization of this script (its @vis tags), if any.
     visualizeQuery: ResolvedVisualizeQuery | null;
-    // The position of the script on the dataflow canvas, its `@flow` tag, if any.
+    // The placement of the script on the dataflow canvas, its `@flow` tag, if any: a position, a size, or both.
     flowPosition?: FlowPosition | null;
     // The dashboard placement of the script, the `@board` tag of its last statement, if any. A script without a
     // visualization is a collapsed card on the board.
@@ -81,8 +81,13 @@ export interface BoardPosition extends DashboardSpec {
 export interface FlowPosition {
     // The statement whose annotation holds the `@flow` tag
     statementId: number;
-    x: number;
-    y: number;
+    // The top left corner of the box, both null if the layout places the box
+    x: number | null;
+    y: number | null;
+    // The width of the box, null for the default width
+    width: number | null;
+    // The height of the chart of the box, null for the default height
+    height: number | null;
 }
 
 /// A reference in the session's flat ordered script collection.

@@ -239,3 +239,31 @@
 .input_row {
     overflow: visible;
 }
+
+/* The resize handle in the bottom right corner of a box, a small triangle like on the cards of the board */
+.resize_handle {
+    cursor: ew-resize;
+    color: var(--base_color_neutral_3);
+}
+.resize_handle[data-chart="true"] {
+    cursor: nwse-resize;
+}
+.resize_handle:focus { outline: none; }
+.resize_hit {
+    fill: transparent;
+}
+.resize_handle path {
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 2px;
+    stroke-linejoin: round;
+}
+.resize_handle:hover,
+.box[data-resizing="true"] .resize_handle {
+    color: var(--base_color_neutral_6);
+}
+.resize_handle:focus-visible .resize_hit {
+    stroke: hsl(211, 100%, 45%);
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
+}

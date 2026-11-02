@@ -614,6 +614,38 @@ dataflow-snapshots:
           kind: table
           name: orders
 
+  - name: LayoutSizedBoxes
+    scripts:
+      - name: orders
+        input: |
+          /** @flow width=400 */
+          create table orders (id int);
+      - name: report
+        input: |
+          /**
+           * @vis table
+           * @flow x=600 y=0 width=320 height=96
+           */
+          select id from orders;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+          box: [104,0,400,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select id ..rom orders"
+          box: [600,0,320,184]
+      edges:
+        - from: orders.0
+          to: report.0
+          kind: table
+          name: orders
+
   - name: LayoutFreeSlot
     scripts:
       - name: orders

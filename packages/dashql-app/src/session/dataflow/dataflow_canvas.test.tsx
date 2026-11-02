@@ -174,14 +174,50 @@ describe('DataflowCanvas', () => {
         expect(modify.mock.calls[modify.mock.calls.length - 1]?.[0]).toEqual({ type: DELETE_SCRIPT, value: 'report.sql' });
     });
 
-    it('arranges the boxes again without their @vis flow tags', () => {
+    it('arranges the boxes again without the positions of their @flow tags, the sizes stay', () => {
         const report = session.scripts[key('report.sql')];
-        report.annotations = { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400 } };
+        report.annotations = { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 400, height: null } };
         render();
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="dataflow-arrange"]')!.click());
-        // The script with a tag loses it, the other one has none
-        const removed = modify.mock.calls.map(call => call[0]).filter(action => action.type === SET_SCRIPT_TEXT);
-        expect(removed.map(action => action.value.scriptKey)).toEqual([key('report.sql')]);
+        // The script with a tag loses its position, the other one has none
+        const rewritten = modify.mock.calls.map(call => call[0]).filter(action => action.type === SET_SCRIPT_TEXT);
+        expect(rewritten.map(action => [action.value.scriptKey, action.value.text])).toEqual([[key('report.sql'), '/** @flow width=400 */\nselect a from t']]);
+    });
+
+    it('resizes a box by the handle in its bottom right corner and writes the width into its @flow tag', () => {
+        render();
+        const card = () => container.querySelectorAll('rect[data-dataflow-card]')[session.scriptOrder.indexOf('report.sql')];
+        const handle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
+        const pointer = (type: string, x: number, y: number) => new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y });
+        expect(card().getAttribute('width')).toBe('280');
+        act(() => { handle.dispatchEvent(pointer('pointerdown', 500, 500)); });
+        act(() => { handle.dispatchEvent(pointer('pointermove', 581, 540)); });
+        // The box follows the pointer on the grid, a box without a chart only changes its width
+        expect(card().getAttribute('width')).toBe('360');
+        expect(box('report.sql').getAttribute('data-resizing')).toBe('true');
+        expect(modify).not.toHaveBeenCalled();
+        act(() => { handle.dispatchEvent(pointer('pointerup', 581, 540)); });
+        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
+        expect([action?.type, action?.value.scriptKey, action?.value.text]).toEqual([SET_SCRIPT_TEXT, key('report.sql'), '/** @flow width=360 */\nselect a from t']);
+        expect(box('report.sql').getAttribute('data-resizing')).toBeNull();
+    });
+
+    it('resizes a box with the arrow keys and keeps the position of its @flow tag', () => {
+        const report = session.scripts[key('report.sql')];
+        report.annotations = { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: null, height: null } };
+        render();
+        const handle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
+        act(() => { handle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })); });
+        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
+        expect(action?.value.text).toBe('/** @flow x=800 y=400 width=296 */\nselect a from t');
+        // Narrower than the smallest box, the width stays at its bound
+        modify.mockReset();
+        const narrow = { ...report, annotations: { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 200, height: null } } };
+        session = { ...session, scripts: { ...session.scripts, [key('report.sql')]: narrow } };
+        render();
+        const narrowHandle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
+        act(() => { narrowHandle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' })); });
+        expect(modify).not.toHaveBeenCalled();
     });
 
     it('collapses a box to its header', () => {

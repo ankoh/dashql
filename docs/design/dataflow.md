@@ -47,7 +47,8 @@ edge from `":min"`, an attachment edge from its file
 
 ## Layout
 
-The position of a script on the canvas is its `@flow x=.. y=..` tag, see [vis_comments.md](vis_comments.md).
+The position of a script on the canvas is its `@flow x=.. y=..` tag, the size of its box the `width=..` and
+`height=..` of the tag, the width of the box and the height of its chart, see [vis_comments.md](vis_comments.md).
 `dataflow_layout::compute_dataflow_layout` in `dashql-core-view` (core-js `computeDataflowLayout`) places the
 others. The layout has two levels:
 
@@ -77,7 +78,7 @@ others. The layout has two levels:
 
 Boxes that are not fixed snap to an 8px grid. With the default sizes every row center is a multiple of the grid,
 so edges between snapped boxes stay straight. The dataflow snapshots lay out their boxes like the first render of
-the canvas: `@flow` tags fix boxes, a visualized terminal statement gets its chart.
+the canvas: `@flow` tags fix boxes and size them, a visualized terminal statement gets its chart.
 
 ## The canvas
 
@@ -107,16 +108,20 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   drops the hover. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under
   its port. Charts are `foreignObject`s below their statement, on the card without a frame of their
   own. A Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
-  horizontal x labels and no legends, fitted into the card with an 8px inset. d3-zoom pans and zooms, below half the
-  size every box is drawn collapsed.
+  horizontal x labels and no legends, fitted into the card with an 8px inset. The scene takes the height of a chart
+  from the layout of its box. A script box has a resize handle in its bottom right corner, like the cards of the
+  board: dragging it changes the width of the box and the height of its chart on the 8px grid, a box without a chart
+  only changes its width, the arrow keys change them by 16px. The box follows the pointer, the other boxes make room
+  once the size is written on release. The title and the statement labels are truncated to the width of the box.
+  d3-zoom pans and zooms, below half the size every box is drawn collapsed and has no handle.
 - The box of an input shows the name and the type in its header and the value in its row, the card of the feed
   (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
   change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,
   the canvas remembers where the layout or a drag placed it while the canvas is open, Arrange places it again.
-- `dataflow_source.ts` writes the changes into the scripts: a dragged box writes its `@flow` tag, the `+` of a
-  box creates `select * from :<script>` on its connection, New script creates a query, a double click on the canvas
-  creates a query at that position, the trash button deletes the script, and Arrange removes every `@flow` tag
-  and lays out every box again.
+- `dataflow_source.ts` writes the changes into the scripts: a dragged box writes the position of its `@flow` tag, a
+  resized box its size, the `+` of a box creates `select * from :<script>` on its connection, New script creates a
+  query, a double click on the canvas creates a query at that position, the trash button deletes the script, and
+  Arrange removes the positions of the `@flow` tags, keeps the sizes and lays out every box again.
 
 The layout always lays out full boxes, collapsing a box only changes how it is drawn. A box with a `@flow` tag is
 fixed at its tag. The canvas remembers where the layout placed the other boxes and passes these positions to the

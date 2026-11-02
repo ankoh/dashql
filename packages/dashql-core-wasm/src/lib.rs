@@ -715,10 +715,19 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated).map_err(js_error)
     }
 
-    /// Set the `@flow` tag of the script, its position on the dataflow canvas. Returns the new text.
+    /// Set the `@flow` tag of the script, its placement on the dataflow canvas: the position if both coordinates are
+    /// given, the width of the box and the height of its chart if given. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisFlow)]
-    pub fn rewrite_vis_flow(&self, x: i32, y: i32, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner.borrow_mut().rewrite_vis_flow(Some(&VisFlow { x, y }), parse_if_outdated).map_err(js_error)
+    pub fn rewrite_vis_flow(
+        &self,
+        x: Option<i32>,
+        y: Option<i32>,
+        width: Option<i32>,
+        height: Option<i32>,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
+        let flow = VisFlow { position: x.zip(y), width, height };
+        self.inner.borrow_mut().rewrite_vis_flow(Some(&flow), parse_if_outdated).map_err(js_error)
     }
 
     /// Remove the `@flow` tag of the script. Returns the new text.
@@ -1288,17 +1297,30 @@ impl DataflowLayout {
         };
     }
 
-    /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position, the box of
-    /// an input does not tie its consumers into a grid.
+    /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position, a width or a
+    /// chart height that is not positive is the one of the config, the box of an input does not tie its consumers into
+    /// a grid.
     #[wasm_bindgen(js_name = addBox)]
     #[allow(clippy::too_many_arguments)]
-    pub fn add_box(&mut self, statements: u32, chart_statement: i32, collapsed: bool, fixed: bool, x: f64, y: f64, width: f64, input: bool) -> u32 {
+    pub fn add_box(
+        &mut self,
+        statements: u32,
+        chart_statement: i32,
+        collapsed: bool,
+        fixed: bool,
+        x: f64,
+        y: f64,
+        width: f64,
+        chart_height: f64,
+        input: bool,
+    ) -> u32 {
         self.boxes.push(dashql_core_view::dataflow_layout::DataflowLayoutBox {
             statements,
             chart_statement: u32::try_from(chart_statement).ok(),
             collapsed,
             fixed: fixed.then_some((x, y)),
             width: (width > 0.0).then_some(width),
+            chart_height: (chart_height > 0.0).then_some(chart_height),
             input,
         });
         (self.boxes.len() - 1) as u32

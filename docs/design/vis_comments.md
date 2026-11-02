@@ -34,7 +34,7 @@ the lines after them are ordinary text.
 | `@vis markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. |
 | `@vis table` | Nothing, the result table is the visualization. |
 | `@board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
-| `@flow` | The position of the script on the dataflow canvas as `key=value` args: `x` and `y`, both integers. |
+| `@flow` | The placement of the script on the dataflow canvas as `key=value` args: the position `x` and `y`, the width of the box `width` and the height of its chart `height`, all integers. |
 
 Older scripts write `@vis board` (or `@vis card`) and `@vis flow`. They are read like `@board` and `@flow`, and
 the rewrites and the formatter write them as `@board` and `@flow`.
@@ -97,15 +97,25 @@ visualization.
 ## Dataflow placement
 
 The [dataflow view](dataflow.md) draws every script as a box on a canvas. `@flow x=.. y=..` is the
-position of the top left corner of the box in canvas pixels, negative coordinates are fine. A script has one
-position: the first `@flow` tag in statement order wins, later ones are warnings, and a tag with an invalid or
-missing coordinate is ignored. Like `@board`, it needs no renderer and may annotate a statement that is no
+position of the top left corner of the box in canvas pixels, negative coordinates are fine. `width=..` is the width
+of the box and `height=..` the height of the chart below its visualized statement, both positive canvas pixels; a
+resized box writes them. Each part is optional, but `x` and `y` come together: `@flow width=400` sizes a box that
+is placed automatically. A script has one placement: the first `@flow` tag in statement order wins, later ones are
+warnings. A coordinate without the other one or a size that is not positive is left out with a warning, a tag with
+nothing valid left is ignored. Like `@board`, it needs no renderer and may annotate a statement that is no
 query, so a script that only creates a table is placed too. A `@flow` tag alone does not make a query a
-visualization. A script without a position is placed automatically.
+visualization. A script without a position is placed automatically, a box without a size has the default width and
+chart height.
 
 ```sql
 /** @flow x=-40 y=120 */
 CREATE TABLE trips AS SELECT * FROM external('trips.parquet');
+
+/**
+ * @vis table
+ * @flow x=360 y=120 width=480 height=320
+ */
+SELECT * FROM trips;
 ```
 
 ## Rewriting tags

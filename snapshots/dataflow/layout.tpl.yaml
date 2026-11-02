@@ -205,6 +205,21 @@ dataflow-snapshots:
           /** @flow x=600 y=40 */
           select id from orders;
 
+  # A resized box keeps its width and the height of its chart, a box with only a size is placed by the layout
+  - name: LayoutSizedBoxes
+    scripts:
+      - name: orders
+        input: |
+          /** @flow width=400 */
+          create table orders (id int);
+      - name: report
+        input: |
+          /**
+           * @vis table
+           * @flow x=600 y=0 width=320 height=96
+           */
+          select id from orders;
+
   # Two consumers that want the same slot, the second one goes below the first like in a fan-out
   - name: LayoutFreeSlot
     scripts:

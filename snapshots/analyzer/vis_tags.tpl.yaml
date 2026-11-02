@@ -178,6 +178,22 @@ analyzer-snapshots:
         /* @flow y=5 x=6 */
         select 3;
 
+  # The size of a resized box: its width and the height of its chart, without a position the layout places it
+  - name: vis_tag_flow_size
+    script:
+      input: |
+        /* @flow width=400 height=96 */
+        select 1;
+
+  # A coordinate needs the other one, sizes are positive, a later tag with a valid size sizes the box
+  - name: vis_tag_flow_size_args
+    script:
+      input: |
+        /* @flow x=4 width=0 */
+        select 1;
+        /* @flow height=-3 width=320 */
+        select 2;
+
   # A script that runs only on request, the text after the tag is free
   - name: manual_tag
     script:

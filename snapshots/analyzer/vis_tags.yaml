@@ -864,7 +864,7 @@ analyzer-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @flow arg "depth", expected x or y'
+          message: 'unknown @flow arg "depth", expected x, y, width or height'
           text: "depth=3"
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -880,12 +880,12 @@ analyzer-snapshots:
           text: "x=y"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@flow needs x'
-          text: "flow"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
           message: '@flow y is out of range'
           text: "y=99999999999"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@flow needs x'
+          text: "flow"
       expressions:
         - expression-idx: 0
           type: literal/integer
@@ -929,6 +929,85 @@ analyzer-snapshots:
         statement-id: 2
         x: 6
         y: 5
+
+  - name: vis_tag_flow_size
+    script:
+      input: |
+        /* @flow width=400 height=96 */
+        select 1;
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: '?'
+              expression: 0
+          text: "select 1"
+      flow:
+        statement-id: 0
+        width: 400
+        height: 96
+
+  - name: vis_tag_flow_size_args
+    script:
+      input: |
+        /* @flow x=4 width=0 */
+        select 1;
+        /* @flow height=-3 width=320 */
+        select 2;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@flow width must be positive'
+          text: "width=0"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@flow needs y'
+          text: "flow"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@flow height must be positive'
+          text: "height=-3"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: '?'
+              expression: 0
+          text: "select 1"
+        - scope-id: 1
+          columns:
+            - name: '?'
+              expression: 1
+          text: "select 2"
+      flow:
+        statement-id: 1
+        width: 320
 
   - name: manual_tag
     script:

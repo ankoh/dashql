@@ -57,8 +57,20 @@ export interface DataflowLayoutBox {
     fixed?: { x: number; y: number } | null;
     /// The width of the box, the width of the config if absent
     width?: number | null;
+    /// The height of the chart of the box, the chart height of the config if absent
+    chartHeight?: number | null;
     /// Is the box an input or an attachment? Its consumers are grouped as if it were absent.
     input?: boolean;
+}
+
+/// The placement of a script on the dataflow canvas, its `@flow` tag
+export interface DataflowPlacement {
+    /// The top left corner of the box, absent if the layout places the box
+    position?: { x: number; y: number } | null;
+    /// The width of the box, absent for the default width
+    width?: number | null;
+    /// The height of the chart of the box, absent for the default height
+    height?: number | null;
 }
 
 /// An edge between statements of two boxes
@@ -439,7 +451,7 @@ export class DashQL {
                 layout.setConfig(config.boxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid, config.wrapSiblings);
             }
             for (const box of boxes) {
-                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0, box.width ?? 0, box.input ?? false);
+                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0, box.width ?? 0, box.chartHeight ?? 0, box.input ?? false);
             }
             for (const edge of edges) {
                 layout.addEdge(edge.fromBox, edge.fromStatement, edge.toBox, edge.toStatement);
@@ -767,10 +779,17 @@ export class DashQLScriptSession {
         return this.ptr.assertNotNull().rewriteVisBoard(statementId, row ?? -1, column ?? -1, width, height, parseIfOutdated);
     }
 
-    /// Set the position of the script on the dataflow canvas, its `@flow` tag. Returns the new text, the
-    /// script is not changed.
-    public rewriteVisFlow(x: number, y: number, parseIfOutdated: boolean = true): string {
-        return this.ptr.assertNotNull().rewriteVisFlow(Math.round(x), Math.round(y), parseIfOutdated);
+    /// Set the placement of the script on the dataflow canvas, its `@flow` tag: the position of the box, its width and
+    /// the height of its chart, each if given. Returns the new text, the script is not changed.
+    public rewriteVisFlow(flow: DataflowPlacement, parseIfOutdated: boolean = true): string {
+        const round = (value: number | null | undefined) => (value == null ? undefined : Math.round(value));
+        return this.ptr.assertNotNull().rewriteVisFlow(
+            round(flow.position?.x),
+            round(flow.position?.y),
+            round(flow.width),
+            round(flow.height),
+            parseIfOutdated,
+        );
     }
 
     /// Remove the `@flow` tag of the script. Returns the new text, the script is not changed.

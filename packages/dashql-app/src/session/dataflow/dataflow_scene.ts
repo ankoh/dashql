@@ -18,6 +18,12 @@ export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
 /// The width of the box of an input, like the dataflow snapshots of the core
 export const INPUT_BOX_WIDTH = 200;
 
+/// The bounds of the size of a resized box: its width and the height of its chart
+export const DATAFLOW_MIN_BOX_WIDTH = 200;
+export const DATAFLOW_MAX_BOX_WIDTH = 1600;
+export const DATAFLOW_MIN_CHART_HEIGHT = 96;
+export const DATAFLOW_MAX_CHART_HEIGHT = 1200;
+
 /// Boxes are collapsed below this zoom, which leaves out the charts and merges the edges between boxes
 export const DATAFLOW_COLLAPSE_SCALE = 0.5;
 
@@ -106,6 +112,12 @@ export interface DataflowBoxPosition {
     rows: number[];
 }
 
+/// The size of a resized box, null for the defaults of the layout
+export interface DataflowBoxSize {
+    width: number | null;
+    chartHeight: number | null;
+}
+
 /// The inputs of the layout of a graph: a box per script, then a box of one row per input, and the edges between
 /// statements of different boxes
 export function dataflowLayoutInput(
@@ -114,16 +126,20 @@ export function dataflowLayoutInput(
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
     fixedInput: (input: DataflowInput) => { x: number; y: number } | null = () => null,
+    size: (script: DataflowScript) => DataflowBoxSize | null = () => null,
 ): { boxes: core.DataflowLayoutBox[]; edges: core.DataflowLayoutEdge[] } {
     const index = new Map(graph.scripts.map((s, i) => [s.scriptKey, i]));
     const inputIndex = new Map(graph.inputs.map((input, i) => [input.name, graph.scripts.length + i]));
     const boxes: core.DataflowLayoutBox[] = graph.scripts.map(script => {
         const isCollapsed = collapsed(script);
+        const sized = size(script);
         return {
             statements: script.statements.length,
             chartStatement: isCollapsed ? null : chartStatement(script),
             collapsed: isCollapsed,
             fixed: fixed(script),
+            ...(sized?.width != null ? { width: sized.width } : {}),
+            ...(sized?.chartHeight != null ? { chartHeight: sized.chartHeight } : {}),
         };
     });
     for (const input of graph.inputs) {
@@ -136,6 +152,26 @@ export function dataflowLayoutInput(
         return [{ fromBox, fromStatement: edge.from.statementId, toBox, toStatement: edge.to.statementId }];
     });
     return { boxes, edges };
+}
+
+/// The height of the chart of a laid out box: the space between the row of the chart and the next row, or the bottom
+export function dataflowChartHeight(p: DataflowBoxPosition, chartAt: number, config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT): number {
+    const top = (p.rows[chartAt] ?? 0) + config.rowHeight + config.rowPadding;
+    const bottom = p.rows[chartAt + 1] ?? p.height - config.rowPadding;
+    return Math.max(0, bottom - top);
+}
+
+/// A laid out box with another width and chart height, the rows below the chart move with its bottom
+export function resizeDataflowBox(
+    p: DataflowBoxPosition,
+    chartAt: number | null,
+    width: number,
+    chartHeight: number | null,
+    config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT,
+): DataflowBoxPosition {
+    if (chartAt == null || chartHeight == null) return { ...p, width };
+    const delta = chartHeight - dataflowChartHeight(p, chartAt, config);
+    return { ...p, width, height: p.height + delta, rows: p.rows.map((y, i) => (i > chartAt ? y + delta : y)) };
 }
 
 /// The vertical center of the port of a statement on the canvas
@@ -250,11 +286,11 @@ export function buildDataflowScene(
         const rows = script.statements.map((statement, i) => ({ statement, y: p.y + (p.rows[i] ?? 0), input: false, output: false }));
         const chartAt = isCollapsed ? null : chartStatement(script);
         const chartRow = chartAt != null ? rows[chartAt] : undefined;
-        const chart = chartRow == null ? null : {
+        const chart = chartAt == null || chartRow == null ? null : {
             x: p.x + config.rowPadding,
             y: chartRow.y + config.rowHeight + config.rowPadding,
             width: p.width - 2 * config.rowPadding,
-            height: config.chartHeight,
+            height: dataflowChartHeight(p, chartAt, config),
         };
         const height = isCollapsed ? config.headerHeight : p.height;
         return { script, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height, rows, chart, input: false, output: false };

@@ -12,8 +12,9 @@
 //! `markdown` takes a row template and `table` takes nothing. `@board` takes the dashboard placement as
 //! `key=value` args, on any statement: the board places a script by the `@board` of its last statement, a statement
 //! without a renderer is a collapsed card. A statement has at most one renderer (`vegalite`, `markdown` or `table`)
-//! and at most one board placement, the first one wins. `@flow` takes the position of the script on the dataflow canvas
-//! as `x=.. y=..`, on any statement, and a script has at most one, the first one in statement order wins.
+//! and at most one board placement, the first one wins. `@flow` takes the placement of the script on the dataflow
+//! canvas as `x=.. y=.. width=.. height=..`, each part optional, on any statement, and a script has at most one, the
+//! first one in statement order wins.
 //! Older scripts write `@vis board` (or `@vis card`) and `@vis flow`, they are read like `@board` and
 //! `@flow`. Problems are warnings with a span inside the comment.
 
@@ -252,31 +253,51 @@ fn read_args<const N: usize>(
     values
 }
 
-/// Read a `@flow` tag, the position of the script on the dataflow canvas
+/// Read a `@flow` tag, the placement of the script on the dataflow canvas: the position `x` and `y`, which come
+/// together, and the size `width` and `height`, each on its own. A tag without a valid position or size is ignored.
 fn read_flow(state: &mut AnalysisState, tag: &TagText, args: usize, kind: TextSpan, statement_id: u32) {
     if state.out.flow.is_some() {
         warn(state, kind, "the script already has a @flow, this tag is ignored".into());
         return;
     }
-    let [x, y] = read_args(state, tag, args, "flow", ["x", "y"]);
-    let coordinate = |state: &mut AnalysisState, value: Option<(i64, TextSpan)>, key: &str| match value {
-        Some((value, span)) => match i32::try_from(value) {
-            Ok(value) => Some(value),
+    let [x, y, width, height] = read_args(state, tag, args, "flow", ["x", "y", "width", "height"]);
+    let given = [x, y, width, height].iter().any(Option::is_some);
+    let int = |state: &mut AnalysisState, value: Option<(i64, TextSpan)>, key: &str, min: i64| {
+        let (value, span) = value?;
+        match i32::try_from(value) {
+            Ok(value) if i64::from(value) >= min => Some(value),
+            Ok(_) => {
+                warn(state, span, format!("@flow {key} must be positive"));
+                None
+            }
             Err(_) => {
                 warn(state, span, format!("@flow {key} is out of range"));
                 None
             }
-        },
-        None => {
-            warn(state, kind, format!("@flow needs {key}"));
+        }
+    };
+    let (x_given, y_given) = (x.is_some(), y.is_some());
+    let x = int(state, x, "x", i64::from(i32::MIN));
+    let y = int(state, y, "y", i64::from(i32::MIN));
+    let width = int(state, width, "width", 1);
+    let height = int(state, height, "height", 1);
+    let position = match (x, y) {
+        (Some(x), Some(y)) => Some((x, y)),
+        _ => {
+            // A coordinate without the other one, the position is dropped
+            if x_given != y_given {
+                warn(state, kind, format!("@flow needs {}", if x_given { "y" } else { "x" }));
+            }
             None
         }
     };
-    let x = coordinate(state, x, "x");
-    let y = coordinate(state, y, "y");
-    if let (Some(x), Some(y)) = (x, y) {
-        state.out.flow = Some(FlowSpec { statement_id, x, y });
+    if position.is_none() && width.is_none() && height.is_none() {
+        if !given {
+            warn(state, kind, "@flow needs x and y, a width or a height".into());
+        }
+        return;
     }
+    state.out.flow = Some(FlowSpec { statement_id, position, width, height });
 }
 
 /// The location of a key of the top-level JSON object

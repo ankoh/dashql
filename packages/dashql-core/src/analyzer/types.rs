@@ -688,15 +688,17 @@ pub struct BoardSpec {
     pub dashboard: DashboardSpec,
 }
 
-/// The position of a script on the dataflow canvas, its `@flow` tag
+/// The placement of a script on the dataflow canvas, its `@flow` tag: a position, a size, or both
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FlowSpec {
     /// The statement whose annotation holds the tag
     pub statement_id: u32,
-    /// The x coordinate of the left edge of the script
-    pub x: i32,
-    /// The y coordinate of the top edge of the script
-    pub y: i32,
+    /// The x and y coordinates of the top left corner of the box, None places the box automatically
+    pub position: Option<(i32, i32)>,
+    /// The width of the box, None for the default width
+    pub width: Option<i32>,
+    /// The height of the chart of the box, None for the default height
+    pub height: Option<i32>,
 }
 
 /// The value of an input of the script, its `@param :name = <literal>` tag
