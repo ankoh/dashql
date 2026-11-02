@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../logger/test_logger.js';
-import { DROP_EVENT, type PlatformDragDropEventVariant } from './event.js';
+import { APP_EVENT_POST_MESSAGE_KIND, DROP_EVENT, SETUP_SESSION, type PlatformDragDropEventVariant, type SetupEventVariant } from './event.js';
+import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 
 describe('WebPlatformEventListener drag and drop', () => {
@@ -50,3 +51,27 @@ describe('WebPlatformEventListener drag and drop', () => {
         expect(handler).not.toHaveBeenCalled();
     });
 });
+
+describe('WebPlatformEventListener messages', () => {
+    let listener: WebPlatformEventListener | null = null;
+    afterEach(() => {
+        listener?.dispose();
+        listener = null;
+    });
+
+    it('dispatches the app events that the window of the app posts', async () => {
+        listener = new WebPlatformEventListener(new TestLogger());
+        const events: SetupEventVariant[] = [];
+        listener.subscribeSetupEvents(event => events.push(event));
+        await listener.setup();
+        const zip = new Uint8Array([80, 75, 3, 4]);
+        const message = (data: unknown, origin = window.location.origin) => window.dispatchEvent(new MessageEvent('message', { data, origin }));
+
+        message({ kind: 'devtools', data: 'x' });
+        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeSessionAppEvent(zip) }, 'https://evil.example');
+        expect(events).toEqual([]);
+        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeSessionAppEvent(zip) });
+        expect(events).toEqual([{ type: SETUP_SESSION, value: zip }]);
+    });
+});
+

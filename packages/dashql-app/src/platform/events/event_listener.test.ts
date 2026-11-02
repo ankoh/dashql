@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SETUP_SESSION, SETUP_SESSION_URL, type SetupEventVariant } from './event.js';
 import { parseClipboardSetup, PlatformEventListener, readSessionUrlParameter } from './event_listener.js';
 import { TestLogger } from '../logger/test_logger.js';
-import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
 
 class TestPlatformEventListener extends PlatformEventListener {
     public starts = 0;
@@ -111,8 +111,7 @@ describe('PlatformEventListener links of older versions', () => {
         listener.subscribeSetupEvents(event => setupEvents.push(event));
 
         const zip = new Uint8Array([80, 75, 3, 4]);
-        const json = JSON.stringify({ notebook: BASE64URL_CODEC.encode(zip.buffer) });
-        const event = listener.readAppEvent(BASE64URL_CODEC.encode(new TextEncoder().encode(json).buffer), 'test');
+        const event = listener.readAppEvent(encodeSessionAppEvent(zip), 'test');
         expect(event).not.toBeNull();
         listener.dispatchAppEvent(event!);
 

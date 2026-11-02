@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
 import { TestLogger } from '../logger/test_logger.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
 import { SETUP_SESSION, SETUP_SESSION_URL, type SetupEventVariant } from './event.js';
@@ -20,12 +20,6 @@ function installDeepLinks(initial: DeepLink[]) {
     return bridge;
 }
 
-/// The deep link of an app event that carries a session ZIP
-function sessionEventLink(zip: Uint8Array): DeepLink {
-    const json = JSON.stringify({ notebook: BASE64URL_CODEC.encode(zip.buffer as ArrayBuffer) });
-    return { type: 'event', value: BASE64URL_CODEC.encode(new TextEncoder().encode(json).buffer as ArrayBuffer) };
-}
-
 describe('ElectronPlatformEventListener', () => {
     let listener: ElectronPlatformEventListener | null = null;
     afterEach(() => {
@@ -43,7 +37,7 @@ describe('ElectronPlatformEventListener', () => {
         expect(events).toEqual([{ type: SETUP_SESSION_URL, value: 'https://dashql.app/?session=abc' }]);
 
         const zip = new Uint8Array([80, 75, 3, 4]);
-        bridge.listener!(sessionEventLink(zip));
+        bridge.listener!({ type: 'event', value: encodeSessionAppEvent(zip) });
         expect(events[1]).toEqual({ type: SETUP_SESSION, value: zip });
 
         listener.dispose();
