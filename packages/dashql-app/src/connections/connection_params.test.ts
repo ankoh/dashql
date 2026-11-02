@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeConnectionParamsForSharing, createAttachedConnectionParamsForConnector, createDefaultConnectionParamsForConnector, ConnectionParams, DEFAULT_HYPER_ENDPOINT } from './connection_params.js';
+import { sanitizeConnectionParamsForSharing, createAttachedConnectionParamsForConnector, createConnectionParamsSignature, createDefaultConnectionParamsForConnector, ConnectionParams, DEFAULT_HYPER_ENDPOINT } from './connection_params.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 
 describe('createDefaultConnectionParamsForConnector', () => {
@@ -153,3 +153,23 @@ describe('sanitizeConnectionParamsForSharing', () => {
     });
 
 });
+
+describe('createConnectionParamsSignature', () => {
+    it('ignores the order of the Trino schemas without reordering them', () => {
+        const trino = (schemaNames: string[]) => ({ trino: { endpoint: 'https://trino', catalogName: 'hive', schemaNames, auth: { authType: 'AUTH_BASIC', basic: { username: 'u' } } } }) as unknown as ConnectionParams;
+        const params = trino(['sales', 'hr']);
+        expect(createConnectionParamsSignature(params)).toEqual(createConnectionParamsSignature(trino(['hr', 'sales'])));
+        expect(createConnectionParamsSignature(params)).toMatchObject({ case: 'trino', schemas: ['hr', 'sales'], auth: { basicUsername: 'u' } });
+        expect((params as { trino: { schemaNames: string[] } }).trino.schemaNames).toEqual(['sales', 'hr']);
+    });
+
+    it('ignores the order of the attached databases, metadata and parameters of Hyper', () => {
+        const hyper = (paths: string[], metadata: Record<string, string>) => ({
+            hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper', attachedDatabases: paths.map(path => ({ path, alias: path })), metadata, queryParameters: { b: '2', a: '1' } },
+        }) as unknown as ConnectionParams;
+        const signature = createConnectionParamsSignature(hyper(['/b', '/a'], { y: '1', x: '2' }));
+        expect(signature).toEqual(createConnectionParamsSignature(hyper(['/a', '/b'], { x: '2', y: '1' })));
+        expect(signature).toMatchObject({ case: 'hyper', attachedDatabases: [{ path: '/a' }, { path: '/b' }], gRPCMetadata: [['x', '2'], ['y', '1']], queryParameters: [['a', '1'], ['b', '2']] });
+    });
+});
+

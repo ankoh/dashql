@@ -40,7 +40,8 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
             oauthScopes: params.auth?.oauth?.scopes,
         },
         catalog: params.catalogName,
-        schemas: (params.schemaNames || []).sort((a: string, b: string) => a > b ? 1 : -1)
+        // Sort a copy, the signature must not reorder the schemas of the connection
+        schemas: [...(params.schemaNames || [])].sort((a: string, b: string) => a > b ? 1 : -1)
     }),
     // Queries name the catalog but no schema, the server rejects relations without a schema
     catalogNameDefaults: details => ({ databaseName: details.proto.setupParams?.catalogName ?? '', schemaName: '' }),
