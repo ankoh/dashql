@@ -18,6 +18,7 @@ import { applyCompletion, computePatches } from './dashql_completion_patches.js'
 import { DashQLDecorationPlugin } from './dashql_decorations.js';
 import { deriveFocusFromEditorUpdate } from '../scripts/focus.js';
 import { xcodeLight } from './themes/xcode.js';
+import { ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -587,49 +588,8 @@ describe('DashQL processor completion triggers', () => {
     });
 
     it('cycles catalog objects for the selected completion candidate', () => {
-        const catalog = dql!.createCatalog();
-        const schemaScript = dql!.createScript(catalog);
-        schemaScript.insertTextAt(0, [
-            'create table db0.public.orders(id int);',
-            'create table db1.public.orders(id int);',
-        ].join('\n'));
-        schemaScript.analyze();
-        catalog.loadScript(schemaScript, 0);
-
-        const text = 'select * from ord';
-        const { scriptSession, editorUpdate } = createScriptSession(catalog, text);
-        const completionBuffer = scriptSession.completeAtCursor(10);
-        const completion = completionBuffer.read();
-        let candidateId = -1;
-        for (let i = 0; i < completion.candidatesLength(); ++i) {
-            if (completion.candidates(i)?.displayText() === 'orders') {
-                candidateId = i;
-                break;
-            }
-        }
-        expect(candidateId).toBeGreaterThanOrEqual(0);
-        expect(completion.candidates(candidateId)?.catalogObjectsLength()).toBe(2);
-
-        const initialCompletion = computePatches({
-            status: DashQLCompletionStatus.AVAILABLE,
-            passiveHint: false,
-            buffer: completionBuffer,
-            candidateId,
-            candidatePatch: [],
-            catalogObjectId: 0,
-            catalogObjectPatch: [],
-            catalogObjectCursorOffset: null,
-        }, EditorState.create({ doc: text }).doc, text.length);
-        const processorState: DashQLProcessorUpdateIn = {
-            scriptKey: 1,
-            scriptSession,
-            editorUpdate,
-            scriptBuffers: null,
-            scriptCompletion: initialCompletion,
-            scriptPendingDiff: null,
-            derivedFocus: null,
-            onUpdate: () => {},
-        };
+        const processorState = ordersCompletion(dql!);
+        const text = ORDERS_COMPLETION_TEXT;
         let editorState = EditorState.create({
             doc: text,
             selection: EditorSelection.cursor(text.length),
