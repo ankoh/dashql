@@ -16,8 +16,9 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 71.4% (43,076 / 60,304 lines) in 543 files**, up from 69.1% before the tests of the Trino and Salesforce
-connection reducers, the Trino Arrow conversion, the log buffer, the graph edges and more Arrow value formats.
+**Overall: 72.2% (43,536 / 60,304 lines) in 543 files**, up from 69.1% before the tests of the Trino and Salesforce
+connection reducers and channel, the Trino Arrow conversion, the log buffer, the graph edges, more Arrow value formats,
+the column aggregation and data search tasks, the completion focus and the diff decorations.
 
 ## Gaps in logic (`.ts`)
 
@@ -28,16 +29,9 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/views/query_result/use_query_result_search.ts:52-171` | useQueryResultSearch | 110 |
 | `src/app/router/router.ts:86-191` | useRouterNavigate | 101 |
 | `src/session/editor/dashql_completion_list.ts:45-154` | CandidateRenderer | 82 |
-| `src/compute/tasks/column_aggregation.ts:176-261` | computeFilteredColumnAggregates | 80 |
-| `src/session/scripts/focus.ts:124-208` | deriveFocusFromCompletionCandidates | 74 |
-| `src/session/editor/dashql_diff_decorations.ts:56-136` | buildDiffDecorations | 61 |
 | `src/session/editor/dashql_completion_listener.ts:103-176` | onTab | 59 |
 | `src/session/editor/dashql_processor.ts:535-597` | updateCompletion | 52 |
 | `src/platform/grpc/native_grpc_client.ts:85-143` | read | 47 |
-| `src/connections/trino/trino_connection_setup.ts:39-91` | setupTrinoConnectionBasic | 46 |
-| `src/compute/tasks/data_search.ts:9-50` | searchData | 42 |
-| `src/compute/computation_state.ts:454-501` | reduceComputationState (`COLUMN_AGGREGATION_SUCCEEDED`) | 41 |
-| `src/connections/trino/trino_channel.ts:66-117` | fetchNextQueryResult | 40 |
 | `src/session/persistence/app_state_loader.ts:555-599` | restoreSingleSession | 40 |
 | `src/views/query_result/use_cross_filters.ts:65-108` | scheduleLatestFilter | 39 |
 | `src/views/query_result/use_cross_filters.ts:242-288` | useCrossFilters | 39 |
@@ -45,6 +39,13 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/connections/hyper/platform/native_hyperdb_grpc_client.ts:121-159` | produce | 32 |
 | `src/session/editor/dashql_completion_list.ts:213-261` | render | 32 |
 | `src/shell/shell_files.ts:107-138` | mountDirectory | 32 |
+| `src/platform/events/event_listener.ts:196-230` | waitForOAuthRedirect | 29 |
+| `src/shell/shell_files.ts:255-282` | selectPlatformFiles | 28 |
+| `src/storage/session_import_transaction.ts:127-158` | replaceSessionWithNativeFolder | 27 |
+| `src/connections/salesforce/salesforce_api_client.ts:159-184` | parseCoreUserInfo | 26 |
+| `src/session/persistence/session_relocation.ts:19-55` | relocateSessionToNative | 26 |
+| `src/storage/composite_storage_backend.ts:461-496` | relocateSessionToNative | 25 |
+| `src/platform/grpc/native_grpc_client.ts:311-342` | connect | 24 |
 
 ## Gaps in components (`.tsx`)
 
@@ -87,10 +88,11 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
 
 ## Suggested next tests
 
-1. `computeFilteredColumnAggregates` and the `COLUMN_AGGREGATION_SUCCEEDED` case of `reduceComputationState`: the
-   scheduler tests only mock the computation.
-2. `searchData` and `useQueryResultSearch`: the search of query results has no test.
-3. `deriveFocusFromCompletionCandidates` (`focus.ts`) and `buildDiffDecorations`: pure functions over core outputs.
-4. `fetchNextQueryResult` of the Trino channel and `setupTrinoConnectionBasic`, with a fake Trino API client like
-   `trino_channel.test.ts`.
+1. `useQueryResultSearch` and `useCrossFilters`/`scheduleLatestFilter`: the hooks of the query result search and the
+   cross filters, render them with a computation state like the data table tests.
+2. `CandidateRenderer` and `render` of the completion list, `onTab` of the completion listener and `updateCompletion`
+   of the processor: drive the editor with a completion like `dashql_processor.test.ts`.
+3. `restoreSingleSession` of the app state loader and the session relocation to native folders
+   (`relocateSessionToNative`, `replaceSessionWithNativeFolder`).
+4. `parseCoreUserInfo` of the Salesforce API client: a pure parser.
 5. Render tests of `TrinoConnectorSettings` and `HyperConnectorSettings` like the Salesforce settings tests.
