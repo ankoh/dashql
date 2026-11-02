@@ -20,15 +20,18 @@ interface TabHeaderProps {
     /// the clickable variant the title/count sit in an inner button while the actions sit beside it,
     /// since nesting interactive controls inside a button is invalid.
     actions?: React.ReactNode;
+    /// Drop the bottom border, for content that starts right under the header
+    borderless?: boolean;
 }
 
 /// The header bar shown atop a session tab body: a title with an optional greyish "N of M rows"
 /// count. Shared by the feed footer (clickable, opens the full result table) and the full views (inert),
 /// so the surfaces read identically.
-export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, detailIsLink, actions }) => {
+export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, detailIsLink, actions, borderless }) => {
+    const headerClass = classNames(styles.tab_header, { [styles.tab_header_borderless]: borderless });
     if (onClick != null) {
         return (
-            <div className={styles.tab_header}>
+            <div className={headerClass}>
                 <button type="button" className={styles.tab_header_clickable_inner} onClick={onClick}>
                     <span className={styles.tab_header_title}>{title}</span>
                     {detail && (
@@ -53,7 +56,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, de
         );
     }
     return (
-        <div className={styles.tab_header}>
+        <div className={headerClass}>
             <span className={styles.tab_header_title}>{title}</span>
             {detail && <span className={styles.tab_header_detail}>{detail}</span>}
             {actions && <div className={styles.tab_header_actions}>{actions}</div>}

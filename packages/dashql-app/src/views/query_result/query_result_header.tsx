@@ -57,6 +57,7 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
             detail={formatResultRowCount(counts, maxRows)}
             onClick={props.onShowTable}
             detailIsLink={displayedRows != null && displayedRows > maxRows}
+            borderless
             actions={(
                 <>
                     <dependencies.QueryResultToolbar query={props.query} />
