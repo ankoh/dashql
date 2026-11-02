@@ -242,7 +242,11 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                     : `Resize ${displayName}. Current size ${props.placement.width} columns by ${props.placement.height} rows`}
                 onPointerDown={startResize}
                 onKeyDown={resizeWithKeyboard}
-            />
+            >
+                <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+                    <path d="M7 1V7H1Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+            </button>
         </article>
     );
 });

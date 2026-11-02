@@ -188,17 +188,31 @@
     overflow: auto;
 }
 
+/* A small triangle in the corner, the hit area around it is larger */
 .resize_handle {
     position: absolute;
     right: 0;
     bottom: 0;
-    width: 20px;
-    height: 20px;
-    padding: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    width: 16px;
+    height: 16px;
+    padding: 0 3px 3px 0;
     border: 0;
-    background: linear-gradient(135deg, transparent 45%, var(--base_color_neutral_4) 46%, var(--base_color_neutral_4) 54%, transparent 55%);
+    color: var(--base_color_neutral_3);
+    background: transparent;
     cursor: nwse-resize;
     touch-action: none;
+}
+
+.resize_handle svg {
+    display: block;
+    flex: 0 0 auto;
+}
+
+.resize_handle:hover {
+    color: var(--base_color_neutral_6);
 }
 
 .drag_handle:focus-visible,
