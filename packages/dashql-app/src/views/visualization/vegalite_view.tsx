@@ -1,10 +1,10 @@
 import * as React from 'react';
-import type { TopLevelSpec } from 'vega-lite';
+import type { Config, TopLevelSpec } from 'vega-lite';
 
 import * as styles from './visualization.module.css';
 import { loadVega } from '../../ui/vegalite/vegalite_loader.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
-import { createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../../ui/vegalite/vegalite_theme.js';
+import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../../ui/vegalite/vegalite_theme.js';
 import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
@@ -54,6 +54,10 @@ interface Props {
     /// thumbnail), so the compact rendering strips them by injecting `legend: null` into every
     /// encoding channel. Defaults to false (legends shown as authored).
     hideLegend?: boolean;
+    /// The Vega-Lite config of the chart, the config of all charts of the app by default
+    config?: (colors: ChartColors) => Config;
+    /// The class of the root, the root style of the visualizations by default
+    className?: string;
     dependencies?: VegaLiteViewDependencies;
 }
 
@@ -186,7 +190,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             // The charts of the app share a theme and the embed options, e.g. the CSP-safe expression interpreter
             const colors = resolveChartColors();
             const options = createEmbedOptions(colors, expressionInterpreter);
-            const config = createVegaLiteConfig(colors);
+            const config = (props.config ?? createVegaLiteConfig)(colors);
             return embed(el, runtimeSpec, {
                 ...options,
                 patch: compiledSpec => {
@@ -231,7 +235,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             finalizeView?.();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, dependencies]);
+    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, props.config, dependencies]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;
@@ -258,7 +262,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
         : undefined;
 
     return (
-        <div className={styles.root}>
+        <div className={props.className ?? styles.root}>
             {error && <div className={styles.error}>{error}</div>}
             <div ref={containerRef} className={styles.chart} style={chartStyle} />
         </div>

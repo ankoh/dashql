@@ -146,6 +146,31 @@ export function createVegaLiteConfig(colors: ChartColors): Config {
     };
 }
 
+/// The Vega-Lite config of chart previews in small boxes, e.g. on the dataflow canvas: the config of all charts with
+/// smaller text and marks, fewer ticks and horizontal labels on the x axis.
+export function createVegaLitePreviewConfig(colors: ChartColors): Config {
+    const base = createVegaLiteConfig(colors);
+    return {
+        ...base,
+        line: { ...base.line, strokeWidth: 1.5 },
+        point: { ...base.point, size: 24, strokeWidth: 1 },
+        text: { ...base.text, fontSize: 9 },
+        axis: {
+            ...base.axis,
+            labelFontSize: 8,
+            labelPadding: 3,
+            labelLimit: 64,
+            tickCount: 4,
+            titleFontSize: 9,
+            titlePadding: 4,
+        },
+        axisX: { ...base.axisX, labelAngle: 0 },
+        legend: { ...base.legend, labelFontSize: 8, titleFontSize: 9, symbolSize: 32 },
+        header: { ...base.header, labelFontSize: 9, titleFontSize: 9 },
+        title: { ...base.title, fontSize: 10, offset: 4 },
+    };
+}
+
 /// The name of the theme of the Vega tooltips, styled by the class dashql-theme
 export const VEGA_TOOLTIP_THEME = 'dashql';
 

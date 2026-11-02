@@ -3,6 +3,7 @@ import * as React from 'react';
 import { QueryExecutionState } from '../../query/query_execution_state.js';
 import { ResolvedVisualizeQuery } from '../../session/scripts/script_types.js';
 import { VegaLiteView } from './vegalite_view.js';
+import { VegaLitePreview } from './vegalite_preview.js';
 import { MarkdownView } from './markdown_view.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { TableColumnHeader } from '../query_result/data_table_cell.js';
@@ -19,6 +20,8 @@ interface Props {
     /// Suppress legends (they crowd out a cramped host like a grid card). Honored by the Vega-Lite
     /// renderer.
     hideLegend?: boolean;
+    /// Render a Vega-Lite chart as a preview into the width×height box, see `VegaLitePreview`
+    preview?: boolean;
 }
 
 /// Renders the visualization of a query with `@vis` tags, dispatching on the
@@ -30,6 +33,9 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
     }
     switch (vq.renderer) {
         case 'vegalite':
+            if (props.preview && props.width != null && props.height != null) {
+                return <VegaLitePreview query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} />;
+            }
             return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} hideLegend={props.hideLegend} />;
         case 'markdown':
             return <MarkdownView query={props.query} spec={vq.markdownSpec} />;
