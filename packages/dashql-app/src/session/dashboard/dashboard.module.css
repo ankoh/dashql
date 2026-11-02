@@ -177,6 +177,8 @@
 }
 
 .card_editor {
+    /* The text of a card, smaller than in the feed */
+    --font_size_editor: var(--font_size_small);
     min-height: 0;
     overflow: auto;
 }
