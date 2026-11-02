@@ -238,6 +238,79 @@ function createTimeMillisecondData(type: arrow.TimeMillisecond, values: any[], t
     return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
+/// A Trino timestamp: `2024-03-01 12:30:00.123`, with time zone followed by ` UTC`, ` +01:00` or ` Europe/Berlin`
+const TRINO_TIMESTAMP_PATTERN = /^(-?\d+)-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(?: ?(\S+))?$/;
+/// A zone offset like `+01:00`
+const ZONE_OFFSET_PATTERN = /^([+-])(\d{2}):?(\d{2})$/;
+/// The zones that are UTC
+const UTC_ZONES = new Set(['UTC', 'Z', 'GMT', 'Etc/UTC', 'Etc/GMT', 'UCT', 'Zulu', 'Universal']);
+
+/// The milliseconds since epoch of a wall clock time in UTC, Date.UTC would move the years 0 to 99 to the 1900s
+function utcMs(year: number, month: number, day: number, hours: number, minutes: number, seconds: number, ms: number): number {
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    date.setUTCHours(hours, minutes, seconds, ms);
+    return date.getTime();
+}
+
+/// The formatters of the wall clock in a named zone
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
+/// The offsets of named zones by zone and minute, cleared when it grows too large
+const zoneOffsets = new Map<string, number>();
+const ZONE_OFFSET_CACHE_SIZE = 100_000;
+
+/// The offset of a named zone at an instant: the wall clock in the zone minus the wall clock in UTC
+function namedZoneOffsetMs(zone: string, instantMs: number): number {
+    const minute = Math.floor(instantMs / 60_000);
+    const key = `${zone}|${minute}`;
+    const cached = zoneOffsets.get(key);
+    if (cached !== undefined) return cached;
+
+    let formatter = zoneFormatters.get(zone);
+    if (formatter === undefined) {
+        // Throws a RangeError for unknown zones
+        formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: zone, hourCycle: 'h23', era: 'short',
+            year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric',
+        });
+        zoneFormatters.set(zone, formatter);
+    }
+    const parts: Record<string, string> = {};
+    for (const part of formatter.formatToParts(minute * 60_000)) parts[part.type] = part.value;
+    const year = parts.era === 'BC' ? 1 - Number(parts.year) : Number(parts.year);
+    const wall = utcMs(year, Number(parts.month), Number(parts.day), Number(parts.hour), Number(parts.minute), 0, 0);
+    const offset = wall - minute * 60_000;
+
+    if (zoneOffsets.size >= ZONE_OFFSET_CACHE_SIZE) zoneOffsets.clear();
+    zoneOffsets.set(key, offset);
+    return offset;
+}
+
+/// Parse a Trino timestamp to milliseconds since epoch, null if it is invalid.
+/// A timestamp without time zone is a wall clock time and stays as is, one with a time zone is moved to UTC.
+export function parseTrinoTimestampMs(text: string): number | null {
+    const match = TRINO_TIMESTAMP_PATTERN.exec(text);
+    if (match == null) return null;
+    const fraction = (match[7] ?? '').padEnd(3, '0').slice(0, 3);
+    const wall = utcMs(Number(match[1]), Number(match[2]), Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6]), Number(fraction));
+    const zone = match[8];
+    if (zone == null || UTC_ZONES.has(zone)) {
+        return wall;
+    }
+    const offset = ZONE_OFFSET_PATTERN.exec(zone);
+    if (offset != null) {
+        const offsetMs = (Number(offset[2]) * 60 + Number(offset[3])) * 60_000;
+        return offset[1] === '-' ? wall + offsetMs : wall - offsetMs;
+    }
+    try {
+        // Guess the instant with the offset at the wall clock, then correct it with the offset at the guess
+        const guess = wall - namedZoneOffsetMs(zone, wall);
+        return wall - namedZoneOffsetMs(zone, guess);
+    } catch {
+        return null;
+    }
+}
+
 /// Create Arrow Data for Timestamp types (ms since epoch as BigInt64)
 function createTimestampData<T extends arrow.Timestamp>(type: T, values: any[], tmpIsNull: Uint8Array): arrow.Data<T> {
     const n = values.length;
@@ -246,16 +319,11 @@ function createTimestampData<T extends arrow.Timestamp>(type: T, values: any[], 
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
-        if (v == null || v === '') {
+        const ms = v == null || v === '' ? null : parseTrinoTimestampMs(String(v));
+        if (ms == null || Number.isNaN(ms)) {
             tmpIsNull[i] = 1;
         } else {
-            const date = new Date(String(v).replace(' ', 'T'));
-            const ms = date.getTime();
-            if (Number.isNaN(ms)) {
-                tmpIsNull[i] = 1;
-            } else {
-                buffer[i] = BigInt(ms);
-            }
+            buffer[i] = BigInt(ms);
         }
     }
 
