@@ -121,8 +121,9 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
   (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are neutral outlines with a faint fill, the statements inside
   them are node frames, inline references and table edges are solid, scans and invalid references are dashed, the
-  relation of a table edge is a badge. Edges between boxes and their badges pass behind the boxes, the edges between
-  the rows of one box run inside its outline. Selecting a box, a statement or an input, or hovering a box, redraws its
+  relation of a table edge is a badge. Edges between boxes and their badges run on the outlines up to their
+  ports, the layout routes them around the boxes, the edges between the rows of one box run inside its outline. Every
+  edge passes below the statements. Selecting a box, a statement or an input, or hovering a box, redraws its
   edges and their badges in the highlight layer on top of the boxes and highlights their ports, a drag drops the
   hover. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under its port.
   Charts are `foreignObject`s below their statement, in a white frame with a 1px border like the statements. A

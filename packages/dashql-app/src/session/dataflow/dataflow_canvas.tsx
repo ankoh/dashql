@@ -532,20 +532,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                 onDoubleClick={onCanvasDoubleClick}
             >
                 <g ref={sceneRef}>
-                    {/* The edges between boxes pass behind the cards */}
-                    <g aria-hidden="true">
-                        {between.filter(solid).map(edge => (
-                            <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />
-                        ))}
-                    </g>
-                    <g aria-hidden="true">
-                        {between.filter(e => !solid(e)).map(edge => (
-                            <path key={edge.key} className={graphStyles.crossEdge} d={edge.path} data-dataflow-edge={edge.key} data-kind={edge.kind} />
-                        ))}
-                    </g>
-                    <g className={graphStyles.edgeBadgeLayer}>
-                        {between.filter(e => !highlightedSet.has(e)).map(renderBadge)}
-                    </g>
+                    {/* The outlines of the boxes, below every edge */}
                     <g>
                         {scene.boxes.map(box => (
                             <rect
@@ -573,7 +560,21 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                             />
                         ))}
                     </g>
-                    {/* The edges between the rows of a box run inside its padding, on its card */}
+                    {/* The edges between boxes run on the outlines up to their ports, the layout routes them around the boxes */}
+                    <g aria-hidden="true">
+                        {between.filter(solid).map(edge => (
+                            <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />
+                        ))}
+                    </g>
+                    <g aria-hidden="true">
+                        {between.filter(e => !solid(e)).map(edge => (
+                            <path key={edge.key} className={graphStyles.crossEdge} d={edge.path} data-dataflow-edge={edge.key} data-kind={edge.kind} />
+                        ))}
+                    </g>
+                    <g className={graphStyles.edgeBadgeLayer}>
+                        {between.filter(e => !highlightedSet.has(e)).map(renderBadge)}
+                    </g>
+                    {/* The edges between the rows of a box run inside its padding */}
                     <g aria-hidden="true">
                         {internal.map(edge => (
                             <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />

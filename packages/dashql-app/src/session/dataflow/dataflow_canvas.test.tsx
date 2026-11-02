@@ -76,7 +76,7 @@ describe('DataflowCanvas', () => {
         expect([...container.querySelectorAll('[data-dataflow-badge] text')].map(t => t.textContent)).toEqual(['t']);
     });
 
-    it('draws the edges between boxes behind the cards and the edges inside a box on its card', () => {
+    it('draws the edges on the outlines of the boxes and below their statements', () => {
         render();
         const card = container.querySelector('rect[data-dataflow-card]')!;
         const precedes = (a: Node, b: Node) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
@@ -87,9 +87,11 @@ describe('DataflowCanvas', () => {
         const between = edges.filter(e => e.getAttribute('data-dataflow-edge') === betweenKey);
         const inside = edges.filter(e => e.getAttribute('data-dataflow-edge') !== betweenKey);
         expect([between.length, inside.length]).toEqual([1, 1]);
-        expect(precedes(between[0], card)).toBe(true);
-        expect(precedes(badge, card)).toBe(true);
+        expect(precedes(card, between[0])).toBe(true);
+        expect(precedes(card, badge)).toBe(true);
         expect(precedes(card, inside[0])).toBe(true);
+        expect(precedes(between[0], box('report.sql'))).toBe(true);
+        expect(precedes(inside[0], box('report.sql'))).toBe(true);
     });
 
     it('highlights the edges of a hovered box on top of the boxes', async () => {
