@@ -2,7 +2,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import {
     DEFAULT_SALESFORCE_DATA_SPACE,
     formatSalesforceMetadataProgress,
@@ -12,11 +12,6 @@ import {
     parseCoreAccessToken,
     SalesforceApiClient,
 } from './salesforce_api_client.js';
-
-class NullLogger extends Logger {
-    public destroy(): void { }
-    protected flushPendingRecords(): void { }
-}
 
 function makeResponse(body: unknown, status = 200): HttpFetchResult {
     const text = JSON.stringify(body);
@@ -51,7 +46,7 @@ function encodeJwtPart(value: unknown): string {
 }
 
 describe('SalesforceApiClient metadata', () => {
-    const logger = new NullLogger();
+    const logger = new TestLogger();
 
     it('requests metadata separately for each entity type', async () => {
         const responses = new Map<string, unknown>([
@@ -142,7 +137,7 @@ describe('SalesforceApiClient metadata', () => {
             }
             return makeResponse({ metadata: [{ name: url.searchParams.get('entityType'), fields: [] }] });
         });
-        const requestLogger = new NullLogger();
+        const requestLogger = new TestLogger();
         const warn = vi.spyOn(requestLogger, 'warn');
         const client = new SalesforceApiClient(requestLogger, { fetch });
         const coreToken = {
@@ -174,7 +169,7 @@ describe('SalesforceApiClient metadata', () => {
     });
 
     it('rejects with only the summary when every metadata request fails', async () => {
-        const requestLogger = new NullLogger();
+        const requestLogger = new TestLogger();
         const warn = vi.spyOn(requestLogger, 'warn');
         const fetch = vi.fn().mockResolvedValue(makeResponse({ error: 'unavailable' }, 503));
         const client = new SalesforceApiClient(requestLogger, { fetch });
@@ -260,7 +255,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
             instance_url: 'data.example.com',
             token_type: 'Bearer',
         }));
-        const client = new SalesforceApiClient(new NullLogger(), { fetch });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch });
         const params = {
             instanceUrl: 'https://example.my.salesforce.com',
             appConsumerKey: 'consumer-key',
@@ -294,7 +289,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
 
     it('exchanges the authorization code for an opaque Core token using PKCE', async () => {
         const fetch = vi.fn().mockResolvedValue(makeResponse({ access_token: 'opaque-core-token', instance_url: 'https://core.example.com' }));
-        const client = new SalesforceApiClient(new NullLogger(), { fetch });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch });
         const params = { instanceUrl: 'https://core.example.com', appConsumerKey: 'key', appConsumerSecret: '' } as connection.SalesforceConnectionParams;
         const token = await client.getCoreAccessToken({ oauthRedirect: 'https://dashql.app/oauth.html' }, params, 'code', 'verifier', new AbortController().signal);
         expect(token.accessToken).toBe('opaque-core-token');
@@ -308,7 +303,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
 
     it('restores string expiration and legacy custom_attributes from the exchange', async () => {
         const rawToken = `${encodeJwtPart({ alg: 'RS256' })}.${encodeJwtPart({ exp: '1800000000', audienceTenantId: 'tenant-1', custom_attributes: { dataspace: 'Marketing' } })}.signature`;
-        const client = new SalesforceApiClient(new NullLogger(), { fetch: vi.fn().mockResolvedValue(makeResponse({ access_token: rawToken, instance_url: 'data.example.com' })) });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch: vi.fn().mockResolvedValue(makeResponse({ access_token: rawToken, instance_url: 'data.example.com' })) });
         const token = await client.getDataCloudAccessToken({ accessToken: 'core', instanceUrl: 'https://core.example.com' } as connection.SalesforceCoreAccessToken, new AbortController().signal);
         expect(token.expiresAt).toBe(new Date(1800000000 * 1000).toISOString());
         expect(getSalesforceDataSpace(token)).toBe('Marketing');
@@ -317,7 +312,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
 
     it.each([null, 'http://data.example.com', 'https://data.example.com/path'])('rejects an unusable exchanged endpoint: %s', async instance_url => {
         const rawToken = `${encodeJwtPart({ alg: 'RS256' })}.${encodeJwtPart({ exp: 1800000000 })}.signature`;
-        const client = new SalesforceApiClient(new NullLogger(), { fetch: vi.fn().mockResolvedValue(makeResponse({ access_token: rawToken, instance_url })) });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch: vi.fn().mockResolvedValue(makeResponse({ access_token: rawToken, instance_url })) });
         await expect(client.getDataCloudAccessToken({ accessToken: 'core', instanceUrl: 'https://core.example.com' } as connection.SalesforceCoreAccessToken, new AbortController().signal)).rejects.toThrow();
     });
 
@@ -334,7 +329,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
             sfap_op: 'private-opaque-context',
         };
         const access_token = `${encodeJwtPart({ alg: 'RS256' })}.${encodeJwtPart(payload)}.private-signature`;
-        const logger = new NullLogger();
+        const logger = new TestLogger();
         const warn = vi.spyOn(logger, 'warn');
         const client = new SalesforceApiClient(logger, { fetch: vi.fn().mockResolvedValue(makeResponse({
             access_token, refresh_token: 'private-refresh-token', id_token: 'private-id-token', signature: 'private-response-signature',
@@ -361,7 +356,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
     });
 
     it.each([undefined, ''])('logs safe diagnostics for missing Core credentials: %s', access_token => {
-        const logger = new NullLogger();
+        const logger = new TestLogger();
         const warn = vi.spyOn(logger, 'warn');
         expect(() => parseCoreAccessToken({ access_token }, logger)).toThrow();
         expect(warn).toHaveBeenCalledOnce();
@@ -373,13 +368,13 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
     ])('rejects invalid Data Cloud expiration claims: %s', async exp => {
         const payload = { exp };
         const access_token = `${encodeJwtPart({ alg: 'RS256' })}.${encodeJwtPart(payload)}.signature`;
-        const client = new SalesforceApiClient(new NullLogger(), { fetch: vi.fn().mockResolvedValue(makeResponse({ access_token, instance_url: 'data.example.com' })) });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch: vi.fn().mockResolvedValue(makeResponse({ access_token, instance_url: 'data.example.com' })) });
         await expect(client.getDataCloudAccessToken({ accessToken: 'core', instanceUrl: 'https://core.example.com' } as connection.SalesforceCoreAccessToken, new AbortController().signal)).rejects.toThrow('expiration');
     });
 
     it.each([401, 500])('rejects HTTP %s even without an OAuth error body', async status => {
         const fetch = vi.fn().mockResolvedValue(makeResponse({ access_token: 'private-token' }, status));
-        const client = new SalesforceApiClient(new NullLogger(), { fetch });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch });
         const params = { instanceUrl: 'https://core.example.com', appConsumerKey: 'key' } as connection.SalesforceConnectionParams;
         await expect(client.getCoreAccessToken({ oauthRedirect: 'https://dashql.app/oauth.html' }, params, 'code', 'verifier', new AbortController().signal)).rejects.toThrow(String(status));
         await expect(client.getDataCloudAccessToken({ accessToken: 'core', instanceUrl: params.instanceUrl } as connection.SalesforceCoreAccessToken, new AbortController().signal)).rejects.toThrow(String(status));
@@ -396,7 +391,7 @@ describe('SalesforceApiClient user info', () => {
             user_id: '005000000000001',
             utcOffset: 3600000,
         }));
-        const client = new SalesforceApiClient(new NullLogger(), { fetch });
+        const client = new SalesforceApiClient(new TestLogger(), { fetch });
         const token = { accessToken: 'core-token', instanceUrl: 'https://core.example.com' } as connection.SalesforceCoreAccessToken;
         const info = await client.getCoreUserInfo(token, new AbortController().signal);
 

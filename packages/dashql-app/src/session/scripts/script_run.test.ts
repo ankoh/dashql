@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 import { tableFromArrays } from 'apache-arrow';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import type { QueryExecutor } from '../../connections/query_executor.js';
 import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
@@ -23,13 +23,8 @@ import { createEmptyMetadata, createScriptRef } from './script_types.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
-
 let dql: core.DashQL;
-const logger = new NullLogger();
+const logger = new TestLogger();
 
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 afterEach(() => { vi.restoreAllMocks(); registerScriptRunServices(dql, null); dql.resetUnsafe(); });

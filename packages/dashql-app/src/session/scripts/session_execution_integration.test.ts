@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 import { tableFromArrays } from 'apache-arrow';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
 import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
@@ -30,13 +30,8 @@ import { createEmptyMetadata, createScriptRef } from './script_types.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
-
 let dql: core.DashQL;
-const logger = new NullLogger();
+const logger = new TestLogger();
 
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });

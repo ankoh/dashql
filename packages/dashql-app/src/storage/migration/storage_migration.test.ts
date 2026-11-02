@@ -1,15 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '../test_fs_mock.js';
 import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';
 import { SESSION_FORMAT_VERSION, STORAGE_VERSION } from './versions.js';
-
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';
@@ -62,7 +57,7 @@ describe('storage migration', () => {
     });
 
     it('leaves a fresh storage untouched', async () => {
-        expect(await migrateStorage(new NullLogger(), root)).toEqual({ steps: 0, sessions: 0 });
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 0 });
         expect(files.size).toBe(0);
         expect(dirs.size).toBe(0);
     });
@@ -81,7 +76,7 @@ describe('storage migration', () => {
         fsStore.dirs.add(NATIVE_DIR);
         fsStore.files.set(`${NATIVE_DIR}/dashql-notebook.json`, notebook(SESSION_B, DB_B));
 
-        const summary = await migrateStorage(new NullLogger(), root);
+        const summary = await migrateStorage(new TestLogger(), root);
         expect(summary.steps).toBe(STORAGE_MIGRATION_STEPS.length);
         expect(summary.sessions).toBeGreaterThan(0);
         // The native session folder is claimed before it is read
@@ -114,7 +109,7 @@ describe('storage migration', () => {
 
         // A migrated storage stays as it is
         const before = text('dashql-manifest.json');
-        await migrateStorage(new NullLogger(), root);
+        await migrateStorage(new TestLogger(), root);
         expect(text('dashql-manifest.json')).toBe(before);
     });
 
@@ -125,7 +120,7 @@ describe('storage migration', () => {
         dirs.add(`notebooks/${SESSION_A}`);
         files.set(`notebooks/${SESSION_A}/dashql-notebook.json`, notebook(SESSION_A, DB_B));
 
-        await migrateStorage(new NullLogger(), root);
+        await migrateStorage(new TestLogger(), root);
         expect(json('dashql-manifest.json').connections).toEqual(connections);
         expect(json(`sessions/${SESSION_A}/dashql-session.json`).sessionId).toBe(SESSION_A);
     });
@@ -136,10 +131,10 @@ describe('storage migration', () => {
         dirs.add(`sessions/${SESSION_A}`);
         files.set(`sessions/${SESSION_A}/dashql-notebook.json`, notebook(SESSION_A, DB_A));
 
-        expect(await migrateStorage(new NullLogger(), root)).toEqual({ steps: 0, sessions: 1 });
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 1 });
         expect(json(`sessions/${SESSION_A}/dashql-session.json`).formatVersion).toBe(SESSION_FORMAT_VERSION);
         // A current storage has nothing left to migrate
-        expect(await migrateStorage(new NullLogger(), root)).toEqual({ steps: 0, sessions: 0 });
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 0 });
     });
 
     it('seeds connections without a catalog from the catalog copies of the sessions', async () => {
@@ -167,7 +162,7 @@ describe('storage migration', () => {
         fsStore.files.set(`${NATIVE_DIR}/dashql-session.json`, session(SESSION_B, DB_B));
         fsStore.files.set(`${NATIVE_DIR}/dashql-catalog-relations.sql`, 'CREATE TABLE b(id int);');
 
-        await migrateStorage(new NullLogger(), root);
+        await migrateStorage(new TestLogger(), root);
 
         expect(json('dashql-manifest.json').storageVersion).toBe(STORAGE_VERSION);
         expect(text(`connections/${DB_A}/dashql-catalog-relations.sql`)).toBe('CREATE TABLE a(id int);');
@@ -188,7 +183,7 @@ describe('storage migration', () => {
             storageVersion: 5,
         }));
 
-        await migrateStorage(new NullLogger(), root);
+        await migrateStorage(new TestLogger(), root);
 
         const manifest = json('dashql-manifest.json');
         expect(manifest.storageVersion).toBe(STORAGE_VERSION);
@@ -205,7 +200,7 @@ describe('storage migration', () => {
         dirs.add('shell');
         files.set('shell/kept.txt', 'kept');
 
-        await migrateStorage(new NullLogger(), root);
+        await migrateStorage(new TestLogger(), root);
 
         expect(json('dashql-manifest.json').storageVersion).toBe(STORAGE_VERSION);
         expect(text('shell/salesforce-login-history.json')).toBe('{"version":1,"entries":[]}');
@@ -218,7 +213,7 @@ describe('storage migration', () => {
     it('refuses a storage of a newer version', async () => {
         const manifest = JSON.stringify({ sessions: [], storageVersion: STORAGE_VERSION + 1 });
         files.set('dashql-manifest.json', manifest);
-        await expect(migrateStorage(new NullLogger(), root)).rejects.toThrow('newer version of DashQL');
+        await expect(migrateStorage(new TestLogger(), root)).rejects.toThrow('newer version of DashQL');
         expect(text('dashql-manifest.json')).toBe(manifest);
     });
 });

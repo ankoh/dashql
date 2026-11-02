@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { OAuthState } from '../../oauth/oauth_types.js';
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import { PlatformType } from '../../platform/platform_type.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 import type { SalesforceApiClientInterface } from './salesforce_api_client.js';
@@ -12,11 +12,6 @@ import {
     buildSalesforceAuthorizationUrl,
     validateSalesforceOAuthCallbackState,
 } from './salesforce_authentication.js';
-
-class NullLogger extends Logger {
-    public destroy(): void { }
-    protected flushPendingRecords(): void { }
-}
 
 const params: connection.SalesforceConnectionParams = {
     instanceUrl: 'https://example.my.salesforce.com',
@@ -139,7 +134,7 @@ describe('authenticateSalesforce', () => {
             };
 
             await authenticateSalesforce({
-                logger: new NullLogger(),
+                logger: new TestLogger(),
                 params,
                 authConfig,
                 platformType: PlatformType.WEB,
@@ -158,7 +153,7 @@ describe('authenticateSalesforce', () => {
     it('returns both tokens and optional user info through staged progress', async () => {
         const popup = { closed: false, close: vi.fn(), focus: vi.fn() } as unknown as Window;
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);
-        const logger = new NullLogger();
+        const logger = new TestLogger();
         const info = vi.spyOn(logger, 'info');
         const coreUserInfo = { preferredUsername: 'user@example.com', photos: {} } as connection.SalesforceCoreUserInfo;
         const apiClient = {
@@ -236,7 +231,7 @@ describe('authenticateSalesforce', () => {
         const stages: string[] = [];
 
         await expect(authenticateSalesforce({
-            logger: new NullLogger(),
+            logger: new TestLogger(),
             params,
             authConfig,
             platformType: PlatformType.DESKTOP,
@@ -264,7 +259,7 @@ describe('authenticateSalesforce', () => {
         };
 
         await expect(authenticateSalesforce({
-            logger: new NullLogger(),
+            logger: new TestLogger(),
             params,
             authConfig,
             platformType: PlatformType.WEB,
@@ -297,7 +292,7 @@ describe('authenticateSalesforce', () => {
             })),
         };
         await expect(authenticateSalesforce({
-            logger: new NullLogger(), params, authConfig, platformType: PlatformType.WEB,
+            logger: new TestLogger(), params, authConfig, platformType: PlatformType.WEB,
             apiClient, appEvents: appEvents as any, forceReLogin: false,
             abortSignal: abort.signal, onProgress: progress => stages.push(progress.stage),
         })).rejects.toThrow();
@@ -318,7 +313,7 @@ describe('authenticateSalesforce', () => {
         };
 
         await expect(authenticateSalesforce({
-            logger: new NullLogger(),
+            logger: new TestLogger(),
             params,
             authConfig,
             platformType: PlatformType.WEB,

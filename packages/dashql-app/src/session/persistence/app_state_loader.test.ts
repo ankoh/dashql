@@ -6,7 +6,7 @@ import type { BatchProcessor } from '../../connections/catalog/catalog_batch.js'
 import type { BatchRequest } from '@ankoh/dashql-core';
 
 import type { DashQL } from '@ankoh/dashql-core';
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { destroyRestoredSession, restoreAppState } from './app_state_loader.js';
 import { destroySessionScripts, sessionConnectionIds } from '../scripts/session_scripts.js';
@@ -15,11 +15,6 @@ import { StorageBackendType } from '../../storage/storage_backend.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testConnections, testSession } from '../../storage/session_test_backend.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
 
 describe('V2 app state loader', () => {
     let backend: SessionRegistryBackend;
@@ -80,7 +75,7 @@ describe('V2 app state loader', () => {
     const functionsFile = `${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`;
 
     it('restores one attached database and flat scripts with natural initial focus', async () => {
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         expect(sessionConnectionIds(result.sessionScripts.get(TEST_SESSION_ID)!)).toEqual([TEST_CONNECTION_ID]);
         expect(result.connectionStatesByType[ConnectorType.HYPER]).toEqual([TEST_CONNECTION_ID]);
         const scripts = result.sessionScripts.get(TEST_SESSION_ID)!;
@@ -105,7 +100,7 @@ describe('V2 app state loader', () => {
                 { name: '2_first.sql', connectionId: '99999999-9999-4999-8999-999999999999' },
             ],
         }));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const scripts = result.sessionScripts.get(TEST_SESSION_ID)!;
         expect(scripts.scriptOrder).toEqual(['10_last.sql', '2_first.sql']);
         expect(scripts.scripts[scripts.scriptRefs['10_last.sql'].scriptId].connection.connectionId).toBe(remoteId);
@@ -126,7 +121,7 @@ describe('V2 app state loader', () => {
             ...testConnections({ connectionId: remoteId, params: { trino: { endpoint: 'https://trino.example' } } as any } as any, { connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any }),
             scripts: [{ name: '2_first.sql', connectionId: TEST_CONNECTION_ID }],
         }));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         // The session uses the connections of its scripts, a copy that no script uses is not registered
         expect(sessionConnectionIds(result.sessionScripts.get(TEST_SESSION_ID)!)).toEqual([TEST_CONNECTION_ID]);
         expect([...result.connectionStates.keys()]).toEqual([TEST_CONNECTION_ID]);
@@ -139,7 +134,7 @@ describe('V2 app state loader', () => {
         vi.mocked(backend.loadSession).mockResolvedValue(testSession({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params, paramsDraft } as any),
         }));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const restored = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(restored.params).toEqual(params);
         expect(restored.paramsDraft).toEqual(paramsDraft);
@@ -155,7 +150,7 @@ describe('V2 app state loader', () => {
             paramsDraft: { hyper: { protocol: 'V3_HTTP', endpoint: 'unfinished', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }, draftRows: { metadata: rows, queryParameters: rows } } },
         } as any));
         vi.mocked(backend.loadSession).mockResolvedValue(JSON.parse(JSON.stringify(manifest)));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         expect(result.connectionStates.get(TEST_CONNECTION_ID)?.paramsDraft).toEqual(manifest.connections[0].paramsDraft);
         expect(result.connectionStates.get(TEST_CONNECTION_ID)?.params).toEqual(manifest.connections[0].params);
     });
@@ -165,7 +160,7 @@ describe('V2 app state loader', () => {
         vi.mocked(backend.loadSession).mockResolvedValue(testSession({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any } as any, { connectionId: remoteId, params: { trino: { endpoint: 'https://trino.example' } } as any }),
         }));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const session = result.sessionScripts.get(TEST_SESSION_ID)!;
         expect(Object.values(session.scripts).map(script => script.connection.connectionId)).toEqual([TEST_CONNECTION_ID, TEST_CONNECTION_ID]);
         expect(sessionConnectionIds(session)).toEqual([TEST_CONNECTION_ID]);
@@ -183,7 +178,7 @@ describe('V2 app state loader', () => {
         connectionFiles.set(relationsFile, schemaSQL);
         connectionFiles.set(functionsFile, functionsSQL);
 
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledWith(schemaSQL);
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledWith(functionsSQL);
@@ -201,7 +196,7 @@ describe('V2 app state loader', () => {
     it('keeps initial source SQL and leaves restoration pending when batch processing fails', async () => {
         connectionFiles.set(relationsFile, 'CREATE TABLE restored(id int);');
         vi.mocked(processor).mockRejectedValue(new Error('worker failed'));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).not.toHaveBeenCalled();
         expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledTimes(1);
@@ -218,7 +213,7 @@ describe('V2 app state loader', () => {
         vi.mocked(core.createCatalog).mockImplementation(() => ({
             replaceDescriptor, destroy: vi.fn(),
         }) as any);
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).toHaveBeenCalledTimes(source === 'relations' ? 1 : 2);
         expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledTimes(source === 'relations' ? 3 : 2);
@@ -231,7 +226,7 @@ describe('V2 app state loader', () => {
 
     it('strictly refuses V1 before connection, catalog, scripts, or index mutation', async () => {
         vi.mocked(backend.loadSession).mockResolvedValue({ ...testSession(), formatVersion: 1 } as any);
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {});
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
         expect(result.invalidSessions.get(TEST_SESSION_ID)?.error).toBe('unsupported_format_version');
         expect(result.connectionStates.size).toBe(0);
         expect(result.sessionScripts.size).toBe(0);
@@ -242,7 +237,7 @@ describe('V2 app state loader', () => {
 
     it('surfaces an unreadable session without allowing it into live registries', async () => {
         vi.mocked(backend.loadSession).mockRejectedValue(new Error('missing files'));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {});
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
         expect(result.invalidSessions.get(TEST_SESSION_ID)?.error).toBe('session_unreadable');
         expect(result.connectionStates.size).toBe(0);
         expect(result.sessionScripts.size).toBe(0);
@@ -250,7 +245,7 @@ describe('V2 app state loader', () => {
 
     it('surfaces a session whose scripts fail to load as invalid', async () => {
         vi.mocked(backend.loadScripts).mockRejectedValue(new Error('unreadable scripts'));
-        const result = await restoreAppState(core, backend, new NullLogger(), () => {});
+        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
         expect(result.sessionScripts.size).toBe(0);
         expect(result.invalidSessions.get(TEST_SESSION_ID)).toMatchObject({ sessionId: TEST_SESSION_ID, error: 'session_not_restored' });
     });
@@ -279,7 +274,7 @@ describe('real-core startup catalog restoration', () => {
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, schema);
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, changesSql);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {}, processor);
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(main.catalogChangesSql).toBe(changesSql);
         expect(main.catalogRelationScript.toString()).toBe(schema);
@@ -301,7 +296,7 @@ describe('real-core startup catalog restoration', () => {
         ]));
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {}, processor);
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
 
         expect(main.catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
@@ -328,7 +323,7 @@ describe('real-core startup catalog restoration', () => {
         ]));
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {}, processor);
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
 
         expect(main.catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
@@ -355,7 +350,7 @@ describe('real-core startup catalog restoration', () => {
         backend.connectionFiles.set(`${remoteId}/dashql-catalog-functions.sql`, functions);
         backend.scripts.set(TEST_SESSION_ID, new Map([['01_query.sql', 'SELECT id FROM db.public.restored_items;'], ['02_local.sql', 'SELECT 1;']]));
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {}, processor);
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(remoteId)!;
         const attached = restored.connectionStates.get(TEST_CONNECTION_ID)!;
         const session = restored.sessionScripts.get(TEST_SESSION_ID)!;
@@ -414,7 +409,7 @@ describe('global connections', () => {
         backend.connections = [{ id: TEST_CONNECTION_ID, params: trino('https://saved') }];
         seed(backend, TEST_SESSION_ID, TEST_CONNECTION_ID, trino('https://stale'));
         seed(backend, OTHER_SESSION_ID, TEST_CONNECTION_ID, trino('https://stale'));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {});
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
 
         expect([...restored.connectionStates.keys()]).toEqual([TEST_CONNECTION_ID]);
         expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.params).toEqual(trino('https://saved'));
@@ -431,7 +426,7 @@ describe('global connections', () => {
         // E.g. an imported session seeded the catalog of the connection
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE db.public.seeded(id integer);');
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {}, processor);
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
 
         const connection = restored.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.params).toEqual(trino('https://unknown'));
@@ -455,7 +450,7 @@ describe('global connections', () => {
             ],
         }));
         backend.scripts.set(TEST_SESSION_ID, new Map([['01_new.sql', 'SELECT 1'], ['02_known.sql', 'SELECT 2']]));
-        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {});
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
 
         // A new connection is registered with its name, a known connection keeps its own
         expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.name).toBe('Production');
@@ -469,3 +464,4 @@ describe('global connections', () => {
         for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
     });
 });
+

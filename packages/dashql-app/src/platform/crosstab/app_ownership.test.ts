@@ -4,13 +4,8 @@ import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } 
 import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
 import { STORAGE_SESSIONS_FOLDER } from '../../storage/storage_backend.js';
 import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '../../storage/storage_writer.js';
-import { Logger } from '../logger/logger.js';
+import { TestLogger } from '../logger/test_logger.js';
 import { getOPFSRoot } from '../opfs_root.js';
-
-class NullLogger extends Logger {
-    public destroy(): void { }
-    protected flushPendingRecords(): void { }
-}
 
 /// A browsing context of the origin that stands in for a tab, it has its own locks and channels
 interface TestTab {
@@ -117,7 +112,7 @@ describe('AppOwnership', () => {
         const sessionId = crypto.randomUUID();
         const backend = new OPFSStorageBackend();
         await backend.initialize();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         try {
             const owner = await AppOwnership.tryAcquire(a.environment, async () => {
                 writer.pause();

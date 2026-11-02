@@ -1,7 +1,6 @@
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { Logger } from '../../platform/logger/logger.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import type { ConnectionReferences, ConnectionRegistry } from '../../connections/connection_registry.js';
 import { sessionConnectionReferences } from '../scripts/session_scripts_registry.js';
@@ -30,11 +29,6 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 /// registry and analyzes the script in the catalog of that connection. These tests drive the real
 /// core, the storage writer and the loader through the round trips that touch that mapping:
 /// restoring, changing the connection of a script, reloading, exporting and importing.
-
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
 
 /// A storage backend that owns a session registry, the backend of the composite storage
 class Registry extends SessionTestBackend implements SessionRegistryBackend {
@@ -88,7 +82,7 @@ async function seedSession(backend: SessionTestBackend, scripts: SeedScript[], c
 
 describe('Session connections', () => {
     let dql: core.DashQL;
-    const logger = new NullLogger();
+    const logger = new TestLogger();
 
     beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
     afterEach(() => { dql.resetUnsafe(); });

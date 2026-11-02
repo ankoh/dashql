@@ -3,13 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SessionScripts } from '../session/scripts/session_scripts.js';
 import { sessionOnConnection } from './hyper_links.js';
 import { WebPlatformEventListener } from '../platform/events/web_event_listener.js';
-import { Logger } from '../platform/logger/logger.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
-
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
 
 const FIRST_RUN = { endpoint: 'http://127.0.0.1:1111', token: 'first' };
 const SECOND_RUN = { endpoint: 'http://127.0.0.1:2222', token: 'second' };
@@ -43,7 +38,7 @@ describe('Hyper links of the platform', () => {
     }
 
     it('delivers the latest link that arrived before the subscriber', () => {
-        const listener = new LinkListener(new NullLogger());
+        const listener = new LinkListener(new TestLogger());
         listener.receive(FIRST_RUN.endpoint, FIRST_RUN.token);
         listener.receive(SECOND_RUN.endpoint, SECOND_RUN.token);
         const handler = vi.fn();
@@ -58,7 +53,7 @@ describe('Hyper links of the platform', () => {
     });
 
     it('reads Hyper links from the data parameter of app links', () => {
-        const listener = new LinkListener(new NullLogger());
+        const listener = new LinkListener(new TestLogger());
         const handler = vi.fn();
         listener.subscribeHyperLinks(handler);
         const encode = (event: unknown) => BASE64URL_CODEC.encode(new TextEncoder().encode(JSON.stringify(event)).buffer);

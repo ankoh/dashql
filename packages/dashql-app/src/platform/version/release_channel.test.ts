@@ -1,12 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { Logger } from '../logger/logger.js';
+import { TestLogger } from '../logger/test_logger.js';
 import { canInstallReleaseVersion, compareReleaseVersions, detectReleaseChannel, loadReleaseManifest } from './web_version_check.js';
-
-class NullLogger extends Logger {
-    public destroy(): void { }
-    protected flushPendingRecords(): void { }
-}
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -82,7 +77,7 @@ describe('loadReleaseManifest', () => {
         vi.stubGlobal('fetch', fetch);
         const url = new URL('https://get.dashql.app/stable.json');
 
-        await loadReleaseManifest('stable', url, new NullLogger());
+        await loadReleaseManifest('stable', url, new TestLogger());
 
         expect(fetch).toHaveBeenCalledWith(url, {cache: 'no-store'});
     });

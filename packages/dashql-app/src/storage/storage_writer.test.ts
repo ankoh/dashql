@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Logger } from '../platform/logger/logger.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import { SessionTestBackend } from './session_test_backend.js';
 import {
     DELETE_SCRIPT,
@@ -31,15 +31,10 @@ import { CONNECTOR_INFOS } from '../connections/connector_info.js';
 import { sessionConnectionFromState } from '../connections/connection_registry.js';
 import { testConnections, testSession, TEST_CONNECTION_ID, TEST_SESSION_ID } from './session_test_backend.js';
 
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
-
 describe('V2 storage writer flat mutations', () => {
     it.each(['name-first', 'connection-first'])('retains rename and connection copy in separate debounced tasks (%s)', async order => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const params = { trino: { endpoint: 'committed', catalogName: '', auth: { authType: 'AUTH_BASIC' as const } } };
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession({ ...testConnections({ connectionId: TEST_CONNECTION_ID, params } as any) }));
         for (const endpoint of ['saved', 'saved again']) {
@@ -62,7 +57,7 @@ describe('V2 storage writer flat mutations', () => {
     });
     it('patches the script list with its connections without losing pending property writes', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const remoteId = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
         const remote = { connectionId: remoteId, params: { trino: { endpoint: 'remote' } } as any };
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
@@ -101,7 +96,7 @@ describe('V2 storage writer flat mutations', () => {
 
     it('keeps the latest script list when the session file is rewritten in between', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
         const list = (names: string[]) => ({ scripts: names.map(name => ({ name, connectionId: TEST_CONNECTION_ID })), connections: [] });
         // The first list write arms the timer, the rewrite of the session file follows, the latest list
@@ -124,7 +119,7 @@ describe('V2 storage writer flat mutations', () => {
 
     it('writes drafts into the app manifest and never into sessions', async () => {
         const backend = new SessionTestBackend();
-        const logger = new NullLogger();
+        const logger = new TestLogger();
         const writer = new StorageWriter(logger, backend);
         const params = { trino: { endpoint: 'committed', catalogName: '', auth: { authType: 'AUTH_BASIC' as const } } };
         const paramsDraft = { trino: { ...params.trino, endpoint: 'unfinished' } };
@@ -148,7 +143,7 @@ describe('V2 storage writer flat mutations', () => {
     });
     it('persists only committed settings, not drafts, attempted params or OAuth runtime state', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const sessionId = '11111111-2222-4333-8444-555555555555';
         const connectionId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
         const state = {
@@ -167,7 +162,7 @@ describe('V2 storage writer flat mutations', () => {
     });
     it('keeps the connections of the scripts when the manifest is written', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const sessionId = '11111111-2222-4333-8444-555555555555';
         const state = (connectionId: string, connectorType: ConnectorType, setupParams: object) => ({
             connectionId,
@@ -196,7 +191,7 @@ describe('V2 storage writer flat mutations', () => {
 
     it('keeps rename, write, and delete in distinct ordered keyspaces', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const id = '11111111-2222-4333-8444-555555555555';
         await backend.saveScript(id, '01_old.sql', 'old');
         backend.calls.length = 0;
@@ -233,7 +228,7 @@ describe('V2 storage writer flat mutations', () => {
             }
         }
         const backend = new PausedBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const id = '11111111-2222-4333-8444-555555555555';
 
         const deletion = writer.write(groupScriptDeletes(id, '02_old.sql'), {
@@ -268,7 +263,7 @@ describe('storage writer outcomes', () => {
 
     it('writes durably without debouncing and defers while paused', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const params = (endpoint: string) => ({ trino: { endpoint } }) as any;
         const debounced = writer.write(groupConnectionEntryWrites(TEST_CONNECTION_ID), {
             type: WRITE_CONNECTION_ENTRY, value: { id: TEST_CONNECTION_ID, params: params('draft') },
@@ -291,7 +286,7 @@ describe('storage writer outcomes', () => {
 
     it('reports failed writes and never recreates a missing session', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const result = await writer.writeDurable(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID), {
             type: PATCH_SESSION_CONNECTION, value: [TEST_SESSION_ID, { connectionId: TEST_CONNECTION_ID, params: { trino: { endpoint: 'x' } } as any }],
         });
@@ -303,7 +298,7 @@ describe('storage writer outcomes', () => {
     it('drops pending and later writes of a deleted session', async () => {
         const backend = new SessionTestBackend();
         backend.sessions.set(TEST_SESSION_ID, testSession());
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const pending = writer.write(groupScriptWrites(TEST_SESSION_ID, 'a.sql'), { type: WRITE_SCRIPT, value: [TEST_SESSION_ID, 'a.sql', 'select 1'] }, 1000);
         await writer.deleteSession(TEST_SESSION_ID);
         expect(await pending).toBe(false);
@@ -316,7 +311,7 @@ describe('storage writer outcomes', () => {
     it('accepts writes again when a deleted session is registered again', async () => {
         const backend = new SessionTestBackend();
         backend.sessions.set(TEST_SESSION_ID, testSession());
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         await writer.deleteSession(TEST_SESSION_ID);
         // An import of the same bundle registers the id again
         backend.sessions.set(TEST_SESSION_ID, testSession());
@@ -327,7 +322,7 @@ describe('storage writer outcomes', () => {
 
     it('patches the copies of a connection and rewrites the connections it replaced', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const merged = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
         const old = { trino: { endpoint: 'old' } } as any;
         const next = { trino: { endpoint: 'new' } } as any;
@@ -350,7 +345,7 @@ describe('storage writer outcomes', () => {
 
     it('keeps the creation time of connection entries', async () => {
         const backend = new SessionTestBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         backend.connections = [{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'a' } } as any, createdAt: '2026-01-01T00:00:00.000Z' }];
         await writer.writeDurable(groupConnectionEntryWrites(TEST_CONNECTION_ID), {
             type: WRITE_CONNECTION_ENTRY, value: { id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } } as any },
@@ -371,7 +366,7 @@ describe('storage writer external changes', () => {
 
     it('holds a write that would overwrite an external change until the session resumes', async () => {
         const backend = new ExternallyChangedBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const changed: string[] = [];
         writer.subscribeExternalChanges(sessionId => changed.push(sessionId));
 
@@ -398,7 +393,7 @@ describe('storage writer external changes', () => {
 
     it('lets a newer write of the same script supersede a held one', async () => {
         const backend = new ExternallyChangedBackend();
-        const writer = new StorageWriter(new NullLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend);
         const key = groupScriptWrites(TEST_SESSION_ID, 'a.sql');
         const held = writer.write(key, { type: WRITE_SCRIPT, value: [TEST_SESSION_ID, 'a.sql', 'select 1'] });
         await new Promise(resolve => setTimeout(resolve, 10));

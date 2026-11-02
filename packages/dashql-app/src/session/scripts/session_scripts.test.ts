@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { Logger } from '../../platform/logger/logger.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
@@ -45,11 +45,6 @@ import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
-}
-
 class RecordingWriter extends StorageWriter {
     readonly records: StorageWriteTaskVariant[] = [];
     override async write(_key: string, task: StorageWriteTaskVariant): Promise<boolean> {
@@ -59,7 +54,7 @@ class RecordingWriter extends StorageWriter {
 }
 
 let dql: core.DashQL;
-const logger = new NullLogger();
+const logger = new TestLogger();
 
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
