@@ -10,6 +10,9 @@ Please consult relevant docs in that directory before making changes.
 - Formatting
     - `docs/agents/core_sql_formatting.md`
 
+- SQL scripts (snippets, demos, example workbooks: reentrant `create table if not exists` etc.)
+    - `docs/agents/sql_scripts.md`
+
 - Build System Details
     - `docs/agents/build_rust_coverage.md`
     - `docs/agents/rust_analyzer.md` (rust-project.json for rust-analyzer)
