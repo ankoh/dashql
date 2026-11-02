@@ -55,6 +55,11 @@ export async function requestTrinoAccessToken(httpClient: HttpClient, tokenUrl: 
 /// Refresh access tokens a minute before they expire
 const ACCESS_TOKEN_REFRESH_MARGIN_MS = 60 * 1000;
 
+/// The size of the result pages that we ask Trino for.
+/// Trino returns pages of 1 MB by default and caps the size at 128 MB.
+/// A page also ends early when the coordinator has no more rows buffered, its exchange buffer holds 32 MB by default.
+export const TARGET_RESULT_SIZE = "32MB";
+
 export interface TrinoQueryFailureInfo {
     /// The failure type
     type: string;
@@ -277,6 +282,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     async getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
         this.logger.debug("Getting query results", { "nextUri": nextUri }, LOG_CTX);
         const url = new URL(nextUri);
+        // Only the URIs of executing queries return rows
+        if (url.pathname.includes('/v1/statement/executing/')) {
+            url.searchParams.set('targetResultSize', TARGET_RESULT_SIZE);
+        }
         const headers = await this.getHeaders(endpoint);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'GET',
