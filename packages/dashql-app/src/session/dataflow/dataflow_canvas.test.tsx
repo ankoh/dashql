@@ -21,7 +21,7 @@ beforeAll(async () => {
 
 const dependencies: DataflowCanvasDependencies = {
     useQueryState: () => null,
-    VisualizationDispatch: () => <div data-testid="chart" />,
+    VisualizationPanel: () => <div data-testid="chart" />,
     useDataflowModule: () => ({ layout, error: null }),
 };
 

@@ -13,6 +13,7 @@ import { TraceLogPanel } from '../trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from '../../views/query_result/query_result_toolbar.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
+import { QueryResultHeader } from '../../views/query_result/query_result_header.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
@@ -189,21 +190,7 @@ interface FeedEntryFooterProps {
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const { totalRows } = dependencies.useResultRowCount(props.queryState);
-    const searchRows = dependencies.useQueryResultRowCounts(props.queryState);
     const queryTraceId = props.queryState?.traceId ?? null;
-
-    const displayedRows = searchRows.matchingRows ?? totalRows;
-    const dataRowCount = displayedRows != null ? Math.min(displayedRows, FEED_LIMIT_RESULT_ROWS) : null;
-    const previewTruncated = displayedRows != null && displayedRows > FEED_LIMIT_RESULT_ROWS;
-    const rowCountDetail = totalRows != null
-        ? (searchRows.matchingRows != null
-            ? (searchRows.matchingRows > FEED_LIMIT_RESULT_ROWS
-                ? `${dataRowCount} of ${searchRows.matchingRows} matching rows`
-                : `${searchRows.matchingRows} of ${searchRows.currentRows ?? totalRows} rows`)
-            : totalRows > FEED_LIMIT_RESULT_ROWS
-                ? `${dataRowCount} of ${totalRows} rows`
-                : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
-        : null;
 
     // The visualization renders the full cloud (no feed row cap), so the header just shows the
     // total row count.
@@ -218,31 +205,23 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 onHeaderClick={props.onShowStatus}
             />
         );
-        case FeedEntryTab.Table: return (
+        case FeedEntryTab.Table: return props.queryState == null ? null : (
             <>
-                <TabHeader
-                    title="Query Results"
-                    detail={rowCountDetail}
-                    onClick={props.onShowTable}
-                    detailIsLink={previewTruncated}
-                    actions={props.queryState == null ? undefined : (
-                        <>
-                            <dependencies.QueryResultToolbar query={props.queryState} />
-                            <dependencies.QueryResultDownloadButton query={props.queryState} />
-                        </>
-                    )}
+                <QueryResultHeader
+                    query={props.queryState}
+                    maxRows={FEED_LIMIT_RESULT_ROWS}
+                    onShowTable={props.onShowTable}
+                    dependencies={dependencies}
                 />
-                {props.queryState != null && (
-                    <dependencies.QueryResultView
-                        query={props.queryState}
-                        debugMode={false}
-                        maxRows={FEED_LIMIT_RESULT_ROWS}
-                        columnHeader={TableColumnHeader.OnlyColumnName}
-                        cellBackground="var(--session_feed_entry_footer_background)"
-                        onShowTable={props.onShowTable}
-                        compact
-                    />
-                )}
+                <dependencies.QueryResultView
+                    query={props.queryState}
+                    debugMode={false}
+                    maxRows={FEED_LIMIT_RESULT_ROWS}
+                    columnHeader={TableColumnHeader.OnlyColumnName}
+                    cellBackground="var(--session_feed_entry_footer_background)"
+                    onShowTable={props.onShowTable}
+                    compact
+                />
             </>
         );
         case FeedEntryTab.Visualization: return (

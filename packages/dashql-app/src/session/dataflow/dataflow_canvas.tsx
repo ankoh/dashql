@@ -7,7 +7,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundati
 import { PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
 import { useQueryState } from '../../connections/query_executor.js';
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
-import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
+import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
 import type { ScriptData, SessionScripts } from '../scripts/session_scripts.js';
@@ -58,13 +58,13 @@ const NEVER_COLLAPSED = () => false;
 
 export interface DataflowCanvasDependencies {
     useQueryState: typeof useQueryState;
-    VisualizationDispatch: typeof VisualizationDispatch;
+    VisualizationPanel: typeof VisualizationPanel;
     useDataflowModule: typeof useDataflowModule;
 }
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
     useQueryState,
-    VisualizationDispatch,
+    VisualizationPanel,
     useDataflowModule,
 };
 
@@ -855,7 +855,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 <foreignObject x={box.chart.x} y={box.chart.y} width={box.chart.width} height={box.chart.height} className={styles.chart}>
                     <div className={styles.chart_body}>
                         {query?.resultTable != null
-                            ? <props.dependencies.VisualizationDispatch
+                            ? <props.dependencies.VisualizationPanel
                                 query={query}
                                 visualizeQuery={script.annotations.visualizeQuery}
                                 width={box.chart.width - 2 * CHART_BORDER}

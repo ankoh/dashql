@@ -12,7 +12,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const dependencies = {
     useQueryState: () => ({ queryId: 7 }),
-    QueryResultView: () => <div data-testid="output">output</div>,
+    QueryResultPanel: () => <div data-testid="output">output</div>,
     VisualizationDispatch: () => <div data-testid="visualization">visualization</div>,
     ScriptEditor: () => <div data-testid="content">content</div>,
 } as unknown as DashboardCardDependencies;

@@ -2,8 +2,7 @@ import * as React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-import { QueryResultView } from '../../views/query_result/query_result_view.js';
-import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
+import { QueryResultPanel } from '../../views/query_result/query_result_header.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
 import { useQueryState } from '../../connections/query_executor.js';
 import type { ScriptData } from '../scripts/session_scripts.js';
@@ -23,14 +22,14 @@ const MarkdownIcon = SymbolIcon('mark_text_16');
 
 export interface DashboardCardDependencies {
     useQueryState: typeof useQueryState;
-    QueryResultView: typeof QueryResultView;
+    QueryResultPanel: typeof QueryResultPanel;
     VisualizationDispatch: typeof VisualizationDispatch;
     ScriptEditor: typeof ScriptEditor;
 }
 
 const DEFAULT_DEPENDENCIES: DashboardCardDependencies = {
     useQueryState,
-    QueryResultView,
+    QueryResultPanel,
     VisualizationDispatch,
     ScriptEditor,
 };
@@ -230,14 +229,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                         className={styles.card_editor}
                     />
                 ) : visualizeQuery.renderer === 'table' ? (
-                    <dependencies.QueryResultView
-                        query={query}
-                        debugMode={false}
-                        columnHeader={TableColumnHeader.OnlyColumnName}
-                        cellBackground="white"
-                        fitHeight={false}
-                        compact
-                    />
+                    // A table shows the header of the result over it, a chart only the chart
+                    <dependencies.QueryResultPanel query={query} cellBackground="white" />
                 ) : (
                     <dependencies.VisualizationDispatch
                         query={query}
