@@ -19,6 +19,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { SessionExecutionProvider, sessionExecutionIsBusy, useSessionExecution } from './session_execution_provider.js';
 import { isSessionExecutionRunning, type SessionExecutionState } from './session_execution.js';
 import { REGISTER_QUERY, type SessionScripts } from './session_scripts.js';
+import { scriptRunServices } from './script_run.js';
 import { SessionScriptsRegistryProvider, useSessionScriptsRegistry, type ModifySessionScripts } from './session_scripts_registry.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -101,6 +102,25 @@ function Consumer(props: { sessionId: string; capture: (execution: Execution) =>
     return null;
 }
 
+/// Reads the run services in a passive effect whenever its session changes, like the cache indicator of a card
+function RunServicesProbe(props: { sessionId: string; capture: (registered: boolean) => void; expose: (bump: () => void) => void }) {
+    const [registry, setSessions] = useSessionScriptsRegistry();
+    const session = registry.sessionScriptsMap.get(props.sessionId);
+    React.useEffect(() => {
+        props.expose(() => setSessions(registry => {
+            const sessions = new Map(registry.sessionScriptsMap);
+            const session = sessions.get(props.sessionId)!;
+            sessions.set(props.sessionId, { ...session });
+            return { ...registry, sessionScriptsMap: sessions };
+        }));
+    });
+    React.useEffect(() => {
+        // Only the services of the provider read the live session
+        if (session != null) props.capture(scriptRunServices(session.instance).liveSession != null);
+    }, [session]);
+    return null;
+}
+
 function SeedRegistries(props: { fixtures: Fixture[]; children: React.ReactNode }) {
     const [, setSessions] = useSessionScriptsRegistry();
     const [, setConnections] = useConnectionRegistry();
@@ -129,11 +149,15 @@ describe('SessionExecutionProvider', () => {
     let observerCommits = 0;
     let backend: SessionTestBackend;
     let setupDatabase: () => Promise<EmbeddedComputeDatabase>;
+    let servicesRegistered: boolean[] = [];
+    let bumpSession: () => void = () => {};
+    const captureServices = (registered: boolean) => { servicesRegistered.push(registered); };
     const capture = (execution: Execution) => { current = execution; };
     const captureObserver = (execution: Execution) => { observer = execution; observerCommits += 1; };
 
     beforeEach(() => {
         fixtures = [fixture('first'), fixture('second')];
+        servicesRegistered = [];
         backend = new SessionTestBackend();
         setupDatabase = async () => ({ terminate: vi.fn() }) as unknown as EmbeddedComputeDatabase;
         container = document.createElement('div');
@@ -168,6 +192,7 @@ describe('SessionExecutionProvider', () => {
                                                 {showProvider ? <SessionExecutionProvider>
                                                     {showConsumer ? <Consumer key={sessionId} sessionId={sessionId} capture={capture} /> : null}
                                                     <Consumer sessionId="first" capture={captureObserver} />
+                                                    <RunServicesProbe sessionId="first" capture={captureServices} expose={bump => { bumpSession = bump; }} />
                                                 </SessionExecutionProvider> : <></>}
                                             </QueryExecutorProvider>
                                         </SeedRegistries>
@@ -193,6 +218,15 @@ describe('SessionExecutionProvider', () => {
         expect(current.busy).toBe(true);
         expect(current.state?.phase).toBe('running');
     }
+
+    it('registers the run services before the effects of its children read them', async () => {
+        await render();
+        // A change of the session re-registers the services, e.g. a run that registers its query
+        act(() => bumpSession());
+        act(() => bumpSession());
+        expect(servicesRegistered.length).toBeGreaterThanOrEqual(3);
+        expect(servicesRegistered.every(registered => registered)).toBe(true);
+    });
 
     it('prevents duplicate starts synchronously and after consumers rerender', async () => {
         await render();

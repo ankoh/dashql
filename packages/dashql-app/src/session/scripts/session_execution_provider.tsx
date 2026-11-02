@@ -173,7 +173,11 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         maxConcurrentQueries: connectionId => maxConcurrentQueries(latest.current.connections.connections.get(connectionId)),
         liveSession: sessionId => (readRegistry?.() ?? latest.current.registry).sessionScriptsMap.get(sessionId) ?? null,
     }), [readRegistry]);
-    React.useEffect(() => {
+    // A layout effect, the passive effects of the children read the services, e.g. the cache indicators of the
+    // cards. React runs passive effects child first and a registry change unregisters the services before it
+    // registers them again: with a passive effect the children would plan with the plain services that cache
+    // nothing in between.
+    React.useLayoutEffect(() => {
         const instances = new Set([...registry.sessionScriptsMap.values()].map(session => session.instance));
         for (const instance of instances) registerScriptRunServices(instance, runServices);
         return () => {
