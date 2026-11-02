@@ -1,6 +1,8 @@
 import * as arrow from 'apache-arrow';
-import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from './arrow_formatter.js';
+import { vi } from 'vitest';
+import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, dataTypeToString, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from './arrow_formatter.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
+import type { LoggerLike } from '../platform/logger/logger.js';
 
 describe('TableFormatter', () => {
     it("can be constructed from a single column", () => {
@@ -95,6 +97,60 @@ describe('makeArrowValueFormatter', () => {
             expect(out).toContain('/21,');
             expect(out).not.toContain('/70,');
         });
+    });
+});
+
+describe('makeArrowValueFormatter of other types', () => {
+    const struct = new arrow.Struct([field('a', new arrow.Int32())]);
+    it.each<[string, arrow.DataType, unknown, string | null]>([
+        ['days of a duration', new arrow.DurationSecond(), 90061n, '1d 1h 1m 1s'],
+        ['milliseconds of a duration', new arrow.DurationMillisecond(), 1500n, '1.500s'],
+        ['an empty duration', new arrow.DurationMicrosecond(), 0n, '0s'],
+        ['a negative duration', new arrow.DurationNanosecond(), -2_000_000_000n, '-2s'],
+        ['a time in seconds', new arrow.TimeSecond(), 3661, '01:01:01'],
+        ['a time in milliseconds', new arrow.TimeMillisecond(), 3_723_456, '01:02:03.456'],
+        ['a time in microseconds', new arrow.TimeMicrosecond(), 1_000_000n, '00:00:01'],
+        ['a time in nanoseconds', new arrow.TimeNanosecond(), 1_500_000_000n, '00:00:01.500'],
+        ['bytes as hex', new arrow.Binary(), Uint8Array.from([1, 255]), '0x01ff'],
+        ['long bytes truncated', new arrow.Binary(), new Uint8Array(40), `0x${'00'.repeat(32)}... (+8 bytes)`],
+        ['a decimal', new arrow.Decimal(2, 10, 128), Uint32Array.from([12345, 0, 0, 0]), '123.45'],
+        ['a struct', struct, { a: 1, b: 'x', c: null }, '{a: 1, b: "x", c: null}'],
+        ['a wide struct truncated', struct, { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6 }, '{a: 1, b: 2, c: 3, d: 4, e: 5, ... +1 more}'],
+        ['a map', new arrow.Map_(field('entries', new arrow.Struct([field('key', new arrow.Utf8()), field('value', new arrow.Int64())]))), new Map([['k', 2n]]), '{k: 2}'],
+        ['months of an interval', new arrow.IntervalYearMonth(), 14, '1y 2mo'],
+        ['an empty month interval', new arrow.IntervalYearMonth(), 0, '0mo'],
+        ['days and milliseconds of an interval', new arrow.IntervalDayTime(), { days: 2, milliseconds: 5 }, '2d 5ms'],
+        ['months and nanoseconds of an interval', new arrow.IntervalMonthDayNano(), { months: 13, days: 0, nanoseconds: 3_000_000n }, '1y 1mo 3ms'],
+        ['sub-millisecond nanoseconds of an interval', new arrow.IntervalMonthDayNano(), { months: 0, days: 0, nanoseconds: 5n }, '5ns'],
+        ['an empty interval', new arrow.IntervalDayTime(), { days: 0, milliseconds: 0 }, '0'],
+        ['a union string', new arrow.DenseUnion([0], [field('s', new arrow.Utf8())]), 'x', 'x'],
+        ['a union number', new arrow.DenseUnion([0], [field('n', new arrow.Int32())]), 3, '3'],
+        ['a union object', new arrow.DenseUnion([0], [field('n', new arrow.Int32())]), { n: 3 }, '{"n":3}'],
+        ['a dictionary value', new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32()), 'x', 'x'],
+        ['a null column', new arrow.Null(), 1, null],
+    ])('formats %s', (_name, type, value, expected) => {
+        expect(makeArrowValueFormatter(field('c', type)).format(value)).toEqual(expected);
+    });
+
+    it('warns about unsupported types and renders them empty', () => {
+        const logger = { warn: vi.fn() } as unknown as LoggerLike;
+        const f = makeArrowValueFormatter(field('v', new arrow.Utf8View()), logger);
+        expect(f.format('text')).toEqual('');
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('dataTypeToString', () => {
+    it.each<[arrow.DataType, string]>([
+        [new arrow.Decimal(2, 10, 128), 'Decimal(10,2)'],
+        [new arrow.TimestampSecond(), 'Timestamp(s)'],
+        [new arrow.TimestampMillisecond(), 'Timestamp(ms)'],
+        [new arrow.TimestampMicrosecond(), 'Timestamp(us)'],
+        [new arrow.TimestampNanosecond(), 'Timestamp(ns)'],
+        [new arrow.Utf8(), 'Text'],
+        [new arrow.Int32(), 'Int32'],
+    ])('names %s', (type, name) => {
+        expect(dataTypeToString(type)).toEqual(name);
     });
 });
 
