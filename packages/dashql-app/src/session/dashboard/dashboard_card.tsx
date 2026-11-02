@@ -47,6 +47,8 @@ interface Props {
     onVisualize: (scriptId: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => void;
     onOpenChart: (scriptId: number) => void;
     onOpenEditor: (scriptId: number) => void;
+    /// Open the full result table of a table card
+    onOpenTable: (scriptId: number) => void;
     dependencies?: DashboardCardDependencies;
 }
 
@@ -229,8 +231,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                         className={styles.card_editor}
                     />
                 ) : visualizeQuery.renderer === 'table' ? (
-                    // A table shows the header of the result over it, a chart only the chart
-                    <dependencies.QueryResultPanel query={query} cellBackground="white" />
+                    // A table shows the header of the result over the rows that fit, a chart only the chart
+                    <dependencies.QueryResultPanel query={query} cellBackground="white" onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
                 ) : (
                     <dependencies.VisualizationDispatch
                         query={query}

@@ -12,7 +12,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const dependencies = {
     useQueryState: () => ({ queryId: 7 }),
-    QueryResultPanel: () => <div data-testid="output">output</div>,
+    QueryResultPanel: (props: { onShowTable?: () => void }) => <div data-testid="output" onClick={props.onShowTable}>output</div>,
     VisualizationDispatch: () => <div data-testid="visualization">visualization</div>,
     ScriptEditor: () => <div data-testid="content">content</div>,
 } as unknown as DashboardCardDependencies;
@@ -48,6 +48,7 @@ describe('DashboardCard', () => {
                     onVisualize={vi.fn()}
                     onOpenChart={vi.fn()}
                     onOpenEditor={vi.fn()}
+                    onOpenTable={vi.fn()}
                     dependencies={dependencies}
                 />
             </DndContext>,
@@ -70,7 +71,8 @@ describe('DashboardCard', () => {
         expect(container.querySelector('[data-testid="content"]')).toBeNull();
     });
 
-    it('uses the query result view for table content', () => {
+    it('uses the query result view for table content and opens the full table from it', () => {
+        const onOpenTable = vi.fn();
         const tableScript = {
             ...script,
             annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } },
@@ -89,6 +91,7 @@ describe('DashboardCard', () => {
                     onVisualize={vi.fn()}
                     onOpenChart={vi.fn()}
                     onOpenEditor={vi.fn()}
+                    onOpenTable={onOpenTable}
                     dependencies={dependencies}
                 />
             </DndContext>,
@@ -96,6 +99,8 @@ describe('DashboardCard', () => {
 
         expect(container.querySelector('[data-testid="output"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="content"]')).toBeNull();
+        act(() => container.querySelector<HTMLElement>('[data-testid="output"]')!.click());
+        expect(onOpenTable).toHaveBeenCalledWith(1);
     });
 
     describe('without a visualization', () => {
@@ -103,7 +108,7 @@ describe('DashboardCard', () => {
             ...script,
             annotations: { visualizeQuery: null, lastStatementIsQuery: true },
         } as unknown as ScriptData;
-        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onOpenEditor: vi.fn() };
+        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
 
         function renderCollapsed(card: ScriptData, queryState: unknown) {
             const collapsedDependencies = { ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies;

@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
 import { XIcon } from '../../ui/foundations/symbol_icon.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
+import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import type { ScriptData } from '../scripts/session_scripts.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
@@ -12,7 +13,7 @@ import * as styles from './dashboard.module.css';
 
 /// The overlay that the board shows over its cards. The board owns it, a card that gets a renderer is rendered anew
 /// as a visualized card and would close an overlay of its own.
-export type DashboardOverlayState = { scriptKey: number; kind: 'chart' | 'editor' } | null;
+export type DashboardOverlayState = { scriptKey: number; kind: 'chart' | 'editor' | 'table' } | null;
 
 interface EditorProps {
     sessionId: string;
@@ -65,4 +66,17 @@ export function DashboardChartOverlay(props: ChartProps): React.ReactElement {
             onClose={props.onClose}
         />
     );
+}
+
+interface TableProps {
+    sessionId: string;
+    script: ScriptData;
+    onClose: () => void;
+}
+
+/// The full result table of a script, the card shows the rows that fit into it
+export function DashboardTableOverlay(props: TableProps): React.ReactElement | null {
+    const queryState = useQueryState(props.sessionId, props.script.latestQueryId);
+    if (queryState == null) return null;
+    return <ResultTableOverlay scriptName={scriptDisplayName(props.script.fileName)} query={queryState} onClose={props.onClose} />;
 }

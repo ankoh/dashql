@@ -6,7 +6,7 @@ import { SET_SCRIPT_VIS_SPEC, type ScriptData, type SessionScripts } from '../sc
 import type { DashboardSpec } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { DashboardCard } from './dashboard_card.js';
-import { DashboardChartOverlay, DashboardEditorOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
+import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
     DASHBOARD_COLLAPSED_WIDTH,
     DASHBOARD_COLUMN_COUNT,
@@ -188,6 +188,7 @@ export function Dashboard(props: Props): React.ReactElement {
     }, [props.modifySessionScripts, logger]);
     const handleOpenChart = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'chart' }), []);
     const handleOpenEditor = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'editor' }), []);
+    const handleOpenTable = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'table' }), []);
     const closeOverlay = React.useCallback(() => setOverlay(null), []);
     // The chart builder stages every edit of its spec as a diff of the script, like in the feed
     const handleSetVisSpec = React.useCallback((spec: string) => {
@@ -234,6 +235,7 @@ export function Dashboard(props: Props): React.ReactElement {
                             onVisualize={handleVisualize}
                             onOpenChart={handleOpenChart}
                             onOpenEditor={handleOpenEditor}
+                            onOpenTable={handleOpenTable}
                         />
                     );
                 })}
@@ -275,6 +277,9 @@ export function Dashboard(props: Props): React.ReactElement {
             </div>
             {overlayScript != null && overlay?.kind === 'editor' && (
                 <DashboardEditorOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
+            )}
+            {overlayScript != null && overlay?.kind === 'table' && (
+                <DashboardTableOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
             )}
             {overlayScript != null && overlay?.kind === 'chart' && (
                 <DashboardChartOverlay

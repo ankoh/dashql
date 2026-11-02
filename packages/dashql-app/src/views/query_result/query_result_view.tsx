@@ -15,6 +15,7 @@ interface Props {
     cellBackground?: string;
     onShowTable?: () => void;
     fitHeight?: boolean;
+    fillHeight?: boolean;
     maxHeight?: number;
     compact?: boolean;
 }
@@ -44,6 +45,7 @@ export function QueryResultView(props: Props) {
                 cellBackground={props.cellBackground}
                 onShowTable={props.onShowTable}
                 fitHeight={props.fitHeight}
+                fillHeight={props.fillHeight}
                 maxHeight={props.maxHeight}
                 compact={props.compact}
             />

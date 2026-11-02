@@ -2,11 +2,12 @@ import * as React from 'react';
 import * as styles from './query_result_header.module.css';
 
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
-import { TabHeader, useResultRowCount } from '../../session/tab_header.js';
+import { TabHeader } from '../../session/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
+import { fittingRowCount } from './data_table.js';
 
 export interface QueryResultHeaderDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
@@ -70,21 +71,52 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
 interface PanelProps {
     query: QueryExecutionState | null;
     cellBackground?: string;
+    /// Open the full result table, makes the row count in the header and the column names clickable
+    onShowTable?: () => void;
+    dependencies?: QueryResultPanelDependencies;
 }
 
-/// A result table with its header that fills its host, for the table renderer of a script in the dashboard and the dataflow
+export interface QueryResultPanelDependencies extends QueryResultHeaderDependencies {
+    QueryResultView: typeof QueryResultView;
+}
+
+const DEFAULT_PANEL_DEPENDENCIES: QueryResultPanelDependencies = {
+    ...DEFAULT_HEADER_DEPENDENCIES,
+    QueryResultView,
+};
+
+/// A result table with its header that fills its host, for the table renderer of a script in the dashboard and the dataflow.
+/// The table shows the rows that fit into the host and does not scroll, like the preview of a feed entry. It fills the host,
+/// a last row that does not fit is cut off at the bottom.
 export function QueryResultPanel(props: PanelProps): React.ReactElement {
-    const { hasResult } = useResultRowCount(props.query);
+    const dependencies = props.dependencies ?? DEFAULT_PANEL_DEPENDENCIES;
+    const bodyRef = React.useRef<HTMLDivElement | null>(null);
+    const [bodyHeight, setBodyHeight] = React.useState<number | null>(null);
+    // Measured before the first paint, the table never shows more rows than fit
+    React.useLayoutEffect(() => {
+        const body = bodyRef.current;
+        if (body == null) return;
+        setBodyHeight(body.clientHeight);
+        const observer = new ResizeObserver(entries => setBodyHeight(entries[0]?.contentRect.height ?? body.clientHeight));
+        observer.observe(body);
+        return () => observer.disconnect();
+    }, []);
+    const maxRows = bodyHeight == null ? 0 : fittingRowCount(bodyHeight);
     return (
         <div className={styles.panel}>
-            {hasResult && props.query != null && <QueryResultHeader query={props.query} />}
-            <div className={styles.panel_body}>
-                <QueryResultView
+            {/* The header stays while a query runs, like in the feed: the table may show before the query succeeds and must
+                not lose the height of the header then */}
+            {props.query != null && <QueryResultHeader query={props.query} maxRows={maxRows} onShowTable={props.onShowTable} dependencies={dependencies} />}
+            <div ref={bodyRef} className={styles.panel_body}>
+                <dependencies.QueryResultView
                     query={props.query}
                     debugMode={false}
+                    maxRows={maxRows}
                     columnHeader={TableColumnHeader.OnlyColumnName}
                     cellBackground={props.cellBackground}
+                    onShowTable={props.onShowTable}
                     fitHeight={false}
+                    fillHeight
                     compact
                 />
             </div>

@@ -36,6 +36,8 @@ interface Props {
     cellBackground?: string;
     onShowTable?: () => void;
     fitHeight?: boolean;
+    /// The grid takes the height of its host however few rows it shows, the last of `maxRows` may be cut off
+    fillHeight?: boolean;
     maxHeight?: number;
     compact?: boolean;
 }
@@ -69,6 +71,13 @@ export function computeGridHeight(
         );
     }
     return maxRows != null ? contentHeight : Math.max(measuredHeight, MIN_GRID_HEIGHT);
+}
+
+/// The rows of a table with a column header of names that show in a height, at least one. The last row may be cut
+/// off, the table then ends at the bottom of the height and not a fraction of a row above it. A horizontal scrollbar
+/// covers the bottom of the rows.
+export function fittingRowCount(height: number): number {
+    return Math.max(1, Math.ceil((height - COLUMN_HEADER_HEIGHT) / ROW_HEIGHT));
 }
 
 interface RenderedCells {
@@ -290,7 +299,7 @@ export const DataTable = React.memo((props: Props) => {
     const scrollbarHeight = useScrollbarHeight();
     const needsHorizontalScroll = totalColumnsWidth > gridContainerWidth;
     const horizontalScrollbarHeight = needsHorizontalScroll ? scrollbarHeight : 0;
-    const gridContainerHeight = computeGridHeight(
+    const gridContainerHeight = props.fillHeight ? (gridContainerSize?.height ?? 0) : computeGridHeight(
         dataTable.numRows,
         dataRowCount,
         headerHeight,
