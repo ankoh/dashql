@@ -42,7 +42,7 @@ The snapshots in `snapshots/dataflow/` have cases of their own, they describe a 
 collapsed, `targets` and `materialized` are ignored) and
 expect the statements of every script, the box of every script on the canvas (`box: [x, y, width, height]`, see
 Layout), the inputs with their type, value and box, the attachments with their file and box, and the edges, an input
-edge from `":min"`, an attachment edge from its file
+edge from `":min"`, an attachment edge from its file, an edge between boxes with its `route`
 (`bazel run //snapshots/dataflow:update`).
 
 ## Layout
@@ -69,7 +69,9 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
   outputs on its right border at the centers of the rows, so the node placement lines up the rows at both ends of an
   edge where it can. Edges are routed orthogonally, edges out of one port share their first segments (merged edges).
   Columns are at least `layer_gap` (144) apart and wider where the edges between them need more rails, boxes of a
-  column at least `box_gap` (48), parallel edges `edge_gap` (16) and edges and boxes `edge_box_gap` (16).
+  column at least `box_gap` (48), parallel edges `edge_gap` (16) and edges and boxes `edge_box_gap` (24). ELK puts
+  the vertical segments of the edges between two columns next to the left column, the layout moves them together
+  into the middle of the gap, away from the boxes on both sides.
   The routes run from the right border of the source box to the left border of the target box.
 - **Without positions** (`hint` of a layout box, a new session or Arrange) ELK arranges every connected box in layers
   from left to right, network simplex placement, in the order of the session. The sinks of a fan-out, e.g. the
@@ -80,11 +82,14 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
 - **With positions** ELK lays out interactively, every connected part on its own: the columns follow the x of the
   boxes, the order in a column their y, and a box keeps its y where it does not overlap another. The columns are the
   runs of overlapping x ranges of the boxes, a box goes into the column of its center. A box without a position starts
-  right of its producers or left of its consumers. A part is moved back by the offset that most of its boxes share,
+  right of its producers or left of its consumers, with the row of the edge level with the row at its other end. A
+  part is moved back by the offset that most of its boxes share,
   ELK moves a layout to the origin. Boxes without edges keep their positions, parts and boxes without any position go
   below everything.
 - **A dropped box** (`dropped`) goes into the column under its center, or into a new column if its center lies in the
-  gap between two columns, and keeps its y. It does not place the layout, the boxes that stay do. A drop is laid out
+  gap between two columns, and keeps its y, unless a row of it is within `align_snap` (24) of lining up with a row
+  it is connected to: then it lines up, and the edge runs straight instead of making a small hop. It does not place
+  the layout, the boxes that stay do. A drop is laid out
   twice, the second time from where the first put every box, like a reload, so the canvas shows what a reload shows.
 
 A layout that starts from where an earlier one put every box reproduces it, positions and routes. The dataflow
@@ -106,7 +111,8 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   edited.
 - `dataflow_scene.ts` turns the graph and the layout into the scene: boxes, statement rows with their ports, charts,
   edge paths and badges. An edge between boxes runs from the output port on the right of its source row to the input
-  port on the left of its target row, along the route of the layout with rounded corners. The route of the layout
+  port on the left of its target row, along the route of the layout with rounded corners. A step of 24 or less
+  between two horizontal segments is one smooth bend, two tight corners would read as a hop. The route of the layout
   stays while both of its boxes are where the layout put them and no other box lies on it, else the edge is routed
   around the boxes (`DataflowRouting`), e.g. the edges of a dragged box. The badge of a table edge sits on the middle
   of its longest horizontal segment, the edges of a port with the same relation are a bus with one badge on its first

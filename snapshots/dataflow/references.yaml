@@ -17,7 +17,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select 1 as x"
-          box: [0,40,280,80]
+          box: [0,48,280,80]
         - name: b
           statements:
             - type: SELECT
@@ -27,20 +27,23 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * f..rom :b, :a"
-          box: [848,40,280,80]
+          box: [848,48,280,80]
       edges:
         - from: a.0
           to: b.0
           kind: inline
           name: a
+          route: [[280,104],[352,104],[352,56],[424,56]]
         - from: a.0
           to: c.0
           kind: inline
           name: a
+          route: [[280,104],[848,104]]
         - from: b.0
           to: c.0
           kind: inline
           name: b
+          route: [[704,56],[776,56],[776,104],[848,104]]
 
   - name: ManualReference
     scripts:
@@ -69,6 +72,7 @@ dataflow-snapshots:
           to: b.0
           kind: inline
           name: a
+          route: [[280,56],[424,56]]
 
   - name: InvalidReferenceToScriptWithCommands
     scripts:
@@ -99,6 +103,7 @@ dataflow-snapshots:
           to: b.0
           kind: invalid
           name: a
+          route: [[280,88],[424,88]]
 
   - name: ScanReference
     connections:
@@ -134,6 +139,7 @@ dataflow-snapshots:
           to: report.0
           kind: scan
           name: remote
+          route: [[280,56],[424,56]]
 
   - name: InvalidReferenceAcrossConnections
     connections:
@@ -167,6 +173,7 @@ dataflow-snapshots:
           to: b.0
           kind: invalid
           name: a
+          route: [[280,56],[424,56]]
 
   - name: InlinedReadsFlowThroughTheScript
     scripts:
@@ -202,10 +209,12 @@ dataflow-snapshots:
           to: filtered.0
           kind: table
           name: t
+          route: [[280,56],[424,56]]
         - from: filtered.0
           to: report.0
           kind: inline
           name: filtered
+          route: [[704,56],[848,56]]
 
   - name: ReferenceCycle
     scripts:
@@ -221,21 +230,23 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :b"
-          box: [440,0,280,80]
+          box: [448,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [16,0,280,80]
+          box: [24,0,280,80]
       edges:
         - from: a.0
           to: b.0
           kind: invalid
           name: a
+          route: [[728,56],[752,56],[752,104],[0,104],[0,56],[24,56]]
         - from: b.0
           to: a.0
           kind: inline
           name: b
+          route: [[304,56],[448,56]]
 
   - name: ReferenceToStaleScript
     scripts:
@@ -276,7 +287,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: t
               text: "create tab.. t (a int)"
-          box: [0,40,280,80]
+          box: [0,48,280,80]
         - name: filtered
           statements:
             - type: SELECT
@@ -286,17 +297,20 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * f.. t.a = f.a"
-          box: [848,40,280,80]
+          box: [848,48,280,80]
       edges:
         - from: schema.0
           to: filtered.0
           kind: table
           name: t
+          route: [[280,104],[352,104],[352,56],[424,56]]
         - from: schema.0
           to: report.0
           kind: table
           name: t
+          route: [[280,104],[848,104]]
         - from: filtered.0
           to: report.0
           kind: inline
           name: filtered
+          route: [[704,56],[776,56],[776,104],[848,104]]

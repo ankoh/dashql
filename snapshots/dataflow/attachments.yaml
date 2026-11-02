@@ -36,27 +36,31 @@ dataflow-snapshots:
       attachments:
         - name: sales
           file: sales.parquet
-          box: [0,40,200,80]
+          box: [0,48,200,80]
         - name: unused
           file: unused.parquet
-          box: [0,216,200,80]
+          box: [0,224,200,80]
       edges:
         - from: sales.parquet
           to: foo.0
           kind: attachment
           name: sales
+          route: [[200,104],[272,104],[272,56],[344,56]]
         - from: foo.0
           to: bar.0
           kind: inline
           name: foo
+          route: [[624,56],[768,56]]
         - from: foo.0
           to: bar.1
           kind: inline
           name: foo
+          route: [[624,56],[696,56],[696,88],[768,88]]
         - from: sales.parquet
           to: bar.1
           kind: attachment
           name: sales
+          route: [[200,104],[696,104],[696,88],[768,88]]
 
   - name: RemoteReadsAttachment
     connections:

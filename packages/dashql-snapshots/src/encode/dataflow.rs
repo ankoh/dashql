@@ -10,7 +10,7 @@ use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
 use crate::ryml::Node;
 use dashql_core_session::dataflow::{derive_session_dataflow, Dataflow, DataflowEdgeKind};
-use dashql_dataflow::layout::{compute_dataflow_layout, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
+use dashql_dataflow::layout::{compute_dataflow_layout_with_routes, DataflowEdgeRoute, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
 use yaml_rust2::Yaml;
 
 /// Derive the dataflow of a fixture and encode it
@@ -25,8 +25,18 @@ pub fn collapsed_of(fixture: &Node) -> Vec<String> {
 }
 
 
-/// Lay out the boxes of the scripts of a dataflow, then the boxes of its inputs
-fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collapsed: &[bool]) -> Vec<(f64, f64, f64, f64)> {
+/// The box of an edge source or target in the layout: the scripts, then the inputs, then the attachments
+fn layout_box(dataflow: &Dataflow, kind: DataflowEdgeKind, script: u32) -> u32 {
+    let (scripts, inputs) = (dataflow.scripts.len() as u32, dataflow.inputs.len() as u32);
+    match kind {
+        DataflowEdgeKind::Input => scripts + script,
+        DataflowEdgeKind::Attachment => scripts + inputs + script,
+        _ => script,
+    }
+}
+
+/// Lay out the boxes of the scripts of a dataflow, then the boxes of its inputs, with the routes of the edges
+fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collapsed: &[bool]) -> (Vec<(f64, f64, f64, f64)>, Vec<DataflowEdgeRoute>) {
     let boxes: Vec<DataflowLayoutBox> = dataflow
         .scripts
         .iter()
@@ -54,22 +64,19 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
         .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, input: true, ..Default::default() }))
         .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, input: true, ..Default::default() }))
         .collect();
-    let scripts = dataflow.scripts.len() as u32;
-    let inputs = dataflow.inputs.len() as u32;
     let edges: Vec<DataflowLayoutEdge> = dataflow
         .edges
         .iter()
-        .map(|e| {
-            let from_box = match e.kind {
-                DataflowEdgeKind::Input => scripts + e.from.script,
-                DataflowEdgeKind::Attachment => scripts + inputs + e.from.script,
-                _ => e.from.script,
-            };
-            DataflowLayoutEdge { from_box, from_statement: e.from.statement, to_box: e.to.script, to_statement: e.to.statement }
+        .map(|e| DataflowLayoutEdge {
+            from_box: layout_box(dataflow, e.kind, e.from.script),
+            from_statement: e.from.statement,
+            to_box: e.to.script,
+            to_statement: e.to.statement,
         })
         .filter(|e| e.from_box != e.to_box)
         .collect();
-    compute_dataflow_layout(&boxes, &edges, &DataflowLayoutConfig::default()).iter().map(|g| (g.x, g.y, g.width, g.height)).collect()
+    let (geometry, routes) = compute_dataflow_layout_with_routes(&boxes, &edges, &DataflowLayoutConfig::default());
+    (geometry.iter().map(|g| (g.x, g.y, g.width, g.height)).collect(), routes)
 }
 
 /// Derive the dataflow of a fixture and encode it as a styled tree
@@ -83,7 +90,7 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
     let port = |script: u32, statement: u32| format!("{}.{statement}", names[script as usize]);
     let inputs: Vec<&dashql_core::script::Script> = prepared.scripts.iter().map(|(s, _)| s).collect();
     let is_collapsed: Vec<bool> = names.iter().map(|n| collapsed.contains(n)).collect();
-    let boxes = layout(&dataflow, &inputs, &is_collapsed);
+    let (boxes, routes) = layout(&dataflow, &inputs, &is_collapsed);
 
     let scripts = dataflow
         .scripts
@@ -144,6 +151,13 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
                 },
             );
             m.plain("name", &e.name);
+            // The route of an edge between boxes, its points from the right border of the source box to the left
+            // border of the target box
+            let key = (layout_box(&dataflow, e.kind, e.from.script), e.from.statement, e.to.script, e.to.statement);
+            if let Some((_, points)) = routes.iter().find(|(k, _)| *k == key) {
+                let point = |&(x, y): &(f64, f64)| Node::flow_seq(vec![Node::int(x.round() as i64), Node::int(y.round() as i64)]);
+                m.insert("route", Node::flow_seq(points.iter().map(point).collect()));
+            }
             m.into_node()
         })
         .collect();

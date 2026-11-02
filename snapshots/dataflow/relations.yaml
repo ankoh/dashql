@@ -50,10 +50,12 @@ dataflow-snapshots:
           to: more.0
           kind: table
           name: t
+          route: [[280,88],[424,88]]
         - from: more.0
           to: read.0
           kind: table
           name: t
+          route: [[704,88],[848,88]]
 
   - name: ReadBeforeTheWriter
     scripts:
@@ -125,6 +127,7 @@ dataflow-snapshots:
           to: read.0
           kind: table
           name: t
+          route: [[280,88],[424,88]]
 
   - name: CreateTableAs
     catalog: |
@@ -154,6 +157,7 @@ dataflow-snapshots:
           to: report.0
           kind: table
           name: big
+          route: [[280,56],[424,56]]
 
   - name: CatalogRelations
     catalog: |
@@ -241,6 +245,7 @@ dataflow-snapshots:
           to: other.0
           kind: table
           name: t
+          route: [[280,56],[424,56]]
 
   - name: ReadAfterDrop
     scripts:
@@ -313,3 +318,4 @@ dataflow-snapshots:
           to: read.0
           kind: table
           name: t
+          route: [[280,88],[424,88]]

@@ -34,10 +34,12 @@ dataflow-snapshots:
           to: a.0
           kind: input
           name: min
+          route: [[200,56],[344,56]]
         - from: ":min"
           to: b.0
           kind: input
           name: min
+          route: [[200,56],[272,56],[272,184],[344,184]]
 
   - name: InputsOfOneScript
     catalog: |
@@ -73,6 +75,7 @@ dataflow-snapshots:
           to: a.0
           kind: input
           name: region
+          route: [[200,56],[344,56]]
         - from: a.0
           to: a.1
           kind: table
@@ -81,6 +84,7 @@ dataflow-snapshots:
           to: a.1
           kind: input
           name: min
+          route: [[200,184],[272,184],[272,88],[344,88]]
 
   - name: InputWithReferences
     catalog: |
@@ -124,7 +128,9 @@ dataflow-snapshots:
           to: a.0
           kind: input
           name: min
+          route: [[200,56],[344,56]]
         - from: a.0
           to: b.0
           kind: inline
           name: a
+          route: [[624,56],[768,56]]

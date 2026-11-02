@@ -46,10 +46,12 @@ dataflow-snapshots:
           to: report.0
           kind: table
           name: orders
+          route: [[280,120],[424,120]]
         - from: report.0
           to: chart.0
           kind: inline
           name: report
+          route: [[704,120],[848,120]]
 
   - name: LayoutChart
     scripts:
@@ -86,10 +88,12 @@ dataflow-snapshots:
           to: by_region.0
           kind: table
           name: sales
+          route: [[280,56],[424,56]]
         - from: by_region.0
           to: top.0
           kind: inline
           name: by_region
+          route: [[904,56],[1048,56]]
 
   - name: LayoutFanout
     scripts:
@@ -125,10 +129,12 @@ dataflow-snapshots:
           to: by_id.0
           kind: table
           name: orders
+          route: [[280,56],[424,56]]
         - from: orders.0
           to: count.0
           kind: table
           name: orders
+          route: [[280,56],[352,56],[352,184],[424,184]]
 
   - name: LayoutFanoutGrid
     scripts:
@@ -164,7 +170,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: sales
               text: "create tab..mount int)"
-          box: [0,321,280,80]
+          box: [0,337,280,80]
         - name: by_region
           statements:
             - type: SELECT
@@ -174,56 +180,63 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [424,321,480,288]
+          box: [424,337,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select reg..c limit 10"
-          box: [1048,248,480,288]
+          box: [1048,256,480,288]
         - name: regions
           statements:
             - type: SELECT
               text: "select dis..from sales"
-          box: [1048,584,480,288]
+          box: [1048,593,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [424,642,480,288]
+          box: [424,674,480,288]
       inputs:
         - name: min
           type: "integer"
           value: "10"
-          box: [80,193,200,80]
+          box: [80,209,200,80]
       edges:
         - from: sales.0
           to: by_region.0
           kind: table
           name: sales
+          route: [[280,393],[352,393],[352,56],[424,56]]
         - from: ":min"
           to: by_region.0
           kind: input
           name: min
+          route: [[280,265],[352,265],[352,56],[424,56]]
         - from: sales.0
           to: total.0
           kind: table
           name: sales
+          route: [[280,393],[424,393]]
         - from: sales.0
           to: top.0
           kind: table
           name: sales
+          route: [[280,393],[352,393],[352,312],[1048,312]]
         - from: ":min"
           to: top.0
           kind: input
           name: min
+          route: [[280,265],[352,265],[352,312],[1048,312]]
         - from: sales.0
           to: regions.0
           kind: table
           name: sales
+          route: [[280,393],[352,393],[352,649],[1048,649]]
         - from: sales.0
           to: count.0
           kind: table
           name: sales
+          route: [[280,393],[352,393],[352,730],[424,730]]
 
   - name: LayoutFanoutBelowThreshold
     scripts:
@@ -270,14 +283,17 @@ dataflow-snapshots:
           to: by_region.0
           kind: table
           name: sales
+          route: [[280,392],[352,392],[352,56],[424,56]]
         - from: sales.0
           to: total.0
           kind: table
           name: sales
+          route: [[280,392],[424,392]]
         - from: sales.0
           to: count.0
           kind: table
           name: sales
+          route: [[280,392],[352,392],[352,728],[424,728]]
 
   - name: LayoutLateSource
     scripts:
@@ -322,14 +338,17 @@ dataflow-snapshots:
           to: filtered.0
           kind: table
           name: orders
+          route: [[280,56],[424,56]]
         - from: filtered.0
           to: report.0
           kind: inline
           name: filtered
+          route: [[704,56],[848,56]]
         - from: regions.0
           to: report.0
           kind: table
           name: regions
+          route: [[704,184],[776,184],[776,56],[848,56]]
 
   - name: LayoutSeparateParts
     scripts:
@@ -374,10 +393,12 @@ dataflow-snapshots:
           to: from_a.0
           kind: table
           name: a
+          route: [[280,56],[424,56]]
         - from: b.0
           to: from_b.0
           kind: table
           name: b
+          route: [[280,232],[424,232]]
 
   - name: LayoutCycle
     scripts:
@@ -393,21 +414,23 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :b"
-          box: [440,0,280,80]
+          box: [448,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [16,0,280,80]
+          box: [24,0,280,80]
       edges:
         - from: a.0
           to: b.0
           kind: invalid
           name: a
+          route: [[728,56],[752,56],[752,104],[0,104],[0,56],[24,56]]
         - from: b.0
           to: a.0
           kind: inline
           name: b
+          route: [[304,56],[448,56]]
 
   - name: LayoutPartsAndIsolatedBoxes
     scripts:
@@ -495,10 +518,12 @@ dataflow-snapshots:
           to: from_a.0
           kind: table
           name: a
+          route: [[280,56],[424,56]]
         - from: b.0
           to: from_b.0
           kind: table
           name: b
+          route: [[280,232],[424,232]]
 
   - name: LayoutCollapsed
     collapsed: [schema]
@@ -539,6 +564,7 @@ dataflow-snapshots:
           to: report.0
           kind: table
           name: t
+          route: [[280,56],[424,56]]
 
   - name: LayoutRightOfFixedProducers
     scripts:
@@ -577,10 +603,12 @@ dataflow-snapshots:
           to: report.0
           kind: table
           name: orders
+          route: [[680,856],[752,856],[752,156],[824,156]]
         - from: regions.0
           to: report.0
           kind: table
           name: regions
+          route: [[680,156],[824,156]]
 
   - name: LayoutLeftOfFixedConsumer
     scripts:
@@ -599,7 +627,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: orders
               text: "create tab..s (id int)"
-          box: [176,40,280,80]
+          box: [176,72,280,80]
         - name: report
           statements:
             - type: CREATE_TABLE
@@ -613,6 +641,7 @@ dataflow-snapshots:
           to: report.1
           kind: table
           name: orders
+          route: [[456,128],[600,128]]
 
   - name: LayoutSizedBoxes
     scripts:
@@ -645,6 +674,7 @@ dataflow-snapshots:
           to: report.0
           kind: table
           name: orders
+          route: [[456,56],[600,56]]
 
   - name: LayoutFreeSlot
     scripts:
@@ -681,10 +711,12 @@ dataflow-snapshots:
           to: by_id.0
           kind: table
           name: orders
+          route: [[280,56],[424,56]]
         - from: orders.0
           to: count.0
           kind: table
           name: orders
+          route: [[280,56],[352,56],[352,184],[424,184]]
 
   - name: LayoutBelowFixedBoxes
     scripts:
@@ -766,14 +798,17 @@ dataflow-snapshots:
           to: from_a.0
           kind: table
           name: a
+          route: [[280,184],[424,184]]
         - from: b.0
           to: from_b.0
           kind: table
           name: b
+          route: [[280,56],[424,56]]
         - from: b.0
           to: from_a.0
           kind: table
           name: b
+          route: [[280,56],[352,56],[352,184],[424,184]]
 
   - name: LayoutLongEdge
     scripts:
@@ -793,7 +828,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: a
               text: "create tab.. a (x int)"
-          box: [0,40,280,80]
+          box: [0,48,280,80]
         - name: b
           statements:
             - type: SELECT
@@ -803,17 +838,20 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from a, :b"
-          box: [848,40,280,80]
+          box: [848,48,280,80]
       edges:
         - from: a.0
           to: b.0
           kind: table
           name: a
+          route: [[280,104],[352,104],[352,56],[424,56]]
         - from: a.0
           to: c.0
           kind: table
           name: a
+          route: [[280,104],[848,104]]
         - from: b.0
           to: c.0
           kind: inline
           name: b
+          route: [[704,56],[776,56],[776,104],[848,104]]

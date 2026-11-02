@@ -281,6 +281,46 @@ export interface DataflowRouting {
 
 /// The radius of the rounded corners of a route
 const ROUTE_CORNER_RADIUS = 8;
+/// A route steps up or down this little, or less, with one smooth bend instead of two corners
+const ROUTE_JOG = 24;
+
+/// The path of a polyline of horizontal and vertical segments with rounded corners. A short vertical step between two
+/// horizontal segments that run the same way is one smooth bend: two tight corners would read as a hop.
+function orthogonalPath(input: core.DataflowPoint[], radius: number): string {
+    // Without repeated points and without points in the middle of a straight run
+    const points: core.DataflowPoint[] = [];
+    for (const p of input) {
+        const last = points[points.length - 1];
+        if (last != null && last[0] === p[0] && last[1] === p[1]) continue;
+        const before = points[points.length - 2];
+        if (before != null && last != null && ((before[0] === last[0] && last[0] === p[0]) || (before[1] === last[1] && last[1] === p[1]))) points.pop();
+        points.push(p);
+    }
+    const out = [`M ${points[0][0]} ${points[0][1]}`];
+    let i = 1;
+    while (i < points.length - 1) {
+        const [px, py] = points[i - 1];
+        const [x, y] = points[i];
+        const [nx, ny] = points[i + 1];
+        const next = points[i + 2];
+        if (next != null && py === y && x === nx && ny === next[1] && Math.abs(ny - y) <= ROUTE_JOG) {
+            const [into, out_] = [Math.sign(x - px), Math.sign(next[0] - nx)];
+            if (into !== 0 && into === out_) {
+                // The bend reaches out on both sides of the step, as far as the segments before and after allow
+                const reach = Math.min(Math.abs(x - px) / 2, Math.abs(next[0] - nx) / 2, Math.max(2 * radius, 3 * Math.abs(ny - y)));
+                out.push(`L ${x - into * reach} ${y}`, `C ${x} ${y}, ${x} ${ny}, ${x + into * reach} ${ny}`);
+                i += 2;
+                continue;
+            }
+        }
+        const r = Math.min(radius, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+        out.push(`L ${x - Math.sign(x - px) * r} ${y - Math.sign(y - py) * r}`, `Q ${x} ${y}, ${x + Math.sign(nx - x) * r} ${y + Math.sign(ny - y) * r}`);
+        i += 1;
+    }
+    const [lx, ly] = points[points.length - 1];
+    out.push(`L ${lx} ${ly}`);
+    return out.join(' ');
+}
 
 function sameRect(a: Rect, b: Rect): boolean {
     return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -484,7 +524,7 @@ export function buildDataflowScene(
         const busBadged = new Set<string>();
         for (const { r, points } of routed) {
             const path: core.DataflowPoint[] = [[outputX(r.from, config), r.fromY], ...points, [inputX(r.to, config), r.toY]];
-            r.edge.path = roundedPath(path, ROUTE_CORNER_RADIUS);
+            r.edge.path = orthogonalPath(path, ROUTE_CORNER_RADIUS);
             if (r.edge.badge != null || (r.bus && r.edge.kind === DataflowEdgeKind.Table)) {
                 const name = r.edge.badge?.text ?? '';
                 if (r.bus) {

@@ -49,6 +49,9 @@ pub struct DataflowLayoutConfig {
     pub edge_gap: f64,
     /// The space between an edge and a box
     pub edge_box_gap: f64,
+    /// A dropped box that is this close to lining up a row with a row it is connected to lines it up, so that the
+    /// edge between them runs straight instead of making a small hop
+    pub align_snap: f64,
     /// The boxes without edges per row
     pub isolated_per_row: usize,
     /// The fewest sinks of a fan-out that alternate between sub-layers, 0 never
@@ -76,7 +79,8 @@ impl Default for DataflowLayoutConfig {
             layer_gap: 144.0,
             box_gap: 48.0,
             edge_gap: 16.0,
-            edge_box_gap: 16.0,
+            edge_box_gap: 24.0,
+            align_snap: 24.0,
             isolated_per_row: 4,
             wrap_siblings: 4,
             aspect_ratio: 2.0,
@@ -304,7 +308,8 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
             fresh.push(part);
             continue;
         }
-        // A box without a hint starts right of its producers or left of its consumers that have one
+        // A box without a hint starts right of its producers or left of its consumers that have one, with the row of
+        // the edge level with the row at its other end
         let mut seeds: Vec<Option<(f64, f64)>> = boxes.iter().map(|b| b.hint).collect();
         for &b in &part {
             if seeds[b].is_some() {
@@ -313,14 +318,42 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
             let producers: Vec<(f64, f64)> = edges
                 .iter()
                 .filter(|e| e.to_box as usize == b)
-                .filter_map(|e| boxes[e.from_box as usize].hint.map(|(x, y)| (x + geometry[e.from_box as usize].width, y)))
+                .filter_map(|e| {
+                    let p = &geometry[e.from_box as usize];
+                    boxes[e.from_box as usize].hint.map(|(x, y)| (x + p.width, y + p.port(e.from_statement, config) - geometry[b].port(e.to_statement, config)))
+                })
                 .collect();
-            let consumers: Vec<(f64, f64)> = edges.iter().filter(|e| e.from_box as usize == b).filter_map(|e| boxes[e.to_box as usize].hint).collect();
+            let consumers: Vec<(f64, f64)> = edges
+                .iter()
+                .filter(|e| e.from_box as usize == b)
+                .filter_map(|e| {
+                    let c = &geometry[e.to_box as usize];
+                    boxes[e.to_box as usize].hint.map(|(x, y)| (x, y + c.port(e.to_statement, config) - geometry[b].port(e.from_statement, config)))
+                })
+                .collect();
             seeds[b] = if let Some(&(x, y)) = producers.iter().max_by(|a, b| a.0.total_cmp(&b.0)) {
                 Some((x + config.layer_gap, y))
             } else {
                 consumers.iter().min_by(|a, b| a.0.total_cmp(&b.0)).map(|&(x, y)| (x - config.layer_gap - geometry[b].width, y))
             };
+        }
+        // A dropped box that almost lines up a row with a connected row of a box that stays lines it up
+        for &b in part.iter().filter(|&&b| boxes[b].dropped) {
+            let Some((x, y)) = seeds[b] else { continue };
+            let deltas = edges.iter().filter_map(|e| {
+                let (this, this_statement, other, other_statement) = if e.to_box as usize == b {
+                    (b, e.to_statement, e.from_box as usize, e.from_statement)
+                } else if e.from_box as usize == b {
+                    (b, e.from_statement, e.to_box as usize, e.to_statement)
+                } else {
+                    return None;
+                };
+                let (_, other_y) = boxes[other].hint.filter(|_| !boxes[other].dropped)?;
+                Some(other_y + geometry[other].port(other_statement, config) - (y + geometry[this].port(this_statement, config)))
+            });
+            if let Some(delta) = deltas.filter(|d| d.abs() <= config.align_snap).min_by(|a, b| a.abs().total_cmp(&b.abs())) {
+                seeds[b] = Some((x, y + delta));
+            }
         }
         // ELK forms its columns from overlapping x ranges, a wide or dropped box would merge two columns. The seeds put
         // every box at the column of its center instead, far apart: the boxes that stay form the columns.
@@ -531,7 +564,7 @@ fn elk(
             geometry[b].y += offset.1;
         }
     }
-    elk_edges
+    let mut routes: Vec<DataflowEdgeRoute> = elk_edges
         .into_iter()
         .map(|(key, edge)| {
             let mut points = Vec::new();
@@ -544,7 +577,36 @@ fn elk(
             }
             (key, points)
         })
-        .collect()
+        .collect();
+    center_rails(&mut routes, subset, geometry);
+    routes
+}
+
+/// ELK puts the vertical segments of the edges between two columns next to the left column, center them in the gap
+/// instead: away from the boxes on both sides. The segments of a gap move together, so their order and the space
+/// between them stay.
+fn center_rails(routes: &mut [DataflowEdgeRoute], subset: &[usize], geometry: &[DataflowBoxGeometry]) {
+    let mut ranges: Vec<(f64, f64)> = subset.iter().map(|&b| (geometry[b].x, geometry[b].x + geometry[b].width)).collect();
+    ranges.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let mut columns: Vec<(f64, f64)> = Vec::new();
+    for (x0, x1) in ranges {
+        match columns.last_mut() {
+            Some(last) if x0 < last.1 => last.1 = last.1.max(x1),
+            _ => columns.push((x0, x1)),
+        }
+    }
+    for gap in columns.windows(2).map(|w| (w[0].1, w[1].0)) {
+        let inside = |x: f64| x > gap.0 && x < gap.1;
+        let rails: Vec<f64> =
+            routes.iter().flat_map(|(_, points)| points.windows(2).filter(|w| w[0].0 == w[1].0 && inside(w[0].0)).map(|w| w[0].0)).collect();
+        let (Some(lo), Some(hi)) = (rails.iter().copied().reduce(f64::min), rails.iter().copied().reduce(f64::max)) else { continue };
+        let shift = ((gap.0 + gap.1) / 2.0 - (lo + hi) / 2.0).round();
+        for (_, points) in routes.iter_mut() {
+            for p in points.iter_mut().filter(|p| inside(p.0)) {
+                p.0 += shift;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -725,8 +787,47 @@ mod tests {
         hints[3].hint = None;
         let after = compute_dataflow_layout(&hints, &edges, &config);
         assert!(after[3].x > after[1].x + after[1].width);
+        // Level with the row it reads
+        assert_eq!(after[3].y + after[3].port(0, &config), after[1].y + after[1].port(0, &config));
         for i in [0, 1, 2, 4, 5] {
             assert_eq!((after[i].x, after[i].y), (first[i].x, first[i].y), "box {i} moved");
+        }
+    }
+
+    #[test]
+    fn rails_run_in_the_middle_of_the_gap_between_columns() {
+        let config = DataflowLayoutConfig::default();
+        // Two consumers of two rows, the lower one dropped further down: its edge needs a rail
+        let boxes = [data(2), data(1), data(1)];
+        let edges = [edge(0, 0, 1, 0), edge(0, 1, 2, 0)];
+        let first = compute_dataflow_layout(&boxes, &edges, &config);
+        let mut dropped = hinted(&boxes, &first);
+        dropped[2].hint = Some((first[2].x, first[2].y + 200.0));
+        dropped[2].dropped = true;
+        let (g, routes) = compute_dataflow_layout_with_routes(&dropped, &edges, &config);
+        let gap = (g[0].x + g[0].width, g[2].x);
+        let rail = routes.iter().find(|(k, _)| k.2 == 2).unwrap().1.windows(2).find(|w| w[0].0 == w[1].0).unwrap()[0].0;
+        assert!((rail - (gap.0 + gap.1) / 2.0).abs() <= 1.0, "rail at {rail} in {gap:?}");
+    }
+
+    #[test]
+    fn a_drop_close_to_a_straight_edge_lines_up_the_rows() {
+        let config = DataflowLayoutConfig::default();
+        let (boxes, edges) = two_parts();
+        let first = compute_dataflow_layout(&boxes, &edges, &config);
+        let row = |g: &[DataflowBoxGeometry], b: usize, s: u32| g[b].y + g[b].port(s, &config);
+        // The chart goes 400 down and an offset further, then its producer is dropped 400 down: the row of the
+        // producer is the offset away from the row of the chart and lines up with it within `align_snap`
+        for (offset, snaps) in [(10.0, true), (config.align_snap + 8.0, false)] {
+            let mut dropped = hinted(&boxes, &first);
+            dropped[3].hint = Some((first[3].x, first[3].y + 400.0 + offset));
+            dropped[3].dropped = true;
+            let moved = compute_dataflow_layout(&dropped, &edges, &config);
+            let mut again = hinted(&boxes, &moved);
+            again[1].hint = Some((moved[1].x, moved[1].y + 400.0));
+            again[1].dropped = true;
+            let after = compute_dataflow_layout(&again, &edges, &config);
+            assert_eq!(row(&after, 1, 0) == row(&after, 3, 0), snaps, "offset {offset}");
         }
     }
 

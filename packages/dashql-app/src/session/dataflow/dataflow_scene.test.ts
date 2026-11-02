@@ -89,8 +89,14 @@ describe('dataflow scene', () => {
         // A box moved onto the route of the layout also routes the edge again
         const blocker: DataflowGraph = { ...GRAPH, scripts: [...GRAPH.scripts, script(3, 1)] };
         const blocked = buildDataflowScene(blocker, [...POSITIONS, { x: 300, y: 70, width: 40, height: 40, rows: [0] }], () => null, () => false, config, { laidOut, route });
-        expect(requests.length).toBe(2);
-        expect(blocked.edges[1].path).toContain('Q 328 88');
+        expect(requests[1]).toEqual([{ from: [280, 88], to: [376, 88] }]);
+        expect(blocked.edges[1].path).toBe('M 272 88 L 384 88');
+
+        // A small step is one smooth bend, three times as wide as high on both sides of the step
+        const step = (_: unknown, edges: core.DataflowRouteEdge[]) => edges.map(e => [e.from, [328, e.from[1]], [328, e.to[1]], e.to] as core.DataflowPoint[]);
+        const nudged = [POSITIONS[0], { ...POSITIONS[1], y: 40 }];
+        const smooth = buildDataflowScene(GRAPH, nudged, () => null, () => false, config, { laidOut: new Map(), route: step });
+        expect(smooth.edges[1].path).toBe('M 272 88 L 304 88 C 328 88, 328 96, 352 96 L 384 96');
 
         // Without routing the edge keeps its own path
         expect(buildDataflowScene(GRAPH, moved, () => null, () => false, config).edges[1].path).toContain('C');
