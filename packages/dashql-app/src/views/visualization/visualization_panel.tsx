@@ -7,6 +7,7 @@ import { TabHeader, formatRowCountDetail, useResultRowCount } from '../../sessio
 import { QueryResultPanel } from '../query_result/query_result_header.js';
 import { ChartDownloadButton } from './chart_download_button.js';
 import { VisualizationDispatch } from './visualization_dispatch.js';
+import { classNames } from '../../utils/classnames.js';
 
 /// The height of the header bar over the visualization, see `tab_header.module.css`
 const HEADER_HEIGHT = 32;
@@ -34,7 +35,7 @@ export function VisualizationPanel(props: Props): React.ReactElement {
     }
     const showHeader = hasResult && props.query != null;
     return (
-        <div className={styles.panel}>
+        <div className={classNames(styles.panel, styles.chart_panel)}>
             {showHeader && (
                 <TabHeader
                     title="Visualization"

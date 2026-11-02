@@ -6,6 +6,12 @@
     height: 40px;
     font-size: var(--font_size_small);
     color: var(--card_control_color);
+    border-bottom: 1px solid var(--log_border_color);
+}
+
+/* A collapsed bar keeps its bottom border as transparent space, the height stays the same */
+.status_bar_collapsed {
+    border-bottom-color: transparent;
 }
 
 .status_bar_compact {

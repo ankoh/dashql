@@ -13,3 +13,8 @@
     min-height: 0;
     width: 100%;
 }
+
+/* The visualization header blends into the chart below it */
+.chart_panel > :first-child {
+    border-bottom: none;
+}

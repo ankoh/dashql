@@ -53,3 +53,8 @@
     flex: 1;
     min-height: 0;
 }
+
+/* The visualization header blends into the chart, the status bar draws the line above it */
+.visualization_tab > :first-child {
+    border-bottom: none;
+}
