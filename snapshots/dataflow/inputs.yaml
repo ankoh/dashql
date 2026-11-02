@@ -28,7 +28,7 @@ dataflow-snapshots:
         - name: min
           type: "integer"
           value: "10"
-          box: [0,56,200,80]
+          box: [0,0,200,80]
       edges:
         - from: ":min"
           to: a.0

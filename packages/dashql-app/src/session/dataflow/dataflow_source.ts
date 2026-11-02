@@ -44,6 +44,18 @@ export function persistFlowPosition(script: ScriptData, x: number, y: number, mo
     return writeFlow(script, { ...current, position: { x, y } }, modifySessionScripts);
 }
 
+/// Write the position and the size of a box into the `@flow` tag of its script at once: its width and the height of
+/// its chart, null for the default. Returns whether the script has the placement.
+export function persistFlowPlacement(
+    script: ScriptData,
+    position: { x: number; y: number },
+    width: number | null,
+    height: number | null,
+    modifySessionScripts: ModifySessionScripts,
+): boolean {
+    return writeFlow(script, { position, width, height }, modifySessionScripts);
+}
+
 /// Write the size of a box into the `@flow` tag of its script: its width and the height of its chart, null for the
 /// default. The position stays, a box without one is still placed by the layout. Returns whether the script has
 /// the size.

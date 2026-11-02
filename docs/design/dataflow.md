@@ -49,37 +49,42 @@ edge from `":min"`, an attachment edge from its file
 
 The position of a script on the canvas is its `@flow x=.. y=..` tag, the size of its box the `width=..` and
 `height=..` of the tag, the width of the box and the height of its chart, see [vis_comments.md](vis_comments.md).
-`dataflow_layout::compute_dataflow_layout` in `dashql-core-view` (core-js `computeDataflowLayout`) places the
-others. The layout has two levels:
+`dataflow_layout::compute_dataflow_layout_with_routes` in `dashql-core-view` (core-js
+`computeDataflowLayoutWithRoutes`) lays out the boxes with the layered layout of the Eclipse Layout Kernel (elk-rs,
+`org-eclipse-elk-alg-layered`) and returns the routes of the edges between them. The layout has two levels:
 
 - **Inside a box** the statements are stacked in script order below a header. The box of an input is one row below
   its header, 200px wide, a box with a chart (a Vega-Lite chart, a table or markdown) is 480px wide, so that the
   chart is wider than high, the other boxes are 280px wide. Every statement is a row of the same height, and the
   chart of a visualized statement follows its row. A collapsed box is its header. The script fixes the geometry of
   its box.
-- **Between boxes**, without fixed boxes, every box is arranged in layers from left to right (Sugiyama): back edges
-  of cycles are reversed, a box is one layer right of its rightmost producer, and a box without producers sits
-  right before its leftmost consumer. Barycenter sweeps order the boxes of a layer, edges spanning layers pass
-  through dummy nodes, and the order with the fewest crossings wins. Then alternating sweeps move every box to the
-  median of the rows it is connected to in the layer before or after it, so edges between statement rows run straight
-  where they can. The dummy nodes only order the layers, an edge across a layer may pass behind a box of a layer in
-  between. Connected parts are stacked, boxes without edges go into rows of four below them.
-- **Fan-outs** wrap into a grid: the sinks of a layer that read the same boxes, e.g. the charts of one base table, form
-  a grid of `ceil(sqrt(n))` columns in the order of the layer once there are `wrap_siblings` of them (4, 0 never
-  wraps). Every column is as wide as its widest box, every row as high as its highest box, with the box gap between
-  them. The grid moves like one box at its first box: the row of the producer runs straight into the first row, and
-  a producer counts the grid once. Inputs and attachments (`input` of a layout box) do not tie a fan-out, a sink is
-  grouped by the scripts it reads, or by its inputs if it reads only inputs, so a parameter that some of the charts
-  use does not split their grid.
-- **With fixed boxes**, the others are placed one at a time in topological order: right of their placed producers,
-  left of their placed consumers, or below everything at the left edge, at the median of their connected rows, then
-  moved to the nearest free slot. A sink whose siblings are placed goes into their grid instead: into the highest free
-  slot in a row of the grid, else into a new row below it, in the leftmost free column. A new chart of a base table
-  fills the last row of its grid, a box that a growing neighbour overlaps moves within the grid.
+- **Between boxes** every box is a node of ELK with a port per connected statement row, inputs on its left border and
+  outputs on its right border at the centers of the rows, so the node placement lines up the rows at both ends of an
+  edge where it can. Edges are routed orthogonally, edges out of one port share their first segments (merged edges).
+  The routes run from the right border of the source box to the left border of the target box.
+- **Without positions** (`hint` of a layout box, a new session or Arrange) ELK arranges every connected box in layers
+  from left to right, network simplex placement, in the order of the session. The sinks of a fan-out, e.g. the
+  charts of one base table, alternate between two sub-layers once there are `wrap_siblings` of them (4), three beyond
+  six (layer unzipping). Inputs and attachments (`input` of a layout box) do not tie a fan-out. The connected parts
+  are packed for the aspect ratio of the viewport (`aspect_ratio`), boxes without edges go into rows of four below
+  them.
+- **With positions** ELK lays out interactively, every connected part on its own: the columns follow the x of the
+  boxes, the order in a column their y, and a box keeps its y where it does not overlap another. The columns are the
+  runs of overlapping x ranges of the boxes, a box goes into the column of its center. A box without a position starts
+  right of its producers or left of its consumers. A part is moved back by the offset that most of its boxes share,
+  ELK moves a layout to the origin. Boxes without edges keep their positions, parts and boxes without any position go
+  below everything.
+- **A dropped box** (`dropped`) goes into the column under its center, or into a new column if its center lies in the
+  gap between two columns, and keeps its y. It does not place the layout, the boxes that stay do. A drop is laid out
+  twice, the second time from where the first put every box, like a reload, so the canvas shows what a reload shows.
 
-Boxes that are not fixed snap to an 8px grid. With the default sizes every row center is a multiple of the grid,
-so edges between snapped boxes stay straight. The dataflow snapshots lay out their boxes like the first render of
-the canvas: `@flow` tags fix boxes and size them, a visualized terminal statement gets its chart.
+A layout that starts from where an earlier one put every box reproduces it, positions and routes. The dataflow
+snapshots lay out their boxes like the first render of the canvas: `@flow` tags are the positions and sizes, a
+visualized terminal statement gets its chart.
+
+`dataflow_routing::route_edges` (core-js `routeDataflowEdges`) routes edges around boxes at any position with
+ortho-router: orthogonal routes with few bends, a margin of 12 to the boxes, routes that share a channel spread
+apart. The canvas uses it while a box is dragged or resized.
 
 ## The canvas
 
@@ -92,14 +97,13 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   edited.
 - `dataflow_scene.ts` turns the graph and the layout into the scene: boxes, statement rows with their ports, charts,
   edge paths and badges. An edge between boxes runs from the output port on the right of its source row to the input
-  port on the left of its target row. To a target on the right it is a cubic curve that leaves and enters its ports
-  horizontally, with control points halfway between the ports, at least 40 apart from them between rows at different
-  heights. Edges never share a segment between their ends, a curve may pass behind a box in front of its target. To
-  a target on the left or at the same x the edge loops around the boxes: a bend out of the source, a straight run
-  back through the gap between the boxes or below both, a bend into the target. The table edges of a port with the
-  same relation are a bus: they share a straight trunk out of the port with one badge on it and curve apart after
-  it. Edges inside a box run along the left of its rows with rounded corners. Collapsed boxes merge their edges and
-  leave out the edges inside them.
+  port on the left of its target row, along the route of the layout with rounded corners. The route of the layout
+  stays while both of its boxes are where the layout put them and no other box lies on it, else the edge is routed
+  around the boxes (`DataflowRouting`), e.g. the edges of a dragged box. The badge of a table edge sits on the middle
+  of its longest horizontal segment, the edges of a port with the same relation are a bus with one badge on its first
+  segment. Without a route an edge falls back to a cubic curve that leaves and enters its ports horizontally, or a
+  loop around the boxes to a target on the left. Edges inside a box run along the left of its rows with rounded
+  corners. Collapsed boxes merge their edges and leave out the edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
   (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are white cards with a solid neutral border like the entries
   of the feed, statements are node frames, inline references and table edges are solid, scans and invalid references
@@ -113,20 +117,20 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   from the layout of its box. A script box has a resize handle in its bottom right corner, like the cards of the
   board: dragging it changes the width of the box and the height of its chart on the 8px grid, a box without a chart
   only changes its width, the arrow keys change them by 16px. The box follows the pointer, the other boxes make room
-  once the size is written on release. The title and the statement labels are truncated to the width of the box.
-  d3-zoom pans and zooms, below half the size every box is drawn collapsed and has no handle.
+  on release. The title and the statement labels are truncated to the width of the box. d3-zoom pans and zooms.
 - The box of an input shows the name and the type in its header and the value in its row, the card of the feed
   (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
   change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,
   the canvas remembers where the layout or a drag placed it while the canvas is open, Arrange places it again.
-- `dataflow_source.ts` writes the changes into the scripts: a dragged box writes the position of its `@flow` tag, a
-  resized box its size, the `+` of a box creates `select * from :<script>` on its connection, New script creates a
+- `dataflow_source.ts` writes the changes into the scripts: the placements of the boxes into their `@flow` tags, the
+  `+` of a box creates `select * from :<script>` on its connection, New script creates a
   query, a double click on the canvas creates a query at that position, the trash button deletes the script, and
   Arrange removes the positions of the `@flow` tags, keeps the sizes and lays out every box again.
 
-The layout always lays out full boxes, collapsing a box only changes how it is drawn. A box with a `@flow` tag is
-fixed at its tag. The canvas remembers where the layout placed the other boxes and passes these positions to the
-layout as fixed boxes, so a box keeps its position while the session changes and only new boxes are placed: a script
-that reads a box goes right of it, in the nearest free slot. A remembered box that a neighbour grows over is placed
-again, a script without statements is not remembered until it has some. Opening a box (its pencil, a double click or
+The layout always lays out full boxes, collapsing a box only changes how it is drawn. Every layout starts from where
+the boxes were: where the last layout put them while the canvas is open, else their `@flow` tags. So a box keeps its
+column, its order and its y while the session changes, and a new script starts next to the boxes it reads. A drop or
+a resize lays out from the dropped box and the new size, then writes the position and the size of every script box
+into its `@flow` tag, tags that hold them already stay, so a reload shows the same layout. A script without
+statements is not remembered until it has some. Opening a box (its pencil, a double click or
 Enter) shows the script in the script details next to the canvas, switching the view closes them.

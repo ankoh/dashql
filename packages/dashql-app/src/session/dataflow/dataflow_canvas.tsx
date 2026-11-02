@@ -18,6 +18,12 @@ import { useApplySessionInput } from '../inputs/use_apply_session_input.js';
 import { deriveSessionInputs, type SessionInput } from '../inputs/session_inputs.js';
 import {
     buildDataflowScene,
+    dataflowRouteKey,
+    nodeKeyOfInput,
+    nodeKeyOfScript,
+    type DataflowHint,
+    type DataflowLaidOutRoute,
+    type DataflowRouting,
     DATAFLOW_LAYOUT,
     DATAFLOW_MAX_BOX_WIDTH,
     DATAFLOW_MAX_CHART_HEIGHT,
@@ -35,7 +41,7 @@ import {
     type DataflowSceneInput,
     type DataflowSelection,
 } from './dataflow_scene.js';
-import { createFlowScript, deleteFlowScript, persistFlowPosition, persistFlowSize, removeFlowPositions } from './dataflow_source.js';
+import { createFlowScript, deleteFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
 import * as styles from './dataflow.module.css';
 
 const FitIcon = SymbolIcon('graph_align');
@@ -78,26 +84,13 @@ interface ResizedBox {
     chartHeight: number | null;
 }
 
-/// The key of the box of a script or of an input, the drag and the layout follow it
-function nodeKeyOfScript(scriptKey: number): string {
-    return `script:${scriptKey}`;
-}
-
-function nodeKeyOfInput(name: string): string {
-    return `input:${name}`;
-}
-
+/// The input or the script of the key of a box (`nodeKeyOfInput`, `nodeKeyOfScript`)
 function inputOfNodeKey(key: string): string | null {
     return key.startsWith('input:') ? key.slice('input:'.length) : null;
 }
 
 function scriptOfNodeKey(key: string): number {
     return Number(key.slice('script:'.length));
-}
-
-/// Do two boxes overlap?
-function boxesOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
-    return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
 /// Snap a size to the grid, within its bounds
@@ -111,9 +104,10 @@ function truncate(text: string, length: number): string {
 }
 
 /// The dataflow of a session: every script is a box of its statements, edges show the flow of data between them.
-/// The boxes keep the positions of their `@flow` tags, the others are placed by the layout of the core. A box
-/// that was placed keeps its position while the scripts are edited, unless a neighbour grows over it, Arrange lays
-/// out every box again.
+/// The core lays the boxes out with ELK and routes the edges. Every layout starts from where the boxes were, so
+/// boxes keep their columns, their order in a column and their y while the scripts are edited. A dropped or resized
+/// box makes the others move as little as possible, then every box is saved in the `@flow` tag of its script, so a
+/// reload shows the same layout. Arrange lays out every box anew.
 export function DataflowCanvas(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const { sessionScripts, modifySessionScripts } = props;
@@ -135,6 +129,11 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const placedRef = React.useRef(new Map<number, Position>());
     // Where the layout or a drag placed the inputs, by name. No script holds the position of an input.
     const placedInputsRef = React.useRef(new Map<string, Position>());
+    // A drop or a resize that waits for its layout: the dropped box and where it was dropped, or the resized script
+    // and its size. The layout after it is saved.
+    const commitRef = React.useRef<{ node: string; position: Position | null; size: ResizedBox | null } | null>(null);
+    // Arrange lays out every box anew
+    const arrangingRef = React.useRef(false);
     const { apply: applyInput, literalOf, busyInputs } = useApplySessionInput(sessionScripts, modifySessionScripts);
 
     const graph = deriveDataflowGraph(sessionScripts);
@@ -145,57 +144,84 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         return statementId != null && statementId < script.statements.length ? statementId : null;
     }, [scriptOf]);
 
-    // The layout lays out full boxes, collapsing a box only changes how it is drawn. The boxes of the inputs follow
-    // the boxes of the scripts.
-    const positions: DataflowBoxPosition[] = React.useMemo(() => {
+    // The layout lays out full boxes, collapsing a box only changes how it is drawn. Every box is laid out from where
+    // it was: where the last layout put it, else where its `@flow` tag saved it. A dropped box is laid out from where
+    // it was dropped, a resized one with its new size. ELK keeps the columns, the order in a column and the y of the
+    // boxes, and routes the edges between them.
+    const layout = React.useMemo((): { boxes: DataflowBoxPosition[]; laidOut: ReadonlyMap<string, DataflowLaidOutRoute> } => {
         const placed = placedRef.current;
         const placedInputs = placedInputsRef.current;
+        const commit = commitRef.current;
+        const arranging = arrangingRef.current;
+        arrangingRef.current = false;
         const tagOf = (script: DataflowScript): Position | null => {
+            if (arranging) return null;
             const flow = scriptOf(script)?.annotations.flowPosition;
             return flow?.x != null && flow.y != null ? { x: flow.x, y: flow.y } : null;
         };
         const sizeOf = (script: DataflowScript): DataflowBoxSize | null => {
             const flow = scriptOf(script)?.annotations.flowPosition;
+            if (commit?.size != null && commit.node === nodeKeyOfScript(script.scriptKey)) {
+                return { width: commit.size.width, chartHeight: commit.size.chartHeight ?? flow?.height ?? null };
+            }
             return flow != null ? { width: flow.width, chartHeight: flow.height } : null;
         };
-        const keys = [...graph.scripts.map(script => nodeKeyOfScript(script.scriptKey)), ...graph.inputs.map(input => nodeKeyOfInput(input.name))];
-        const isTagged = (i: number) => i < graph.scripts.length && tagOf(graph.scripts[i]) != null;
-        const compute = (replace: ReadonlySet<string>) => {
-            const soft = (key: string, position: Position | undefined) => (replace.has(key) ? null : position ?? null);
-            const input = dataflowLayoutInput(
-                graph,
-                script => tagOf(script) ?? soft(nodeKeyOfScript(script.scriptKey), placed.get(script.scriptKey)),
-                chartStatement,
-                () => false,
-                input => soft(nodeKeyOfInput(input.name), placedInputs.get(input.name)),
-                sizeOf,
-            );
-            return sessionScripts.instance.computeDataflowLayout(input.boxes, input.edges, DATAFLOW_LAYOUT);
+        const hintOf = (key: string, last: Position | undefined, saved: Position | null): DataflowHint | null => {
+            if (commit?.position != null && commit.node === key) return { ...commit.position, dropped: true };
+            const at = last ?? saved;
+            return at == null ? null : { x: at.x, y: at.y };
         };
-        if (graph.scripts.length === 0) return [];
-        let layout = compute(new Set());
-        // A box that overlaps another one, e.g. one that grew, and was placed by the layout is placed again
-        const replace = new Set<string>();
-        for (let i = 0; i < layout.length; ++i) {
-            for (let j = i + 1; j < layout.length; ++j) {
-                if (!boxesOverlap(layout[i], layout[j])) continue;
-                const soft = !isTagged(j) ? j : !isTagged(i) ? i : null;
-                if (soft != null) replace.add(keys[soft]);
-            }
-        }
-        if (replace.size > 0) layout = compute(replace);
+        if (graph.scripts.length === 0) return { boxes: [], laidOut: new Map() };
+        const keys = [...graph.scripts.map(script => nodeKeyOfScript(script.scriptKey)), ...graph.inputs.map(input => nodeKeyOfInput(input.name))];
+        const input = dataflowLayoutInput(
+            graph,
+            script => hintOf(nodeKeyOfScript(script.scriptKey), placed.get(script.scriptKey), tagOf(script)),
+            chartStatement,
+            () => false,
+            input => hintOf(nodeKeyOfInput(input.name), placedInputs.get(input.name), null),
+            sizeOf,
+        );
+        // Parts of the graph without any position are packed for the shape of the viewport
+        const viewport = viewportRef.current;
+        const aspectRatio = viewport != null && viewport.clientHeight > 0 ? viewport.clientWidth / viewport.clientHeight : undefined;
+        const result = sessionScripts.instance.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { ...DATAFLOW_LAYOUT, aspectRatio });
+        const boxes = result.boxes;
+        const rect = (i: number) => ({ x: boxes[i].x, y: boxes[i].y, width: boxes[i].width, height: boxes[i].height });
+        const laidOut = new Map(result.routes.map(r => [
+            dataflowRouteKey(keys[r.fromBox], r.fromStatement, keys[r.toBox], r.toStatement),
+            { from: rect(r.fromBox), to: rect(r.toBox), points: r.points },
+        ]));
         // Remember where the boxes of analyzed scripts are, a script without statements is placed again once it has some
         placed.clear();
         graph.scripts.forEach((script, i) => {
-            if (tagOf(script) == null && script.statements.length > 0) placed.set(script.scriptKey, { x: layout[i].x, y: layout[i].y });
+            if (script.statements.length > 0) placed.set(script.scriptKey, { x: boxes[i].x, y: boxes[i].y });
         });
         placedInputs.clear();
         graph.inputs.forEach((input, i) => {
-            const p = layout[graph.scripts.length + i];
+            const p = boxes[graph.scripts.length + i];
             if (p != null) placedInputs.set(input.name, { x: p.x, y: p.y });
         });
-        return layout;
+        return { boxes, laidOut };
     }, [graph, scriptOf, chartStatement, arrangeRevision, sessionScripts.instance]);
+    const positions = layout.boxes;
+
+    // After a drop or a resize, every script box is saved in its `@flow` tag: a reload lays out from there and shows
+    // the same layout. Tags that already hold the position and the size stay.
+    React.useEffect(() => {
+        const commit = commitRef.current;
+        if (commit == null) return;
+        commitRef.current = null;
+        graph.scripts.forEach((s, i) => {
+            const script = sessionScripts.scripts[s.scriptKey];
+            const p = positions[i];
+            if (script == null || p == null || s.statements.length === 0) return;
+            const flow = script.annotations.flowPosition;
+            const resized = commit.size != null && commit.node === nodeKeyOfScript(s.scriptKey) ? commit.size : null;
+            const width = resized != null ? resized.width : flow?.width ?? null;
+            const height = resized != null ? resized.chartHeight ?? flow?.height ?? null : flow?.height ?? null;
+            persistFlowPlacement(script, { x: p.x, y: p.y }, width, height, modifySessionScripts);
+        });
+    }, [positions]);
 
     // A dragged box follows the pointer, a resized box takes the size of the pointer. The other boxes make room once
     // the size is written.
@@ -216,7 +242,13 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         }
         return out;
     }, [positions, drag, resize, graph.scripts, graph.inputs, chartStatement]);
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed), [graph, shown, chartStatement, isCollapsed]);
+    // The edges between boxes go around the other boxes, routed by the core
+    // Edges follow the routes of the layout, the edges of a dragged or resized box are routed around the boxes
+    const routing: DataflowRouting = React.useMemo(
+        () => ({ laidOut: layout.laidOut, route: (boxes, edges) => sessionScripts.instance.routeDataflowEdges(boxes, edges) }),
+        [layout, sessionScripts.instance],
+    );
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, routing), [graph, shown, chartStatement, isCollapsed, routing]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
@@ -282,7 +314,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
             if (current.position == null) {
                 if (commit) setSelection({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input });
             } else if (commit) {
-                placedInputsRef.current.set(input, current.position);
+                commitRef.current = { node: current.node, position: current.position, size: null };
                 setArrangeRevision(r => r + 1);
             }
             return;
@@ -292,10 +324,10 @@ export function DataflowCanvas(props: Props): React.ReactElement {
             if (commit) setSelection({ scriptKey, statementId: null });
             return;
         }
-        const script = sessionScripts.scripts[scriptKey];
-        // The tag fixes the box, a script whose tag can't be written keeps its box where it was
-        if (commit && script != null && persistFlowPosition(script, current.position.x, current.position.y, modifySessionScripts)) {
-            placedRef.current.set(scriptKey, current.position);
+        // The layout starts from where the box was dropped, then every box is saved
+        if (commit) {
+            commitRef.current = { node: current.node, position: current.position, size: null };
+            setArrangeRevision(r => r + 1);
         }
     };
     React.useEffect(() => {
@@ -335,13 +367,11 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     // Resizing a box by the handle in its bottom right corner: the width of the box and the height of its chart, a box
     // without a chart only changes its width. The size is written into the `@flow` tag of the script on release.
     const resizeRef = React.useRef<{ scriptKey: number; pointerId: number; startX: number; startY: number; origin: ResizedBox; size: ResizedBox } | null>(null);
+    // The layout makes room for the new size, then every box is saved with it
     const writeSize = React.useCallback((scriptKey: number, size: ResizedBox) => {
-        const script = sessionScripts.scripts[scriptKey];
-        if (script == null) return;
-        // A box without a chart keeps the chart height of its tag
-        const height = size.chartHeight ?? script.annotations.flowPosition?.height ?? null;
-        persistFlowSize(script, size.width, height, modifySessionScripts);
-    }, [sessionScripts.scripts, modifySessionScripts]);
+        commitRef.current = { node: nodeKeyOfScript(scriptKey), position: null, size };
+        setArrangeRevision(r => r + 1);
+    }, []);
     const finishResizeRef = React.useRef<(event: PointerEvent, commit: boolean) => void>(() => {});
     finishResizeRef.current = (event: PointerEvent, commit: boolean) => {
         const current = resizeRef.current;
@@ -392,10 +422,13 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         else return;
         event.preventDefault();
         event.stopPropagation();
-        writeSize(box.script.scriptKey, {
+        const size = {
             width: snapSize(width, DATAFLOW_MIN_BOX_WIDTH, DATAFLOW_MAX_BOX_WIDTH),
             chartHeight: chartHeight == null ? null : snapSize(chartHeight, DATAFLOW_MIN_CHART_HEIGHT, DATAFLOW_MAX_CHART_HEIGHT),
-        });
+        };
+        // A box at a bound of its size stays as it is
+        if (size.width === box.width && size.chartHeight === (box.chart?.height ?? null)) return;
+        writeSize(box.script.scriptKey, size);
     }, [writeSize]);
 
     // Creating and removing scripts
@@ -418,6 +451,8 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const arrange = React.useCallback(() => {
         placedRef.current.clear();
         placedInputsRef.current.clear();
+        // The tags are removed with the next analysis, the next layout ignores them already
+        arrangingRef.current = true;
         const scripts = graph.scripts.map(scriptOf).filter((s): s is ScriptData => s != null);
         removeFlowPositions(scripts, modifySessionScripts);
         setArrangeRevision(r => r + 1);

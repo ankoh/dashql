@@ -41,8 +41,8 @@ dataflow-snapshots:
         input: |
           select count(*) from orders;
 
-  # Five charts of one base table wrap into a grid of three columns, the base row runs into the first row. An
-  # input read by two of them does not split the grid.
+  # Five charts of one base table alternate between two columns. An input read by two of them does not split the
+  # fan-out.
   - name: LayoutFanoutGrid
     scripts:
       - name: sales
@@ -178,7 +178,7 @@ dataflow-snapshots:
         input: |
           select x from t;
 
-  # Boxes with @flow tags stay, a consumer goes right of its producers at the median of their rows
+  # Boxes with @flow tags stay, a consumer without one goes right of its producers
   - name: LayoutRightOfFixedProducers
     scripts:
       - name: orders
@@ -193,7 +193,7 @@ dataflow-snapshots:
         input: |
           select o.id from orders o, regions r where o.id = r.id;
 
-  # A producer without placed producers goes left of its consumer
+  # A producer without a position goes left of its consumer
   - name: LayoutLeftOfFixedConsumer
     scripts:
       - name: orders
@@ -205,7 +205,7 @@ dataflow-snapshots:
           /** @flow x=600 y=40 */
           select id from orders;
 
-  # A resized box keeps its width and the height of its chart, a box with only a size is placed by the layout
+  # A resized box keeps its width and the height of its chart, a box with only a size goes next to its consumer
   - name: LayoutSizedBoxes
     scripts:
       - name: orders
@@ -234,7 +234,7 @@ dataflow-snapshots:
         input: |
           select count(*) from orders;
 
-  # A box without edges goes below the fixed boxes, at their left edge
+  # A box without edges and without a position goes below the boxes with positions, at their left edge
   - name: LayoutBelowFixedBoxes
     scripts:
       - name: orders

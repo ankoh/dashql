@@ -8,6 +8,7 @@
 //! - `dataflow_layout`: the layout of the dataflow canvas, script boxes of statement rows in layers
 
 pub mod dataflow_layout;
+pub mod dataflow_routing;
 mod hyper_plan_parser;
 mod plan_layout;
 mod plan_view_model;

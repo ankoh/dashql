@@ -5,10 +5,12 @@ import { DataflowEdgeKind, type DataflowGraph, type DataflowScript } from './dat
 import {
     buildDataflowScene,
     DATAFLOW_LAYOUT,
+    dataflowRouteKey,
     dataflowChartHeight,
     dataflowLayoutInput,
     fitDataflowScene,
     INPUT_BOX_WIDTH,
+    nodeKeyOfScript,
     resizeDataflowBox,
     selectedEdges,
 } from './dataflow_scene.js';
@@ -49,8 +51,44 @@ function start(path: string): [number, number] {
 describe('dataflow scene', () => {
     it('passes the edges between boxes to the layout', () => {
         const input = dataflowLayoutInput(GRAPH, s => (s.scriptKey === 2 ? { x: 1, y: 2 } : null), () => null, () => false);
-        expect(input.boxes.map(b => [b.statements, b.fixed])).toEqual([[2, null], [1, { x: 1, y: 2 }]]);
+        expect(input.boxes.map(b => [b.statements, b.hint ?? null])).toEqual([[2, null], [1, { x: 1, y: 2 }]]);
+        const dropped = dataflowLayoutInput(GRAPH, s => (s.scriptKey === 2 ? { x: 1, y: 2, dropped: true } : null), () => null, () => false);
+        expect(dropped.boxes[1]).toMatchObject({ hint: { x: 1, y: 2 }, dropped: true });
         expect(input.edges).toEqual([{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0 }]);
+    });
+
+    it('draws the edges between boxes along the routes of the layout while their boxes stay', () => {
+        const key = dataflowRouteKey(nodeKeyOfScript(1), 1, nodeKeyOfScript(2), 0);
+        const laidOut = new Map([[key, { from: { x: 0, y: 0, width: 280, height: 120 }, to: { x: 376, y: 32, width: 280, height: 80 }, points: [[280, 88], [376, 88]] as core.DataflowPoint[] }]]);
+        const requests: core.DataflowRouteEdge[][] = [];
+        const route = (_: unknown, edges: core.DataflowRouteEdge[]) => {
+            requests.push(edges);
+            return edges.map(e => [e.from, [328, e.from[1]], [328, e.to[1]], e.to] as core.DataflowPoint[]);
+        };
+        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, () => false, DATAFLOW_LAYOUT, { laidOut, route });
+        // From the port of the source row along the route of the layout to the port of the target row, nothing routed
+        expect(requests).toEqual([]);
+        expect(start(scene.edges[1].path)).toEqual([272, 88]);
+        expect(scene.edges[1].path).toMatch(/384 88$/);
+        expect(scene.edges[1].path).not.toContain('C');
+        expect(scene.edges[1].badge).toMatchObject({ x: 328, y: 88, text: 't' });
+
+        // The target moved: the router routes the edge around the boxes, with rounded corners
+        const moved = [POSITIONS[0], { ...POSITIONS[1], y: 64 }];
+        const rerouted = buildDataflowScene(GRAPH, moved, () => null, () => false, DATAFLOW_LAYOUT, { laidOut, route });
+        expect(requests).toEqual([[{ from: [280, 88], to: [376, 120] }]]);
+        expect(rerouted.edges[1].path).toContain('Q 328 88');
+        expect(rerouted.edges[1].path).toContain('Q 328 120');
+        expect(rerouted.edges[1].path).toMatch(/384 120$/);
+
+        // A box moved onto the route of the layout also routes the edge again
+        const blocker: DataflowGraph = { ...GRAPH, scripts: [...GRAPH.scripts, script(3, 1)] };
+        const blocked = buildDataflowScene(blocker, [...POSITIONS, { x: 300, y: 70, width: 40, height: 40, rows: [0] }], () => null, () => false, DATAFLOW_LAYOUT, { laidOut, route });
+        expect(requests.length).toBe(2);
+        expect(blocked.edges[1].path).toContain('Q 328 88');
+
+        // Without routing the edge keeps its own path
+        expect(buildDataflowScene(GRAPH, moved, () => null, () => false).edges[1].path).toContain('C');
     });
 
     it('draws edges between statement rows, inside a box along its rows', () => {
@@ -139,7 +177,7 @@ describe('dataflow scene', () => {
             ],
         };
         const input = dataflowLayoutInput(graph, () => null, () => null, () => false, () => ({ x: 8, y: 16 }));
-        expect(input.boxes[2]).toEqual({ statements: 1, width: INPUT_BOX_WIDTH, fixed: { x: 8, y: 16 }, input: true });
+        expect(input.boxes[2]).toEqual({ statements: 1, width: INPUT_BOX_WIDTH, input: true, hint: { x: 8, y: 16 } });
         expect(input.edges).toContainEqual({ fromBox: 2, fromStatement: 0, toBox: 1, toStatement: 0 });
         const positions = [{ ...POSITIONS[0], x: 296 }, { ...POSITIONS[1], x: 672 }, { x: 0, y: 200, width: INPUT_BOX_WIDTH, height: 80, rows: [40] }];
         const scene = buildDataflowScene(graph, positions, () => null, () => false);

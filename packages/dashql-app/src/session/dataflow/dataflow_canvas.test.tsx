@@ -110,17 +110,62 @@ describe('DataflowCanvas', () => {
         expect(ports('report.sql').querySelector('[data-dataflow-port="input"]')?.getAttribute('data-highlighted')).toBe('true');
     });
 
-    it('writes the position of a dragged box into its @vis flow tag', () => {
-        render();
-        const header = box('report.sql').querySelector<SVGGElement>('[data-dataflow-handle]')!;
+    /// The texts that the canvas wrote into the scripts, by file name
+    const written = () => {
+        const texts = new Map<string, string>();
+        for (const [action] of modify.mock.calls) {
+            if (action?.type !== SET_SCRIPT_TEXT) continue;
+            const fileName = Object.keys(session.scriptRefs).find(f => key(f) === action.value.scriptKey)!;
+            texts.set(fileName, action.value.text);
+        }
+        return texts;
+    };
+    const cardAt = (fileName: string) => {
+        const frame = container.querySelectorAll('rect[data-dataflow-card]')[session.scriptOrder.indexOf(fileName)];
+        return { x: Math.round(Number(frame.getAttribute('x'))), y: Math.round(Number(frame.getAttribute('y'))) };
+    };
+    const drag = (fileName: string, dx: number, dy: number) => {
+        const header = box(fileName).querySelector<SVGGElement>('[data-dataflow-handle]')!;
         const pointer = (type: string, x: number, y: number) => new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y });
         act(() => { header.dispatchEvent(pointer('pointerdown', 100, 100)); });
-        act(() => { header.dispatchEvent(pointer('pointermove', 180, 140)); });
-        act(() => { header.dispatchEvent(pointer('pointerup', 180, 140)); });
-        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
-        expect(action?.type).toBe(SET_SCRIPT_TEXT);
-        expect(action?.value.scriptKey).toBe(key('report.sql'));
-        expect(action?.value.text).toMatch(/^\/\*\* @flow x=-?\d+ y=-?\d+ \*\/\nselect a from t$/);
+        act(() => { header.dispatchEvent(pointer('pointermove', 100 + dx, 100 + dy)); });
+        act(() => { header.dispatchEvent(pointer('pointerup', 100 + dx, 100 + dy)); });
+    };
+
+    it('saves every box into its @flow tag after a drop', () => {
+        render();
+        const before = cardAt('report.sql');
+        drag('report.sql', 0, 160);
+        // The dropped box keeps its column and takes the y of the drop
+        expect(cardAt('report.sql').x).toBe(before.x);
+        expect(cardAt('report.sql').y).toBeGreaterThan(before.y);
+        const texts = written();
+        expect(texts.get('report.sql')).toMatch(/^\/\*\* @flow x=-?\d+ y=-?\d+ \*\/\nselect a from t$/);
+        expect(texts.get('schema.sql')).toMatch(/\/\*\* @flow x=-?\d+ y=-?\d+ \*\//);
+    });
+
+    it('shows the same layout after a reload of the saved scripts', () => {
+        render();
+        drag('report.sql', 0, 160);
+        const shown = { schema: cardAt('schema.sql'), report: cardAt('report.sql') };
+        const texts = written();
+        act(() => root.unmount());
+        root = createRoot(container);
+        session = analyzedTestSession(dql, [
+            ['schema.sql', texts.get('schema.sql')!],
+            ['report.sql', texts.get('report.sql')!],
+        ]);
+        // The session reads the tags into the annotations of the scripts
+        for (const fileName of ['schema.sql', 'report.sql']) {
+            const [, x, y] = texts.get(fileName)!.match(/@flow x=(-?\d+) y=(-?\d+)/)!;
+            const script = session.scripts[key(fileName)];
+            script.annotations = { ...script.annotations, flowPosition: { statementId: 0, x: Number(x), y: Number(y), width: null, height: null } };
+        }
+        modify.mockReset();
+        render();
+        expect({ schema: cardAt('schema.sql'), report: cardAt('report.sql') }).toEqual(shown);
+        // Nothing to save, the tags hold the layout
+        expect(modify).not.toHaveBeenCalled();
     });
 
     it('keeps the boxes in place and places a new script right of the box it reads, in a free slot', () => {
@@ -152,8 +197,7 @@ describe('DataflowCanvas', () => {
             header.dispatchEvent(pointer('pointermove', 180, 140));
             header.dispatchEvent(pointer('pointerup', 180, 140));
         });
-        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
-        expect(action?.type).toBe(SET_SCRIPT_TEXT);
+        expect(written().get('report.sql')).toMatch(/^\/\*\* @flow /);
         expect(box('report.sql').getAttribute('data-dragging')).toBeNull();
     });
 
@@ -197,19 +241,19 @@ describe('DataflowCanvas', () => {
         expect(box('report.sql').getAttribute('data-resizing')).toBe('true');
         expect(modify).not.toHaveBeenCalled();
         act(() => { handle.dispatchEvent(pointer('pointerup', 581, 540)); });
-        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
-        expect([action?.type, action?.value.scriptKey, action?.value.text]).toEqual([SET_SCRIPT_TEXT, key('report.sql'), '/** @flow width=360 */\nselect a from t']);
+        // Every box is saved, the resized one with its width
+        expect(written().get('report.sql')).toMatch(/^\/\*\* @flow x=-?\d+ y=-?\d+ width=360 \*\/\nselect a from t$/);
+        expect(written().get('schema.sql')).toMatch(/@flow x=-?\d+ y=-?\d+ \*\//);
         expect(box('report.sql').getAttribute('data-resizing')).toBeNull();
     });
 
-    it('resizes a box with the arrow keys and keeps the position of its @flow tag', () => {
+    it('resizes a box with the arrow keys and keeps the y of its @flow tag', () => {
         const report = session.scripts[key('report.sql')];
         report.annotations = { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: null, height: null } };
         render();
         const handle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
         act(() => { handle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })); });
-        const action = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
-        expect(action?.value.text).toBe('/** @flow x=800 y=400 width=296 */\nselect a from t');
+        expect(written().get('report.sql')).toMatch(/^\/\*\* @flow x=-?\d+ y=400 width=296 \*\/\nselect a from t$/);
         // Narrower than the smallest box, the width stays at its bound
         modify.mockReset();
         const narrow = { ...report, annotations: { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 200, height: null } } };

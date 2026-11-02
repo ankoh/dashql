@@ -17,7 +17,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select 1 as x"
-          box: [0,0,280,80]
+          box: [0,34,280,80]
         - name: b
           statements:
             - type: SELECT
@@ -27,7 +27,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * f..rom :b, :a"
-          box: [752,0,280,80]
+          box: [752,34,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -221,12 +221,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :b"
-          box: [0,0,280,80]
+          box: [386,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [376,0,280,80]
+          box: [10,0,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -276,7 +276,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: t
               text: "create tab.. t (a int)"
-          box: [0,0,280,80]
+          box: [0,34,280,80]
         - name: filtered
           statements:
             - type: SELECT
@@ -286,7 +286,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * f.. t.a = f.a"
-          box: [752,0,280,80]
+          box: [752,34,280,80]
       edges:
         - from: schema.0
           to: filtered.0

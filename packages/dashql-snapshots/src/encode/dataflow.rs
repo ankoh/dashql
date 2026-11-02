@@ -1,9 +1,9 @@
 //! The dataflow snapshot encoder: the statements of every script, the edges between them and the boxes of the
 //! canvas, for sessions described like the planner snapshots.
 //!
-//! The boxes are laid out like the app lays them out on its first render: a script with a `@flow` tag is fixed
-//! at its position, the chart of a visualized terminal statement follows its row, and the scripts of `collapsed` are
-//! collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide, the
+//! The boxes are laid out like the app lays them out on its first render: a script with a `@flow` tag is laid out
+//! from its position, the chart of a visualized terminal statement follows its row, and the scripts of `collapsed`
+//! are collapsed to their headers. The inputs follow the scripts as boxes of one row, `INPUT_BOX_WIDTH` wide, the
 //! attachments follow the inputs the same way.
 
 use super::planner::{prepare_fixture, Fixture};
@@ -46,10 +46,11 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
                 statements: script.statements.len() as u32,
                 chart_statement,
                 collapsed,
-                fixed: flow.and_then(|f| f.position).map(|(x, y)| (x as f64, y as f64)),
                 width: flow.and_then(|f| f.width).map(f64::from),
                 chart_height: flow.and_then(|f| f.height).map(f64::from),
                 input: false,
+                hint: flow.and_then(|f| f.position).map(|(x, y)| (x as f64, y as f64)),
+                dropped: false,
             }
         })
         .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), input: true, ..Default::default() }))

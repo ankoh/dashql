@@ -109,7 +109,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: orders
               text: "create tab..s (id int)"
-          box: [0,56,280,80]
+          box: [0,0,280,80]
         - name: by_id
           statements:
             - type: SELECT
@@ -164,37 +164,37 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: sales
               text: "create tab..mount int)"
-          box: [0,0,280,80]
+          box: [0,309,280,80]
         - name: by_region
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,320,480,288]
+          box: [376,0,480,288]
         - name: total
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [376,0,480,288]
+          box: [376,309,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select reg..c limit 10"
-          box: [888,320,480,288]
+          box: [952,242,480,288]
         - name: regions
           statements:
             - type: SELECT
               text: "select dis..from sales"
-          box: [888,0,480,288]
+          box: [952,562,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [1400,0,480,288]
+          box: [376,618,480,288]
       inputs:
         - name: min
           type: "integer"
           value: "10"
-          box: [0,320,200,80]
+          box: [80,197,200,80]
       edges:
         - from: sales.0
           to: by_region.0
@@ -393,12 +393,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from :b"
-          box: [0,0,280,80]
+          box: [386,0,280,80]
         - name: b
           statements:
             - type: SELECT
               text: "select * from :a"
-          box: [376,0,280,80]
+          box: [10,0,280,80]
       edges:
         - from: a.0
           to: b.0
@@ -571,7 +571,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select o.i...id = r.id"
-          box: [776,448,280,80]
+          box: [776,100,280,80]
       edges:
         - from: orders.0
           to: report.0
@@ -599,7 +599,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: orders
               text: "create tab..s (id int)"
-          box: [224,72,280,80]
+          box: [224,40,280,80]
         - name: report
           statements:
             - type: CREATE_TABLE
@@ -720,7 +720,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select 2"
-          box: [120,312,280,80]
+          box: [120,344,280,80]
       edges: []
 
   - name: LayoutCrossing
@@ -744,23 +744,23 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: a
               text: "create tab.. a (x int)"
-          box: [0,0,280,80]
+          box: [0,112,280,80]
         - name: b
           statements:
             - type: CREATE_TABLE
               target: b
               text: "create tab.. b (x int)"
-          box: [0,112,280,80]
+          box: [0,0,280,80]
         - name: from_b
           statements:
             - type: SELECT
               text: "select x from b"
-          box: [376,112,280,80]
+          box: [376,0,280,80]
         - name: from_a
           statements:
             - type: SELECT
               text: "select a.x.. from a, b"
-          box: [376,0,280,80]
+          box: [376,112,280,80]
       edges:
         - from: a.0
           to: from_a.0
@@ -793,7 +793,7 @@ dataflow-snapshots:
             - type: CREATE_TABLE
               target: a
               text: "create tab.. a (x int)"
-          box: [0,0,280,80]
+          box: [0,34,280,80]
         - name: b
           statements:
             - type: SELECT
@@ -803,7 +803,7 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select * from a, :b"
-          box: [752,0,280,80]
+          box: [752,34,280,80]
       edges:
         - from: a.0
           to: b.0

@@ -2,7 +2,7 @@ import type * as core from '@ankoh/dashql-core';
 
 import { type DataflowEdge, DataflowEdgeKind, type DataflowGraph, type DataflowInput, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
 
-/// The sizes of the canvas, every row center is a multiple of the grid so that edges between snapped boxes are straight
+/// The sizes of the canvas. Drags and resizes snap to the grid.
 export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
     boxWidth: 280,
     chartBoxWidth: 480,
@@ -115,16 +115,25 @@ export interface DataflowBoxSize {
     chartHeight: number | null;
 }
 
+/// Where a box was, for the layout: saved in its `@flow` tag, or where the last layout or a drop put it
+export interface DataflowHint {
+    x: number;
+    y: number;
+    /// Was the box just dropped here by the user?
+    dropped?: boolean;
+}
+
 /// The inputs of the layout of a graph: a box per script, then a box of one row per input, and the edges between
-/// statements of different boxes
+/// statements of different boxes. Boxes with hints keep their columns, their order in a column and their y.
 export function dataflowLayoutInput(
     graph: DataflowGraph,
-    fixed: (script: DataflowScript) => { x: number; y: number } | null,
+    hint: (script: DataflowScript) => DataflowHint | null,
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
-    fixedInput: (input: DataflowInput) => { x: number; y: number } | null = () => null,
+    hintInput: (input: DataflowInput) => DataflowHint | null = () => null,
     size: (script: DataflowScript) => DataflowBoxSize | null = () => null,
 ): { boxes: core.DataflowLayoutBox[]; edges: core.DataflowLayoutEdge[] } {
+    const hintOf = (h: DataflowHint | null) => (h == null ? {} : { hint: { x: h.x, y: h.y }, ...(h.dropped ? { dropped: true } : {}) });
     const index = new Map(graph.scripts.map((s, i) => [s.scriptKey, i]));
     const inputIndex = new Map(graph.inputs.map((input, i) => [input.name, graph.scripts.length + i]));
     const boxes: core.DataflowLayoutBox[] = graph.scripts.map(script => {
@@ -134,13 +143,13 @@ export function dataflowLayoutInput(
             statements: script.statements.length,
             chartStatement: isCollapsed ? null : chartStatement(script),
             collapsed: isCollapsed,
-            fixed: fixed(script),
+            ...hintOf(hint(script)),
             ...(sized?.width != null ? { width: sized.width } : {}),
             ...(sized?.chartHeight != null ? { chartHeight: sized.chartHeight } : {}),
         };
     });
     for (const input of graph.inputs) {
-        boxes.push({ statements: 1, width: INPUT_BOX_WIDTH, fixed: fixedInput(input), input: true });
+        boxes.push({ statements: 1, width: INPUT_BOX_WIDTH, input: true, ...hintOf(hintInput(input)) });
     }
     const edges = graph.edges.flatMap(edge => {
         const fromBox = edge.input != null ? inputIndex.get(edge.input) : index.get(edge.from.scriptKey);
@@ -262,6 +271,65 @@ function internalEdgePath(box: DataflowSceneBox, fromY: number, toY: number, spa
     return roundedPath([[x, fromY], [x - gutter, fromY], [x - gutter, toY], [x, toY]], 3);
 }
 
+/// The key of the box of a script on the canvas
+export function nodeKeyOfScript(scriptKey: number): string {
+    return `script:${scriptKey}`;
+}
+
+/// The key of the box of an input on the canvas
+export function nodeKeyOfInput(name: string): string {
+    return `input:${name}`;
+}
+
+/// The key of the route of an edge between the rows of two boxes
+export function dataflowRouteKey(from: string, fromStatement: number, to: string, toStatement: number): string {
+    return `${from}.${fromStatement}>${to}.${toStatement}`;
+}
+
+/// A route of the layout, with the boxes at its ends when it was laid out
+export interface DataflowLaidOutRoute {
+    from: Rect;
+    to: Rect;
+    points: core.DataflowPoint[];
+}
+
+/// How the edges between boxes are routed: along the routes of the layout while their boxes stay where the layout put
+/// them and no other box is moved onto them, around the boxes by the router otherwise
+export interface DataflowRouting {
+    /// The routes of the last layout that arranged every box, by `dataflowRouteKey`
+    laidOut: ReadonlyMap<string, DataflowLaidOutRoute>;
+    /// Routes edges around boxes, null for an edge without a way around them
+    route: (boxes: Rect[], edges: core.DataflowRouteEdge[]) => (core.DataflowPoint[] | null)[];
+}
+
+/// The radius of the rounded corners of a route
+const ROUTE_CORNER_RADIUS = 8;
+
+function sameRect(a: Rect, b: Rect): boolean {
+    return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+/// Does a polyline of horizontal and vertical segments pass through the inside of a box?
+function crossesBox(points: core.DataflowPoint[], box: Rect): boolean {
+    for (let i = 1; i < points.length; ++i) {
+        const [x0, x1] = [Math.min(points[i - 1][0], points[i][0]), Math.max(points[i - 1][0], points[i][0])];
+        const [y0, y1] = [Math.min(points[i - 1][1], points[i][1]), Math.max(points[i - 1][1], points[i][1])];
+        if (x0 < box.x + box.width && x1 > box.x && y0 < box.y + box.height && y1 > box.y) return true;
+    }
+    return false;
+}
+
+/// Where the badge of a routed edge goes: in the middle of its first segment if it is horizontal and long enough
+/// and `first` is set, in the middle of its longest horizontal segment otherwise
+function routeBadgeAt(points: core.DataflowPoint[], width: number, first: boolean): [number, number] {
+    const length = (i: number) => (points[i][1] === points[i + 1][1] ? Math.abs(points[i + 1][0] - points[i][0]) : -1);
+    let at = 0;
+    if (!(first && length(0) >= width + 2 * EDGE_TRUNK_MARGIN)) {
+        for (let i = 1; i + 1 < points.length; ++i) if (length(i) > length(at)) at = i;
+    }
+    return [(points[at][0] + points[at + 1][0]) / 2, points[at][1]];
+}
+
 /// The width of a badge with a text
 function edgeBadgeWidth(text: string): number {
     return Math.max(EDGE_BADGE_MIN_WIDTH, text.length * 6 + 10);
@@ -274,6 +342,8 @@ export function buildDataflowScene(
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
     config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT,
+    /// Routes the edges between boxes, the edges keep their curves without it or where it has no route
+    routing: DataflowRouting | null = null,
 ): DataflowScene {
     const boxes: DataflowSceneBox[] = graph.scripts.map((script, index) => {
         const p = positions[index];
@@ -331,6 +401,9 @@ export function buildDataflowScene(
     // Edges into collapsed boxes are merged, their statements are hidden
     const edges: DataflowSceneEdge[] = [];
     const merged = new Set<string>();
+    // The edges between boxes that may be routed: the edge, the key of its route, its ends, and whether it is part of
+    // a bus
+    const routable: { edge: DataflowSceneEdge; key: string; from: EdgeEnd; fromY: number; to: EdgeEnd; toY: number; bus: boolean }[] = [];
     for (const edge of graph.edges) {
         const to = boxOf.get(edge.to.scriptKey);
         if (to == null) continue;
@@ -344,12 +417,16 @@ export function buildDataflowScene(
                 merged.add(key);
             }
             const fromY = source.rowY + config.rowHeight / 2;
-            const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config);
+            const toY = portY(to, edge.to.statementId, config);
+            const { path } = routeEdge(source, fromY, to, toY, config);
             source.output = true;
             const toRow = to.rows[edge.to.statementId];
             if (to.collapsed || toRow == null) to.input = true;
             else toRow.input = true;
-            edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: edge.input, internal: false, path, badge: null });
+            const sceneEdge: DataflowSceneEdge = { key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: edge.input, internal: false, path, badge: null };
+            edges.push(sceneEdge);
+            const key = dataflowRouteKey(nodeKeyOfInput(edge.input), edge.from.statementId, nodeKeyOfScript(to.script.scriptKey), edge.to.statementId);
+            routable.push({ edge: sceneEdge, key, from: source, fromY, to, toY, bus: false });
             continue;
         }
         const from = boxOf.get(edge.from.scriptKey);
@@ -394,7 +471,59 @@ export function buildDataflowScene(
                 badge = { x: middle[0], y: middle[1], width: edgeBadgeWidth(edge.name), text: edge.name };
             }
         }
-        edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: null, internal, path, badge });
+        const sceneEdge: DataflowSceneEdge = { key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: null, internal, path, badge };
+        edges.push(sceneEdge);
+        if (!internal) {
+            const key = dataflowRouteKey(nodeKeyOfScript(from.script.scriptKey), edge.from.statementId, nodeKeyOfScript(to.script.scriptKey), edge.to.statementId);
+            routable.push({ edge: sceneEdge, key, from, fromY, to, toY, bus: trunk != null });
+        }
+    }
+
+    // Edges between boxes follow the routes of the layout while those still fit, the router routes the others around
+    // the boxes. Routes are drawn with rounded corners from the port of the source row to the port of the target row.
+    if (routing != null && routable.length > 0) {
+        const obstacles: EdgeEnd[] = [...boxes, ...inputs];
+        const pending: { r: (typeof routable)[number]; from: core.DataflowPoint; to: core.DataflowPoint }[] = [];
+        const routed: { r: (typeof routable)[number]; points: core.DataflowPoint[] }[] = [];
+        for (const r of routable) {
+            const from: core.DataflowPoint = [r.from.x + r.from.width, r.fromY];
+            const to: core.DataflowPoint = [r.to.x, r.toY];
+            const laidOut = routing.laidOut.get(r.key);
+            const fits = laidOut != null
+                && sameRect(laidOut.from, r.from) && sameRect(laidOut.to, r.to)
+                && laidOut.points[0][0] === from[0] && laidOut.points[0][1] === from[1]
+                && laidOut.points[laidOut.points.length - 1][0] === to[0] && laidOut.points[laidOut.points.length - 1][1] === to[1]
+                && !obstacles.some(b => b !== r.from && b !== r.to && crossesBox(laidOut.points, b));
+            if (fits) routed.push({ r, points: laidOut.points });
+            else pending.push({ r, from, to });
+        }
+        if (pending.length > 0) {
+            const routes = routing.route(obstacles.map(b => ({ x: b.x, y: b.y, width: b.width, height: b.height })), pending.map(p => ({ from: p.from, to: p.to })));
+            pending.forEach((p, i) => {
+                const points = routes[i];
+                if (points != null) routed.push({ r: p.r, points });
+            });
+        }
+        const busBadged = new Set<string>();
+        for (const { r, points } of routed) {
+            const path: core.DataflowPoint[] = [[outputX(r.from, config), r.fromY], ...points, [inputX(r.to, config), r.toY]];
+            r.edge.path = roundedPath(path, ROUTE_CORNER_RADIUS);
+            if (r.edge.badge != null || (r.bus && r.edge.kind === DataflowEdgeKind.Table)) {
+                const name = r.edge.badge?.text ?? '';
+                if (r.bus) {
+                    // One badge per bus, on the first edge of the bus that is routed
+                    const bus = `${r.key.split('>')[0]}:${name}`;
+                    if (busBadged.has(bus) || name.length === 0) {
+                        r.edge.badge = null;
+                        continue;
+                    }
+                    busBadged.add(bus);
+                }
+                const width = edgeBadgeWidth(name);
+                const [x, y] = routeBadgeAt(path, width, r.bus);
+                r.edge.badge = { x, y, width, text: name };
+            }
+        }
     }
 
     let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
