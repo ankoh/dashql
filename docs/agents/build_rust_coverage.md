@@ -4,7 +4,8 @@ The coverage workflow (`.github/workflows/coverage.yml`) covers the Rust core: i
 `bazel coverage` over the core crates (`//packages/dashql-core/...` and its `-session`, `-shell` and `-view`
 siblings), `//packages/dashql-parser/...` and `//packages/dashql-snapshots/...`, instruments those core crates
 and `//packages/dashql-parser`,
-and uploads Bazel's combined report (`_coverage_report.dat`) to Coveralls.
+and uploads Bazel's combined report (`_coverage_report.dat`) to Coveralls. It uploads the LCOV of the app's browser
+tests (`//packages/dashql-app:coverage_chromium`, see `docs/reports/dashql_app_coverage_report.md`) with it.
 
 ## Empty tracefiles under Bazel 8/9
 

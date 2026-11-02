@@ -2,7 +2,7 @@
 
 load("@aspect_rules_js//js:defs.bzl", "js_test")
 
-def browser_test(name, browser, executable, runtime = None, executable_root = False, env = {}):
+def browser_test(name, browser, executable, runtime = None, executable_root = False, env = {}, bundle = ":pages", tags = []):
     browser_data = [executable]
     if runtime and runtime != executable:
         browser_data.append(runtime)
@@ -14,14 +14,16 @@ def browser_test(name, browser, executable, runtime = None, executable_root = Fa
     js_test(
         name = name,
         size = "large",
-        args = ["$(rootpath :pages)"],
+        args = ["$(rootpath {})".format(bundle)],
         data = [
-            ":pages",
+            bundle,
             ":tsc_typecheck",
+            "test/browser_coverage.mjs",
             "//:node_modules/playwright-core",
         ] + browser_data,
         entry_point = "test/browser_test_driver.mjs",
         env = test_env,
         no_copy_to_bin = browser_data,
+        tags = tags,
         visibility = ["//visibility:public"],
     )

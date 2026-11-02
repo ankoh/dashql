@@ -12,7 +12,10 @@ const HYPERDB_WASM_VERSION = "__HYPERDB_WASM_VERSION__";
 export default vite.defineConfig(({ mode, command }) => {
     const isElectronBuild = mode === 'electron';
     const isReloc = mode === 'reloc' || isElectronBuild;
-    const includesBrowserTests = mode === 'pages' || mode === 'development';
+    // The coverage build bundles the browser tests like pages, unminified and with source maps, so that the browser
+    // test driver can map the V8 coverage back to the TypeScript sources.
+    const isCoverageBuild = mode === 'coverage';
+    const includesBrowserTests = mode === 'pages' || mode === 'development' || isCoverageBuild;
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
     const CORE_PATH = path.resolve(rootDir, "__CORE_PATH__");
@@ -219,7 +222,8 @@ export default vite.defineConfig(({ mode, command }) => {
                     },
                 },
             },
-            minify: mode !== 'development' ? 'oxc' : false,
+            minify: mode !== 'development' && !isCoverageBuild ? 'oxc' : false,
+            sourcemap: isCoverageBuild,
             cssCodeSplit: true,
             modulePreload: { polyfill: false },
         },

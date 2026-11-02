@@ -53,9 +53,22 @@ jobs:
                 cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
                     /tmp/lcov_linux.dat
 
+            - name: Coverage of the app
+              shell: bash
+              run: |
+                bazel test --config=fastbuild --test_output=errors //packages/dashql-app:coverage_chromium
+                cp bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/coverage.dat \
+                    /tmp/lcov_app.dat
+                {
+                    echo '```text'
+                    cat bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/coverage_summary.txt
+                    echo '```'
+                } >> "$GITHUB_STEP_SUMMARY"
+
             - name: Upload to Coveralls
               uses: coverallsapp/github-action@v2
               with:
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-                  path-to-lcov: /tmp/lcov_linux.dat
+                  files: /tmp/lcov_linux.dat /tmp/lcov_app.dat
+                  format: lcov
                   flag-name: linux

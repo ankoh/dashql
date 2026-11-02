@@ -119,6 +119,7 @@ bazel test //...
 | `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
+| `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |
 | `//packages/dashql-org:check` | `astro check` of the website |
 
 ### Test Output

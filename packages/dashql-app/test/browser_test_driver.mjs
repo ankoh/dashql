@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
 const playwright = await import('playwright-core');
+const { mapCoverage, toLcov, toSummary } = await import('./browser_coverage.mjs');
 
 const root = resolve(process.argv[2]);
 const requestedFile = process.argv[3] ?? '';
@@ -10,6 +11,8 @@ const timeout = Number.parseInt(process.env.DASHQL_BROWSER_TEST_TIMEOUT ?? '6000
 const browserName = process.env.DASHQL_BROWSER ?? 'chromium';
 const browserType = playwright[browserName];
 if (!browserType) throw new Error(`Unsupported browser: ${browserName}`);
+const collectCoverage = process.env.DASHQL_BROWSER_COVERAGE === '1';
+if (collectCoverage && browserName !== 'chromium') throw new Error('Coverage needs the V8 profiler of Chromium');
 const executableRoot = process.env.DASHQL_BROWSER_EXECUTABLE_ROOT;
 const executablePath = executableRoot
     ? join(executableRoot, process.platform === 'darwin' ? 'firefox/Nightly.app/Contents/MacOS/firefox' : 'firefox/firefox')
@@ -75,6 +78,12 @@ try {
         if (message.type() === 'error') browserErrors.push(message.text());
     });
     page.on('pageerror', error => browserErrors.push(error.stack ?? error.message));
+    // Precise coverage keeps the counters of the scripts of every test frame alive until we take them at the end
+    const profiler = collectCoverage ? await page.context().newCDPSession(page) : null;
+    if (profiler) {
+        await profiler.send('Profiler.enable');
+        await profiler.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
+    }
 
     const query = new URLSearchParams({ autorun: '1' });
     if (requestedFile) query.set('file', requestedFile);
@@ -110,6 +119,17 @@ try {
     const summary = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
     const outputs = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
     if (outputs) writeFileSync(join(outputs, 'browser_test_summary.json'), JSON.stringify(summary, null, 2));
+    if (profiler) {
+        const { result } = await profiler.send('Profiler.takePreciseCoverage');
+        await profiler.send('Profiler.stopPreciseCoverage');
+        const coverage = mapCoverage(root, result);
+        const coverageSummary = toSummary(coverage);
+        console.log(coverageSummary.split('\n', 1)[0]);
+        if (outputs) {
+            writeFileSync(join(outputs, 'coverage.dat'), toLcov(coverage.lines, 'packages/dashql-app/'));
+            writeFileSync(join(outputs, 'coverage_summary.txt'), `${coverageSummary}\n`);
+        }
+    }
     const failures = summary.files.flatMap(file => {
         const fileFailure = file.error ? [`${file.file}\n${formatError(file.error)}`] : [];
         const testFailures = file.tests

@@ -347,6 +347,30 @@ copy_to_directory(
     visibility = ["//visibility:public"],
 )
 
+# The coverage bundle of :coverage_chromium, the pages bundle unminified and with source maps
+vite_bin.vite(
+    name = "coverage_pages_vite",
+    srcs = _vite_web_deps,
+    args = ["build", "--config", "vite.config.generated.ts", "--mode", "coverage", "--outDir", "coverage_pages"],
+    chdir = "packages/dashql-app",
+    out_dirs = ["coverage_pages"],
+    visibility = ["//visibility:private"],
+)
+
+copy_to_directory(
+    name = "coverage_pages",
+    srcs = [
+        ":coverage_pages_vite",
+        "static/config.json",
+    ],
+    out = "coverage_pages_deploy",
+    replace_prefixes = {
+        "coverage_pages": "",
+        "packages/dashql-app/static": "static",
+    },
+    visibility = ["//visibility:private"],
+)
+
 copy_to_directory(
     name = "playwright_firefox",
     srcs = ["@playwright_firefox//:firefox_files"],
@@ -368,6 +392,18 @@ browser_test(
     env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
     executable = ":playwright_firefox",
     executable_root = True,
+)
+
+# Line coverage of the app sources in the browser tests, see docs/reports/dashql_app_coverage_report.md.
+# Writes coverage.dat (LCOV) and coverage_summary.txt to the undeclared test outputs.
+browser_test(
+    name = "coverage_chromium",
+    browser = "chromium",
+    bundle = ":coverage_pages",
+    env = {"DASHQL_BROWSER_COVERAGE": "1"},
+    executable = "@playwright_chromium//:chromium",
+    runtime = "@playwright_chromium//:runtime",
+    tags = ["manual"],
 )
 
 sh_binary(
