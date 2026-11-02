@@ -16,11 +16,12 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 75.2% (45,423 / 60,438 lines) in 544 files**, up from 69.1% before the tests of the Trino and
-Salesforce connection reducers, channel and API client, the Trino Arrow conversion, the log buffer, the graph edges, more
-Arrow value formats, the column aggregation and data search tasks, the completion focus, list and keys, the diff
-decorations, the router navigation, the cross filters, the query result search, the native gRPC clients, the reducer
-cases of the computation, query and connection states, the session restore and the native session storage.
+**Overall: 75.7% (45,721 / 60,382 lines) in 544 files**, up from 69.1% before the tests of the Trino and
+Salesforce connection reducers, channel and API client, the Trino Arrow conversion and types, the log buffer, the graph
+edges, more Arrow value formats, the column aggregation and data search tasks, the completion focus, list and keys, the
+diff decorations, the router navigation, the cross filters, the query result search, the column resize and ordering of
+the data table, the native gRPC clients, the reducer cases of the computation, query and connection states, the session
+restore, the native session storage and the formatting helpers.
 
 ## Gaps in logic (`.ts`)
 
@@ -31,14 +32,9 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/app/hyper_links.ts:41-75` | useHyperLinks | 33 |
 | `src/connections/query_execution_mock.ts:47-69` | produce | 20 |
 | `src/demos/stock_analysis/synthetic_feed.ts:142-161` | start | 19 |
-| `src/views/query_result/data_table_column_resize.ts:141-162` | onPointerDownCapture | 19 |
 | `src/shell/api.ts:104-121` | fetchShellWasm | 18 |
-| `src/query/query_execution_state.ts:421-438` | reduceQueryAction | 17 |
-| `src/views/query_result/data_table_column_resize.ts:164-183` | onPointerMove | 17 |
-| `src/views/query_result/data_table_ordering.ts:37-53` | createOrderingTask | 17 |
 | `src/compute/tasks/column_aggregation.ts:212-227` | computeFilteredColumnAggregates | 16 |
 | `src/storage/opfs_storage_backend.ts:536-555` | reorderManifestSessions | 16 |
-| `src/utils/format.ts:20-35` | formatNanoseconds | 16 |
 | `src/views/plan/plan_scene.ts:164-179` | buildPipelinePath | 16 |
 | `src/connections/catalog/catalog_query_pg_attribute.ts:181-198` | updatePgSchemaScript | 15 |
 | `src/session/editor/dashql_quote_tombstone.ts:94-108` | defaultQuotedTokenFinder | 15 |
@@ -48,6 +44,11 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/storage/opfs_storage_backend.ts:581-596` | getFolderDir | 15 |
 | `src/views/query_result/data_table_layout.ts:111-125` | computeTableLayout | 15 |
 | `src/views/query_result/data_table_layout.ts:144-158` | computeTableLayout | 15 |
+| `src/compute/arrow_formatter.ts:553-570` | ensureBatchIsLoaded | 14 |
+| `src/connections/query_execution_mock.ts:12-26` | QueryExecutionResponseStreamMock | 14 |
+| `src/demos/shared/use_live_query.ts:91-104` | useLiveQuery | 13 |
+| `src/session/scripts/session_scripts.ts:1229-1245` | reduceScripts | 13 |
+| `src/connections/salesforce/salesforce_connection_setup.ts:223-234` | createSalesforceSetup | 12 |
 
 ## Gaps in components (`.tsx`)
 
@@ -87,11 +88,18 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
 - `buildEdgePathBetweenRectangles` started `SouthEast` edges at the North side of the source.
 - `selectEdgeTypeFromAngle` took the `atan2` result 180° (a target straight west) for a diagonal sector, so the edge
   got two turns instead of being direct.
+- `formatNanoseconds` divided by a million for seconds, 2 s of the script statistics showed as `2000.0 s`.
+- The cache signature of Trino connections sorted the schemas of the connection params in place.
 
 ## Suggested next tests
 
-1. `onPointerDownCapture` and `onPointerMove` of the column resize of the data table, and `createOrderingTask` of the
-   data table ordering.
-2. `useHyperLinks`: render it with the connection and session registries like the session workbench tests.
+1. `useHyperLinks`: render it with the connection and session registries like the session workbench tests.
+2. The OPFS storage backend (`reorderManifestSessions`, `renameScript`, `clearAllStorage`, `getFolderDir`) with the OPFS
+   test root of `opfs_storage_backend.test.ts`.
 3. `fetchShellWasm` of the shell API and `start` of the synthetic stock feed of the demos.
 4. Render tests of `TrinoConnectorSettings` and `HyperConnectorSettings` like the Salesforce settings tests.
+
+## Flaky tests
+
+- `hyper_log_metrics.test.ts` > extracts the queries of pooled connections by their client context: failed once with no
+  queries in the log and passed on the reruns, it likely reads the Hyper log before the entries arrive.
