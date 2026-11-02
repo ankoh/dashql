@@ -50,8 +50,6 @@ export interface DataflowSceneRow {
 /// A script box
 export interface DataflowSceneBox extends Rect {
     script: DataflowScript;
-    /// The index of the script in the session, it picks the color of the box
-    index: number;
     collapsed: boolean;
     rows: DataflowSceneRow[];
     /// The chart below the visualized statement
@@ -250,7 +248,7 @@ export function buildDataflowScene(
             height: config.chartHeight,
         };
         const height = isCollapsed ? config.headerHeight : p.height;
-        return { script, index, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height, rows, chart, input: false, output: false };
+        return { script, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height, rows, chart, input: false, output: false };
     });
     const boxOf = new Map(boxes.map(b => [b.script.scriptKey, b]));
     const inputs: DataflowSceneInput[] = graph.inputs.flatMap((input, i) => {

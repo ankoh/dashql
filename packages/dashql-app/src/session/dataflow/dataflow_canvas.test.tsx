@@ -84,7 +84,7 @@ describe('DataflowCanvas', () => {
     it('keeps the boxes in place and places a new script right of the box it reads, in a free slot', () => {
         render();
         const rect = (fileName: string) => {
-            const frame = container.querySelectorAll('rect[data-color]')[session.scriptOrder.indexOf(fileName)];
+            const frame = container.querySelectorAll('rect[data-dataflow-card]')[session.scriptOrder.indexOf(fileName)];
             return { x: Number(frame.getAttribute('x')), y: Number(frame.getAttribute('y')) };
         };
         const before = { schema: rect('schema.sql'), report: rect('report.sql') };

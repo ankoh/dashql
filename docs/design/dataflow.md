@@ -98,12 +98,13 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   the spine. Edges inside a box run along the left of its rows. Collapsed boxes merge their edges and leave out the
   edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
-  (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are fragments, statements are node frames, inline
-  references and table edges are solid, scans and invalid references are dashed, the relation of a table edge is a
-  badge, and a selection redraws its edges in the highlight layer and highlights their ports. Charts are
-  `foreignObject`s below their statement, a Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with
-  smaller text and marks, four ticks, horizontal x labels and no legends, fitted into the card with an 8px inset.
-  d3-zoom pans and zooms, below half the size every box is drawn collapsed.
+  (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are white cards with a solid neutral border like the entries
+  of the feed, statements are node frames, inline references and table edges are solid, scans and invalid references
+  are dashed, the relation of a table edge is a badge, and a selection redraws its edges in the highlight layer and
+  highlights their ports. Charts are `foreignObject`s below their statement, on the card without a frame of their
+  own. A Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
+  horizontal x labels and no legends, fitted into the card with an 8px inset. d3-zoom pans and zooms, below half the
+  size every box is drawn collapsed.
 - The box of an input shows the name and the type in its header and the value in its row, the card of the feed
   (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
   change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,

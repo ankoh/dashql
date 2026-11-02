@@ -37,8 +37,6 @@ const FitIcon = SymbolIcon('graph_align');
 
 /// The longest label of a statement row
 const MAX_LABEL_CHARS = 30;
-/// The border of the body of a chart, see `.chart_body`
-const CHART_BORDER = 1;
 /// The size of the icons of a box header
 const HEADER_ICON = 12;
 
@@ -365,8 +363,8 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                         {scene.boxes.map(box => (
                             <rect
                                 key={box.script.scriptKey}
-                                className={graphStyles.fragment}
-                                data-color={box.index % 6}
+                                className={styles.card}
+                                data-dataflow-card={box.script.scriptKey}
                                 x={box.x}
                                 y={box.y}
                                 width={box.width}
@@ -378,7 +376,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                         {scene.inputs.map(box => (
                             <rect
                                 key={`input:${box.input.name}`}
-                                className={`${graphStyles.fragment} ${styles.input_fragment}`}
+                                className={styles.card}
                                 x={box.x}
                                 y={box.y}
                                 width={box.width}
@@ -622,8 +620,8 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                             ? <props.dependencies.VisualizationDispatch
                                 query={query}
                                 visualizeQuery={script.annotations.visualizeQuery}
-                                width={box.chart.width - 2 * CHART_BORDER}
-                                height={box.chart.height - 2 * CHART_BORDER}
+                                width={box.chart.width}
+                                height={box.chart.height}
                                 preview
                             />
                             : <div className={styles.chart_placeholder}>Run the script to see the chart</div>}
