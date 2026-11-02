@@ -38,6 +38,17 @@ function editorText(): string {
     return EditorView.findFromDOM(editorContent())?.state.doc.toString() ?? '';
 }
 
+/// Edits are validated once the typing pauses, and production React renders the outcome in a task of its own.
+/// Wait for the outcome instead of racing both with a timeout.
+async function typeSql(text: string, validated: () => unknown) {
+    act(() => setEditorText(text));
+    await vi.waitFor(validated);
+}
+
+function diagnostic(): string | undefined {
+    return document.querySelector('[role="alert"]')?.textContent?.trim() || undefined;
+}
+
 function modeButton(mode: 'raw' | 'compact' | 'pretty'): HTMLButtonElement {
     const button = document.querySelector<HTMLButtonElement>(`[data-testid="format-mode-${mode}"]`);
     if (button == null) throw new Error(`No ${mode} format button`);
@@ -171,21 +182,11 @@ describe('SQL formatter dialog', () => {
 
     it('disables formatted views for invalid SQL and re-enables them after correction', async () => {
         const result = open();
-        // Edits are validated once the typing pauses
-        await act(async () => {
-            setEditorText('select * from foo group');
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
-
-        expect(document.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
+        await typeSql('select * from foo group', () => expect(diagnostic()).toBeTruthy());
         expect(modeButton('compact').disabled).toBe(true);
         expect(modeButton('pretty').disabled).toBe(true);
 
-        await act(async () => {
-            setEditorText('select 1');
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
-        expect(document.querySelector('[role="alert"]')).toBeNull();
+        await typeSql('select 1', () => expect(document.querySelector('[role="alert"]')).toBeNull());
         expect(modeButton('compact').disabled).toBe(false);
         expect(modeButton('pretty').disabled).toBe(false);
 
