@@ -77,8 +77,8 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
   from left to right, network simplex placement, in the order of the session. The sinks of a fan-out, e.g. the
   charts of one base table, alternate between two sub-layers once there are `wrap_siblings` of them (4), three beyond
   six (layer unzipping). Inputs and attachments (`input` of a layout box) do not tie a fan-out. The connected parts
-  are packed for the aspect ratio of the viewport (`aspect_ratio`), boxes without edges go into rows of four below
-  them.
+  are packed by ELK with its defaults, boxes without edges go into rows of four below them. The layout depends on
+  the graph only, not on the size of the window.
 - **With positions** ELK lays out interactively, every connected part on its own: the columns follow the x of the
   boxes, the order in a column their y, and a box keeps its y where it does not overlap another. The columns are the
   runs of overlapping x ranges of the boxes, a box goes into the column of its center. A box without a position starts

@@ -117,12 +117,6 @@ impl DataflowLayout {
         DataflowLayout { config: Default::default(), boxes: Vec::new(), edges: Vec::new(), geometry: Vec::new(), routes: Vec::new() }
     }
 
-    /// Set the width over the height that the parts of the graph are packed for, e.g. of the viewport
-    #[wasm_bindgen(js_name = setAspectRatio)]
-    pub fn set_aspect_ratio(&mut self, aspect_ratio: f64) {
-        self.config.aspect_ratio = aspect_ratio;
-    }
-
     /// Add a box, returns its index. A negative chart statement is absent, a width or a chart height that is not
     /// positive is the one of the config, the chart box width for a box with a chart, the input box width for an
     /// input, which does not tie its consumers into a fan-out. A hinted box is laid out from where it was, a dropped one from where the

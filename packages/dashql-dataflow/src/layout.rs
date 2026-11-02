@@ -9,7 +9,7 @@
 //!
 //! - Without hints ELK arranges the connected boxes in layers in the order of the session. The sinks of a fan-out,
 //!   e.g. the charts of one base table, alternate between sub-layers once there are `wrap_siblings` of them. The
-//!   connected parts are packed for the aspect ratio of the viewport, boxes without edges go into rows below them.
+//!   connected parts are packed by ELK, boxes without edges go into rows below them.
 //! - With hints, where the boxes were, ELK lays out interactively, every connected part on its own: the columns follow
 //!   the x of the boxes, the order in a column their y, and a box keeps its y where it does not overlap another. A
 //!   dropped box goes into the column under its center, or into a new column in a gap between two columns. A layout
@@ -56,8 +56,6 @@ pub struct DataflowLayoutConfig {
     pub isolated_per_row: usize,
     /// The fewest sinks of a fan-out that alternate between sub-layers, 0 never
     pub wrap_siblings: usize,
-    /// The width over the height that the connected parts are packed for, e.g. of the viewport
-    pub aspect_ratio: f64,
     /// The grid that drags and resizes on the canvas snap to, the layout does not snap
     pub grid: f64,
 }
@@ -83,7 +81,6 @@ impl Default for DataflowLayoutConfig {
             align_snap: 24.0,
             isolated_per_row: 4,
             wrap_siblings: 4,
-            aspect_ratio: 2.0,
             grid: 8.0,
         }
     }
@@ -462,13 +459,11 @@ fn elk(
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::None);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, false);
     } else {
-        // The order of the session, the sinks of a fan-out alternate between sub-layers, the parts are packed
+        // The order of the session, the sinks of a fan-out alternate between sub-layers, ELK packs the parts
         set_node(&graph, LayeredOptions::NODE_PLACEMENT_STRATEGY, NodePlacementStrategy::NetworkSimplex);
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::NodesAndEdges);
         set_node(&graph, LayeredOptions::LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy::Alternating);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, true);
-        set_node(&graph, LayeredOptions::ASPECT_RATIO, if config.aspect_ratio > 0.0 { config.aspect_ratio } else { 2.0 });
-        set_node(&graph, LayeredOptions::COMPACTION_CONNECTED_COMPONENTS, true);
     }
 
     let mut in_subset = vec![false; geometry.len()];

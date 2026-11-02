@@ -194,10 +194,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             input => hintOf(nodeKeyOfInput(input.name), placedInputs.get(input.name), null),
             sizeOf,
         );
-        // Parts of the graph without any position are packed for the shape of the viewport
-        const viewport = viewportRef.current;
-        const aspectRatio = viewport != null && viewport.clientHeight > 0 ? viewport.clientWidth / viewport.clientHeight : undefined;
-        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { aspectRatio });
+        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges);
         const boxes = result.boxes;
         const rect = (i: number) => ({ x: boxes[i].x, y: boxes[i].y, width: boxes[i].width, height: boxes[i].height });
         const laidOut = new Map(result.routes.map(r => [

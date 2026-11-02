@@ -35,12 +35,6 @@ export interface DataflowLayoutConfig {
     grid: number;
 }
 
-/// The options of one layout
-export interface DataflowLayoutOptions {
-    /// The width over the height that parts of the graph without positions are packed for, e.g. of the viewport
-    aspectRatio?: number;
-}
-
 /// A script box of the dataflow canvas
 export interface DataflowLayoutBox {
     statements: number;
@@ -174,8 +168,8 @@ export class DashQLDataflow {
 
     /// Lay out the boxes of the dataflow canvas, see docs/design/dataflow.md: from scratch without hints, from where
     /// the boxes were with hints
-    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], options?: DataflowLayoutOptions): DataflowBoxGeometry[] {
-        return this.computeDataflowLayoutWithRoutes(boxes, edges, options).boxes;
+    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[]): DataflowBoxGeometry[] {
+        return this.computeDataflowLayoutWithRoutes(boxes, edges).boxes;
     }
 
     /// Lay out the boxes of the dataflow canvas like `computeDataflowLayout`, with the routes of the edges between
@@ -183,11 +177,9 @@ export class DashQLDataflow {
     public computeDataflowLayoutWithRoutes(
         boxes: DataflowLayoutBox[],
         edges: DataflowLayoutEdge[],
-        options?: DataflowLayoutOptions,
     ): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
         const layout = new this.bindings.DataflowLayout();
         try {
-            if (options?.aspectRatio != null && options.aspectRatio > 0) layout.setAspectRatio(options.aspectRatio);
             for (const box of boxes) {
                 layout.addBox(
                     box.statements,
