@@ -24,6 +24,7 @@ rust_library(
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-session:dashql_core_session",
         "//packages/dashql-core-view:dashql_core_view",
+        "//packages/dashql-dataflow:dashql_dataflow",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",

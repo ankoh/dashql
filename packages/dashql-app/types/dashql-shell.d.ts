@@ -75,7 +75,6 @@ declare module '@ankoh/dashql-shell-js' {
     export const ScriptBatch: DashQLBindings['ScriptBatch'];
     export const ScriptSession: DashQLBindings['ScriptSession'];
     export const PlanViewModel: DashQLBindings['PlanViewModel'];
-    export const DataflowLayout: DashQLBindings['DataflowLayout'];
     export const SessionPlanRequest: DashQLBindings['SessionPlanRequest'];
     export const TableParameters: DashQLBindings['TableParameters'];
     export const planSession: DashQLBindings['planSession'];
@@ -84,7 +83,6 @@ declare module '@ankoh/dashql-shell-js' {
     export const collectSessionInputs: DashQLBindings['collectSessionInputs'];
     export const inputLiteral: DashQLBindings['inputLiteral'];
     export const quoteIdentifier: DashQLBindings['quoteIdentifier'];
-    export const routeDataflowEdges: DashQLBindings['routeDataflowEdges'];
     export const processBatch: DashQLBindings['processBatch'];
     export const appendCatalogChangesSql: DashQLBindings['appendCatalogChangesSql'];
     export const qualifyCatalogChanges: DashQLBindings['qualifyCatalogChanges'];

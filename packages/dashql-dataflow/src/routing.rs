@@ -5,7 +5,7 @@
 //! their statements. ortho-router builds a grid of the lines through the boxes grown by a margin and the stubs of
 //! the ports, searches the shortest route with few bends through it, and spreads routes that share a channel apart.
 
-use crate::dataflow_layout::{DataflowBoxGeometry, DataflowEdgeRoute, DataflowLayoutConfig, DataflowLayoutEdge};
+use crate::layout::{DataflowBoxGeometry, DataflowEdgeRoute, DataflowLayoutConfig, DataflowLayoutEdge};
 use ortho_router::{Connector, Options, Point, Port, Rect, Router, Side};
 use std::collections::BTreeSet;
 

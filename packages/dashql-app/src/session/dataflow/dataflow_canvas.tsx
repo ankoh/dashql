@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql-core';
 import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3';
 
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
@@ -42,6 +43,7 @@ import {
     type DataflowSelection,
 } from './dataflow_scene.js';
 import { createFlowScript, deleteFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
+import { useDataflowModule } from './dataflow_module.js';
 import * as styles from './dataflow.module.css';
 
 const FitIcon = SymbolIcon('graph_align');
@@ -58,11 +60,13 @@ const RESIZE_KEY_STEP = 16;
 export interface DataflowCanvasDependencies {
     useQueryState: typeof useQueryState;
     VisualizationDispatch: typeof VisualizationDispatch;
+    useDataflowModule: typeof useDataflowModule;
 }
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
     useQueryState,
     VisualizationDispatch,
+    useDataflowModule,
 };
 
 interface Props {
@@ -110,7 +114,20 @@ function truncate(text: string, length: number): string {
 /// reload shows the same layout. Arrange lays out every box anew.
 export function DataflowCanvas(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const { sessionScripts, modifySessionScripts } = props;
+    // The layout is a wasm module of its own, loaded with the first canvas
+    const { layout, error } = dependencies.useDataflowModule();
+    if (layout == null) {
+        return (
+            <div className={styles.viewport} data-testid="dataflow-loading">
+                <div className={styles.empty}>{error != null ? `The layout of the dataflow failed to load: ${error.message}` : 'Loading the layout of the dataflow…'}</div>
+            </div>
+        );
+    }
+    return <DataflowCanvasView {...props} dependencies={dependencies} layoutModule={layout} />;
+}
+
+function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDependencies; layoutModule: core.DashQLDataflow }): React.ReactElement {
+    const { sessionScripts, modifySessionScripts, dependencies, layoutModule } = props;
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
     const svgRef = React.useRef<SVGSVGElement | null>(null);
     const sceneRef = React.useRef<SVGGElement | null>(null);
@@ -184,7 +201,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         // Parts of the graph without any position are packed for the shape of the viewport
         const viewport = viewportRef.current;
         const aspectRatio = viewport != null && viewport.clientHeight > 0 ? viewport.clientWidth / viewport.clientHeight : undefined;
-        const result = sessionScripts.instance.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { ...DATAFLOW_LAYOUT, aspectRatio });
+        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { ...DATAFLOW_LAYOUT, aspectRatio });
         const boxes = result.boxes;
         const rect = (i: number) => ({ x: boxes[i].x, y: boxes[i].y, width: boxes[i].width, height: boxes[i].height });
         const laidOut = new Map(result.routes.map(r => [
@@ -202,7 +219,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
             if (p != null) placedInputs.set(input.name, { x: p.x, y: p.y });
         });
         return { boxes, laidOut };
-    }, [graph, scriptOf, chartStatement, arrangeRevision, sessionScripts.instance]);
+    }, [graph, scriptOf, chartStatement, arrangeRevision, layoutModule]);
     const positions = layout.boxes;
 
     // After a drop or a resize, every script box is saved in its `@flow` tag: a reload lays out from there and shows
@@ -245,8 +262,8 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     // The edges between boxes go around the other boxes, routed by the core
     // Edges follow the routes of the layout, the edges of a dragged or resized box are routed around the boxes
     const routing: DataflowRouting = React.useMemo(
-        () => ({ laidOut: layout.laidOut, route: (boxes, edges) => sessionScripts.instance.routeDataflowEdges(boxes, edges) }),
-        [layout, sessionScripts.instance],
+        () => ({ laidOut: layout.laidOut, route: (boxes, edges) => layoutModule.routeDataflowEdges(boxes, edges) }),
+        [layout, layoutModule],
     );
     const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, routing), [graph, shown, chartStatement, isCollapsed, routing]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box

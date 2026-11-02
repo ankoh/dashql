@@ -1,6 +1,5 @@
 # The view model of Hyper query plans: parses the JSON plans of Hyper and lays them out as a tree for the plan
-# renderer of the app, and the layout of the dataflow canvas. Independent of the SQL core, it shares only the
-# FlatBuffers bindings.
+# renderer of the app. Independent of the SQL core, it shares only the FlatBuffers bindings.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
@@ -16,10 +15,6 @@ rust_library(
     deps = [
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
-        "@core_crates//:org-eclipse-elk-alg-layered",
-        "@core_crates//:org-eclipse-elk-core",
-        "@core_crates//:org-eclipse-elk-graph",
-        "@core_crates//:ortho-router",
         "@core_crates//:serde_json",
     ],
 )

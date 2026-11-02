@@ -7,16 +7,22 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
 import { analyzedTestSession, withTestScript } from './dataflow_test_session.js';
+import { loadDataflowModule } from './dataflow_module.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+let layout: core.DashQLDataflow;
+beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    layout = await loadDataflowModule();
+});
 
 const dependencies: DataflowCanvasDependencies = {
     useQueryState: () => null,
     VisualizationDispatch: () => <div data-testid="chart" />,
+    useDataflowModule: () => ({ layout, error: null }),
 };
 
 describe('DataflowCanvas', () => {
@@ -49,6 +55,16 @@ describe('DataflowCanvas', () => {
     const key = (fileName: string) => session.scriptRefs[fileName].scriptId;
     const box = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-box="${key(fileName)}"]`)!;
     const ports = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-ports="${key(fileName)}"]`)!;
+
+    it('waits for the layout module and tells when it failed to load', () => {
+        const loading = { ...dependencies, useDataflowModule: () => ({ layout: null, error: null }) };
+        act(() => root.render(<DataflowCanvas sessionScripts={session} modifySessionScripts={modify} dependencies={loading} />));
+        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('Loading the layout of the dataflow…');
+        expect(container.querySelector('[data-dataflow-box]')).toBeNull();
+        const failed = { ...dependencies, useDataflowModule: () => ({ layout: null, error: new Error('offline') }) };
+        act(() => root.render(<DataflowCanvas sessionScripts={session} modifySessionScripts={modify} dependencies={failed} />));
+        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('The layout of the dataflow failed to load: offline');
+    });
 
     it('draws a box per script with its statements and the edges between them', () => {
         render();

@@ -12,24 +12,36 @@ filegroup(
     srcs = glob(["src/**/*.ts"]),
 )
 
-# The wasm-bindgen module of the Rust core. The glue loads `dashql_core_bg.wasm` by default, the
-# package ships the module as `dashql_core.wasm`.
+# The wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas. The glue loads
+# `<name>_bg.wasm` by default, the package ships the modules as `dashql_core.wasm` and `dashql_dataflow.wasm`.
 genrule(
     name = "wasm_assets",
     srcs = [
         "//packages/dashql-core-wasm:dashql_core_bindgen",
         "//packages/dashql-core-wasm:core_wasm",
+        "//packages/dashql-dataflow-wasm:dashql_dataflow_bindgen",
+        "//packages/dashql-dataflow-wasm:dataflow_wasm",
     ],
-    outs = ["src/wasm/dashql_core.js", "src/wasm/dashql_core.d.ts", "src/wasm/dashql_core.wasm"],
+    outs = [
+        "src/wasm/dashql_core.js",
+        "src/wasm/dashql_core.d.ts",
+        "src/wasm/dashql_core.wasm",
+        "src/wasm/dashql_dataflow.js",
+        "src/wasm/dashql_dataflow.d.ts",
+        "src/wasm/dashql_dataflow.wasm",
+    ],
     cmd = """
-        for src in $(locations //packages/dashql-core-wasm:dashql_core_bindgen); do
+        for src in $(locations //packages/dashql-core-wasm:dashql_core_bindgen) $(locations //packages/dashql-dataflow-wasm:dashql_dataflow_bindgen); do
             case "$$src" in
                 */dashql_core.js) sed 's/dashql_core_bg[.]wasm/dashql_core.wasm/g' "$$src" > "$(RULEDIR)/src/wasm/dashql_core.js" ;;
+                */dashql_dataflow.js) sed 's/dashql_dataflow_bg[.]wasm/dashql_dataflow.wasm/g' "$$src" > "$(RULEDIR)/src/wasm/dashql_dataflow.js" ;;
                 # Symbol.dispose needs lib esnext.disposable, which ES2022 consumers lack
                 */dashql_core.d.ts) sed '/[[]Symbol[.]dispose[]]/d' "$$src" > "$(RULEDIR)/src/wasm/dashql_core.d.ts" ;;
+                */dashql_dataflow.d.ts) sed '/[[]Symbol[.]dispose[]]/d' "$$src" > "$(RULEDIR)/src/wasm/dashql_dataflow.d.ts" ;;
             esac
         done
         cp "$(location //packages/dashql-core-wasm:core_wasm)" "$(RULEDIR)/src/wasm/dashql_core.wasm"
+        cp "$(location //packages/dashql-dataflow-wasm:dataflow_wasm)" "$(RULEDIR)/src/wasm/dashql_dataflow.wasm"
     """,
 )
 

@@ -1,0 +1,43 @@
+# The wasm module of the dataflow canvas layout, shipped by @ankoh/dashql-core next to the core module. The app loads
+# it when it opens the dataflow canvas, the core module stays without ELK.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
+
+rust_shared_library(
+    name = "dashql_dataflow_wasm",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_dataflow_wasm",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [
+        "//packages/dashql-dataflow:dashql_dataflow",
+        "@core_crates//:wasm-bindgen",
+    ],
+)
+
+# The wasm_file attribute transitions to wasm32, independent of the host --platforms.
+rust_wasm_bindgen(
+    name = "dashql_dataflow_bindgen",
+    out_name = "dashql_dataflow",
+    target = "web",
+    visibility = ["//visibility:public"],
+    wasm_file = ":dashql_dataflow_wasm",
+)
+
+wasm_bindgen_module(
+    name = "dashql_dataflow_bindgen_wasm",
+    bindgen = ":dashql_dataflow_bindgen",
+)
+
+# Release: wasm-opt -O3 + strip; dev: copy through unchanged.
+optimize_wasm(
+    name = "dataflow_wasm",
+    src = ":dashql_dataflow_bindgen_wasm",
+    out = "dashql_dataflow_bg.wasm",
+    visibility = ["//visibility:public"],
+)

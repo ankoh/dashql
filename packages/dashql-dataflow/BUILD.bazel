@@ -1,0 +1,28 @@
+# The layout of the dataflow canvas: ELK (elk-rs) places the script boxes and routes the edges between them, and
+# orthogonal routes go around boxes at any position. Built natively for the snapshots and into its own wasm module
+# (//packages/dashql-dataflow-wasm), so that the core module does not carry ELK.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "dashql_dataflow",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_dataflow",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@core_crates//:org-eclipse-elk-alg-layered",
+        "@core_crates//:org-eclipse-elk-core",
+        "@core_crates//:org-eclipse-elk-graph",
+        "@core_crates//:ortho-router",
+    ],
+)
+
+rust_test(
+    name = "dashql_dataflow_unit_tests",
+    size = "small",
+    crate = ":dashql_dataflow",
+)

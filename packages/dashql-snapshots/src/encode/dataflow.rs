@@ -10,7 +10,7 @@ use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
 use crate::ryml::Node;
 use dashql_core_session::dataflow::{derive_session_dataflow, Dataflow, DataflowEdgeKind};
-use dashql_core_view::dataflow_layout::{compute_dataflow_layout, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
+use dashql_dataflow::layout::{compute_dataflow_layout, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
 use yaml_rust2::Yaml;
 
 /// Derive the dataflow of a fixture and encode it

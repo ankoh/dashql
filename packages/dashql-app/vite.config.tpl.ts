@@ -128,7 +128,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     server.ws.send({ type: 'full-reload' });
                 }, 500);
             };
-            const watched = [path.join(coreDir, 'index.js'), path.join(coreDir, 'wasm', 'dashql_core.wasm')];
+            const watched = [path.join(coreDir, 'index.js'), path.join(coreDir, 'wasm', 'dashql_core.wasm'), path.join(coreDir, 'wasm', 'dashql_dataflow.wasm')];
             for (const file of watched) nodeFs.watchFile(file, { interval: 1000 }, onCoreChanged);
             server.httpServer?.on('close', () => {
                 for (const file of watched) nodeFs.unwatchFile(file, onCoreChanged);
@@ -252,6 +252,10 @@ export default vite.defineConfig(({ mode, command }) => {
                 {
                     find: /^@ankoh\/dashql-core\/wasm(\?.*)?$/,
                     replacement: path.join(CORE_PATH, 'wasm/dashql_core.wasm') + "$1",
+                },
+                {
+                    find: /^@ankoh\/dashql-core\/dataflow-wasm(\?.*)?$/,
+                    replacement: path.join(CORE_PATH, 'wasm/dashql_dataflow.wasm') + "$1",
                 },
                 {
                     find: /^@ankoh\/dashql-shell-js(\?.*)?$/,

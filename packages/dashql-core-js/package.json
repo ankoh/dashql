@@ -19,6 +19,7 @@
     "./buffers": { "types": "./dist/buffers.d.ts", "import": "./dist/buffers.js" },
     "./browser-worker": { "types": "./dist/browser_worker.d.ts", "import": "./dist/browser_worker.js" },
     "./wasm": "./dist/wasm/dashql_core.wasm",
+    "./dataflow-wasm": "./dist/wasm/dashql_dataflow.wasm",
     "./wasm/glue": { "types": "./dist/wasm/dashql_core.d.ts", "import": "./dist/wasm/dashql_core.js" }
   },
   "files": ["dist", "README.md", "LICENSE", "NOTICE"],

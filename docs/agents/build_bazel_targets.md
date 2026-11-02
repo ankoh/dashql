@@ -53,11 +53,13 @@ bazel build //...
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) shipped by `dashql-core-js` |
+| `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `dashql-core-js`, loaded when the canvas opens |
 | `//packages/dashql-shell-wasm:shell_wasm` | Shell Wasm module (Rust, includes the core bindings) shipped by the app |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, catalog changes, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
-| `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans, the layout of the dataflow canvas |
+| `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans |
+| `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
@@ -105,7 +107,8 @@ bazel test //...
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
 | `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
-| `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests, dataflow layout unit tests |
+| `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests |
+| `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
@@ -333,7 +336,8 @@ bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test //pac
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-session:all \
-    //packages/dashql-core-shell:all //packages/dashql-core-view:all //packages/dashql-snapshots:all
+    //packages/dashql-core-shell:all //packages/dashql-core-view:all //packages/dashql-dataflow:all \
+    //packages/dashql-snapshots:all
 ```
 
 ### Core npm Package
@@ -352,8 +356,9 @@ bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
 bazel build --config=release //packages/dashql-core-js:npm_tarball
 ```
 
-The package targets depend directly on `//packages/dashql-core-wasm:core_wasm` and its
-wasm-bindgen glue (`:dashql_core_bindgen`) and build the TypeScript API around them. The release archive is
+The package targets depend directly on `//packages/dashql-core-wasm:core_wasm`,
+`//packages/dashql-dataflow-wasm:dataflow_wasm` and their wasm-bindgen glue (`:dashql_core_bindgen`,
+`:dashql_dataflow_bindgen`) and build the TypeScript API around them. The release archive is
 `bazel-bin/packages/dashql-core-js/dashql-core.tgz`. Trusted CI waits for the release
 Wasm build and requires that artifact to be available in the remote cache before
 packaging, so it does not rebuild the same Wasm action. It uploads the archive as
@@ -407,7 +412,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-shell-wasm`, `dashql-cli` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-shell-wasm`, `dashql-cli` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

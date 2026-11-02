@@ -49,9 +49,12 @@ edge from `":min"`, an attachment edge from its file
 
 The position of a script on the canvas is its `@flow x=.. y=..` tag, the size of its box the `width=..` and
 `height=..` of the tag, the width of the box and the height of its chart, see [vis_comments.md](vis_comments.md).
-`dataflow_layout::compute_dataflow_layout_with_routes` in `dashql-core-view` (core-js
-`computeDataflowLayoutWithRoutes`) lays out the boxes with the layered layout of the Eclipse Layout Kernel (elk-rs,
-`org-eclipse-elk-alg-layered`) and returns the routes of the edges between them. The layout has two levels:
+`layout::compute_dataflow_layout_with_routes` in `dashql-dataflow` (core-js
+`DashQLDataflow.computeDataflowLayoutWithRoutes`) lays out the boxes with the layered layout of the Eclipse Layout Kernel
+(elk-rs, `org-eclipse-elk-alg-layered`) and returns the routes of the edges between them. ELK makes the layout a wasm
+module of its own (`dashql-dataflow-wasm`, `dashql_dataflow.wasm` of `@ankoh/dashql-core`), the core module stays
+without it: the app loads the layout module when it opens the dataflow canvas and shows that it loads until then
+(`dataflow_module.ts`). The layout has two levels:
 
 - **Inside a box** the statements are stacked in script order below a header. The box of an input is one row below
   its header, 200px wide, a box with a chart (a Vega-Lite chart, a table or markdown) is 480px wide, so that the
@@ -82,7 +85,7 @@ A layout that starts from where an earlier one put every box reproduces it, posi
 snapshots lay out their boxes like the first render of the canvas: `@flow` tags are the positions and sizes, a
 visualized terminal statement gets its chart.
 
-`dataflow_routing::route_edges` (core-js `routeDataflowEdges`) routes edges around boxes at any position with
+`routing::route_edges` (core-js `DashQLDataflow.routeDataflowEdges`) routes edges around boxes at any position with
 ortho-router: orthogonal routes with few bends, a margin of 12 to the boxes, routes that share a channel spread
 apart. The canvas uses it while a box is dragged or resized.
 
