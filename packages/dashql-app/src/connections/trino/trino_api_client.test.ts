@@ -1,9 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
-import { TARGET_RESULT_SIZE } from './trino_api_client.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TARGET_RESULT_SIZE, TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
 
 const NEXT_URI = 'https://trino.example.com/v1/statement/executing/q1/y1/1';
+
+/// An API client without retry delays whose HTTP client answers the requests with the responses in order
+function retryingTrinoApi(attempts: number, responses: (() => Response)[]) {
+    const fetch = vi.fn(async (_input: URL | Request | string, _init?: RequestInit) => responses.shift()!());
+    const endpoint = new TrinoApiEndpoint('https://trino.example.com', { authType: 'AUTH_BASIC', basic: { username: 'user', secret: 'secret' } } as never);
+    const client = new TrinoApiClient(new TestLogger(), { fetch }, { attempts, initialDelayMs: 0, maxDelayMs: 0 });
+    return { fetch, endpoint, client };
+}
 
 describe('TrinoApiClient', () => {
     it('reads the info of a query', async () => {
@@ -22,6 +31,32 @@ describe('TrinoApiClient', () => {
             'https://trino.example.com/v1/statement/queued/q1/y1/1',
             `https://trino.example.com/v1/statement/executing/q1/y2/2?targetResultSize=${TARGET_RESULT_SIZE}`,
         ]);
+    });
+
+    it('retries rejected and failed requests of query results', async () => {
+        const { fetch, endpoint, client } = retryingTrinoApi(4, [
+            () => new Response('', { status: 503 }),
+            () => { throw new TypeError('Failed to fetch'); },
+            () => new Response('', { status: 502 }),
+            () => new Response(JSON.stringify({ id: 'q1', data: [[1]] })),
+        ]);
+        expect(await client.getQueryResult(endpoint, NEXT_URI)).toMatchObject({ id: 'q1', data: [[1]] });
+        expect(fetch).toHaveBeenCalledTimes(4);
+    });
+
+    it('gives up on query results after the last attempt and on other errors', async () => {
+        const unavailable = retryingTrinoApi(2, [() => new Response('', { status: 503 }), () => new Response('', { status: 504 })]);
+        await expect(unavailable.client.getQueryResult(unavailable.endpoint, NEXT_URI)).rejects.toMatchObject({ keyValues: { status: '504' } });
+        const missing = retryingTrinoApi(5, [() => new Response('', { status: 404 })]);
+        await expect(missing.client.getQueryResult(missing.endpoint, NEXT_URI)).rejects.toMatchObject({ keyValues: { status: '404' } });
+        expect(missing.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops retrying when the request is aborted', async () => {
+        const abort = new AbortController();
+        const { fetch, endpoint, client } = retryingTrinoApi(5, [() => { abort.abort(new Error('stop')); return new Response('', { status: 503 }); }]);
+        await expect(client.getQueryResult(endpoint, NEXT_URI, abort.signal)).rejects.toThrow('stop');
+        expect(fetch).toHaveBeenCalledTimes(1);
     });
 
     it('cancels a query by deleting its next URI', async () => {

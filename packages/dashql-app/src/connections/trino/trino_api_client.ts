@@ -1,7 +1,7 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
-import { HttpClient } from "../../platform/http/http_client.js";
+import { HttpClient, HttpFetchResult } from "../../platform/http/http_client.js";
 import { LoggableException, Logger } from "../../platform/logger/logger.js";
 import { dateToTimestamp } from '../proto_helper.js';
 
@@ -216,10 +216,13 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     logger: Logger;
     /// The http client
     httpClient: HttpClient;
+    /// The retries of failed requests of query results
+    retryPolicy: TrinoRetryPolicy;
 
-    constructor(logger: Logger, httpClient: HttpClient) {
+    constructor(logger: Logger, httpClient: HttpClient, retryPolicy: TrinoRetryPolicy = DEFAULT_TRINO_RETRY_POLICY) {
         this.logger = logger;
         this.httpClient = httpClient;
+        this.retryPolicy = retryPolicy;
     }
 
     /// Refresh the OAuth access token if it is about to expire
@@ -278,7 +281,8 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         return response;
     }
 
-    /// Get the query result batch
+    /// Get the query result batch.
+    /// Trino answers a repeated request of a next URI with the same page, so failed requests are retried.
     async getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
         this.logger.debug("Getting query results", { "nextUri": nextUri }, LOG_CTX);
         const url = new URL(nextUri);
@@ -286,21 +290,37 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         if (url.pathname.includes('/v1/statement/executing/')) {
             url.searchParams.set('targetResultSize', TARGET_RESULT_SIZE);
         }
-        const headers = await this.getHeaders(endpoint);
-        const rawResponse = await this.httpClient.fetch(url, {
-            method: 'GET',
-            headers,
-            signal: abort,
-        });
-        if (rawResponse.status != 200) {
+        for (let attempt = 1; ; ++attempt) {
+            const retriesLeft = attempt < this.retryPolicy.attempts;
+            let rawResponse: HttpFetchResult;
+            try {
+                const headers = await this.getHeaders(endpoint);
+                rawResponse = await this.httpClient.fetch(url, {
+                    method: 'GET',
+                    headers,
+                    signal: abort,
+                });
+            } catch (e: any) {
+                // Retry requests that failed in the network
+                if (!retriesLeft || abort?.aborted) throw e;
+                this.logger.warn("Retrying a failed request of query results", { "attempt": attempt.toString(), "error": String(e) }, LOG_CTX);
+                await sleepUnlessAborted(retryDelayMs(this.retryPolicy, attempt), abort);
+                continue;
+            }
+            if (rawResponse.status == 200) {
+                return await rawResponse.json() as TrinoQueryResult;
+            }
+            // Retry responses of a busy or restarting coordinator or gateway
+            if (retriesLeft && RETRIED_STATUS_CODES.has(rawResponse.status)) {
+                this.logger.warn("Retrying a rejected request of query results", { "attempt": attempt.toString(), "status": rawResponse.status.toString() }, LOG_CTX);
+                await sleepUnlessAborted(retryDelayMs(this.retryPolicy, attempt), abort);
+                continue;
+            }
             throw new LoggableException(`Failed to fetch query results`, {
                 status: rawResponse.status.toString(),
                 message: rawResponse.statusText.toString()
             }, LOG_CTX);
         }
-        const responseJson = await rawResponse.json() as TrinoQueryResult;
-        const response = responseJson as TrinoQueryResult;
-        return response;
     }
 
     /// Get a query info
@@ -339,6 +359,47 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             }, LOG_CTX);
         }
     }
+}
+
+/// The status codes of requests that are retried: too many requests, bad gateway, service unavailable, gateway timeout
+const RETRIED_STATUS_CODES = new Set([429, 502, 503, 504]);
+
+/// The retries of failed requests of query results
+export interface TrinoRetryPolicy {
+    /// The number of attempts, including the first one
+    attempts: number;
+    /// The delay before the first retry, it doubles with every retry
+    initialDelayMs: number;
+    /// The maximum delay between retries
+    maxDelayMs: number;
+}
+
+/// Retry for about 20 seconds before failing a query
+export const DEFAULT_TRINO_RETRY_POLICY: TrinoRetryPolicy = {
+    attempts: 10,
+    initialDelayMs: 100,
+    maxDelayMs: 3000,
+};
+
+/// The delay after the failed attempt
+function retryDelayMs(policy: TrinoRetryPolicy, attempt: number): number {
+    return Math.min(policy.initialDelayMs * 2 ** (attempt - 1), policy.maxDelayMs);
+}
+
+/// Sleep, an abort ends the sleep with the abort reason
+async function sleepUnlessAborted(ms: number, abort?: AbortSignal): Promise<void> {
+    abort?.throwIfAborted();
+    await new Promise<void>((resolve, reject) => {
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(abort!.reason);
+        };
+        const timer = setTimeout(() => {
+            abort?.removeEventListener('abort', onAbort);
+            resolve();
+        }, ms);
+        abort?.addEventListener('abort', onAbort, { once: true });
+    });
 }
 
 /// Helper to add auth headers based on auth type
