@@ -48,6 +48,7 @@ describe('DataflowCanvas', () => {
     ));
     const key = (fileName: string) => session.scriptRefs[fileName].scriptId;
     const box = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-box="${key(fileName)}"]`)!;
+    const ports = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-ports="${key(fileName)}"]`)!;
 
     it('draws a box per script with its statements and the edges between them', () => {
         render();
@@ -91,7 +92,10 @@ describe('DataflowCanvas', () => {
         expect(highlights.length).toBe(1);
         expect(report.compareDocumentPosition(highlights[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(container.querySelector('[data-dataflow-highlight-layer] [data-dataflow-badge]')?.getAttribute('data-highlighted')).toBe('true');
-        expect(report.querySelector('[data-dataflow-port="input"]')?.getAttribute('data-highlighted')).toBe('true');
+        // The ports are drawn on top of the highlighted edges
+        const port = ports('report.sql').querySelector('[data-dataflow-port="input"]')!;
+        expect(port.getAttribute('data-highlighted')).toBe('true');
+        expect(highlights[0].compareDocumentPosition(port) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         await move(hit, svg);
         expect(container.querySelectorAll('[data-dataflow-edge-highlight]').length).toBe(0);
         expect(container.querySelectorAll('[data-dataflow-badge]').length).toBe(1);
@@ -103,7 +107,7 @@ describe('DataflowCanvas', () => {
         act(() => insert.dispatchEvent(new MouseEvent('click', { bubbles: true })));
         expect(insert.getAttribute('data-selected')).toBe('true');
         expect(container.querySelectorAll('[data-dataflow-edge-highlight]').length).toBe(2);
-        expect(box('report.sql').querySelector('[data-dataflow-port="input"]')?.getAttribute('data-highlighted')).toBe('true');
+        expect(ports('report.sql').querySelector('[data-dataflow-port="input"]')?.getAttribute('data-highlighted')).toBe('true');
     });
 
     it('writes the position of a dragged box into its @vis flow tag', () => {

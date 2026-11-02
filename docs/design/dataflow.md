@@ -103,7 +103,8 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   are dashed, the relation of a table edge is a badge. Edges between boxes and their badges pass behind the cards, the
   edges between the rows of one box run on its card. Selecting a box, a statement or an input, or hovering a box,
   redraws its edges and their badges in the highlight layer on top of the boxes and highlights their ports, a drag
-  drops the hover. Charts are `foreignObject`s below their statement, on the card without a frame of their
+  drops the hover. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under
+  its port. Charts are `foreignObject`s below their statement, on the card without a frame of their
   own. A Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
   horizontal x labels and no legends, fitted into the card with an 8px inset. d3-zoom pans and zooms, below half the
   size every box is drawn collapsed.

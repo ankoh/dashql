@@ -449,7 +449,6 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 sessionId={sessionScripts.sessionId}
                                 script={sessionScripts.scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
-                                highlighted={highlighted}
                                 dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
                                 dependencies={dependencies}
                                 onHandleDown={onHandleDown}
@@ -467,7 +466,6 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                                 box={box}
                                 input={sessionInputs.find(i => i.name === box.input.name) ?? null}
                                 selected={selection?.input === box.input.name}
-                                highlighted={highlighted.length > 0 && highlighted.some(e => e.input === box.input.name)}
                                 dragging={drag?.node === nodeKeyOfInput(box.input.name)}
                                 busy={busyInputs.has(box.input.name)}
                                 onHandleDown={onInputHandleDown}
@@ -482,6 +480,17 @@ export function DataflowCanvas(props: Props): React.ReactElement {
                     <g className={graphStyles.edgeHighlightLayer} aria-hidden="true" data-dataflow-highlight-layer>
                         {highlighted.map(renderHighlight)}
                         {highlighted.filter(e => !e.internal).map(renderBadge)}
+                    </g>
+                    {/* The ports are drawn on top of the highlighted edges that end in them */}
+                    <g aria-hidden="true" data-dataflow-port-layer>
+                        {scene.boxes.map(box => <DataflowBoxPorts key={box.script.scriptKey} box={box} highlighted={highlighted} />)}
+                        {scene.inputs.map(box => (
+                            <DataflowInputPorts
+                                key={box.input.name}
+                                box={box}
+                                highlighted={highlighted.length > 0 && highlighted.some(e => e.input === box.input.name)}
+                            />
+                        ))}
                     </g>
                 </g>
             </svg>
@@ -506,7 +515,6 @@ interface BoxProps {
     sessionId: string;
     script: ScriptData | undefined;
     selection: DataflowSelection | null;
-    highlighted: DataflowSceneEdge[];
     dragging: boolean;
     dependencies: DataflowCanvasDependencies;
     onHandleDown: (event: React.PointerEvent, box: DataflowSceneBox) => void;
@@ -519,6 +527,50 @@ interface BoxProps {
     onCreateDownstream: (box: DataflowSceneBox) => void;
 }
 
+/// The ports of a script box: one per side of a collapsed box, the ports of the statement rows otherwise
+function DataflowBoxPorts(props: { box: DataflowSceneBox; highlighted: DataflowSceneEdge[] }): React.ReactElement {
+    const { box } = props;
+    const config = DATAFLOW_LAYOUT;
+    const scriptKey = box.script.scriptKey;
+    const touches = (statementId: number | null, side: 'from' | 'to') => props.highlighted.some(edge => {
+        const port = edge[side];
+        return port.scriptKey === scriptKey && (statementId == null || port.statementId === statementId);
+    });
+    if (box.collapsed) {
+        const y = box.y + config.headerHeight / 2;
+        return (
+            <g data-dataflow-ports={scriptKey}>
+                {box.input && <GraphPort x={box.x} y={y} side="left" highlighted={touches(null, 'to')} data-dataflow-port="input" />}
+                {box.output && <GraphPort x={box.x + box.width} y={y} side="right" highlighted={touches(null, 'from')} data-dataflow-port="output" />}
+            </g>
+        );
+    }
+    return (
+        <g data-dataflow-ports={scriptKey}>
+            {box.rows.map(row => {
+                const id = row.statement.statementId;
+                const y = row.y + config.rowHeight / 2;
+                return (
+                    <React.Fragment key={id}>
+                        {row.input && <GraphPort x={box.x + config.rowPadding} y={y} side="left" highlighted={touches(id, 'to')} data-dataflow-port="input" />}
+                        {row.output && <GraphPort x={box.x + box.width - config.rowPadding} y={y} side="right" highlighted={touches(id, 'from')} data-dataflow-port="output" />}
+                    </React.Fragment>
+                );
+            })}
+        </g>
+    );
+}
+
+/// The output port of an input box, on its header when collapsed and on its value row otherwise
+function DataflowInputPorts(props: { box: DataflowSceneInput; highlighted: boolean }): React.ReactElement | null {
+    const { box } = props;
+    const config = DATAFLOW_LAYOUT;
+    if (!box.output) return null;
+    const y = box.collapsed ? box.y + config.headerHeight / 2 : box.rowY + config.rowHeight / 2;
+    const x = box.collapsed ? box.x + box.width : box.x + box.width - config.rowPadding;
+    return <GraphPort x={x} y={y} side="right" highlighted={props.highlighted} data-dataflow-port="output" />;
+}
+
 /// The status of the last run of a script
 function runStatus(status: QueryExecutionStatus | undefined): 'running' | 'succeeded' | 'failed' | 'idle' {
     if (status == null) return 'idle';
@@ -527,7 +579,8 @@ function runStatus(status: QueryExecutionStatus | undefined): 'running' | 'succe
     return 'running';
 }
 
-/// A script box: the header with the name and the actions, the statement rows with their ports, and the chart
+/// A script box: the header with the name and the actions, the statement rows, and the chart. The ports are drawn
+/// by `DataflowBoxPorts` in a layer of their own.
 function DataflowBox(props: BoxProps): React.ReactElement {
     const { box, script } = props;
     const config = DATAFLOW_LAYOUT;
@@ -535,10 +588,6 @@ function DataflowBox(props: BoxProps): React.ReactElement {
     const status = runStatus(query?.status);
     const name = scriptDisplayName(box.script.fileName);
     const scriptKey = box.script.scriptKey;
-    const touches = (statementId: number | null, side: 'from' | 'to') => props.highlighted.some(edge => {
-        const port = edge[side];
-        return port.scriptKey === scriptKey && (statementId == null || port.statementId === statementId);
-    });
     const terminal = box.rows.length - 1;
     const result = query?.resultTable;
     const actions = [
@@ -632,13 +681,9 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                         <text className={styles.label} x={box.x + config.rowPadding + 16 + badgeWidth} y={row.y + config.rowHeight / 2}>
                             {truncate(row.statement.label, MAX_LABEL_CHARS - badge.length)}
                         </text>
-                        {row.input && <GraphPort x={box.x + config.rowPadding} y={row.y + config.rowHeight / 2} side="left" highlighted={touches(id, 'to')} data-dataflow-port="input" />}
-                        {row.output && <GraphPort x={box.x + box.width - config.rowPadding} y={row.y + config.rowHeight / 2} side="right" highlighted={touches(id, 'from')} data-dataflow-port="output" />}
                     </g>
                 );
             })}
-            {box.collapsed && box.input && <GraphPort x={box.x} y={box.y + config.headerHeight / 2} side="left" highlighted={touches(null, 'to')} data-dataflow-port="input" />}
-            {box.collapsed && box.output && <GraphPort x={box.x + box.width} y={box.y + config.headerHeight / 2} side="right" highlighted={touches(null, 'from')} data-dataflow-port="output" />}
             {box.chart != null && script?.annotations.visualizeQuery != null && (
                 <foreignObject x={box.chart.x} y={box.chart.y} width={box.chart.width} height={box.chart.height} className={styles.chart}>
                     <div className={styles.chart_body}>
@@ -686,7 +731,6 @@ interface InputBoxProps {
     /// The input of the session, null while the inputs follow the graph
     input: SessionInput | null;
     selected: boolean;
-    highlighted: boolean;
     dragging: boolean;
     busy: boolean;
     onHandleDown: (event: React.PointerEvent, box: DataflowSceneInput) => void;
@@ -705,8 +749,6 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
     const input: DataflowInput = box.input;
     const name = input.name;
     const select = () => props.onSelect({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: name });
-    const portY = box.collapsed ? box.y + config.headerHeight / 2 : box.rowY + config.rowHeight / 2;
-    const portX = box.collapsed ? box.x + box.width : box.x + box.width - config.rowPadding;
     return (
         <g
             className={styles.box}
@@ -742,7 +784,6 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
                     <SessionInputCard input={props.input} variant="block" busy={props.busy} literalOf={props.literalOf} onCommit={props.onCommit} />
                 </foreignObject>
             )}
-            {box.output && <GraphPort x={portX} y={portY} side="right" highlighted={props.highlighted} data-dataflow-port="output" />}
         </g>
     );
 }
