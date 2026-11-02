@@ -285,8 +285,9 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         const behavior = zoom<SVGSVGElement, unknown>()
             .scaleExtent([0.1, 2])
             .clickDistance(4)
-            .filter(event => (!event.ctrlKey || event.type === 'wheel') && !event.button
-                && !(event.target instanceof Element && event.target.closest('button, [role="button"], foreignObject')))
+            // A pinch on a touchpad is a wheel with ctrlKey and zooms the canvas over the rows and charts too
+            .filter(event => (event.type === 'wheel' && event.ctrlKey) || (!event.ctrlKey && !event.button
+                && !(event.target instanceof Element && event.target.closest('button, [role="button"], foreignObject'))))
             .on('zoom', event => {
                 transformRef.current = event.transform;
                 sceneRef.current?.setAttribute('transform', event.transform.toString());
@@ -296,6 +297,22 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         return () => {
             select(svg).on('.zoom', null);
             zoomRef.current = null;
+        };
+    }, []);
+    // A pinch never zooms the page while the canvas is open, wherever the pointer is.
+    // Chromium sends a pinch as a wheel with ctrlKey, Safari as gesture events.
+    React.useEffect(() => {
+        const prevent = (event: Event) => {
+            if (event.type !== 'wheel' || (event as WheelEvent).ctrlKey) event.preventDefault();
+        };
+        const options = { capture: true, passive: false };
+        document.addEventListener('wheel', prevent, options);
+        document.addEventListener('gesturestart', prevent, options);
+        document.addEventListener('gesturechange', prevent, options);
+        return () => {
+            document.removeEventListener('wheel', prevent, options);
+            document.removeEventListener('gesturestart', prevent, options);
+            document.removeEventListener('gesturechange', prevent, options);
         };
     }, []);
     // Fit once the first boxes are placed

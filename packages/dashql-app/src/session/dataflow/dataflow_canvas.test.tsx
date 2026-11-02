@@ -66,6 +66,30 @@ describe('DataflowCanvas', () => {
         expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('The layout of the dataflow failed to load: offline');
     });
 
+    it('zooms the canvas instead of the page on a pinch', () => {
+        render();
+        const wheel = (target: Element, ctrlKey: boolean) => {
+            const event = new WheelEvent('wheel', { deltaY: -40, ctrlKey, bubbles: true, cancelable: true, clientX: 100, clientY: 100 });
+            act(() => { target.dispatchEvent(event); });
+            return event.defaultPrevented;
+        };
+        // A pinch anywhere on the page is kept from the page, a scroll is not
+        expect(wheel(document.body, true)).toBe(true);
+        expect(wheel(document.body, false)).toBe(false);
+        // A pinch over a statement zooms the canvas, a scroll over it does not
+        const scene = container.querySelector('svg > g')!;
+        const statement = box('report.sql').querySelector('[data-dataflow-statement]')!;
+        const before = scene.getAttribute('transform');
+        expect(wheel(statement, false)).toBe(false);
+        expect(scene.getAttribute('transform')).toBe(before);
+        expect(wheel(statement, true)).toBe(true);
+        expect(scene.getAttribute('transform')).not.toBe(before);
+        // The page zooms again once the canvas is closed
+        act(() => root.unmount());
+        root = createRoot(container);
+        expect(wheel(document.body, true)).toBe(false);
+    });
+
     it('draws a box per script with its statements and the edges between them', () => {
         render();
         expect(box('schema.sql')).not.toBeNull();
