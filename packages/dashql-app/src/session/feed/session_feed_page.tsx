@@ -16,7 +16,7 @@ import { SessionNavigationDrawer } from '../session_navigation_drawer.js';
 import { SessionWorkbenchSidebar } from '../session_workbench_sidebar.js';
 import { SessionURLShareOverlay } from '../persistence/session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from '../persistence/session_file_save_overlay.js';
-import { ScriptDetails, TabKey as DetailsTabKey } from '../scripts/script_details.js';
+import { ScriptDetails } from '../scripts/script_details.js';
 import { SessionFeed } from './session_feed.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
@@ -94,11 +94,11 @@ interface Props {
 
 export const SessionFeedPage: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    // The composer of the feed renames the references in its draft, also for renames in the details
+    // The composer of the feed renames the references in its draft, also for renames in the dataflow inspector
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
-    // The details belong to the session they were opened in and close when another session is selected.
-    // Details of a script that is gone show the feed again, an empty pane would hide the feed without a way out.
-    const [details, setDetails] = React.useState<{ sessionId: string; scriptId: number; initialTab?: DetailsTabKey } | null>(null);
+    // The script that the dataflow inspector shows. It belongs to the session it was opened in and closes
+    // when another session is selected or the script is gone.
+    const [details, setDetails] = React.useState<{ sessionId: string; scriptId: number } | null>(null);
     const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId
         && props.sessionScripts.scripts[details.scriptId] != null;
     React.useEffect(() => setDetails(null), [props.sessionScripts.sessionId]);
@@ -147,18 +147,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     ];
     const activeView = dashboardActive ? SessionViewMode.Dashboard : dataflowActive ? SessionViewMode.Dataflow : SessionViewMode.Session;
     const overviewActive = overviewConnectionId != null;
-    const feedActive = props.active && !dashboardActive && !dataflowActive && !showDetails && !overviewActive;
-    // Stable since it is passed into the callbacks of every feed row
-    const latestSessionScripts = React.useRef(props.sessionScripts);
-    latestSessionScripts.current = props.sessionScripts;
-    const openDetails = React.useCallback((fileName?: string, initialTab?: DetailsTabKey) => {
-        const sessionScripts = latestSessionScripts.current;
-        const targetFileName = fileName ?? sessionScripts.scriptFocus.fileName;
-        const scriptId = sessionScripts.scriptRefs[targetFileName]?.scriptId;
-        if (scriptId == null) return;
-        setDetails({ sessionId: sessionScripts.sessionId, scriptId, initialTab });
-        setOverviewConnectionId(null);
-    }, []);
+    const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive;
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.SessionWorkbenchSidebar
             sessionScripts={props.sessionScripts}
@@ -183,7 +172,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         size={SegmentedControlSize.Small}
                         onChange={(selectedIndex) => {
                             setOverviewConnectionId(null);
-                            // The details of the feed and the inspector of the dataflow belong to their view
+                            // The inspector belongs to the dataflow view
                             setDetails(null);
                             setMode(views[selectedIndex]?.[0] ?? SessionViewMode.Session);
                         }}
@@ -288,32 +277,10 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             modifySessionScripts={props.modifySessionScripts}
                             draftRenameRef={draftRenameRef}
                             active={feedActive}
-                            showDetails={openDetails}
                             conn={props.connection}
                             scriptConnections={props.scriptConnections}
                         />
                     </div>
-                    {!dashboardActive && !dataflowActive && !overviewActive && showDetails
-                                ? <dependencies.ScriptDetails
-                                    sessionScripts={props.sessionScripts}
-                                    modifySessionScripts={props.modifySessionScripts}
-                                    draftRenameRef={draftRenameRef}
-                                    connection={props.connection}
-                                    scriptConnections={props.scriptConnections}
-                                    hideDetails={() => setDetails(null)}
-                                    scriptId={details.scriptId}
-                                    initialTab={details.initialTab}
-                                    navigateToScript={(scriptKey) => {
-                                        const target = props.sessionScripts.scripts[scriptKey];
-                                        if (!target?.fileName) return;
-                                        props.modifySessionScripts({
-                                            type: SELECT_SCRIPT,
-                                            value: target.fileName,
-                                        });
-                                        setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey });
-                                    }}
-                                />
-                                : null}
                     {overviewConnectionId != null && (
                         <dependencies.ConnectionOverviewPage
                             connectionId={overviewConnectionId}
@@ -346,7 +313,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                         scriptConnections={props.scriptConnections}
                                         hideDetails={() => setDetails(null)}
                                         scriptId={details.scriptId}
-                                        initialTab={details.initialTab}
                                         navigateToScript={(scriptKey) => {
                                             const target = props.sessionScripts.scripts[scriptKey];
                                             if (!target?.fileName) return;

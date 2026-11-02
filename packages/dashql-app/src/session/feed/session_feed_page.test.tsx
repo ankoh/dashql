@@ -532,38 +532,34 @@ describe('SessionFeedPage', () => {
         expect(container.querySelector('[data-testid="dataflow-inspector"]')).toBeNull();
     });
 
-    it('closes the script details when another session is selected', () => {
+    it('closes the dataflow inspector when another session is selected', () => {
+        state.dataflowEnabled = true;
+        state.mode = SessionViewMode.Dataflow;
         const ScriptDetails = vi.fn(() => <div data-testid="script-details" />);
         const render = (sessionId: string) => act(() => root.render(<SessionFeedPage
             sessionScripts={{ ...scripts(), sessionId }} modifySessionScripts={vi.fn()} connection={null} active
             dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />));
         render('session');
-        act(() => state.feedProps.showDetails('01_alpha.sql'));
+        act(() => state.dataflowProps.onInspect(1));
         expect(container.querySelector('[data-testid="script-details"]')).not.toBeNull();
-        expect(state.feedProps.active).toBe(false);
         render('other');
         expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
-        expect(state.feedProps.active).toBe(true);
-        // Coming back shows the feed, not the details that were open before
+        // Coming back does not reopen the inspector
         render('session');
         expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
-        expect(state.feedProps.active).toBe(true);
     });
 
-    it('shows the feed when the script of the details is gone', () => {
+    it('closes the dataflow inspector when its script is gone', () => {
+        state.dataflowEnabled = true;
+        state.mode = SessionViewMode.Dataflow;
         const ScriptDetails = vi.fn(() => <div data-testid="script-details" />);
         const render = (sessionScripts: any) => act(() => root.render(<SessionFeedPage
             sessionScripts={sessionScripts} modifySessionScripts={vi.fn()} connection={null} active
             dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />));
         render(scripts());
-        act(() => state.feedProps.showDetails('01_alpha.sql'));
+        act(() => state.dataflowProps.onInspect(1));
         expect(container.querySelector('[data-testid="script-details"]')).not.toBeNull();
         render({ ...scripts(), scriptRefs: {}, scriptOrder: [], scripts: {} });
         expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
-        expect(state.feedProps.active).toBe(true);
-        // Details of a script that the session does not know do not open
-        act(() => state.feedProps.showDetails('99_missing.sql'));
-        expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
-        expect(state.feedProps.active).toBe(true);
     });
 });

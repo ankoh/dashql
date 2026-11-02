@@ -181,9 +181,8 @@ interface FeedEntryFooterProps {
     visualizeQuery: ResolvedVisualizeQuery | null;
     /// The tab to show, picked in the tab strip of the entry status bar
     selectedTab: FeedEntryTab;
-    onShowStatus?: () => void;
+    /// Open the full result table, makes the header and the column names of the preview clickable
     onShowTable?: () => void;
-    onShowVisualization?: () => void;
     dependencies?: FeedEntryFooterDependencies;
 }
 
@@ -202,7 +201,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 traceId={queryTraceId}
                 title="Execution Logs"
                 maxRows={FEED_LIMIT_LOG_ROWS}
-                onHeaderClick={props.onShowStatus}
             />
         );
         case FeedEntryTab.Table: return props.queryState == null ? null : (
@@ -229,7 +227,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 <TabHeader
                     title="Visualization"
                     detail={pointCountDetail}
-                    onClick={props.onShowVisualization}
                     actions={props.queryState != null && props.visualizeQuery?.renderer === 'vegalite' ? (
                         <dependencies.ChartDownloadButton query={props.queryState} spec={props.visualizeQuery.vegaLiteSpec} />
                     ) : undefined}

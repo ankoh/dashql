@@ -39,7 +39,7 @@ interface HeaderProps {
     query: QueryExecutionState;
     /// The rows the table below shows at most, a preview of more rows counts as "6 of 1000 rows"
     maxRows?: number;
-    /// Open the result in Details, makes the header clickable
+    /// Open the full result table, makes the header clickable
     onShowTable?: () => void;
     dependencies?: QueryResultHeaderDependencies;
 }

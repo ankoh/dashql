@@ -51,8 +51,13 @@ const dependencies = {
         CachedResultBean: () => null,
         QueryResultRerunButton: () => null,
         EntryStatusBar: (props: any) => <button data-testid="status" onClick={props.onToggleExpanded}>{props.status.message}</button>,
-        FeedEntryFooter: () => <div data-testid="integrated-footer">footer</div>,
+        FeedEntryFooter: (props: any) => <button data-testid="integrated-footer" onClick={props.onShowTable}>footer</button>,
         FeedEntryTabStrip: () => null,
+        ResultTableOverlay: (props: any) => (
+            <div data-testid="result-table-overlay" data-script={props.scriptName} data-query={props.query.queryId}>
+                <button data-testid="result-table-overlay-close" onClick={props.onClose} />
+            </div>
+        ),
     },
 } as unknown as ScriptFeedRowDependencies;
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -65,8 +70,7 @@ function baseProps() {
         scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
         keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
         focusedFileName: '01_alpha.sql', active: true, onFocus: vi.fn(), onDelete: vi.fn(),
-        onRename: vi.fn(), onPickConnection: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
-         onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
+        onRename: vi.fn(), onPickConnection: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onRerun: vi.fn(),
         onFormat: vi.fn(), onApplySnippet: vi.fn(), onSetVisSpec: vi.fn(), canTarget: true, onTarget: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
         onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(),
         onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
@@ -205,6 +209,15 @@ describe('V2 session feed rows', () => {
         expect(props.onFocus).toHaveBeenCalledWith('01_alpha.sql');
         expect(container.querySelector('[data-testid="status"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="integrated-footer"]')).not.toBeNull();
+        // The script details are gone, the full result table opens in an overlay over the feed
+        expect(container.querySelector('[data-testid="script-expand"]')).toBeNull();
+        expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="integrated-footer"]')!.click());
+        const overlay = container.querySelector('[data-testid="result-table-overlay"]');
+        expect(overlay?.getAttribute('data-script')).toBe('01_alpha');
+        expect(overlay?.getAttribute('data-query')).toBe('42');
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="result-table-overlay-close"]')!.click());
+        expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
         expect(container.querySelector('[data-testid="script-drag-handle"]')).not.toBeNull();
         const moreButton = container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement;
         expect(moreButton).not.toBeNull();
@@ -228,8 +241,6 @@ describe('V2 session feed rows', () => {
         expect(props.onAcceptDiff).toHaveBeenCalledWith(1);
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-reject"]')!.click());
         expect(props.onRejectDiff).toHaveBeenCalledWith(1);
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-expand"]')!.click());
-        expect(props.onShowDetails).toHaveBeenCalledWith('01_alpha.sql');
         expect(container.querySelector<HTMLButtonElement>('[data-testid="script-move-up"]')?.disabled).toBe(true);
         const moveDownButton = container.querySelector<HTMLButtonElement>('[data-testid="script-move-down"]')!;
         expect(moveDownButton.disabled).toBe(false);
@@ -514,7 +525,7 @@ describe('Session feed composer', () => {
         act(() => root.render(<LoggerProvider>
             <SessionConnectionAttentionContext.Provider value={attention as any}>
                 <SessionFeed sessionScripts={sessionScripts} modifySessionScripts={modifySessionScripts}
-                    showDetails={vi.fn()} conn={conn} scriptConnections={scriptConnections} active={true} dependencies={feedDependencies} />
+                    conn={conn} scriptConnections={scriptConnections} active={true} dependencies={feedDependencies} />
             </SessionConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }

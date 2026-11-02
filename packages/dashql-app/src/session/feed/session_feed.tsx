@@ -36,7 +36,6 @@ import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_fo
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { TabKey as DetailsTabKey } from '../scripts/script_details.js';
 import { runSessionScript } from '../scripts/rerun_query.js';
 import { computeScriptResultCacheKey, scriptRunServices } from '../scripts/script_run.js';
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
@@ -76,13 +75,12 @@ export interface SessionFeedProps {
     modifySessionScripts: ModifySessionScripts;
     /// Receives the function that renames the references in the draft of the composer, for renames of other views
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
-    showDetails: (fileName?: string, initialTab?: DetailsTabKey) => void;
     /// The connection that the next script runs on
     conn: ConnectionState | null;
     /// The connections that the scripts run on, by default the connection of the next script
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
     /// Whether the feed is the visible, interactive layer. The feed stays mounted (just hidden) while
-    /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
+    /// another view, e.g. a connection overview, is open so it keeps its scroll position and measured row heights;
     /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
     active: boolean;
     dependencies?: SessionFeedDependencies;
@@ -278,26 +276,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         props.modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
     }, [props.modifySessionScripts]);
 
-    const handleShowStatus = React.useCallback((fileName: string) => {
-        props.modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
-        props.showDetails(fileName, DetailsTabKey.QueryStatusPanel);
-    }, [props.modifySessionScripts, props.showDetails]);
-
-    const handleShowTable = React.useCallback((fileName: string) => {
-        props.modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
-        props.showDetails(fileName, DetailsTabKey.QueryResultView);
-    }, [props.modifySessionScripts, props.showDetails]);
-
-    const handleShowVisualization = React.useCallback((fileName: string) => {
-        props.modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
-        props.showDetails(fileName, DetailsTabKey.Visualization);
-    }, [props.modifySessionScripts, props.showDetails]);
-
-    const handleShowDetails = React.useCallback((fileName: string) => {
-        props.modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
-        props.showDetails(fileName, DetailsTabKey.Editor);
-    }, [props.modifySessionScripts, props.showDetails]);
-
     const executeQuery = dependencies.useQueryExecutor();
     // A script runs while its own connection is online
     const isScriptOnline = (scriptData: ScriptData) =>
@@ -469,7 +447,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     }, [props.modifySessionScripts, storageReader.backend, composerRenameScriptRef, refreshDataFiles, logger]);
     const scriptNames = React.useMemo(() => props.sessionScripts.scriptOrder.map(scriptDisplayName), [props.sessionScripts.scriptOrder]);
 
-    // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
+    // The feed stays mounted (just hidden) while another view, e.g. a connection overview, is open, so its global
     // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.
     const feedActive = props.active;
     // A modal dialog keeps Enter and Escape, e.g. Escape closes the chart builder instead of rejecting the diff that
@@ -479,7 +457,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         {
             // Plain Enter, while browsing the feed with nothing focused, accepts a staged
             // rewrite (matching the status bar's "Accept ⏎" hint). It intentionally does nothing for
-            // ordinary scripts; Details is opened only through an explicit pointer action.
+            // ordinary scripts.
             key: 'Enter',
             ctrlKey: false,
             capture: true,
@@ -698,10 +676,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
         onExecute: handleExecuteEntry,
-        onShowStatus: handleShowStatus,
-        onShowTable: handleShowTable,
-        onShowVisualization: handleShowVisualization,
-        onShowDetails: handleShowDetails,
         onRerun: handleRerunEntry,
         onFormat: handleFormat,
         onApplySnippet: handleApplySnippet,
@@ -717,7 +691,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 

@@ -36,6 +36,7 @@ import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
+import { ResultTableOverlay } from './result_table_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { FEED_TOP_PADDING } from './session_feed_layout.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
@@ -80,10 +81,6 @@ export interface ScriptCardProps {
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
-    onShowStatus: (fileName: string) => void;
-    onShowTable: (fileName: string) => void;
-    onShowVisualization: (fileName: string) => void;
-    onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string) => void;
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of the script with the text of a snippet
@@ -120,6 +117,7 @@ export interface ScriptCardDependencies {
     FeedEntryFooter: typeof FeedEntryFooter;
     FeedEntryTabStrip: typeof FeedEntryTabStrip;
     ChartBuilderOverlay: typeof ChartBuilderOverlay;
+    ResultTableOverlay: typeof ResultTableOverlay;
 }
 
 const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
@@ -136,6 +134,7 @@ const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
     FeedEntryFooter,
     FeedEntryTabStrip,
     ChartBuilderOverlay,
+    ResultTableOverlay,
 };
 
 // Memoized since every row of the feed re-renders whenever any script changes
@@ -146,7 +145,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
-    const ExpandIcon: Icon = SymbolIcon('screen_full_16');
     const TrashIcon: Icon = SymbolIcon('trash_16');
 
     const queryState = dependencies.useQueryState(props.sessionId, props.scriptData?.latestQueryId ?? null);
@@ -284,9 +282,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         onRename: name => props.onRename(props.scriptFileName, name),
     }), [props.scriptFileName, props.sessionId, props.storageReader, props.onRename]);
 
-    const showStatus = React.useCallback(() => props.onShowStatus(props.scriptFileName), [props.onShowStatus, props.scriptFileName]);
-    const showTable = React.useCallback(() => props.onShowTable(props.scriptFileName), [props.onShowTable, props.scriptFileName]);
-    const showVisualization = React.useCallback(() => props.onShowVisualization(props.scriptFileName), [props.onShowVisualization, props.scriptFileName]);
+    // The full result table opens in a card over the feed
+    const [tableOverlayOpen, setTableOverlayOpen] = React.useState(false);
+    const showTable = React.useCallback(() => setTableOverlayOpen(true), []);
+    const closeTableOverlay = React.useCallback(() => setTableOverlayOpen(false), []);
 
     const resultContentId = props.scriptData != null ? `feed-result-${props.scriptData.scriptKey}` : undefined;
     const hasFooterContent = entryStatus.kind !== EntryStatusKind.Idle;
@@ -446,15 +445,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     >
                         <MoveDownIcon size={14} />
                     </IconButton>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={() => props.onShowDetails(props.scriptFileName)}
-                        aria-label={`Expand ${displayName} script details`}
-                        data-testid="script-expand"
-                    >
-                        <ExpandIcon size={14} />
-                    </IconButton>
                 </div>
                 <div className={styles.feed_body}>
                     <div className={styles.feed_editor_container}>
@@ -533,12 +523,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                                     queryState={queryState}
                                     visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
                                     selectedTab={resultTabs.selectedTab}
-                                    onShowStatus={showStatus}
                                     onShowTable={showTable}
-                                    onShowVisualization={showVisualization}
                                 />
                             </div>
                         ) : null}
+                        {tableOverlayOpen && queryState != null && (
+                            <dependencies.ResultTableOverlay
+                                scriptName={displayName}
+                                query={queryState}
+                                onClose={closeTableOverlay}
+                            />
+                        )}
                     </div>
                 )}
             </div>
@@ -570,10 +565,6 @@ export interface ScriptFeedRowProps {
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
-    onShowStatus: (fileName: string) => void;
-    onShowTable: (fileName: string) => void;
-    onShowVisualization: (fileName: string) => void;
-    onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string) => void;
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of a script with the text of a snippet
@@ -725,10 +716,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onMoveUp={props.onMoveUp}
                     onMoveDown={props.onMoveDown}
                     onExecute={props.onExecute}
-                    onShowStatus={props.onShowStatus}
-                    onShowTable={props.onShowTable}
-                    onShowVisualization={props.onShowVisualization}
-                    onShowDetails={props.onShowDetails}
                     onRerun={props.onRerun}
                     onFormat={props.onFormat}
                     onApplySnippet={props.onApplySnippet}

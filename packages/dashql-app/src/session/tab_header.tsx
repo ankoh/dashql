@@ -10,9 +10,9 @@ import { useComputationRegistry } from '../compute/computation_registry.js';
 interface TabHeaderProps {
     title: string;
     detail?: string | null;
-    /// When set, the header becomes a clickable navigation target (the feed footer uses this to open
-    /// Details) and ends with an expand button doing the same. Omitted in Details, where the header
-    /// is a plain, non-clickable label + count.
+    /// When set, the header becomes clickable (the feed footer uses this to open the full result table)
+    /// and ends with an expand button doing the same. Omitted elsewhere, where the header is a plain,
+    /// non-clickable label + count.
     onClick?: () => void;
     /// Render the count as a link, for previews that only show part of the rows (clickable variant).
     detailIsLink?: boolean;
@@ -23,8 +23,8 @@ interface TabHeaderProps {
 }
 
 /// The header bar shown atop a session tab body: a title with an optional greyish "N of M rows"
-/// count. Shared by the feed footer (clickable — opens Details) and the Details tabs (inert), so the
-/// two surfaces read identically.
+/// count. Shared by the feed footer (clickable, opens the full result table) and the full views (inert),
+/// so the surfaces read identically.
 export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, detailIsLink, actions }) => {
     if (onClick != null) {
         return (
@@ -42,7 +42,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, de
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label={`Open ${title} in Details`}
+                        aria-label={`Expand ${title}`}
                         data-testid="tab-header-expand"
                         onClick={onClick}
                     >
