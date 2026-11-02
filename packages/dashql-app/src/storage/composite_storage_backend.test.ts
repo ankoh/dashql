@@ -9,6 +9,8 @@ import { StorageBackendType } from './storage_backend.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from './session_test_backend.js';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import {
+    prepareNativeSessionImport,
+    replaceSessionWithNativeFolder,
     replaceSessionWithPortableBundle,
     writePortableSessionFresh,
 } from './session_import_transaction.js';
@@ -172,6 +174,27 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         expect(fsStore.files).toEqual(before);
     });
 
+    it('keeps the session order in step with the registry', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveSessionManifest(OTHER_SESSION_ID, testSession({ sessionId: OTHER_SESSION_ID }));
+        await backend.reorderSessions([OTHER_SESSION_ID]);
+        expect(backend.getSessionOrder()).toEqual([OTHER_SESSION_ID, TEST_SESSION_ID]);
+        expect(registry.manifest.map(entry => entry.path)).toEqual([OTHER_SESSION_ID, TEST_SESSION_ID]);
+    });
+
+    it('relocates an OPFS session into a native directory', async () => {
+        const dir = '/tmp/relocated';
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveScript(TEST_SESSION_ID, '01_query.sql', 'SELECT 1');
+        await backend.relocateSessionToNative(TEST_SESSION_ID, dir);
+
+        expect(fsStore.files.get(`${dir}/scripts/01_query.sql`)).toBe('SELECT 1');
+        expect(registry.manifest).toEqual([{ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: dir }]);
+        expect(registry.scripts.has(TEST_SESSION_ID)).toBe(false);
+        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
+        await expect(backend.relocateSessionToNative(TEST_SESSION_ID, '/tmp/again')).rejects.toThrow('is not an OPFS session');
+    });
+
     it('replaces a persisted V1 session with a legacy draft under the same stable UUID', async () => {
         await registry.saveSessionManifest(TEST_SESSION_ID, {
             ...testSession(),
@@ -193,6 +216,27 @@ describe('CompositeStorageBackend V2 flat routing', () => {
 
         expect(await backend.loadSession(TEST_SESSION_ID)).toEqual(testSession({ scripts: [{ name: '01_query.sql', connectionId: TEST_CONNECTION_ID }] }));
         expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
+    });
+
+    it('replaces an OPFS session with a selected native folder of the same session', async () => {
+        const dir = '/tmp/selected';
+        const native = new NativeStorageBackend(dir);
+        await native.initialize();
+        await native.saveSessionManifest(TEST_SESSION_ID, { ...testSession(), storageType: StorageBackendType.Native, nativePath: dir });
+        await native.saveScript(TEST_SESSION_ID, '02_native.sql', 'SELECT 2');
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveScript(TEST_SESSION_ID, '01_query.sql', 'SELECT 1');
+
+        const prepared = await prepareNativeSessionImport(backend, dir);
+        const conflict = { sessionId: TEST_SESSION_ID, location: { type: StorageBackendType.OPFS } } as const;
+        await expect(replaceSessionWithNativeFolder(backend, prepared, { ...conflict, sessionId: OTHER_SESSION_ID })).rejects.toThrow('does not match');
+        expect(await replaceSessionWithNativeFolder(backend, prepared, conflict)).toBe(TEST_SESSION_ID);
+
+        expect(registry.manifest).toEqual([{ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: dir }]);
+        expect(registry.scripts.has(TEST_SESSION_ID)).toBe(false);
+        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '02_native.sql', sql: 'SELECT 2' }]);
+        // The folder that is registered already needs no replacement
+        await expect(replaceSessionWithNativeFolder(backend, prepared, { sessionId: TEST_SESSION_ID, location: { type: StorageBackendType.Native, nativePath: dir } })).resolves.toBe(TEST_SESSION_ID);
     });
 
     it('imports sessions that share their connections with other sessions', async () => {

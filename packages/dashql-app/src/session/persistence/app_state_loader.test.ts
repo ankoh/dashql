@@ -8,7 +8,7 @@ import type { BatchRequest } from '@ankoh/dashql-core';
 import type { DashQL } from '@ankoh/dashql-core';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ConnectorType } from '../../connections/connector_info.js';
-import { destroyRestoredSession, restoreAppState } from './app_state_loader.js';
+import { destroyRestoredSession, restoreAppState, restoreSingleSession } from './app_state_loader.js';
 import { destroySessionScripts, sessionConnectionIds } from '../scripts/session_scripts.js';
 import type { SessionRegistryBackend } from '../../storage/storage_backend.js';
 import { StorageBackendType } from '../../storage/storage_backend.js';
@@ -462,6 +462,36 @@ describe('global connections', () => {
         // The session copies drop the names
         expect(backend.sessions.get(TEST_SESSION_ID)!.connections.map(connection => 'name' in connection)).toEqual([false, false]);
         for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
+    });
+
+    it('restores an imported session against the live connections and registers the unknown ones', async () => {
+        const backend = new SessionTestBackend();
+        backend.connections = [{ id: OTHER_CONNECTION_ID, params: trino('https://known') }];
+        const live = await restoreAppState(dql, backend, new TestLogger(), () => {});
+        backend.sessions.set(TEST_SESSION_ID, testSession({
+            ...testConnections(
+                { connectionId: OTHER_CONNECTION_ID, params: trino('https://known') },
+                { connectionId: TEST_CONNECTION_ID, params: trino('https://new') },
+            ),
+            scripts: [
+                { name: '01_known.sql', connectionId: OTHER_CONNECTION_ID },
+                { name: '02_new.sql', connectionId: TEST_CONNECTION_ID },
+            ],
+        }));
+        backend.scripts.set(TEST_SESSION_ID, new Map([['01_known.sql', 'SELECT 1'], ['02_new.sql', 'SELECT 2']]));
+
+        const restored = await restoreSingleSession(dql, backend, new TestLogger(), TEST_SESSION_ID, { connections: live.connectionStates });
+        expect(restored.sessionId).toBe(TEST_SESSION_ID);
+        expect(restored.databases.map(database => database.connectionId)).toEqual([TEST_CONNECTION_ID]);
+        expect(sessionConnectionIds(restored.sessionScripts)).toEqual([OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
+        destroyRestoredSession(restored);
+        for (const session of live.sessionScripts.values()) destroySessionScripts(session);
+    });
+
+    it('rejects an imported session that is not stored', async () => {
+        const backend = new SessionTestBackend();
+        backend.connections = [];
+        await expect(restoreSingleSession(dql, backend, new TestLogger(), TEST_SESSION_ID, { connections: new Map() })).rejects.toThrow();
     });
 });
 
