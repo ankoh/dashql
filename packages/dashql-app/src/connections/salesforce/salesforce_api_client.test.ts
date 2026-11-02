@@ -386,6 +386,35 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
     });
 });
 
+describe('SalesforceApiClient user info', () => {
+    it('requests the user info with the Core token and maps the fields', async () => {
+        const fetch = vi.fn().mockResolvedValue(makeResponse({
+            email: 'user@example.com',
+            email_verified: true,
+            preferred_username: 'user@example.com.org',
+            organization_id: '00D000000000001',
+            user_id: '005000000000001',
+            utcOffset: 3600000,
+        }));
+        const client = new SalesforceApiClient(new NullLogger(), { fetch });
+        const token = { accessToken: 'core-token', instanceUrl: 'https://core.example.com' } as connection.SalesforceCoreAccessToken;
+        const info = await client.getCoreUserInfo(token, new AbortController().signal);
+
+        const url = fetch.mock.calls[0][0] as URL;
+        expect(`${url.origin}${url.pathname}`).toBe('https://core.example.com/services/oauth2/userinfo');
+        expect(url.searchParams.get('format')).toBe('json');
+        expect(new Headers(fetch.mock.calls[0][1].headers).get('authorization')).toBe('Bearer core-token');
+        expect(info).toMatchObject({
+            email: 'user@example.com',
+            emailVerified: true,
+            preferredUsername: 'user@example.com.org',
+            organizationId: '00D000000000001',
+            userId: '005000000000001',
+            utcOffset: 3600000,
+        });
+    });
+});
+
 describe('Salesforce data-space resolution', () => {
     it('reads the selected data space from nested token attributes', () => {
         expect(getSalesforceDataSpace(makeDataCloudAccessToken({

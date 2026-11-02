@@ -5,7 +5,7 @@ import type {
     ExternalDirectoryMode,
 } from '../platform/database/embedded_database.js';
 import type { PlatformFile } from '../platform/file/file.js';
-import { createShellFilesCommand, ShellFileRegistry } from './shell_files.js';
+import { createShellFilesCommand, selectPlatformFiles, ShellFileRegistry } from './shell_files.js';
 
 function sourceFile(path: string): PlatformFile {
     return {
@@ -100,3 +100,53 @@ describe('shell files command', () => {
         await expect(command[2](['mount-dir-rw'], {})).resolves.toBeUndefined();
     });
 });
+
+describe('shell file registry directories', () => {
+    const handle = (name: string) => ({ name }) as FileSystemDirectoryHandle;
+
+    it('mounts, lists and drops directories', async () => {
+        const external = new MockExternalFiles();
+        const registry = new ShellFileRegistry(undefined, external, external);
+        expect(await registry.mountDirectory(handle('data'), undefined, 'read')).toBe('/mnt/external/data');
+        await registry.mountFile(sourceFile('a.csv'));
+        expect(await registry.listFiles()).toEqual([
+            { path: '/mnt/external/a.csv', size: 3 },
+            { path: '/mnt/external/data', directoryMode: 'read' },
+        ]);
+        expect(await registry.drop('/mnt/external/data')).toBe(true);
+        expect(external.directories.size).toBe(0);
+        expect(await registry.drop('/mnt/external/missing')).toBe(false);
+    });
+
+    it('unmounts files and directories on dispose and rejects later mounts', async () => {
+        const external = new MockExternalFiles();
+        const registry = new ShellFileRegistry(undefined, external, external);
+        await registry.mountDirectory(handle('data'), '/mnt/data', 'readwrite');
+        await registry.mountFile(sourceFile('a.csv'));
+        await registry.dispose();
+        expect(external.directories.size).toBe(0);
+        expect(external.files.size).toBe(0);
+        await expect(registry.mountDirectory(handle('other'), undefined, 'read')).rejects.toThrow('disposed');
+    });
+
+    it('rejects directories without external directory support', async () => {
+        const registry = new ShellFileRegistry(undefined, new MockExternalFiles());
+        await expect(registry.mountDirectory(handle('data'), undefined, 'read')).rejects.toThrow('not supported');
+    });
+
+    it('forwards failing directory mounts', async () => {
+        const external = new MockExternalFiles();
+        vi.spyOn(external, 'registerExternalDirectory').mockRejectedValue(new Error('denied'));
+        const registry = new ShellFileRegistry(undefined, external, external);
+        await expect(registry.mountDirectory(handle('data'), undefined, 'read')).rejects.toThrow('denied');
+        expect(await registry.list()).toEqual([]);
+    });
+});
+
+describe('selectPlatformFiles', () => {
+    it('rejects an aborted selection without opening the picker', async () => {
+        const reason = new Error('aborted');
+        await expect(selectPlatformFiles(AbortSignal.abort(reason))).rejects.toBe(reason);
+    });
+});
+

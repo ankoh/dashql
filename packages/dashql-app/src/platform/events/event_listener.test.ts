@@ -119,3 +119,34 @@ describe('PlatformEventListener links of older versions', () => {
         expect(setupEvents).toEqual([{ type: SETUP_SESSION, value: zip }]);
     });
 });
+
+describe('PlatformEventListener OAuth redirects', () => {
+    const redirect = (code: string) => ({ oauthRedirect: { code, state: {} } }) as unknown as Parameters<PlatformEventListener['dispatchAppEvent']>[0];
+
+    it('resolves the accepted redirect of an app event', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        const waiting = listener.waitForOAuthRedirect(new AbortController().signal, data => data.code === 'mine');
+        listener.dispatchAppEvent(redirect('other'));
+        listener.dispatchAppEvent(redirect('mine'));
+        await expect(waiting).resolves.toMatchObject({ code: 'mine' });
+    });
+
+    it('rejects a second listener', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        void listener.waitForOAuthRedirect(new AbortController().signal);
+        await expect(listener.waitForOAuthRedirect(new AbortController().signal)).rejects.toThrow('duplicate oauth listener');
+    });
+
+    it('rejects an aborted wait and accepts a new listener afterwards', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        const abort = new AbortController();
+        const waiting = listener.waitForOAuthRedirect(abort.signal);
+        abort.abort();
+        await expect(waiting).rejects.toMatchObject({ name: 'AbortError' });
+
+        const next = listener.waitForOAuthRedirect(new AbortController().signal);
+        listener.dispatchAppEvent(redirect('code'));
+        await expect(next).resolves.toMatchObject({ code: 'code' });
+    });
+});
+
