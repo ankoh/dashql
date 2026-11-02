@@ -53,9 +53,10 @@ The position of a script on the canvas is its `@flow x=.. y=..` tag, the size of
 others. The layout has two levels:
 
 - **Inside a box** the statements are stacked in script order below a header. The box of an input is one row below
-  its header, 200px wide, the other boxes have the width of the config. Every statement is a row of the same
-  height, and the chart of a visualized statement follows its row. A collapsed box is its header. The script fixes
-  the geometry of its box.
+  its header, 200px wide, a box with a chart (a Vega-Lite chart, a table or markdown) is 480px wide, so that the
+  chart is wider than high, the other boxes are 280px wide. Every statement is a row of the same height, and the
+  chart of a visualized statement follows its row. A collapsed box is its header. The script fixes the geometry of
+  its box.
 - **Between boxes**, without fixed boxes, every box is arranged in layers from left to right (Sugiyama): back edges
   of cycles are reversed, a box is one layer right of its rightmost producer, and a box without producers sits
   right before its leftmost consumer. Barycenter sweeps order the boxes of a layer, edges spanning layers pass

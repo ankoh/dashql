@@ -75,12 +75,12 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,0,280,288]
+          box: [376,0,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select * f..:by_region"
-          box: [752,0,280,80]
+          box: [952,0,280,80]
       edges:
         - from: sales.0
           to: by_region.0
@@ -169,27 +169,27 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,320,280,288]
+          box: [376,320,480,288]
         - name: total
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [376,0,280,288]
+          box: [376,0,480,288]
         - name: top
           statements:
             - type: SELECT
               text: "select reg..c limit 10"
-          box: [688,320,280,288]
+          box: [888,320,480,288]
         - name: regions
           statements:
             - type: SELECT
               text: "select dis..from sales"
-          box: [688,0,280,288]
+          box: [888,0,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [1000,0,280,288]
+          box: [1400,0,480,288]
       inputs:
         - name: min
           type: "integer"
@@ -254,17 +254,17 @@ dataflow-snapshots:
           statements:
             - type: SELECT
               text: "select reg.. by region"
-          box: [376,0,280,288]
+          box: [376,0,480,288]
         - name: total
           statements:
             - type: SELECT
               text: "select sum..from sales"
-          box: [376,320,280,288]
+          box: [376,320,480,288]
         - name: count
           statements:
             - type: SELECT
               text: "select cou..from sales"
-          box: [376,640,280,288]
+          box: [376,640,480,288]
       edges:
         - from: sales.0
           to: by_region.0

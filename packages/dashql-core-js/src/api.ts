@@ -33,6 +33,8 @@ export type DashQLBindings = Pick<
 /// The sizes of the dataflow canvas, in canvas pixels
 export interface DataflowLayoutConfig {
     boxWidth: number;
+    /// The width of a box with a chart, a chart or a table is wider than high
+    chartBoxWidth: number;
     /// The height of the header of a box, a collapsed box is its header
     headerHeight: number;
     rowHeight: number;
@@ -55,7 +57,7 @@ export interface DataflowLayoutBox {
     collapsed?: boolean;
     /// The position of the box if it is fixed, e.g. by its `@flow` tag
     fixed?: { x: number; y: number } | null;
-    /// The width of the box, the width of the config if absent
+    /// The width of the box, the width of the config if absent, the chart box width with a chart
     width?: number | null;
     /// The height of the chart of the box, the chart height of the config if absent
     chartHeight?: number | null;
@@ -448,7 +450,7 @@ export class DashQL {
         const layout = new this.bindings.DataflowLayout();
         try {
             if (config) {
-                layout.setConfig(config.boxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid, config.wrapSiblings);
+                layout.setConfig(config.boxWidth, config.chartBoxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid, config.wrapSiblings);
             }
             for (const box of boxes) {
                 layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0, box.width ?? 0, box.chartHeight ?? 0, box.input ?? false);

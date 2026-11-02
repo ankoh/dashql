@@ -25,6 +25,8 @@ use std::collections::BTreeSet;
 pub struct DataflowLayoutConfig {
     /// The width of a box
     pub box_width: f64,
+    /// The width of a box with a chart, a chart or a table is wider than high
+    pub chart_box_width: f64,
     /// The height of the header of a box, a collapsed box is its header. With the defaults every row center is a
     /// multiple of the grid, so that snapped boxes keep edges between rows straight.
     pub header_height: f64,
@@ -50,6 +52,7 @@ impl Default for DataflowLayoutConfig {
     fn default() -> Self {
         Self {
             box_width: 280.0,
+            chart_box_width: 480.0,
             header_height: 32.0,
             row_height: 32.0,
             row_padding: 8.0,
@@ -74,7 +77,7 @@ pub struct DataflowLayoutBox {
     pub collapsed: bool,
     /// The position of the box if it is fixed
     pub fixed: Option<(f64, f64)>,
-    /// The width of the box, the width of the config if absent
+    /// The width of the box, the width of the config if absent, the chart box width with a chart
     pub width: Option<f64>,
     /// The height of the chart, the chart height of the config if absent
     pub chart_height: Option<f64>,
@@ -114,7 +117,8 @@ impl DataflowBoxGeometry {
 
 /// The geometry of a box without its position
 fn box_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> DataflowBoxGeometry {
-    let mut geometry = DataflowBoxGeometry { width: b.width.unwrap_or(config.box_width), ..Default::default() };
+    let default_width = if b.chart_statement.is_some() { config.chart_box_width } else { config.box_width };
+    let mut geometry = DataflowBoxGeometry { width: b.width.unwrap_or(default_width), ..Default::default() };
     if b.collapsed || b.statements == 0 {
         geometry.rows = vec![0.0; b.statements as usize];
         geometry.height = config.header_height;
@@ -687,6 +691,9 @@ mod tests {
         let g = box_geometry(&DataflowLayoutBox { statements: 2, chart_statement: Some(0), ..Default::default() }, &config);
         assert_eq!(g.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 200.0]);
         assert_eq!(g.height, 40.0 + 32.0 + 8.0 + 200.0 + 32.0 + 8.0);
+        // A box with a chart is wider than a box without one
+        assert_eq!(g.width, config.chart_box_width);
+        assert_eq!(box_geometry(&DataflowLayoutBox { statements: 2, ..Default::default() }, &config).width, config.box_width);
         // A box with its own size, e.g. from a resized `@flow` tag
         let sized = DataflowLayoutBox {
             statements: 2,
@@ -790,7 +797,7 @@ mod tests {
         assert_eq!(g[4].y, g[5].y);
         assert_eq!(g[4].y, g[1].y + g[1].height + config.box_gap);
         assert_eq!([g[4].x, g[5].x], [g[1].x, g[2].x]);
-        assert_eq!(g[2].x, g[1].x + config.box_width + config.box_gap);
+        assert_eq!(g[2].x, g[1].x + config.chart_box_width + config.box_gap);
         assert_eq!(g[1].x, g[0].x + g[0].width + config.layer_gap);
         // The producer row runs straight into the first row of the grid
         assert_eq!(g[0].y + g[0].port(0, &config), g[1].y + g[1].port(0, &config));
@@ -863,9 +870,10 @@ mod tests {
         let edges: Vec<DataflowLayoutEdge> = (1..5).map(|i| edge(0, 0, i, 0)).collect();
         let arranged = compute_dataflow_layout(&boxes, &edges, &config);
         assert_eq!((arranged[3].x, arranged[2].y), (arranged[1].x, arranged[1].y));
-        // 1 gets a chart and grows over 3, 3 is placed again
+        // 1 gets a chart and grows down over 3, 3 is placed again. 1 keeps its width, a wider box would grow over 2.
         let mut boxes: Vec<DataflowLayoutBox> = boxes.into_iter().zip(&arranged).map(|(b, g)| DataflowLayoutBox { fixed: Some((g.x, g.y)), ..b }).collect();
         boxes[1].chart_statement = Some(0);
+        boxes[1].width = Some(config.box_width);
         boxes[3].fixed = None;
         let g = compute_dataflow_layout(&boxes, &edges, &config);
         for i in [0, 1, 2, 4] {

@@ -5,6 +5,7 @@ import { type DataflowEdge, DataflowEdgeKind, type DataflowGraph, type DataflowI
 /// The sizes of the canvas, every row center is a multiple of the grid so that edges between snapped boxes are straight
 export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
     boxWidth: 280,
+    chartBoxWidth: 480,
     headerHeight: 32,
     rowHeight: 32,
     rowPadding: 8,

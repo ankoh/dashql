@@ -1274,6 +1274,7 @@ impl DataflowLayout {
     pub fn set_config(
         &mut self,
         box_width: f64,
+        chart_box_width: f64,
         header_height: f64,
         row_height: f64,
         row_padding: f64,
@@ -1285,6 +1286,7 @@ impl DataflowLayout {
     ) {
         self.config = dashql_core_view::dataflow_layout::DataflowLayoutConfig {
             box_width,
+            chart_box_width,
             header_height,
             row_height,
             row_padding,
@@ -1298,8 +1300,8 @@ impl DataflowLayout {
     }
 
     /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position, a width or a
-    /// chart height that is not positive is the one of the config, the box of an input does not tie its consumers into
-    /// a grid.
+    /// chart height that is not positive is the one of the config, the chart box width for a box with a chart, the box
+    /// of an input does not tie its consumers into a grid.
     #[wasm_bindgen(js_name = addBox)]
     #[allow(clippy::too_many_arguments)]
     pub fn add_box(
