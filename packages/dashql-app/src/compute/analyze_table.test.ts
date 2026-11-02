@@ -8,6 +8,7 @@ import { analyzeTable } from './analyze_table.js';
 import { computeTableAggregates } from './tasks/table_aggregation.js';
 import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from './computation_types.js';
 import { DataFrame } from './data_frame.js';
+import { mockDataFrame } from '../tests/mocks/compute_query.js';
 
 describe('analyzeTable', () => {
     it('ignores results without columns', async () => {
@@ -46,7 +47,7 @@ describe('computeTableAggregates', () => {
                     binCount: 16,
                 },
             }],
-            inputDataFrame: new DataFrame({} as EmbeddedComputeDatabase, 'input'),
+            inputDataFrame: mockDataFrame('input'),
         };
     }
 

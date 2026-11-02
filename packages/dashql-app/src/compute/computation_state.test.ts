@@ -4,21 +4,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { CLEAR_TABLE_ORDERING, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_SUCCEEDED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { CLEAR_TABLE_ORDERING, COLUMN_AGGREGATION_SUCCEEDED, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_types.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
-
-function createMockDataFrame(tableName: string): DataFrame {
-    return new DataFrame({} as EmbeddedComputeDatabase, tableName);
-}
+import { mockDataFrame } from '../tests/mocks/compute_query.js';
 
 function createOrdinalAggregate(
     columnEntry: OrdinalGridColumnGroup,
     dataFrame: DataFrame,
-    aggregateTable: BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+    aggregateTable: BinnedValuesTable<any, any>,
     formatter: ArrowTableFormatter,
     analysis: OrdinalColumnAnalysis,
 ): ColumnAggregationVariant {
@@ -37,7 +33,7 @@ function createOrdinalAggregate(
 function createFilteredOrdinalAggregate(
     columnEntry: OrdinalGridColumnGroup,
     dataFrame: DataFrame,
-    aggregateTable: BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+    aggregateTable: BinnedValuesTable<any, any>,
     formatter: ArrowTableFormatter,
     analysis: OrdinalColumnAnalysis,
     filterVersion: ComputationStateVersion,
@@ -191,6 +187,14 @@ describe('ComputationState', () => {
         binLowerBounds: ['10', '20', '30', '40'],
     };
 
+    /// A computation state with table 1 of the input table, materialized as the data frame
+    function stateWithTable(dataFrame: DataFrame): ComputationState {
+        const state = createComputationState();
+        state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+        state.tableComputations[1].dataFrame = dataFrame;
+        return state;
+    }
+
     it('configure a computation state', () => {
         const memory = new DataFrameRegistry(logger);
         const state = createComputationState();
@@ -219,15 +223,8 @@ describe('ComputationState', () => {
 
     it('keeps column matches visible while a replacement search is pending', () => {
         const memory = new DataFrameRegistry(logger);
-        const dataFrame = createMockDataFrame('__test_input');
-        let state = createComputationState();
-        state.tableComputations[1] = createTableComputationState(
-            1,
-            inputTable,
-            inputTableColumns,
-            new AbortController(),
-        );
-        state.tableComputations[1].dataFrame = dataFrame;
+        const dataFrame = mockDataFrame('__test_input');
+        let state = stateWithTable(dataFrame);
 
         state = reduceComputationState(state, {
             type: SET_RESULT_SEARCH_PATTERN,
@@ -250,11 +247,9 @@ describe('ComputationState', () => {
 
     it('accepts the latest materialized Data search without changing the filter version', () => {
         const memory = new DataFrameRegistry(logger);
-        const dataFrame = createMockDataFrame('__test_input');
-        const searchFrame = createMockDataFrame('__test_search');
-        let state = createComputationState();
-        state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-        state.tableComputations[1].dataFrame = dataFrame;
+        const dataFrame = mockDataFrame('__test_input');
+        const searchFrame = mockDataFrame('__test_search');
+        let state = stateWithTable(dataFrame);
         state.tableComputations[1].version = new ComputationStateVersion(2, 7);
         state = reduceComputationState(state, {
             type: SET_RESULT_SEARCH_PATTERN,
@@ -278,6 +273,49 @@ describe('ComputationState', () => {
         expect(memory.getRegisteredDataFrames().get(searchFrame)).toBe(1);
     });
 
+    it('drops the Data search of the latest request when it fails', () => {
+        const memory = new DataFrameRegistry(logger);
+        const dataFrame = mockDataFrame('__test_input');
+        const searchFrame = mockDataFrame('__test_search');
+        let state = stateWithTable(dataFrame);
+        state = reduceComputationState(state, { type: SET_RESULT_SEARCH_PATTERN, value: [1, 'data', '10'] }, memory);
+        state = reduceComputationState(state, {
+            type: DATA_SEARCH_SUCCEEDED,
+            value: [1, dataFrame, 1, {
+                inputRowNumberColumnName: 'rowNumber',
+                dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([2]), column_indices: [[1]] }),
+                dataFrame: searchFrame,
+                version: state.tableComputations[1].version,
+                requestId: 1,
+            }],
+        }, memory);
+        state = reduceComputationState(state, { type: SET_RESULT_SEARCH_PATTERN, value: [1, 'data', '42'] }, memory);
+        expect(state.tableComputations[1].dataSearchTable?.dataFrame).toBe(searchFrame);
+        const latestRequest = state.tableComputations[1].dataSearch.requestId;
+
+        // Failures of older requests and of other data frames are ignored
+        expect(reduceComputationState(state, { type: DATA_SEARCH_FAILED, value: [1, dataFrame, 1, 'stale'] }, memory)).toBe(state);
+        expect(reduceComputationState(state, { type: DATA_SEARCH_FAILED, value: [1, searchFrame, latestRequest, 'other'] }, memory)).toBe(state);
+
+        state = reduceComputationState(state, { type: DATA_SEARCH_FAILED, value: [1, dataFrame, latestRequest, 'boom'] }, memory);
+        expect(state.tableComputations[1].dataSearch).toMatchObject({ error: 'boom', pending: false, matchingRows: null, appliedPattern: '' });
+        expect(state.tableComputations[1].dataSearchTable).toBeNull();
+        expect(memory.getRegisteredDataFrames().has(searchFrame)).toBe(false);
+    });
+
+    it('records the error of a failed column search', () => {
+        const memory = new DataFrameRegistry(logger);
+        const dataFrame = mockDataFrame('__test_input');
+        let state = stateWithTable(dataFrame);
+        state = reduceComputationState(state, { type: SET_RESULT_SEARCH_PATTERN, value: [1, 'columns', 'sc'] }, memory);
+        const requestId = state.tableComputations[1].columnSearch.requestId;
+
+        expect(reduceComputationState(state, { type: RESULT_SEARCH_FAILED, value: [1, dataFrame, 'columns', requestId + 1, 'stale'] }, memory)).toBe(state);
+        state = reduceComputationState(state, { type: RESULT_SEARCH_FAILED, value: [1, dataFrame, 'columns', requestId, 'bad pattern'] }, memory);
+        expect(state.tableComputations[1].columnSearch).toMatchObject({ error: 'bad pattern', pending: false, matchingColumnGroups: null });
+        expect(state.tableComputations[1].dataSearch.error).toBeNull();
+    });
+
     it('delete computation', () => {
         const memory = new DataFrameRegistry(logger);
         const state = createComputationState();
@@ -295,7 +333,7 @@ describe('ComputationState', () => {
     it('releases the previous computation when replacing the same table id', () => {
         const memory = new DataFrameRegistry(logger);
         let state = createComputationState();
-        const previousFrame = createMockDataFrame('__previous');
+        const previousFrame = mockDataFrame('__previous');
         const destroy = vi.spyOn(previousFrame, 'destroy').mockResolvedValue();
 
         state = reduceComputationState(state, {
@@ -320,11 +358,9 @@ describe('ComputationState', () => {
     describe('task scheduling', () => {
         it('filtering task', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
+            const inputDataFrame = mockDataFrame("__test_input");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.nextSchedulerTaskId = 42;
             const schedulingAction: ComputationAction = {
                 type: SCHEDULE_TASK,
@@ -380,11 +416,9 @@ describe('ComputationState', () => {
 
         it('ordering task', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
+            const inputDataFrame = mockDataFrame("__test_input");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.nextSchedulerTaskId = 42;
             const schedulingAction: ComputationAction = {
                 type: SCHEDULE_TASK,
@@ -441,11 +475,9 @@ describe('ComputationState', () => {
 
         it('table aggregation task', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
+            const inputDataFrame = mockDataFrame("__test_input");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.nextSchedulerTaskId = 42;
             const schedulingAction: ComputationAction = {
                 type: SCHEDULE_TASK,
@@ -482,12 +514,10 @@ describe('ComputationState', () => {
 
         it('system column computation task', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const aggregateDataFrame = createMockDataFrame("__test_agg");
+            const inputDataFrame = mockDataFrame("__test_input");
+            const aggregateDataFrame = mockDataFrame("__test_agg");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.nextSchedulerTaskId = 42;
             const schedulingAction: ComputationAction = {
                 type: SCHEDULE_TASK,
@@ -536,16 +566,11 @@ describe('ComputationState', () => {
             releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
-        it('column aggregation task', () => {
-            const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const aggregateDataFrame = createMockDataFrame("__test_agg");
-
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+        /// A computation of table 1 with a scheduled aggregation task of the score column
+        function scheduleScoreAggregation(memory: DataFrameRegistry, inputDataFrame: DataFrame, aggregateDataFrame: DataFrame): ComputationState {
+            const state = stateWithTable(inputDataFrame);
             state.nextSchedulerTaskId = 42;
-            const schedulingAction: ComputationAction = {
+            return reduceComputationState(state, {
                 type: SCHEDULE_TASK,
                 value: {
                     type: COLUMN_AGGREGATION_TASK,
@@ -565,9 +590,15 @@ describe('ComputationState', () => {
                     },
                     result: new AsyncValue<ColumnAggregationVariant, LoggableException>(),
                 },
-            };
+            }, memory);
+        }
 
-            state = reduceComputationState(state, schedulingAction, memory);
+        it('column aggregation task', () => {
+            const memory = new DataFrameRegistry(logger);
+            const inputDataFrame = mockDataFrame("__test_input");
+            const aggregateDataFrame = mockDataFrame("__test_agg");
+
+            let state = scheduleScoreAggregation(memory, inputDataFrame, aggregateDataFrame);
             expect(Object.entries(state.schedulerTasks).length).toEqual(1);
             expect(state.schedulerTasks[42].type).toEqual(COLUMN_AGGREGATION_TASK);
             expect(state.schedulerTasks[42].taskId).toEqual(42);
@@ -591,16 +622,42 @@ describe('ComputationState', () => {
             releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
+        it('stores succeeded column aggregates and releases the previous one', () => {
+            const memory = new DataFrameRegistry(logger);
+            const scoreColumn = inputTableColumns[1].value as OrdinalGridColumnGroup;
+            const aggregate = (dataFrame: DataFrame) =>
+                createOrdinalAggregate(scoreColumn, dataFrame, scoreAggregateTable, scoreAggregateTableFormatter, ordinalColumnAnalysis);
+            const first = aggregate(mockDataFrame("__test_first"));
+            const second = aggregate(mockDataFrame("__test_second"));
+            const succeeded = (tableId: number, columnId: number, value: ColumnAggregationVariant): ComputationAction =>
+                ({ type: COLUMN_AGGREGATION_SUCCEEDED, value: [tableId, columnId, value] });
+
+            let state = scheduleScoreAggregation(memory, mockDataFrame("__test_input"), mockDataFrame("__test_agg"));
+            state = reduceComputationState(state, succeeded(1, 1, first), memory);
+            expect(state.tableComputations[1].columnAggregates[1]).toBe(first);
+            expect(state.tableComputations[1].tasks.columnAggregationTasks[1]?.progress.status).toEqual(TaskStatus.TASK_SUCCEEDED);
+            expect(memory.getRegisteredDataFrames().get(getAggregationDataFrame(first)!)).toEqual(1);
+
+            state = reduceComputationState(state, succeeded(1, 1, second), memory);
+            expect(state.tableComputations[1].columnAggregates[1]).toBe(second);
+            expect(memory.getRegisteredDataFrames().has(getAggregationDataFrame(first)!)).toBe(false);
+
+            // Aggregates of unknown tables and of columns without a task are released right away
+            const unknown = aggregate(mockDataFrame("__test_unknown"));
+            expect(reduceComputationState(state, succeeded(7, 1, unknown), memory)).toBe(state);
+            expect(reduceComputationState(state, succeeded(1, 0, unknown), memory)).toBe(state);
+            expect(memory.getRegisteredDataFrames().has(getAggregationDataFrame(unknown)!)).toBe(false);
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
+        });
+
         it('filtered column aggregation task', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const tableAggregateDataFrame = createMockDataFrame("__test_tbl_agg");
-            const scoreAggregateDataFrame = createMockDataFrame("__test_col_agg");
-            const filterDataFrame = createMockDataFrame("__test_filter");
+            const inputDataFrame = mockDataFrame("__test_input");
+            const tableAggregateDataFrame = mockDataFrame("__test_tbl_agg");
+            const scoreAggregateDataFrame = mockDataFrame("__test_col_agg");
+            const filterDataFrame = mockDataFrame("__test_filter");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.nextSchedulerTaskId = 42;
 
             const schedulingAction: ComputationAction = {
@@ -629,7 +686,7 @@ describe('ComputationState', () => {
                         dataSearchTable: null,
                         selectionRowCount: filterTable.numRows,
                         unfilteredAggregate: {
-                            ...createOrdinalAggregate(inputTableColumns[1].value as OrdinalGridColumnGroup, scoreAggregateDataFrame, scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>, scoreAggregateTableFormatter, ordinalColumnAnalysis),
+                            ...createOrdinalAggregate(inputTableColumns[1].value as OrdinalGridColumnGroup, scoreAggregateDataFrame, scoreAggregateTable, scoreAggregateTableFormatter, ordinalColumnAnalysis),
                         },
                     },
                     result: new AsyncValue<WithFilterEpoch<ColumnAggregationVariant> | null, LoggableException>(),
@@ -666,18 +723,16 @@ describe('ComputationState', () => {
 
         it('marks filtered column summaries outdated without scheduling all columns on filter success', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const filterDataFrame = createMockDataFrame("__test_filter");
-            const scoreAggregateDataFrame = createMockDataFrame("__test_col_agg");
+            const inputDataFrame = mockDataFrame("__test_input");
+            const filterDataFrame = mockDataFrame("__test_filter");
+            const scoreAggregateDataFrame = mockDataFrame("__test_col_agg");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.tableComputations[1].version = new ComputationStateVersion(0, 10); // State must match filter result version
             state.tableComputations[1].columnAggregates[1] = createOrdinalAggregate(
                 inputTableColumns[1].value as OrdinalGridColumnGroup,
                 scoreAggregateDataFrame,
-                scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                scoreAggregateTable,
                 scoreAggregateTableFormatter,
                 ordinalColumnAnalysis,
             );
@@ -703,7 +758,7 @@ describe('ComputationState', () => {
 
         it('ignores stale filter table success for an older table epoch', () => {
             const memory = new DataFrameRegistry(logger);
-            const staleFilterDataFrame = createMockDataFrame("__test_filter_stale");
+            const staleFilterDataFrame = mockDataFrame("__test_filter_stale");
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
@@ -727,8 +782,8 @@ describe('ComputationState', () => {
 
         it('accepts filter table success for current table epoch', () => {
             const memory = new DataFrameRegistry(logger);
-            const currentFilterDataFrame = createMockDataFrame("__test_filter_current");
-            const orderingDataFrame = createMockDataFrame("__test_ordering_current");
+            const currentFilterDataFrame = mockDataFrame("__test_filter_current");
+            const orderingDataFrame = mockDataFrame("__test_ordering_current");
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
@@ -761,8 +816,8 @@ describe('ComputationState', () => {
 
         it('stores ordering table without replacing the immutable base table', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const orderingDataFrame = createMockDataFrame("__test_ordering");
+            const inputDataFrame = mockDataFrame("__test_input");
+            const orderingDataFrame = mockDataFrame("__test_ordering");
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
@@ -811,12 +866,10 @@ describe('ComputationState', () => {
 
         it('clears the active table ordering', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input_clear_ordering");
-            const orderingDataFrame = createMockDataFrame("__test_ordering_clear");
+            const inputDataFrame = mockDataFrame("__test_input_clear_ordering");
+            const orderingDataFrame = mockDataFrame("__test_ordering_clear");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.tableComputations[1].dataTableOrdering = [{ field: 'score', ascending: false }];
             state.tableComputations[1].orderingTable = {
                 inputRowNumberColumnName: 'rowNumber',
@@ -838,12 +891,10 @@ describe('ComputationState', () => {
 
         it('ignores an ordering result after ordering is cleared', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input_stale_clear");
-            const orderingDataFrame = createMockDataFrame("__test_ordering_stale_clear");
+            const inputDataFrame = mockDataFrame("__test_input_stale_clear");
+            const orderingDataFrame = mockDataFrame("__test_ordering_stale_clear");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.tableComputations[1].tasks.orderingTask = {
                 tableId: 1,
                 tableVersion: state.tableComputations[1].version,
@@ -883,8 +934,8 @@ describe('ComputationState', () => {
 
         it('ignores stale ordering table success for an older table epoch', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const staleOrderingDataFrame = createMockDataFrame("__test_ordering_stale");
+            const inputDataFrame = mockDataFrame("__test_input");
+            const staleOrderingDataFrame = mockDataFrame("__test_ordering_stale");
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
@@ -913,15 +964,13 @@ describe('ComputationState', () => {
 
         it('discards stale filtered aggregation results without replacing the active task', () => {
             const memory = new DataFrameRegistry(logger);
-            const inputDataFrame = createMockDataFrame("__test_input");
-            const tableAggregateDataFrame = createMockDataFrame("__test_tbl_agg");
-            const scoreAggregateDataFrame = createMockDataFrame("__test_col_agg");
-            const filteredAggregateDataFrame = createMockDataFrame("__test_filtered_col_agg");
-            const filterDataFrame = createMockDataFrame("__test_filter");
+            const inputDataFrame = mockDataFrame("__test_input");
+            const tableAggregateDataFrame = mockDataFrame("__test_tbl_agg");
+            const scoreAggregateDataFrame = mockDataFrame("__test_col_agg");
+            const filteredAggregateDataFrame = mockDataFrame("__test_filtered_col_agg");
+            const filterDataFrame = mockDataFrame("__test_filter");
 
-            let state = createComputationState();
-            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].dataFrame = inputDataFrame;
+            let state = stateWithTable(inputDataFrame);
             state.tableComputations[1].version = new ComputationStateVersion(0, 10);
             state.tableComputations[1].filterTable = {
                 inputRowNumberColumnName: 'rowNumber',
@@ -932,7 +981,7 @@ describe('ComputationState', () => {
             state.tableComputations[1].columnAggregates[1] = createOrdinalAggregate(
                 inputTableColumns[1].value as OrdinalGridColumnGroup,
                 scoreAggregateDataFrame,
-                scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                scoreAggregateTable,
                 scoreAggregateTableFormatter,
                 ordinalColumnAnalysis,
             );
@@ -961,7 +1010,7 @@ describe('ComputationState', () => {
                 unfilteredAggregate: createOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
                     scoreAggregateDataFrame,
-                    scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                    scoreAggregateTable,
                     scoreAggregateTableFormatter,
                     ordinalColumnAnalysis,
                 ),
@@ -979,7 +1028,7 @@ describe('ComputationState', () => {
                 value: [1, 1, new ComputationStateVersion(0, 9), createFilteredOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
                     filteredAggregateDataFrame,
-                    scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                    scoreAggregateTable,
                     scoreAggregateTableFormatter,
                     ordinalColumnAnalysis,
                     new ComputationStateVersion(0, 9),
@@ -997,7 +1046,7 @@ describe('ComputationState', () => {
                 value: [1, 1, new ComputationStateVersion(0, 10), createFilteredOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
                     filteredAggregateDataFrame,
-                    scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                    scoreAggregateTable,
                     scoreAggregateTableFormatter,
                     ordinalColumnAnalysis,
                     new ComputationStateVersion(0, 10),
