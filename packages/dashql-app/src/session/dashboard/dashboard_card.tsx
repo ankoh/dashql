@@ -122,6 +122,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         : [];
     const template = markdownTemplate(resultColumns);
     const visualizable = props.script.annotations.lastStatementIsQuery === true;
+    // The output shows the icon of its renderer, like the renderers of a collapsed card
+    const OutputIcon = visualizeQuery?.renderer === 'table' ? TableIcon : visualizeQuery?.renderer === 'markdown' ? MarkdownIcon : GraphIcon;
     const notVisualizable = 'Only a query is visualized';
 
     return (
@@ -205,8 +207,18 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                         size={SegmentedControlSize.Tiny}
                         onChange={index => setContentSelected(index === 1)}
                     >
-                        <SegmentedControl.Button data-testid="dashboard-card-output-tab" selected={!contentSelected}>Output</SegmentedControl.Button>
-                        <SegmentedControl.Button data-testid="dashboard-card-content-tab" selected={contentSelected}>Content</SegmentedControl.Button>
+                        <SegmentedControl.IconButton
+                            aria-label="Output"
+                            icon={<OutputIcon size={12} />}
+                            data-testid="dashboard-card-output-tab"
+                            selected={!contentSelected}
+                        />
+                        <SegmentedControl.IconButton
+                            aria-label="Edit"
+                            icon={<PencilIcon size={12} />}
+                            data-testid="dashboard-card-content-tab"
+                            selected={contentSelected}
+                        />
                     </SegmentedControl>
                 )}
             </header>
