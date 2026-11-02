@@ -161,7 +161,7 @@ export function truncatePlanLabel(label: string, maxChars: number): string {
     return `${chars.slice(0, maxChars - 1).join('')}…`;
 }
 
-function buildPipelinePath(operatorIds: readonly number[], operators: readonly PlanSceneOperator[]): string {
+export function buildPipelinePath(operatorIds: readonly number[], operators: readonly Pick<PlanSceneOperator, "rect">[]): string {
     if (operatorIds.length === 0) return '';
     const padding = 4;
     const radius = 8;

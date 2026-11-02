@@ -1,4 +1,4 @@
-import { buildCrossEdgePath, buildFragmentPath, estimateRelativeDifference, hasOutputCardinalityProduced, truncatePlanLabel } from './plan_scene.js';
+import { buildCrossEdgePath, buildFragmentPath, buildPipelinePath, estimateRelativeDifference, hasOutputCardinalityProduced, truncatePlanLabel } from './plan_scene.js';
 
 function pathContainsPoint(path: string, x: number, y: number): boolean {
     const contours = path.split('M ').filter(Boolean).map(contour => {
@@ -163,3 +163,25 @@ describe('buildFragmentPath', () => {
         expect(pathContainsPoint(path, 30, 30)).toEqual(true);
     });
 });
+
+describe('buildPipelinePath', () => {
+    const operators = [
+        { rect: { x: 50, y: 40, width: 40, height: 20 } },
+        { rect: { x: 150, y: 40, width: 40, height: 20 } },
+    ];
+
+    it('draws one rounded rectangle with a padding of 4 per operator of the pipeline', () => {
+        // The first operator spans 30..70 x 30..50, padded 26..74 x 26..54 with a corner radius of 8
+        const first = 'M 34 26 H 66 Q 74 26 74 34 V 46 Q 74 54 66 54 H 34 Q 26 54 26 46 V 34 Q 26 26 34 26 Z';
+        expect(buildPipelinePath([0], operators)).toBe(first);
+        // Operators that are not in the scene are skipped
+        const both = buildPipelinePath([0, 7, 1], operators);
+        expect(both.startsWith(`${first} M 134 26`)).toBe(true);
+        expect(both.match(/M /g)).toHaveLength(2);
+    });
+
+    it('draws nothing for an empty pipeline', () => {
+        expect(buildPipelinePath([], operators)).toBe('');
+    });
+});
+

@@ -8,6 +8,23 @@ import { DashQLCompletionStatus, type DashQLProcessorUpdateIn } from '../../sess
 /// The editor text of the completion of the tables `orders` of two databases
 export const ORDERS_COMPLETION_TEXT = 'select * from ord';
 
+/// The processor state of an editor of the text with the cursor at its end, analyzed against the catalog
+export function editorProcessorState(dql: dashql.DashQL, text: string, catalog: dashql.DashQLCatalog = dql.createCatalog()): DashQLProcessorUpdateIn {
+    const scriptSession = dql.createScriptSession(catalog);
+    scriptSession.replaceText(0n, text);
+    expect(scriptSession.analyze().analysisAvailable).toBe(true);
+    return {
+        scriptKey: 1,
+        scriptSession,
+        editorUpdate: scriptSession.setCursor(1n, BigInt(text.length)),
+        scriptBuffers: null,
+        scriptCompletion: null,
+        scriptPendingDiff: null,
+        derivedFocus: null,
+        onUpdate: () => { },
+    };
+}
+
 /// The processor state of an editor at the end of `select * from ord` whose completion selects the candidate `orders`,
 /// a table of the databases db0 and db1
 export function ordersCompletion(dql: dashql.DashQL): DashQLProcessorUpdateIn {
@@ -21,11 +38,8 @@ export function ordersCompletion(dql: dashql.DashQL): DashQLProcessorUpdateIn {
     catalog.loadScript(schemaScript, 0);
 
     const text = ORDERS_COMPLETION_TEXT;
-    const scriptSession = dql.createScriptSession(catalog);
-    scriptSession.replaceText(0n, text);
-    expect(scriptSession.analyze().analysisAvailable).toBe(true);
-    const editorUpdate = scriptSession.setCursor(1n, BigInt(text.length));
-    const buffer = scriptSession.completeAtCursor(10);
+    const state = editorProcessorState(dql, text, catalog);
+    const buffer = state.scriptSession!.completeAtCursor(10);
     const completion = buffer.read();
     const candidateId = Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)?.displayText()).indexOf('orders');
     expect(candidateId).toBeGreaterThanOrEqual(0);
@@ -40,14 +54,5 @@ export function ordersCompletion(dql: dashql.DashQL): DashQLProcessorUpdateIn {
         catalogObjectPatch: [],
         catalogObjectCursorOffset: null,
     }, EditorState.create({ doc: text }).doc, text.length);
-    return {
-        scriptKey: 1,
-        scriptSession,
-        editorUpdate,
-        scriptBuffers: null,
-        scriptCompletion,
-        scriptPendingDiff: null,
-        derivedFocus: null,
-        onUpdate: () => { },
-    };
+    return { ...state, scriptCompletion };
 }

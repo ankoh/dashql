@@ -1,14 +1,20 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import * as dashql from '@ankoh/dashql-core';
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorState, EditorSelection } from '@codemirror/state';
 
+import { editorProcessorState } from '../../tests/mocks/editor_completion.js';
+import { DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
 import {
+    defaultQuotedTokenFinder,
     QuoteTombstoneField,
     QuotedTokenFinder,
     QuotedTokenSpan,
     tombstoneBackspace,
     tombstoneForwardDelete,
 } from './dashql_quote_tombstone.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let view: EditorView;
 
@@ -224,3 +230,30 @@ describe('quote tombstone — replacement of token clears it', () => {
         expect(tombstone(view)).toBeNull();
     });
 });
+
+describe('default quoted token finder', () => {
+    let dql: dashql.DashQL;
+    beforeAll(async () => {
+        dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    });
+    afterEach(() => dql.resetUnsafe());
+
+    /// An editor state whose processor knows the scanner tokens of the text
+    function processedState(text: string): EditorState {
+        const state = EditorState.create({ doc: text, extensions: [DashQLProcessorPlugin] });
+        return state.update({ effects: DashQLUpdateEffect.of(editorProcessorState(dql, text)) }).state;
+    }
+
+    it('finds the quotes of the quoted token at a quote', () => {
+        const text = 'select "Name" from t';
+        const state = processedState(text);
+        expect(defaultQuotedTokenFinder(state, text.indexOf('"'))).toEqual({ leading: 7, trailing: 12 });
+        expect(defaultQuotedTokenFinder(state, text.lastIndexOf('"'))).toEqual({ leading: 7, trailing: 12 });
+    });
+
+    it('finds nothing without a processor or a token of two characters', () => {
+        expect(defaultQuotedTokenFinder(EditorState.create({ doc: '"a"' }), 0)).toBeNull();
+        expect(defaultQuotedTokenFinder(processedState('select 1'), 7)).toBeNull();
+    });
+});
+

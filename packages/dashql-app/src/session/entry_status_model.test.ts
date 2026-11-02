@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { QueryExecutionStatus } from '../query/query_execution_state.js';
-import { deriveEntryStatus, getQueryStatusText } from './entry_status_model.js';
+import { deriveEntryStatus, EntryStatusKind, getQueryStatusText } from './entry_status_model.js';
+import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 
 describe('getQueryStatusText', () => {
     it.each([
@@ -98,3 +99,17 @@ describe('getQueryStatusText', () => {
         expect(status.message).toBe('Statement 3 of 3: Result loaded from cache');
     });
 });
+
+describe('deriveEntryStatus', () => {
+    const query = (fields: object) => ({ queryId: 1, statementIndex: 1, statementCount: 1, error: null, traceId: 5, ...fields }) as never;
+
+    it('shows running, succeeded, cached and idle entries', () => {
+        expect(deriveEntryStatus(query({ status: QueryExecutionStatus.RUNNING }))).toEqual({
+            kind: EntryStatusKind.Query, indicator: IndicatorStatus.Running, message: 'Executing query', traceId: 5, errorDetail: null,
+        });
+        expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED }))).toMatchObject({ indicator: IndicatorStatus.Succeeded, message: 'Statement executed successfully' });
+        expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED, servedFromCache: true }))).toMatchObject({ message: 'Result loaded from cache' });
+        expect(deriveEntryStatus(null)).toEqual({ kind: EntryStatusKind.Idle, indicator: IndicatorStatus.None, message: 'Not run yet', traceId: null, errorDetail: null });
+    });
+});
+
