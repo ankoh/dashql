@@ -3,18 +3,20 @@ import * as dashql from '@ankoh/dashql-core';
 import {
     APPLY_CATALOG_CHANGES,
     CATALOG_UPDATE_SUCCEEDED,
+    ConnectionStatus,
     createConnectionState,
     DELETE_CONNECTION,
     RESET_CONNECTION,
     reduceConnectionState,
     RENAME_CONNECTION,
     SET_CONNECTION_QUERY_RESULT_CACHING,
+    SWITCH_CONNECTOR_TYPE,
     UPDATE_CATALOG,
     connectionCachesQueryResults,
     type ConnectionState,
 } from './connection_state.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from './connector_info.js';
 import { createConnectionStateDetails } from './connection_state_details.js';
 import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog/catalog_batch.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog_update_state.js';
@@ -218,3 +220,21 @@ describe('connection names', () => {
         expect(connectionCachesQueryResults(on)).toBe(true);
     });
 });
+
+describe('connector type switches', () => {
+    it('switch an unconfigured connection to another connector', () => {
+        const logger = new TestLogger();
+        const hyper = state();
+        expect(reduceConnectionState(hyper, { type: SWITCH_CONNECTOR_TYPE, value: ConnectorType.HYPER }, logger)).toBe(hyper);
+        const trino = reduceConnectionState(hyper, { type: SWITCH_CONNECTOR_TYPE, value: ConnectorType.TRINO }, logger);
+        expect(trino.connectorInfo).toBe(CONNECTOR_INFOS[ConnectorType.TRINO]);
+        expect(trino.details.type).toBe(TRINO_CONNECTOR);
+        expect(trino.params).toBeDefined();
+    });
+
+    it('keep the connector of a started connection', () => {
+        const started = { ...state(), connectionStatus: ConnectionStatus.CHANNEL_READY };
+        expect(reduceConnectionState(started, { type: SWITCH_CONNECTOR_TYPE, value: ConnectorType.TRINO }, new TestLogger())).toBe(started);
+    });
+});
+

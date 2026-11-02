@@ -4,12 +4,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { CLEAR_TABLE_ORDERING, COLUMN_AGGREGATION_SUCCEEDED, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { CLEAR_TABLE_ORDERING, COLUMN_AGGREGATION_SUCCEEDED, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_CROSS_FILTERS, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
-import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_types.js';
+import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_types.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
+import { CrossFilters } from './cross_filters.js';
 
 function createOrdinalAggregate(
     columnEntry: OrdinalGridColumnGroup,
@@ -314,6 +315,49 @@ describe('ComputationState', () => {
         state = reduceComputationState(state, { type: RESULT_SEARCH_FAILED, value: [1, dataFrame, 'columns', requestId, 'bad pattern'] }, memory);
         expect(state.tableComputations[1].columnSearch).toMatchObject({ error: 'bad pattern', pending: false, matchingColumnGroups: null });
         expect(state.tableComputations[1].dataSearch.error).toBeNull();
+    });
+
+    it('keeps the state for equal cross filters', () => {
+        const memory = new DataFrameRegistry(logger);
+        const state = stateWithTable(mockDataFrame('__test_input'));
+        const set = (filters: CrossFilters, tableId = 1): ComputationAction => ({ type: SET_CROSS_FILTERS, value: [tableId, filters] });
+        expect(reduceComputationState(state, set(new CrossFilters()), memory)).toBe(state);
+        expect(reduceComputationState(state, set(new CrossFilters(), 7), memory)).toBe(state);
+
+        const filters = new CrossFilters();
+        filters.addMostFrequentValueFilter(1, { inputFieldName: 'score', inputFieldType: new arrow.Utf8(), inputFieldNullable: true, statsFields: null, valueIdFieldName: 'score_id' }, 3);
+        expect(reduceComputationState(state, set(filters), memory).tableComputations[1].crossFilters).toBe(filters);
+    });
+
+    it('tracks the latest Data search task and ignores progress of older requests', () => {
+        const memory = new DataFrameRegistry(logger);
+        const dataFrame = mockDataFrame('__test_input');
+        const searchTask = (requestId: number) => ({
+            tableId: 1,
+            tableVersion: new ComputationStateVersion(0, 0),
+            inputDataFrame: dataFrame,
+            rowNumberColumnName: 'rowNumber',
+            columns: [],
+            pattern: 'a',
+            requestId,
+            abortController: new AbortController(),
+        });
+        let state = stateWithTable(dataFrame);
+        const first = searchTask(1);
+        state = reduceComputationState(state, { type: SCHEDULE_TASK, value: { type: DATA_SEARCH_TASK, value: first, result: new AsyncValue() } }, memory);
+        const second = searchTask(2);
+        state = reduceComputationState(state, { type: SCHEDULE_TASK, value: { type: DATA_SEARCH_TASK, value: second, result: new AsyncValue() } }, memory);
+        expect(first.abortController.signal.aborted).toBe(true);
+        expect(state.tableComputations[1].tasks.dataSearchTask?.requestId).toBe(2);
+
+        const update = (requestId: number): ComputationAction => ({
+            type: UPDATE_SCHEDULER_TASK,
+            value: [{ type: DATA_SEARCH_TASK, value: searchTask(requestId) } as never, { status: TaskStatus.TASK_SUCCEEDED }],
+        });
+        state = reduceComputationState(state, update(1), memory);
+        expect(state.tableComputations[1].tasks.dataSearchTask?.progress.status).toBe(TaskStatus.TASK_RUNNING);
+        state = reduceComputationState(state, update(2), memory);
+        expect(state.tableComputations[1].tasks.dataSearchTask?.progress.status).toBe(TaskStatus.TASK_SUCCEEDED);
     });
 
     it('delete computation', () => {

@@ -4,6 +4,8 @@ import * as arrow from 'apache-arrow';
 import {
     EXECUTE_QUERY,
     INTERNAL_QUERY_HISTORY_LIMIT,
+    QUERY_CACHE_DELETED,
+    QUERY_CACHE_RECORDED,
     QUERY_FAILED,
     QUERY_RECEIVED_ALL_BATCHES,
     QUERY_RECEIVED_BATCH,
@@ -101,3 +103,24 @@ describe('finished queries', () => {
         expect(state.queriesFinished.has(INTERNAL_QUERY_HISTORY_LIMIT + 10)).toBe(true);
     });
 });
+
+describe('query cache bookkeeping', () => {
+    it('records the cache key of active and finished queries', () => {
+        let state = start(history(), 1, metadata(QueryType.USER_PROVIDED));
+        state = reduceQueryAction(state, { type: QUERY_CACHE_RECORDED, value: [1, 'key-1', false, null] });
+        expect(state.queriesActive.get(1)).toMatchObject({ cacheKey: 'key-1', servedFromCache: false });
+
+        state = finish(state, 1);
+        state = reduceQueryAction(state, { type: QUERY_CACHE_RECORDED, value: [1, 'key-1', true, Date.UTC(2026, 0, 1)] });
+        expect(state.queriesFinished.get(1)).toMatchObject({ cacheKey: 'key-1', servedFromCache: true, cachedAt: new Date(Date.UTC(2026, 0, 1)) });
+        state = reduceQueryAction(state, { type: QUERY_CACHE_DELETED, value: [1] });
+        expect(state.queriesFinished.get(1)?.cacheDeleted).toBe(true);
+    });
+
+    it('ignores the cache of unknown queries', () => {
+        const state = history();
+        expect(reduceQueryAction(state, { type: QUERY_CACHE_DELETED, value: [9] })).toBe(state);
+        expect(reduceQueryAction(state, { type: QUERY_SUCCEEDED, value: [9] })).toBe(state);
+    });
+});
+
