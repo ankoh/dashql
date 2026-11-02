@@ -17,9 +17,17 @@
     --session_input_strip_inline_padding: max(16px, calc((100% - 1600px) / 2));
 }
 
-.scroll {
+/* Holds the scroll shadows at the edges of the cards */
+.scroll_container {
     grid-row: 2;
+    position: relative;
     min-height: 0;
+    overflow: hidden;
+}
+
+.scroll {
+    box-sizing: border-box;
+    height: 100%;
     overflow: auto;
     padding: 16px;
 }

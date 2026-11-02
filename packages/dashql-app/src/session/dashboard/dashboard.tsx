@@ -22,6 +22,7 @@ import {
 } from './dashboard_layout.js';
 import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer } from './dashboard_source.js';
 import { SessionInputStrip } from '../inputs/session_input_strip.js';
+import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 import * as styles from './dashboard.module.css';
 
 const GRID_GAP = DASHBOARD_GRID_GAP;
@@ -82,6 +83,8 @@ function readLayout(sessionScripts: SessionScripts): DashboardPlacement[] {
 
 export function Dashboard(props: Props): React.ReactElement {
     const gridRef = React.useRef<HTMLDivElement | null>(null);
+    const scrollRef = React.useRef<HTMLDivElement | null>(null);
+    const getScrollElement = React.useCallback(() => scrollRef.current, []);
     const resizeBaselineRef = React.useRef<DashboardPlacement[] | null>(null);
     const [layout, setLayout] = React.useState(() => readLayout(props.sessionScripts));
     const [gridWidth, setGridWidth] = React.useState(0);
@@ -246,21 +249,29 @@ export function Dashboard(props: Props): React.ReactElement {
                 sessionScripts={props.sessionScripts}
                 modifySessionScripts={props.modifySessionScripts}
             />
-            <div className={styles.scroll}>
-                {scripts.length === 0 ? (
-                    <div className={styles.empty_state}>
-                        <strong>No scripts yet</strong>
-                        <span>Every script of the session appears here, queries with @vis comments as visualizations.</span>
-                    </div>
-                ) : (
-                    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                        {/* The scripts without a renderer on top, the visualizations below. Both sections share the columns. */}
-                        <div ref={gridRef} className={styles.sections}>
-                            {renderSection('scripts', 'Scripts without visualization')}
-                            {renderSection('visualizations', 'Visualizations')}
+            {/* The cards scroll under the bar of the inputs, the shadows mark the edges like in the feed */}
+            <div className={styles.scroll_container}>
+                <div ref={scrollRef} className={styles.scroll}>
+                    {scripts.length === 0 ? (
+                        <div className={styles.empty_state}>
+                            <strong>No scripts yet</strong>
+                            <span>Every script of the session appears here, queries with @vis comments as visualizations.</span>
                         </div>
-                    </DndContext>
-                )}
+                    ) : (
+                        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                            {/* The scripts without a renderer on top, the visualizations below. Both sections share the columns. */}
+                            <div ref={gridRef} className={styles.sections}>
+                                {renderSection('scripts', 'Scripts without visualization')}
+                                {renderSection('visualizations', 'Visualizations')}
+                            </div>
+                        </DndContext>
+                    )}
+                </div>
+                <VerticalScrollShadows
+                    getScrollElement={getScrollElement}
+                    prominent
+                    refreshKey={`${props.sessionScripts.sessionId}:${scripts.length}:${dashboardSectionRows(layout, 'scripts')}:${dashboardSectionRows(layout, 'visualizations')}`}
+                />
             </div>
             {overlayScript != null && overlay?.kind === 'editor' && (
                 <DashboardEditorOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
