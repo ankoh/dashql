@@ -16,12 +16,12 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 75.7% (45,721 / 60,382 lines) in 544 files**, up from 69.1% before the tests of the Trino and
+**Overall: 76.0% (46,012 / 60,568 lines) in 544 files**, up from 69.1% before the tests of the Trino and
 Salesforce connection reducers, channel and API client, the Trino Arrow conversion and types, the log buffer, the graph
 edges, more Arrow value formats, the column aggregation and data search tasks, the completion focus, list and keys, the
 diff decorations, the router navigation, the cross filters, the query result search, the column resize and ordering of
-the data table, the native gRPC clients, the reducer cases of the computation, query and connection states, the session
-restore, the native session storage and the formatting helpers.
+the data table, the plan pipelines, the quoted tokens of the editor, the app event messages, the native gRPC clients, the reducer cases of the computation, query and connection states, the session
+restore, the OPFS and native session storage and the formatting helpers.
 
 ## Gaps in logic (`.ts`)
 
@@ -34,14 +34,8 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/demos/stock_analysis/synthetic_feed.ts:142-161` | start | 19 |
 | `src/shell/api.ts:104-121` | fetchShellWasm | 18 |
 | `src/compute/tasks/column_aggregation.ts:212-227` | computeFilteredColumnAggregates | 16 |
-| `src/storage/opfs_storage_backend.ts:536-555` | reorderManifestSessions | 16 |
-| `src/views/plan/plan_scene.ts:164-179` | buildPipelinePath | 16 |
 | `src/connections/catalog/catalog_query_pg_attribute.ts:181-198` | updatePgSchemaScript | 15 |
-| `src/session/editor/dashql_quote_tombstone.ts:94-108` | defaultQuotedTokenFinder | 15 |
 | `src/shell/shell_files.ts:239-253` | logDetails | 15 |
-| `src/storage/opfs_storage_backend.ts:267-287` | renameScript | 15 |
-| `src/storage/opfs_storage_backend.ts:370-391` | clearAllStorage | 15 |
-| `src/storage/opfs_storage_backend.ts:581-596` | getFolderDir | 15 |
 | `src/views/query_result/data_table_layout.ts:111-125` | computeTableLayout | 15 |
 | `src/views/query_result/data_table_layout.ts:144-158` | computeTableLayout | 15 |
 | `src/compute/arrow_formatter.ts:553-570` | ensureBatchIsLoaded | 14 |
@@ -49,6 +43,12 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/demos/shared/use_live_query.ts:91-104` | useLiveQuery | 13 |
 | `src/session/scripts/session_scripts.ts:1229-1245` | reduceScripts | 13 |
 | `src/connections/salesforce/salesforce_connection_setup.ts:223-234` | createSalesforceSetup | 12 |
+| `src/session/persistence/app_state_loader.ts:698-711` | restoreAppState | 12 |
+| `src/session/scripts/session_scripts.ts:1422-1433` | replaceSessionScriptsFromStorage | 12 |
+| `src/shell/browser_shell.ts:372-383` | replaceShell | 12 |
+| `src/views/plan/plan_scene.ts:494-505` | materializePlanScene | 12 |
+| `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
+| `src/connections/connection_import.ts:29-41` | decodeConnectionFromProto | 11 |
 
 ## Gaps in components (`.tsx`)
 
@@ -94,9 +94,8 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
 ## Suggested next tests
 
 1. `useHyperLinks`: render it with the connection and session registries like the session workbench tests.
-2. The OPFS storage backend (`reorderManifestSessions`, `renameScript`, `clearAllStorage`, `getFolderDir`) with the OPFS
-   test root of `opfs_storage_backend.test.ts`.
-3. `fetchShellWasm` of the shell API and `start` of the synthetic stock feed of the demos.
+2. `fetchShellWasm` of the shell API and `start` of the synthetic stock feed of the demos.
+3. `updatePgSchemaScript` of the Postgres attribute catalog query and the `reduceScripts` cases of the session scripts.
 4. Render tests of `TrinoConnectorSettings` and `HyperConnectorSettings` like the Salesforce settings tests.
 
 ## Flaky tests
