@@ -12,14 +12,6 @@
     flex-shrink: 0;
 }
 
-.tab_header_borderless {
-    border-bottom: none;
-}
-
-.tab_header_top_border {
-    border-top: 1px solid rgb(210, 210, 210);
-}
-
 /* Clickable variant (feed footer → Details). The inner button holds the title/count and reads as the
    header bar; it sits inside the shared `.tab_header` row so an optional right-aligned action slot
    (e.g. the cache controls) can live beside it without nesting a button inside a button. */
