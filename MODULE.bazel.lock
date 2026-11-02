@@ -437,7 +437,7 @@
     },
     "//packages/dashql-datasets:deps.bzl%dashql_datasets": {
       "general": {
-        "bzlTransitiveDigest": "D2aovRv+d9cavsT9F3Nfsc05X6pItiDVmbdd4ZFF7iU=",
+        "bzlTransitiveDigest": "u7Yfq7rA8qWJ8ZQ8WAwSZhtpKb3SlrbiIiZgbgz6x6w=",
         "usagesDigest": "9CaQiSHsXruJokdO8YydY9q/SD/pqdC92pCiFtJCctc=",
         "recordedInputs": [
           "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",
@@ -3075,7 +3075,7 @@
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+crate_native": {
       "general": {
         "bzlTransitiveDigest": "oRT3UomGgtiGJaeJ0qujSwD2YtkHxj5jYsZPSMBq21c=",
-        "usagesDigest": "j0kFahBki085qrq7dnOBOU56R+SwsHaSRQ1Ll68DgCk=",
+        "usagesDigest": "IJHa5KF+iCFxz3E4vkdmUXylet5FH5yqpjS/j4YKsSo=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
           "ENV:CARGO_BAZEL_GENERATOR_SHA256 \\0",
