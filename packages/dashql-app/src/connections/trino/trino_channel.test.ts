@@ -6,7 +6,8 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ChannelError } from '../../platform/channel_common.js';
 import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
 import type { TrinoApiClientInterface, TrinoQueryResult } from './trino_api_client.js';
-import { TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
+import { TrinoApiEndpoint } from './trino_api_client.js';
+import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
 import { TrinoChannel, TrinoQueryResultStream } from './trino_channel.js';
 import * as proto from '../../proto.js';
 import * as buf from '@bufbuild/protobuf';
@@ -89,11 +90,10 @@ describe('TrinoQueryResultStream', () => {
 });
 
 describe('TrinoChannel', () => {
-    /// A channel with basic auth whose HTTP client answers every request with the response
+    /// A channel of the catalog hive with basic auth whose HTTP client answers every request with the response
     function channel(response: () => Response) {
-        const fetch = vi.fn(async () => response());
-        const endpoint = new TrinoApiEndpoint('https://trino.example.com', { authType: 'AUTH_BASIC', basic: { username: 'user', secret: 'secret' } } as never);
-        return { fetch, channel: new TrinoChannel(new TestLogger(), new TrinoApiClient(new TestLogger(), { fetch }), endpoint, 'hive') };
+        const { fetch, endpoint, client } = basicTrinoApi(response);
+        return { fetch, channel: new TrinoChannel(new TestLogger(), client, endpoint, 'hive') };
     }
     const query = (text: string) => buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, { query: text });
 
@@ -101,7 +101,7 @@ describe('TrinoChannel', () => {
         const { fetch, channel: trino } = channel(() => new Response(JSON.stringify({ id: 'q1', columns: COLUMNS, stats: { state: 'FINISHED' } })));
         const stream = await trino.executeQuery(query('select 1'));
 
-        const [url, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+        const [url, init] = fetch.mock.calls[0] as [URL, RequestInit];
         expect(url.toString()).toBe('https://trino.example.com/v1/statement');
         expect(init.body).toBe('select 1');
         const headers = new Headers(init.headers);

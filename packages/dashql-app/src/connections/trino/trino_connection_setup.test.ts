@@ -7,8 +7,9 @@ import { PlatformType } from '../../platform/platform_type.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel } from './trino_channel.js';
-import { setupTrinoConnection } from './trino_connection_setup.js';
+import { createTrinoSetup, setupTrinoConnection } from './trino_connection_setup.js';
 import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from './trino_connection_state.js';
+import { RESET_CONNECTION } from '../connection_state.js';
 import type { Dispatch } from '../../utils/variant.js';
 
 const OAUTH_PARAMS: connection.TrinoConnectionParams = {
@@ -118,6 +119,16 @@ describe('Trino basic setup', () => {
         expect(channel.catalogName).toBe('hive');
         expect(channel.endpoint.endpoint).toBe('https://trino.example.com');
         expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_READY]);
+    });
+
+    it('sets up and resets connections through the setup API', async () => {
+        const http = new FakeHttpClient();
+        const logger = new TestLogger();
+        const api = createTrinoSetup(new TrinoApiClient(logger, http), {} as never, logger, http, PlatformType.WEB, false)!;
+        const dispatch = vi.fn();
+        expect(await api.setup(dispatch, BASIC_PARAMS, new AbortController().signal)).toBeInstanceOf(TrinoChannel);
+        await api.reset(dispatch);
+        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_READY, RESET_CONNECTION]);
     });
 
     it('reports a cancelled setup', async () => {
