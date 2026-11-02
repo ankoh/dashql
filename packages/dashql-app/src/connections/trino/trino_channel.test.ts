@@ -90,6 +90,30 @@ describe('TrinoQueryResultStream', () => {
         expect(stream.getMetrics()).toMatchObject({ totalQueryRequestsStarted: 3, totalQueryRequestsSucceeded: 3, totalBatchesReceived: 2, totalRowsReceived: 3 });
     });
 
+    it('follows the next URIs through any query state', async () => {
+        const { stream, apiClient } = resultStream({ nextUri: 'next-1', stats: state('QUEUED') }, [
+            { nextUri: 'next-2', stats: state('PLANNING') },
+            { nextUri: 'next-3', columns: COLUMNS, data: [[1]], stats: state('FINISHED') },
+            { columns: COLUMNS, data: [[2]], stats: state('FINISHED') },
+        ]);
+        const batches = await produceAll(stream);
+        expect(vi.mocked(apiClient.getQueryResult).mock.calls.map(call => call[1])).toEqual(['next-1', 'next-2', 'next-3']);
+        expect(batches.map(batch => batch.toArray().map(row => row.customer_id))).toEqual([[1], [2]]);
+    });
+
+    it('requests the next page before producing the current one', async () => {
+        const { stream, apiClient } = resultStream({ nextUri: 'next-1', stats: state('RUNNING') }, [
+            { nextUri: 'next-2', columns: COLUMNS, data: [[1]], stats: state('RUNNING') },
+            { columns: COLUMNS, data: [[2]], stats: state('FINISHED') },
+        ]);
+        const requestsAtBatch: number[] = [];
+        await stream.produce(
+            new AsyncConsumerLambdas(() => { requestsAtBatch.push(vi.mocked(apiClient.getQueryResult).mock.calls.length); }),
+            new AsyncConsumerLambdas(),
+        );
+        expect(requestsAtBatch).toEqual([2, 2]);
+    });
+
     it('fails on query errors and rejects a pending schema', async () => {
         const { stream } = resultStream({ nextUri: 'next-1', stats: state('QUEUED') }, [
             { error: { errorCode: 1, errorName: 'SYNTAX_ERROR', errorType: 'USER_ERROR', message: 'line 1' } } as Partial<TrinoQueryResult>,

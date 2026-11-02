@@ -4,8 +4,6 @@ import * as proto from "../../proto.js";
 import { Logger } from '../../platform/logger/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../query/query_execution_state.js";
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
-
-const STREAM_YIELD_INTERVAL = 8;
 import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryResult, TrinoQueryStatistics } from "./trino_api_client.js";
 import { ChannelError, RawProxyError } from '../../platform/channel_common.js';
 import { AsyncValue } from '../../utils/async_value.js';
@@ -132,18 +130,23 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     async getSchema(): Promise<arrow.Schema | null> {
         return this.resultSchema.getValue();
     }
-    /// Await the next record batch
+    /// Await the next record batch.
+    /// The stream follows the next URIs until Trino stops sending one, the query state does not end the stream:
+    /// Trino reports states like PLANNING before the rows and FINISHED while the coordinator still buffers rows.
     async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch | null>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+        let pending = this.fetchNextQueryResult(abort);
         try {
-            let batchesRead = 0;
-            // While still running
-            while (this.latestQueryState == "QUEUED" || this.latestQueryState == "RUNNING" || this.latestQueryState == "FINISHING") {
-                // Fetch the next query result
-                const result = await this.fetchNextQueryResult(abort);
+            while (true) {
+                const result = await pending;
                 abort?.throwIfAborted();
+                if (result == null) {
+                    break;
+                }
+                // Request the next page before translating this one, Trino fills the page while we translate
+                pending = this.fetchNextQueryResult(abort);
 
                 // Has a data attribute?
-                if (Array.isArray(result?.data)) {
+                if (Array.isArray(result.data)) {
                     // Have result data but not schema yet?
                     // This is unexpected.
                     if (!this.resultSchema.isResolved()) {
@@ -156,21 +159,23 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     this.queryMetrics.totalRowsReceived += resultBatch.numRows;
 
                     // Publish a new progress update
-                    this.latestQueryProgress = deriveProgress(this.latestQueryStats, this.queryMetrics);
+                    this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics);
                     progress.resolve(this, this.latestQueryProgress);
 
                     // Produce a batch
                     batches.resolve(this, resultBatch);
                     abort?.throwIfAborted();
-                    if (++batchesRead % STREAM_YIELD_INTERVAL === 0) await yieldToBrowser();
+                    await yieldToBrowser();
                 } else {
                     // Publish the progress update
-                    this.latestQueryProgress = deriveProgress(this.latestQueryStats, this.queryMetrics);
+                    this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics);
                     progress.resolve(this, this.latestQueryProgress);
                 }
             }
-            this.logger.debug("Reached end of query result stream", { "queryState": this.latestQueryState });
+            this.logger.debug("Reached end of query result stream", { "queryState": this.latestQueryState }, LOG_CTX);
         } catch (e: any) {
+            // Don't leave the request of the next page as unhandled rejection
+            pending.catch(() => { });
             throw e;
         }
     }
