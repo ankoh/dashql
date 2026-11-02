@@ -150,9 +150,6 @@ describe('dataflow scene', () => {
         expect(selectedEdges(scene, { scriptKey: -1, statementId: null, input: 'min' }).map(e => e.key)).toEqual(['i']);
         // A selected script highlights the edges of its inputs
         expect(selectedEdges(scene, { scriptKey: 2, statementId: null }).map(e => e.key)).toEqual(['b', 'i']);
-        // Zoomed out, the input is its header
-        const collapsed = buildDataflowScene(graph, positions, () => null, () => true, DATAFLOW_LAYOUT, true);
-        expect(start(collapsed.edges.find(e => e.key === 'i')!.path)).toEqual([INPUT_BOX_WIDTH, 200 + DATAFLOW_LAYOUT.headerHeight / 2]);
     });
 
     it('curves a fan-out into the grid of its consumers after a trunk with one badge', () => {

@@ -18,7 +18,6 @@ import { useApplySessionInput } from '../inputs/use_apply_session_input.js';
 import { deriveSessionInputs, type SessionInput } from '../inputs/session_inputs.js';
 import {
     buildDataflowScene,
-    DATAFLOW_COLLAPSE_SCALE,
     DATAFLOW_LAYOUT,
     DATAFLOW_MAX_BOX_WIDTH,
     DATAFLOW_MAX_CHART_HEIGHT,
@@ -123,7 +122,6 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     const sceneRef = React.useRef<SVGGElement | null>(null);
     const zoomRef = React.useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
-    const [zoomCollapsed, setZoomCollapsed] = React.useState(false);
     const [collapsed, setCollapsed] = React.useState<ReadonlySet<number>>(new Set());
     const [selection, setSelection] = React.useState<DataflowSelection | null>(null);
     const [hover, setHover] = React.useState<DataflowSelection | null>(null);
@@ -141,7 +139,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
 
     const graph = deriveDataflowGraph(sessionScripts);
     const scriptOf = React.useCallback((script: DataflowScript): ScriptData | undefined => sessionScripts.scripts[script.scriptKey], [sessionScripts.scripts]);
-    const isCollapsed = React.useCallback((script: DataflowScript) => zoomCollapsed || collapsed.has(script.scriptKey), [zoomCollapsed, collapsed]);
+    const isCollapsed = React.useCallback((script: DataflowScript) => collapsed.has(script.scriptKey), [collapsed]);
     const chartStatement = React.useCallback((script: DataflowScript) => {
         const statementId = scriptOf(script)?.annotations.visualizeQuery?.statementId;
         return statementId != null && statementId < script.statements.length ? statementId : null;
@@ -218,7 +216,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
         }
         return out;
     }, [positions, drag, resize, graph.scripts, graph.inputs, chartStatement]);
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, DATAFLOW_LAYOUT, zoomCollapsed), [graph, shown, chartStatement, isCollapsed, zoomCollapsed]);
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed), [graph, shown, chartStatement, isCollapsed]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
@@ -249,7 +247,6 @@ export function DataflowCanvas(props: Props): React.ReactElement {
             .on('zoom', event => {
                 transformRef.current = event.transform;
                 sceneRef.current?.setAttribute('transform', event.transform.toString());
-                setZoomCollapsed(event.transform.k < DATAFLOW_COLLAPSE_SCALE);
             });
         zoomRef.current = behavior;
         select(svg).call(behavior).on('dblclick.zoom', null);
@@ -669,13 +666,13 @@ function DataflowBoxPorts(props: { box: DataflowSceneBox; highlighted: DataflowS
     );
 }
 
-/// The output port of an input box, on its header when collapsed and on its value row otherwise
+/// The output port of an input box, on its value row
 function DataflowInputPorts(props: { box: DataflowSceneInput; highlighted: boolean }): React.ReactElement | null {
     const { box } = props;
     const config = DATAFLOW_LAYOUT;
     if (!box.output) return null;
-    const y = box.collapsed ? box.y + config.headerHeight / 2 : box.rowY + config.rowHeight / 2;
-    const x = box.collapsed ? box.x + box.width : box.x + box.width - config.rowPadding;
+    const y = box.rowY + config.rowHeight / 2;
+    const x = box.x + box.width - config.rowPadding;
     return <GraphPort x={x} y={y} side="right" highlighted={props.highlighted} data-dataflow-port="output" />;
 }
 
@@ -910,7 +907,7 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
                     {truncate(input.type.sql, 14)}
                 </text>
             </g>
-            {!box.collapsed && props.input != null && (
+            {props.input != null && (
                 <foreignObject x={box.x + config.rowPadding} y={box.rowY} width={box.width - 2 * config.rowPadding} height={config.rowHeight} className={styles.input_row}>
                     <SessionInputCard input={props.input} variant="block" busy={props.busy} literalOf={props.literalOf} onCommit={props.onCommit} />
                 </foreignObject>

@@ -25,9 +25,6 @@ export const DATAFLOW_MAX_BOX_WIDTH = 1600;
 export const DATAFLOW_MIN_CHART_HEIGHT = 96;
 export const DATAFLOW_MAX_CHART_HEIGHT = 1200;
 
-/// Boxes are collapsed below this zoom, which leaves out the charts and merges the edges between boxes
-export const DATAFLOW_COLLAPSE_SCALE = 0.5;
-
 /// The space between an edge inside a box and the left border of the box, per statement that it spans
 const INTERNAL_EDGE_GUTTER = 3;
 const INTERNAL_EDGE_GUTTER_STEP = 2;
@@ -74,7 +71,6 @@ export interface DataflowSceneBox extends Rect {
 /// The box of an input: a header with the name and one row with the value
 export interface DataflowSceneInput extends Rect {
     input: DataflowInput;
-    collapsed: boolean;
     /// The top of the row of the value on the canvas
     rowY: number;
     /// Does an edge start at the input?
@@ -204,9 +200,9 @@ function roundedPath(points: [number, number][], radius: number): string {
     return out.join(' ');
 }
 
-/// The part of a box that edges are routed around
+/// The part of a box that edges are routed around, an input is never collapsed
 interface EdgeEnd extends Rect {
-    collapsed: boolean;
+    collapsed?: boolean;
 }
 
 /// The x of the output port of a box
@@ -278,8 +274,6 @@ export function buildDataflowScene(
     chartStatement: (script: DataflowScript) => number | null,
     collapsed: (script: DataflowScript) => boolean,
     config: core.DataflowLayoutConfig = DATAFLOW_LAYOUT,
-    /// Are the inputs drawn as their headers? The canvas collapses them when it is zoomed out.
-    inputsCollapsed = false,
 ): DataflowScene {
     const boxes: DataflowSceneBox[] = graph.scripts.map((script, index) => {
         const p = positions[index];
@@ -300,8 +294,7 @@ export function buildDataflowScene(
     const inputs: DataflowSceneInput[] = graph.inputs.flatMap((input, i) => {
         const p = positions[graph.scripts.length + i];
         if (p == null) return [];
-        const height = inputsCollapsed ? config.headerHeight : p.height;
-        return [{ input, collapsed: inputsCollapsed, x: p.x, y: p.y, width: p.width, height, rowY: p.y + (p.rows[0] ?? 0), output: false }];
+        return [{ input, x: p.x, y: p.y, width: p.width, height: p.height, rowY: p.y + (p.rows[0] ?? 0), output: false }];
     });
     const inputOf = new Map(inputs.map(i => [i.input.name, i]));
 
@@ -311,7 +304,7 @@ export function buildDataflowScene(
         if (edge.input != null) {
             const source = inputOf.get(edge.input);
             if (source == null) return null;
-            return { key: `:${edge.input}`, end: source, y: source.collapsed ? source.y + config.headerHeight / 2 : source.rowY + config.rowHeight / 2 };
+            return { key: `:${edge.input}`, end: source, y: source.rowY + config.rowHeight / 2 };
         }
         const from = boxOf.get(edge.from.scriptKey);
         if (from == null) return null;
@@ -350,7 +343,7 @@ export function buildDataflowScene(
                 if (merged.has(key)) continue;
                 merged.add(key);
             }
-            const fromY = source.collapsed ? source.y + config.headerHeight / 2 : source.rowY + config.rowHeight / 2;
+            const fromY = source.rowY + config.rowHeight / 2;
             const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config);
             source.output = true;
             const toRow = to.rows[edge.to.statementId];
