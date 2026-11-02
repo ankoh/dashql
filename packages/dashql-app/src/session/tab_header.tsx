@@ -22,13 +22,18 @@ interface TabHeaderProps {
     actions?: React.ReactNode;
     /// Drop the bottom border, for content that starts right under the header
     borderless?: boolean;
+    /// Draw a border above the header, to set it off from the content over it
+    topBorder?: boolean;
 }
 
 /// The header bar shown atop a session tab body: a title with an optional greyish "N of M rows"
 /// count. Shared by the feed footer (clickable, opens the full result table) and the full views (inert),
 /// so the surfaces read identically.
-export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, detailIsLink, actions, borderless }) => {
-    const headerClass = classNames(styles.tab_header, { [styles.tab_header_borderless]: borderless });
+export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, detailIsLink, actions, borderless, topBorder }) => {
+    const headerClass = classNames(styles.tab_header, {
+        [styles.tab_header_borderless]: borderless,
+        [styles.tab_header_top_border]: topBorder,
+    });
     if (onClick != null) {
         return (
             <div className={headerClass}>

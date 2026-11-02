@@ -230,7 +230,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                     />
                 ) : visualizeQuery.renderer === 'table' ? (
                     // A table shows the header of the result over it, a chart only the chart
-                    <dependencies.QueryResultPanel query={query} cellBackground="white" headerBorder />
+                    <dependencies.QueryResultPanel query={query} cellBackground="white" headerTopBorder />
                 ) : (
                     <dependencies.VisualizationDispatch
                         query={query}

@@ -41,8 +41,8 @@ interface HeaderProps {
     maxRows?: number;
     /// Open the full result table, makes the header clickable
     onShowTable?: () => void;
-    /// Draw a border between the header and the table below it
-    border?: boolean;
+    /// Draw a border above the header
+    topBorder?: boolean;
     dependencies?: QueryResultHeaderDependencies;
 }
 
@@ -59,7 +59,8 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
             detail={formatResultRowCount(counts, maxRows)}
             onClick={props.onShowTable}
             detailIsLink={displayedRows != null && displayedRows > maxRows}
-            borderless={!props.border}
+            borderless
+            topBorder={props.topBorder}
             actions={(
                 <>
                     <dependencies.QueryResultToolbar query={props.query} />
@@ -73,8 +74,8 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
 interface PanelProps {
     query: QueryExecutionState | null;
     cellBackground?: string;
-    /// Draw a border between the header and the table
-    headerBorder?: boolean;
+    /// Draw a border above the header
+    headerTopBorder?: boolean;
 }
 
 /// A result table with its header that fills its host, for the table renderer of a script in the dashboard and the dataflow
@@ -82,7 +83,7 @@ export function QueryResultPanel(props: PanelProps): React.ReactElement {
     const { hasResult } = useResultRowCount(props.query);
     return (
         <div className={styles.panel}>
-            {hasResult && props.query != null && <QueryResultHeader query={props.query} border={props.headerBorder} />}
+            {hasResult && props.query != null && <QueryResultHeader query={props.query} topBorder={props.headerTopBorder} />}
             <div className={styles.panel_body}>
                 <QueryResultView
                     query={props.query}
