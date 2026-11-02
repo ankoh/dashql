@@ -24,16 +24,32 @@
     padding: 16px;
 }
 
-.grid {
+/* The sections of the board stacked, the scripts without a renderer above the visualizations */
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.grid,
+.grid_scripts {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     /* A row is as high as a collapsed card */
     grid-auto-rows: 40px;
     gap: 12px;
     width: 100%;
-    max-width: 1600px;
-    margin: 0 auto;
     align-content: start;
+}
+
+/* The scripts are set apart from the visualizations by a line below them */
+.grid_scripts {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--log_border_color);
+    box-sizing: content-box;
 }
 
 .card {

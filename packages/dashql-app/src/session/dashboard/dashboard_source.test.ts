@@ -13,7 +13,7 @@ describe('dashboard source persistence', () => {
             annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 1 } },
         } as unknown as ScriptData;
 
-        persistDashboardPlacement(script, { id: 7, row: 2, column: 4, width: 5, height: 3 }, modify);
+        persistDashboardPlacement(script, { id: 7, section: 'visualizations', row: 2, column: 4, width: 5, height: 3 }, modify);
 
         expect(rewriteVisBoard).toHaveBeenCalledWith(1, 2, 4, 5, 3);
         expect(modify).toHaveBeenCalledWith({
@@ -31,7 +31,7 @@ describe('dashboard source persistence', () => {
             annotations: { visualizeQuery: null, boardPosition: { statementId: 2, row: 0, column: 0, width: 6, height: 4 } },
         } as unknown as ScriptData;
 
-        persistDashboardPlacement(script, { id: 7, row: 2, column: 4, width: 5, height: 1 }, modify);
+        persistDashboardPlacement(script, { id: 7, section: 'scripts', row: 2, column: 4, width: 5, height: 1 }, modify);
 
         expect(rewriteVisBoard).toHaveBeenCalledWith(2, 2, 4, 5, 4);
         expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'rewritten sql' } });

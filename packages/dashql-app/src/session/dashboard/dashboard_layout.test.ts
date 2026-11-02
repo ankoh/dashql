@@ -4,6 +4,7 @@ import {
     DASHBOARD_DEFAULT_HEIGHT,
     DASHBOARD_DEFAULT_WIDTH,
     dashboardPlacementsIntersect,
+    dashboardSectionRows,
     moveDashboardItem,
     placeDashboardItems,
     resizeDashboardItem,
@@ -12,16 +13,16 @@ import {
 describe('dashboard layout', () => {
     it('places unhinted cards row-major with stable defaults', () => {
         expect(placeDashboardItems([{ id: 1 }, { id: 2 }, { id: 3 }])).toEqual([
-            { id: 1, row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 2, row: 0, column: 6, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 3, row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 1, section: 'visualizations', row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: 0, column: 6, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, section: 'visualizations', row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 
     it('uses row and column as start hints and scans forward when occupied', () => {
         const placed = placeDashboardItems([
-            { id: 1, row: 1, column: 3, width: 3, height: 2 },
-            { id: 2, row: 1, column: 3, width: 3, height: 2 },
+            { id: 1, section: 'visualizations', row: 1, column: 3, width: 3, height: 2 },
+            { id: 2, section: 'visualizations', row: 1, column: 3, width: 3, height: 2 },
         ]);
         expect(placed[0]).toMatchObject({ row: 1, column: 3 });
         expect(placed[1]).toMatchObject({ row: 1, column: 6 });
@@ -32,9 +33,9 @@ describe('dashboard layout', () => {
         const initial = placeDashboardItems([{ id: 1 }, { id: 2 }, { id: 3 }]);
         const moved = moveDashboardItem(initial, 3, 0, 0);
         expect(moved).toEqual([
-            { id: 1, row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 2, row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 3, row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 1, section: 'visualizations', row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 
@@ -42,8 +43,39 @@ describe('dashboard layout', () => {
         const initial = placeDashboardItems([{ id: 1 }, { id: 2 }]);
         const resized = resizeDashboardItem(initial, 1, 20, 4);
         expect(resized).toEqual([
-            { id: 1, row: 0, column: 0, width: 12, height: 4 },
-            { id: 2, row: 4, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 1, section: 'visualizations', row: 0, column: 0, width: 12, height: 4 },
+            { id: 2, section: 'visualizations', row: 4, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+        ]);
+    });
+
+    it('places every section on its own grid', () => {
+        const placed = placeDashboardItems([
+            { id: 1, section: 'scripts', width: 4, height: 1 },
+            { id: 2 },
+            { id: 3, section: 'scripts', width: 4, height: 1 },
+            { id: 4, row: 0, column: 0 },
+        ]);
+        expect(placed).toEqual([
+            { id: 1, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
+            { id: 2, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, section: 'scripts', row: 0, column: 4, width: 4, height: 1 },
+            { id: 4, section: 'visualizations', row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+        ]);
+        expect(dashboardSectionRows(placed, 'scripts')).toBe(1);
+        expect(dashboardSectionRows(placed, 'visualizations')).toBe(DASHBOARD_DEFAULT_HEIGHT);
+    });
+
+    it('displaces only the cards of the section of a moved card', () => {
+        const initial = placeDashboardItems([
+            { id: 1, section: 'scripts', width: 4, height: 1 },
+            { id: 2 },
+            { id: 3, section: 'scripts', width: 4, height: 1 },
+        ]);
+        const moved = moveDashboardItem(initial, 3, 0, 0);
+        expect(moved).toEqual([
+            { id: 1, section: 'scripts', row: 0, column: 4, width: 4, height: 1 },
+            { id: 2, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
         ]);
     });
 });

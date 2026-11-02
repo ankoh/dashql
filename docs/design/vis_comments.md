@@ -82,8 +82,13 @@ tag of the statement it shows (see Rewriting tags).
 
 Every script of the session is a card, placed by the `@board` tag of its last statement. A script whose last
 statement has no renderer is a collapsed card: a header of one row, 4 columns wide by default, whose width can change,
-but not its height. Its `@board` keeps the height of the card that it becomes with a renderer. The header offers the
-renderers of a query as icons:
+but not its height. Its `@board` keeps the height of the card that it becomes with a renderer.
+
+The board has two sections, each a grid of its own: the collapsed cards on top, the visualizations below. `row` and
+`column` count from the top left corner of the section of the card, and a card moves and resizes within its section.
+A collapsed card that gets a renderer moves to the visualizations, at the `row` and `column` of its `@board`.
+
+The header of a collapsed card offers the renderers of a query as icons:
 
 - **Table** writes `@vis table`.
 - **Chart** opens the chart builder, which stages its `@vis vegalite` as a diff, like in the feed.

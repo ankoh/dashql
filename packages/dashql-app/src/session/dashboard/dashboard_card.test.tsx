@@ -39,7 +39,7 @@ describe('DashboardCard', () => {
                 <DashboardCard
                     sessionId="session"
                     script={script}
-                    placement={{ id: 1, row: 0, column: 0, width: 6, height: 3 }}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
                     columnStep={100}
                     rowStep={108}
                     onResize={vi.fn()}
@@ -80,7 +80,7 @@ describe('DashboardCard', () => {
                 <DashboardCard
                     sessionId="session"
                     script={tableScript}
-                    placement={{ id: 1, row: 0, column: 0, width: 6, height: 3 }}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
                     columnStep={100}
                     rowStep={108}
                     onResize={vi.fn()}
@@ -112,7 +112,7 @@ describe('DashboardCard', () => {
                     <DashboardCard
                         sessionId="session"
                         script={card}
-                        placement={{ id: 1, row: 0, column: 0, width: 6, height: 1 }}
+                        placement={{ id: 1, section: 'scripts', row: 0, column: 0, width: 6, height: 1 }}
                         columnStep={100}
                         rowStep={108}
                         onResize={vi.fn()}

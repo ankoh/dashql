@@ -14,12 +14,19 @@ export interface DashboardLayoutHint {
     height?: number | null;
 }
 
+/// The board stacks its sections: the scripts without a renderer on top, the visualizations below.
+/// Every section is a grid of its own, rows and columns count from its top left corner.
+export type DashboardSection = 'scripts' | 'visualizations';
+
 export interface DashboardLayoutItem extends DashboardLayoutHint {
     id: number;
+    /// Defaults to the visualizations
+    section?: DashboardSection;
 }
 
 export interface DashboardPlacement {
     id: number;
+    section: DashboardSection;
     row: number;
     column: number;
     width: number;
@@ -35,6 +42,7 @@ function normalize(item: DashboardLayoutItem): DashboardPlacement {
     const width = clampInteger(item.width, DASHBOARD_DEFAULT_WIDTH, 1, DASHBOARD_COLUMN_COUNT);
     return {
         id: item.id,
+        section: item.section ?? 'visualizations',
         row: clampInteger(item.row, 0, 0, Number.MAX_SAFE_INTEGER),
         column: clampInteger(item.column, 0, 0, DASHBOARD_COLUMN_COUNT - width),
         width,
@@ -63,7 +71,7 @@ function findOpenPlacement(item: DashboardPlacement, placed: readonly DashboardP
     }
 }
 
-/** Place items deterministically. `ownerId` is placed first and therefore owns its requested cells. */
+/** Place items deterministically, every section on its own. `ownerId` is placed first and therefore owns its requested cells. */
 export function placeDashboardItems(
     items: readonly DashboardLayoutItem[],
     ownerId: number | null = null,
@@ -76,7 +84,9 @@ export function placeDashboardItems(
             ...normalized.filter(item => item.id !== ownerId),
         ];
     const placed: DashboardPlacement[] = [];
-    for (const item of ordered) placed.push(findOpenPlacement(item, placed));
+    for (const item of ordered) {
+        placed.push(findOpenPlacement(item, placed.filter(other => other.section === item.section)));
+    }
     const byId = new Map(placed.map(item => [item.id, item]));
     return items.map(item => byId.get(item.id)!);
 }
@@ -97,6 +107,11 @@ export function resizeDashboardItem(
     height: number,
 ): DashboardPlacement[] {
     return placeDashboardItems(items.map(item => item.id === ownerId ? { ...item, width, height } : item), ownerId);
+}
+
+/// The number of rows of a section
+export function dashboardSectionRows(items: readonly DashboardPlacement[], section: DashboardSection): number {
+    return items.reduce((max, item) => item.section === section ? Math.max(max, item.row + item.height) : max, 0);
 }
 
 /// The height of a card in pixels, with the gaps between its rows

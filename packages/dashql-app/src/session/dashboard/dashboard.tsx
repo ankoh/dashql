@@ -12,10 +12,13 @@ import {
     DASHBOARD_COLUMN_COUNT,
     DASHBOARD_GRID_GAP,
     DASHBOARD_ROW_HEIGHT,
+    dashboardCardHeight,
+    dashboardSectionRows,
     moveDashboardItem,
     placeDashboardItems,
     resizeDashboardItem,
     type DashboardPlacement,
+    type DashboardSection,
 } from './dashboard_layout.js';
 import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer } from './dashboard_source.js';
 import { SessionInputStrip } from '../inputs/session_input_strip.js';
@@ -64,10 +67,11 @@ function preferredPlacement(script: ScriptData): DashboardSpec | null {
 function readLayout(sessionScripts: SessionScripts): DashboardPlacement[] {
     return placeDashboardItems(readScripts(sessionScripts).map(script => {
         const spec = preferredPlacement(script);
-        // A script without a visualization is a collapsed card of one row
+        // A script without a visualization is a collapsed card of one row, in the section of the scripts on top
         const collapsed = script.annotations.visualizeQuery == null;
         return {
             id: script.scriptKey,
+            section: collapsed ? 'scripts' : 'visualizations',
             row: spec?.row,
             column: spec?.column,
             width: spec?.width ?? (collapsed ? DASHBOARD_COLLAPSED_WIDTH : undefined),
@@ -198,7 +202,41 @@ export function Dashboard(props: Props): React.ReactElement {
         return a.row - b.row || a.column - b.column
             || (scriptOrder.get(left.scriptKey) ?? 0) - (scriptOrder.get(right.scriptKey) ?? 0);
     });
-    const rows = layout.reduce((max, item) => Math.max(max, item.row + item.height), 0);
+    const renderSection = (section: DashboardSection, label: string) => {
+        const sectionScripts = cardScripts.filter(script => placementById.get(script.scriptKey)?.section === section);
+        if (sectionScripts.length === 0) return null;
+        return (
+            <div
+                className={section === 'scripts' ? styles.grid_scripts : styles.grid}
+                role="group"
+                aria-label={label}
+                style={{ minHeight: dashboardCardHeight(dashboardSectionRows(layout, section)) }}
+            >
+                {sectionScripts.map(script => {
+                    const placement = placementById.get(script.scriptKey)!;
+                    const preferred = preferredPlacement(script);
+                    const shifted = (preferred?.row != null && preferred.row !== placement.row)
+                        || (preferred?.column != null && preferred.column !== placement.column);
+                    return (
+                        <DashboardCard
+                            key={script.scriptKey}
+                            sessionId={props.sessionScripts.sessionId}
+                            script={script}
+                            placement={placement}
+                            columnStep={columnStep}
+                            rowStep={rowStep}
+                            onResize={handleResize}
+                            onResizeCancel={handleResizeCancel}
+                            shifted={shifted}
+                            onVisualize={handleVisualize}
+                            onOpenChart={handleOpenChart}
+                            onOpenEditor={handleOpenEditor}
+                        />
+                    );
+                })}
+            </div>
+        );
+    };
     return (
         <section className={styles.page} aria-label="Dashboard">
             <div className={styles.sr_only} role="status" aria-live="polite">{announcement}</div>
@@ -216,33 +254,10 @@ export function Dashboard(props: Props): React.ReactElement {
                     </div>
                 ) : (
                     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                        <div
-                            ref={gridRef}
-                            className={styles.grid}
-                            style={{ minHeight: rows * DASHBOARD_ROW_HEIGHT + Math.max(0, rows - 1) * GRID_GAP }}
-                        >
-                            {cardScripts.map(script => {
-                                const placement = placementById.get(script.scriptKey);
-                                const preferred = preferredPlacement(script);
-                                const shifted = (preferred?.row != null && preferred.row !== placement?.row)
-                                    || (preferred?.column != null && preferred.column !== placement?.column);
-                                return placement == null ? null : (
-                                    <DashboardCard
-                                        key={script.scriptKey}
-                                        sessionId={props.sessionScripts.sessionId}
-                                        script={script}
-                                        placement={placement}
-                                        columnStep={columnStep}
-                                        rowStep={rowStep}
-                                        onResize={handleResize}
-                                        onResizeCancel={handleResizeCancel}
-                                        shifted={shifted}
-                                        onVisualize={handleVisualize}
-                                        onOpenChart={handleOpenChart}
-                                        onOpenEditor={handleOpenEditor}
-                                    />
-                                );
-                            })}
+                        {/* The scripts without a renderer on top, the visualizations below. Both sections share the columns. */}
+                        <div ref={gridRef} className={styles.sections}>
+                            {renderSection('scripts', 'Scripts without visualization')}
+                            {renderSection('visualizations', 'Visualizations')}
                         </div>
                     </DndContext>
                 )}
