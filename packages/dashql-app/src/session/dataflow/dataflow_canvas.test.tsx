@@ -279,13 +279,4 @@ describe('DataflowCanvas', () => {
         act(() => { narrowHandle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' })); });
         expect(modify).not.toHaveBeenCalled();
     });
-
-    it('collapses a box to its header', () => {
-        render();
-        expect(box('schema.sql').querySelectorAll('[data-dataflow-statement]').length).toBe(2);
-        act(() => box('schema.sql').querySelector<SVGGElement>('[data-dataflow-action="collapse"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-        expect(box('schema.sql').querySelectorAll('[data-dataflow-statement]').length).toBe(0);
-        // The edge inside the box is gone, the edge between the boxes stays
-        expect(container.querySelectorAll('[data-dataflow-edge]').length).toBe(1);
-    });
 });

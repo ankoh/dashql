@@ -141,7 +141,7 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   query, a double click on the canvas creates a query at that position, the trash button deletes the script, and
   Arrange removes the positions of the `@flow` tags, keeps the sizes and lays out every box again.
 
-The layout always lays out full boxes, collapsing a box only changes how it is drawn. Every layout starts from where
+The layout always lays out full boxes, the canvas draws every box with its statements. Every layout starts from where
 the boxes were: where the last layout put them while the canvas is open, else their `@flow` tags. So a box keeps its
 column, its order and its y while the session changes, and a new script starts next to the boxes it reads. A drop or
 a resize lays out from the dropped box and the new size, then writes the position and the size of every script box

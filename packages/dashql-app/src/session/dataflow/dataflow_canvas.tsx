@@ -4,7 +4,7 @@ import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } fro
 
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ChevronDownIcon, ChevronRightIcon, PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
+import { PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
 import { useQueryState } from '../../connections/query_executor.js';
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
@@ -53,6 +53,8 @@ const CHART_BORDER = 1;
 /// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
 const RESIZE_HANDLE = 16;
 const RESIZE_KEY_STEP = 16;
+/// The canvas draws every box with its statements
+const NEVER_COLLAPSED = () => false;
 
 export interface DataflowCanvasDependencies {
     useQueryState: typeof useQueryState;
@@ -131,7 +133,6 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     const sceneRef = React.useRef<SVGGElement | null>(null);
     const zoomRef = React.useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
-    const [collapsed, setCollapsed] = React.useState<ReadonlySet<number>>(new Set());
     const [selection, setSelection] = React.useState<DataflowSelection | null>(null);
     const [hover, setHover] = React.useState<DataflowSelection | null>(null);
     const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
@@ -153,16 +154,14 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
 
     const graph = deriveDataflowGraph(sessionScripts);
     const scriptOf = React.useCallback((script: DataflowScript): ScriptData | undefined => sessionScripts.scripts[script.scriptKey], [sessionScripts.scripts]);
-    const isCollapsed = React.useCallback((script: DataflowScript) => collapsed.has(script.scriptKey), [collapsed]);
     const chartStatement = React.useCallback((script: DataflowScript) => {
         const statementId = scriptOf(script)?.annotations.visualizeQuery?.statementId;
         return statementId != null && statementId < script.statements.length ? statementId : null;
     }, [scriptOf]);
 
-    // The layout lays out full boxes, collapsing a box only changes how it is drawn. Every box is laid out from where
-    // it was: where the last layout put it, else where its `@flow` tag saved it. A dropped box is laid out from where
-    // it was dropped, a resized one with its new size. ELK keeps the columns, the order in a column and the y of the
-    // boxes, and routes the edges between them.
+    // Every box is laid out from where it was: where the last layout put it, else where its `@flow` tag saved it. A
+    // dropped box is laid out from where it was dropped, a resized one with its new size. ELK keeps the columns, the
+    // order in a column and the y of the boxes, and routes the edges between them.
     const layout = React.useMemo((): { boxes: DataflowBoxPosition[]; laidOut: ReadonlyMap<string, DataflowLaidOutRoute> } => {
         const placed = placedRef.current;
         const placedInputs = placedInputsRef.current;
@@ -260,7 +259,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         () => ({ laidOut: layout.laidOut, route: (boxes, edges) => layoutModule.routeDataflowEdges(boxes, edges) }),
         [layout, layoutModule],
     );
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, isCollapsed, config, routing), [graph, shown, chartStatement, isCollapsed, routing]);
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, NEVER_COLLAPSED, config, routing), [graph, shown, chartStatement, routing]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
@@ -470,13 +469,6 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         setArrangeRevision(r => r + 1);
         fittedRef.current = false;
     }, [graph.scripts, scriptOf, modifySessionScripts]);
-    const toggleCollapsed = React.useCallback((scriptKey: number) => {
-        setCollapsed(previous => {
-            const next = new Set(previous);
-            if (!next.delete(scriptKey)) next.add(scriptKey);
-            return next;
-        });
-    }, []);
 
     const onKeyDown = React.useCallback((event: React.KeyboardEvent) => {
         if (event.target !== viewportRef.current) return;
@@ -604,7 +596,6 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 onResizeKey={onResizeKey}
                                 onSelect={setSelection}
                                 onHover={setHover}
-                                onToggleCollapsed={toggleCollapsed}
                                 onInspect={props.onInspect}
                                 onDelete={script => deleteFlowScript(script, modifySessionScripts)}
                                 onCreateDownstream={createDownstream}
@@ -677,7 +668,6 @@ interface BoxProps {
     onSelect: (selection: DataflowSelection) => void;
     /// The pointer enters a box with its selection or leaves it with null
     onHover: (selection: DataflowSelection | null) => void;
-    onToggleCollapsed: (scriptKey: number) => void;
     onInspect?: (scriptKey: number) => void;
     onDelete: (script: ScriptData) => void;
     onCreateDownstream: (box: DataflowSceneBox) => void;
@@ -747,7 +737,6 @@ function DataflowBox(props: BoxProps): React.ReactElement {
     const terminal = box.rows.length - 1;
     const result = query?.resultTable;
     const actions = [
-        { key: 'collapse', label: box.collapsed ? `Expand ${name}` : `Collapse ${name}`, icon: box.collapsed ? ChevronRightIcon : ChevronDownIcon, run: () => props.onToggleCollapsed(scriptKey) },
         ...(props.onInspect != null ? [{ key: 'open', label: `Open ${name}`, icon: PencilIcon, run: () => props.onInspect!(scriptKey) }] : []),
         ...(script != null ? [{ key: 'delete', label: `Delete ${name}`, icon: TrashIcon, run: () => props.onDelete(script) }] : []),
     ];
