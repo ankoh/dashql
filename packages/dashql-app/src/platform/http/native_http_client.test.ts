@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestLogger } from '../logger/test_logger.js';
 import { LogLevel } from '../logger/log_buffer.js';
 import { NativeHttpClient } from './native_http_client.js';
+import { installNativeProxy } from '../../tests/mocks/native_proxy.js';
 
 describe('NativeHttpClient', () => {
     const logger = new TestLogger();
@@ -10,37 +11,20 @@ describe('NativeHttpClient', () => {
 
     afterEach(() => { delete (globalThis as any).dashqlElectron; });
 
-    function setProxyResponses(...responses: Response[]): void {
-        globalThis.dashqlElectron = {
-            nativeProxyRequest: async () => {
-                const response = responses.shift()!;
-                return {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: [...response.headers],
-                    body: new Uint8Array(await response.arrayBuffer()),
-                };
-            },
-        } as unknown as DashQLElectronBridge;
-    }
+    const setProxyResponses = (...responses: Response[]) => installNativeProxy(responses);
 
     it('drops the stream in the proxy when the request is aborted', async () => {
-        const requests: string[] = [];
         const abort = new AbortController();
         const responses = [
             new Response(null, { headers: { 'dashql-stream-id': '7' } }),
             new Response('partial', { headers: { 'dashql-batch-event': 'FlushAfterTimeout' } }),
             new Response(null),
         ];
-        globalThis.dashqlElectron = {
-            nativeProxyRequest: async (request: { method: string; url: string }) => {
-                requests.push(`${request.method} ${new URL(request.url).pathname}`);
-                // The first batch arrives, the caller aborts before the next one
-                if (requests.length === 2) abort.abort();
-                const response = responses.shift()!;
-                return { status: response.status, statusText: response.statusText, headers: [...response.headers], body: new Uint8Array(await response.arrayBuffer()) };
-            },
-        } as unknown as DashQLElectronBridge;
+        const { requests } = installNativeProxy(() => {
+            // The first batch arrives, the caller aborts before the next one
+            if (requests.length === 2) abort.abort();
+            return responses.shift()!;
+        });
 
         await expect(client.fetch('https://trino.example/v1/statement', { signal: abort.signal })).rejects.toThrow();
         await vi.waitFor(() => expect(requests).toEqual(['POST /http/streams', 'GET /http/stream/7', 'DELETE /http/stream/7']));
