@@ -1262,7 +1262,18 @@ impl DataflowLayout {
     /// Set the sizes of the canvas, the defaults of the core otherwise
     #[wasm_bindgen(js_name = setConfig)]
     #[allow(clippy::too_many_arguments)]
-    pub fn set_config(&mut self, box_width: f64, header_height: f64, row_height: f64, row_padding: f64, chart_height: f64, layer_gap: f64, box_gap: f64, grid: f64) {
+    pub fn set_config(
+        &mut self,
+        box_width: f64,
+        header_height: f64,
+        row_height: f64,
+        row_padding: f64,
+        chart_height: f64,
+        layer_gap: f64,
+        box_gap: f64,
+        grid: f64,
+        wrap_siblings: u32,
+    ) {
         self.config = dashql_core_view::dataflow_layout::DataflowLayoutConfig {
             box_width,
             header_height,
@@ -1272,19 +1283,23 @@ impl DataflowLayout {
             layer_gap,
             box_gap,
             grid,
+            wrap_siblings: wrap_siblings as usize,
             ..self.config
         };
     }
 
-    /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position.
+    /// Add a box, returns its index. A negative chart statement is absent, a fixed box keeps its position, the box of
+    /// an input does not tie its consumers into a grid.
     #[wasm_bindgen(js_name = addBox)]
-    pub fn add_box(&mut self, statements: u32, chart_statement: i32, collapsed: bool, fixed: bool, x: f64, y: f64, width: f64) -> u32 {
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_box(&mut self, statements: u32, chart_statement: i32, collapsed: bool, fixed: bool, x: f64, y: f64, width: f64, input: bool) -> u32 {
         self.boxes.push(dashql_core_view::dataflow_layout::DataflowLayoutBox {
             statements,
             chart_statement: u32::try_from(chart_statement).ok(),
             collapsed,
             fixed: fixed.then_some((x, y)),
             width: (width > 0.0).then_some(width),
+            input,
         });
         (self.boxes.len() - 1) as u32
     }

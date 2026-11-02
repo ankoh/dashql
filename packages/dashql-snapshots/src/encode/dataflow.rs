@@ -47,10 +47,11 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
                 collapsed,
                 fixed: analyzed.and_then(|a| a.flow).map(|flow| (flow.x as f64, flow.y as f64)),
                 width: None,
+                input: false,
             }
         })
-        .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), ..Default::default() }))
-        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), ..Default::default() }))
+        .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), input: true, ..Default::default() }))
+        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, width: Some(INPUT_BOX_WIDTH), input: true, ..Default::default() }))
         .collect();
     let scripts = dataflow.scripts.len() as u32;
     let inputs = dataflow.inputs.len() as u32;

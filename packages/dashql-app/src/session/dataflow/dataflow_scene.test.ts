@@ -109,7 +109,7 @@ describe('dataflow scene', () => {
             ],
         };
         const input = dataflowLayoutInput(graph, () => null, () => null, () => false, () => ({ x: 8, y: 16 }));
-        expect(input.boxes[2]).toEqual({ statements: 1, width: INPUT_BOX_WIDTH, fixed: { x: 8, y: 16 } });
+        expect(input.boxes[2]).toEqual({ statements: 1, width: INPUT_BOX_WIDTH, fixed: { x: 8, y: 16 }, input: true });
         expect(input.edges).toContainEqual({ fromBox: 2, fromStatement: 0, toBox: 1, toStatement: 0 });
         const positions = [{ ...POSITIONS[0], x: 296 }, { ...POSITIONS[1], x: 672 }, { x: 0, y: 200, width: INPUT_BOX_WIDTH, height: 80, rows: [40] }];
         const scene = buildDataflowScene(graph, positions, () => null, () => false);
@@ -123,6 +123,38 @@ describe('dataflow scene', () => {
         // Zoomed out, the input is its header
         const collapsed = buildDataflowScene(graph, positions, () => null, () => true, DATAFLOW_LAYOUT, true);
         expect(start(collapsed.edges.find(e => e.key === 'i')!.path)).toEqual([INPUT_BOX_WIDTH, 200 + DATAFLOW_LAYOUT.headerHeight / 2]);
+    });
+
+    it('routes a fan-out as a bus into the grid of its consumers', () => {
+        // A base box and five consumers in a grid of three columns, like the core lays them out
+        const graph: DataflowGraph = {
+            scripts: [script(1, 1), ...[2, 3, 4, 5, 6].map(key => script(key, 1))],
+            inputs: [],
+            edges: [2, 3, 4, 5, 6].map(key => ({
+                key: `e${key}`,
+                from: { scriptKey: 1, statementId: 0 },
+                to: { scriptKey: key, statementId: 0 },
+                kind: DataflowEdgeKind.Table,
+                name: 'base',
+                input: null,
+            })),
+        };
+        const cell = (x: number, y: number) => ({ x, y, width: 280, height: 288, rows: [40] });
+        const positions = [{ x: 0, y: 0, width: 280, height: 80, rows: [40] }, cell(376, 0), cell(688, 0), cell(1000, 0), cell(376, 320), cell(688, 320)];
+        const scene = buildDataflowScene(graph, positions, () => null, () => false);
+        const [x1, spine] = [280 - DATAFLOW_LAYOUT.rowPadding, (272 + 384) / 2];
+        // Into the first column straight from the trunk or down the spine
+        expect(scene.edges[0].path).toBe(`M ${x1} 56 L 384 56`);
+        expect(scene.edges[3].path).toContain(`Q ${spine} 376`);
+        // Into the third column over the boxes in front of it: up the spine, along the gap above, down the gap left
+        const third = scene.edges[2].path;
+        expect(third.startsWith(`M ${x1} 56`)).toBe(true);
+        for (const corner of [`Q ${spine} 56`, `Q ${spine} -16`, 'Q 984 -16', 'Q 984 56']) expect(third).toContain(corner);
+        expect(third.endsWith('L 1008 56')).toBe(true);
+        // Into the second row of the second column through the gap above it
+        expect(scene.edges[4].path).toContain('Q 672 304');
+        // One badge for the bus, on the trunk
+        expect(scene.edges.map(e => e.badge).filter(b => b != null)).toEqual([{ x: (x1 + spine) / 2, y: 56, width: 34, text: 'base' }]);
     });
 
     it('fits a scene into a viewport at most at its real size', () => {

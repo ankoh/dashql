@@ -62,9 +62,18 @@ others. The layout has two levels:
   median of the rows it is connected to in the layer before or after it, so edges between statement rows run straight
   where they can. The dummy nodes only order the layers, an edge across a layer may pass behind a box of a layer in
   between. Connected parts are stacked, boxes without edges go into rows of four below them.
+- **Fan-outs** wrap into a grid: the sinks of a layer that read the same boxes, e.g. the charts of one base table, form
+  a grid of `ceil(sqrt(n))` columns in the order of the layer once there are `wrap_siblings` of them (4, 0 never
+  wraps). Every column is as wide as its widest box, every row as high as its highest box, with the box gap between
+  them. The grid moves like one box at its first box: the row of the producer runs straight into the first row, and
+  a producer counts the grid once. Inputs and attachments (`input` of a layout box) do not tie a fan-out, a sink is
+  grouped by the scripts it reads, or by its inputs if it reads only inputs, so a parameter that some of the charts
+  use does not split their grid.
 - **With fixed boxes**, the others are placed one at a time in topological order: right of their placed producers,
   left of their placed consumers, or below everything at the left edge, at the median of their connected rows, then
-  moved to the nearest free slot.
+  moved to the nearest free slot. A sink whose siblings are placed goes into their grid instead: into the highest free
+  slot in a row of the grid, else into a new row below it, in the leftmost free column. A new chart of a base table
+  fills the last row of its grid, a box that a growing neighbour overlaps moves within the grid.
 
 Boxes that are not fixed snap to an 8px grid. With the default sizes every row center is a multiple of the grid,
 so edges between snapped boxes stay straight. The dataflow snapshots lay out their boxes like the first render of
@@ -82,8 +91,12 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
 - `dataflow_scene.ts` turns the graph and the layout into the scene: boxes, statement rows with their ports, charts,
   edge paths and badges. An edge between boxes runs from the output port on the right of its source row to the input
   port on the left of its target row, orthogonal with rounded corners like the edges of the plan view: with at most
-  two turns to a target on the right, around the boxes to a target on the left or at the same x. Edges inside a box
-  run along the left of its rows. Collapsed boxes merge their edges and leave out the edges inside them.
+  two turns to a target on the right, around the boxes to a target on the left or at the same x. The edges of an
+  output port share a spine halfway to its nearest target on the right, so a fan-out is a bus. An edge whose target
+  row has a box in front of it, e.g. a later column of a grid, leaves the spine through the gap above the target and
+  comes down the gap left of it. The table edges of a port with the same relation have one badge, on the trunk before
+  the spine. Edges inside a box run along the left of its rows. Collapsed boxes merge their edges and leave out the
+  edges inside them.
 - `dataflow_canvas.tsx` renders the scene in SVG with the shared graph styles of the plan view
   (`src/ui/graph/graph.module.css`, `GraphPort`): boxes are fragments, statements are node frames, inline
   references and table edges are solid, scans and invalid references are dashed, the relation of a table edge is a

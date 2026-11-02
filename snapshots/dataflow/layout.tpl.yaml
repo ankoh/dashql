@@ -41,6 +41,55 @@ dataflow-snapshots:
         input: |
           select count(*) from orders;
 
+  # Five charts of one base table wrap into a grid of three columns, the base row runs into the first row. An
+  # input read by two of them does not split the grid.
+  - name: LayoutFanoutGrid
+    scripts:
+      - name: sales
+        input: |
+          create table sales (region text, amount int);
+      - name: by_region
+        input: |
+          /* @param :min = 10 */
+          /** @vis table */
+          select region, sum(amount) as amount from sales where amount > :min::int group by region;
+      - name: total
+        input: |
+          /** @vis table */
+          select sum(amount) as total from sales;
+      - name: top
+        input: |
+          /* @param :min = 10 */
+          /** @vis table */
+          select region, amount from sales where amount > :min::int order by amount desc limit 10;
+      - name: regions
+        input: |
+          /** @vis table */
+          select distinct region from sales;
+      - name: count
+        input: |
+          /** @vis table */
+          select count(*) as orders from sales;
+
+  # Three consumers stay a column
+  - name: LayoutFanoutBelowThreshold
+    scripts:
+      - name: sales
+        input: |
+          create table sales (region text, amount int);
+      - name: by_region
+        input: |
+          /** @vis table */
+          select region, sum(amount) as amount from sales group by region;
+      - name: total
+        input: |
+          /** @vis table */
+          select sum(amount) as total from sales;
+      - name: count
+        input: |
+          /** @vis table */
+          select count(*) as orders from sales;
+
   # A source sits right before its consumer, not in the first layer
   - name: LayoutLateSource
     scripts:
@@ -156,7 +205,7 @@ dataflow-snapshots:
           /** @flow x=600 y=40 */
           select id from orders;
 
-  # Two consumers that want the same slot, the second one moves to the nearest free slot
+  # Two consumers that want the same slot, the second one goes below the first like in a fan-out
   - name: LayoutFreeSlot
     scripts:
       - name: orders

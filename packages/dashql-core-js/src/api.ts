@@ -43,6 +43,8 @@ export interface DataflowLayoutConfig {
     layerGap: number;
     boxGap: number;
     grid: number;
+    /// The fewest sinks of a layer reading the same boxes that wrap into a grid, 0 never wraps
+    wrapSiblings: number;
 }
 
 /// A script box of the dataflow canvas
@@ -55,6 +57,8 @@ export interface DataflowLayoutBox {
     fixed?: { x: number; y: number } | null;
     /// The width of the box, the width of the config if absent
     width?: number | null;
+    /// Is the box an input or an attachment? Its consumers are grouped as if it were absent.
+    input?: boolean;
 }
 
 /// An edge between statements of two boxes
@@ -432,10 +436,10 @@ export class DashQL {
         const layout = new this.bindings.DataflowLayout();
         try {
             if (config) {
-                layout.setConfig(config.boxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid);
+                layout.setConfig(config.boxWidth, config.headerHeight, config.rowHeight, config.rowPadding, config.chartHeight, config.layerGap, config.boxGap, config.grid, config.wrapSiblings);
             }
             for (const box of boxes) {
-                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0, box.width ?? 0);
+                layout.addBox(box.statements, box.chartStatement ?? -1, box.collapsed ?? false, box.fixed != null, box.fixed?.x ?? 0, box.fixed?.y ?? 0, box.width ?? 0, box.input ?? false);
             }
             for (const edge of edges) {
                 layout.addEdge(edge.fromBox, edge.fromStatement, edge.toBox, edge.toStatement);

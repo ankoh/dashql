@@ -1,6 +1,6 @@
 import type * as core from '@ankoh/dashql-core';
 
-import { DataflowEdgeKind, type DataflowGraph, type DataflowInput, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
+import { type DataflowEdge, DataflowEdgeKind, type DataflowGraph, type DataflowInput, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
 
 /// The sizes of the canvas, every row center is a multiple of the grid so that edges between snapped boxes are straight
 export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
@@ -12,6 +12,7 @@ export const DATAFLOW_LAYOUT: core.DataflowLayoutConfig = {
     layerGap: 96,
     boxGap: 32,
     grid: 8,
+    wrapSiblings: 4,
 };
 
 /// The width of the box of an input, like the dataflow snapshots of the core
@@ -123,7 +124,7 @@ export function dataflowLayoutInput(
         };
     });
     for (const input of graph.inputs) {
-        boxes.push({ statements: 1, width: INPUT_BOX_WIDTH, fixed: fixedInput(input) });
+        boxes.push({ statements: 1, width: INPUT_BOX_WIDTH, fixed: fixedInput(input), input: true });
     }
     const edges = graph.edges.flatMap(edge => {
         const fromBox = edge.input != null ? inputIndex.get(edge.input) : index.get(edge.from.scriptKey);
@@ -168,16 +169,40 @@ interface EdgeEnd extends Rect {
     collapsed: boolean;
 }
 
+/// The x of the output port of a box
+function outputX(from: EdgeEnd, config: core.DataflowLayoutConfig): number {
+    return from.x + (from.width + portFrameWidth(from, config)) / 2;
+}
+
+/// The x of the input port of a box
+function inputX(to: EdgeEnd, config: core.DataflowLayoutConfig): number {
+    return to.x + (to.width - portFrameWidth(to, config)) / 2;
+}
+
 /// The route of an edge from the output port of a row to the input port of a row of another box. A target to the
-/// right is reached with at most two turns, a target to the left with an S around the boxes. Returns the path and the
-/// middle of the route.
-function routeEdge(from: EdgeEnd, fromY: number, to: EdgeEnd, toY: number, config: core.DataflowLayoutConfig): { path: string; middle: [number, number] } {
-    const x1 = from.x + (from.width + portFrameWidth(from, config)) / 2;
-    const x2 = to.x + (to.width - portFrameWidth(to, config)) / 2;
+/// right is reached with at most two turns at the spine of the source port, the middle by default. A box in front
+/// of the target row is passed above the target, through the gaps to its top and left. A target to the left is
+/// reached with an S around the boxes. Returns the path and the middle of the route.
+function routeEdge(
+    from: EdgeEnd,
+    fromY: number,
+    to: EdgeEnd,
+    toY: number,
+    config: core.DataflowLayoutConfig,
+    spine: number | null = null,
+    obstacles: readonly Rect[] = [],
+): { path: string; middle: [number, number] } {
+    const x1 = outputX(from, config);
+    const x2 = inputX(to, config);
     const stub = EDGE_STUB;
     if (x2 - x1 >= 2 * stub) {
+        const mx = Math.min(Math.max(spine ?? Math.round((x1 + x2) / 2), x1 + stub), x2 - stub);
+        const blocked = obstacles.some(b => b !== to && b.x < to.x && b.x + b.width > mx && b.y < toY && toY < b.y + b.height);
+        if (blocked) {
+            const [gx, cy] = [to.x - config.boxGap / 2, to.y - config.boxGap / 2];
+            return { path: roundedPath([[x1, fromY], [mx, fromY], [mx, cy], [gx, cy], [gx, toY], [x2, toY]]), middle: [mx, (fromY + cy) / 2] };
+        }
         if (fromY === toY) return { path: roundedPath([[x1, fromY], [x2, toY]]), middle: [(x1 + x2) / 2, fromY] };
-        const mx = Math.round((x1 + x2) / 2);
         return { path: roundedPath([[x1, fromY], [mx, fromY], [mx, toY], [x2, toY]]), middle: [mx, (fromY + toY) / 2] };
     }
     // Back around the boxes: between them if there is space, below both otherwise
@@ -235,6 +260,35 @@ export function buildDataflowScene(
         return [{ input, collapsed: inputsCollapsed, x: p.x, y: p.y, width: p.width, height, rowY: p.y + (p.rows[0] ?? 0), output: false }];
     });
     const inputOf = new Map(inputs.map(i => [i.input.name, i]));
+    const obstacles: Rect[] = [...boxes, ...inputs];
+
+    // The edges of a source port share a spine, halfway to the nearest target on the right. The table edges of a
+    // port with the same relation are a bus with one badge, on the trunk before the spine.
+    const sourceOf = (edge: DataflowEdge): { key: string; end: EdgeEnd; y: number } | null => {
+        if (edge.input != null) {
+            const source = inputOf.get(edge.input);
+            if (source == null) return null;
+            return { key: `:${edge.input}`, end: source, y: source.collapsed ? source.y + config.headerHeight / 2 : source.rowY + config.rowHeight / 2 };
+        }
+        const from = boxOf.get(edge.from.scriptKey);
+        if (from == null) return null;
+        return { key: `${from.script.scriptKey}.${from.collapsed ? -1 : edge.from.statementId}`, end: from, y: portY(from, edge.from.statementId, config) };
+    };
+    const nearest = new Map<string, number>();
+    const buses = new Map<string, number>();
+    for (const edge of graph.edges) {
+        const source = sourceOf(edge);
+        const to = boxOf.get(edge.to.scriptKey);
+        if (source == null || to == null || source.end === to) continue;
+        const [x1, x2] = [outputX(source.end, config), inputX(to, config)];
+        if (x2 - x1 >= 2 * EDGE_STUB) nearest.set(source.key, Math.min(nearest.get(source.key) ?? Infinity, x2));
+        if (edge.kind === DataflowEdgeKind.Table) buses.set(`${source.key}:${edge.name}`, (buses.get(`${source.key}:${edge.name}`) ?? 0) + 1);
+    }
+    const spineOf = (key: string, end: EdgeEnd): number | null => {
+        const x2 = nearest.get(key);
+        return x2 == null ? null : Math.round((outputX(end, config) + x2) / 2);
+    };
+    const badged = new Set<string>();
 
     // Edges into collapsed boxes are merged, their statements are hidden
     const edges: DataflowSceneEdge[] = [];
@@ -252,7 +306,7 @@ export function buildDataflowScene(
                 merged.add(key);
             }
             const fromY = source.collapsed ? source.y + config.headerHeight / 2 : source.rowY + config.rowHeight / 2;
-            const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config);
+            const { path } = routeEdge(source, fromY, to, portY(to, edge.to.statementId, config), config, spineOf(`:${edge.input}`, source), obstacles);
             source.output = true;
             const toRow = to.rows[edge.to.statementId];
             if (to.collapsed || toRow == null) to.input = true;
@@ -273,12 +327,14 @@ export function buildDataflowScene(
         }
         const fromY = portY(from, edge.from.statementId, config);
         const toY = portY(to, edge.to.statementId, config);
+        const sourceKey = `${from.script.scriptKey}.${fromStatement}`;
+        const spine = internal ? null : spineOf(sourceKey, from);
         let path: string;
         let middle: [number, number] = [0, 0];
         if (internal) {
             path = internalEdgePath(from, fromY, toY, Math.abs(edge.to.statementId - edge.from.statementId), config);
         } else {
-            ({ path, middle } = routeEdge(from, fromY, to, toY, config));
+            ({ path, middle } = routeEdge(from, fromY, to, toY, config, spine, obstacles));
         }
         // Collapsed boxes have one port per side, rows have their own
         const fromRow = from.rows[edge.from.statementId];
@@ -288,9 +344,18 @@ export function buildDataflowScene(
         else fromRow.output = true;
         if (to.collapsed || toRow == null) to.input = true;
         else toRow.input = true;
-        const badge = edge.kind === DataflowEdgeKind.Table && !internal && edge.name.length > 0
-            ? { x: middle[0], y: middle[1], width: edgeBadgeWidth(edge.name), text: edge.name }
-            : null;
+        let badge: DataflowSceneEdge['badge'] = null;
+        if (edge.kind === DataflowEdgeKind.Table && !internal && edge.name.length > 0) {
+            const bus = `${sourceKey}:${edge.name}`;
+            if ((buses.get(bus) ?? 0) > 1 && spine != null) {
+                if (!badged.has(bus)) {
+                    badged.add(bus);
+                    badge = { x: (outputX(from, config) + spine) / 2, y: fromY, width: edgeBadgeWidth(edge.name), text: edge.name };
+                }
+            } else {
+                badge = { x: middle[0], y: middle[1], width: edgeBadgeWidth(edge.name), text: edge.name };
+            }
+        }
         edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: null, internal, path, badge });
     }
 
