@@ -57,6 +57,17 @@ function editorText(): string {
     return EditorView.findFromDOM(editorContent())?.state.doc.toString() ?? '';
 }
 
+/// Edits are parsed once the typing pauses, and production React renders the outcome in a task of its own.
+/// Wait for the outcome instead of racing both with a timeout.
+async function typePlan(text: string, parsed: () => unknown) {
+    act(() => setEditorText(text));
+    await vi.waitFor(parsed);
+}
+
+function diagnostic(): string | undefined {
+    return document.querySelector('[role="alert"]')?.textContent?.trim() || undefined;
+}
+
 function modeButton(mode: 'raw' | 'viewer'): HTMLButtonElement {
     const button = document.querySelector<HTMLButtonElement>(`[data-testid="plan-mode-${mode}"]`);
     if (button == null) throw new Error(`No ${mode} plan button`);
@@ -137,11 +148,7 @@ describe('query plan dialog', () => {
     it('renders a valid Hyper plan and restores the exact Raw JSON', async () => {
         const result = open();
         const raw = `  ${VALID_PLAN}\n`;
-        await act(async () => {
-            setEditorText(raw);
-            // Edits are parsed once the typing pauses
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
+        await typePlan(raw, () => expect(modeButton('viewer').disabled).toBe(false));
 
         expect(modeButton('viewer').disabled).toBe(false);
         act(() => modeButton('viewer').click());
@@ -159,11 +166,7 @@ describe('query plan dialog', () => {
         const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
         Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
         const result = open();
-        await act(async () => {
-            setEditorText(VALID_PLAN);
-            // Edits are parsed once the typing pauses
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
+        await typePlan(VALID_PLAN, () => expect(modeButton('viewer').disabled).toBe(false));
         act(() => modeButton('viewer').click());
 
         await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="dialog-copy"]')!.click());
@@ -208,28 +211,16 @@ describe('query plan dialog', () => {
 
     it('disables Viewer for malformed and operator-free plans, then recovers', async () => {
         const result = open();
-        await act(async () => {
-            setEditorText('{not valid');
-            // Edits are parsed once the typing pauses
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
-        expect(document.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
+        await typePlan('{not valid', () => expect(diagnostic()).toBeTruthy());
+        expect(diagnostic()).toBeTruthy();
         expect(modeButton('viewer').disabled).toBe(true);
 
-        await act(async () => {
-            setEditorText('{}');
-            // Edits are parsed once the typing pauses
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
-        expect(document.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
+        const malformed = diagnostic();
+        await typePlan('{}', () => expect(diagnostic()).not.toBe(malformed));
+        expect(diagnostic()).toBeTruthy();
         expect(modeButton('viewer').disabled).toBe(true);
 
-        await act(async () => {
-            setEditorText(VALID_PLAN);
-            // Edits are parsed once the typing pauses
-            await new Promise(resolve => setTimeout(resolve, 200));
-        });
-        expect(document.querySelector('[role="alert"]')).toBeNull();
+        await typePlan(VALID_PLAN, () => expect(document.querySelector('[role="alert"]')).toBeNull());
         expect(modeButton('viewer').disabled).toBe(false);
 
         act(() => closeButton().click());
