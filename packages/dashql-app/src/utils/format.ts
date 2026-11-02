@@ -20,7 +20,7 @@ export function formatThousands(value: number): string {
 export function formatNanoseconds(value: number): string {
     const suffix = 'ns';
     if (value >= 1000 * 1000 * 1000) {
-        value /= 1000 * 1000;
+        value /= 1000 * 1000 * 1000;
         return `${value.toFixed(1)} s`;
     }
     if (value >= 1000 * 1000) {
