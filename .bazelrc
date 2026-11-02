@@ -1,6 +1,9 @@
 # Local overrides (gitignored, not committed).
 try-import %workspace%/.bazelrc.user
 
+# Opt out of the Aspect ruleset usage telemetry (aspect_tools_telemetry).
+common --repo_env=DO_NOT_TRACK=1
+
 # Isolated extension usages: separate crate_universe instances for compute (WASM) and native.
 common --experimental_isolated_extension_usages
 common --enable_platform_specific_config
