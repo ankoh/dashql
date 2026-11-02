@@ -37,6 +37,7 @@ import {
     SET_SCRIPT_VIS_SPEC,
     SET_SESSION_INPUT,
     textChange,
+    ACCEPT_PENDING_DIFF,
     REJECT_PENDING_DIFF,
     replaceScriptSessionText,
 } from './session_scripts.js';
@@ -586,6 +587,19 @@ describe('V2 flat session script mutations', () => {
         // Rejecting the diff restores the text before the first edit
         current = reduce(current, { type: REJECT_PENDING_DIFF, value: scriptKey });
         expect(current.scripts[scriptKey].scriptSession.getText()).toBe(cardText);
+    });
+
+    it('keeps the rewritten text when a staged diff is accepted', () => {
+        let current = state(['1_alpha.sql']);
+        const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'select 2 as x, 3 as y' } });
+        expect(reduce(current, { type: ACCEPT_PENDING_DIFF, value: scriptKey })).toBe(current);
+
+        current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"bar"}' } });
+        const rewritten = current.scripts[scriptKey].scriptSession.getText();
+        current = reduce(current, { type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        expect(current.scripts[scriptKey].pendingDiff).toBeNull();
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe(rewritten);
     });
 
     it('keeps a failed analysis on the script instead of throwing', () => {

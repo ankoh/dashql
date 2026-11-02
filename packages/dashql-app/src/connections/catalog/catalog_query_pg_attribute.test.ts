@@ -35,6 +35,20 @@ describe('real-core empty PostgreSQL function refresh', () => {
     });
     afterEach(() => dql.resetUnsafe());
 
+    it('publishes the relations of pg_attribute into the relation script', async () => {
+        const catalog = dql.createCatalog();
+        const relations = dql.createScript(catalog);
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({
+            table_schema: ['public', 'public'], table_name: ['items', 'items'], column_name: ['id', 'name'], ordinal_position: [1, 2], data_type: ['bigint', 'text'],
+        }))]);
+        const dispatch = vi.fn();
+        await updatePgSchemaScript({ info: vi.fn() } as any, 'connection', dispatch, 3, 'db', [], executor, catalog, relations,
+            { processor: async request => dql.processBatch(request) });
+        expect(relations.toString()).toContain('"items"');
+        expect(relations.toString()).toContain('"name"');
+        expect(dispatch.mock.calls.map(([, action]) => action.value)).toContainEqual([3]);
+    });
+
     it('publishes an empty function descriptor to clear stale functions and logs the actual count', async () => {
         const catalog = dql.createCatalog();
         const relations = dql.createScript(catalog);
