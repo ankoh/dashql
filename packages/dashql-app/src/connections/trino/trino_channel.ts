@@ -300,15 +300,12 @@ export class TrinoChannel implements TrinoChannelInterface {
     apiClient: TrinoApiClientInterface;
     /// The trino api endpoint
     endpoint: TrinoApiEndpoint;
-    /// The catalog name
-    catalogName: string;
 
     /// Constructor
-    constructor(logger: Logger, client: TrinoApiClientInterface, endpoint: TrinoApiEndpoint, catalogName: string) {
+    constructor(logger: Logger, client: TrinoApiClientInterface, endpoint: TrinoApiEndpoint) {
         this.logger = logger;
         this.apiClient = client;
         this.endpoint = endpoint;
-        this.catalogName = catalogName;
     }
 
     /// Execute Query
@@ -320,7 +317,7 @@ export class TrinoChannel implements TrinoChannelInterface {
             this.logger.debug("Executing query", {}, LOG_CTX);
             metrics.totalQueryRequestsStarted += 1;
 
-            const result = await this.apiClient.runQuery(this.endpoint, this.catalogName, param.query, abort);
+            const result = await this.apiClient.runQuery(this.endpoint, param.query, abort);
             const timeAfter = (new Date()).getTime();
 
             metrics.totalQueryRequestsSucceeded += 1;

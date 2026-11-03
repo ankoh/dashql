@@ -61,7 +61,7 @@ async function setupTrinoConnectionBasic(
             })
         });
         const endpoint = new TrinoApiEndpoint(params.endpoint, auth);
-        channel = new TrinoChannel(logger, client, endpoint, params.catalogName);
+        channel = new TrinoChannel(logger, client, endpoint);
 
         // Mark the channel as ready
         modifyState({
@@ -236,7 +236,7 @@ async function setupTrinoConnectionOAuth(
             authCode,
             accessToken
         });
-        channel = new TrinoChannel(logger, client, endpoint, params.catalogName);
+        channel = new TrinoChannel(logger, client, endpoint);
 
         // Mark the channel as ready
         modifyState({

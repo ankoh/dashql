@@ -825,16 +825,23 @@
           "$ref": "auth.json#/definitions/TrinoAuthParams",
           "description": "The authentication params"
         },
+        "catalogs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The catalogs whose relations the catalog loader reads, 'catalog' for all of its schemas or 'catalog.schema' for one. Queries set no default catalog or schema."
+        },
         "catalogName": {
           "type": "string",
-          "description": "The catalog name"
+          "description": "Superseded by catalogs, read only from params that predate them: the catalog"
         },
         "schemaNames": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "The schema name"
+          "description": "Superseded by catalogs, read only from params that predate them: the schemas of the default catalog"
         },
         "metadata": {
           "type": "object",
@@ -844,7 +851,7 @@
           "description": "The metadata"
         }
       },
-      "required": ["endpoint", "auth", "catalogName"],
+      "required": ["endpoint", "auth"],
       "additionalProperties": false
     },
     "TrinoSetupTimings": {

@@ -17,6 +17,7 @@ import { useQueryExecutor } from '../query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
+import { trinoCatalogScopes } from '../trino/trino_catalogs.js';
 import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
 import { connectionCatalogIsDurable } from '../connection_params.js';
 
@@ -161,9 +162,9 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             switch (conn.details.type) {
                 // Update the catalog by querying the information_schema
                 case TRINO_CONNECTOR: {
-                    const catalog = conn.details.value.proto.setupParams?.catalogName ?? "";
-                    const schemas = conn.details.value.proto.setupParams?.schemaNames ?? [];
-                    await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript, batchOptions);
+                    const setupParams = conn.details.value.proto.setupParams;
+                    const scopes = setupParams ? trinoCatalogScopes(setupParams) : [];
+                    await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, scopes, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript, batchOptions);
                     break;
                 }
                 case HYPER_CONNECTOR: {

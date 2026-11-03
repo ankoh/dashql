@@ -155,12 +155,11 @@ describe('sanitizeConnectionParamsForSharing', () => {
 });
 
 describe('createConnectionParamsSignature', () => {
-    it('ignores the order of the Trino schemas without reordering them', () => {
-        const trino = (schemaNames: string[]) => ({ trino: { endpoint: 'https://trino', catalogName: 'hive', schemaNames, auth: { authType: 'AUTH_BASIC', basic: { username: 'u' } } } }) as unknown as ConnectionParams;
-        const params = trino(['sales', 'hr']);
-        expect(createConnectionParamsSignature(params)).toEqual(createConnectionParamsSignature(trino(['hr', 'sales'])));
-        expect(createConnectionParamsSignature(params)).toMatchObject({ case: 'trino', schemas: ['hr', 'sales'], auth: { basicUsername: 'u' } });
-        expect((params as { trino: { schemaNames: string[] } }).trino.schemaNames).toEqual(['sales', 'hr']);
+    it('identifies Trino results by the endpoint and auth, not by the loaded catalogs', () => {
+        const trino = (catalogs: string[]) => ({ trino: { endpoint: 'https://trino', catalogs, auth: { authType: 'AUTH_BASIC', basic: { username: 'u' } } } }) as unknown as ConnectionParams;
+        const params = trino(['hive.sales', 'iceberg']);
+        expect(createConnectionParamsSignature(params)).toEqual(createConnectionParamsSignature(trino(['iceberg'])));
+        expect(createConnectionParamsSignature(params)).toEqual({ case: 'trino', endpoint: 'https://trino', auth: expect.objectContaining({ authType: 'AUTH_BASIC', basicUsername: 'u' }) });
     });
 
     it('ignores the order of the attached databases, metadata and parameters of Hyper', () => {

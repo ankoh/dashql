@@ -93,20 +93,44 @@ function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumn
     return sqlStatements.join('\n\n');
 }
 
-export async function queryInformationSchema(connectionId: string, connectionDispatch: DynamicConnectionDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor, abortSignal?: AbortSignal): Promise<InformationSchemaColumnsTable | null> {
-    const query = `
-        SELECT
-            table_catalog,
-            table_schema,
-            table_name,
-            column_name,
-            ordinal_position,
-            is_nullable,
-            data_type
-        FROM information_schema.columns
-        ${catalogName.length > 0 ? `WHERE table_catalog = '${catalogName}'` : ''}
-        ${schemaNames.length > 0 ? `${catalogName.length > 0 ? 'AND' : 'WHERE'} table_schema IN ('${schemaNames.join("','")}')` : ''}
-    `;
+/// A catalog and the schemas of it whose columns are read, no schemas for all of them
+export interface InformationSchemaScope {
+    /// The catalog name
+    catalog: string;
+    /// The schema names, empty for all schemas of the catalog
+    schemas: string[];
+}
+
+/// Quote an identifier
+function quoteIdentifier(name: string): string {
+    return `"${name.replace(/"/g, '""')}"`;
+}
+
+/// Quote a string literal
+function quoteLiteral(value: string): string {
+    return `'${value.replace(/'/g, "''")}'`;
+}
+
+/// The query of the columns of the scopes.
+/// Every catalog has an information_schema of its own, the query reads the one of every catalog.
+export function informationSchemaColumnsQuery(scopes: InformationSchemaScope[]): string {
+    const select = (source: string, schemas: string[]) => `SELECT
+    table_catalog,
+    table_schema,
+    table_name,
+    column_name,
+    ordinal_position,
+    is_nullable,
+    data_type
+FROM ${source}${schemas.length > 0 ? `
+WHERE table_schema IN (${schemas.map(quoteLiteral).join(', ')})` : ''}`;
+    return scopes
+        .map(scope => select(`${quoteIdentifier(scope.catalog)}.information_schema.columns`, scope.schemas))
+        .join('\nUNION ALL\n');
+}
+
+export async function queryInformationSchema(connectionId: string, connectionDispatch: DynamicConnectionDispatch, updateId: number, scopes: InformationSchemaScope[], executor: QueryExecutor, abortSignal?: AbortSignal): Promise<InformationSchemaColumnsTable | null> {
+    const query = informationSchemaColumnsQuery(scopes);
 
     const args: QueryExecutionArgs = {
         query: query,
@@ -134,8 +158,7 @@ export async function updateInformationSchemaCatalog(
     connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
-    catalogName: string,
-    schemaNames: string[],
+    scopes: InformationSchemaScope[],
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
@@ -143,10 +166,14 @@ export async function updateInformationSchemaCatalog(
     _catalogFunctionScript: dashql.DashQLScript,
     options: CatalogBatchOptions = {},
 ): Promise<void> {
+    // Without a default catalog an information_schema needs a catalog
+    if (scopes.length === 0) {
+        throw new Error('no catalogs to read the information_schema of');
+    }
     const validate = beginCatalogBatch(catalog, options);
     // Query the information schema. If the query errors it throws and propagates
     // to the caller so we never overwrite the existing catalog script with partial data.
-    const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, catalogName, schemaNames, executor, options.abortSignal);
+    const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, scopes, executor, options.abortSignal);
     validate();
     if (queryResult == null || queryResult.numRows === 0) {
         throw new Error('information_schema returned no catalog relations');

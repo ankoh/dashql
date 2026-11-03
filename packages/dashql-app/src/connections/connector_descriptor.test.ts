@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { connectionCatalogIsDurable, getConnectionStateDetailsFromParams, type ConnectionParams } from './connection_params.js';
-import { connectionReadsAttachments, connectorOfDetails } from './connector_descriptor.js';
+import { catalogNameDefaults, connectionReadsAttachments, connectorOfDetails } from './connector_descriptor.js';
 
 const embedded: ConnectionParams = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
 const server: ConnectionParams = { hyper: { protocol: 'V3_GRPC', endpoint: 'http://localhost:7484', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams;
@@ -29,5 +29,12 @@ describe('connector capabilities', () => {
         expect(connectionReadsAttachments(getConnectionStateDetailsFromParams(server))).toBe(false);
         expect(connectionReadsAttachments(getConnectionStateDetailsFromParams(trino))).toBe(false);
         expect(connectionReadsAttachments(null)).toBe(false);
+    });
+
+    it('qualifies the relations of Trino statements with no default catalog or schema', () => {
+        const defaults = catalogNameDefaults(getConnectionStateDetailsFromParams({
+            trino: { endpoint: 'https://trino.example', auth: { authType: 'AUTH_BASIC' }, catalogs: ['hive.sales', 'iceberg'] },
+        }));
+        expect(defaults).toEqual({ databaseName: '', schemaName: '' });
     });
 });

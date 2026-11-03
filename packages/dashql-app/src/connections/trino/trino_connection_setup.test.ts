@@ -109,14 +109,13 @@ describe('Trino OAuth setup', () => {
 describe('Trino basic setup', () => {
     const BASIC_PARAMS = {
         endpoint: 'https://trino.example.com',
-        catalogName: 'hive',
+        catalogs: ['hive.sales', 'iceberg'],
         auth: { authType: 'AUTH_BASIC', basic: { username: 'user', secret: 'secret' } },
     } as connection.TrinoConnectionParams;
 
-    it('creates a channel for the endpoint and catalog', async () => {
+    it('creates a channel for the endpoint', async () => {
         const dispatch = vi.fn();
         const channel = await setup(new FakeHttpClient(), BASIC_PARAMS, dispatch) as TrinoChannel;
-        expect(channel.catalogName).toBe('hive');
         expect(channel.endpoint.endpoint).toBe('https://trino.example.com');
         expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_READY]);
     });

@@ -3,24 +3,46 @@ import { describe, expect, it, vi } from 'vitest';
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { BatchRequest } from '@ankoh/dashql-core';
 import type { QueryExecutor } from '../query_executor.js';
-import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
+import { informationSchemaColumnsQuery, updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('information_schema batch refresh', () => {
-    it('queries all catalogs when no catalog is configured', async () => {
-        let query = '';
-        const executor = vi.fn<QueryExecutor>((_connectionId, args) => {
-            query = args.query;
-            return [1, Promise.resolve(tableFromArrays({}))];
-        });
-        await expect(updateInformationSchemaCatalog('session', vi.fn(), 7, '', [], executor,
-            {} as any, {} as any, {} as any, {} as any)).rejects.toThrow('information_schema returned no catalog relations');
-        expect(query).not.toContain("WHERE table_catalog = ''");
+    it('queries nothing when no catalog is configured', async () => {
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
+        await expect(updateInformationSchemaCatalog('session', vi.fn(), 7, [], executor,
+            {} as any, {} as any, {} as any, {} as any)).rejects.toThrow('no catalogs to read the information_schema of');
+        expect(executor).not.toHaveBeenCalled();
+    });
+
+    it('reads the information_schema of every catalog', () => {
+        expect(informationSchemaColumnsQuery([
+            { catalog: 'hive', schemas: ['sales', "o'neil"] },
+            { catalog: 'my"lake', schemas: [] },
+        ])).toBe(`SELECT
+    table_catalog,
+    table_schema,
+    table_name,
+    column_name,
+    ordinal_position,
+    is_nullable,
+    data_type
+FROM "hive".information_schema.columns
+WHERE table_schema IN ('sales', 'o''neil')
+UNION ALL
+SELECT
+    table_catalog,
+    table_schema,
+    table_name,
+    column_name,
+    ordinal_position,
+    is_nullable,
+    data_type
+FROM "my""lake".information_schema.columns`);
     });
 
     it('rejects an empty metadata result instead of reporting a successful refresh', async () => {
         const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
-        await expect(updateInformationSchemaCatalog('session', vi.fn(), 7, 'catalog', [], executor,
+        await expect(updateInformationSchemaCatalog('session', vi.fn(), 7, [{ catalog: 'catalog', schemas: [] }], executor,
             {} as any, {} as any, {} as any, {} as any)).rejects.toThrow('information_schema returned no catalog relations');
     });
 
@@ -36,7 +58,7 @@ describe('information_schema batch refresh', () => {
         const processor = vi.fn(async (request: BatchRequest) => ({
             scripts: request.scripts.map(script => ({ id: script.id, diagnostics: [], catalogDescriptor: builder.asUint8Array() })),
         }));
-        await updateInformationSchemaCatalog('connection', vi.fn(), 1, 'db', [], executor,
+        await updateInformationSchemaCatalog('connection', vi.fn(), 1, [{ catalog: 'db', schemas: [] }], executor,
             catalog as any, {} as any, source as any, {} as any, { processor });
         expect(source.replaceText).toHaveBeenCalledWith(expect.stringMatching(/"id"[\s\S]*"name"/));
     });
@@ -55,7 +77,7 @@ describe('information_schema batch refresh', () => {
             if (outcome === 'aborted') abort.abort();
             return { scripts: request.scripts.map(script => ({ id: script.id, diagnostics: [], catalogDescriptor: builder.asUint8Array() })) };
         });
-        const refresh = updateInformationSchemaCatalog('connection', vi.fn(), 1, 'db', [], executor,
+        const refresh = updateInformationSchemaCatalog('connection', vi.fn(), 1, [{ catalog: 'db', schemas: [] }], executor,
             catalog as any, {} as any, source as any, {} as any, { processor, abortSignal: abort.signal });
         if (outcome === 'success') {
             await refresh;

@@ -201,7 +201,7 @@ export interface TrinoQueryInfo {
 
 export interface TrinoApiClientInterface {
     /// Run a query
-    runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
+    runQuery(endpoint: TrinoApiEndpoint, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query result
     getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query info, a pruned query info leaves out the plans of the stages and keeps their statistics
@@ -259,11 +259,11 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Run a query
-    async runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
+    /// Statements name the catalog and schema of their relations, the requests set no default catalog or schema
+    async runQuery(endpoint: TrinoApiEndpoint, text: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
         this.logger.debug("Running query", { "text": text }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/statement`);
         const headers = await this.getHeaders(endpoint);
-        headers.set('X-Trino-Catalog', catalogName);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'POST',
             body: text,

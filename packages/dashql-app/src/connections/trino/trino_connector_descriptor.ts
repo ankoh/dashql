@@ -8,12 +8,12 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
     info: CONNECTOR_INFOS[ConnectorType.TRINO],
     paramsKey: 'trino',
     detailsType: TRINO_CONNECTOR,
-    defaultParams: () => ({ endpoint: '', catalogName: '', auth: { authType: 'AUTH_BASIC' } }),
+    defaultParams: () => ({ endpoint: '', catalogs: [], auth: { authType: 'AUTH_BASIC' } }),
     createDetails: createTrinoConnectionStateDetails,
     reduce: reduceTrinoConnectorState,
     withoutDraftRows: ({ draftRows: _rows, ...params }) => params,
     sanitizeForSharing(params, withLoginHint) {
-        // Keep endpoint, catalog and the basic-auth username; drop the basic-auth secret /
+        // Keep endpoint, catalogs and the basic-auth username; drop the basic-auth secret /
         // access token. OAuth params (client id + urls) carry no secret and are left as-is.
         // The basic-auth username doubles as the login hint here.
         // Arbitrary request headers may carry credentials under any name.
@@ -39,12 +39,10 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
             oauthClientId: params.auth?.oauth?.clientId,
             oauthScopes: params.auth?.oauth?.scopes,
         },
-        catalog: params.catalogName,
-        // Sort a copy, the signature must not reorder the schemas of the connection
-        schemas: [...(params.schemaNames || [])].sort((a: string, b: string) => a > b ? 1 : -1)
+        // The catalogs only decide which relations the catalog loader reads, queries name their catalogs
     }),
-    // Queries name the catalog but no schema, the server rejects relations without a schema
-    catalogNameDefaults: details => ({ databaseName: details.proto.setupParams?.catalogName ?? '', schemaName: '' }),
+    // Requests set no default catalog or schema, statements name both
+    catalogNameDefaults: () => ({ databaseName: '', schemaName: '' }),
     executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'trino' ? args.channelOverride.channel : details.channel, 'Trino')
         .executeQuery(queryParam(args), abort),
     maxConcurrentQueries: () => 1,

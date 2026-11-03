@@ -25,6 +25,7 @@ import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
 import { LoggableException, stringifyError } from '../platform/logger/logger.js';
+import { trinoCatalogEntries } from './trino/trino_catalogs.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -46,13 +47,18 @@ const DEFAULT_TRINO_PARAMS: connection.TrinoConnectionParams = {
     metadata: {
         message: ""
     },
-    catalogName: "",
-    schemaNames: [],
+    catalogs: [],
 };
+
+/// The params with the catalog entries, params that predate them name one catalog and its schemas
+function withCatalogEntries(params: connection.TrinoConnectionParams): connection.TrinoConnectionParams {
+    const { catalogName: _catalogName, schemaNames: _schemaNames, ...rest } = params;
+    return { ...rest, catalogs: trinoCatalogEntries(params) };
+}
 
 export function buildPageStateFromParams(params: connection.TrinoConnectionParams | null | undefined): PageState {
     const active = params ?? null;
-    const newParams = params ?? DEFAULT_TRINO_PARAMS;
+    const newParams = params ? withCatalogEntries(params) : DEFAULT_TRINO_PARAMS;
     const metadataData = newParams.metadata ?? {};
     return {
         activeParams: active,
@@ -221,18 +227,12 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     }));
 
 
-    const setCatalogName: Dispatch<string> = (v: string) => setPageState(s => ({
+    const catalogs = pageState.newParams.catalogs ?? [];
+    const modifyCatalogs: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
         ...s,
         newParams: {
             ...s.newParams,
-            catalogName: v
-        }
-    }));
-    const modifySchemaNames: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            schemaNames: action(s.newParams.schemaNames ?? [])
+            catalogs: action(s.newParams.catalogs ?? [])
         }
     }));
     const modifyMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => {
@@ -492,30 +492,13 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 </div>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
-                        <TextField
-                            name="Catalog"
-                            caption="Name of the Trino Catalog"
-                            value={pageState.newParams.catalogName}
-                            placeholder=""
-                            validation={
-                                (pageState.newParams.catalogName.length ?? 0) == 0
-                                    ? { type: VALIDATION_WARNING, value: "Catalog is empty" }
-                                    : undefined
-                            }
-                            leadingVisual={BookIcon}
-                            onChange={(e) => setCatalogName(e.target.value)}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                            autoComplete={false}
-                            logContext={LOG_CTX}
-                        />
                         <ValueListBuilder
-                            title="Schemas"
-                            caption="Names of the Trino Schemas"
-                            valueIcon={() => <div>Value</div>}
-                            addButtonLabel="Add Value"
-                            elements={pageState.newParams.schemaNames ?? []}
-                            modifyElements={modifySchemaNames}
+                            title="Catalogs"
+                            caption="Relations to load, 'catalog' for all schemas or 'catalog.schema' for one. Queries name the catalog of every relation."
+                            valueIcon={BookIcon}
+                            addButtonLabel="Add Catalog"
+                            elements={catalogs}
+                            modifyElements={modifyCatalogs}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                         />

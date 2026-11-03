@@ -222,14 +222,14 @@ describe('TrinoQueryResultStream', () => {
 });
 
 describe('TrinoChannel', () => {
-    /// A channel of the catalog hive with basic auth whose HTTP client answers every request with the response
+    /// A channel with basic auth whose HTTP client answers every request with the response
     function channel(response: () => Response) {
         const { fetch, endpoint, client } = basicTrinoApi(response);
-        return { fetch, channel: new TrinoChannel(new TestLogger(), client, endpoint, 'hive') };
+        return { fetch, channel: new TrinoChannel(new TestLogger(), client, endpoint) };
     }
     const query = (text: string) => buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, { query: text });
 
-    it('posts the statement to the catalog and opens the result stream', async () => {
+    it('posts the statement without a default catalog or schema and opens the result stream', async () => {
         const { fetch, channel: trino } = channel(() => new Response(JSON.stringify({ id: 'q1', columns: COLUMNS, stats: { state: 'FINISHED' } })));
         const stream = await trino.executeQuery(query('select 1'));
 
@@ -237,7 +237,7 @@ describe('TrinoChannel', () => {
         expect(url.toString()).toBe('https://trino.example.com/v1/statement');
         expect(init.body).toBe('select 1');
         const headers = new Headers(init.headers);
-        expect([headers.get('X-Trino-Catalog'), headers.get('X-Trino-User'), headers.get('Authorization')]).toEqual(['hive', 'user', `Basic ${btoa('user:secret')}`]);
+        expect([headers.get('X-Trino-Catalog'), headers.get('X-Trino-Schema'), headers.get('X-Trino-User'), headers.get('Authorization')]).toEqual([null, null, 'user', `Basic ${btoa('user:secret')}`]);
         expect((await stream.getSchema())?.fields.map(field => field.name)).toEqual(['customer_id']);
         expect(stream.getMetrics()).toMatchObject({ totalQueryRequestsStarted: 1, totalQueryRequestsSucceeded: 1 });
     });
