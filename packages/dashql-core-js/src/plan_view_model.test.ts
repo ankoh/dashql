@@ -116,6 +116,23 @@ describe('Plan View Model', () => {
             expect(viewModel.resetExecution().read().slotsLength()).toEqual(0);
             expect(viewModel.snapshotEvents().read().eventsLength()).toEqual(0);
         });
+        it('follows the statement stats of a Trino query', () => {
+            const view = dashql.buffers.view;
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            expect(viewModel.startQuery(view.PlanEngine.TRINO).read().fragmentsLength()).toEqual(0);
+            const events = viewModel.applyTrinoStatementStats(JSON.stringify({
+                state: 'RUNNING', completedSplits: 3, totalSplits: 10,
+                rootStage: { stageId: '0', state: 'RUNNING', subStages: [{ stageId: '1', state: 'FINISHED' }] },
+            }), 1000).read();
+            // The stages are registered as fragments
+            expect(viewModel.buffer!.read().fragmentsLength()).toEqual(2);
+            expect(events.structureVersion()).toEqual(viewModel.buffer!.read().structureVersion());
+            const updates = Array.from({ length: events.eventsLength() }, (_, i) => events.events(i)!);
+            const query = updates.find(u => u.entity() === view.PlanEntity.QUERY)!;
+            expect(query.eventTime()).toEqual(1000n);
+            expect([query.status(), query.stats()!.workDone(), query.stats()!.workTotal()]).toEqual([view.PlanExecutionStatus.RUNNING, 3n, 10n]);
+            expect(() => viewModel.applyTrinoStatementStats('{', 2000)).toThrow();
+        });
         it('materializes operator cross edges', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
             const planPtr = viewModel.loadHyperPlan(`{

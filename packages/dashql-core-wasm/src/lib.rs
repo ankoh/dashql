@@ -1329,6 +1329,23 @@ impl PlanViewModel {
         Ok(self.inner.pack_events(&updates))
     }
 
+    /// Start an empty model for a query of an engine (`PlanEngine`), the structure appears with the progress
+    #[wasm_bindgen(js_name = startQuery)]
+    pub fn start_query(&mut self, engine: u8) {
+        self.inner.start_query(dashql_buffers::view::PlanEngine(engine));
+    }
+
+    /// Apply the `stats` of a Trino `/v1/statement` response (JSON) received at a time in milliseconds since
+    /// epoch, returns the packed `PlanEvents` of the effective state changes
+    #[wasm_bindgen(js_name = applyTrinoStatementStats)]
+    pub fn apply_trino_statement_stats(&mut self, stats: &[u8], time: f64) -> Result<Vec<u8>, JsError> {
+        let updates = self
+            .inner
+            .apply_trino_statement_stats(stats, time.max(0.0) as u64)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(self.inner.pack_events(&updates))
+    }
+
     /// The current execution state as packed `PlanEvents`, one update per entity with state
     #[wasm_bindgen(js_name = snapshotEvents)]
     pub fn snapshot_events(&self) -> Vec<u8> {

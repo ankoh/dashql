@@ -10,6 +10,7 @@ import { classNames } from '../../utils/classnames.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
 import { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { TraceLogPanel } from '../trace_log_panel.js';
+import { hasQueryProgress, QueryProgressPanel } from '../../views/query_progress/query_progress_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from '../../views/query_result/query_result_toolbar.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
@@ -29,6 +30,7 @@ export enum FeedEntryTab {
     ExecutionLog = 0,
     Table = 1,
     Visualization = 2,
+    Progress = 3,
 }
 
 export interface FeedEntryTabProps {
@@ -38,6 +40,11 @@ export interface FeedEntryTabProps {
 }
 
 const FEED_ENTRY_TAB_PROPS: Record<FeedEntryTab, FeedEntryTabProps> = {
+    [FeedEntryTab.Progress]: {
+        tab: FeedEntryTab.Progress,
+        icon: `${icons}#pulse_24`,
+        description: 'Query progress',
+    },
     [FeedEntryTab.ExecutionLog]: {
         tab: FeedEntryTab.ExecutionLog,
         icon: `${icons}#log_24`,
@@ -62,9 +69,10 @@ export interface FeedEntryTabs {
     selectTab: (tab: FeedEntryTab) => void;
 }
 
-/// Track the tabs of a feed entry result. A result that arrives switches to its table (or to its chart
-/// when the script visualizes it), a result that goes away falls back to the log. The Details view
-/// passes the tab it was opened on as `initialTab`.
+/// Track the tabs of a feed entry result. A query with structured progress (Trino) shows its progress
+/// first, the log stays a secondary tab. A result that arrives switches to its table (or to its chart
+/// when the script visualizes it), a result that goes away falls back to the progress or the log. The
+/// Details view passes the tab it was opened on as `initialTab`.
 export function useFeedEntryTabs(
     queryState: QueryExecutionState | null,
     visualizeQuery: ResolvedVisualizeQuery | null,
@@ -74,37 +82,45 @@ export function useFeedEntryTabs(
     const { hasResult } = dependencies.useResultRowCount(queryState);
     const hasVisualization = hasResult && visualizeQuery != null && visualizeQuery.renderer !== 'table';
     const hasLog = queryState?.traceId != null;
+    const hasProgress = hasQueryProgress(queryState);
+    const fallbackTab = hasProgress ? FeedEntryTab.Progress : FeedEntryTab.ExecutionLog;
 
     const [selectedTab, selectTab] = React.useState<FeedEntryTab>(
         () => initialTab != null ? initialTab
             : hasVisualization ? FeedEntryTab.Visualization
             : hasResult ? FeedEntryTab.Table
-                : FeedEntryTab.ExecutionLog
+                : fallbackTab
     );
 
     const prevHasResult = React.useRef(hasResult);
     const prevHasVisualization = React.useRef(hasVisualization);
+    const prevHasProgress = React.useRef(hasProgress);
     React.useEffect(() => {
         if (hasResult && !prevHasResult.current) {
             selectTab(hasVisualization ? FeedEntryTab.Visualization : FeedEntryTab.Table);
         } else if (!hasResult && prevHasResult.current) {
-            selectTab(FeedEntryTab.ExecutionLog);
+            selectTab(fallbackTab);
         } else if (hasVisualization && !prevHasVisualization.current) {
             // A chart for the shown result, e.g. written by the agent after it ran the query
             selectTab(FeedEntryTab.Visualization);
+        } else if (hasProgress && !prevHasProgress.current && !hasResult) {
+            // The first progress of a running query replaces the log
+            selectTab(current => current === FeedEntryTab.ExecutionLog ? FeedEntryTab.Progress : current);
         }
         prevHasResult.current = hasResult;
         prevHasVisualization.current = hasVisualization;
-    }, [hasResult, hasVisualization]);
+        prevHasProgress.current = hasProgress;
+    }, [hasResult, hasVisualization, hasProgress, fallbackTab]);
 
     // Only surface the tabs that are actually usable
     const tabs = React.useMemo(() => {
         const tabs: FeedEntryTabProps[] = [];
+        if (hasProgress) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Progress]);
         if (hasLog) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.ExecutionLog]);
         if (hasResult) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Table]);
         if (hasVisualization) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Visualization]);
         return tabs;
-    }, [hasLog, hasResult, hasVisualization]);
+    }, [hasProgress, hasLog, hasResult, hasVisualization]);
     React.useEffect(() => {
         if (tabs.length > 0 && !tabs.some(t => t.tab === selectedTab)) {
             selectTab(tabs[0].tab);
@@ -196,6 +212,9 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const pointCountDetail = formatRowCountDetail(totalRows);
 
     switch (props.selectedTab) {
+        case FeedEntryTab.Progress: return props.queryState == null ? null : (
+            <QueryProgressPanel query={props.queryState} maxStageRows={FEED_LIMIT_LOG_ROWS} />
+        );
         case FeedEntryTab.ExecutionLog: return (
             <TraceLogPanel
                 traceId={queryTraceId}

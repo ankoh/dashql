@@ -35,6 +35,8 @@ import { consumeQueryResponseStream, executeConnectionQuery } from './query_exec
 import { yieldToBrowser } from '../utils/yield_to_browser.js';
 import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
+import { QueryProgressModels, type EngineProgressPayload } from '../query/query_progress_model.js';
+import { useDashQLCoreSetup, type DashQLSetupFn } from '../runtime/core_provider.js';
 
 const LOG_CTX = 'query_executor';
 
@@ -133,6 +135,23 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const queryResultCache = useQueryResultCache();
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
     const resultComputations = React.useRef(new ResultComputations());
+
+    // The progress models of the running queries, they need the core. The core is requested with the first
+    // structured progress, until it is ready the progress has no structure.
+    const coreSetup = useDashQLCoreSetup() as DashQLSetupFn | null;
+    const progressModels = React.useRef(new QueryProgressModels());
+    const progressCore = React.useRef<core.DashQL | null>(null);
+    const progressCoreRequested = React.useRef(false);
+    const applyEngineProgress = React.useCallback((queryId: number, payload: EngineProgressPayload) => {
+        if (progressCore.current == null && !progressCoreRequested.current && coreSetup != null) {
+            progressCoreRequested.current = true;
+            coreSetup('query_progress').then(
+                instance => { progressCore.current = instance; },
+                () => { /* Queries run without structured progress */ },
+            );
+        }
+        return progressModels.current.apply(progressCore.current, queryId, payload);
+    }, [coreSetup]);
 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (connectionId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime, trace: TraceContext): Promise<arrow.Table | null> => {
@@ -363,10 +382,15 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 stream: resultStream,
                                 abort: initialState.cancellation.signal,
                                 publishResults: args.publishResults !== false,
-                                onProgress: progress => queryTracker.dispatch({
-                                    type: QUERY_PROGRESS_UPDATED,
-                                    value: [queryId, progress],
-                                }),
+                                onProgress: progress => {
+                                    const planProgress = progress.engineProgress == null
+                                        ? null
+                                        : applyEngineProgress(queryId, progress.engineProgress);
+                                    queryTracker.dispatch({
+                                        type: QUERY_PROGRESS_UPDATED,
+                                        value: [queryId, planProgress == null ? progress : { ...progress, planProgress }],
+                                    });
+                                },
                                 onBatch: (batch, stream) => queryTracker.dispatch({
                                     type: QUERY_RECEIVED_BATCH,
                                     value: [queryId, batch, stream.getMetrics()],
@@ -459,7 +483,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         });
         return execution;
 
-    }, [computeDb, connStore, connDispatch, computeDispatch, logger, queryResultCache]);
+    }, [computeDb, connStore, connDispatch, computeDispatch, logger, queryResultCache, applyEngineProgress]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
@@ -503,6 +527,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         const removeRuntime = () => {
             args.abortSignal?.removeEventListener('abort', cancelFromCaller);
             queryRuntimes.current.delete(queryId);
+            progressModels.current.release(queryId);
             if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
         };
         void execution.then(removeRuntime, removeRuntime);

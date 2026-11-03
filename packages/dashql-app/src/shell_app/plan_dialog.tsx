@@ -7,7 +7,7 @@ import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../views/plan/plan_view.js';
-import { PlanExecutionState } from '../views/plan/plan_execution_state.js';
+import { PlanExecutionState } from '../query/plan_execution_state.js';
 import { CodeMirror } from '../session/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';

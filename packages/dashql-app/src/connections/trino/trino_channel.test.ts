@@ -41,6 +41,27 @@ async function produceAll(stream: TrinoQueryResultStream): Promise<arrow.RecordB
 }
 
 describe('TrinoQueryResultStream', () => {
+    it('publishes the progress of the query response and of every poll with the raw statistics', async () => {
+        const { stream } = resultStream(
+            { stats: { ...state('QUEUED'), queued: true } as TrinoQueryResult['stats'], nextUri: 'https://example.com/next' },
+            [{ stats: state('RUNNING'), nextUri: 'https://example.com/next2' }, { columns: COLUMNS, stats: state('FINISHED') }],
+        );
+        const progress: { phase?: string | null; kind?: string; state?: string }[] = [];
+        await stream.produce(
+            new AsyncConsumerLambdas(),
+            new AsyncConsumerLambdas((_, update) => progress.push({
+                phase: update.phase,
+                kind: update.engineProgress?.kind,
+                state: (update.engineProgress?.stats as { state?: string } | undefined)?.state,
+            })),
+        );
+        expect(progress).toEqual([
+            { phase: 'QUEUED', kind: 'trino_statement_stats', state: 'QUEUED' },
+            { phase: 'RUNNING', kind: 'trino_statement_stats', state: 'RUNNING' },
+            { phase: 'FINISHED', kind: 'trino_statement_stats', state: 'FINISHED' },
+        ]);
+    });
+
     it('exposes the schema from an already-finished zero-row response', async () => {
         const { stream } = resultStream({ columns: COLUMNS, stats: state('FINISHED') });
         const schema = await stream.getSchema();

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as dashql from '@ankoh/dashql-core';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { PlanExecutionState } from './plan_execution_state.js';
+import { PlanExecutionState } from '../../query/plan_execution_state.js';
 import { createPlanLayoutConfig, PlanView } from './plan_view.js';
 
 type PlanEngine = dashql.buffers.view.PlanEngine;

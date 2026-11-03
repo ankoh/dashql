@@ -1,0 +1,711 @@
+trino-progress-snapshots:
+
+  - name: select_one
+    recording: select_one
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+    updates:
+      - time: 33
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 236
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 236
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 363
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 1
+      - time: 363
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 1
+      - time: 368
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 120
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 1
+      - time: 403
+        entity: query
+        status: succeeded
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        memory-bytes: 120
+        spilled-bytes: 0
+        work-done: 1
+        work-total: 1
+      - time: 403
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 1
+        bytes-in: 0
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        work-done: 1
+        work-total: 1
+
+  - name: aggregate_lineitem_sf1
+    recording: aggregate_lineitem_sf1
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+      - id: 1
+        engine-id: 1
+        parent: 0
+        operators: []
+      - id: 2
+        engine-id: 2
+        parent: 1
+        operators: []
+      - id: 3
+        engine-id: 3
+        parent: 2
+        operators: []
+    updates:
+      - time: 3
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 3
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1127
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 1219520
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 21
+      - time: 1127
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 1
+      - time: 1127
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1127
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1127
+        entity: fragment
+        index: 3
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 16
+      - time: 1853
+        entity: query
+        status: running
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 21
+      - time: 1853
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1853
+        entity: fragment
+        index: 3
+        status: pending
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        work-done: 16
+        work-total: 16
+      - time: 1858
+        entity: query
+        status: running
+        tuples-in: 6001279
+        bytes-in: 3012
+        cpu-time-us: 2503000
+        wall-time-us: 3184000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 18
+        work-total: 21
+      - time: 1858
+        entity: fragment
+        index: 1
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1858
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 64
+        bytes-in: 3012
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: query
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 3538
+        cpu-time-us: 2509000
+        wall-time-us: 3191000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 21
+        work-total: 21
+      - time: 1863
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 263
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        work-done: 1
+        work-total: 1
+      - time: 1863
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 263
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        bytes-in: 3012
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: fragment
+        index: 3
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        work-done: 16
+        work-total: 16
+
+  - name: tpch_q3_sf1
+    recording: tpch_q3_sf1
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+      - id: 1
+        engine-id: 1
+        parent: 0
+        operators: []
+      - id: 2
+        engine-id: 2
+        parent: 1
+        operators: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1222
+        entity: query
+        status: running
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        memory-bytes: 7792440
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 55
+      - time: 1222
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1222
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 37
+      - time: 1222
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        work-done: 16
+        work-total: 16
+      - time: 2226
+        entity: query
+        status: running
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        memory-bytes: 8265272
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 55
+      - time: 2535
+        entity: query
+        status: running
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        memory-bytes: 13276224
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 55
+      - time: 2535
+        entity: fragment
+        index: 1
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 37
+      - time: 2546
+        entity: query
+        status: succeeded
+        tuples-in: 7681357
+        bytes-in: 242026
+        cpu-time-us: 3982000
+        wall-time-us: 4258000
+        memory-bytes: 13276224
+        spilled-bytes: 0
+        work-done: 55
+        work-total: 55
+      - time: 2546
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 10
+        bytes-in: 330
+        cpu-time-us: 1000
+        wall-time-us: 1000
+        work-done: 2
+        work-total: 2
+      - time: 2546
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 7531357
+        bytes-in: 241696
+        cpu-time-us: 3850000
+        wall-time-us: 4120000
+        work-done: 37
+        work-total: 37
+      - time: 2546
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        work-done: 16
+        work-total: 16
+
+  - name: cancelled_sf10
+    recording: cancelled_sf10
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+      - id: 1
+        engine-id: 1
+        parent: 0
+        operators: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 18
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 18
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 18
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1020
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 3415104
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 18
+      - time: 1020
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1020
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 16
+      - time: 2023
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 3416384
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 18
+      - time: 3026
+        entity: query
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        memory-bytes: 3416384
+        spilled-bytes: 0
+        work-done: 6
+        work-total: 18
+      - time: 3026
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        work-done: 6
+        work-total: 16
+      - time: 4030
+        entity: query
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        memory-bytes: 3418176
+        spilled-bytes: 0
+        work-done: 6
+        work-total: 18
+
+  - name: failed_cast
+    recording: failed_cast
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 17
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 17
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 33
+        entity: query
+        status: failed
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 3
+        work-total: 16
+      - time: 33
+        entity: fragment
+        index: 0
+        status: failed
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        work-done: 3
+        work-total: 16

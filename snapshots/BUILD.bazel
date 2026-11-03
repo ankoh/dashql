@@ -18,6 +18,8 @@ snapshot_library(
         "//snapshots/planner:files",
         "//snapshots/plans/hyper/tests:files",
         "//snapshots/plans/progress:files",
+        "//snapshots/plans/trino/recordings:files",
+        "//snapshots/plans/trino/tests:files",
         "//snapshots/visualize:files",
     ],
 )

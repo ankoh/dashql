@@ -13,7 +13,7 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { computePlanFitTransform } from './plan_fit.js';
 import { PlanExecutionController } from './plan_execution_controller.js';
-import { PlanExecutionState } from './plan_execution_state.js';
+import { PlanExecutionState } from '../../query/plan_execution_state.js';
 import { findPlanOperatorInDirection } from './plan_navigation.js';
 import type { PlanNavigationDirection } from './plan_navigation.js';
 import { getPlanOperatorSymbol, PLAN_OPERATOR_SYMBOL_SIZE, shouldRenderPlanOperatorSymbol } from './plan_operator_symbol.js';

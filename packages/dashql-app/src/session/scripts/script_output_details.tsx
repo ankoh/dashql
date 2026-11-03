@@ -12,6 +12,7 @@ import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { TabHeader, formatRowCountDetail, useResultRowCount } from '../tab_header.js';
 import { FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from '../feed/feed_entry_footer.js';
+import { QueryProgressPanel } from '../../views/query_progress/query_progress_panel.js';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import * as styles from './script_output_details.module.css';
 import { classNames } from '../../utils/classnames.js';
@@ -67,6 +68,11 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
 
     const renderTab = () => {
         switch (resultTabs.selectedTab) {
+            case FeedEntryTab.Progress: return props.query != null && (
+                <div className={styles.tab_body}>
+                    <QueryProgressPanel query={props.query} />
+                </div>
+            );
             case FeedEntryTab.ExecutionLog: return (
                 <div className={styles.tab_body}>
                     <TraceLogPanel traceId={props.query?.traceId ?? null} title="Execution Logs" />

@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import type { PlanExecutionState } from './plan_execution_state.js';
+import type { PlanExecutionState } from '../../query/plan_execution_state.js';
 
 const view = dashql.buffers.view;
 

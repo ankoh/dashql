@@ -195,6 +195,32 @@ pub fn encode_plan_progress(plan: &str, events: &str) -> Result<Node, String> {
     Ok(encode_plan_events(&view_model.pack_events(&updates)))
 }
 
+/// Encode a Trino progress snapshot case: replay the `/v1/statement` responses of a recording
+/// (snapshots/plans/trino/recordings/, written by //packages/trino-testing:trino_recorder) through the statement
+/// adapter. Returns the sections `fragments` (the registered stages) and `updates` (the output events of all
+/// polls, the time is the elapsed time of the poll).
+pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {
+    let recording: serde_json::Value = serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
+    let responses = recording["statementResponses"].as_array().ok_or("recording without statement responses")?;
+    let mut view_model = PlanViewModel::new();
+    view_model.start_query(fb::PlanEngine::TRINO);
+    let mut updates = Vec::new();
+    for response in responses {
+        let Some(stats) = response["body"].get("stats") else { continue };
+        let time = response["elapsedMs"].as_u64().unwrap_or(0);
+        let stats = serde_json::to_vec(stats).expect("a JSON value always serializes");
+        updates.extend(view_model.apply_trino_statement_stats(&stats, time).map_err(|e| e.to_string())?);
+    }
+    let mut out = Map::new();
+    let structure = encode_plan_view_model(&view_model.pack_buffer());
+    let fragments = structure.0.into_iter().find(|(key, _)| key.text.as_deref() == Some("fragments"));
+    if let Some((_, fragments)) = fragments {
+        out.insert("fragments", fragments);
+    }
+    out.insert("updates", encode_plan_events(&view_model.pack_events(&updates)));
+    Ok(out)
+}
+
 /// Encode packed `PlanEvents`: one entry per update with its status and reported statistics
 pub fn encode_plan_events(buffer: &[u8]) -> Node {
     let events = flatbuffers::root::<fb::PlanEvents>(buffer).expect("valid plan events");

@@ -1,10 +1,13 @@
 //! The plan view model snapshots, produced by the Rust view model:
 //! - snapshots/plans/hyper/tests/*.yaml: the structure of Hyper plans (and the state of analyzed plans)
 //! - snapshots/plans/progress/*.yaml: a plan, input events, and the output events of the rollups
+//! - snapshots/plans/trino/tests/*.yaml: recorded Trino statement polls through the Trino adapter
 //!
 //! The view model is encoded with `dashql_snapshots::encode::plan_view_model`.
 
-use dashql_snapshots::encode::plan_view_model::{encode_hyper_plan, encode_plan_progress};
+use dashql_snapshots::encode::plan_view_model::{
+    encode_hyper_plan, encode_plan_progress, encode_trino_statement_progress,
+};
 use dashql_snapshots::{compare, load_category_from, run, snapshot_root, Arguments, Failed, Trial, Yaml};
 
 /// Compare sections, a section is missing on both sides or present on both sides
@@ -43,6 +46,18 @@ fn main() {
             let events = case.node["events"].as_str().ok_or("case without events")?;
             let updates = encode_plan_progress(plan, events)?.to_yaml();
             compare(&case.node["updates"], &updates).map_err(|e| Failed::from(format!("updates: {e}")))
+        })
+    }));
+    let trino = plans.join("trino");
+    let cases = load_category_from(&trino.join("tests"), "trino-progress").expect("cannot load Trino snapshots");
+    trials.extend(cases.into_iter().map(|case| {
+        let recordings = trino.join("recordings");
+        Trial::test(case.trial_name(), move || {
+            let name = case.node["recording"].as_str().ok_or("case without recording")?;
+            let path = recordings.join(format!("{name}.json"));
+            let recording = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let produced = encode_trino_statement_progress(&recording)?.into_yaml();
+            compare_sections(&case.node, &produced, &["fragments", "updates"])
         })
     }));
     run(&args, trials).exit();

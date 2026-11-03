@@ -8,7 +8,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { estimateRelativeDifference, type PlanScene, type PlanSceneOperator } from './plan_scene.js';
 import { formatEstimateSymbol, PlanView, type PlanViewDependencies } from './plan_view.js';
-import { PlanExecutionState } from './plan_execution_state.js';
+import { PlanExecutionState } from '../../query/plan_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);

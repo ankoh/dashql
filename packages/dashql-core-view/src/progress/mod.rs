@@ -10,6 +10,7 @@
 //! next one. The input events have a JSON form (serde), a recorded event log replays an execution.
 
 mod rollup;
+mod trino;
 
 use super::plan_view_model::PlanViewModel;
 use dashql_buffers::view as fb;

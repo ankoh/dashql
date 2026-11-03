@@ -338,6 +338,14 @@ impl PlanViewModel {
         self.layout_rect = None;
     }
 
+    /// Start an empty model for a query of an engine. The structure appears with the progress of the query
+    /// (Trino stages are registered as fragments), a plan can be loaded later.
+    pub fn start_query(&mut self, engine: fb::PlanEngine) {
+        self.reset();
+        self.engine = engine;
+        self.seal_loaded_structure();
+    }
+
     /// The structure version
     pub fn structure_version(&self) -> u32 {
         self.structure_version

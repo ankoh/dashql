@@ -12,6 +12,8 @@ import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import type { QueryPlanProgress } from '../../query/query_progress_model.js';
+import { PlanExecutionState } from '../../query/plan_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -178,5 +180,37 @@ describe('FeedEntryFooter', () => {
         expect(tabs[1].getAttribute('aria-selected')).toBe('true');
         expect(container.querySelector('[data-testid="download-query-result"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="download-chart-png"]')).toBeNull();
+    });
+
+    it('shows the progress of a running query first and keeps the log as secondary tab', () => {
+        const running = {
+            ...dependencies,
+            useResultRowCount: () => ({ hasResult: false, totalRows: null }),
+        } as unknown as FeedEntryFooterDependencies;
+        const planProgress = {
+            structure: { read: () => ({ fragmentsLength: () => 0 }) },
+            execution: PlanExecutionState.EMPTY,
+        } as unknown as QueryPlanProgress;
+        const queryState = {
+            queryId: 43,
+            traceId: 10,
+            status: QueryExecutionStatus.RUNNING,
+            metrics: { queryRequestedAt: new Date() },
+            latestProgressUpdate: { phase: 'RUNNING', planProgress },
+        } as unknown as QueryExecutionState;
+        const Footer = () => {
+            const tabs = useFeedEntryTabs(queryState, null, running);
+            return (
+                <>
+                    <FeedEntryTabStrip tabs={tabs} />
+                    <FeedEntryFooter sessionId="session" queryState={queryState} visualizeQuery={null} selectedTab={tabs.selectedTab} dependencies={running} />
+                </>
+            );
+        };
+        act(() => root.render(<Footer />));
+        const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+        expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Query progress', 'Execution log']);
+        expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+        expect(container.querySelector('[data-testid="query-progress-panel"]')?.textContent).toContain('Running');
     });
 });

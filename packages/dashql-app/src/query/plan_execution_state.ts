@@ -1,5 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
-import { U32_MAX } from './numeric_limits.js';
+/// No index (u32::MAX)
+const NO_INDEX = 0xFFFFFFFF;
 
 type PlanEvents = dashql.buffers.view.PlanEvents;
 type PlanStatsT = dashql.buffers.view.PlanStatsT;
@@ -59,6 +60,6 @@ export class PlanExecutionState {
     public edgeRows(slot: number, childOperator: number): bigint | null {
         const reported = (state: PlanEntityState | undefined) =>
             state != null && isStatReported(state.stats, view.PlanStatsField.TUPLES_OUT) ? state.stats.tuplesOut : null;
-        return (slot !== U32_MAX ? reported(this.slots[slot]) : null) ?? reported(this.operators[childOperator]);
+        return (slot !== NO_INDEX ? reported(this.slots[slot]) : null) ?? reported(this.operators[childOperator]);
     }
 }

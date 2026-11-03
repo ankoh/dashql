@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as flatbuffers from 'flatbuffers';
 import { PlanExecutionController } from './plan_execution_controller.js';
-import { PlanExecutionState } from './plan_execution_state.js';
+import { PlanExecutionState } from '../../query/plan_execution_state.js';
 
 const view = dashql.buffers.view;
 const { RUNNING, SUCCEEDED, UNKNOWN } = view.PlanExecutionStatus;

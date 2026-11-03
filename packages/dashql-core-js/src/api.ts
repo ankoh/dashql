@@ -1233,13 +1233,27 @@ export class DashQLPlanViewModel {
         this.ptr.assertNotNull().loadHyperPlan(this.ptr.api.encoder.encode(plan));
         return this.pack();
     }
+    /// Start an empty model for a query of an engine, the structure appears with the progress
+    public startQuery(engine: buffers.view.PlanEngine): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+        this.ptr.assertNotNull().startQuery(engine);
+        return this.pack();
+    }
     /// Apply input events (their JSON form, see `PlanInputEvent` in dashql-core-view) and return the updates of the
     /// effective state. When the events register structure, the structure is repacked: compare the structure
     /// version of the events with the one of `buffer`.
     public applyEvents(events: string): FlatBufferPtr<buffers.view.PlanEvents> {
-        const native = this.ptr.assertNotNull();
-        const bytes = native.applyEvents(this.ptr.api.encoder.encode(events));
-        if (this.buffer != null && this.buffer.read().structureVersion() !== native.structureVersion()) {
+        const bytes = this.ptr.assertNotNull().applyEvents(this.ptr.api.encoder.encode(events));
+        return this.readEvents(bytes);
+    }
+    /// Apply the `stats` of a Trino `/v1/statement` response (JSON) received at a time in milliseconds since epoch.
+    /// New stages register fragments, the structure is then repacked.
+    public applyTrinoStatementStats(stats: string, time: number): FlatBufferPtr<buffers.view.PlanEvents> {
+        const bytes = this.ptr.assertNotNull().applyTrinoStatementStats(this.ptr.api.encoder.encode(stats), time);
+        return this.readEvents(bytes);
+    }
+    /// Wrap packed events, repack the structure if the events belong to a newer one
+    private readEvents(bytes: Uint8Array): FlatBufferPtr<buffers.view.PlanEvents> {
+        if (this.buffer == null || this.buffer.read().structureVersion() !== this.ptr.assertNotNull().structureVersion()) {
             this.pack();
         }
         return new FlatBufferPtr(PLAN_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanEvents());

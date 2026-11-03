@@ -1,0 +1,12 @@
+trino-progress-snapshots:
+  # The recordings are written by `bazel run //packages/trino-testing:trino_recorder`
+  - name: select_one
+    recording: select_one
+  - name: aggregate_lineitem_sf1
+    recording: aggregate_lineitem_sf1
+  - name: tpch_q3_sf1
+    recording: tpch_q3_sf1
+  - name: cancelled_sf10
+    recording: cancelled_sf10
+  - name: failed_cast
+    recording: failed_cast

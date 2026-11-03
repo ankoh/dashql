@@ -281,3 +281,43 @@ fn packed_events_carry_the_reported_fields() {
     assert_eq!(stats.reported(), fb::PlanStatsField::TUPLES_IN.0 | fb::PlanStatsField::TUPLES_OUT.0);
     assert_eq!((stats.tuples_in(), stats.tuples_out()), (10, 8));
 }
+
+#[test]
+fn trino_stages_register_once_and_tolerate_missing_fields() {
+    let mut model = PlanViewModel::new();
+    model.start_query(fb::PlanEngine::TRINO);
+    let poll = |state: &str, completed: u64| {
+        format!(
+            r#"{{"state":"RUNNING","completedSplits":{completed},"totalSplits":4,
+                "rootStage":{{"stageId":"0","state":"{state}",
+                    "subStages":[{{"stageId":"1","state":"FINISHED","cpuTimeMillis":2}}]}}}}"#
+        )
+    };
+    let version = model.structure_version();
+    let updates = model.apply_trino_statement_stats(poll("RUNNING", 1).as_bytes(), 10).unwrap();
+    assert_eq!(model.structure_version(), version + 2);
+    let query = state_of(&updates, fb::PlanEntity::QUERY, 0).unwrap();
+    assert_eq!((query.status, query.stats.work_done, query.stats.work_total), (Status::Running, Some(1), Some(4)));
+    // Fields the payload lacks stay unknown
+    assert_eq!(query.stats.memory_bytes, None);
+    let stage = state_of(&updates, fb::PlanEntity::FRAGMENT, 1).unwrap();
+    assert_eq!((stage.status, stage.stats.cpu_time_us), (Status::Succeeded, Some(2000)));
+
+    // The next poll knows the stages already
+    let updates = model.apply_trino_statement_stats(poll("FINISHED", 4).as_bytes(), 20).unwrap();
+    assert_eq!(model.structure_version(), version + 2);
+    assert_eq!(state_of(&updates, fb::PlanEntity::FRAGMENT, 0).unwrap().status, Status::Succeeded);
+    assert!(state_of(&updates, fb::PlanEntity::FRAGMENT, 1).is_none());
+
+    // A poll without stage tree updates the query only, an unknown state keeps the status
+    let updates = model.apply_trino_statement_stats(br#"{"state":"SOMETHING_NEW","completedSplits":4}"#, 30).unwrap();
+    assert!(updates.is_empty());
+    assert!(model.apply_trino_statement_stats(b"not json", 40).is_err());
+
+    let buffer = model.pack_buffer();
+    let plan = flatbuffers::root::<fb::PlanViewModel>(&buffer).unwrap();
+    assert_eq!(plan.engine(), fb::PlanEngine::TRINO);
+    let child = plan.fragments().unwrap().get(1);
+    let engine_id = plan.string_dictionary().unwrap().get(child.engine_id() as usize);
+    assert_eq!((engine_id, child.parent_fragment()), ("1", 0));
+}

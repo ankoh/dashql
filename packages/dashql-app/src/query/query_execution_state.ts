@@ -6,6 +6,7 @@ import { AsyncConsumer } from '../utils/async_consumer.js';
 import { removePrimitiveFromArray } from '../utils/array.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
+import type { EngineProgressPayload, QueryPlanProgress } from './query_progress_model.js';
 
 export enum QueryExecutionStatus {
     REQUESTED = 0,
@@ -67,6 +68,12 @@ export interface QueryExecutionProgress {
     executionTimeMs: number | null;
     /// The query execution metrics
     metrics: QueryExecutionMetrics;
+    /// The phase the engine reports, e.g. the Trino query state (QUEUED, PLANNING, RUNNING, FINISHING)
+    phase?: string | null;
+    /// The raw progress payload of the engine, the query executor feeds it into the progress model of the query
+    engineProgress?: EngineProgressPayload | null;
+    /// The structured progress (stages, pipelines, the plan), set by the query executor
+    planProgress?: QueryPlanProgress | null;
 }
 
 export interface QueryExecutionResponseStream {
@@ -419,9 +426,12 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             return { ...state };
         }
         case QUERY_PROGRESS_UPDATED: {
+            // An update without structured progress keeps the last one, e.g. while the core loads
+            const progress = action.value[1];
+            const planProgress = progress.planProgress ?? query.latestProgressUpdate?.planProgress ?? null;
             const next = {
                 ...query,
-                latestProgressUpdate: action.value[1],
+                latestProgressUpdate: { ...progress, planProgress },
                 metrics: {
                     ...query.metrics,
                     lastUpdatedAt: now,

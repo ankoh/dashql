@@ -31,6 +31,8 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     latestQueryStats: TrinoQueryStatistics | null;
     /// The latest query state
     latestQueryState: string | null;
+    /// When the latest result arrived, in milliseconds since epoch
+    latestQueryReceivedAt: number;
     /// The progress updates
     latestQueryProgress: QueryExecutionProgress | null;
     /// The metrics
@@ -47,6 +49,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         this.latestQueryResult = result;
         this.latestQueryStats = result.stats ?? null;
         this.latestQueryState = result.stats?.state ?? null;
+        this.latestQueryReceivedAt = Date.now();
         this.latestQueryProgress = null;
         this.queryMetrics = metrics;
         this.endpoint = endpoint;
@@ -78,6 +81,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         this.latestQueryResult = queryResult;
         this.latestQueryStats = queryResult.stats ?? null;
         this.latestQueryState = this.latestQueryStats?.state ?? null;
+        this.latestQueryReceivedAt = Date.now();
 
         // Did the query fail?
         if (queryResult.error) {
@@ -135,6 +139,11 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     /// The stream follows the next URIs until Trino stops sending one, the query state does not end the stream:
     /// Trino reports states like PLANNING before the rows and FINISHED while the coordinator still buffers rows.
     async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch | null>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+        // The response to the query request carries the first progress (QUEUED)
+        if (this.latestQueryStats != null) {
+            this.latestQueryProgress = deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt);
+            progress.resolve(this, this.latestQueryProgress);
+        }
         let pending = this.fetchNextQueryResult(abort);
         try {
             while (true) {
@@ -160,7 +169,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     this.queryMetrics.totalRowsReceived += resultBatch.numRows;
 
                     // Publish a new progress update
-                    this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics);
+                    this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics, this.latestQueryReceivedAt);
                     progress.resolve(this, this.latestQueryProgress);
 
                     // Produce a batch
@@ -169,7 +178,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     await yieldToBrowser();
                 } else {
                     // Publish the progress update
-                    this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics);
+                    this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics, this.latestQueryReceivedAt);
                     progress.resolve(this, this.latestQueryProgress);
                 }
             }
@@ -338,14 +347,16 @@ function translateTrinoSchema(result: TrinoQueryResult, logger: Logger): arrow.S
     return new arrow.Schema(fields);
 }
 
-/// Derive the execution progress
-function deriveProgress(stats: TrinoQueryStatistics | null, metrics: QueryExecutionMetrics): QueryExecutionProgress {
+/// Derive the execution progress of the statistics of a response that arrived at a time (milliseconds since epoch)
+export function deriveProgress(stats: TrinoQueryStatistics | null, metrics: QueryExecutionMetrics, receivedAt: number): QueryExecutionProgress {
     return {
         isQueued: stats?.queued ?? null,
         progressPercent: stats?.progressPercentage ?? null,
         resultRows: null,
         rowsProcessed: stats?.processedRows ?? null,
         executionTimeMs: stats?.elapsedTimeMillis ?? null,
-        metrics: { ...metrics }
+        metrics: { ...metrics },
+        phase: stats?.state ?? null,
+        engineProgress: stats == null ? null : { kind: 'trino_statement_stats', stats, receivedAt },
     };
 }
