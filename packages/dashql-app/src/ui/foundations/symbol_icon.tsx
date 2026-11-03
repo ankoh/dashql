@@ -133,6 +133,7 @@ export const PencilIcon = createIcon({ 16: 'pencil_16', 24: 'pencil_24' });
 export const PersonIcon = createIcon({ 16: 'person_16', 24: 'person_24' });
 export const PlugIcon = createIcon({ 16: 'plug_16', 24: 'plug_24' });
 export const PlusIcon = createIcon({ 16: 'plus_16', 24: 'plus_24' });
+export const ProcessorIcon = createIcon({ 16: 'cpu_16', 24: 'processor' });
 export const ProjectIcon = createIcon({ 16: 'project_16' });
 export const RowsIcon = createIcon({ 16: 'rows_16', 24: 'rows' });
 export const SaveIcon = createIcon({ 16: 'save_16' });
