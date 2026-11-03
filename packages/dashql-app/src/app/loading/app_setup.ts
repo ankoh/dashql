@@ -165,7 +165,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 let sessionId = selectStartupSession(loaded.restoredSessionIds);
                 if (sessionId == null) {
                     const database = newSessionConnection(loaded.restoredConnections, allocateConnection, core);
-                    sessionId = createSession(database, 'Default').sessionId;
+                    sessionId = createSession(database).sessionId;
                 }
                 navigate({
                     type: OPEN_LINK_SESSION,
