@@ -204,8 +204,8 @@ export interface TrinoApiClientInterface {
     runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query result
     getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
-    /// Get a query info
-    getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal): Promise<TrinoQueryInfo>;
+    /// Get a query info, a pruned query info leaves out the plans of the stages and keeps their statistics
+    getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal, pruned?: boolean): Promise<TrinoQueryInfo>;
     /// Cancel a query by its next URI
     cancelQuery(endpoint: TrinoApiEndpoint, nextUri: string): Promise<void>;
 }
@@ -324,9 +324,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Get a query info
-    async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal): Promise<TrinoQueryInfo> {
+    async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal, pruned = false): Promise<TrinoQueryInfo> {
         this.logger.debug("Getting query info", { "query": queryId }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/query/${encodeURIComponent(queryId)}`);
+        if (pruned) url.searchParams.set("pruned", "true");
         const headers = await this.getHeaders(endpoint);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'GET',

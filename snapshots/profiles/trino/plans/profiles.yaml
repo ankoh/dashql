@@ -30,7 +30,18 @@ trino-profile-snapshots:
         parent: 1
         port-index: 0
         port-count: 1
-    pipelines: []
+        slot: 0
+    pipelines:
+      - id: 0
+        engine-id: 0.0
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 0
+            role: source
+          - slot: 1
+            operator: 1
+            role: sink
     updates:
       - time: 33
         entity: query
@@ -117,6 +128,100 @@ trino-profile-snapshots:
         wall-time-us: 5000
         work-done: 1
         work-total: 1
+      - time: 598
+        entity: query
+        status: succeeded
+        tuples-in: 0
+        tuples-out: 1
+        bytes-in: 0
+        bytes-out: 5
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        blocked-time-us: 0
+        memory-bytes: 120
+        spilled-bytes: 0
+        work-done: 1
+        work-total: 1
+      - time: 598
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 1
+        tuples-out: 1
+        bytes-in: 0
+        bytes-out: 5
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
+        work-done: 1
+        work-total: 1
+      - time: 598
+        entity: pipeline
+        index: 0
+        status: succeeded
+        tuples-in: 1
+        tuples-out: 1
+        bytes-in: 5
+        bytes-out: 5
+        cpu-time-us: 4029
+        wall-time-us: 4323
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
+      - time: 598
+        entity: slot
+        index: 0
+        status: succeeded
+        tuples-in: 1
+        tuples-out: 1
+        bytes-in: 5
+        bytes-out: 5
+        cpu-time-us: 288
+        wall-time-us: 343
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 598
+        entity: slot
+        index: 1
+        status: succeeded
+        tuples-in: 1
+        tuples-out: 1
+        bytes-in: 5
+        bytes-out: 5
+        cpu-time-us: 3741
+        wall-time-us: 3980
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
+      - time: 598
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-in: 1
+        tuples-out: 1
+        bytes-in: 5
+        bytes-out: 5
+        cpu-time-us: 288
+        wall-time-us: 343
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 598
+        entity: operator
+        index: 1
+        status: succeeded
+        tuples-in: 1
+        tuples-out: 1
+        bytes-in: 5
+        bytes-out: 5
+        cpu-time-us: 3741
+        wall-time-us: 3980
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
 
   - name: aggregate_lineitem_sf1_explain
     recording: aggregate_lineitem_sf1
@@ -233,6 +338,7 @@ trino-profile-snapshots:
         parent: 1
         port-index: 0
         port-count: 1
+        slot: 10
       - child: 1
         parent: 2
         port-index: 0
@@ -241,10 +347,12 @@ trino-profile-snapshots:
         parent: 3
         port-index: 0
         port-count: 1
+        slot: 6
       - child: 3
         parent: 4
         port-index: 0
         port-count: 1
+        slot: 8
       - child: 4
         parent: 5
         port-index: 0
@@ -253,10 +361,12 @@ trino-profile-snapshots:
         parent: 6
         port-index: 0
         port-count: 1
+        slot: 2
       - child: 6
         parent: 7
         port-index: 0
         port-count: 1
+        slot: 3
       - child: 7
         parent: 8
         port-index: 0
@@ -265,7 +375,68 @@ trino-profile-snapshots:
         parent: 9
         port-index: 0
         port-count: 1
-    pipelines: []
+        slot: 0
+    pipelines:
+      - id: 0
+        engine-id: 0.0
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 8
+            role: source
+          - slot: 1
+            operator: 9
+            role: sink
+      - id: 1
+        engine-id: 1.0
+        fragment: 1
+        slots:
+          - slot: 2
+            operator: 5
+            role: source
+          - slot: 3
+            operator: 6
+            role: through
+          - slot: 4
+            operator: 7
+            role: sink
+      - id: 2
+        engine-id: 1.1
+        fragment: 1
+        slots:
+          - slot: 5
+            operator: 7
+            role: source
+      - id: 3
+        engine-id: 2.0
+        fragment: 2
+        slots:
+          - slot: 6
+            operator: 2
+            role: source
+          - slot: 7
+            operator: 3
+            role: sink
+      - id: 4
+        engine-id: 2.1
+        fragment: 2
+        slots:
+          - slot: 8
+            operator: 3
+            role: source
+          - slot: 9
+            operator: 4
+            role: sink
+      - id: 5
+        engine-id: 3.0
+        fragment: 3
+        slots:
+          - slot: 10
+            operator: 0
+            role: source
+          - slot: 11
+            operator: 1
+            role: sink
     updates:
       - time: 3
         entity: query
@@ -493,6 +664,442 @@ trino-profile-snapshots:
         wall-time-us: 3180000
         work-done: 16
         work-total: 16
+      - time: 2067
+        entity: query
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 4
+        bytes-in: 3538
+        bytes-out: 156
+        cpu-time-us: 2509000
+        wall-time-us: 3191000
+        blocked-time-us: 8320000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 21
+        work-total: 21
+      - time: 2067
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 263
+        bytes-out: 156
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        blocked-time-us: 1690000
+        memory-bytes: 1488
+        spilled-bytes: 0
+        work-done: 1
+        work-total: 1
+      - time: 2067
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 263
+        bytes-out: 156
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        blocked-time-us: 3350000
+        memory-bytes: 107040
+        spilled-bytes: 0
+        work-done: 2
+        work-total: 2
+      - time: 2067
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3012
+        bytes-out: 156
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        blocked-time-us: 3280000
+        memory-bytes: 173968
+        spilled-bytes: 0
+        work-done: 2
+        work-total: 2
+      - time: 2067
+        entity: fragment
+        index: 3
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 0
+        bytes-out: 3392
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        blocked-time-us: 0
+        memory-bytes: 1745400
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 16
+      - time: 2067
+        entity: pipeline
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 755
+        wall-time-us: 813
+        blocked-time-us: 1690000
+        memory-bytes: 1488
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1898
+        wall-time-us: 2698
+        blocked-time-us: 1670000
+        memory-bytes: 105600
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 2
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 156
+        cpu-time-us: 1202
+        wall-time-us: 1583
+        blocked-time-us: 1680000
+        memory-bytes: 1440
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 3
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 1558
+        wall-time-us: 1929
+        blocked-time-us: 1640000
+        memory-bytes: 1560
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 4
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3136
+        bytes-out: 156
+        cpu-time-us: 1307
+        wall-time-us: 1314
+        blocked-time-us: 1640000
+        memory-bytes: 172408
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 5
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 180036450
+        bytes-out: 3392
+        cpu-time-us: 2507180
+        wall-time-us: 3172630
+        blocked-time-us: 0
+        memory-bytes: 1745400
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 480
+        wall-time-us: 538
+        blocked-time-us: 1690000
+        memory-bytes: 1424
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 275
+        wall-time-us: 275
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 2
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 87
+        wall-time-us: 88
+        blocked-time-us: 1670000
+        memory-bytes: 312
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 3
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1706
+        wall-time-us: 2505
+        blocked-time-us: 0
+        memory-bytes: 105288
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 4
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 105
+        wall-time-us: 105
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 5
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1202
+        wall-time-us: 1583
+        blocked-time-us: 1680000
+        memory-bytes: 1440
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 6
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 831
+        wall-time-us: 1200
+        blocked-time-us: 1640000
+        memory-bytes: 1560
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 7
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 727
+        wall-time-us: 729
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 8
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 40
+        wall-time-us: 44
+        blocked-time-us: 1640000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 9
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3136
+        bytes-out: 156
+        cpu-time-us: 1267
+        wall-time-us: 1270
+        blocked-time-us: 0
+        memory-bytes: 172408
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 10
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 6001215
+        bytes-in: 180036450
+        bytes-out: 180036450
+        cpu-time-us: 2160000
+        wall-time-us: 2800000
+        blocked-time-us: 0
+        memory-bytes: 1136448
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 11
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 180036450
+        bytes-out: 3392
+        cpu-time-us: 347180
+        wall-time-us: 372630
+        blocked-time-us: 0
+        memory-bytes: 608952
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 6001215
+        bytes-in: 180036450
+        bytes-out: 180036450
+        cpu-time-us: 2160000
+        wall-time-us: 2800000
+        blocked-time-us: 0
+        memory-bytes: 1136448
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 1
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 180036450
+        bytes-out: 3392
+        cpu-time-us: 347180
+        wall-time-us: 372630
+        blocked-time-us: 0
+        memory-bytes: 608952
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 831
+        wall-time-us: 1200
+        blocked-time-us: 1640000
+        memory-bytes: 1560
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 3
+        status: succeeded
+        tuples-in: 128
+        tuples-out: 64
+        bytes-in: 6272
+        bytes-out: 3136
+        cpu-time-us: 767
+        wall-time-us: 773
+        blocked-time-us: 1640000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 4
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3136
+        bytes-out: 156
+        cpu-time-us: 1267
+        wall-time-us: 1270
+        blocked-time-us: 0
+        memory-bytes: 172408
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 5
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 87
+        wall-time-us: 88
+        blocked-time-us: 1670000
+        memory-bytes: 312
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 6
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1706
+        wall-time-us: 2505
+        blocked-time-us: 0
+        memory-bytes: 105288
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 7
+        status: succeeded
+        tuples-in: 8
+        tuples-out: 4
+        bytes-in: 312
+        bytes-out: 156
+        cpu-time-us: 1307
+        wall-time-us: 1688
+        blocked-time-us: 1680000
+        memory-bytes: 1440
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 8
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 480
+        wall-time-us: 538
+        blocked-time-us: 1690000
+        memory-bytes: 1424
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 9
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 275
+        wall-time-us: 275
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
 
   - name: aggregate_lineitem_sf1_query_info
     recording: aggregate_lineitem_sf1
@@ -602,6 +1209,7 @@ trino-profile-snapshots:
         parent: 1
         port-index: 0
         port-count: 1
+        slot: 10
       - child: 1
         parent: 2
         port-index: 0
@@ -610,10 +1218,12 @@ trino-profile-snapshots:
         parent: 3
         port-index: 0
         port-count: 1
+        slot: 6
       - child: 3
         parent: 4
         port-index: 0
         port-count: 1
+        slot: 8
       - child: 4
         parent: 5
         port-index: 0
@@ -622,10 +1232,12 @@ trino-profile-snapshots:
         parent: 6
         port-index: 0
         port-count: 1
+        slot: 2
       - child: 6
         parent: 7
         port-index: 0
         port-count: 1
+        slot: 3
       - child: 7
         parent: 8
         port-index: 0
@@ -634,7 +1246,68 @@ trino-profile-snapshots:
         parent: 9
         port-index: 0
         port-count: 1
-    pipelines: []
+        slot: 0
+    pipelines:
+      - id: 0
+        engine-id: 0.0
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 8
+            role: source
+          - slot: 1
+            operator: 9
+            role: sink
+      - id: 1
+        engine-id: 1.0
+        fragment: 1
+        slots:
+          - slot: 2
+            operator: 5
+            role: source
+          - slot: 3
+            operator: 6
+            role: through
+          - slot: 4
+            operator: 7
+            role: sink
+      - id: 2
+        engine-id: 1.1
+        fragment: 1
+        slots:
+          - slot: 5
+            operator: 7
+            role: source
+      - id: 3
+        engine-id: 2.0
+        fragment: 2
+        slots:
+          - slot: 6
+            operator: 2
+            role: source
+          - slot: 7
+            operator: 3
+            role: sink
+      - id: 4
+        engine-id: 2.1
+        fragment: 2
+        slots:
+          - slot: 8
+            operator: 3
+            role: source
+          - slot: 9
+            operator: 4
+            role: sink
+      - id: 5
+        engine-id: 3.0
+        fragment: 3
+        slots:
+          - slot: 10
+            operator: 0
+            role: source
+          - slot: 11
+            operator: 1
+            role: sink
     updates:
       - time: 3
         entity: query
@@ -862,6 +1535,442 @@ trino-profile-snapshots:
         wall-time-us: 3180000
         work-done: 16
         work-total: 16
+      - time: 2067
+        entity: query
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 4
+        bytes-in: 3538
+        bytes-out: 156
+        cpu-time-us: 2509000
+        wall-time-us: 3191000
+        blocked-time-us: 8320000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 21
+        work-total: 21
+      - time: 2067
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 263
+        bytes-out: 156
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        blocked-time-us: 1690000
+        memory-bytes: 1488
+        spilled-bytes: 0
+        work-done: 1
+        work-total: 1
+      - time: 2067
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 263
+        bytes-out: 156
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        blocked-time-us: 3350000
+        memory-bytes: 107040
+        spilled-bytes: 0
+        work-done: 2
+        work-total: 2
+      - time: 2067
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3012
+        bytes-out: 156
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        blocked-time-us: 3280000
+        memory-bytes: 173968
+        spilled-bytes: 0
+        work-done: 2
+        work-total: 2
+      - time: 2067
+        entity: fragment
+        index: 3
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 0
+        bytes-out: 3392
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        blocked-time-us: 0
+        memory-bytes: 1745400
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 16
+      - time: 2067
+        entity: pipeline
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 755
+        wall-time-us: 813
+        blocked-time-us: 1690000
+        memory-bytes: 1488
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1898
+        wall-time-us: 2698
+        blocked-time-us: 1670000
+        memory-bytes: 105600
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 2
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 156
+        cpu-time-us: 1202
+        wall-time-us: 1583
+        blocked-time-us: 1680000
+        memory-bytes: 1440
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 3
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 1558
+        wall-time-us: 1929
+        blocked-time-us: 1640000
+        memory-bytes: 1560
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 4
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3136
+        bytes-out: 156
+        cpu-time-us: 1307
+        wall-time-us: 1314
+        blocked-time-us: 1640000
+        memory-bytes: 172408
+        spilled-bytes: 0
+      - time: 2067
+        entity: pipeline
+        index: 5
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 180036450
+        bytes-out: 3392
+        cpu-time-us: 2507180
+        wall-time-us: 3172630
+        blocked-time-us: 0
+        memory-bytes: 1745400
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 480
+        wall-time-us: 538
+        blocked-time-us: 1690000
+        memory-bytes: 1424
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 275
+        wall-time-us: 275
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 2
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 87
+        wall-time-us: 88
+        blocked-time-us: 1670000
+        memory-bytes: 312
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 3
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1706
+        wall-time-us: 2505
+        blocked-time-us: 0
+        memory-bytes: 105288
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 4
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 105
+        wall-time-us: 105
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 5
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1202
+        wall-time-us: 1583
+        blocked-time-us: 1680000
+        memory-bytes: 1440
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 6
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 831
+        wall-time-us: 1200
+        blocked-time-us: 1640000
+        memory-bytes: 1560
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 7
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 727
+        wall-time-us: 729
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 8
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 40
+        wall-time-us: 44
+        blocked-time-us: 1640000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 9
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3136
+        bytes-out: 156
+        cpu-time-us: 1267
+        wall-time-us: 1270
+        blocked-time-us: 0
+        memory-bytes: 172408
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 10
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 6001215
+        bytes-in: 180036450
+        bytes-out: 180036450
+        cpu-time-us: 2160000
+        wall-time-us: 2800000
+        blocked-time-us: 0
+        memory-bytes: 1136448
+        spilled-bytes: 0
+      - time: 2067
+        entity: slot
+        index: 11
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 180036450
+        bytes-out: 3392
+        cpu-time-us: 347180
+        wall-time-us: 372630
+        blocked-time-us: 0
+        memory-bytes: 608952
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 6001215
+        bytes-in: 180036450
+        bytes-out: 180036450
+        cpu-time-us: 2160000
+        wall-time-us: 2800000
+        blocked-time-us: 0
+        memory-bytes: 1136448
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 1
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 64
+        bytes-in: 180036450
+        bytes-out: 3392
+        cpu-time-us: 347180
+        wall-time-us: 372630
+        blocked-time-us: 0
+        memory-bytes: 608952
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 64
+        bytes-in: 3136
+        bytes-out: 3136
+        cpu-time-us: 831
+        wall-time-us: 1200
+        blocked-time-us: 1640000
+        memory-bytes: 1560
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 3
+        status: succeeded
+        tuples-in: 128
+        tuples-out: 64
+        bytes-in: 6272
+        bytes-out: 3136
+        cpu-time-us: 767
+        wall-time-us: 773
+        blocked-time-us: 1640000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 4
+        status: succeeded
+        tuples-in: 64
+        tuples-out: 4
+        bytes-in: 3136
+        bytes-out: 156
+        cpu-time-us: 1267
+        wall-time-us: 1270
+        blocked-time-us: 0
+        memory-bytes: 172408
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 5
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 87
+        wall-time-us: 88
+        blocked-time-us: 1670000
+        memory-bytes: 312
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 6
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 1706
+        wall-time-us: 2505
+        blocked-time-us: 0
+        memory-bytes: 105288
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 7
+        status: succeeded
+        tuples-in: 8
+        tuples-out: 4
+        bytes-in: 312
+        bytes-out: 156
+        cpu-time-us: 1307
+        wall-time-us: 1688
+        blocked-time-us: 1680000
+        memory-bytes: 1440
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 8
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 480
+        wall-time-us: 538
+        blocked-time-us: 1690000
+        memory-bytes: 1424
+        spilled-bytes: 0
+      - time: 2067
+        entity: operator
+        index: 9
+        status: succeeded
+        tuples-in: 4
+        tuples-out: 4
+        bytes-in: 156
+        bytes-out: 156
+        cpu-time-us: 275
+        wall-time-us: 275
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
 
   - name: tpch_q3_sf1
     recording: tpch_q3_sf1
@@ -1059,54 +2168,67 @@ trino-profile-snapshots:
         parent: 3
         port-index: 0
         port-count: 1
+        slot: 5
       - child: 2
         parent: 4
         port-index: 0
         port-count: 2
+        slot: 9
       - child: 3
         parent: 4
         port-index: 1
         port-count: 2
+        slot: 7
       - child: 4
         parent: 6
         port-index: 0
         port-count: 1
+        slot: 10
       - child: 5
         parent: 7
         port-index: 0
         port-count: 2
+        slot: 14
       - child: 6
         parent: 7
         port-index: 1
         port-count: 2
+        slot: 12
       - child: 7
         parent: 8
         port-index: 0
         port-count: 1
+        slot: 15
       - child: 8
         parent: 9
         port-index: 0
         port-count: 1
+        slot: 16
       - child: 9
         parent: 10
         port-index: 0
         port-count: 1
+        slot: 17
       - child: 10
         parent: 11
         port-index: 0
         port-count: 1
+        slot: 18
       - child: 11
         parent: 12
         port-index: 0
         port-count: 1
+        slot: 20
       - child: 12
         parent: 13
         port-index: 0
         port-count: 1
+        slot: 21
       - child: 13
         parent: 14
         port-index: 0
         port-count: 1
+        slot: 23
       - child: 14
         parent: 15
         port-index: 0
@@ -1115,15 +2237,136 @@ trino-profile-snapshots:
         parent: 16
         port-index: 0
         port-count: 1
+        slot: 0
       - child: 16
         parent: 17
         port-index: 0
         port-count: 1
+        slot: 2
       - child: 17
         parent: 18
         port-index: 0
         port-count: 1
-    pipelines: []
+        slot: 3
+    pipelines:
+      - id: 0
+        engine-id: 0.0
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 15
+            role: source
+          - slot: 1
+            operator: 16
+            role: sink
+      - id: 1
+        engine-id: 0.1
+        fragment: 0
+        slots:
+          - slot: 2
+            operator: 16
+            role: source
+          - slot: 3
+            operator: 17
+            role: through
+          - slot: 4
+            operator: 18
+            role: sink
+      - id: 2
+        engine-id: 1.0
+        fragment: 1
+        slots:
+          - slot: 5
+            operator: 1
+            role: source
+          - slot: 6
+            operator: 3
+            role: sink
+      - id: 3
+        engine-id: 1.1
+        fragment: 1
+        slots:
+          - slot: 7
+            operator: 3
+            role: source
+          - slot: 8
+            operator: 4
+            role: sink
+      - id: 4
+        engine-id: 1.2
+        fragment: 1
+        slots:
+          - slot: 9
+            operator: 2
+            role: source
+          - slot: 10
+            operator: 4
+            role: through
+          - slot: 11
+            operator: 6
+            role: sink
+      - id: 5
+        engine-id: 1.3
+        fragment: 1
+        slots:
+          - slot: 12
+            operator: 6
+            role: source
+          - slot: 13
+            operator: 7
+            role: sink
+      - id: 6
+        engine-id: 1.4
+        fragment: 1
+        slots:
+          - slot: 14
+            operator: 5
+            role: source
+          - slot: 15
+            operator: 7
+            role: through
+          - slot: 16
+            operator: 8
+            role: through
+          - slot: 17
+            operator: 9
+            role: through
+          - slot: 18
+            operator: 10
+            role: through
+          - slot: 19
+            operator: 11
+            role: sink
+      - id: 7
+        engine-id: 1.5
+        fragment: 1
+        slots:
+          - slot: 20
+            operator: 11
+            role: source
+          - slot: 21
+            operator: 12
+            role: through
+          - slot: 22
+            operator: 13
+            role: sink
+      - id: 8
+        engine-id: 1.6
+        fragment: 1
+        slots:
+          - slot: 23
+            operator: 13
+            role: source
+          - slot: 24
+            operator: 14
+            role: sink
+      - id: 9
+        engine-id: 2.0
+        fragment: 2
+        slots:
+          - slot: 25
+            operator: 0
+            role: source
     updates:
       - time: 1
         entity: query
@@ -1291,6 +2534,778 @@ trino-profile-snapshots:
         wall-time-us: 137000
         work-done: 16
         work-total: 16
+      - time: 3068
+        entity: query
+        status: succeeded
+        tuples-in: 7681357
+        tuples-out: 10
+        bytes-in: 242026
+        bytes-out: 280
+        cpu-time-us: 3982000
+        wall-time-us: 4258000
+        blocked-time-us: 12210640
+        memory-bytes: 13276224
+        spilled-bytes: 0
+        work-done: 55
+        work-total: 55
+      - time: 3068
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 330
+        bytes-out: 280
+        cpu-time-us: 1000
+        wall-time-us: 1000
+        blocked-time-us: 4600000
+        memory-bytes: 88152
+        spilled-bytes: 0
+        work-done: 2
+        work-total: 2
+      - time: 3068
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 7531357
+        tuples-out: 10
+        bytes-in: 241696
+        bytes-out: 280
+        cpu-time-us: 3850000
+        wall-time-us: 4120000
+        blocked-time-us: 7610640
+        memory-bytes: 15586744
+        spilled-bytes: 0
+        work-done: 37
+        work-total: 37
+      - time: 3068
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 150000
+        tuples-out: 30142
+        bytes-in: 0
+        bytes-out: 271278
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        blocked-time-us: 0
+        memory-bytes: 203184
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 16
+      - time: 3068
+        entity: pipeline
+        index: 0
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 233
+        wall-time-us: 237
+        blocked-time-us: 2300000
+        memory-bytes: 384
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 1
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 333
+        wall-time-us: 339
+        blocked-time-us: 2300000
+        memory-bytes: 87768
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 2
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 1154
+        wall-time-us: 1665
+        blocked-time-us: 18910
+        memory-bytes: 135656
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 3
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 54090
+        wall-time-us: 60993
+        blocked-time-us: 1335290
+        memory-bytes: 1736864
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 4
+        status: succeeded
+        tuples-in: 1500000
+        tuples-out: 147126
+        bytes-in: 42000000
+        bytes-out: 3234510
+        cpu-time-us: 2194559
+        wall-time-us: 2403016
+        blocked-time-us: 303490
+        memory-bytes: 1274120
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 5
+        status: succeeded
+        tuples-in: 147126
+        tuples-out: 147126
+        bytes-in: 3234510
+        bytes-out: 3234510
+        cpu-time-us: 31776
+        wall-time-us: 38110
+        blocked-time-us: 1161180
+        memory-bytes: 10567840
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 6
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 160
+        bytes-in: 192038880
+        bytes-out: 4480
+        cpu-time-us: 1567168
+        wall-time-us: 1610740
+        blocked-time-us: 331770
+        memory-bytes: 1693296
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 7
+        status: succeeded
+        tuples-in: 160
+        tuples-out: 10
+        bytes-in: 4480
+        bytes-out: 280
+        cpu-time-us: 1171
+        wall-time-us: 1211
+        blocked-time-us: 2220000
+        memory-bytes: 89904
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 8
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 539
+        wall-time-us: 542
+        blocked-time-us: 2240000
+        memory-bytes: 89064
+        spilled-bytes: 0
+      - time: 3068
+        entity: pipeline
+        index: 9
+        status: succeeded
+        tuples-in: 150000
+        bytes-in: 3449610
+        cpu-time-us: 130753
+        wall-time-us: 136399
+        blocked-time-us: 0
+        memory-bytes: 203184
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 0
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 105
+        wall-time-us: 107
+        blocked-time-us: 2300000
+        memory-bytes: 384
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 1
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 128
+        wall-time-us: 130
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 2
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 14
+        wall-time-us: 17
+        blocked-time-us: 2300000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 3
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 173
+        wall-time-us: 176
+        blocked-time-us: 0
+        memory-bytes: 87704
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 4
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 146
+        wall-time-us: 146
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 5
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 957
+        wall-time-us: 1430
+        blocked-time-us: 18910
+        memory-bytes: 135656
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 6
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 197
+        wall-time-us: 235
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 7
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 136
+        wall-time-us: 134
+        blocked-time-us: 25290
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 8
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 53954
+        wall-time-us: 60859
+        blocked-time-us: 1310000
+        memory-bytes: 1736864
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 9
+        status: succeeded
+        tuples-in: 1500000
+        tuples-out: 292242
+        bytes-in: 42000000
+        bytes-out: 8182776
+        cpu-time-us: 2150000
+        wall-time-us: 2350000
+        blocked-time-us: 0
+        memory-bytes: 1274120
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 10
+        status: succeeded
+        tuples-in: 292242
+        tuples-out: 147126
+        bytes-in: 8182776
+        bytes-out: 3234510
+        cpu-time-us: 42913
+        wall-time-us: 51413
+        blocked-time-us: 303490
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 11
+        status: succeeded
+        tuples-in: 147126
+        tuples-out: 147126
+        bytes-in: 3234510
+        bytes-out: 3234510
+        cpu-time-us: 1646
+        wall-time-us: 1603
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 12
+        status: succeeded
+        tuples-in: 147126
+        tuples-out: 147126
+        bytes-in: 3234510
+        bytes-out: 3234510
+        cpu-time-us: 738
+        wall-time-us: 805
+        blocked-time-us: 347120
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 13
+        status: succeeded
+        tuples-in: 147126
+        tuples-out: 147126
+        bytes-in: 3234510
+        bytes-out: 3234510
+        cpu-time-us: 31038
+        wall-time-us: 37305
+        blocked-time-us: 814060
+        memory-bytes: 10567840
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 14
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 3241776
+        bytes-in: 192038880
+        bytes-out: 87527952
+        cpu-time-us: 1440000
+        wall-time-us: 1480000
+        blocked-time-us: 0
+        memory-bytes: 1352760
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 15
+        status: succeeded
+        tuples-in: 3241776
+        tuples-out: 30519
+        bytes-in: 87527952
+        bytes-out: 1495191
+        cpu-time-us: 65683
+        wall-time-us: 65036
+        blocked-time-us: 331770
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 16
+        status: succeeded
+        tuples-in: 30519
+        tuples-out: 30519
+        bytes-in: 1495191
+        bytes-out: 854532
+        cpu-time-us: 20372
+        wall-time-us: 21060
+        blocked-time-us: 0
+        memory-bytes: 70368
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 17
+        status: succeeded
+        tuples-in: 30519
+        tuples-out: 11620
+        bytes-in: 854532
+        bytes-out: 325360
+        cpu-time-us: 26367
+        wall-time-us: 27366
+        blocked-time-us: 0
+        memory-bytes: 182464
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 18
+        status: succeeded
+        tuples-in: 11620
+        tuples-out: 160
+        bytes-in: 325360
+        bytes-out: 4480
+        cpu-time-us: 13994
+        wall-time-us: 16525
+        blocked-time-us: 0
+        memory-bytes: 87704
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 19
+        status: succeeded
+        tuples-in: 160
+        tuples-out: 160
+        bytes-in: 4480
+        bytes-out: 4480
+        cpu-time-us: 752
+        wall-time-us: 753
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 20
+        status: succeeded
+        tuples-in: 160
+        tuples-out: 160
+        bytes-in: 4480
+        bytes-out: 4480
+        cpu-time-us: 156
+        wall-time-us: 169
+        blocked-time-us: 2220000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 21
+        status: succeeded
+        tuples-in: 160
+        tuples-out: 10
+        bytes-in: 4480
+        bytes-out: 280
+        cpu-time-us: 949
+        wall-time-us: 975
+        blocked-time-us: 0
+        memory-bytes: 89904
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 22
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 66
+        wall-time-us: 67
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 23
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 25
+        wall-time-us: 27
+        blocked-time-us: 2240000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 24
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 514
+        wall-time-us: 515
+        blocked-time-us: 0
+        memory-bytes: 89064
+        spilled-bytes: 0
+      - time: 3068
+        entity: slot
+        index: 25
+        status: succeeded
+        tuples-in: 150000
+        tuples-out: 30142
+        bytes-in: 3449610
+        bytes-out: 271278
+        cpu-time-us: 130753
+        wall-time-us: 136399
+        blocked-time-us: 0
+        memory-bytes: 203184
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-in: 150000
+        tuples-out: 30142
+        bytes-in: 3449610
+        bytes-out: 271278
+        cpu-time-us: 130753
+        wall-time-us: 136399
+        blocked-time-us: 0
+        memory-bytes: 203184
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 1
+        status: succeeded
+        tuples-in: 30142
+        tuples-out: 30142
+        bytes-in: 271278
+        bytes-out: 271278
+        cpu-time-us: 957
+        wall-time-us: 1430
+        blocked-time-us: 18910
+        memory-bytes: 135656
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 2
+        status: succeeded
+        tuples-in: 1500000
+        tuples-out: 292242
+        bytes-in: 42000000
+        bytes-out: 8182776
+        cpu-time-us: 2150000
+        wall-time-us: 2350000
+        blocked-time-us: 0
+        memory-bytes: 1274120
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 3
+        status: succeeded
+        tuples-in: 60284
+        tuples-out: 30142
+        bytes-in: 542556
+        bytes-out: 271278
+        cpu-time-us: 333
+        wall-time-us: 369
+        blocked-time-us: 25290
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 4
+        status: succeeded
+        tuples-in: 322384
+        tuples-out: 147126
+        bytes-in: 8454054
+        bytes-out: 3234510
+        cpu-time-us: 96867
+        wall-time-us: 112272
+        blocked-time-us: 1613490
+        memory-bytes: 1736864
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 5
+        status: succeeded
+        tuples-in: 6001215
+        tuples-out: 3241776
+        bytes-in: 192038880
+        bytes-out: 87527952
+        cpu-time-us: 1440000
+        wall-time-us: 1480000
+        blocked-time-us: 0
+        memory-bytes: 1352760
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 6
+        status: succeeded
+        tuples-in: 294252
+        tuples-out: 147126
+        bytes-in: 6469020
+        bytes-out: 3234510
+        cpu-time-us: 2384
+        wall-time-us: 2408
+        blocked-time-us: 347120
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 7
+        status: succeeded
+        tuples-in: 3388902
+        tuples-out: 30519
+        bytes-in: 90762462
+        bytes-out: 1495191
+        cpu-time-us: 96721
+        wall-time-us: 102341
+        blocked-time-us: 1145830
+        memory-bytes: 10567840
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 8
+        status: succeeded
+        tuples-in: 30519
+        tuples-out: 30519
+        bytes-in: 1495191
+        bytes-out: 854532
+        cpu-time-us: 20372
+        wall-time-us: 21060
+        blocked-time-us: 0
+        memory-bytes: 70368
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 9
+        status: succeeded
+        tuples-in: 30519
+        tuples-out: 11620
+        bytes-in: 854532
+        bytes-out: 325360
+        cpu-time-us: 26367
+        wall-time-us: 27366
+        blocked-time-us: 0
+        memory-bytes: 182464
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 10
+        status: succeeded
+        tuples-in: 11620
+        tuples-out: 160
+        bytes-in: 325360
+        bytes-out: 4480
+        cpu-time-us: 13994
+        wall-time-us: 16525
+        blocked-time-us: 0
+        memory-bytes: 87704
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 11
+        status: succeeded
+        tuples-in: 320
+        tuples-out: 160
+        bytes-in: 8960
+        bytes-out: 4480
+        cpu-time-us: 908
+        wall-time-us: 922
+        blocked-time-us: 2220000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 12
+        status: succeeded
+        tuples-in: 160
+        tuples-out: 10
+        bytes-in: 4480
+        bytes-out: 280
+        cpu-time-us: 949
+        wall-time-us: 975
+        blocked-time-us: 0
+        memory-bytes: 89904
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 13
+        status: succeeded
+        tuples-in: 20
+        tuples-out: 10
+        bytes-in: 560
+        bytes-out: 280
+        cpu-time-us: 91
+        wall-time-us: 94
+        blocked-time-us: 2240000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 14
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 514
+        wall-time-us: 515
+        blocked-time-us: 0
+        memory-bytes: 89064
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 15
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 105
+        wall-time-us: 107
+        blocked-time-us: 2300000
+        memory-bytes: 384
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 16
+        status: succeeded
+        tuples-in: 20
+        tuples-out: 10
+        bytes-in: 560
+        bytes-out: 280
+        cpu-time-us: 142
+        wall-time-us: 147
+        blocked-time-us: 2300000
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 17
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 173
+        wall-time-us: 176
+        blocked-time-us: 0
+        memory-bytes: 87704
+        spilled-bytes: 0
+      - time: 3068
+        entity: operator
+        index: 18
+        status: succeeded
+        tuples-in: 10
+        tuples-out: 10
+        bytes-in: 280
+        bytes-out: 280
+        cpu-time-us: 146
+        wall-time-us: 146
+        blocked-time-us: 0
+        memory-bytes: 64
+        spilled-bytes: 0
 
   - name: cancelled_sf10
     recording: cancelled_sf10
@@ -1358,6 +3373,7 @@ trino-profile-snapshots:
         parent: 1
         port-index: 0
         port-count: 1
+        slot: 0
       - child: 1
         parent: 2
         port-index: 0
@@ -1374,7 +3390,17 @@ trino-profile-snapshots:
         parent: 5
         port-index: 0
         port-count: 1
-    pipelines: []
+    pipelines:
+      - id: 0
+        engine-id: 1.0
+        fragment: 1
+        slots:
+          - slot: 0
+            operator: 0
+            role: source
+          - slot: 1
+            operator: 1
+            role: sink
     updates:
       - time: 1
         entity: query
@@ -1492,6 +3518,98 @@ trino-profile-snapshots:
         spilled-bytes: 0
         work-done: 6
         work-total: 18
+      - time: 4051
+        entity: query
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        blocked-time-us: 0
+        memory-bytes: 3418176
+        spilled-bytes: 0
+        work-done: 6
+        work-total: 18
+      - time: 4051
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 25501510
+        tuples-out: 24
+        bytes-in: 0
+        bytes-out: 576
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        blocked-time-us: 0
+        memory-bytes: 1900072
+        spilled-bytes: 0
+        work-done: 6
+        work-total: 16
+      - time: 4051
+        entity: pipeline
+        index: 0
+        status: failed
+        tuples-in: 34264061
+        tuples-out: 24
+        bytes-in: 513960915
+        bytes-out: 576
+        cpu-time-us: 7727163
+        wall-time-us: 8022389
+        blocked-time-us: 0
+        memory-bytes: 1900072
+        spilled-bytes: 0
+      - time: 4051
+        entity: slot
+        index: 0
+        status: failed
+        tuples-in: 34264061
+        tuples-out: 34264061
+        bytes-in: 513960915
+        bytes-out: 513960915
+        cpu-time-us: 7050000
+        wall-time-us: 7320000
+        blocked-time-us: 0
+        memory-bytes: 1275656
+        spilled-bytes: 0
+      - time: 4051
+        entity: slot
+        index: 1
+        status: failed
+        tuples-in: 34264061
+        tuples-out: 24
+        bytes-in: 513960915
+        bytes-out: 576
+        cpu-time-us: 677163
+        wall-time-us: 702389
+        blocked-time-us: 0
+        memory-bytes: 624416
+        spilled-bytes: 0
+      - time: 4051
+        entity: operator
+        index: 0
+        status: failed
+        tuples-in: 34264061
+        tuples-out: 34264061
+        bytes-in: 513960915
+        bytes-out: 513960915
+        cpu-time-us: 7050000
+        wall-time-us: 7320000
+        blocked-time-us: 0
+        memory-bytes: 1275656
+        spilled-bytes: 0
+      - time: 4051
+        entity: operator
+        index: 1
+        status: failed
+        tuples-in: 34264061
+        tuples-out: 24
+        bytes-in: 513960915
+        bytes-out: 576
+        cpu-time-us: 677163
+        wall-time-us: 702389
+        blocked-time-us: 0
+        memory-bytes: 624416
+        spilled-bytes: 0
 
   - name: failed_cast
     recording: failed_cast
@@ -1522,7 +3640,18 @@ trino-profile-snapshots:
         parent: 1
         port-index: 0
         port-count: 1
-    pipelines: []
+        slot: 0
+    pipelines:
+      - id: 0
+        engine-id: 0.0
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 0
+            role: source
+          - slot: 1
+            operator: 1
+            role: sink
     updates:
       - time: 1
         entity: query
@@ -1577,3 +3706,97 @@ trino-profile-snapshots:
         wall-time-us: 2000
         work-done: 3
         work-total: 16
+      - time: 515
+        entity: query
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 3
+        work-total: 16
+      - time: 515
+        entity: fragment
+        index: 0
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        blocked-time-us: 0
+        memory-bytes: 128
+        spilled-bytes: 0
+        work-done: 3
+        work-total: 16
+      - time: 515
+        entity: pipeline
+        index: 0
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 401
+        wall-time-us: 432
+        blocked-time-us: 0
+        memory-bytes: 128
+        spilled-bytes: 0
+      - time: 515
+        entity: slot
+        index: 0
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 393
+        wall-time-us: 426
+        blocked-time-us: 0
+        memory-bytes: 128
+        spilled-bytes: 0
+      - time: 515
+        entity: slot
+        index: 1
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 8
+        wall-time-us: 6
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+      - time: 515
+        entity: operator
+        index: 0
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 393
+        wall-time-us: 426
+        blocked-time-us: 0
+        memory-bytes: 128
+        spilled-bytes: 0
+      - time: 515
+        entity: operator
+        index: 1
+        status: failed
+        tuples-in: 0
+        tuples-out: 0
+        bytes-in: 0
+        bytes-out: 0
+        cpu-time-us: 8
+        wall-time-us: 6
+        blocked-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0

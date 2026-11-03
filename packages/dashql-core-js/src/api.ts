@@ -1257,6 +1257,12 @@ export class DashQLQueryProfile {
         const bytes = this.ptr.assertNotNull().applyTrinoStatementStats(this.ptr.api.encoder.encode(stats), time);
         return this.readEvents(bytes);
     }
+    /// Apply a Trino QueryInfo (JSON, pruned or not) received at a time in milliseconds since epoch: the pipelines
+    /// and slot statistics of the stages. New pipelines are registered, the structure is then repacked.
+    public applyTrinoQueryInfo(info: string, time: number): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
+        const bytes = this.ptr.assertNotNull().applyTrinoQueryInfo(this.ptr.api.encoder.encode(info), time);
+        return this.readEvents(bytes);
+    }
     /// Wrap packed events, repack the structure if the events belong to a newer one
     private readEvents(bytes: Uint8Array): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
         if (this.buffer == null || this.buffer.read().structureVersion() !== this.ptr.assertNotNull().structureVersion()) {

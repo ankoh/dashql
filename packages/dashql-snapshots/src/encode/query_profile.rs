@@ -222,8 +222,8 @@ pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {
 }
 
 /// Encode a Trino profile snapshot case: parse the plan of a recording, from the EXPLAIN plan (`explain`) or the
-/// stage plans of the final QueryInfo (`query-info`), lay it out, and replay the statement polls on top. Returns
-/// the sections of `encode_query_profile` and `updates`.
+/// stage plans of the final QueryInfo (`query-info`), lay it out, and replay the statement polls and QueryInfo
+/// samples on top, in the order they arrived. Returns the sections of `encode_query_profile` and `updates`.
 pub fn encode_trino_profile(recording: &str, source: &str) -> Result<Map, String> {
     let recording: serde_json::Value = serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
     let plan = match source {
@@ -239,12 +239,26 @@ pub fn encode_trino_profile(recording: &str, source: &str) -> Result<Map, String
     profile.parse_trino_plan(&plan).map_err(|e| format!("cannot parse plan: {e:?}"))?;
     profile.configure(&snapshot_config());
     profile.compute_layout();
-    let mut updates = Vec::new();
+    // Replay the statement polls and the QueryInfo samples in the order they arrived
+    let mut payloads: Vec<(u64, bool, Vec<u8>)> = Vec::new();
     for response in recording["statementResponses"].as_array().ok_or("recording without statement responses")? {
         let Some(stats) = response["body"].get("stats") else { continue };
-        let time = response["elapsedMs"].as_u64().unwrap_or(0);
         let stats = serde_json::to_vec(stats).expect("a JSON value always serializes");
-        updates.extend(profile.apply_trino_statement_stats(&stats, time).map_err(|e| e.to_string())?);
+        payloads.push((response["elapsedMs"].as_u64().unwrap_or(0), false, stats));
+    }
+    for sample in recording["queryInfos"].as_array().ok_or("recording without query infos")? {
+        let info = serde_json::to_vec(&sample["body"]).expect("a JSON value always serializes");
+        payloads.push((sample["elapsedMs"].as_u64().unwrap_or(0), true, info));
+    }
+    payloads.sort_by_key(|(time, query_info, _)| (*time, *query_info));
+    let mut updates = Vec::new();
+    for (time, query_info, payload) in payloads {
+        let applied = if query_info {
+            profile.apply_trino_query_info(&payload, time)
+        } else {
+            profile.apply_trino_statement_stats(&payload, time)
+        };
+        updates.extend(applied.map_err(|e| e.to_string())?);
     }
     let mut out = encode_query_profile(&profile.pack_buffer());
     out.insert("updates", encode_profile_events(&profile.pack_events(&updates)));

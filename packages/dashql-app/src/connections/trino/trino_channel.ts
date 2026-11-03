@@ -11,6 +11,10 @@ import { AsyncConsumer } from '../../utils/async_consumer.js';
 import { translateAnyRowsToArrowBatch } from './arrow_conversion.js';
 
 const LOG_CTX = 'trino_channel';
+/// Sample the statistics of the stages this often, Trino refreshes them about every 3 seconds
+const QUERY_INFO_SAMPLE_INTERVAL_MS = 3000;
+/// Wait this long for the last sample of the statistics of a finished query
+const QUERY_INFO_FINAL_SAMPLE_TIMEOUT_MS = 3000;
 
 export interface TrinoQueryExecutionProgress extends QueryExecutionProgress { }
 
@@ -35,6 +39,12 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     latestQueryReceivedAt: number;
     /// Was the QueryInfo with the plans of the stages requested?
     queryInfoRequested: boolean = false;
+    /// The request of the QueryInfo with the plans
+    queryInfoPlan: Promise<void> | null = null;
+    /// The pending sample of the pruned QueryInfo
+    queryInfoSample: Promise<void> | null = null;
+    /// The timer of the samples
+    queryInfoTimer: ReturnType<typeof setInterval> | null = null;
     /// The progress updates
     latestQueryProgress: QueryExecutionProgress | null;
     /// The metrics
@@ -72,7 +82,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         const queryId = this.latestQueryResult?.id;
         if (this.queryInfoRequested || this.latestQueryStats?.rootStage == null || !queryId) return;
         this.queryInfoRequested = true;
-        this.apiClient.getQueryInfo(this.endpoint, queryId, abort).then(
+        this.queryInfoPlan = this.apiClient.getQueryInfo(this.endpoint, queryId, abort).then(
             info => {
                 const receivedAt = Date.now();
                 progress.resolve(this, {
@@ -82,6 +92,40 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
             },
             (e: unknown) => this.logger.warn("Failed to fetch the query plan", { "error": String(e) }, LOG_CTX),
         );
+        // Sample the statistics of the stages while the query runs
+        this.queryInfoTimer = setInterval(() => void this.sampleQueryInfo(progress, abort), QUERY_INFO_SAMPLE_INTERVAL_MS);
+    }
+
+    /// Sample the pruned QueryInfo: the operator summaries of the stages, without plans. One sample at a time.
+    sampleQueryInfo(progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+        const queryId = this.latestQueryResult?.id;
+        if (!queryId) return Promise.resolve();
+        this.queryInfoSample ??= this.apiClient.getQueryInfo(this.endpoint, queryId, abort, true).then(
+            info => {
+                progress.resolve(this, {
+                    ...deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt),
+                    engineProgress: { kind: 'trino_query_info_stats', info, receivedAt: Date.now() },
+                });
+            },
+            (e: unknown) => this.logger.debug("Failed to sample the query statistics", { "error": String(e) }, LOG_CTX),
+        ).finally(() => {
+            this.queryInfoSample = null;
+        });
+        return this.queryInfoSample;
+    }
+
+    /// Stop sampling. After a query that finished, take a last sample: the operator summaries are complete now.
+    /// The query waits for it, but not longer than a bound.
+    async finishQueryInfo(progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, finished: boolean, abort?: AbortSignal): Promise<void> {
+        if (this.queryInfoTimer != null) clearInterval(this.queryInfoTimer);
+        this.queryInfoTimer = null;
+        if (!finished || !this.queryInfoRequested) return;
+        const pending = this.queryInfoPlan ?? Promise.resolve();
+        const last = pending.then(() => this.sampleQueryInfo(progress, abort));
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const bound = new Promise<void>(resolve => { timer = setTimeout(resolve, QUERY_INFO_FINAL_SAMPLE_TIMEOUT_MS); });
+        await Promise.race([last, bound]);
+        if (timer != null) clearTimeout(timer);
     }
 
     /// Fetch the next query result
@@ -206,9 +250,11 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                 }
             }
             this.logger.debug("Reached end of query result stream", { "queryState": this.latestQueryState }, LOG_CTX);
+            await this.finishQueryInfo(progress, true, abort);
         } catch (e: any) {
             // Don't leave the request of the next page as unhandled rejection
             pending.catch(() => { });
+            await this.finishQueryInfo(progress, false);
             throw e;
         }
     }

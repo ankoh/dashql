@@ -87,6 +87,28 @@ describe('QueryProgressModels', () => {
         expect(listProgressStages(broken)).toHaveLength(3);
         models.release(2);
     });
+
+    it('applies the operator summaries of pruned samples to the plan', () => {
+        const models = new QueryProgressModels();
+        const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
+        const info = { queryId: 'q', stages: { stages: [
+            stage('0', { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', children: [] }] }),
+        ] } };
+        const loaded = models.apply(core, 3, { kind: 'trino_query_info', info, receivedAt: 1 })!;
+        expect(loaded.structure.read().pipelinesLength()).toEqual(0);
+        const summary = (operatorId: number, planNodeId: string, rows: number) =>
+            ({ pipelineId: 0, operatorId, planNodeId, inputPositions: rows, outputPositions: rows });
+        const sample = { stages: { stages: [{ stageId: 'q.0', state: 'FINISHED', stageStats: {
+            operatorSummaries: [summary(0, '2', 25), summary(1, '1', 25)],
+        } }] } };
+        const progress = models.apply(core, 3, { kind: 'trino_query_info_stats', info: sample, receivedAt: 2 })!;
+        // The pipeline appears in the structure, the edge from the scan carries its rows
+        const structure = progress.structure.read();
+        expect(structure.pipelinesLength()).toEqual(1);
+        const edge = structure.operatorEdges(0)!;
+        expect(progress.execution.edgeRows(edge.slot(), edge.child())).toEqual(25n);
+        models.release(3);
+    });
 });
 
 describe('query progress formatting', () => {

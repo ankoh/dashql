@@ -1355,6 +1355,17 @@ impl QueryProfile {
         Ok(self.inner.pack_events(&updates))
     }
 
+    /// Apply a Trino QueryInfo (JSON, pruned or not) received at a time in milliseconds since epoch: the pipelines
+    /// and slot statistics of the stages. Returns the packed `QueryProfileEvents` of the effective state changes.
+    #[wasm_bindgen(js_name = applyTrinoQueryInfo)]
+    pub fn apply_trino_query_info(&mut self, info: &[u8], time: f64) -> Result<Vec<u8>, JsError> {
+        let updates = self
+            .inner
+            .apply_trino_query_info(info, time.max(0.0) as u64)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(self.inner.pack_events(&updates))
+    }
+
     /// The current execution state as packed `QueryProfileEvents`, one update per entity with state
     #[wasm_bindgen(js_name = snapshotEvents)]
     pub fn snapshot_events(&self) -> Vec<u8> {

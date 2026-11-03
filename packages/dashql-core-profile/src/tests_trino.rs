@@ -106,3 +106,49 @@ fn stage_progress_finds_the_fragments_of_the_plan() {
     assert_eq!(fragment(2).unwrap().state.status, super::Status::Succeeded);
     assert_eq!(fragment(1).unwrap().state.status, super::Status::Running);
 }
+
+#[test]
+fn operator_summaries_register_pipelines_and_merge_operators_of_a_plan_node() {
+    let mut profile = QueryProfile::new();
+    profile.parse_trino_plan(JOIN.as_bytes()).unwrap();
+    let summary = |pipeline: u32, operator: u32, node: &str, input: u64, output: u64| {
+        serde_json::json!({
+            "pipelineId": pipeline, "operatorId": operator, "planNodeId": node,
+            "inputPositions": input, "outputPositions": output,
+            "inputDataSize": "1.5kB", "outputDataSize": "10B",
+            "addInputCpu": "1.50ms", "getOutputCpu": "500.00us", "finishCpu": "0.00ns",
+            "blockedWall": "2.00s", "peakUserMemoryReservation": "1MB"
+        })
+    };
+    let info = serde_json::json!({"stages": {"stages": [{
+        "stageId": "q.1", "state": "FINISHED", "stageStats": {"operatorSummaries": [
+            // Pipeline 0: the scan feeds the join, the join is two Trino operators (probe, output)
+            summary(0, 2, "7", 40, 4),
+            summary(0, 0, "5", 100, 50),
+            summary(0, 1, "7", 50, 40),
+            // An operator of a plan node that the plan does not know
+            summary(0, 3, "999", 1, 1),
+        ]}
+    }]}})
+    .to_string();
+    let version = profile.structure_version();
+    let updates = profile.apply_trino_query_info(info.as_bytes(), 5).unwrap();
+    assert_eq!(profile.structure_version(), version + 1);
+    let slots: Vec<_> = updates.iter().filter(|u| u.entity == fb::ProfileEntity::SLOT).collect();
+    assert_eq!(slots.len(), 2);
+    let join = slots[1].state;
+    // Input of the first operator, output of the last, times summed in microseconds
+    assert_eq!((join.stats.tuples_in, join.stats.tuples_out), (Some(50), Some(4)));
+    assert_eq!(join.stats.cpu_time_us, Some(4000));
+    assert_eq!(join.stats.blocked_time_us, Some(4_000_000));
+    assert_eq!((join.stats.bytes_in, join.stats.memory_bytes), (Some(1536), Some(2 * 1024 * 1024)));
+    assert_eq!(join.status, super::Status::Succeeded);
+
+    // The next sample finds the pipeline
+    assert!(profile.apply_trino_query_info(info.as_bytes(), 6).unwrap().is_empty());
+    assert_eq!(profile.structure_version(), version + 1);
+    let buffer = profile.pack_buffer();
+    let packed = root(&buffer);
+    let pipeline = packed.pipelines().unwrap().get(0);
+    assert_eq!((string(&packed, pipeline.engine_id()), pipeline.fragment()), ("1.0", 1));
+}

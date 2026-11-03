@@ -102,6 +102,11 @@ entry when you find another one. The headings name where the behavior lives.
   first one only. The root fragment is hidden, its contour would enclose the whole plan. The stage
   plans of QueryInfo carry no estimates, EXPLAIN plans do. A QueryInfo without stage plans (pruned)
   is an empty profile, not an error.
+- **Trino operator summaries** (`trino_query_info_events`). The Trino operators of one plan node in
+  one pipeline are one slot: input of the first, output of the last, times and memory summed. The
+  first slot of a pipeline is its source, the last its sink. Pipelines are registered as
+  `<fragment>.<pipeline>` when their summaries first appear, which is when their stage finished.
+  Summaries of plan nodes the plan does not know are skipped. Data sizes count in powers of 1024.
 
 ## Script session (`packages/dashql-core-session/src/script_session.rs`)
 

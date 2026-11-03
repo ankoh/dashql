@@ -6,7 +6,9 @@ export type EngineProgressPayload =
     /// The `stats` of a Trino `/v1/statement` response
     | { kind: 'trino_statement_stats'; stats: object; receivedAt: number }
     /// The QueryInfo of a Trino query (`/v1/query/{id}`) with the plans of its stages
-    | { kind: 'trino_query_info'; info: object; receivedAt: number };
+    | { kind: 'trino_query_info'; info: object; receivedAt: number }
+    /// A pruned QueryInfo (`/v1/query/{id}?pruned=true`): the operator summaries of the stages, without plans
+    | { kind: 'trino_query_info_stats'; info: object; receivedAt: number };
 
 /// The structured progress of a query: the profile structure (stages, the plan operators once the plan is known)
 /// and its execution state
@@ -20,6 +22,7 @@ function engineOf(payload: EngineProgressPayload): dashql.buffers.profile.Profil
     switch (payload.kind) {
         case 'trino_statement_stats':
         case 'trino_query_info':
+        case 'trino_query_info_stats':
             return dashql.buffers.profile.ProfileEngine.TRINO;
     }
 }
@@ -63,7 +66,14 @@ export class QueryProgressModel {
                 if (this.latestStats != null) {
                     this.profile.applyTrinoStatementStats(JSON.stringify(this.latestStats.stats), this.latestStats.receivedAt);
                 }
+                // The operator summaries of the stages that finished already
+                this.profile.applyTrinoQueryInfo(JSON.stringify(payload.info), payload.receivedAt);
                 execution = ProfileExecutionState.EMPTY.withEvents(this.profile.snapshotEvents().read());
+                break;
+            }
+            case 'trino_query_info_stats': {
+                const events = this.profile.applyTrinoQueryInfo(JSON.stringify(payload.info), payload.receivedAt);
+                execution = this.progress.execution.withEvents(events.read());
                 break;
             }
         }

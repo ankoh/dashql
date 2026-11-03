@@ -75,9 +75,27 @@ describe('TrinoQueryResultStream', () => {
             new AsyncConsumerLambdas(),
             new AsyncConsumerLambdas((_, update) => kinds.push(update.engineProgress?.kind)),
         );
-        await vi.waitFor(() => expect(kinds).toContain('trino_query_info'));
-        expect(apiClient.getQueryInfo).toHaveBeenCalledTimes(1);
-        expect(vi.mocked(apiClient.getQueryInfo).mock.calls[0][1]).toEqual('query-id');
+        // The plans once, and a last pruned sample of the statistics of the finished query before the stream ends
+        expect(kinds).toContain('trino_query_info');
+        expect(kinds[kinds.length - 1]).toEqual('trino_query_info_stats');
+        const calls = vi.mocked(apiClient.getQueryInfo).mock.calls;
+        expect(calls.map(call => [call[1], call[3] ?? false])).toEqual([['query-id', false], ['query-id', true]]);
+    });
+
+    it('stops sampling the statistics when the query fails', async () => {
+        vi.useFakeTimers();
+        try {
+            const running = { ...state('RUNNING'), rootStage: { stageId: '0' } } as TrinoQueryResult['stats'];
+            const { stream, apiClient } = resultStream({ stats: running, nextUri: 'https://example.com/next' });
+            (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue({});
+            vi.mocked(apiClient.getQueryResult).mockRejectedValueOnce(new Error('connection lost'));
+            await expect(stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas())).rejects.toThrow('connection lost');
+            await vi.advanceTimersByTimeAsync(10_000);
+            // The plans only, no samples after the failure
+            expect(apiClient.getQueryInfo).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('exposes the schema from an already-finished zero-row response', async () => {
