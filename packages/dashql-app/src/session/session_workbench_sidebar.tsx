@@ -35,7 +35,6 @@ import {
     CopyIcon,
     FileIcon,
     FileDirectoryIcon,
-    FileDirectoryOpenFillIcon,
     FileDirectoryPlusIcon,
     LinkIcon,
     PencilIcon,
@@ -257,13 +256,11 @@ interface SessionRowMenuProps {
     item: SessionItem;
     onRename: () => void;
     onDuplicate: () => void;
-    /// Move the session out of its folder to the root, null for a session of the root
-    onMoveToTopLevel: (() => void) | null;
     onDelete: () => void;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onMoveToTopLevel, onDelete, dependencies }) => {
+const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, dependencies }) => {
     const [open, setOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
@@ -301,14 +298,6 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
         >
             <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${item.label}`}>
                 <ActionList.List aria-label={`Actions for ${item.label}`}>
-                    <ActionList.ListItem data-testid="session-menu-item" data-action="rename" onClick={(event) => {
-                        event.stopPropagation();
-                        setOpen(false);
-                        onRename();
-                    }}>
-                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>Rename</ActionList.ItemText>
-                    </ActionList.ListItem>
                     <dependencies.SessionStorageOverlay
                         sessionId={item.sessionId}
                         isOpen={storageOpen}
@@ -330,6 +319,18 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
                             </ActionList.ListItem>
                         )}
                     />
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="rename" onClick={(event) => {
+                        event.stopPropagation();
+                        setOpen(false);
+                        onRename();
+                    }}>
+                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Rename</ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="duplicate" onClick={() => { setOpen(false); onDuplicate(); }}>
+                        <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Duplicate</ActionList.ItemText>
+                    </ActionList.ListItem>
                     <ActionList.ListItem data-testid="session-menu-item" data-action="share-url" onClick={(event) => {
                         event.stopPropagation();
                         setShareOpen(value => !value);
@@ -362,16 +363,6 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
-                    <ActionList.ListItem data-testid="session-menu-item" data-action="duplicate" onClick={() => { setOpen(false); onDuplicate(); }}>
-                        <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>Duplicate</ActionList.ItemText>
-                    </ActionList.ListItem>
-                    <>{onMoveToTopLevel != null && (
-                        <ActionList.ListItem data-testid="session-menu-item" data-action="move-to-top-level" onClick={() => { setOpen(false); onMoveToTopLevel(); }}>
-                            <ActionList.Leading><FileDirectoryOpenFillIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>Move to top level</ActionList.ItemText>
-                        </ActionList.ListItem>
-                    )}</>
                     <ActionList.ListItem data-testid="session-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
                         <ActionList.Leading>{item.isNative ? <UnlinkIcon size={16} /> : <TrashIcon size={16} />}</ActionList.Leading>
                         <ActionList.ItemText>{item.isNative ? 'Unlink' : 'Delete'}</ActionList.ItemText>
@@ -389,7 +380,6 @@ interface SessionRowProps {
     selected: boolean;
     onOpen: (anchor: HTMLButtonElement) => void;
     onDuplicate: () => void;
-    onMoveToTopLevel: (() => void) | null;
     onDelete: () => void;
     /// Where a dragged session lands next to this one, null without a drag
     dropPosition: 'before' | 'after' | null;
@@ -402,7 +392,7 @@ interface SessionRowProps {
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, onDuplicate, onMoveToTopLevel, onDelete, dropPosition, expanded, onToggle, onOpenScript, dependencies }) => {
+const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, onDuplicate, onDelete, dropPosition, expanded, onToggle, onOpenScript, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
     const [, modifySessionScripts] = dependencies.useSessionScripts(item.sessionId);
     // The rename action swaps the name for an input until the edit is committed or abandoned
@@ -501,7 +491,7 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
                     <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
                 </button>
             )}
-            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onMoveToTopLevel={onMoveToTopLevel} onDelete={onDelete} dependencies={dependencies} />
+            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
         </li>
         {expanded && scriptNames.map(fileName => (
             <li
@@ -1093,7 +1083,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         selected={props.openOverviewId == null && row.item.sessionId === props.sessionScripts.sessionId}
                                         onOpen={() => openSession(row.item)}
                                         onDuplicate={() => { void duplicateSession(row.item); }}
-                                        onMoveToTopLevel={row.folderPath.length === 0 ? null : () => moveSession(row.item.sessionId, [], Number.MAX_SAFE_INTEGER)}
                                         onDelete={() => { void deleteSession(row.item); }}
                                         dropPosition={drop?.targetId === row.id && drop.position !== 'into' ? drop.position : null}
                                         expanded={expandedSessions.has(row.item.sessionId)}

@@ -60,7 +60,8 @@ const dependencies = {
     useStorageReader: () => storageReader,
     useStorageWriter: () => storageWriter,
     useComputationDispatch: () => vi.fn(),
-    SessionStorageOverlay: () => null,
+    // The storage overlay renders the storage item of the session menu as its anchor
+    SessionStorageOverlay: (props: { renderAnchor: (p: object) => React.ReactElement }) => props.renderAnchor({}),
     SessionURLShareOverlay: () => null,
     SessionFileSaveOverlay: () => null,
     useSessionImport: () => ({}),
@@ -235,14 +236,10 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(state.registry.tree.folders).toEqual([]);
     });
 
-    it('moves a session of a folder to the top level', async () => {
+    it('lists the actions of a session in order, without moving a session of a folder to the top level', () => {
         render();
-        const client = sessionRow('Client');
-        act(() => (client.querySelector('[data-testid="session-row-menu"]') as HTMLButtonElement).click());
-        await act(async () => {
-            (document.querySelector('[data-testid="session-menu-item"][data-action="move-to-top-level"]') as HTMLElement).click();
-        });
-        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '0:Root', '0:Client']));
-        expect(state.registry.tree.sessions.map(entry => entry.path)).toEqual([ROOT_SESSION, CLIENT_SESSION]);
+        act(() => (sessionRow('Client').querySelector('[data-testid="session-row-menu"]') as HTMLButtonElement).click());
+        const actions = Array.from(document.querySelectorAll('[data-testid="session-menu-item"]')).map(item => item.getAttribute('data-action'));
+        expect(actions).toEqual(['storage', 'rename', 'duplicate', 'share-url', 'export', 'delete']);
     });
 });
