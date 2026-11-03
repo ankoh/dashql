@@ -60,11 +60,11 @@ describe('DataflowCanvas', () => {
     it('waits for the layout module and tells when it failed to load', () => {
         const loading = { ...dependencies, useDataflowModule: () => ({ layout: null, error: null }) };
         act(() => root.render(<DataflowCanvas sessionScripts={session} modifySessionScripts={modify} dependencies={loading} />));
-        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('Loading the layout of the dataflow…');
+        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('Loading Eclipse Layout Kernel…');
         expect(container.querySelector('[data-dataflow-box]')).toBeNull();
         const failed = { ...dependencies, useDataflowModule: () => ({ layout: null, error: new Error('offline') }) };
         act(() => root.render(<DataflowCanvas sessionScripts={session} modifySessionScripts={modify} dependencies={failed} />));
-        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('The layout of the dataflow failed to load: offline');
+        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('Eclipse Layout Kernel failed to load: offline');
     });
 
     it('zooms the canvas instead of the page on a pinch', () => {

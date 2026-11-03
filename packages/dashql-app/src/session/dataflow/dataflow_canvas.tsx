@@ -118,7 +118,7 @@ export function DataflowCanvas(props: Props): React.ReactElement {
     if (layout == null) {
         return (
             <div className={styles.viewport} data-testid="dataflow-loading">
-                <div className={styles.empty}>{error != null ? `The layout of the dataflow failed to load: ${error.message}` : 'Loading the layout of the dataflow…'}</div>
+                <div className={styles.empty}>{error != null ? `Eclipse Layout Kernel failed to load: ${error.message}` : 'Loading Eclipse Layout Kernel…'}</div>
             </div>
         );
     }
