@@ -1,19 +1,24 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import {
+    type CollisionDetection,
     DndContext,
+    type Modifier,
     type DragEndEvent,
+    type DragMoveEvent,
     KeyboardSensor,
     PointerSensor,
     closestCenter,
+    pointerWithin,
+    useDroppable,
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
 import {
     SortableContext,
+    type SortingStrategy,
     sortableKeyboardCoordinates,
     useSortable,
-    verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -27,9 +32,13 @@ import {
     AlertIcon,
     CopyIcon,
     FileDirectoryIcon,
+    FileDirectoryOpenFillIcon,
+    FileDirectoryPlusIcon,
     LinkIcon,
     PencilIcon,
     PlusIcon,
+    StackIcon,
+    StackPlusIcon,
     TrashIcon,
     SymbolIcon,
     UnlinkIcon,
@@ -79,6 +88,25 @@ import {
     useSessionScriptsRegistry,
 } from './scripts/session_scripts_registry.js';
 import { useSessionCreation } from './session_creation.js';
+import { SESSION_LIST_CARET_COLUMN, SessionFolderRow, sessionListRowPadding, startsRowDrag } from './session_folder_row.js';
+import {
+    type SessionListDrop,
+    type SessionListRow as SessionListRowOf,
+    TOP_LEVEL_DROP_ID,
+    flattenSessionListRows,
+    resolveSessionListDrop,
+} from './session_list_rows.js';
+import {
+    type SessionTreeFolder,
+    findSessionFolder,
+    flattenSessionTree,
+    folderAt,
+    folderNameError,
+    folderPathKey,
+    freeFolderName,
+    moveSessionInTree,
+    upsertSessionInTree,
+} from '../storage/session_tree.js';
 import { RENAME_SESSION } from './scripts/session_scripts.js';
 import { NameInput } from '../ui/foundations/name_input.js';
 import { useMergeConnections } from './session_connection_merge.js';
@@ -113,6 +141,34 @@ interface InvalidSessionItem {
     isNative: boolean;
     invalidReason: string;
 }
+
+type SessionListRow = SessionListRowOf<SessionItem>;
+
+/// The rows stay in place while a row is dragged, the drop target shows where the row lands
+const KEEP_ROWS_IN_PLACE: SortingStrategy = () => null;
+
+/// A dragged row only moves up and down
+const VERTICAL_DRAG: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+
+/// The drop target is the row under the pointer, the keyboard picks the closest row
+const SESSION_LIST_COLLISIONS: CollisionDetection = args => {
+    const hits = pointerWithin(args);
+    return hits.length > 0 ? hits : closestCenter(args);
+};
+
+/// The drop target at the end of the session list. It fills the empty space below the rows and moves a row to the
+/// end of the top level, a targeted drop shows the insertion line at the end of the list.
+const TopLevelDropZone: React.FC<{ targeted: boolean }> = ({ targeted }) => {
+    const { setNodeRef } = useDroppable({ id: TOP_LEVEL_DROP_ID });
+    return (
+        <li
+            ref={setNodeRef}
+            className={classNames(styles.top_level_drop, { [styles.top_level_drop_targeted]: targeted })}
+            aria-hidden="true"
+            data-testid="session-top-level-drop"
+        />
+    );
+};
 
 interface Props {
     sessionScripts: SessionScripts;
@@ -195,11 +251,13 @@ interface SessionRowMenuProps {
     item: SessionItem;
     onRename: () => void;
     onDuplicate: () => void;
+    /// Move the session out of its folder to the root, null for a session of the root
+    onMoveToTopLevel: (() => void) | null;
     onDelete: () => void;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, dependencies }) => {
+const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onMoveToTopLevel, onDelete, dependencies }) => {
     const [open, setOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
@@ -302,6 +360,12 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
                         <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Duplicate</ActionList.ItemText>
                     </ActionList.ListItem>
+                    <>{onMoveToTopLevel != null && (
+                        <ActionList.ListItem data-testid="session-menu-item" data-action="move-to-top-level" onClick={() => { setOpen(false); onMoveToTopLevel(); }}>
+                            <ActionList.Leading><FileDirectoryOpenFillIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Move to top level</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     <ActionList.ListItem data-testid="session-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
                         <ActionList.Leading>{item.isNative ? <UnlinkIcon size={16} /> : <TrashIcon size={16} />}</ActionList.Leading>
                         <ActionList.ItemText>{item.isNative ? 'Unlink' : 'Delete'}</ActionList.ItemText>
@@ -312,24 +376,21 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
     );
 };
 
-// React bubbles the events of the portaled row menu overlays (storage, share, export) through the row.
-// A row drag starts only from the row itself, never from those overlays or from a text field.
-function startsRowDrag(event: React.SyntheticEvent<HTMLElement>): boolean {
-    const target = event.target;
-    if (!(target instanceof Element) || !event.currentTarget.contains(target)) return false;
-    return target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') == null;
-}
-
 interface SessionRowProps {
     item: SessionItem;
+    /// The depth of the session in the session tree, the sessions of the root are at depth 0
+    depth: number;
     selected: boolean;
     onOpen: (anchor: HTMLButtonElement) => void;
     onDuplicate: () => void;
+    onMoveToTopLevel: (() => void) | null;
     onDelete: () => void;
+    /// Where a dragged session lands next to this one, null without a drag
+    dropPosition: 'before' | 'after' | null;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDuplicate, onDelete, dependencies }) => {
+const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, onDuplicate, onMoveToTopLevel, onDelete, dropPosition, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
     const [, modifySessionScripts] = dependencies.useSessionScripts(item.sessionId);
     // The rename action swaps the name for an input until the edit is committed or abandoned
@@ -366,15 +427,23 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDupli
                 {
                     [styles.entry_selected]: selected,
                     [styles.session_row_dragging]: isDragging,
+                    [styles.drop_before]: dropPosition === 'before',
+                    [styles.drop_after]: dropPosition === 'after',
                 },
             )}
-            style={{ transform: CSS.Translate.toString(transform), transition }}
+            style={{
+                transform: CSS.Translate.toString(transform),
+                transition,
+                paddingLeft: sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN,
+                // The insertion line of a drop starts at the icon of the session
+                ['--session_row_indent' as string]: `${sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN}px`,
+            }}
             {...attributes}
             {...rowListeners}
         >
             {renaming ? (
                 <div className={styles.session_rename}>
-                    <FileDirectoryIcon size={14} aria-hidden="true" />
+                    <StackIcon size={14} aria-hidden="true" />
                     <NameInput
                         ref={renameInputRef}
                         className={styles.session_rename_input}
@@ -394,11 +463,11 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDupli
                     onClick={event => onOpen(event.currentTarget)}
                     onDoubleClick={() => setRenaming(true)}
                 >
-                    <FileDirectoryIcon size={14} aria-hidden="true" />
+                    <StackIcon size={14} aria-hidden="true" />
                     <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
                 </button>
             )}
-            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
+            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onMoveToTopLevel={onMoveToTopLevel} onDelete={onDelete} dependencies={dependencies} />
         </li>
     );
 };
@@ -462,12 +531,15 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
     const folderButtonRef = React.useRef<HTMLButtonElement>(null);
     const folderInputRef = React.useRef<HTMLInputElement>(null);
-    const [sessionOrder, setSessionOrder] = React.useState(() => storageReader.getSessionOrder());
-    const reorderWriteRef = React.useRef(Promise.resolve());
-    const sessionIds = React.useMemo(
-        () => [...scriptsRegistry.sessionScriptsMap.keys()],
-        [scriptsRegistry],
-    );
+    // The folders and sessions of the sidebar, a change shows right away and is reconciled with the storage after its write
+    const [sessionTree, setSessionTree] = React.useState(() => storageReader.getSessionTree());
+    const treeWriteRef = React.useRef(Promise.resolve());
+    // The collapsed folders, by folder path key
+    const [collapsedFolders, setCollapsedFolders] = React.useState<ReadonlySet<string>>(() => new Set());
+    // The folder whose name is being edited, by folder path key
+    const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
+    // Where would the dragged row land?
+    const [drop, setDrop] = React.useState<SessionListDrop | null>(null);
 
     React.useEffect(() => {
         if (route.sessionSetupStatus !== SessionSetupStatus.CONFIGURING
@@ -479,16 +551,15 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         }
     }, [references, scriptsRegistry, props.sessionScripts.sessionId, route.sessionId, route.sessionSetupStatus]);
 
-    const sessions = React.useMemo<SessionItem[]>(() => {
-        const rank = new Map(sessionOrder.map((sessionId, index) => [sessionId, index]));
-        const items: SessionItem[] = [];
+    const sessionItems = React.useMemo<Map<string, SessionItem>>(() => {
+        const items = new Map<string, SessionItem>();
         for (const [sessionId, scripts] of scriptsRegistry.sessionScriptsMap) {
             const connections = references.connectionsOf(sessionId)
                 .map(id => databaseRegistry.connections.get(id))
                 .filter((connection): connection is ConnectionState => connection != null);
             const location = storageReader.getSessionLocation(sessionId);
             const path = displayPath(sessionId, location);
-            items.push({
+            items.set(sessionId, {
                 sessionId,
                 connections,
                 scripts,
@@ -497,21 +568,39 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                 isNative: location.type === StorageBackendType.Native,
             });
         }
-        return items.sort((left, right) => {
-            const leftRank = rank.get(left.sessionId) ?? Number.MAX_SAFE_INTEGER;
-            const rightRank = rank.get(right.sessionId) ?? Number.MAX_SAFE_INTEGER;
-            return leftRank - rightRank;
-        });
-    }, [databaseRegistry, references, scriptsRegistry, storageReader, sessionOrder]);
+        return items;
+    }, [databaseRegistry, references, scriptsRegistry, storageReader]);
 
+    // The sessions that the tree doesn't list yet, e.g. new ones before their first write, show where their
+    // first write registers them, at the end of the root
+    const displayedTree = React.useMemo<SessionTreeFolder>(() => {
+        const listed = new Set(flattenSessionTree(sessionTree).map(entry => entry.path));
+        return [...sessionItems.keys()]
+            .filter(id => !listed.has(id))
+            .reduce((tree, path) => upsertSessionInTree(tree, { path }), sessionTree);
+    }, [sessionItems, sessionTree]);
+
+    // Opening a session expands the folders on the way to it
+    const currentSessionFolderKey = folderPathKey(findSessionFolder(displayedTree, props.sessionScripts.sessionId) ?? []);
     React.useEffect(() => {
-        const ids = sessionIds;
-        setSessionOrder(current => {
-            const next = current.filter(id => ids.includes(id));
-            for (const id of ids) if (!next.includes(id)) next.push(id);
-            return next.length === current.length && next.every((id, index) => id === current[index]) ? current : next;
+        const path = JSON.parse(currentSessionFolderKey) as string[];
+        setCollapsedFolders(current => {
+            const ancestors = path.map((_, index) => folderPathKey(path.slice(0, index + 1))).filter(key => current.has(key));
+            if (ancestors.length === 0) return current;
+            const next = new Set(current);
+            for (const key of ancestors) next.delete(key);
+            return next;
         });
-    }, [sessionIds]);
+    }, [currentSessionFolderKey]);
+    const rows = React.useMemo<SessionListRow[]>(() => flattenSessionListRows(
+        displayedTree,
+        sessionItems,
+        folder => !collapsedFolders.has(folderPathKey(folder.path)),
+    ), [collapsedFolders, displayedTree, sessionItems]);
+    const sessions = React.useMemo(
+        () => flattenSessionTree(displayedTree).flatMap(entry => sessionItems.get(entry.path) ?? []),
+        [displayedTree, sessionItems],
+    );
 
     const invalidItems = React.useMemo<InvalidSessionItem[]>(() => [...invalidSessions.values()].map(invalid => {
         const location = storageReader.getSessionLocation(invalid.sessionId);
@@ -568,33 +657,115 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
-    const reorderSessions = React.useCallback((event: DragEndEvent) => {
-        if (event.over == null || event.active.id === event.over.id) return;
-        setSessionOrder(current => {
-            const from = current.indexOf(String(event.active.id));
-            const to = current.indexOf(String(event.over!.id));
-            if (from < 0 || to < 0) return current;
-            const next = [...current];
-            const [moved] = next.splice(from, 1);
-            next.splice(to, 0, moved);
-            const sessionFolders = storageReader.sessionFolders;
-            if (sessionFolders != null) {
-                reorderWriteRef.current = reorderWriteRef.current
-                    .catch(() => {})
-                    .then(() => sessionFolders.reorderSessions(next))
-                    .catch(error => logger.warn('failed to persist session order', { error: String(error) }, 'session_workbench'));
-            }
+    /// Change the session tree: the change shows right away, the write follows the earlier ones, then the
+    /// sidebar shows the tree as it is stored. A write that fails, e.g. a taken folder name, is logged.
+    const changeSessionTree = React.useCallback((
+        what: string,
+        write: (folders: NonNullable<typeof storageReader.sessionFolders>) => Promise<void>,
+        optimistic?: (tree: SessionTreeFolder) => SessionTreeFolder,
+    ) => {
+        const sessionFolders = storageReader.sessionFolders;
+        if (sessionFolders == null) return;
+        if (optimistic != null) setSessionTree(optimistic);
+        treeWriteRef.current = treeWriteRef.current
+            .catch(() => {})
+            .then(() => write(sessionFolders))
+            .catch(error => logger.warn(`failed to ${what}`, { error: String(error) }, 'session_workbench'))
+            .then(() => setSessionTree(sessionFolders.getSessionTree()));
+    }, [logger, storageReader.sessionFolders]);
+
+    const moveSession = React.useCallback((sessionId: string, folderPath: string[], index: number) => {
+        changeSessionTree(
+            'move the session',
+            folders => folders.moveSession(sessionId, folderPath, index),
+            tree => moveSessionInTree(tree, sessionId, folderPath, index),
+        );
+    }, [changeSessionTree]);
+
+    /// Where the dragged row would land
+    const dropOf = React.useCallback((event: DragMoveEvent | DragEndEvent): SessionListDrop | null => {
+        if (event.over == null) return null;
+        const dragged = event.active.rect.current.translated;
+        const middle = event.over.rect.top + event.over.rect.height / 2;
+        const aboveMiddle = dragged != null && dragged.top + dragged.height / 2 < middle;
+        return resolveSessionListDrop(rows, displayedTree, String(event.active.id), String(event.over.id), aboveMiddle);
+    }, [displayedTree, rows]);
+
+    const showDrop = React.useCallback((event: DragMoveEvent) => {
+        const next = dropOf(event);
+        setDrop(current => current?.targetId === next?.targetId && current?.position === next?.position ? current : next);
+    }, [dropOf]);
+
+    const endDrag = React.useCallback(() => setDrop(null), []);
+
+    const dropRow = React.useCallback((event: DragEndEvent) => {
+        endDrag();
+        const target = dropOf(event);
+        const active = rows.find(row => row.id === event.active.id);
+        if (target == null || active == null) return;
+        if (active.kind === 'session') {
+            moveSession(active.item.sessionId, target.folderPath, target.index);
+        } else {
+            const path = active.folder.path;
+            changeSessionTree('move the folder', folders => folders.moveFolder(path, target.folderPath));
+        }
+    }, [changeSessionTree, dropOf, endDrag, moveSession, rows]);
+
+    const toggleFolder = React.useCallback((folder: SessionTreeFolder) => {
+        const key = folderPathKey(folder.path);
+        setCollapsedFolders(current => {
+            const next = new Set(current);
+            if (current.has(key)) next.delete(key); else next.add(key);
             return next;
         });
-    }, [logger, storageReader.sessionFolders]);
+    }, []);
+
+    /// Create a folder with a free name and edit its name
+    const createFolder = React.useCallback((parentPath: string[]) => {
+        const parent = folderAt(sessionTree, parentPath);
+        if (parent == null) return;
+        const path = [...parentPath, freeFolderName(parent.folders.map(folder => folder.name))];
+        setCollapsedFolders(current => {
+            const next = new Set(current);
+            next.delete(folderPathKey(parentPath));
+            return next;
+        });
+        setRenamingFolder(folderPathKey(path));
+        changeSessionTree('create the folder', folders => folders.createFolder(path));
+    }, [changeSessionTree, sessionTree]);
+
+    const renameFolder = React.useCallback((folder: SessionTreeFolder, input: string) => {
+        setRenamingFolder(null);
+        const name = input.trim();
+        if (name === folder.name) return;
+        const parentPath = folder.path.slice(0, -1);
+        const siblings = (folderAt(sessionTree, parentPath)?.folders ?? [])
+            .map(sibling => sibling.name)
+            .filter(sibling => sibling !== folder.name);
+        const error = folderNameError(name, siblings);
+        if (error != null) {
+            logger.warn('failed to rename the folder', { error }, 'session_workbench');
+            return;
+        }
+        changeSessionTree('rename the folder', folders => folders.moveFolder(folder.path, parentPath, name));
+    }, [changeSessionTree, logger, sessionTree]);
+
+    const deleteFolder = React.useCallback((folder: SessionTreeFolder) => {
+        const count = flattenSessionTree(folder).length;
+        const into = folder.path.length > 1 ? `"${folder.path[folder.path.length - 2]}"` : 'the top level';
+        const sessionsNote = count === 0 ? '' : ` Its ${count === 1 ? 'session moves' : `${count} sessions move`} to ${into}.`;
+        if (!window.confirm(`Delete the folder "${folder.name}"?${sessionsNote}`)) return;
+        changeSessionTree('delete the folder', folders => folders.deleteFolder(folder.path));
+    }, [changeSessionTree]);
 
     /// Create a session on the embedded Hyper, or on the Hyper of the link that the app was opened with.
     /// Its scripts attach other connections.
-    const createNewSession = React.useCallback(() => {
+    const createNewSession = React.useCallback((folderPath: string[] = []) => {
         const { sessionId } = createSession(resolveNewSessionConnection(props.sessionScripts.instance));
+        if (folderPath.length > 0) moveSession(sessionId, folderPath, Number.MAX_SAFE_INTEGER);
         navigate({ type: SELECT_SESSION, value: sessionId });
         props.closeAfterSelection?.();
-    }, [createSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveNewSessionConnection]);
+    }, [createSession, moveSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveNewSessionConnection]);
 
     /// Create a connection and open its settings, the next script of the current session runs on it
     const createConnection = React.useCallback((connector: ConnectorType) => {
@@ -794,29 +965,66 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                 )}
                             </>
                         )}
+                        {storageReader.sessionFolders != null && (
+                            <IconButton
+                                data-testid="create-folder"
+                                size={ButtonSize.Small}
+                                variant={ButtonVariant.Invisible}
+                                aria-label="Create folder"
+                                onClick={() => createFolder([])}
+                            ><FileDirectoryPlusIcon size={14} /></IconButton>
+                        )}
                         <IconButton
                             ref={createButtonRef}
                             data-testid="create-session"
                             size={ButtonSize.Small}
                             variant={ButtonVariant.Invisible}
                             aria-label="Create session"
-                            onClick={createNewSession}
-                        ><PlusIcon size={14} /></IconButton>
+                            onClick={() => createNewSession()}
+                        ><StackPlusIcon size={14} /></IconButton>
                     </div>
                 </header>
                 <div className={styles.scroll_shadow_container}>
-                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={reorderSessions}>
-                        <SortableContext items={sessions.map(item => item.sessionId)} strategy={verticalListSortingStrategy}>
+                    <DndContext
+                        sensors={dndSensors}
+                        collisionDetection={SESSION_LIST_COLLISIONS}
+                        modifiers={[VERTICAL_DRAG]}
+                        onDragMove={showDrop}
+                        onDragEnd={dropRow}
+                        onDragCancel={endDrag}
+                    >
+                        <SortableContext items={rows.map(row => row.id)} strategy={KEEP_ROWS_IN_PLACE}>
                             <ul ref={sessionListRef} className={styles.session_list} aria-label="Sessions" data-electron-drag-region="false">
-                                {sessions.map(item => (
+                                {rows.map(row => row.kind === 'folder' ? (
+                                    <SessionFolderRow
+                                        key={row.id}
+                                        rowId={row.id}
+                                        folder={row.folder}
+                                        depth={row.depth}
+                                        expanded={row.expanded}
+                                        renaming={renamingFolder === folderPathKey(row.folder.path)}
+                                        onToggle={() => toggleFolder(row.folder)}
+                                        onStartRename={() => setRenamingFolder(folderPathKey(row.folder.path))}
+                                        onRename={name => renameFolder(row.folder, name)}
+                                        onCancelRename={() => setRenamingFolder(null)}
+                                        onNewSession={() => createNewSession(row.folder.path)}
+                                        onNewFolder={() => createFolder(row.folder.path)}
+                                        onMoveToTopLevel={row.depth === 0 ? null : () => changeSessionTree('move the folder', folders => folders.moveFolder(row.folder.path, []))}
+                                        onDelete={() => deleteFolder(row.folder)}
+                                        dropTarget={drop?.targetId === row.id}
+                                    />
+                                ) : (
                                     <SessionRow
-                                        key={item.sessionId}
-                                        item={item}
+                                        key={row.id}
+                                        item={row.item}
+                                        depth={row.depth}
                                         // An open connection overview replaces the session
-                                        selected={props.openOverviewId == null && item.sessionId === props.sessionScripts.sessionId}
-                                        onOpen={() => openSession(item)}
-                                        onDuplicate={() => { void duplicateSession(item); }}
-                                        onDelete={() => { void deleteSession(item); }}
+                                        selected={props.openOverviewId == null && row.item.sessionId === props.sessionScripts.sessionId}
+                                        onOpen={() => openSession(row.item)}
+                                        onDuplicate={() => { void duplicateSession(row.item); }}
+                                        onMoveToTopLevel={row.folderPath.length === 0 ? null : () => moveSession(row.item.sessionId, [], Number.MAX_SAFE_INTEGER)}
+                                        onDelete={() => { void deleteSession(row.item); }}
+                                        dropPosition={drop?.targetId === row.id && drop.position !== 'into' ? drop.position : null}
                                         dependencies={dependencies}
                                     />
                                 ))}
@@ -827,12 +1035,15 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         onDelete={() => { void deleteInvalidSession(item.sessionId); }}
                                     />
                                 ))}
+                                {storageReader.sessionFolders != null && (
+                                    <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} />
+                                )}
                             </ul>
                         </SortableContext>
                     </DndContext>
                     <VerticalScrollShadows
                         getScrollElement={getSessionScrollElement}
-                        refreshKey={`${sessions.length}:${invalidItems.length}`}
+                        refreshKey={`${rows.length}:${invalidItems.length}`}
                     />
                 </div>
             </section>

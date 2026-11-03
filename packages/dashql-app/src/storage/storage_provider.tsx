@@ -4,6 +4,7 @@ import { type StorageBackend, StorageBackendType } from './storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { type SessionLocation } from './session_locator.js';
+import { type SessionTreeFolder, emptySessionTree } from './session_tree.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { migrateStorage } from './migration/storage_migration.js';
@@ -22,9 +23,12 @@ export interface StorageReader {
     sessionFolders: CompositeStorageBackend | null;
     /// The physical location of a session's files (used by the UI for a display path).
     getSessionLocation(sessionId: string): SessionLocation;
-    /// The user-facing session order (manifest array order), as session UUIDs. Empty for a bare
-    /// backend without per-session routing.
+    /// The user-facing session order (the order of the session tree), as session UUIDs. Empty for a
+    /// bare backend without per-session routing.
     getSessionOrder(): string[];
+    /// The session tree, the folders and sessions of the sidebar. Empty for a bare backend without
+    /// per-session routing.
+    getSessionTree(): SessionTreeFolder;
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
 /// The status of the migration of the storage at startup, skipped for a provided backend
@@ -145,8 +149,11 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 return { type: backend.getBackendType() === StorageBackendType.Native ? StorageBackendType.Native : StorageBackendType.OPFS };
             },
             getSessionOrder(): string[] {
-                // A bare backend has no manifest-order registry; the caller falls back to its own order.
+                // A bare backend has no session tree; the caller falls back to its own order.
                 return sessionFolders?.getSessionOrder() ?? [];
+            },
+            getSessionTree(): SessionTreeFolder {
+                return sessionFolders?.getSessionTree() ?? emptySessionTree();
             },
         };
     }, [backend, logger]);

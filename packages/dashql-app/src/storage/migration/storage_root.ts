@@ -1,7 +1,7 @@
 import { exists } from '../../platform/electron_fs.js';
 import { type MigrationFolder, NativeFolder, OPFSFolder } from './migration_folder.js';
 
-/// The manifest of the storage root, it registers the sessions and holds the storage version
+/// The manifest of the storage root, it holds the storage version
 export const MANIFEST_FILE = 'dashql-manifest.json';
 
 /// A manifest as it is stored, of any storage version
@@ -40,11 +40,15 @@ export async function writeManifestJson(root: FileSystemDirectoryHandle, manifes
     await writable.close();
 }
 
-/// The session folders that a manifest of storage version 2 or later registers and that can be
-/// reached: OPFS sessions live in `sessions/<uuid>`, native sessions in their own directory, which
-/// may be missing or unavailable outside of the native app.
-export async function listSessionFolders(root: FileSystemDirectoryHandle, manifest: ManifestJson): Promise<RegisteredSessionFolder[]> {
-    const entries = Array.isArray(manifest.sessions) ? manifest.sessions as unknown[] : [];
+/// The session entries of a manifest of storage version 2 to 6, later versions register the sessions
+/// in the session tree
+export function manifestSessionEntries(manifest: ManifestJson): unknown[] {
+    return Array.isArray(manifest.sessions) ? manifest.sessions as unknown[] : [];
+}
+
+/// The session folders of session entries that can be reached: OPFS sessions live in `sessions/<uuid>`,
+/// native sessions in their own directory, which may be missing or unavailable outside of the native app.
+export async function listSessionFolders(root: FileSystemDirectoryHandle, entries: readonly unknown[]): Promise<RegisteredSessionFolder[]> {
     const folders: RegisteredSessionFolder[] = [];
     for (const entry of entries) {
         const { path, storageType, nativePath } = (entry ?? {}) as { path?: unknown; storageType?: unknown; nativePath?: unknown };

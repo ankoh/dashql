@@ -8,9 +8,11 @@ const CLOSED = crypto.randomUUID();
 const LEGACY = crypto.randomUUID();
 
 const MANIFEST = JSON.stringify({
-    sessions: [{ path: 's1' }, { path: 'S2', storageType: 'native', nativePath: '/x/s2' }],
     connections: [{ id: 'c1', params: {} }],
 });
+/// The session tree registers s1 in the root and S2 in a folder
+const ROOT_FOLDER = JSON.stringify({ sessions: [{ path: 's1' }] });
+const CLIENTS_FOLDER = JSON.stringify({ sessions: [{ path: 'S2', storageType: 'native', nativePath: '/x/s2' }] });
 
 /// An OPFS root with the files and directories, every directory is listed explicitly
 function opfs(files: Record<string, string>, dirs: string[]) {
@@ -35,6 +37,8 @@ function fakeLocks(held: string[]): LockManager {
 function messyStorage() {
     return opfs({
         'dashql-manifest.json': MANIFEST,
+        'sessiontree/dashql-folder.json': ROOT_FOLDER,
+        'sessiontree/clients/dashql-folder.json': CLIENTS_FOLDER,
         'stray.txt': '',
         'sessions/s1/dashql-session.json': '{}',
         'sessions/s1/dashql-session-index.json': '{}',
@@ -47,6 +51,7 @@ function messyStorage() {
         'connections/c2/dashql-catalog-relations.sql': '',
         'exports/e1/result.parquet': '',
     }, [
+        'sessiontree', 'sessiontree/clients',
         'sessions', 'sessions/s1', 'sessions/s1/scripts', 'sessions/s1/scripts/page', 'sessions/s1/cache',
         'sessions/s2', 'sessions/s2/attachments', 'sessions/gone',
         'connections', 'connections/c1', 'connections/c2',
@@ -116,7 +121,7 @@ describe('removeOPFSCleanupCandidates', () => {
         const candidates = await findOPFSCleanupCandidates(root, fakeLocks([]));
 
         // A session with the same id is registered and an app window opens the closed instance again
-        files.set('dashql-manifest.json', JSON.stringify({ ...JSON.parse(MANIFEST), sessions: [{ path: 'GONE' }] }));
+        files.set('sessiontree/dashql-folder.json', JSON.stringify({ sessions: [{ path: 's1' }, { path: 'GONE' }] }));
         const result = await removeOPFSCleanupCandidates(root, candidates, fakeLocks([`dashql-instance-${CLOSED}`]));
 
         expect(result.skipped).toEqual([

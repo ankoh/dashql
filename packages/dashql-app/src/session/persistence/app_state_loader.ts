@@ -622,7 +622,7 @@ export async function restoreAppState(
         // Load manifest
         logger.info("Loading app manifest", {}, LOG_CTX);
         const manifestStartTime = performance.now();
-        const sessionEntries = await backend.listSessions('dashql-manifest.json');
+        const sessionEntries = await backend.listSessions();
         let connectionEntries: ConnectionEntry[] = [];
         if (ctx.registry != null) {
             const manifest = await ctx.registry.loadManifest();

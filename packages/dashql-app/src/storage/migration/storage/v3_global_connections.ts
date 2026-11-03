@@ -5,7 +5,7 @@ import { isValidUuid } from '../../session_validation.js';
 import type { MigrationFolder } from '../migration_folder.js';
 import { migrateSessionFolder } from '../session_migration.js';
 import type { StorageMigrationStep } from '../storage_migration.js';
-import { listSessionFolders, readManifestJson, writeManifestJson } from '../storage_root.js';
+import { listSessionFolders, manifestSessionEntries, readManifestJson, writeManifestJson } from '../storage_root.js';
 
 /// How a session referenced a database before connections were global
 type DatabaseRole = 'main' | 'attached';
@@ -208,7 +208,7 @@ export const globalConnections: StorageMigrationStep = {
 
         const sessions: MigratingSession[] = [];
         const folders = new Map<string, MigrationFolder>();
-        for (const { sessionId, folder } of await listSessionFolders(root, manifest)) {
+        for (const { sessionId, folder } of await listSessionFolders(root, manifestSessionEntries(manifest))) {
             if (!isValidUuid(sessionId)) continue;
             try {
                 await migrateSessionFolder(folder, SESSION_FORMAT_VERSION);

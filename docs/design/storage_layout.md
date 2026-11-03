@@ -10,6 +10,10 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 ```
 <OPFS root>                                    Hyper: /mnt/fs
 ├── dashql-manifest.json                       app manifest
+├── sessiontree/                               folders of the sidebar, registry of the sessions
+│   ├── dashql-folder.json                     sessions of the root folder
+│   ├── My Sessions/dashql-folder.json         the folder that a new storage starts with
+│   └── <folder>/dashql-folder.json            sessions of a folder, folders nest
 ├── sessions/<session-id>/                     OPFS sessions
 │   ├── dashql-session.json                    session metadata
 │   ├── scripts/<script-name>                  script text
@@ -33,6 +37,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 | Path | Written by | Lifetime | Part of session bundles |
 |------|------------|----------|-------------------------|
 | `dashql-manifest.json` | `OPFSStorageBackend` | persistent | no |
+| `sessiontree/` | `OPFSStorageBackend` | persistent | no |
 | `sessions/<id>/` | `OPFSStorageBackend` | until the session is deleted | yes |
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
@@ -40,7 +45,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 | `cache/` | `createOPFSQueryResultCache` | until evicted | no |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
-"Clear all data" empties the sessions of the manifest, removes `sessions/`, `connections/` and `shell/` and clears
+"Clear all data" removes `sessiontree/` first, resets the manifest, removes `sessions/`, `connections/` and `shell/` and clears
 `cache/`, except the files that other windows read right now. It keeps `instances/`, because the running window owns
 its instance.
 
@@ -49,13 +54,35 @@ its instance.
 `dashql-manifest.json` (schema `proto/json/dashql/app_manifest.json`) holds:
 
 - `storageVersion`, the version of this layout, see [Versions and migrations](#versions-and-migrations).
-- `sessions`, one entry per session: `path` (the session id), `storageType` and, for native sessions, `nativePath`.
 - `connections`, the global connections: `id`, `name`, `params`, `paramsDraft`, `createdAt` and
   `cacheQueryResults`, whether the [query result cache](query_cache.md) keeps their results, absent for the default
   of the connector.
 - `appSettings`.
 
 Writers hold the Web Lock of the manifest, which all tabs of the app share.
+
+### The session tree
+
+`sessiontree/` registers every session and holds the folders of the sidebar. Every directory of the tree is a
+folder, the directory name is the folder name, and holds a `dashql-folder.json` (schema
+`proto/json/dashql/app_folder.json`) with `sessions`, one entry per session of the folder in the order of the sidebar:
+`path` (the session id), `storageType` and, for native sessions, `nativePath`. The sidebar lists the subfolders of a
+folder before its sessions, in the natural order of their names.
+
+A storage without a session tree starts with the folder `My Sessions`, an ordinary folder that the user may rename or
+delete. The tree is only created once, a deleted `My Sessions` folder is not created again. New sessions are
+registered at the end of the root, except for a session created from the menu of a folder.
+
+- A session is in exactly one folder. Moving a session rewrites the folder files of its old and new folder, the new
+  one first, so an interruption duplicates a session instead of losing it. A session that the tree lists twice
+  counts where it comes first in the order of the sidebar, and the next change drops the duplicate.
+- Renaming or moving a folder copies its directory and then removes the original, the tree holds small folder files
+  only. Deleting a folder moves its sessions and the sessions of its subfolders to its parent, no session is deleted.
+- Folder names are not empty, contain no `/` or `\`, are not `.` or `..`, and differ from the names of their
+  sibling folders ignoring case.
+
+Writers hold the Web Lock `dashql-session-tree`, which all tabs of the app share. The cleanup holds it together with
+the lock of the manifest.
 
 ### Sessions
 
@@ -126,7 +153,7 @@ empty `logs/` folder at startup, before the instance settings apply.
 
 ## Native sessions
 
-The native app keeps a session in a directory that the user chose, the manifest entry has `storageType: native`
+The native app keeps a session in a directory that the user chose, the entry of the session tree has `storageType: native`
 and `nativePath`. The directory has the layout of an OPFS session folder (`dashql-session.json`, `scripts/`,
 `attachments/`), and users may edit its files, see [native file synchronization](native_file_sync.md).
 
@@ -134,7 +161,7 @@ hyperdb-wasm can only read OPFS. When a native session loads, its attachments ar
 `sessions/<id>/attachments/` in OPFS, so the attachments of the session read the same in both storage types.
 The app remembers the stamp (size and modification time) that each attachment was mirrored with and copies a
 file again only when its stamp changed, so the first load of a session in an app run copies every attachment.
-Connections, the manifest, the shell files and the instances stay in OPFS.
+Connections, the manifest, the session tree, the shell files and the instances stay in OPFS.
 
 ## Attachments
 
@@ -170,7 +197,8 @@ Two versions describe the stored data:
 
 - The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` brings an older
   root to the current version at startup with the steps in `src/storage/migration/storage/`, e.g. version 5 moves `dashql-shell/`
-  to `shell/` and version 6 drops the `aliases` of the connections.
+  to `shell/`, version 6 drops the `aliases` of the connections and version 7 moves the `sessions` of the manifest into
+  the folder `My Sessions` of `sessiontree/`.
 - The session format version, `formatVersion` in `dashql-session.json`, describes one session folder. The steps in
   `src/storage/migration/session/` run for every reachable session folder, and for folders that are registered later.
 

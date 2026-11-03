@@ -1,5 +1,6 @@
 import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
 import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
+import type { SessionEntry as SessionTreeEntry, SessionTreeFolder } from './session_tree.js';
 
 import { hyperOPFSRoot } from '../platform/opfs_root.js';
 
@@ -63,7 +64,7 @@ export function validateDataFileName(name: string): void {
 }
 
 // Re-export JSON Schema types
-export type SessionEntry = app_manifest.SessionEntry;
+export type SessionEntry = SessionTreeEntry;
 export type StorageManifest = app_manifest.StorageManifest;
 export type AppSettings = app_manifest.AppSettings;
 export type ConnectionEntry = app_manifest.ConnectionEntry;
@@ -98,8 +99,8 @@ export interface StorageBackend {
     /// Initialize the storage backend (optional)
     initialize?(): Promise<void>;
 
-    /// List all sessions (registry-level)
-    listSessions(manifestPath: string): Promise<SessionEntry[]>;
+    /// List all sessions in the order of the sidebar (registry-level)
+    listSessions(): Promise<SessionEntry[]>;
 
     /// Load persisted app settings from the manifest (registry-level)
     loadAppSettings(): Promise<AppSettings | null>;
@@ -135,21 +136,33 @@ export interface StorageBackend {
     clearAllStorage?(): Promise<void>;
 }
 
-/// A backend that also owns the session registry (the root manifest).
+/// A backend that also owns the session registry (the session tree) and the root manifest.
 ///
-/// Only the OPFS backend implements this: the OPFS root manifest is the single registry of every
+/// Only the OPFS backend implements this: the OPFS session tree is the single registry of every
 /// session, regardless of where each session's files physically live. The composite backend uses
-/// these methods to keep the manifest in sync when a session is relocated to a native directory
-/// (the manifest entry stays in OPFS; only the files move).
+/// these methods to keep the tree in sync when a session is relocated to a native directory
+/// (the tree entry stays in OPFS; only the files move).
+///
+/// The folders of the tree are paths of folder names from the root, the root is the empty path.
 export interface SessionRegistryBackend extends StorageBackend {
+    /// Load the session tree, the folders and sessions of the sidebar
+    loadSessionTree(): Promise<SessionTreeFolder>;
     /// Insert or replace a session's registry entry (matched by UUID), without touching files.
-    upsertSessionEntry(entry: SessionEntry): Promise<void>;
+    /// A registered session keeps its place, a new one is appended to the folder (the root by default).
+    upsertSessionEntry(entry: SessionEntry, folderPath?: readonly string[]): Promise<void>;
     /// Remove a session's registry entry (matched by UUID), without touching files.
     removeSessionEntry(sessionId: string): Promise<void>;
-    /// Reorder the registry entries to match the given UUID order (the user-facing session order),
-    /// without touching files. Ids not in the manifest are ignored; manifest entries not listed are
-    /// kept at the end in their current relative order.
-    reorderSessions(orderedIds: string[]): Promise<void>;
+    /// Move a session to a position in a folder, without touching files. The index counts the
+    /// sessions of the folder without the moved one. An unregistered session is placed as an OPFS
+    /// session.
+    moveSession(sessionId: string, folderPath: string[], index: number): Promise<void>;
+    /// Create a folder in an existing folder
+    createFolder(path: string[]): Promise<void>;
+    /// Move a folder into another folder under a name (its current name by default), renaming
+    /// moves it within its parent
+    moveFolder(path: string[], parentPath: string[], name?: string): Promise<void>;
+    /// Delete a folder, its sessions move to the parent folder
+    deleteFolder(path: string[]): Promise<void>;
     /// Delete a session's files only, leaving the registry entry intact.
     deleteSessionFiles(sessionId: string): Promise<void>;
 

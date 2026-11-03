@@ -8,6 +8,8 @@ import { globalConnections } from './storage/v3_global_connections.js';
 import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_connections.js';
 import { shellFolder } from './storage/v5_shell_folder.js';
 import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
+import { sessionTree } from './storage/v7_session_tree.js';
+import { flattenSessionTree, readSessionTree } from '../session_tree.js';
 import { getOPFSRoot } from '../../platform/opfs_root.js';
 
 const LOG_CTX = 'storage_migration';
@@ -42,6 +44,7 @@ export const STORAGE_MIGRATION_STEPS: readonly StorageMigrationStep[] = [
     sessionCatalogsToConnections,
     shellFolder,
     dropConnectionAliases,
+    sessionTree,
 ];
 
 /// What a storage migration changed
@@ -97,8 +100,9 @@ export async function migrateStorage(
             ++summary.steps;
         }
 
-        manifest = await readManifestJson(storageRoot) ?? {};
-        for (const { sessionId, folder } of await listSessionFolders(storageRoot, manifest)) {
+        // The storage is current, the session tree registers the sessions
+        const sessionEntries = flattenSessionTree(await readSessionTree(storageRoot));
+        for (const { sessionId, folder } of await listSessionFolders(storageRoot, sessionEntries)) {
             try {
                 const result = await migrateSessionFolder(folder);
                 if (result === SessionMigrationResult.Migrated) {

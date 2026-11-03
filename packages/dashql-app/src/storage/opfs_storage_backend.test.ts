@@ -27,7 +27,7 @@ describe('OPFSStorageBackend V2 flat storage', () => {
             { name: '10_last.sql', sql: 'SELECT 10' },
         ]);
         expect(files.has(`sessions/${TEST_SESSION_ID}/dashql-session-index.json`)).toBe(false);
-        expect(await backend.listSessions(STORAGE_MANIFEST_FILE)).toEqual([{ path: TEST_SESSION_ID, storageType: 'opfs' }]);
+        expect(await backend.listSessions()).toEqual([{ path: TEST_SESSION_ID, storageType: 'opfs' }]);
     });
 
     it('rejects nested and draft entries instead of importing V1 data', async () => {
@@ -40,11 +40,117 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         files.set(`sessions/${TEST_SESSION_ID}/scripts/dashql-draft.sql`, 'SELECT 1');
         await expect(backend.loadScripts(TEST_SESSION_ID)).rejects.toThrow('dashql-draft.sql is not supported');
     });
-    it('reorders the sessions of the manifest and keeps unlisted ones at the end', async () => {
+    it('starts a new storage with the folder My Sessions and keeps it deleted once', async () => {
+        expect(JSON.parse(files.get('sessiontree/My Sessions/dashql-folder.json') as string)).toEqual({ sessions: [] });
+        expect((await backend.loadSessionTree()).folders.map(folder => folder.name)).toEqual(['My Sessions']);
+        await backend.deleteFolder(['My Sessions']);
+        await backend.initialize();
+        expect((await backend.loadSessionTree()).folders).toEqual([]);
+    });
+
+    it('registers new sessions at the end of the root', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        expect(JSON.parse(files.get('sessiontree/dashql-folder.json') as string)).toEqual({
+            sessions: [{ path: TEST_SESSION_ID, storageType: 'opfs' }],
+        });
+        expect(JSON.parse(files.get('sessiontree/My Sessions/dashql-folder.json') as string)).toEqual({ sessions: [] });
+        expect(files.has(STORAGE_MANIFEST_FILE)).toBe(false);
+    });
+
+    it('moves the sessions within and across the folders of the session tree', async () => {
         const ids = ['a', 'b', 'c'].map(c => `${c.repeat(8)}-0000-4000-8000-000000000000`);
         for (const id of ids) await backend.saveSessionManifest(id, testSession({ sessionId: id }));
-        await backend.reorderSessions([ids[2], 'unknown', ids[0], ids[2]]);
-        expect((await backend.listSessions(STORAGE_MANIFEST_FILE)).map(entry => entry.path)).toEqual([ids[2], ids[0], ids[1]]);
+        await backend.moveSession(ids[2], [], 0);
+        expect((await backend.listSessions()).map(entry => entry.path)).toEqual([ids[2], ids[0], ids[1]]);
+
+        await backend.createFolder(['clients']);
+        await backend.createFolder(['clients', 'acme']);
+        await backend.moveSession(ids[0], ['clients', 'acme'], 0);
+        await backend.moveSession(ids[1], ['clients'], 5);
+        await backend.moveSession(ids[2], [], 0);
+        const tree = await backend.loadSessionTree();
+        expect(tree.sessions.map(entry => entry.path)).toEqual([ids[2]]);
+        expect(tree.folders.map(folder => folder.name)).toEqual(['clients', 'My Sessions']);
+        expect(tree.folders[0].sessions.map(entry => entry.path)).toEqual([ids[1]]);
+        expect(tree.folders[0].folders[0]).toMatchObject({ name: 'acme', path: ['clients', 'acme'] });
+        expect(tree.folders[0].folders[0].sessions.map(entry => entry.path)).toEqual([ids[0]]);
+        expect(tree.folders[1].sessions).toEqual([]);
+        // The subfolders of a folder come before its sessions
+        expect((await backend.listSessions()).map(entry => entry.path)).toEqual([ids[0], ids[1], ids[2]]);
+
+        // A session that is written again keeps its folder
+        await backend.saveSessionManifest(ids[0], testSession({ sessionId: ids[0] }));
+        expect((await backend.loadSessionTree()).folders[0].folders[0].sessions.map(entry => entry.path)).toEqual([ids[0]]);
+        await expect(backend.moveSession(ids[0], ['missing'], 0)).rejects.toThrow('There is no folder');
+    });
+
+    it('places a new session in a folder before its first write', async () => {
+        await backend.createFolder(['drafts']);
+        await backend.moveSession(TEST_SESSION_ID, ['drafts'], 0);
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        const tree = await backend.loadSessionTree();
+        expect(tree.folders.map(folder => [folder.name, folder.sessions])).toEqual([
+            ['drafts', [{ path: TEST_SESSION_ID, storageType: 'opfs' }]],
+            ['My Sessions', []],
+        ]);
+    });
+
+    it('sorts the folders by their names and validates new names', async () => {
+        for (const name of ['q10', 'q2', 'Archive']) await backend.createFolder([name]);
+        expect((await backend.loadSessionTree()).folders.map(folder => folder.name)).toEqual(['Archive', 'My Sessions', 'q2', 'q10']);
+        await expect(backend.createFolder(['archive'])).rejects.toThrow('There is already a folder');
+        await expect(backend.createFolder(['a/b'])).rejects.toThrow('not a valid folder name');
+        await expect(backend.createFolder(['missing', 'child'])).rejects.toThrow('There is no folder');
+    });
+
+    it('renames and moves folders with their sessions', async () => {
+        await backend.deleteFolder(['My Sessions']);
+        await backend.createFolder(['clients']);
+        await backend.createFolder(['clients', 'acme']);
+        await backend.createFolder(['archive']);
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.moveSession(TEST_SESSION_ID, ['clients', 'acme'], 0);
+
+        await backend.moveFolder(['clients', 'acme'], ['clients'], 'Acme');
+        let tree = await backend.loadSessionTree();
+        expect(tree.folders[1].folders.map(folder => folder.name)).toEqual(['Acme']);
+        expect(tree.folders[1].folders[0].sessions.map(entry => entry.path)).toEqual([TEST_SESSION_ID]);
+
+        await backend.moveFolder(['clients'], ['archive']);
+        tree = await backend.loadSessionTree();
+        expect(tree.folders.map(folder => folder.name)).toEqual(['archive']);
+        expect(tree.folders[0].folders[0].folders[0]).toMatchObject({ path: ['archive', 'clients', 'Acme'] });
+        expect(await backend.listSessions()).toEqual([{ path: TEST_SESSION_ID, storageType: 'opfs' }]);
+
+        await expect(backend.moveFolder(['archive'], ['archive', 'clients'])).rejects.toThrow('cannot move into itself');
+        await backend.createFolder(['clients']);
+        await expect(backend.moveFolder(['archive', 'clients'], [])).rejects.toThrow('There is already a folder');
+    });
+
+    it('moves the sessions of a deleted folder to its parent', async () => {
+        const ids = ['a', 'b', 'c'].map(c => `${c.repeat(8)}-0000-4000-8000-000000000000`);
+        for (const id of ids) await backend.saveSessionManifest(id, testSession({ sessionId: id }));
+        await backend.createFolder(['clients']);
+        await backend.createFolder(['clients', 'acme']);
+        await backend.moveSession(ids[0], ['clients'], 0);
+        await backend.moveSession(ids[1], ['clients', 'acme'], 0);
+        await backend.deleteFolder(['clients']);
+        const tree = await backend.loadSessionTree();
+        expect(tree.folders.map(folder => [folder.name, folder.sessions])).toEqual([['My Sessions', []]]);
+        expect(tree.sessions.map(entry => entry.path)).toEqual([ids[2], ids[1], ids[0]]);
+        expect([...dirs].filter(dir => dir.startsWith('sessiontree/clients'))).toEqual([]);
+    });
+
+    it('lists a session that the tree registers twice where it comes first', async () => {
+        dirs.add('sessiontree');
+        dirs.add('sessiontree/clients');
+        files.set('sessiontree/dashql-folder.json', JSON.stringify({ sessions: [{ path: TEST_SESSION_ID }] }));
+        files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: TEST_SESSION_ID }] }));
+        expect(await backend.listSessions()).toEqual([{ path: TEST_SESSION_ID }]);
+        expect((await backend.loadSessionTree()).folders[0].sessions).toEqual([{ path: TEST_SESSION_ID }]);
+        // The next change of the tree drops the duplicate
+        await backend.removeSessionEntry('ffffffff-0000-4000-8000-000000000000');
+        expect(JSON.parse(files.get('sessiontree/dashql-folder.json') as string)).toEqual({ sessions: [] });
     });
 
     it('renames scripts and skips scripts that are not written yet', async () => {
@@ -57,13 +163,14 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         await expect(backend.renameScript('ffffffff-0000-4000-8000-000000000000', 'a.sql', 'b.sql')).resolves.toBeUndefined();
     });
 
-    it('clears the app folders and the sessions of the manifest but no other storage', async () => {
+    it('clears the app folders and the session tree but no other storage', async () => {
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
         await backend.saveScript(TEST_SESSION_ID, '01.sql', 'SELECT 1');
         await backend.createConnectionFolder('connection');
         files.set('other/file.txt', 'kept');
         await backend.clearAllStorage();
-        expect(await backend.listSessions(STORAGE_MANIFEST_FILE)).toEqual([]);
+        expect(await backend.listSessions()).toEqual([]);
+        expect([...files.keys()].filter(path => path.startsWith('sessiontree/'))).toEqual([]);
         expect([...files.keys()].filter(path => path.startsWith('sessions/') || path.startsWith('connections/'))).toEqual([]);
         expect(dirs.has('connections/connection')).toBe(false);
         expect(files.get('other/file.txt')).toBe('kept');
@@ -122,7 +229,7 @@ describe('OPFSStorageBackend V2 flat storage', () => {
     });
 
     it('stamps the current storage version on every manifest write', async () => {
-        files.set(STORAGE_MANIFEST_FILE, JSON.stringify({ sessions: [] }));
+        files.set(STORAGE_MANIFEST_FILE, JSON.stringify({}));
         await backend.saveAppSettings({ keywordCase: 'upper' });
         expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).storageVersion).toBe(STORAGE_VERSION);
     });

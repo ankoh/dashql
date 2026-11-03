@@ -65,8 +65,9 @@ describe('V2 app state loader', () => {
             loadScript: vi.fn(), saveScript: vi.fn(), deleteScript: vi.fn(), renameScript: vi.fn(),
             listDataFiles: vi.fn(async () => []), loadDataFile: vi.fn(), saveDataFile: vi.fn(),
             deleteDataFile: vi.fn(), renameDataFile: vi.fn(),
-            upsertSessionEntry: vi.fn(), removeSessionEntry: vi.fn(), reorderSessions: vi.fn(), deleteSessionFiles: vi.fn(),
-            loadManifest: vi.fn(async () => ({ version: 1, sessions: [] }) as any), updateConnections: vi.fn(),
+            loadSessionTree: vi.fn(), upsertSessionEntry: vi.fn(), removeSessionEntry: vi.fn(), moveSession: vi.fn(),
+            createFolder: vi.fn(), moveFolder: vi.fn(), deleteFolder: vi.fn(), deleteSessionFiles: vi.fn(),
+            loadManifest: vi.fn(async () => ({})), updateConnections: vi.fn(),
             loadConnectionFile: vi.fn(async (connectionId: string, fileName: string) => connectionFiles.get(`${connectionId}/${fileName}`) ?? null),
             saveConnectionFile: vi.fn(), createConnectionFolder: vi.fn(), deleteConnectionFiles: vi.fn(),
         };

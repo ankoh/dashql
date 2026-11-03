@@ -84,6 +84,8 @@
 
 .session_row_dragging {
     z-index: 1;
+    /* The drop target shows through the dragged row */
+    opacity: 0.6;
 }
 
 .section_actions {
@@ -99,9 +101,10 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     min-height: 0;
-    padding: 8px;
+    padding: 6px;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 
@@ -118,7 +121,7 @@
     grid-template-columns: minmax(0, 1fr) max-content;
     align-items: center;
     min-width: 0;
-    min-height: 36px;
+    min-height: 28px;
     padding-left: 8px;
 }
 
@@ -146,7 +149,7 @@
     width: 100%;
     height: 100%;
     min-width: 0;
-    padding: 3px 0;
+    padding: 1px 0;
     border: 0;
     color: inherit;
     background: transparent;
@@ -178,6 +181,12 @@
     margin-right: 4px;
 }
 
+/* The row menu button is lower than a small button, it would set the height of the rows */
+.entry_surface.session_row .session_menu_button {
+    width: 28px;
+    height: 22px;
+}
+
 .session_rename {
     display: grid;
     grid-template-columns: 14px minmax(0, 1fr);
@@ -185,7 +194,7 @@
     gap: 8px;
     width: 100%;
     min-width: 0;
-    padding: 3px 0;
+    padding: 1px 0;
 }
 
 .session_rename_input {
@@ -221,4 +230,82 @@
         border-right: 0;
         background: transparent;
     }
+}
+
+.folder_button,
+.folder_rename {
+    display: grid;
+    grid-template-columns: 12px 14px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 1px 0;
+}
+
+.folder_button {
+    height: 100%;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.folder_caret {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--base_color_neutral_6);
+}
+
+/* The drop targets of a dragged row: a folder that receives it, the line above or below a session */
+.drop_into,
+.drop_into:hover {
+    border-color: var(--focus_border_color);
+    background: var(--base_color_neutral_0);
+}
+
+/* The insertion line sits in the gap between the rows and starts at the indentation of the row */
+.drop_before,
+.drop_after {
+    position: relative;
+}
+
+.drop_before::before,
+.drop_after::after,
+.top_level_drop_targeted::before {
+    content: '';
+    position: absolute;
+    left: var(--session_row_indent, 8px);
+    right: 4px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--focus_border_color);
+    pointer-events: none;
+    /* Above the dragged row */
+    z-index: 2;
+}
+
+.drop_before::before {
+    top: -3px;
+}
+
+.drop_after::after {
+    bottom: -3px;
+}
+
+/* The end of the list moves a dragged row to the top level, it fills the space below the rows */
+.top_level_drop {
+    flex: 1 0 16px;
+    min-height: 16px;
+}
+
+.top_level_drop_targeted {
+    position: relative;
+    --session_row_indent: 28px;
+}
+
+.top_level_drop_targeted::before {
+    top: -2px;
 }

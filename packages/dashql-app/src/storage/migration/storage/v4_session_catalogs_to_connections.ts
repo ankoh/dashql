@@ -2,7 +2,7 @@ import { stringifyError } from '../../../platform/logger/logger.js';
 import { OPFSFolder } from '../migration_folder.js';
 import { migrateSessionFolder } from '../session_migration.js';
 import type { StorageMigrationStep } from '../storage_migration.js';
-import { listSessionFolders, readManifestJson } from '../storage_root.js';
+import { listSessionFolders, manifestSessionEntries, readManifestJson } from '../storage_root.js';
 
 const LOG_CTX = 'storage_migration';
 
@@ -26,7 +26,7 @@ export const sessionCatalogsToConnections: StorageMigrationStep = {
             return;
         }
         let seeded = 0;
-        for (const { sessionId, folder } of await listSessionFolders(root, manifest)) {
+        for (const { sessionId, folder } of await listSessionFolders(root, manifestSessionEntries(manifest))) {
             try {
                 await migrateSessionFolder(folder, SESSION_FORMAT_VERSION);
                 const text = await folder.readText('dashql-session.json');

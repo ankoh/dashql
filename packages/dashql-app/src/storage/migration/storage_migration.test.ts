@@ -5,6 +5,7 @@ import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '../test_fs_mock.js';
 import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';
 import { SESSION_FORMAT_VERSION, STORAGE_VERSION } from './versions.js';
+import { sessionTree } from './storage/v7_session_tree.js';
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';
@@ -82,9 +83,11 @@ describe('storage migration', () => {
         // The native session folder is claimed before it is read
         expect(new Set(claims)).toEqual(new Set([NATIVE_DIR]));
 
-        // The manifest lists sessions and the consolidated connections
+        // The session tree lists the sessions and the manifest the consolidated connections
+        expect(json('sessiontree/My Sessions/dashql-folder.json').sessions).toEqual([{ path: SESSION_A }, { path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
+        expect(json('sessiontree/dashql-folder.json').sessions).toEqual([]);
         const manifest = json('dashql-manifest.json');
-        expect(manifest.sessions).toEqual([{ path: SESSION_A }, { path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
+        expect(manifest.sessions).toBeUndefined();
         expect(manifest.notebooks).toBeUndefined();
         expect(manifest.appSettings).toEqual({ keywordCase: 'upper' });
         expect(manifest.storageVersion).toBe(STORAGE_VERSION);
@@ -109,8 +112,10 @@ describe('storage migration', () => {
 
         // A migrated storage stays as it is
         const before = text('dashql-manifest.json');
+        const beforeTree = text('sessiontree/My Sessions/dashql-folder.json');
         await migrateStorage(new TestLogger(), root);
         expect(text('dashql-manifest.json')).toBe(before);
+        expect(text('sessiontree/My Sessions/dashql-folder.json')).toBe(beforeTree);
     });
 
     it('keeps the connections of a storage that has them already', async () => {
@@ -126,7 +131,10 @@ describe('storage migration', () => {
     });
 
     it('migrates the sessions of a current storage', async () => {
-        files.set('dashql-manifest.json', JSON.stringify({ sessions: [{ path: SESSION_A }], connections: [], storageVersion: STORAGE_VERSION }));
+        files.set('dashql-manifest.json', JSON.stringify({ connections: [], storageVersion: STORAGE_VERSION }));
+        dirs.add('sessiontree');
+        dirs.add('sessiontree/clients');
+        files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: SESSION_A }] }));
         dirs.add('sessions');
         dirs.add(`sessions/${SESSION_A}`);
         files.set(`sessions/${SESSION_A}/dashql-notebook.json`, notebook(SESSION_A, DB_A));
@@ -135,6 +143,29 @@ describe('storage migration', () => {
         expect(json(`sessions/${SESSION_A}/dashql-session.json`).formatVersion).toBe(SESSION_FORMAT_VERSION);
         // A current storage has nothing left to migrate
         expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 0 });
+    });
+
+    it('moves the sessions of the manifest into the folder My Sessions of the session tree', async () => {
+        files.set('dashql-manifest.json', JSON.stringify({
+            sessions: [{ path: SESSION_A, storageType: 'opfs' }, { path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }],
+            connections: [],
+            appSettings: { keywordCase: 'upper' },
+            storageVersion: 6,
+        }));
+        // An interrupted run registered a session in a folder already
+        dirs.add('sessiontree');
+        dirs.add('sessiontree/clients');
+        files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }] }));
+
+        expect((await migrateStorage(new TestLogger(), root)).steps).toBe(1);
+        expect(json('sessiontree/My Sessions/dashql-folder.json')).toEqual({ sessions: [{ path: SESSION_A, storageType: 'opfs' }] });
+        expect(json('sessiontree/clients/dashql-folder.json').sessions).toEqual([{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
+        expect(json('sessiontree/dashql-folder.json')).toEqual({ sessions: [] });
+        expect(json('dashql-manifest.json')).toEqual({ connections: [], appSettings: { keywordCase: 'upper' }, storageVersion: STORAGE_VERSION });
+
+        // The step is idempotent
+        await sessionTree.migrate({ root, logger: new TestLogger() });
+        expect(json('sessiontree/My Sessions/dashql-folder.json')).toEqual({ sessions: [{ path: SESSION_A, storageType: 'opfs' }] });
     });
 
     it('seeds connections without a catalog from the catalog copies of the sessions', async () => {

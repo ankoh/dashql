@@ -4,9 +4,8 @@ import { TestLogger } from '../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import type { SessionEntry, SessionRegistryBackend } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
-import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from './session_test_backend.js';
+import { SessionTestRegistry, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from './session_test_backend.js';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import {
     prepareNativeSessionImport,
@@ -18,32 +17,17 @@ import { getOPFSRoot } from '../platform/opfs_root.js';
 
 const OTHER_SESSION_ID = '22222222-3333-4444-8555-666666666666';
 
-class Registry extends SessionTestBackend implements SessionRegistryBackend {
-    manifest: SessionEntry[] = [];
+class Registry extends SessionTestRegistry {
     legacyDrafts = new Set<string>();
-    override async listSessions(): Promise<SessionEntry[]> { return [...this.manifest]; }
     override async loadScripts(id: string) {
         if (this.legacyDrafts.has(id)) {
             throw new Error('Invalid V2 session layout: dashql-draft.sql is not supported');
         }
         return await super.loadScripts(id);
     }
-    override async saveSessionManifest(id: string, data: any): Promise<void> {
-        await super.saveSessionManifest(id, data);
-        await this.upsertSessionEntry({ path: id, storageType: StorageBackendType.OPFS });
-    }
-    async upsertSessionEntry(entry: SessionEntry): Promise<void> {
-        const index = this.manifest.findIndex(value => value.path === entry.path);
-        if (index < 0) this.manifest.push(entry); else this.manifest[index] = entry;
-    }
-    async removeSessionEntry(id: string): Promise<void> { this.manifest = this.manifest.filter(entry => entry.path !== id); }
-    async reorderSessions(ids: string[]): Promise<void> {
-        const byId = new Map(this.manifest.map(entry => [entry.path, entry]));
-        this.manifest = ids.flatMap(id => byId.get(id) ?? []).concat(this.manifest.filter(entry => !ids.includes(entry.path)));
-    }
-    async deleteSessionFiles(id: string): Promise<void> {
+    override async deleteSessionFiles(id: string): Promise<void> {
         this.legacyDrafts.delete(id);
-        await super.deleteSession(id);
+        await super.deleteSessionFiles(id);
     }
 }
 
@@ -177,9 +161,36 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     it('keeps the session order in step with the registry', async () => {
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
         await backend.saveSessionManifest(OTHER_SESSION_ID, testSession({ sessionId: OTHER_SESSION_ID }));
-        await backend.reorderSessions([OTHER_SESSION_ID]);
+        await backend.moveSession(OTHER_SESSION_ID, [], 0);
         expect(backend.getSessionOrder()).toEqual([OTHER_SESSION_ID, TEST_SESSION_ID]);
         expect(registry.manifest.map(entry => entry.path)).toEqual([OTHER_SESSION_ID, TEST_SESSION_ID]);
+    });
+
+    it('mirrors the folders of the session tree', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveSessionManifest(OTHER_SESSION_ID, testSession({ sessionId: OTHER_SESSION_ID }));
+        await backend.createFolder(['clients']);
+        await backend.createFolder(['clients', 'acme']);
+        await backend.moveSession(TEST_SESSION_ID, ['clients', 'acme'], 0);
+        const tree = backend.getSessionTree();
+        expect(tree.sessions.map(entry => entry.path)).toEqual([OTHER_SESSION_ID]);
+        expect(tree.folders[0].folders[0].sessions.map(entry => entry.path)).toEqual([TEST_SESSION_ID]);
+        // The subfolders of a folder come before its sessions
+        expect(backend.getSessionOrder()).toEqual([TEST_SESSION_ID, OTHER_SESSION_ID]);
+
+        await backend.deleteFolder(['clients']);
+        expect(backend.getSessionTree().folders).toEqual([]);
+        expect(backend.getSessionOrder()).toEqual([OTHER_SESSION_ID, TEST_SESSION_ID]);
+    });
+
+    it('routes a native session of a nested folder after a refresh', async () => {
+        const dir = '/tmp/nested';
+        await backend.createFolder(['clients']);
+        await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: dir }, ['clients']);
+        const fresh = new CompositeStorageBackend(registry, new TestLogger());
+        await fresh.initialize();
+        expect(fresh.getSessionLocation(TEST_SESSION_ID)).toEqual({ type: StorageBackendType.Native, nativePath: dir });
+        expect(fresh.getSessionTree().folders[0].sessions).toEqual([{ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: dir }]);
     });
 
     it('relocates an OPFS session into a native directory', async () => {

@@ -60,6 +60,7 @@ const storageReader = {
     backend: {},
     getSessionLocation: () => ({ type: 'opfs' }),
     getSessionOrder: () => [],
+    getSessionTree: () => ({ name: '', path: [], folders: [], sessions: [] }),
 };
 const storageWriter = {
     write: state.write,

@@ -7,9 +7,8 @@ import { sessionConnectionReferences } from '../scripts/session_scripts_registry
 import { ConnectorType } from '../../connections/connector_info.js';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { writePortableSessionFresh } from '../../storage/session_import_transaction.js';
-import { SessionTestBackend } from '../../storage/session_test_backend.js';
-import type { ConnectionEntry, SessionData, SessionEntry, SessionRegistryBackend } from '../../storage/storage_backend.js';
-import { StorageBackendType } from '../../storage/storage_backend.js';
+import { SessionTestBackend, SessionTestRegistry } from '../../storage/session_test_backend.js';
+import type { ConnectionEntry, SessionData } from '../../storage/storage_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
 import { makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
 import { SESSION_FORMAT_VERSION } from '../../storage/migration/versions.js';
@@ -31,24 +30,7 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 /// restoring, changing the connection of a script, reloading, exporting and importing.
 
 /// A storage backend that owns a session registry, the backend of the composite storage
-class Registry extends SessionTestBackend implements SessionRegistryBackend {
-    manifest: SessionEntry[] = [];
-    override async listSessions(): Promise<SessionEntry[]> { return [...this.manifest]; }
-    override async saveSessionManifest(id: string, data: SessionData): Promise<void> {
-        await super.saveSessionManifest(id, data);
-        await this.upsertSessionEntry({ path: id, storageType: StorageBackendType.OPFS });
-    }
-    async upsertSessionEntry(entry: SessionEntry): Promise<void> {
-        const index = this.manifest.findIndex(value => value.path === entry.path);
-        if (index < 0) this.manifest.push(entry); else this.manifest[index] = entry;
-    }
-    async removeSessionEntry(id: string): Promise<void> { this.manifest = this.manifest.filter(entry => entry.path !== id); }
-    async reorderSessions(ids: string[]): Promise<void> {
-        const byId = new Map(this.manifest.map(entry => [entry.path, entry]));
-        this.manifest = ids.flatMap(id => byId.get(id) ?? []).concat(this.manifest.filter(entry => !ids.includes(entry.path)));
-    }
-    async deleteSessionFiles(id: string): Promise<void> { await super.deleteSession(id); }
-}
+class Registry extends SessionTestRegistry {}
 
 const SESSION_ID = '11111111-2222-4333-8444-555555555555';
 const IMPORTED_SESSION_ID = '22222222-3333-4444-8555-666666666666';

@@ -4,12 +4,24 @@ import type {
     DataFile,
     SessionData,
     SessionEntry,
+    SessionRegistryBackend,
     ScriptData,
     StorageBackend,
     StorageManifest,
 } from './storage_backend.js';
 import { StorageBackendType, validateDataFileName } from './storage_backend.js';
 import { SESSION_FORMAT_VERSION } from './migration/versions.js';
+import {
+    type SessionTreeFolder,
+    emptySessionTree,
+    flattenSessionTree,
+    folderAt,
+    folderNameError,
+    isFolderPathWithin,
+    moveSessionInTree,
+    removeSessionFromTree,
+    upsertSessionInTree,
+} from './session_tree.js';
 
 export class SessionTestBackend implements StorageBackend {
     readonly sessions = new Map<string, SessionData>();
@@ -33,7 +45,6 @@ export class SessionTestBackend implements StorageBackend {
     async saveAppSettings(settings: AppSettings): Promise<void> { this.appSettings = settings; }
     async loadManifest(): Promise<StorageManifest> {
         return {
-            sessions: await this.listSessions(),
             ...(this.appSettings ? { appSettings: this.appSettings } : {}),
             ...(this.connections ? { connections: structuredClone(this.connections) } : {}),
         };
@@ -155,4 +166,68 @@ export function testSession(overrides: Partial<SessionData> = {}): SessionData {
         metadata: {},
         ...overrides,
     };
+}
+
+/// A test backend that owns a session registry in memory, the backend of the composite storage
+export class SessionTestRegistry extends SessionTestBackend implements SessionRegistryBackend {
+    tree: SessionTreeFolder = emptySessionTree();
+
+    /// The registered sessions in tree order
+    get manifest(): SessionEntry[] { return flattenSessionTree(this.tree); }
+
+    override async listSessions(): Promise<SessionEntry[]> { return this.manifest; }
+    override async saveSessionManifest(id: string, data: SessionData): Promise<void> {
+        await super.saveSessionManifest(id, data);
+        await this.upsertSessionEntry({ path: id, storageType: StorageBackendType.OPFS });
+    }
+    async loadSessionTree(): Promise<SessionTreeFolder> { return structuredClone(this.tree); }
+    async upsertSessionEntry(entry: SessionEntry, folderPath?: readonly string[]): Promise<void> {
+        this.tree = upsertSessionInTree(this.tree, entry, folderPath);
+    }
+    async removeSessionEntry(id: string): Promise<void> { this.tree = removeSessionFromTree(this.tree, id); }
+    async moveSession(id: string, folderPath: string[], index: number): Promise<void> {
+        this.tree = moveSessionInTree(this.tree, id, folderPath, index);
+    }
+    async createFolder(path: string[]): Promise<void> {
+        const parent = folderAt(this.tree, path.slice(0, -1));
+        const name = path[path.length - 1];
+        if (parent == null || name == null) throw new Error('There is no parent folder');
+        const error = folderNameError(name, parent.folders.map(folder => folder.name));
+        if (error != null) throw new Error(error);
+        this.tree = this.mapFolder(path.slice(0, -1), folder => ({
+            ...folder,
+            folders: [...folder.folders, { name, path, folders: [], sessions: [] }]
+                .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true })),
+        }));
+    }
+    async moveFolder(path: string[], parentPath: string[], name: string = path[path.length - 1] ?? ''): Promise<void> {
+        const folder = folderAt(this.tree, path);
+        if (folder == null || isFolderPathWithin(parentPath, path)) throw new Error('Cannot move the folder');
+        const rebase = (current: SessionTreeFolder, base: string[]): SessionTreeFolder => ({
+            ...current,
+            name: base[base.length - 1],
+            path: base,
+            folders: current.folders.map(child => rebase(child, [...base, child.name])),
+        });
+        this.tree = this.mapFolder(path.slice(0, -1), parent => ({ ...parent, folders: parent.folders.filter(child => child.name !== folder.name) }));
+        this.tree = this.mapFolder(parentPath, parent => ({ ...parent, folders: [...parent.folders, rebase(folder, [...parentPath, name])] }));
+    }
+    async deleteFolder(path: string[]): Promise<void> {
+        const folder = folderAt(this.tree, path);
+        if (folder == null || path.length === 0) throw new Error('There is no folder');
+        const moved = flattenSessionTree(folder);
+        this.tree = this.mapFolder(path.slice(0, -1), parent => ({
+            ...parent,
+            folders: parent.folders.filter(child => child.name !== folder.name),
+            sessions: [...parent.sessions, ...moved],
+        }));
+    }
+    async deleteSessionFiles(id: string): Promise<void> { await super.deleteSession(id); }
+
+    private mapFolder(path: string[], map: (folder: SessionTreeFolder) => SessionTreeFolder): SessionTreeFolder {
+        const visit = (folder: SessionTreeFolder, rest: string[]): SessionTreeFolder => rest.length === 0
+            ? map(folder)
+            : { ...folder, folders: folder.folders.map(child => child.name === rest[0] ? visit(child, rest.slice(1)) : child) };
+        return visit(this.tree, path);
+    }
 }

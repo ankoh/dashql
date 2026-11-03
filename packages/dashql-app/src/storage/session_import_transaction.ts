@@ -1,4 +1,4 @@
-import { StorageBackendType, STORAGE_MANIFEST_FILE, type SessionEntry } from './storage_backend.js';
+import { StorageBackendType, type SessionEntry } from './storage_backend.js';
 import {
     assembleSessionBundle,
     seedConnectionCatalogs,
@@ -174,7 +174,7 @@ async function findManifestEntry(
     backend: CompositeStorageBackend,
     sessionId: string,
 ): Promise<SessionEntry> {
-    const entries = await backend.listSessions(STORAGE_MANIFEST_FILE);
+    const entries = await backend.listSessions();
     const entry = entries.find(candidate => candidate.path.toLowerCase() === sessionId.toLowerCase());
     if (!entry) {
         throw new Error(`Session ${sessionId} is no longer registered`);

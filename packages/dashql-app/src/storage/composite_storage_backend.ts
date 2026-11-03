@@ -10,9 +10,15 @@ import {
     type ConnectionEntry,
     type StorageManifest,
     StorageBackendType,
-    STORAGE_MANIFEST_FILE,
     validateDataFileName,
 } from './storage_backend.js';
+import {
+    type SessionTreeFolder,
+    emptySessionTree,
+    flattenSessionTree,
+    removeSessionFromTree,
+    upsertSessionInTree,
+} from './session_tree.js';
 import { type FileStamp } from '../platform/electron_fs.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { type SessionLocation, locationFromEntry } from './session_locator.js';
@@ -34,7 +40,7 @@ import { migrateSessionFolder } from './migration/session_migration.js';
 const LOG_CTX = 'composite_storage_backend';
 
 export interface SessionImportConflict {
-    /// The manifest key, preserving its registered spelling/casing.
+    /// The registry key, preserving its registered spelling/casing.
     sessionId: string;
     location: SessionLocation;
 }
@@ -46,7 +52,7 @@ export interface PreparedNativeSession {
 
 /// A storage backend that routes by per-session location.
 ///
-/// The OPFS root manifest is the single registry of *every* session; registry-level operations
+/// The OPFS session tree is the single registry of *every* session; registry-level operations
 /// (listing sessions, app settings, clear-all) therefore always go to OPFS. Per-session operations
 /// are routed by the session UUID to whichever backend physically holds that session's files:
 ///   - OPFS sessions -> the shared OPFS backend (`sessions/<uuid>/…`).
@@ -57,8 +63,10 @@ export interface PreparedNativeSession {
 export class CompositeStorageBackend implements SessionRegistryBackend {
     /// The OPFS backend, which owns the session registry
     private readonly opfs: SessionRegistryBackend;
-    /// uuid -> physical location, built from the manifest at init and kept in sync on writes
+    /// uuid -> physical location, built from the session tree at init and kept in sync on writes
     private readonly locations: Map<string, SessionLocation>;
+    /// The session tree, loaded at init and kept in sync on writes
+    private tree: SessionTreeFolder = emptySessionTree();
     /// Cached per-session native backends, keyed by uuid
     private readonly nativeCache: Map<string, NativeStorageBackend>;
     /// The stamps of the native attachments that are mirrored into OPFS, keyed by session uuid
@@ -83,15 +91,20 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         await this.refreshLocations();
     }
 
-    /// Rebuild the uuid -> location map from the OPFS root manifest.
+    /// Rebuild the session tree and the uuid -> location map from the OPFS session tree.
     ///
     /// Called at init (and after relocate, before reload re-runs init).
     async refreshLocations(): Promise<void> {
-        const sessions = await this.opfs.listSessions(STORAGE_MANIFEST_FILE);
+        this.tree = await this.opfs.loadSessionTree();
         this.locations.clear();
-        for (const entry of sessions) {
+        for (const entry of flattenSessionTree(this.tree)) {
             this.locations.set(entry.path, locationFromEntry(entry));
         }
+    }
+
+    /// Reload the session tree after a change of its folders
+    private async refreshTree(): Promise<void> {
+        this.tree = await this.opfs.loadSessionTree();
     }
 
     /// The current known location for a session (defaulting to OPFS for unknown UUIDs).
@@ -120,8 +133,11 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
 
     // ---- Registry-level operations (always OPFS) ----------------------------------------------
 
-    listSessions(manifestPath: string): Promise<SessionEntry[]> {
-        return this.opfs.listSessions(manifestPath);
+    listSessions(): Promise<SessionEntry[]> {
+        return this.opfs.listSessions();
+    }
+    loadSessionTree(): Promise<SessionTreeFolder> {
+        return this.opfs.loadSessionTree();
     }
     loadAppSettings(): Promise<AppSettings | null> {
         return this.opfs.loadAppSettings();
@@ -148,44 +164,54 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         return this.opfs.deleteConnectionFiles(connectionId);
     }
 
-    async upsertSessionEntry(entry: SessionEntry): Promise<void> {
-        await this.opfs.upsertSessionEntry(entry);
+    async upsertSessionEntry(entry: SessionEntry, folderPath: readonly string[] = []): Promise<void> {
+        await this.opfs.upsertSessionEntry(entry, folderPath);
         this.locations.set(entry.path, locationFromEntry(entry));
+        this.tree = upsertSessionInTree(this.tree, entry, folderPath);
     }
     async removeSessionEntry(sessionId: string): Promise<void> {
         await this.opfs.removeSessionEntry(sessionId);
+        this.forgetSession(sessionId);
+    }
+    async moveSession(sessionId: string, folderPath: string[], index: number): Promise<void> {
+        await this.opfs.moveSession(sessionId, folderPath, index);
+        await this.refreshTree();
+    }
+    async createFolder(path: string[]): Promise<void> {
+        await this.opfs.createFolder(path);
+        await this.refreshTree();
+    }
+    async moveFolder(path: string[], parentPath: string[], name?: string): Promise<void> {
+        await this.opfs.moveFolder(path, parentPath, name);
+        await this.refreshTree();
+    }
+    async deleteFolder(path: string[]): Promise<void> {
+        await this.opfs.deleteFolder(path);
+        await this.refreshTree();
+    }
+
+    /// Drop the in-memory state of a session that is no longer registered
+    private forgetSession(sessionId: string): void {
         this.locations.delete(sessionId);
         this.nativeCache.delete(sessionId);
         this.mirroredAttachments.delete(sessionId);
-    }
-    async reorderSessions(orderedIds: string[]): Promise<void> {
-        // Keep the in-memory location map's iteration order (the source of `getSessionOrder`) in
-        // lockstep with what we persist, applying the exact same "listed ids first, unlisted kept at
-        // the end in current order" rule the OPFS backend uses.
-        await this.opfs.reorderSessions(orderedIds);
-
-        const previous = this.locations;
-        const reordered = new Map<string, SessionLocation>();
-        for (const id of orderedIds) {
-            const loc = previous.get(id);
-            if (loc && !reordered.has(id)) {
-                reordered.set(id, loc);
-            }
-        }
-        for (const [id, loc] of previous) {
-            if (!reordered.has(id)) {
-                reordered.set(id, loc);
-            }
-        }
-        this.locations.clear();
-        for (const [id, loc] of reordered) {
-            this.locations.set(id, loc);
-        }
+        this.tree = removeSessionFromTree(this.tree, sessionId);
     }
 
-    /// The user-facing session order (the manifest array order), as session UUIDs.
+    /// The session tree, the folders and sessions of the sidebar
+    getSessionTree(): SessionTreeFolder {
+        return this.tree;
+    }
+
+    /// The user-facing session order (the order of the session tree), as session UUIDs.
+    /// Sessions that are routed but not yet in the tree come last.
     getSessionOrder(): string[] {
-        return [...this.locations.keys()];
+        const order = flattenSessionTree(this.tree).map(entry => entry.path);
+        const listed = new Set(order);
+        for (const id of this.locations.keys()) {
+            if (!listed.has(id)) order.push(id);
+        }
+        return order;
     }
     deleteSessionFiles(sessionId: string): Promise<void> {
         return this.backendFor(sessionId).then(b => {
@@ -252,10 +278,11 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
                 storageType: StorageBackendType.Native,
                 nativePath: loc.nativePath,
             });
-        } else if (!this.locations.has(sessionId)) {
-            // The OPFS backend registered a newly-created session. Mirror that append in memory so
-            // getSessionOrder() can include it immediately, before the next app initialization.
+        } else {
+            // The OPFS backend registered the session, a new one at the end of the root. Mirror that in
+            // memory so getSessionOrder() includes it immediately, before the next app initialization.
             this.locations.set(sessionId, loc);
+            this.tree = upsertSessionInTree(this.tree, { path: sessionId, storageType: StorageBackendType.OPFS });
         }
     }
 
@@ -269,7 +296,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
             // `deleteSession` is a no-op, but resolving it would `initialize()` the directory, which
             // re-creates it via `mkdir`. For a session whose folder was moved/deleted on disk (the
             // exact case that makes it deletable-because-invalid) that would either resurrect an empty
-            // folder or throw before we ever dropped the stale manifest entry — leaving it to error
+            // folder or throw before we ever dropped the stale registry entry — leaving it to error
             // again on the next launch. Dropping the entry is all that's needed and can't fail on a
             // missing folder.
             await this.opfs.removeSessionEntry(sessionId);
@@ -279,9 +306,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
             // OPFS deletes files and removes the registry entry in one step.
             await this.opfs.deleteSession(sessionId);
         }
-        this.locations.delete(sessionId);
-        this.nativeCache.delete(sessionId);
-        this.mirroredAttachments.delete(sessionId);
+        this.forgetSession(sessionId);
     }
 
     async loadScripts(sessionId: string): Promise<ScriptData[]> {
@@ -323,10 +348,11 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async clearAllStorage(): Promise<void> {
         // Only the OPFS root is wiped (registry + OPFS-backed sessions). Native sessions live in
         // user-owned folders on disk that we never delete; they're simply unregistered when the
-        // OPFS manifest is reset. We drop the in-memory location/backend caches to match.
+        // OPFS session tree is removed. We drop the in-memory location/backend caches to match.
         this.nativeCache.clear();
         this.mirroredAttachments.clear();
         this.locations.clear();
+        this.tree = emptySessionTree();
         await this.opfs.clearAllStorage?.();
     }
 
@@ -337,11 +363,11 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
 
     /// Find a registered UUID collision without attempting to read the session itself.
     ///
-    /// The root manifest is authoritative, including entries whose files or metadata are invalid.
+    /// The session tree is authoritative, including entries whose files or metadata are invalid.
     /// UUID comparison is case-insensitive, but the returned id preserves the actual registry key.
     async findSessionImportConflict(sessionId: string): Promise<SessionImportConflict | null> {
         const normalizedId = sessionId.toLowerCase();
-        const entries = await this.opfs.listSessions(STORAGE_MANIFEST_FILE);
+        const entries = await this.opfs.listSessions();
         const entry = entries.find(candidate => candidate.path.toLowerCase() === normalizedId);
         return entry == null
             ? null
@@ -395,22 +421,11 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     }
 
     private setLocationAfterPortableWrite(sessionId: string): void {
+        // Preserve the registry key when the source UUID differs only by case, the tree keeps its place
         const registeredId = [...this.locations.keys()]
-            .find(candidate => candidate.toLowerCase() === sessionId.toLowerCase());
-        if (registeredId == null || registeredId === sessionId) {
-            this.locations.set(sessionId, { type: StorageBackendType.OPFS });
-            return;
-        }
-
-        // Preserve the manifest key and its list position when the source UUID differs only by case.
-        const reordered = new Map<string, SessionLocation>();
-        for (const [id, location] of this.locations) {
-            reordered.set(id, id === registeredId ? { type: StorageBackendType.OPFS } : location);
-        }
-        this.locations.clear();
-        for (const [id, location] of reordered) {
-            this.locations.set(id, location);
-        }
+            .find(candidate => candidate.toLowerCase() === sessionId.toLowerCase()) ?? sessionId;
+        this.locations.set(registeredId, { type: StorageBackendType.OPFS });
+        this.tree = upsertSessionInTree(this.tree, { path: registeredId, storageType: StorageBackendType.OPFS });
     }
 
     /// Delete the complete OPFS session directory (durable files and derived cache), preserving its
@@ -422,9 +437,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     /// Delete an OPFS session directory and registry entry. Used for fresh staging UUID cleanup.
     async deletePortableSession(sessionId: string): Promise<void> {
         await this.opfs.deleteSession(sessionId);
-        this.locations.delete(sessionId);
-        this.nativeCache.delete(sessionId);
-        this.mirroredAttachments.delete(sessionId);
+        this.forgetSession(sessionId);
     }
 
     /// Register an already-prepared native folder and reconcile its file lists with its files.
@@ -488,6 +501,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
             nativePath: dir,
         });
         this.locations.set(uuid, { type: StorageBackendType.Native, nativePath: dir });
+        this.tree = upsertSessionInTree(this.tree, { path: uuid, storageType: StorageBackendType.Native, nativePath: dir });
         this.nativeCache.set(uuid, native);
 
         // 5. Now it's safe to drop the OPFS copy of the files (registry entry stays).
@@ -500,7 +514,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     /// Unlike `relocateSessionToNative`, this copies nothing: the directory already holds a complete
     /// session written by a previous run (or another machine). We simply read its session manifest,
     /// validate the metadata up front (the same fail-fast gate the loader uses), and record a
-    /// `location=native` entry in the OPFS root manifest so the next restore picks it up.
+    /// `location=native` entry in the OPFS session tree so the next restore picks it up.
     ///
     /// Returns the loaded session's UUID. Throws if the directory holds no readable session, the
     /// metadata is invalid, or a session with the same UUID is already registered (we never silently

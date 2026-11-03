@@ -3,9 +3,30 @@ import { STORAGE_VERSION } from './migration/versions.js';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
 import { sleep } from '../utils/sleep.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
+import {
+    INITIAL_SESSION_FOLDER,
+    STORAGE_FOLDER_FILE,
+    STORAGE_SESSION_TREE_FOLDER,
+    type SessionTreeFolder,
+    dropDuplicateSessions,
+    emptySessionTree,
+    flattenSessionTree,
+    folderAt,
+    folderNameError,
+    folderPathKey,
+    isFolderPathWithin,
+    listFolders,
+    moveSessionInTree,
+    readSessionTreeDirectory,
+    removeSessionFromTree,
+    sameFolderPath,
+    upsertSessionInTree,
+} from './session_tree.js';
 
 /// The name of the web lock that guards the manifest
 export const OPFS_MANIFEST_LOCK = 'dashql-manifest';
+/// The name of the web lock that guards the session tree
+export const OPFS_SESSION_TREE_LOCK = 'dashql-session-tree';
 
 /// The attempts to delete the files of a connection while one of them is in use, and the delay between them
 const DELETE_IN_USE_ATTEMPTS = 20;
@@ -13,8 +34,8 @@ const DELETE_IN_USE_RETRY_MS = 100;
 
 /// Origin Private File System storage backend.
 ///
-/// This backend owns the session registry (the root manifest), which lists *every* session
-/// regardless of where its files physically live. Sessions stored in OPFS keep their files under
+/// This backend owns the session registry (the session tree `sessiontree/`), which lists *every*
+/// session regardless of where its files physically live. Sessions stored in OPFS keep their files under
 /// `sessions/<uuid>/…`; sessions relocated to a native directory keep only a registry entry here
 /// (their files live on disk, managed by `NativeStorageBackend`).
 ///
@@ -23,6 +44,8 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
     /// The latest manifest mutation, every read-modify-write of the manifest chains onto it
     private manifestChain: Promise<void> = Promise.resolve();
+    /// The latest change of the session tree, every change of the tree chains onto it
+    private treeChain: Promise<void> = Promise.resolve();
 
     constructor(private readonly getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot) {}
 
@@ -32,6 +55,22 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
 
     async initialize(): Promise<void> {
         this.rootHandle = await this.getRoot();
+        await this.createSessionTree();
+    }
+
+    /// A storage without a session tree starts with the folder My Sessions.
+    /// The tree is only created once, a deleted folder stays deleted.
+    private async createSessionTree(): Promise<void> {
+        const root = this.ensureInitialized();
+        await this.withTreeLock(async () => {
+            try {
+                await root.getDirectoryHandle(STORAGE_SESSION_TREE_FOLDER, { create: false });
+            } catch (error) {
+                if ((error as DOMException).name !== 'NotFoundError') throw error;
+                await this.writeFolderFile([], []);
+                await this.writeFolderFile(INITIAL_SESSION_FOLDER, []);
+            }
+        });
     }
 
     /// Run a manifest operation exclusively.
@@ -45,6 +84,16 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         const run = locks != null ? () => locks.request(OPFS_MANIFEST_LOCK, fn) : fn;
         const result = this.manifestChain.then(run, run);
         this.manifestChain = result.then(() => { }, () => { });
+        return result;
+    }
+
+    /// Run an operation on the session tree exclusively, within this backend and across tabs.
+    /// Changes of the session tree read and write several folder files, the lock keeps them consistent.
+    private withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
+        const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+        const run = locks != null ? () => locks.request(OPFS_SESSION_TREE_LOCK, fn) : fn;
+        const result = this.treeChain.then(run, run);
+        this.treeChain = result.then(() => { }, () => { });
         return result;
     }
 
@@ -77,34 +126,9 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
     }
 
-    async listSessions(manifestPath: string): Promise<SessionEntry[]> {
-        const root = this.ensureInitialized();
-        try {
-            const indexFile = await root.getFileHandle(manifestPath, { create: false });
-            const file = await indexFile.getFile();
-            const text = await file.text();
-            const manifest: StorageManifest = JSON.parse(text);
-
-            if (!manifest.sessions || !Array.isArray(manifest.sessions)) {
-                throw new Error('Invalid manifest format: sessions must be an array');
-            }
-
-            // Validate entries
-            for (const entry of manifest.sessions) {
-                if (!entry.path) {
-                    throw new Error('Invalid manifest format: each session must have path');
-                }
-            }
-
-            return manifest.sessions;
-        } catch (error) {
-            // If file doesn't exist, return empty array
-            if ((error as any).name === 'NotFoundError') {
-                return [];
-            }
-            // Re-throw other errors (including validation errors)
-            throw error;
-        }
+    /// The sessions of the session tree, in the order of the sidebar
+    async listSessions(): Promise<SessionEntry[]> {
+        return flattenSessionTree(await this.loadSessionTree());
     }
 
     async loadSession(sessionId: string): Promise<SessionData> {
@@ -370,10 +394,17 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     async clearAllStorage(): Promise<void> {
         const root = this.ensureInitialized();
 
-        // Step 1: Clear the manifest (reset sessions to empty array) FIRST.
-        // This ensures the app won't try to restore sessions even if directory cleanup fails.
+        // Step 1: Remove the session tree FIRST.
+        // This ensures the app won't try to restore sessions even if the other cleanup fails.
         try {
-            await this.withManifestLock(() => this.writeManifest(root, { sessions: [] }));
+            await this.withTreeLock(() => root.removeEntry(STORAGE_SESSION_TREE_FOLDER, { recursive: true }));
+        } catch (error) {
+            if ((error as DOMException).name !== 'NotFoundError') {
+                console.warn('Failed to clear the session tree:', error);
+            }
+        }
+        try {
+            await this.withManifestLock(() => this.writeManifest(root, {}));
         } catch (error) {
             console.warn('Failed to clear manifest:', error);
         }
@@ -479,14 +510,14 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false });
             const file = await indexFile.getFile();
             const text = await file.text();
-            const manifest: StorageManifest = JSON.parse(text);
-            if (!manifest.sessions || !Array.isArray(manifest.sessions)) {
-                throw new Error('Invalid manifest format: sessions must be an array');
+            const manifest: unknown = JSON.parse(text);
+            if (manifest == null || typeof manifest !== 'object' || Array.isArray(manifest)) {
+                throw new Error('Invalid manifest format: not a JSON object');
             }
-            return manifest;
+            return manifest as StorageManifest;
         } catch (error) {
             if ((error as any).name === 'NotFoundError') {
-                return { sessions: [] };
+                return {};
             }
             throw error;
         }
@@ -500,58 +531,163 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await writable.close();
     }
 
+    /// Load the session tree. A session that the tree registers twice is listed where it comes first.
+    async loadSessionTree(): Promise<SessionTreeFolder> {
+        return await this.withTreeLock(async () => dropDuplicateSessions(await this.readTree()));
+    }
+
     /// Insert or replace a session's registry entry (matched by UUID), without touching files.
     ///
-    /// The array order is the user-facing session order (surfaced in the selector, reorderable by
-    /// drag-and-drop via `reorderSessions`), so we deliberately preserve it: a new session appends to
-    /// the end and an existing one is updated in place. We never re-sort.
-    async upsertSessionEntry(entry: SessionEntry): Promise<void> {
-        await this.mutateManifest(manifest => {
-            const existingIndex = manifest.sessions.findIndex(s => s.path === entry.path);
-            if (existingIndex < 0) {
-                manifest.sessions.push(entry);
-            } else {
-                manifest.sessions[existingIndex] = entry;
-            }
-        });
+    /// A registered session keeps its place in the tree, a new one is appended to the folder at
+    /// `folderPath` (the root by default). We never re-sort.
+    async upsertSessionEntry(entry: SessionEntry, folderPath: readonly string[] = []): Promise<void> {
+        await this.mutateTree(tree => upsertSessionInTree(tree, entry, folderPath));
     }
 
     /// Remove a session's registry entry (matched by UUID), without touching files.
     async removeSessionEntry(sessionId: string): Promise<void> {
-        await this.mutateManifest(manifest => {
-            manifest.sessions = manifest.sessions.filter(s => s.path !== sessionId);
+        await this.mutateTree(tree => removeSessionFromTree(tree, sessionId));
+    }
+
+    /// Move a session to a position in a folder, without touching files. The index counts the sessions of
+    /// the folder without the moved session. A session that isn't registered yet is placed as an OPFS
+    /// session, its first write keeps the place.
+    async moveSession(sessionId: string, folderPath: string[], index: number): Promise<void> {
+        await this.mutateTree(tree => {
+            if (folderAt(tree, folderPath) == null) {
+                throw new Error(`There is no folder ${folderPath.join('/')}`);
+            }
+            return moveSessionInTree(tree, sessionId, folderPath, index);
         });
     }
 
-    /// Reorder the registry entries to match `orderedIds` (a permutation of the existing session
-    /// UUIDs), without touching files. Entries are re-emitted in the given order; any UUID not present
-    /// in the manifest is ignored, and any manifest entry missing from `orderedIds` is appended at the
-    /// end in its current relative order (so a stale/racing id list can never drop a session).
-    async reorderSessions(orderedIds: string[]): Promise<void> {
-        await this.mutateManifest(manifest => {
-            this.reorderManifestSessions(manifest, orderedIds);
+    /// Create a folder, its parent must exist
+    async createFolder(path: string[]): Promise<void> {
+        await this.withTreeLock(async () => {
+            const tree = await this.readTree();
+            const name = path[path.length - 1];
+            const parent = folderAt(tree, path.slice(0, -1));
+            if (name == null || parent == null) {
+                throw new Error(`There is no folder ${path.slice(0, -1).join('/')}`);
+            }
+            const error = folderNameError(name, parent.folders.map(folder => folder.name));
+            if (error != null) throw new Error(error);
+            await this.writeFolderFile(path, []);
         });
     }
 
-    private reorderManifestSessions(manifest: StorageManifest, orderedIds: string[]): void {
-        const byId = new Map(manifest.sessions.map(s => [s.path, s]));
-        const reordered: SessionEntry[] = [];
-        const taken = new Set<string>();
-        for (const id of orderedIds) {
-            const entry = byId.get(id);
-            if (entry && !taken.has(id)) {
-                reordered.push(entry);
-                taken.add(id);
+    /// Move a folder into another folder under a name, its sessions and subfolders move with it.
+    /// Renaming a folder moves it within its parent.
+    async moveFolder(path: string[], parentPath: string[], name: string = path[path.length - 1] ?? ''): Promise<void> {
+        await this.withTreeLock(async () => {
+            const tree = await this.readTree();
+            const parent = folderAt(tree, parentPath);
+            if (path.length === 0 || folderAt(tree, path) == null) {
+                throw new Error(`There is no folder ${path.join('/')}`);
             }
-        }
-        // Preserve any entries the caller didn't mention, keeping their existing relative order.
-        for (const entry of manifest.sessions) {
-            if (!taken.has(entry.path)) {
-                reordered.push(entry);
+            if (parent == null) {
+                throw new Error(`There is no folder ${parentPath.join('/')}`);
             }
-        }
+            if (isFolderPathWithin(parentPath, path)) {
+                throw new Error('A folder cannot move into itself');
+            }
+            const sameParent = sameFolderPath(parentPath, path.slice(0, -1));
+            const oldName = path[path.length - 1];
+            if (sameParent && name === oldName) return;
+            const siblings = parent.folders.map(folder => folder.name)
+                .filter(sibling => !(sameParent && sibling === oldName));
+            const error = folderNameError(name, siblings);
+            if (error != null) throw new Error(error);
+            if (sameParent && name.toLowerCase() === oldName.toLowerCase()) {
+                // A file system that ignores the case would copy the folder onto itself, the move takes a detour
+                const detour = `${name}.${crypto.randomUUID()}`;
+                await this.copyFolderUnlocked(path, parentPath, detour);
+                await this.copyFolderUnlocked([...parentPath, detour], parentPath, name);
+                return;
+            }
+            await this.copyFolderUnlocked(path, parentPath, name);
+        });
+    }
 
-        manifest.sessions = reordered;
+    /// Delete a folder. Its sessions and the sessions of its subfolders move to the parent folder, no
+    /// session is deleted.
+    async deleteFolder(path: string[]): Promise<void> {
+        await this.withTreeLock(async () => {
+            const tree = dropDuplicateSessions(await this.readTree());
+            const folder = folderAt(tree, path);
+            if (path.length === 0 || folder == null) {
+                throw new Error(`There is no folder ${path.join('/')}`);
+            }
+            const parentPath = path.slice(0, -1);
+            const parent = folderAt(tree, parentPath)!;
+            // The parent registers the sessions before the folder goes away, an interruption leaves duplicates
+            const moved = flattenSessionTree(folder);
+            if (moved.length > 0) {
+                await this.writeFolderFile(parentPath, [...parent.sessions, ...moved]);
+            }
+            const parentDir = await this.folderDir(parentPath, false);
+            await parentDir.removeEntry(path[path.length - 1], { recursive: true });
+        });
+    }
+
+    /// Read the session tree as it is stored, duplicates included
+    private async readTree(): Promise<SessionTreeFolder> {
+        const root = this.ensureInitialized();
+        try {
+            const dir = await root.getDirectoryHandle(STORAGE_SESSION_TREE_FOLDER, { create: false });
+            return await readSessionTreeDirectory(dir);
+        } catch (error) {
+            if ((error as DOMException).name === 'NotFoundError') return emptySessionTree();
+            throw error;
+        }
+    }
+
+    /// Change the sessions of the tree exclusively, only the folder files that change are written.
+    /// The folders that gain sessions are written first, an interruption duplicates a session instead of
+    /// losing it, and the next change drops the duplicates.
+    private async mutateTree(fn: (tree: SessionTreeFolder) => SessionTreeFolder): Promise<void> {
+        await this.withTreeLock(async () => {
+            const stored = await this.readTree();
+            const next = fn(dropDuplicateSessions(stored));
+            const before = new Map(listFolders(stored).map(folder => [folderPathKey(folder.path), folder.sessions]));
+            const changed = listFolders(next).filter(folder => {
+                const sessions = before.get(folderPathKey(folder.path));
+                return sessions == null || JSON.stringify(sessions) !== JSON.stringify(folder.sessions);
+            });
+            changed.sort((left, right) => (right.sessions.length - (before.get(folderPathKey(right.path))?.length ?? 0))
+                - (left.sessions.length - (before.get(folderPathKey(left.path))?.length ?? 0)));
+            for (const folder of changed) {
+                await this.writeFolderFile(folder.path, folder.sessions);
+            }
+        });
+    }
+
+    /// The directory of a folder of the session tree
+    private async folderDir(path: readonly string[], create: boolean): Promise<FileSystemDirectoryHandle> {
+        let dir = await this.ensureInitialized().getDirectoryHandle(STORAGE_SESSION_TREE_FOLDER, { create });
+        for (const name of path) {
+            dir = await dir.getDirectoryHandle(name, { create });
+        }
+        return dir;
+    }
+
+    /// Write the folder file of a folder, the folder is created when missing
+    private async writeFolderFile(path: readonly string[], sessions: SessionEntry[]): Promise<void> {
+        const dir = await this.folderDir(path, true);
+        const writable = await (await dir.getFileHandle(STORAGE_FOLDER_FILE, { create: true })).createWritable();
+        await writable.write(JSON.stringify({ sessions }, null, 2));
+        await writable.close();
+    }
+
+    /// Copy a folder into a parent under a name, then remove the original. The copy comes first, an
+    /// interruption leaves both folders and the sessions are listed where they come first.
+    /// The tree holds small folder files only, so a copy is cheap and works in every browser.
+    private async copyFolderUnlocked(path: readonly string[], parentPath: readonly string[], name: string): Promise<void> {
+        const source = await this.folderDir(path, false);
+        const target = await (await this.folderDir(parentPath, true)).getDirectoryHandle(name, { create: true });
+        await copyDirectory(source, target);
+        const sourceParent = await this.folderDir(path.slice(0, -1), false);
+        await sourceParent.removeEntry(path[path.length - 1], { recursive: true });
     }
 
     private async getSessionDir(
@@ -576,5 +712,19 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             }
         }
         return currentDir;
+    }
+}
+
+/// Copy the files and directories of a directory into another one
+async function copyDirectory(source: FileSystemDirectoryHandle, target: FileSystemDirectoryHandle): Promise<void> {
+    for await (const [name, handle] of source.entries()) {
+        if (handle.kind === 'directory') {
+            await copyDirectory(handle as FileSystemDirectoryHandle, await target.getDirectoryHandle(name, { create: true }));
+            continue;
+        }
+        const file = await (handle as FileSystemFileHandle).getFile();
+        const writable = await (await target.getFileHandle(name, { create: true })).createWritable();
+        await writable.write(file);
+        await writable.close();
     }
 }

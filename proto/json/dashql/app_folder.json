@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashql/app_folder.json",
+  "title": "SessionFolder",
+  "description": "A folder of the session tree (sessiontree/**/dashql-folder.json). The directories of the session tree are the folders of the sidebar, the directory name is the folder name. Every directory holds one folder file with the sessions of the folder.",
+  "type": "object",
+  "properties": {
+    "sessions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SessionEntry"
+      },
+      "description": "The sessions of the folder, in the order of the sidebar. The subfolders are listed before them, in the natural order of their names."
+    }
+  },
+  "required": ["sessions"],
+  "additionalProperties": false,
+  "definitions": {
+    "SessionEntry": {
+      "type": "object",
+      "description": "A session of the session tree",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The session identity as a bare session UUID."
+        },
+        "storageType": {
+          "type": "string",
+          "enum": ["opfs", "native"],
+          "description": "Where this session's files live. Defaults to \"opfs\" when omitted (the OPFS root). \"native\" means the files live directly in `nativePath`. Mirrors the `storageType` field on the session itself."
+        },
+        "nativePath": {
+          "type": "string",
+          "description": "Absolute directory holding this session's files. Required when storageType is \"native\"; one directory holds exactly one session."
+        }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+    }
+  }
+}

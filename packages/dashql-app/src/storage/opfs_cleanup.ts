@@ -8,8 +8,9 @@ import {
     STORAGE_SHELL_FOLDER,
     StorageBackendType,
 } from './storage_backend.js';
-import { OPFS_MANIFEST_LOCK } from './opfs_storage_backend.js';
+import { OPFS_MANIFEST_LOCK, OPFS_SESSION_TREE_LOCK } from './opfs_storage_backend.js';
 import { type ManifestJson, readManifestJson } from './migration/storage_root.js';
+import { type SessionEntry, STORAGE_SESSION_TREE_FOLDER, flattenSessionTree, readSessionTree } from './session_tree.js';
 import { SHELL_FILES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs.js';
 import {
     HYPER_INSTANCE_LOCK_PREFIX,
@@ -44,7 +45,7 @@ export interface OPFSCleanupResult {
     skipped: { path: string; reason: string }[];
 }
 
-/// The sessions and connections that the manifest registers, with lower-case ids
+/// The sessions that the session tree and the connections that the manifest registers, with lower-case ids
 interface Registrations {
     /// The sessions that live in OPFS
     opfsSessions: Set<string>;
@@ -54,13 +55,11 @@ interface Registrations {
     connections: Set<string>;
 }
 
-/// Read the registrations of the manifest, null without a manifest
-function readRegistrations(manifest: ManifestJson | null): Registrations | null {
+/// Read the registrations of the manifest and the session tree, null without a manifest
+function readRegistrations(manifest: ManifestJson | null, sessions: readonly SessionEntry[]): Registrations | null {
     if (manifest == null) return null;
     const registrations: Registrations = { opfsSessions: new Set(), nativeSessions: new Set(), connections: new Set() };
-    for (const entry of Array.isArray(manifest.sessions) ? manifest.sessions as unknown[] : []) {
-        const { path, storageType } = (entry ?? {}) as { path?: unknown; storageType?: unknown };
-        if (typeof path !== 'string') continue;
+    for (const { path, storageType } of sessions) {
         (storageType === StorageBackendType.Native ? registrations.nativeSessions : registrations.opfsSessions).add(path.toLowerCase());
     }
     for (const entry of Array.isArray(manifest.connections) ? manifest.connections as unknown[] : []) {
@@ -93,17 +92,17 @@ const UNUSED = 'Not used by this version of DashQL';
 
 /// Find the OPFS entries that the current app version doesn't use.
 ///
-/// The scan compares the OPFS root against the current layout: the manifest, the registered sessions
-/// and connections, the shell folders, the instance folders of open app windows and the Parquet
+/// The scan compares the OPFS root against the current layout: the manifest, the session tree, the
+/// registered sessions and connections, the shell folders, the instance folders of open app windows and the Parquet
 /// exports. Everything else was left by earlier app versions, by interrupted operations or by sessions
 /// and connections that are gone. The scan reads directory listings only, it never reads files besides
-/// the manifest and only descends into the folders it knows.
+/// the manifest and the folder files of the session tree and only descends into the folders it knows.
 export async function findOPFSCleanupCandidates(
     root: FileSystemDirectoryHandle,
     locks: LockManager | null = navigator.locks ?? null,
 ): Promise<OPFSCleanupCandidate[]> {
     // Without a manifest there is no telling which sessions and connections are registered, they are left alone
-    const registrations = readRegistrations(await readManifestJson(root));
+    const registrations = await readRootRegistrations(root);
     // Without Web Locks there is no telling which instance folders are alive, they are left alone
     const heldLocks = locks == null ? null : new Set(((await locks.query()).held ?? []).map(lock => lock.name));
     const candidates: OPFSCleanupCandidate[] = [];
@@ -148,6 +147,7 @@ export async function findOPFSCleanupCandidates(
                 break;
             case STORAGE_SHELL_FOLDER:
             case SHELL_FILES_DIRECTORY:
+            case STORAGE_SESSION_TREE_FOLDER:
                 break;
             case HYPER_LEGACY_LOGS_DIRECTORY:
                 add([name], true, 'Hyper logs of an earlier version');
@@ -201,7 +201,7 @@ async function scanSessions(
 
 /// Delete cleanup candidates.
 ///
-/// The deletion holds the manifest lock and reads the manifest again, a candidate whose session or
+/// The deletion holds the manifest and session tree locks and reads the registrations again, a candidate whose session or
 /// connection was registered in the meantime is kept. A candidate with a lock is only deleted while
 /// its lock is free, and files that are still open are kept.
 export async function removeOPFSCleanupCandidates(
@@ -210,7 +210,7 @@ export async function removeOPFSCleanupCandidates(
     locks: LockManager | null = navigator.locks ?? null,
 ): Promise<OPFSCleanupResult> {
     const run = async (): Promise<OPFSCleanupResult> => {
-        const registrations = readRegistrations(await readManifestJson(root));
+        const registrations = await readRootRegistrations(root);
         const result: OPFSCleanupResult = { removed: 0, skipped: [] };
         for (const candidate of candidates) {
             const path = candidate.path.join('/');
@@ -226,7 +226,15 @@ export async function removeOPFSCleanupCandidates(
         }
         return result;
     };
-    return locks != null ? await locks.request(OPFS_MANIFEST_LOCK, run) : await run();
+    // Sessions are registered in the session tree and connections in the manifest, the deletion holds both locks
+    return locks != null
+        ? await locks.request(OPFS_MANIFEST_LOCK, () => locks.request(OPFS_SESSION_TREE_LOCK, run))
+        : await run();
+}
+
+/// Read the registrations of a storage root
+async function readRootRegistrations(root: FileSystemDirectoryHandle): Promise<Registrations | null> {
+    return readRegistrations(await readManifestJson(root), flattenSessionTree(await readSessionTree(root)));
 }
 
 /// Remove an entry, returns why it was kept or null

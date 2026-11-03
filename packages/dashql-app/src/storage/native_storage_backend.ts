@@ -83,8 +83,8 @@ export class NativeStorageBackend implements StorageBackend {
 
     // ---- Registry-level operations (owned by OPFS; inert here) -------------------------------
 
-    async listSessions(_manifestPath: string): Promise<SessionEntry[]> {
-        // The registry lives in the OPFS root manifest, never in a native session directory.
+    async listSessions(): Promise<SessionEntry[]> {
+        // The registry lives in the OPFS session tree, never in a native session directory.
         return [];
     }
 

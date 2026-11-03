@@ -21,6 +21,7 @@ jsonschema_typescript(
         "dashql/auth.json",
         "dashql/connection.json",
         "dashql/app_event.json",
+        "dashql/app_folder.json",
         "dashql/app_manifest.json",
         "dashql/app_session.json",
     ],
