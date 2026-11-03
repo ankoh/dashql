@@ -65,6 +65,22 @@ describe('ProfileExecutionController', () => {
         controller.applyState(ProfileExecutionState.EMPTY.withEvents(planEvents(operatorUpdate(0, SUCCEEDED))));
         expect(operator.dataset.status).toEqual(`${SUCCEEDED}`);
     });
+
+    it('shows the status of the fragment for operators without status', () => {
+        const controller = new ProfileExecutionController();
+        const reported = svg('g');
+        const inherited = svg('g');
+        controller.reset(2, 0);
+        controller.registerOperator(0, reported);
+        controller.registerOperator(1, inherited);
+        const state = ProfileExecutionState.EMPTY.withEvents(planEvents(
+            operatorUpdate(0, SUCCEEDED),
+            update(view.ProfileEntity.FRAGMENT, 0, RUNNING),
+        ));
+        controller.applyState(state, [0, 0]);
+        expect(reported.dataset.status).toEqual(`${SUCCEEDED}`);
+        expect(inherited.dataset.status).toEqual(`${RUNNING}`);
+    });
 });
 
 describe('ProfileExecutionState', () => {

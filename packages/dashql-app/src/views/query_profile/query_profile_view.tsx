@@ -248,7 +248,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
 
     React.useLayoutEffect(() => {
         controller.reset(scene.operators.length, scene.pipelines.length);
-        controller.applyState(execution);
+        controller.applyState(execution, scene.operators.map(operator => operator.fragment));
         if (controllerRef != null) controllerRef.current = controller;
         return () => {
             if (controllerRef != null) controllerRef.current = null;

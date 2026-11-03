@@ -5,6 +5,7 @@ import * as styles from './query_progress_panel.module.css';
 import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { TabHeader } from '../../session/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
+import { useQueryProfileDetail } from '../../connections/query_executor.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -107,6 +108,8 @@ interface QueryProgressPanelProps {
 /// The progress of a query: its phase, a progress bar, throughput and the stages with their progress
 export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const { query } = props;
+    // The connector fetches the plan and its statistics only while a profile is shown
+    useQueryProfileDetail(query.queryId, props.showProfile === true);
     const progress = query.latestProgressUpdate;
     const profileProgress = progress?.profileProgress ?? null;
     const queryState = profileProgress?.execution.query ?? null;
@@ -177,7 +180,7 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
             )}
             {props.showProfile && profileProgress != null && hasOperators && (
                 <div className={styles.profile} data-testid="query-progress-profile">
-                    <QueryProfileView plan={profileProgress.structure} execution={profileProgress.execution} />
+                    <QueryProfileView plan={profileProgress.structure} execution={profileProgress.execution} showProgress />
                 </div>
             )}
         </div>

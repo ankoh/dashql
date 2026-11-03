@@ -58,11 +58,16 @@ export class ProfileExecutionController {
         }
     }
 
-    /// Show the statuses of an execution state, after a reset
-    public applyState(state: ProfileExecutionState) {
-        state.operators.forEach((operator, id) => {
-            if (operator != null) this.setOperatorStatus(id, operator.status);
-        });
+    /// Show the statuses of an execution state, after a reset. An operator without status of its own shows the
+    /// status of its fragment (`operatorFragments`, by operator): Trino reports operators of finished stages only.
+    public applyState(state: ProfileExecutionState, operatorFragments: readonly number[] = []) {
+        for (let id = 0; id < this.statuses.length; ++id) {
+            const own = state.operators[id]?.status ?? view.ProfileExecutionStatus.UNKNOWN;
+            const fragment = operatorFragments[id];
+            const inherited = fragment == null ? undefined : state.fragments[fragment]?.status;
+            const status = own !== view.ProfileExecutionStatus.UNKNOWN ? own : inherited;
+            if (status != null) this.setOperatorStatus(id, status);
+        }
         state.pipelines.forEach((pipeline, id) => {
             if (pipeline != null) this.setPipelineStatus(id, pipeline.status);
         });

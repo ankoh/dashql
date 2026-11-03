@@ -21,6 +21,8 @@ export interface ProfileSceneOperator {
     ports: number;
     /// The estimated output rows, NaN if the plan has no estimate
     estimatedRows: number;
+    /// The innermost fragment (U32_MAX if none)
+    fragment: number;
     properties: Record<string, unknown>;
 }
 
@@ -384,6 +386,7 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
             rect: { x: layout.x(), y: layout.y(), width, height: layout.height() },
             ports: 0,
             estimatedRows: op.estimatedRows(),
+            fragment: op.fragment(),
             properties: readAttributeRange(vm, op.attributesBegin(), op.attributeCount()),
         };
     }

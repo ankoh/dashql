@@ -70,6 +70,7 @@ describe('TrinoQueryResultStream', () => {
         );
         const info = { queryId: 'query-id', stages: { stages: [] } };
         (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue(info);
+        stream.setProfileDetail(true);
         const kinds: (string | undefined)[] = [];
         await stream.produce(
             new AsyncConsumerLambdas(),
@@ -82,12 +83,27 @@ describe('TrinoQueryResultStream', () => {
         expect(calls.map(call => [call[1], call[3] ?? false])).toEqual([['query-id', false], ['query-id', true]]);
     });
 
+    it('fetches no plans while nobody shows the profile', async () => {
+        const running = { ...state('RUNNING'), rootStage: { stageId: '0' } } as TrinoQueryResult['stats'];
+        const { stream, apiClient } = resultStream(
+            { stats: running, nextUri: 'https://example.com/next' },
+            [{ columns: COLUMNS, stats: state('FINISHED') }],
+        );
+        (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue({});
+        await stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas());
+        expect(apiClient.getQueryInfo).not.toHaveBeenCalled();
+        // Showing the profile after the stream ended fetches nothing either
+        stream.setProfileDetail(true);
+        expect(apiClient.getQueryInfo).not.toHaveBeenCalled();
+    });
+
     it('stops sampling the statistics when the query fails', async () => {
         vi.useFakeTimers();
         try {
             const running = { ...state('RUNNING'), rootStage: { stageId: '0' } } as TrinoQueryResult['stats'];
             const { stream, apiClient } = resultStream({ stats: running, nextUri: 'https://example.com/next' });
             (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue({});
+            stream.setProfileDetail(true);
             vi.mocked(apiClient.getQueryResult).mockRejectedValueOnce(new Error('connection lost'));
             await expect(stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas())).rejects.toThrow('connection lost');
             await vi.advanceTimersByTimeAsync(10_000);

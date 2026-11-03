@@ -12,6 +12,7 @@ function operator(id: number, x: number, y: number): ProfileSceneOperator {
         rect: { x, y, width: 80, height: 32 },
         ports: 0,
         estimatedRows: Number.NaN,
+        fragment: 0xFFFFFFFF,
         properties: {},
     };
 }

@@ -38,6 +38,7 @@ const operators: ProfileSceneOperator[] = [
         rect: { x: 40, y: 40, width: 100, height: 32 },
         ports: 1,
         estimatedRows: 10,
+        fragment: 0xFFFFFFFF,
         properties: { table: 'orders' },
     },
     {
@@ -49,6 +50,7 @@ const operators: ProfileSceneOperator[] = [
         rect: { x: 160, y: 40, width: 100, height: 32 },
         ports: 3,
         estimatedRows: 10,
+        fragment: 0xFFFFFFFF,
         properties: { expression: 'price * quantity' },
     },
     {
@@ -60,6 +62,7 @@ const operators: ProfileSceneOperator[] = [
         rect: { x: 280, y: 40, width: 100, height: 32 },
         ports: 2,
         estimatedRows: 10,
+        fragment: 0xFFFFFFFF,
         properties: {},
     },
 ];

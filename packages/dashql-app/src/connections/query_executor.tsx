@@ -89,16 +89,30 @@ interface QueryExecutionRuntime {
     /// The cancellation of the result stream at the backend, sent once
     backendCancellation: Promise<void> | null;
     execution: Promise<arrow.Table | null> | null;
+    /// The views that show the profile of the query
+    profileViewers: number;
 }
+/// Show the profile of a running query, returns the function that stops showing it
+export type WatchQueryProfile = (queryId: number) => () => void;
 /// The React context to resolve the active query executor
 interface QueryExecutorContextValue {
     execute: QueryExecutor;
     cancel: CancelQuery;
+    watchProfile: WatchQueryProfile;
 }
 const EXECUTOR_CTX = React.createContext<QueryExecutorContextValue | null>(null);
 /// The hook to resolve the query executor
 export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!.execute;
 export const useCancelQuery = () => React.useContext(EXECUTOR_CTX)!.cancel;
+/// Show the profile of a query while the component is mounted: the connector then fetches the plan and its
+/// statistics (Trino). Without executor, e.g. in tests, nothing is fetched.
+export function useQueryProfileDetail(queryId: number | null, enabled = true) {
+    const watchProfile = React.useContext(EXECUTOR_CTX)?.watchProfile;
+    React.useEffect(() => {
+        if (!enabled || queryId == null || watchProfile == null) return;
+        return watchProfile(queryId);
+    }, [watchProfile, queryId, enabled]);
+}
 /// Use the query state
 export function useQueryState(sessionId: string | null, queryId: number | null) {
     // Subscribe to the single query instead of the registry.
@@ -140,7 +154,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     // The progress models of the running queries, they need the core. The core is requested with the first
     // structured progress, until it is ready the progress has no structure.
     const coreSetup = useDashQLCoreSetup() as DashQLSetupFn | null;
-    const progressModels = React.useRef(new QueryProgressModels(createProfileLayoutConfig(false)));
+    const progressModels = React.useRef(new QueryProgressModels(createProfileLayoutConfig(true)));
     const progressCore = React.useRef<core.DashQL | null>(null);
     const progressCoreRequested = React.useRef(false);
     const applyEngineProgress = React.useCallback((queryId: number, payload: EngineProgressPayload) => {
@@ -376,6 +390,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                         if (resultStream != null) {
                             runtime.resultStream = resultStream;
+                            resultStream.setProfileDetail?.(runtime.profileViewers > 0);
                             tracked.running(resultStream);
 
                             // Subscribe to query_status and result messages
@@ -495,6 +510,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             resultStream: null,
             backendCancellation: null,
             execution: null,
+            profileViewers: 0,
         };
         // Every abort stops the query at the backend, a stream that arrives later is cancelled when it arrives
         runtime.cancellation.signal.addEventListener('abort', () => {
@@ -543,7 +559,18 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         await runtime.execution?.catch(() => null);
     }, []);
 
-    const value = React.useMemo(() => ({ execute, cancel }), [execute, cancel]);
+    const watchProfile = React.useCallback<WatchQueryProfile>(queryId => {
+        const update = (delta: number) => {
+            const runtime = queryRuntimes.current.get(queryId);
+            if (runtime == null) return;
+            runtime.profileViewers = Math.max(0, runtime.profileViewers + delta);
+            runtime.resultStream?.setProfileDetail?.(runtime.profileViewers > 0);
+        };
+        update(1);
+        return () => update(-1);
+    }, []);
+
+    const value = React.useMemo(() => ({ execute, cancel, watchProfile }), [execute, cancel, watchProfile]);
 
     return (
         <EXECUTOR_CTX.Provider value={value}>
