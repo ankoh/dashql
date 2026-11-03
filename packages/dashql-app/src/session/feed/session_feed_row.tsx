@@ -632,6 +632,9 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         rowRef.current = node;
         setNodeRef(node);
     }, [setNodeRef]);
+    // The list keys its rows by index, a script inserted above moves the scripts down into the mounted rows.
+    // A row measures again when it shows another script, its size may not change and the size observer stays silent.
+    const rowScriptId = entry?.scriptId;
     React.useLayoutEffect(() => {
         const row = rowRef.current;
         if (row == null) return;
@@ -643,7 +646,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         const observer = new ResizeObserver(syncHeight);
         observer.observe(row);
         return () => observer.disconnect();
-    }, [props.index, props.onRowHeightChange]);
+    }, [props.index, rowScriptId, props.onRowHeightChange]);
 
     // The row holds the card and the space below it, the first row also the space above the feed.
     // The add buttons sit in these spaces, a button between two scripts shows while either one is hovered.

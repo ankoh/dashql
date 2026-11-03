@@ -381,6 +381,23 @@ describe('V2 session feed rows', () => {
         rect.mockRestore();
     });
 
+    it('measures a row again when an inserted script takes its index at the same size', () => {
+        const props = baseProps();
+        const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 120 } as DOMRect);
+        try {
+            act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+            expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
+            props.onRowHeightChange.mockClear();
+            // A script inserted above takes the mounted row of index 0, the size observer sees no change
+            const inserted = { ...props, entries: [{ scriptId: 3, fileName: '03_gamma.sql' }, ...props.entries],
+                scripts: { ...props.scripts, 3: script(3, '03_gamma.sql') } };
+            act(() => root.render(<ScriptFeedRow {...({ ...inserted, index: 0, style: {} } as any)} />));
+            expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
+        } finally {
+            rect.mockRestore();
+        }
+    });
+
     it('greys the play button offline and requests attention once per pointer entry without opening settings', () => {
         const props = baseProps();
         const request = vi.fn();
