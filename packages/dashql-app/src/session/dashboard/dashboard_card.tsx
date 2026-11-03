@@ -14,6 +14,7 @@ import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { CheckIcon, EyeClosedIcon, GraphIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon, SyncIcon, TableIcon, ToolsIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { dashboardCardHeight, type DashboardPlacement } from './dashboard_layout.js';
+import { NEW_CHART_SPEC } from '../chart_builder/chart_spec_paths.js';
 import { markdownTemplate, type DashboardRenderer } from './dashboard_source.js';
 import * as styles from './dashboard.module.css';
 
@@ -43,8 +44,9 @@ interface Props {
     onResize: (scriptId: number, width: number, height: number, commit: boolean) => void;
     onResizeCancel: () => void;
     shifted: boolean;
-    /// Give a card a renderer, the chart opens the chart builder instead
-    onVisualize: (scriptId: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => void;
+    /// Give a card a renderer with a starter body
+    onVisualize: (scriptId: number, renderer: DashboardRenderer, body: string) => void;
+    /// Open the chart builder of a chart card
     onOpenChart: (scriptId: number) => void;
     /// Remove the renderer of a card, it collapses to its script
     onRemoveVisualization: (scriptId: number) => void;
@@ -149,14 +151,14 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     const markdownDescription = template == null ? 'Run the script first' : 'Render every row as Markdown';
 
     // The renderers of a card in the order of its segments, the last one collapses the card to its script. A chart
-    // opens the chart builder, the renderer changes with the first edit of the spec.
+    // starts as a bar chart, the board opens its chart builder.
     const renderers: (DashboardRenderer | null)[] = ['table', 'vegalite', 'markdown', null];
     const currentRenderer = visualizeQuery?.renderer ?? null;
     const switchRenderer = (index: number) => {
         const renderer = renderers[index];
         if (renderer === currentRenderer) return;
         if (renderer == null) props.onRemoveVisualization(props.script.scriptKey);
-        else if (renderer === 'vegalite') props.onOpenChart(props.script.scriptKey);
+        else if (renderer === 'vegalite') props.onVisualize(props.script.scriptKey, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
         else if (renderer === 'table') props.onVisualize(props.script.scriptKey, 'table', '');
         else if (template != null) props.onVisualize(props.script.scriptKey, 'markdown', template);
     };

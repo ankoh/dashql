@@ -182,15 +182,16 @@ export function Dashboard(props: Props): React.ReactElement {
         resizeBaselineRef.current = null;
     }, []);
 
-    // The renderers of a card. A Markdown template is a start, the editor opens to adjust it.
+    // The renderers of a card. A Markdown template and a bar chart are a start, the editor or the chart builder opens
+    // to adjust them.
     const scriptsRef = React.useRef(props.sessionScripts.scripts);
     scriptsRef.current = props.sessionScripts.scripts;
-    const handleVisualize = React.useCallback((scriptKey: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => {
+    const handleVisualize = React.useCallback((scriptKey: number, renderer: DashboardRenderer, body: string) => {
         const script = scriptsRef.current[scriptKey];
         if (script == null) return;
-        if (setDashboardRenderer(script, renderer, body, props.modifySessionScripts, logger) && renderer === 'markdown') {
-            setOverlay({ scriptKey, kind: 'editor' });
-        }
+        if (!setDashboardRenderer(script, renderer, body, props.modifySessionScripts, logger)) return;
+        if (renderer === 'markdown') setOverlay({ scriptKey, kind: 'editor' });
+        else if (renderer === 'vegalite') setOverlay({ scriptKey, kind: 'chart' });
     }, [props.modifySessionScripts, logger]);
     const handleRemoveVisualization = React.useCallback((scriptKey: number) => {
         const script = scriptsRef.current[scriptKey];

@@ -6,6 +6,9 @@
 export type ChartSpec = Record<string, unknown>;
 export type ChannelDef = Record<string, unknown>;
 
+/// The spec of a new chart
+export const NEW_CHART_SPEC: Readonly<ChartSpec> = { mark: 'bar' };
+
 /// The marks of the builder, the first ones are shown as buttons
 export const PRIMARY_MARKS = ['bar', 'line', 'area', 'point'] as const;
 export const SECONDARY_MARKS = ['circle', 'square', 'tick', 'rect', 'rule', 'text', 'arc', 'boxplot'] as const;

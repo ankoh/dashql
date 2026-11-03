@@ -13,13 +13,11 @@ import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { chartColumns } from './chart_columns.js';
 import { ChartSpecBuilder } from './chart_spec_builder.js';
 import { ChartSpecJsonEditor } from './chart_spec_json_editor.js';
-import { encodedFields, inlineSharedEncoding, type ChartSpec } from './chart_spec_paths.js';
+import { encodedFields, inlineSharedEncoding, NEW_CHART_SPEC, type ChartSpec } from './chart_spec_paths.js';
 import * as styles from './chart_builder.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 const VEGA_LITE_SCHEMA = 'https://vega.github.io/schema/vega-lite/v6.json';
-/// The spec of a script without a chart
-const NEW_CHART_SPEC: ChartSpec = { mark: 'bar' };
 /// Checking the spec compiles it, wait until the user pauses
 const CHECK_DELAY_MS = 200;
 

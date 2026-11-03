@@ -146,7 +146,8 @@ describe('DashboardCard', () => {
         act(() => button('dashboard-card-renderer-table')!.click());
         expect(onVisualize).not.toHaveBeenCalled();
         act(() => button('dashboard-card-renderer-chart')!.click());
-        expect(onOpenChart).toHaveBeenCalledWith(1);
+        expect(onVisualize).toHaveBeenCalledWith(1, 'vegalite', '{"mark":"bar"}');
+        expect(onOpenChart).not.toHaveBeenCalled();
         act(() => button('dashboard-card-renderer-markdown')!.click());
         expect(onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}}');
 
@@ -348,7 +349,7 @@ describe('DashboardCard', () => {
             act(() => button('dashboard-card-renderer-markdown').click());
             expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}} · {{year}}');
             act(() => button('dashboard-card-renderer-chart').click());
-            expect(callbacks.onOpenChart).toHaveBeenCalledWith(1);
+            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'vegalite', '{"mark":"bar"}');
             act(() => button('dashboard-card-edit').click());
             expect(callbacks.onOpenEditor).toHaveBeenCalledWith(1);
         });
