@@ -46,6 +46,88 @@ function hyperQueryEvents(status: HyperQueryStatus, time: number): object[] {
 export interface QueryProfileProgress {
     structure: dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>;
     execution: ProfileExecutionState;
+    /// The recording of the payloads so far, replaying it reproduces the profile
+    recording: () => ProfileRecording;
+}
+
+/// A recording of the progress of a query: the raw payloads of the engine and when they arrived. Replaying the
+/// payloads through the adapters of the core reproduces the profile at any point in time.
+export interface ProfileRecording {
+    version: 1;
+    payloads: RecordedPayload[];
+}
+
+/// A payload of a recording
+export interface RecordedPayload {
+    /// The milliseconds since the first payload
+    elapsedMs: number;
+    payload: EngineProgressPayload;
+}
+
+/// The duration of a recording in milliseconds
+export function recordingDuration(recording: ProfileRecording): number {
+    return recording.payloads.reduce((duration, p) => Math.max(duration, p.elapsedMs), 0);
+}
+
+/// Replay a recording up to a point in time, returns null if nothing happened until then
+export function replayRecording(
+    core: dashql.DashQL,
+    recording: ProfileRecording,
+    untilMs: number,
+    layout?: dashql.buffers.profile.ProfileLayoutConfigT,
+): QueryProfileProgress | null {
+    const payloads = recording.payloads.filter(p => p.elapsedMs <= untilMs);
+    if (payloads.length === 0) return null;
+    const model = new QueryProgressModel(core, engineOf(payloads[0].payload), layout);
+    try {
+        let progress: QueryProfileProgress | null = null;
+        for (const { payload } of payloads) {
+            progress = model.apply(payload);
+        }
+        return progress;
+    } finally {
+        model.destroy();
+    }
+}
+
+/// Read a recording: a profile recording of the app, or a recording of the Trino test harness
+/// (snapshots/profiles/trino/recordings/, written by //packages/trino-testing:trino_recorder)
+export function readProfileRecording(text: string): ProfileRecording {
+    const document = JSON.parse(text);
+    if (document?.version === 1 && Array.isArray(document.payloads)) return document as ProfileRecording;
+    if (Array.isArray(document?.statementResponses)) return convertTrinoHarnessRecording(document);
+    throw new Error('The file is no profile recording');
+}
+
+/// A recording of the Trino test harness
+interface TrinoHarnessRecording {
+    statementResponses: { elapsedMs: number; body: { stats?: { rootStage?: unknown } } }[];
+    queryInfos: { elapsedMs: number; body: { stages?: { stages?: { stageStats?: object }[] } } }[];
+}
+
+/// Convert a recording of the Trino test harness. Its last QueryInfo carries the plans, the app requests them when
+/// the stages appear, so the plans move there, without the operator summaries that only the end knows.
+function convertTrinoHarnessRecording(recording: TrinoHarnessRecording): ProfileRecording {
+    const payloads: RecordedPayload[] = [];
+    for (const response of recording.statementResponses) {
+        if (response.body.stats == null) continue;
+        payloads.push({ elapsedMs: response.elapsedMs, payload: { kind: 'trino_statement_stats', stats: response.body.stats, receivedAt: response.elapsedMs } });
+    }
+    for (const sample of recording.queryInfos) {
+        payloads.push({ elapsedMs: sample.elapsedMs, payload: { kind: 'trino_query_info_stats', info: sample.body, receivedAt: sample.elapsedMs } });
+    }
+    const final = recording.queryInfos[recording.queryInfos.length - 1]?.body;
+    const stagesAt = recording.statementResponses.find(r => r.body.stats?.rootStage != null)?.elapsedMs;
+    if (final != null && stagesAt != null) {
+        const stages = (final.stages?.stages ?? []).map(stage => ({
+            ...stage,
+            stageStats: { ...stage.stageStats, operatorSummaries: [] },
+        }));
+        const plans = { ...final, stages: { ...final.stages, stages } };
+        payloads.push({ elapsedMs: stagesAt, payload: { kind: 'trino_query_info', info: plans, receivedAt: stagesAt } });
+    }
+    payloads.sort((a, b) => a.elapsedMs - b.elapsedMs);
+    return { version: 1, payloads };
 }
 
 /// The engine of a payload
@@ -68,16 +150,21 @@ export class QueryProgressModel {
     private progress: QueryProfileProgress;
     /// The latest statement stats, applied again on top of a plan that arrives later
     private latestStats: Extract<EngineProgressPayload, { kind: 'trino_statement_stats' }> | null = null;
+    /// The payloads so far, the recording of the query
+    private payloads: RecordedPayload[] = [];
+    private readonly recording = (): ProfileRecording => ({ version: 1, payloads: [...this.payloads] });
 
     public constructor(core: dashql.DashQL, engine: dashql.buffers.profile.ProfileEngine, layout = new dashql.buffers.profile.ProfileLayoutConfigT()) {
         this.profile = core.createQueryProfile(layout);
         this.engine = engine;
-        this.progress = { structure: this.profile.startQuery(engine), execution: ProfileExecutionState.EMPTY };
+        this.progress = { structure: this.profile.startQuery(engine), execution: ProfileExecutionState.EMPTY, recording: this.recording };
     }
 
     /// Apply a payload of the engine, a payload of another engine changes nothing
     public apply(payload: EngineProgressPayload): QueryProfileProgress {
         if (engineOf(payload) !== this.engine) return this.progress;
+        const first = this.payloads[0]?.payload.receivedAt ?? payload.receivedAt;
+        this.payloads.push({ elapsedMs: Math.max(0, payload.receivedAt - first), payload });
         let execution: ProfileExecutionState;
         switch (payload.kind) {
             case 'trino_statement_stats': {
@@ -117,7 +204,7 @@ export class QueryProgressModel {
         }
         const structure = this.profile.buffer ?? this.progress.structure;
         if (execution !== this.progress.execution || structure !== this.progress.structure) {
-            this.progress = { structure, execution };
+            this.progress = { structure, execution, recording: this.recording };
         }
         return this.progress;
     }

@@ -6,6 +6,10 @@ import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_exe
 import { TabHeader } from '../../session/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
 import { useQueryProfileDetail } from '../../connections/query_executor.js';
+import type { QueryProfileProgress } from '../../query/query_progress_model.js';
+import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -105,52 +109,43 @@ interface QueryProgressPanelProps {
     showProfile?: boolean;
 }
 
-/// The progress of a query: its phase, a progress bar, throughput and the stages with their progress
-export function QueryProgressPanel(props: QueryProgressPanelProps) {
-    const { query } = props;
-    // The connector fetches the plan and its statistics only while a profile is shown
-    useQueryProfileDetail(query.queryId, props.showProfile === true);
-    const progress = query.latestProgressUpdate;
-    const profileProgress = progress?.profileProgress ?? null;
-    const queryState = profileProgress?.execution.query ?? null;
-    const active = isActive(query.status);
-    const elapsedMs = useElapsed(query);
-    const work = workOf(queryState);
-    const fraction = useMonotonicFraction(query.queryId, work);
-    const stages = React.useMemo(() => profileProgress == null ? [] : listProgressStages(profileProgress), [profileProgress]);
-    const structure = profileProgress?.structure ?? null;
-    const hasOperators = React.useMemo(() => structure != null && structure.read().operatorsLength() > 0, [structure]);
-    // Trino counts work in splits, other engines report a fraction
-    const countsSplits = React.useMemo(() => structure?.read().engine() === dashql.buffers.profile.ProfileEngine.TRINO, [structure]);
 
-    const rows = stat(queryState, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn) ?? progress?.rowsProcessed ?? null;
-    const cpuUs = stat(queryState, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs);
-    const memory = stat(queryState, view.ProfileStatsField.MEMORY_BYTES, s => s.memoryBytes);
-    const spilled = stat(queryState, view.ProfileStatsField.SPILLED_BYTES, s => s.spilledBytes);
-    const phase = active ? (progress?.phase ?? null) : null;
-    const phaseLabel = phase != null ? formatPhase(phase) : QueryExecutionStatus[query.status] != null
-        ? formatPhase(QueryExecutionStatus[query.status]) : null;
-    const seconds = elapsedMs / 1000;
-
+/// Download the recording of the progress of a query, replaying it in the profile simulator reproduces the profile
+function DownloadRecordingButton(props: { queryId: number; progress: QueryProfileProgress }) {
+    const fileDownloader = useFileDownloader();
+    const download = React.useCallback(() => {
+        const text = JSON.stringify(props.progress.recording());
+        void fileDownloader.downloadBufferAsFile(new TextEncoder().encode(text), `query-${props.queryId}-profile.json`);
+    }, [fileDownloader, props.progress, props.queryId]);
     return (
-        <div className={styles.container} data-testid="query-progress-panel">
-            <TabHeader title="Progress" detail={phaseLabel} />
-            <div className={styles.strip}>
-                <ProgressBar
-                    fraction={!active && query.status === QueryExecutionStatus.SUCCEEDED ? 1 : fraction}
-                    label="Query progress"
-                    active={active}
-                />
-                <div className={styles.figures}>
-                    <Figure label="Elapsed" value={formatElapsed(elapsedMs)} />
-                    <Figure label="Splits" value={work == null || !countsSplits ? null : `${formatCompactCount(work.done)} / ${formatCompactCount(work.total)}`} />
-                    <Figure label="Rows" value={rows == null ? null : formatCompactCount(rows)} />
-                    <Figure label="Rows/s" value={rows == null || seconds < 0.5 ? null : formatCompactCount(rows / seconds)} />
-                    <Figure label="CPU" value={cpuUs == null ? null : formatElapsed(cpuUs / 1000)} />
-                    <Figure label="Memory" value={memory == null ? null : formatCompactBytes(memory)} />
-                    <Figure label="Spilled" value={spilled == null || spilled === 0 ? null : formatCompactBytes(spilled)} />
-                </div>
-            </div>
+        <IconButton
+            variant={ButtonVariant.Invisible}
+            size={ButtonSize.Small}
+            aria-label="Download the profile recording"
+            description="Download the recording of the progress, the profile simulator replays it"
+            data-testid="download-profile-recording"
+            onClick={download}
+        >
+            <DownloadIcon size={16} />
+        </IconButton>
+    );
+}
+
+interface ProfileProgressDetailsProps {
+    progress: QueryProfileProgress;
+    /// Cap the stage list at this many rows, then scroll
+    maxStageRows?: number;
+    /// Show the profile (the plan with its stages) once the plan is known
+    showProfile?: boolean;
+}
+
+/// The stages of a query with their progress and the profile of the query
+export function ProfileProgressDetails(props: ProfileProgressDetailsProps) {
+    const { progress } = props;
+    const stages = React.useMemo(() => listProgressStages(progress), [progress]);
+    const hasOperators = React.useMemo(() => progress.structure.read().operatorsLength() > 0, [progress.structure]);
+    return (
+        <>
             {stages.length > 0 && (
                 <div
                     className={styles.stages}
@@ -180,10 +175,67 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                     ))}
                 </div>
             )}
-            {props.showProfile && profileProgress != null && hasOperators && (
+            {props.showProfile && hasOperators && (
                 <div className={styles.profile} data-testid="query-progress-profile">
-                    <QueryProfileView plan={profileProgress.structure} execution={profileProgress.execution} showProgress />
+                    <QueryProfileView plan={progress.structure} execution={progress.execution} showProgress />
                 </div>
+            )}
+        </>
+    );
+}
+
+/// The progress of a query: its phase, a progress bar, throughput and the stages with their progress
+export function QueryProgressPanel(props: QueryProgressPanelProps) {
+    const { query } = props;
+    // The connector fetches the plan and its statistics only while a profile is shown
+    useQueryProfileDetail(query.queryId, props.showProfile === true);
+    const progress = query.latestProgressUpdate;
+    const profileProgress = progress?.profileProgress ?? null;
+    const queryState = profileProgress?.execution.query ?? null;
+    const active = isActive(query.status);
+    const elapsedMs = useElapsed(query);
+    const work = workOf(queryState);
+    const fraction = useMonotonicFraction(query.queryId, work);
+    const structure = profileProgress?.structure ?? null;
+    // Trino counts work in splits, other engines report a fraction
+    const countsSplits = React.useMemo(() => structure?.read().engine() === dashql.buffers.profile.ProfileEngine.TRINO, [structure]);
+
+    const rows = stat(queryState, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn) ?? progress?.rowsProcessed ?? null;
+    const cpuUs = stat(queryState, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs);
+    const memory = stat(queryState, view.ProfileStatsField.MEMORY_BYTES, s => s.memoryBytes);
+    const spilled = stat(queryState, view.ProfileStatsField.SPILLED_BYTES, s => s.spilledBytes);
+    const phase = active ? (progress?.phase ?? null) : null;
+    const phaseLabel = phase != null ? formatPhase(phase) : QueryExecutionStatus[query.status] != null
+        ? formatPhase(QueryExecutionStatus[query.status]) : null;
+    const seconds = elapsedMs / 1000;
+
+    return (
+        <div className={styles.container} data-testid="query-progress-panel">
+            <TabHeader
+                title="Progress"
+                detail={phaseLabel}
+                actions={props.showProfile && profileProgress != null
+                    ? <DownloadRecordingButton queryId={query.queryId} progress={profileProgress} />
+                    : undefined}
+            />
+            <div className={styles.strip}>
+                <ProgressBar
+                    fraction={!active && query.status === QueryExecutionStatus.SUCCEEDED ? 1 : fraction}
+                    label="Query progress"
+                    active={active}
+                />
+                <div className={styles.figures}>
+                    <Figure label="Elapsed" value={formatElapsed(elapsedMs)} />
+                    <Figure label="Splits" value={work == null || !countsSplits ? null : `${formatCompactCount(work.done)} / ${formatCompactCount(work.total)}`} />
+                    <Figure label="Rows" value={rows == null ? null : formatCompactCount(rows)} />
+                    <Figure label="Rows/s" value={rows == null || seconds < 0.5 ? null : formatCompactCount(rows / seconds)} />
+                    <Figure label="CPU" value={cpuUs == null ? null : formatElapsed(cpuUs / 1000)} />
+                    <Figure label="Memory" value={memory == null ? null : formatCompactBytes(memory)} />
+                    <Figure label="Spilled" value={spilled == null || spilled === 0 ? null : formatCompactBytes(spilled)} />
+                </div>
+            </div>
+            {profileProgress != null && (
+                <ProfileProgressDetails progress={profileProgress} maxStageRows={props.maxStageRows} showProfile={props.showProfile} />
             )}
         </div>
     );

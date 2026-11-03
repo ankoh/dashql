@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import { QueryProgressModels } from '../../query/query_progress_model.js';
+import { QueryProgressModels, readProfileRecording, replayRecording } from '../../query/query_progress_model.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -108,6 +108,55 @@ describe('QueryProgressModels', () => {
         const edge = structure.operatorEdges(0)!;
         expect(progress.execution.edgeRows(edge.slot(), edge.child())).toEqual(25n);
         models.release(3);
+    });
+});
+
+describe('Profile recordings', () => {
+    it('record the payloads of a query and replay them to any point in time', () => {
+        const models = new QueryProgressModels();
+        models.apply(core, 5, { kind: 'trino_statement_stats', stats: poll('RUNNING', 2), receivedAt: 1000 });
+        const last = models.apply(core, 5, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 4000 })!;
+        const recording = last.recording();
+        expect(recording.payloads.map(p => p.elapsedMs)).toEqual([0, 3000]);
+        models.release(5);
+
+        // The recording outlives the model and serializes as JSON
+        const replayed = readProfileRecording(JSON.stringify(recording));
+        expect(replayRecording(core, replayed, -1)).toBeNull();
+        expect(workOf(replayRecording(core, replayed, 0)!.execution.query)).toEqual({ done: 2, total: 20 });
+        expect(workOf(replayRecording(core, replayed, 3000)!.execution.query)).toEqual({ done: 8, total: 20 });
+    });
+
+    it('read the recordings of the Trino test harness', () => {
+        const stage = (id: string, plan: object, summaries: object[]) => ({
+            stageId: `q.${id}`, state: 'FINISHED',
+            plan: { jsonRepresentation: JSON.stringify(plan) },
+            stageStats: { operatorSummaries: summaries },
+        });
+        const final = { queryId: 'q', stages: { stages: [
+            stage('0', { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', children: [] }] }, [
+                { pipelineId: 0, operatorId: 0, planNodeId: '2', inputPositions: 9, outputPositions: 9 },
+                { pipelineId: 0, operatorId: 1, planNodeId: '1', inputPositions: 9, outputPositions: 9 },
+            ]),
+        ] } };
+        const harness = {
+            statementResponses: [
+                { elapsedMs: 1, body: { stats: { state: 'QUEUED' } } },
+                { elapsedMs: 200, body: { stats: { state: 'RUNNING', rootStage: { stageId: '0', state: 'RUNNING' } } } },
+                { elapsedMs: 900, body: { stats: { state: 'FINISHED', rootStage: { stageId: '0', state: 'FINISHED' } } } },
+            ],
+            queryInfos: [{ elapsedMs: 800, body: final }],
+        };
+        const recording = readProfileRecording(JSON.stringify(harness));
+        // The plans arrive when the stages appear, the operator summaries at the end
+        const kinds = recording.payloads.map(p => [p.elapsedMs, p.payload.kind]);
+        expect(kinds).toEqual([[1, 'trino_statement_stats'], [200, 'trino_statement_stats'], [200, 'trino_query_info'], [800, 'trino_query_info_stats'], [900, 'trino_statement_stats']]);
+        const early = replayRecording(core, recording, 500)!;
+        expect(early.structure.read().operatorsLength()).toEqual(2);
+        expect(early.structure.read().pipelinesLength()).toEqual(0);
+        const end = replayRecording(core, recording, 900)!;
+        expect(end.structure.read().pipelinesLength()).toEqual(1);
+        expect(() => readProfileRecording('{"a": 1}')).toThrow();
     });
 });
 

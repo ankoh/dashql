@@ -11,6 +11,7 @@ import { QueryViewer } from '../../connections/query_viewer.js';
 import { QueryCacheView } from '../../session/persistence/query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
 import { StorageBrowserView } from './storage_browser_view.js';
+import { ProfileSimulator } from '../../views/query_progress/profile_simulator.js';
 
 interface InternalsViewerProps {
     /// The active session UUID, used by session-scoped tabs (e.g. the query cache inspector).
@@ -25,6 +26,7 @@ enum TabKey {
     StorageWriter = 3,
     QueryCache = 4,
     StorageBrowser = 6,
+    ProfileSimulator = 7,
 }
 
 /// The groups of the tabs, separated by bars in the tab bar
@@ -35,7 +37,7 @@ const TAB_GROUP_SETTINGS = 'Settings';
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
-    const tabKeys = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings];
+    const tabKeys = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.ProfileSimulator, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings];
 
     return (
         <VerticalTabs
@@ -59,6 +61,15 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     labelShort: 'Queries',
                     ariaLabel: 'Query execution history',
                     description: 'View query execution history',
+                    disabled: false,
+                },
+                [TabKey.ProfileSimulator]: {
+                    tabId: TabKey.ProfileSimulator,
+                    group: TAB_GROUP_CONNECTIONS,
+                    icon: `${icons}#pulse_24`,
+                    labelShort: 'Profiles',
+                    ariaLabel: 'Profile simulator',
+                    description: 'Replay the recorded progress of a query',
                     disabled: false,
                 },
                 [TabKey.StorageWriter]: {
@@ -105,6 +116,9 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 ),
                 [TabKey.QueryViewer]: _props => (
                     <QueryViewer onClose={props.onClose} />
+                ),
+                [TabKey.ProfileSimulator]: _props => (
+                    <ProfileSimulator onClose={props.onClose} />
                 ),
                 [TabKey.StorageWriter]: _props => (
                     <StorageWriterView sessionId={props.sessionId} onClose={props.onClose} />
