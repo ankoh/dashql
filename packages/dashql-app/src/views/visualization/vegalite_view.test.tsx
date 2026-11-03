@@ -92,43 +92,72 @@ describe('VegaLiteView', () => {
     });
 
     it('embeds a chart only when it comes near the viewport', async () => {
-        const query = {
-            queryId: 1,
-            status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: tableFromArrays({ value: [1] }),
-        } as QueryExecutionState;
-        // A scroll container whose chart lies far below its visible area
-        const scroller = document.createElement('div');
-        // Fixed at the top, the page of the test runner may show its report above the tests
-        scroller.style.position = 'fixed';
-        scroller.style.top = '0';
-        scroller.style.width = '400px';
-        scroller.style.height = '200px';
-        scroller.style.overflowY = 'auto';
-        const spacer = document.createElement('div');
-        spacer.style.height = '5000px';
-        container.style.height = '200px';
-        scroller.append(spacer, container);
-        document.body.appendChild(scroller);
+        // The tests run in a frame of the test dashboard that may lie outside the viewport of the page,
+        // a stubbed observer reports the intersections instead of the layout of the dashboard.
+        const observers: StubIntersectionObserver[] = [];
+        class StubIntersectionObserver {
+            readonly observed: Element[] = [];
+            disconnected = false;
+            constructor(
+                readonly callback: IntersectionObserverCallback,
+                readonly options?: IntersectionObserverInit,
+            ) {
+                observers.push(this);
+            }
+            observe(element: Element) {
+                this.observed.push(element);
+            }
+            disconnect() {
+                this.disconnected = true;
+            }
+            report(isIntersecting: boolean) {
+                const entries = this.observed.map(target => ({ target, isIntersecting }) as IntersectionObserverEntry);
+                this.callback(entries, this as unknown as IntersectionObserver);
+            }
+        }
+        const intersectionObserver = globalThis.IntersectionObserver;
+        globalThis.IntersectionObserver = StubIntersectionObserver as unknown as typeof IntersectionObserver;
+        try {
+            const query = {
+                queryId: 1,
+                status: QueryExecutionStatus.SUCCEEDED,
+                resultTable: tableFromArrays({ value: [1] }),
+            } as QueryExecutionState;
 
-        await act(async () => {
-            root.render(
-                <VegaLiteView
-                    query={query}
-                    vegaLiteSpec={{ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } }}
-                    height={180}
-                    dependencies={{ ...dependencies, useNearViewport }}
-                />,
-            );
-            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        });
-        expect(vegaEmbed).not.toHaveBeenCalled();
+            await act(async () => {
+                root.render(
+                    <VegaLiteView
+                        query={query}
+                        vegaLiteSpec={{ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } }}
+                        height={180}
+                        dependencies={{ ...dependencies, useNearViewport }}
+                    />,
+                );
+                await Promise.resolve();
+            });
+            expect(observers).toHaveLength(1);
+            const observer = observers[0];
+            expect(observer.observed).toHaveLength(1);
+            expect(container.contains(observer.observed[0])).toBe(true);
 
-        await act(async () => {
-            container.scrollIntoView();
-            await Promise.resolve();
-        });
-        await vi.waitFor(() => expect(vegaEmbed).toHaveBeenCalledTimes(1));
-        scroller.remove();
+            // Far from the viewport, the chart waits
+            await act(async () => {
+                observer.report(false);
+                await Promise.resolve();
+            });
+            expect(vegaEmbed).not.toHaveBeenCalled();
+            expect(observer.disconnected).toBe(false);
+
+            // Near the viewport, the chart is embedded and the observer is done
+            await act(async () => {
+                observer.report(true);
+                await Promise.resolve();
+            });
+            await vi.waitFor(() => expect(vegaEmbed).toHaveBeenCalledTimes(1));
+            expect(observer.disconnected).toBe(true);
+            expect(observers).toHaveLength(1);
+        } finally {
+            globalThis.IntersectionObserver = intersectionObserver;
+        }
     });
 });
