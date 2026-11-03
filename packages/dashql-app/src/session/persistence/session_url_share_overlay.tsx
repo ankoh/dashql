@@ -2,23 +2,17 @@ import * as React from 'react';
 
 import * as styles from './session_url_share_overlay.module.css';
 
-import { CheckIcon, PaperclipIcon } from '../../ui/foundations/symbol_icon.js';
-
 import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { IconButton } from '../../ui/foundations/button.js';
-import { TextInput } from '../../ui/foundations/text_input.js';
 import { SessionExportSettings, SessionExportSettingsView } from './session_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
 import { exportSessionAsUrl, SessionLinkTarget } from './session_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connections/connection_params.js';
-import { sleep } from '../../utils/sleep.js';
 import { resolveSessionConnections, useConnectionReferences, useConnectionRegistry, useSessionConnections } from '../../connections/connection_registry.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useSessionScripts } from '../scripts/session_scripts_registry.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-
-const COPY_CHECKMARK_DURATION_MS = 1000;
+import { ShareURLField } from './share_url_field.js';
 
 interface Props {
     className?: string;
@@ -28,13 +22,6 @@ interface Props {
     anchorRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-interface State {
-    publicURLText: string | null;
-    copyStartedAt: Date | null;
-    copyFinishedAt: Date | null;
-    copyError: any | null;
-    uiResetAt: Date | null;
-}
 
 export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
@@ -48,13 +35,7 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
     const [databaseRegistry] = useConnectionRegistry();
     const references = useConnectionReferences();
     const storage = useStorageReader();
-    const [state, setState] = React.useState<State>(() => ({
-        publicURLText: null,
-        copyStartedAt: null,
-        copyFinishedAt: null,
-        copyError: null,
-        uiResetAt: null,
-    }));
+    const [publicURLText, setPublicURLText] = React.useState<string | null>(null);
     const [settings, setSettings] = React.useState<SessionExportSettings>({
         withCatalog: false,
         withLoginHint: true,
@@ -67,7 +48,7 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
         }
 
         let cancelled = false;
-        setState(s => ({ ...s, publicURLText: null, copyError: null }));
+        setPublicURLText(null);
 
         async function generateURL() {
             let setupUrl: URL | null = null;
@@ -91,19 +72,11 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
                 }
             }
 
-            if (!cancelled) {
-                setState({
-                    publicURLText: setupUrl?.toString() ?? null,
-                    copyStartedAt: null,
-                    copyFinishedAt: null,
-                    copyError: null,
-                    uiResetAt: null,
-                });
-            }
+            if (!cancelled) setPublicURLText(setupUrl?.toString() ?? null);
         }
 
-        generateURL().catch(error => {
-            if (!cancelled) setState(s => ({ ...s, publicURLText: null, copyError: error }));
+        generateURL().catch(() => {
+            if (!cancelled) setPublicURLText(null);
         });
 
         return () => {
@@ -111,51 +84,11 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
         };
     }, [databaseRegistry, references, settings, sessionScripts, connectionIds, props.isOpen]);
 
-    // Copy the url to the clipboard
-    const copyURL = React.useCallback(
-        (event: React.MouseEvent) => {
-            if (!state.publicURLText) return;
-            event.stopPropagation();
-            const urlText = state.publicURLText;
-            setState(s => ({
-                ...s,
-                copyStartedAt: new Date(),
-                copyFinishedAt: null,
-                copyError: null,
-                uiResetAt: null,
-            }));
-            const copy = async () => {
-                try {
-                    await navigator.clipboard.writeText(urlText);
-                    setState(s => ({
-                        ...s,
-                        copyFinishedAt: new Date(),
-                        copyError: null,
-                    }));
-                } catch (e: any) {
-                    setState(s => ({
-                        ...s,
-                        copyFinishedAt: new Date(),
-                        copyError: e,
-                    }));
-                }
-                await sleep(COPY_CHECKMARK_DURATION_MS);
-                setState(s => ({
-                    ...s,
-                    uiResetAt: new Date(),
-                }));
-            };
-            copy();
-        },
-        [state, setState],
-    );
-
     const hasLoginHint = React.useMemo(
         () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details))),
         [connections],
     );
 
-    const ButtonIcon = state.copyFinishedAt != null && state.uiResetAt == null ? CheckIcon : PaperclipIcon;
     return (
         <AnchoredOverlay
             renderAnchor={props.anchorRef ? null : () => <div ref={anchorRef} />}
@@ -169,19 +102,7 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
             }}
         >
             <div className={classNames(styles.sharing_overlay, props.className)}>
-                <div className={styles.sharing_url}>
-                    <TextInput disabled={true} aria-label="Session share URL" value={state.publicURLText ?? ''} />
-                    <IconButton
-                        ref={buttonRef}
-                        onClick={copyURL}
-                        disabled={state.publicURLText == null}
-                        aria-labelledby="copy-to-clipboard"
-                        aria-label="Copy to Clipboard"
-                    >
-                        <ButtonIcon />
-                    </IconButton>
-                    <div className={styles.sharing_url_stats}>{state.publicURLText?.length ?? 0} characters</div>
-                </div>
+                <ShareURLField url={publicURLText} ariaLabel="Session share URL" buttonRef={buttonRef} />
                 <SessionExportSettingsView
                     withCatalog={true}
                     withLoginHint={hasLoginHint}
