@@ -8,7 +8,7 @@ package(default_visibility = ["//visibility:private"])
 #
 #   bazel test //packages/trino-testing:trino_assumptions_test   check the assumptions against Trino
 #   bazel run //packages/trino-testing:trino_recorder            refresh snapshots/profiles/trino/recordings/
-#   bazel run //packages/trino-testing:trino_server              serve Trino on port 8080 for the app
+#   bazel run //:trino                                           serve Trino for the app on port 8080 (CORS proxy)
 
 config_setting(
     name = "linux_x86_64",
@@ -107,7 +107,7 @@ rust_binary(
     ],
 )
 
-# Runs a local Trino for manual checks of the app: bazel run //packages/trino-testing:trino_server [-- --port 8080]
+# Runs a local Trino for manual checks of the app behind a CORS proxy: bazel run //:trino [-- --port 8080]
 rust_binary(
     name = "trino_server",
     testonly = True,
@@ -117,7 +117,12 @@ rust_binary(
     env = _TRINO_ENV,
     tags = ["manual"],
     target_compatible_with = _SUPPORTED_PLATFORMS,
-    deps = [":trino_testing"],
+    visibility = ["//:__pkg__"],
+    deps = [
+        ":trino_testing",
+        "@crates//:reqwest",
+        "@crates//:tokio",
+    ],
 )
 
 # Checks the assumptions of the query progress model against a live Trino

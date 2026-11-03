@@ -14,6 +14,15 @@ exports_files([
     "tsconfig.json",
 ])
 
+# A local Trino for the app (tpch catalog, CORS proxy on port 8080): bazel run //:trino [-- --port 8080]
+# Manual, so `bazel build //...` and CI never fetch Trino.
+alias(
+    name = "trino",
+    testonly = True,
+    actual = "//packages/trino-testing:trino_server",
+    tags = ["manual"],
+)
+
 filegroup(
     name = "example_snippets",
     srcs = glob(["examples/snippets/**/*.sql"], allow_empty = False),

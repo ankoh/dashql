@@ -69,6 +69,7 @@ fn write_config(etc: &Path, data: &Path, plugin_dir: &Path, port: u16) -> io::Re
             "coordinator=true\n\
              node-scheduler.include-coordinator=true\n\
              http-server.http.port={port}\n\
+             http-server.process-forwarded=true\n\
              discovery.uri=http://127.0.0.1:{port}\n\
              plugin.dir={}\n\
              task.max-worker-threads=2\n\
