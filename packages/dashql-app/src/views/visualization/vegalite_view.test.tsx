@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
-import { VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
+import { useNearViewport, VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
@@ -23,6 +23,7 @@ const dependencies = {
         expressionInterpreter,
     }),
     useComputationRegistry: () => [{ tableComputations: {}, schedulerTasks: {}, nextSchedulerTaskId: 1 }],
+    useNearViewport: () => true,
 } as VegaLiteViewDependencies;
 
 describe('VegaLiteView', () => {
@@ -88,5 +89,46 @@ describe('VegaLiteView', () => {
         });
 
         expect(vegaEmbed).toHaveBeenCalledTimes(1);
+    });
+
+    it('embeds a chart only when it comes near the viewport', async () => {
+        const query = {
+            queryId: 1,
+            status: QueryExecutionStatus.SUCCEEDED,
+            resultTable: tableFromArrays({ value: [1] }),
+        } as QueryExecutionState;
+        // A scroll container whose chart lies far below its visible area
+        const scroller = document.createElement('div');
+        // Fixed at the top, the page of the test runner may show its report above the tests
+        scroller.style.position = 'fixed';
+        scroller.style.top = '0';
+        scroller.style.width = '400px';
+        scroller.style.height = '200px';
+        scroller.style.overflowY = 'auto';
+        const spacer = document.createElement('div');
+        spacer.style.height = '5000px';
+        container.style.height = '200px';
+        scroller.append(spacer, container);
+        document.body.appendChild(scroller);
+
+        await act(async () => {
+            root.render(
+                <VegaLiteView
+                    query={query}
+                    vegaLiteSpec={{ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } }}
+                    height={180}
+                    dependencies={{ ...dependencies, useNearViewport }}
+                />,
+            );
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        });
+        expect(vegaEmbed).not.toHaveBeenCalled();
+
+        await act(async () => {
+            container.scrollIntoView();
+            await Promise.resolve();
+        });
+        await vi.waitFor(() => expect(vegaEmbed).toHaveBeenCalledTimes(1));
+        scroller.remove();
     });
 });

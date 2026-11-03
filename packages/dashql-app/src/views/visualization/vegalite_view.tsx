@@ -27,10 +27,35 @@ export interface VegaLiteViewDependencies {
         expressionInterpreter: VegaExpressionInterpreter;
     }>;
     useComputationRegistry(): [ReturnType<typeof useComputationRegistry>[0]];
+    useNearViewport(ref: React.RefObject<HTMLElement | null>, mounted: boolean): boolean;
+}
+
+/// How far ahead of the viewport a chart is embedded, scrolling then rarely shows an empty chart
+const VIEWPORT_MARGIN = '50% 0px';
+
+/// Has the element come near the viewport? Latches once it did.
+/// Embedding a chart costs the main thread a lot, the charts out of view wait.
+/// The scroll margin also extends nested scroll containers like the feed list.
+export function useNearViewport(ref: React.RefObject<HTMLElement | null>, mounted: boolean): boolean {
+    const [near, setNear] = React.useState(() => typeof IntersectionObserver === 'undefined');
+    React.useEffect(() => {
+        const element = ref.current;
+        if (near || !mounted || element == null) return;
+        const observer = new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                observer.disconnect();
+                setNear(true);
+            }
+        }, { rootMargin: VIEWPORT_MARGIN, scrollMargin: VIEWPORT_MARGIN });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [ref, near, mounted]);
+    return near;
 }
 
 const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
     loadVega,
+    useNearViewport,
     useComputationRegistry: () => {
         const [state] = useComputationRegistry();
         return [state];
@@ -131,10 +156,13 @@ export function VegaLiteView(props: Props): React.ReactElement {
     const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
 
     const filterTable = tableComputation?.filterTable ?? null;
+    // The chart container is rendered only for a spec with a result, see below
+    const nearViewport = dependencies.useNearViewport(containerRef, spec != null && succeeded && dataTable != null);
+    // The rows are converted for the embedded chart only
     const rows = React.useMemo<Record<string, unknown>[] | null>(() => {
-        if (!succeeded || !dataTable) return null;
+        if (!succeeded || !dataTable || !nearViewport) return null;
         return arrowTableToRows(dataTable);
-    }, [succeeded, dataTable]);
+    }, [succeeded, dataTable, nearViewport]);
     const crossFilterBinding = React.useMemo(() => {
         if (spec == null || dataTable == null) {
             return null;

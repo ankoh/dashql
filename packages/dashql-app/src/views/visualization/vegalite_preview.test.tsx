@@ -14,6 +14,7 @@ const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<n
 const dependencies = {
     loadVega: async () => ({ embed: vegaEmbed, expressionInterpreter: {} as typeof import('vega-interpreter').expressionInterpreter }),
     useComputationRegistry: () => [{ tableComputations: {}, schedulerTasks: {}, nextSchedulerTaskId: 1 }],
+    useNearViewport: () => true,
 } as VegaLiteViewDependencies;
 
 describe('VegaLitePreview', () => {
