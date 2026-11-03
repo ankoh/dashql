@@ -125,7 +125,7 @@ export function ProfileSimulator(props: ProfileSimulatorProps) {
                 </div>
             )}
             <div className={styles.body}>
-                {progress != null && <ProfileProgressDetails progress={progress} showProfile />}
+                {progress != null && <ProfileProgressDetails progress={progress} />}
             </div>
         </div>
     );

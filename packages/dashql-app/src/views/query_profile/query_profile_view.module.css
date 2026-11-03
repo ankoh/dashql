@@ -150,9 +150,44 @@
 .inspector_header[data-single-line="true"] { padding-bottom: 12px; }
 .inspector_header span { color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%); font-size: 0.8rem; }
 
-/* The contour of a fragment with execution state takes the color of its status */
-path.fragment[data-status="pending"] { fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 96%); stroke: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 60%); }
-path.fragment[data-status="running"] { fill: hsl(211, 100%, 95%); stroke: var(--status_color_in_progress); stroke-dasharray: none; }
-path.fragment[data-status="succeeded"] { fill: hsl(145, 55%, 95%); stroke: var(--status_color_success); stroke-dasharray: none; }
-path.fragment[data-status="failed"] { fill: hsl(0, 80%, 96%); stroke: var(--status_color_failed); stroke-dasharray: none; }
-path.fragment[data-status="skipped"] { fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 96%); stroke: var(--status_color_other); }
+/* A fragment keeps its color, its status changes the contour: dashed while pending, faint while running with the
+   progress running along it, solid once succeeded. A failed fragment is red. */
+path.fragment[data-status="pending"] { fill-opacity: 0.35; }
+path.fragment[data-status="running"] { stroke-opacity: 0.35; stroke-dasharray: none; }
+path.fragment[data-status="succeeded"] { stroke-dasharray: none; }
+path.fragment[data-status="failed"] { stroke: var(--status_color_failed); stroke-dasharray: none; }
+path.fragment[data-status="skipped"] { fill-opacity: 0.35; stroke-opacity: 0.5; }
+
+/* The progress of a running fragment along its contour. The dashes are relative to the path length, a non-scaling
+   stroke would dash in screen units. */
+.fragment_progress {
+    pointer-events: none;
+    fill: none;
+    stroke: var(--fragment_stroke);
+    stroke-width: 2.5px;
+    stroke-linecap: round;
+    transition: stroke-dasharray 300ms ease-out;
+}
+
+/* The completed and known work of a fragment at the top right corner of its contour */
+.fragment_badge {
+    pointer-events: none;
+}
+.fragment_badge rect {
+    fill: var(--graph_node_background, white);
+    stroke: var(--fragment_stroke);
+    stroke-width: 1px;
+}
+.fragment_badge[data-status="failed"] rect { stroke: var(--status_color_failed); }
+.fragment_badge text {
+    font-family: var(--font_family_mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 30%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fragment_progress { transition: none; }
+}

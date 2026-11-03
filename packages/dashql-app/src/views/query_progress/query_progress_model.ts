@@ -26,53 +26,6 @@ export function workOf(state: ProfileEntityState | null | undefined): ProgressWo
     return { done: Math.min(done, total), total };
 }
 
-/// A stage (fragment) in the stage list
-export interface ProgressStageRow {
-    /// The fragment index
-    index: number;
-    /// The label, the engine id of the fragment
-    label: string;
-    /// The nesting depth
-    depth: number;
-    status: dashql.buffers.profile.ProfileExecutionStatus;
-    work: ProgressWork | null;
-    rows: number | null;
-    cpuTimeUs: number | null;
-}
-
-/// The stages of a query, parents before their children
-export function listProgressStages(progress: QueryProfileProgress): ProgressStageRow[] {
-    const vm = progress.structure.read();
-    const fragment = new view.ProfileFragment();
-    const children: number[][] = [];
-    const roots: number[] = [];
-    for (let i = 0; i < vm.fragmentsLength(); ++i) children.push([]);
-    for (let i = 0; i < vm.fragmentsLength(); ++i) {
-        const parent = vm.fragments(i, fragment)!.parentFragment();
-        if (parent < children.length) children[parent].push(i);
-        else roots.push(i);
-    }
-    const rows: ProgressStageRow[] = [];
-    const pending: [number, number][] = roots.reverse().map(r => [r, 0]);
-    while (pending.length > 0) {
-        const [index, depth] = pending.pop()!;
-        const f = vm.fragments(index, fragment)!;
-        const engineId = f.engineId();
-        const state = progress.execution.fragments[index];
-        rows.push({
-            index,
-            label: engineId < vm.stringDictionaryLength() ? vm.stringDictionary(engineId) : `${index}`,
-            depth,
-            status: state?.status ?? view.ProfileExecutionStatus.UNKNOWN,
-            work: workOf(state),
-            rows: stat(state, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn),
-            cpuTimeUs: stat(state, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs),
-        });
-        for (const child of [...children[index]].reverse()) pending.push([child, depth + 1]);
-    }
-    return rows;
-}
-
 /// A label of an execution status
 export function formatExecutionStatus(status: dashql.buffers.profile.ProfileExecutionStatus): string {
     switch (status) {

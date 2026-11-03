@@ -1,11 +1,10 @@
 import * as dashql from '@ankoh/dashql-core';
-import { QueryProgressModels, readProfileRecording, replayRecording } from '../../query/query_progress_model.js';
+import { QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '../../query/query_progress_model.js';
 import {
     formatCompactBytes,
     formatCompactCount,
     formatElapsed,
     formatPhase,
-    listProgressStages,
     monotonicFraction,
     workOf,
 } from './query_progress_model.js';
@@ -17,6 +16,19 @@ beforeAll(async () => {
     core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
 });
 afterEach(() => core.resetUnsafe());
+
+/// The fragments of a progress model as engine id and parent engine id
+function fragmentsOf(progress: QueryProfileProgress): [string, string | null][] {
+    const vm = progress.structure.read();
+    const fragment = new dashql.buffers.profile.ProfileFragment();
+    const engineId = (index: number) => vm.stringDictionary(vm.fragments(index, fragment)!.engineId());
+    const out: [string, string | null][] = [];
+    for (let i = 0; i < vm.fragmentsLength(); ++i) {
+        const parent = vm.fragments(i, fragment)!.parentFragment();
+        out.push([engineId(i), parent < vm.fragmentsLength() ? engineId(parent) : null]);
+    }
+    return out;
+}
 
 /// The statement stats of a Trino poll with a stage tree 0 -> 1 -> 2
 function poll(state: string, done: number) {
@@ -51,12 +63,12 @@ describe('QueryProgressModels', () => {
         // A repeated poll changes nothing
         expect(models.apply(core, 1, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 4 })).toBe(second);
 
-        const stages = listProgressStages(second);
-        expect(stages.map(s => [s.label, s.depth])).toEqual([['0', 0], ['1', 1], ['2', 2]]);
-        expect(stages[1].work).toEqual({ done: 4, total: 8 });
-        expect(stages[2].status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
-        expect(stages[2].cpuTimeUs).toEqual(42000);
-        expect(stages[0].rows).toBeNull();
+        // The stages are the fragments, nested like the stage tree
+        expect(fragmentsOf(second)).toEqual([['0', null], ['1', '0'], ['2', '1']]);
+        const stages = second.execution.fragments;
+        expect(workOf(stages[1])).toEqual({ done: 4, total: 8 });
+        expect(stages[2]!.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
+        expect(stages[2]!.stats.cpuTimeUs).toEqual(42000n);
 
         // Fields of unexpected types are not reported
         expect(models.apply(core, 1, { kind: 'trino_statement_stats', stats: { state: 7 }, receivedAt: 5 })).toBe(second);
@@ -70,21 +82,23 @@ describe('QueryProgressModels', () => {
         const remote = (id: string, source: string) => ({ id, name: 'RemoteSource', descriptor: { sourceFragmentIds: `[${source}]` }, children: [] });
         const info = { queryId: 'q', stages: { stages: [
             stage('0', { id: '1', name: 'Output', children: [remote('2', '1')] }),
-            stage('1', { id: '3', name: 'Aggregate', children: [remote('4', '2')] }),
+            stage('1', { id: '3', name: 'Aggregate', children: [{ id: '6', name: 'InnerJoin', children: [
+                { id: '7', name: 'ScanFilter', descriptor: { table: 'tpch:sf1:orders' }, children: [] },
+                { id: '8', name: 'LocalExchange', children: [remote('4', '2')] },
+            ] }] }),
             stage('2', { id: '5', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }),
         ] } };
         const progress = models.apply(core, 2, { kind: 'trino_query_info', info, receivedAt: 2 })!;
-        expect(progress.structure.read().operatorsLength()).toEqual(5);
+        expect(progress.structure.read().operatorsLength()).toEqual(8);
         // The stages are the fragments of the plan, with the state of the latest poll
-        const stages = listProgressStages(progress);
-        expect(stages.map(s => [s.label, s.depth])).toEqual([['0', 0], ['1', 1], ['2', 2]]);
-        expect(stages[1].work).toEqual({ done: 2, total: 8 });
+        expect(fragmentsOf(progress)).toEqual([['0', null], ['1', '0'], ['2', '1']]);
+        expect(workOf(progress.execution.fragments[1])).toEqual({ done: 2, total: 8 });
         expect(workOf(progress.execution.query)).toEqual({ done: 4, total: 20 });
 
         // A broken plan leaves the stages without plan
         const broken = models.apply(core, 2, { kind: 'trino_query_info', info: { stages: { stages: [{ stageId: 'q.0', plan: { jsonRepresentation: '{' } }] } }, receivedAt: 3 })!;
         expect(broken.structure.read().operatorsLength()).toEqual(0);
-        expect(listProgressStages(broken)).toHaveLength(3);
+        expect(fragmentsOf(broken)).toHaveLength(3);
         models.release(2);
     });
 
@@ -175,7 +189,7 @@ describe('Hyper query progress', () => {
         expect(workOf(models.apply(core, 4, { kind: 'hyper_query_status', status: status('RUNNING_OR_UNSPECIFIED', 60), receivedAt: 2 })!.execution.query)).toEqual({ done: 600, total: 1000 });
         const finished = models.apply(core, 4, { kind: 'hyper_query_status', status: status('FINISHED', null), receivedAt: 3 })!;
         expect(finished.execution.query!.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
-        expect(listProgressStages(finished)).toHaveLength(0);
+        expect(finished.structure.read().fragmentsLength()).toEqual(0);
         models.release(4);
     });
 });

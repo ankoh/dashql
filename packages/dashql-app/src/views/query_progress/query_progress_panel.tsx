@@ -14,9 +14,7 @@ import {
     formatCompactBytes,
     formatCompactCount,
     formatElapsed,
-    formatExecutionStatus,
     formatPhase,
-    listProgressStages,
     monotonicFraction,
     stat,
     workOf,
@@ -61,17 +59,6 @@ function useMonotonicFraction(queryId: number, work: ProgressWork | null): numbe
     return state.current.known ? state.current.fraction : null;
 }
 
-/// The status of a stage as data attribute value
-function statusKey(status: dashql.buffers.profile.ProfileExecutionStatus): string {
-    switch (status) {
-        case view.ProfileExecutionStatus.RUNNING: return 'running';
-        case view.ProfileExecutionStatus.SUCCEEDED: return 'succeeded';
-        case view.ProfileExecutionStatus.FAILED: return 'failed';
-        case view.ProfileExecutionStatus.PENDING: return 'pending';
-        default: return 'other';
-    }
-}
-
 /// A progress bar, indeterminate without a fraction
 function ProgressBar(props: { fraction: number | null; label: string; active: boolean }) {
     const percent = props.fraction == null ? null : Math.round(props.fraction * 100);
@@ -103,10 +90,10 @@ function Figure(props: { label: string; value: string | null }) {
 
 interface QueryProgressPanelProps {
     query: QueryExecutionState;
-    /// Cap the stage list at this many rows, then scroll
-    maxStageRows?: number;
     /// Show the profile of the query (the plan with its stages) once the plan is known
     showProfile?: boolean;
+    /// The height of the profile in pixels, 360 by default
+    profileHeight?: number;
 }
 
 
@@ -131,60 +118,19 @@ function DownloadRecordingButton(props: { queryId: number; progress: QueryProfil
     );
 }
 
-interface ProfileProgressDetailsProps {
-    progress: QueryProfileProgress;
-    /// Cap the stage list at this many rows, then scroll
-    maxStageRows?: number;
-    /// Show the profile (the plan with its stages) once the plan is known
-    showProfile?: boolean;
-}
-
-/// The stages of a query with their progress and the profile of the query
-export function ProfileProgressDetails(props: ProfileProgressDetailsProps) {
+/// The profile of a query with the progress of its stages on their contours, once the plan is known
+export function ProfileProgressDetails(props: { progress: QueryProfileProgress; height?: number }) {
     const { progress } = props;
-    const stages = React.useMemo(() => listProgressStages(progress), [progress]);
     const hasOperators = React.useMemo(() => progress.structure.read().operatorsLength() > 0, [progress.structure]);
+    if (!hasOperators) return null;
     return (
-        <>
-            {stages.length > 0 && (
-                <div
-                    className={styles.stages}
-                    style={props.maxStageRows == null ? undefined : { maxHeight: `${props.maxStageRows * 1.75}rem` }}
-                    role="list"
-                    aria-label="Stages"
-                >
-                    {stages.map(stage => (
-                        <div key={stage.index} className={styles.stage} role="listitem" data-status={statusKey(stage.status)}>
-                            <span className={styles.stage_name} style={{ paddingLeft: `${stage.depth * 0.75}rem` }}>
-                                <span className={styles.stage_dot} aria-hidden />
-                                Stage {stage.label}
-                            </span>
-                            <span className={styles.stage_status}>{formatExecutionStatus(stage.status)}</span>
-                            <ProgressBar
-                                fraction={stage.status === view.ProfileExecutionStatus.SUCCEEDED ? 1
-                                    : stage.work == null ? null : stage.work.done / stage.work.total}
-                                label={`Stage ${stage.label} progress`}
-                                active={stage.status === view.ProfileExecutionStatus.RUNNING}
-                            />
-                            <span className={styles.stage_figure}>
-                                {stage.work == null ? '' : `${formatCompactCount(stage.work.done)} / ${formatCompactCount(stage.work.total)}`}
-                            </span>
-                            <span className={styles.stage_figure}>{stage.rows == null ? '' : `${formatCompactCount(stage.rows)} rows`}</span>
-                            <span className={styles.stage_figure}>{stage.cpuTimeUs == null ? '' : formatElapsed(stage.cpuTimeUs / 1000)}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-            {props.showProfile && hasOperators && (
-                <div className={styles.profile} data-testid="query-progress-profile">
-                    <QueryProfileView plan={progress.structure} execution={progress.execution} showProgress />
-                </div>
-            )}
-        </>
+        <div className={styles.profile} style={props.height == null ? undefined : { height: props.height }} data-testid="query-progress-profile">
+            <QueryProfileView plan={progress.structure} execution={progress.execution} showProgress />
+        </div>
     );
 }
 
-/// The progress of a query: its phase, a progress bar, throughput and the stages with their progress
+/// The progress of a query: its phase, a progress bar, throughput and the profile with the progress of its stages
 export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const { query } = props;
     // The connector fetches the plan and its statistics only while a profile is shown
@@ -234,9 +180,7 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                     <Figure label="Spilled" value={spilled == null || spilled === 0 ? null : formatCompactBytes(spilled)} />
                 </div>
             </div>
-            {profileProgress != null && (
-                <ProfileProgressDetails progress={profileProgress} maxStageRows={props.maxStageRows} showProfile={props.showProfile} />
-            )}
+            {props.showProfile && profileProgress != null && <ProfileProgressDetails progress={profileProgress} height={props.profileHeight} />}
         </div>
     );
 }

@@ -107,6 +107,8 @@ entry when you find another one. The headings name where the behavior lives.
   first slot of a pipeline is its source, the last its sink. Pipelines are registered as
   `<fragment>.<pipeline>` when their summaries first appear, which is when their stage finished.
   Summaries of plan nodes the plan does not know are skipped. Data sizes count in powers of 1024.
+- **Trino stage states** (`stage_status`). `PENDING` is running: Trino enters it after `RUNNING`, when
+  the tasks of a stage are done but the stage is not, often with every split completed.
 
 ## Script session (`packages/dashql-core-session/src/script_session.rs`)
 

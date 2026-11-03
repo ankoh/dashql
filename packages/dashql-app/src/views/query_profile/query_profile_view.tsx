@@ -15,6 +15,7 @@ import { computeProfileFitTransform } from './profile_fit.js';
 import { createProfileLayoutConfig } from './profile_layout_config.js';
 import { ProfileExecutionController } from './profile_execution_controller.js';
 import { ProfileExecutionState } from '../../query/profile_execution_state.js';
+import { formatCompactCount, workOf } from '../query_progress/query_progress_model.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileNavigationDirection } from './profile_navigation.js';
 import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderProfileOperatorSymbol } from './profile_operator_symbol.js';
@@ -42,6 +43,20 @@ const STATUS_PATHS: Record<number, string> = {
 };
 
 export { createProfileLayoutConfig };
+
+/// The progress of a fragment on its contour: the completed share of its work while it runs, and its work as
+/// badge text until it succeeded. Null without known work.
+function fragmentProgress(execution: ProfileExecutionState, fragment: number): { percent: number | null; text: string | null } | null {
+    const state = execution.fragments[fragment];
+    const work = workOf(state);
+    if (state == null || work == null) return null;
+    const running = state.status === dashql.buffers.profile.ProfileExecutionStatus.RUNNING;
+    const succeeded = state.status === dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED;
+    return {
+        percent: running ? Math.round((work.done / work.total) * 100) : null,
+        text: succeeded ? null : `${formatCompactCount(work.done)}/${formatCompactCount(work.total)}`,
+    };
+}
 
 /// The status of a fragment as attribute value for the contour, undefined without execution state
 function fragmentStatus(execution: ProfileExecutionState, fragment: number): string | undefined {
@@ -398,23 +413,37 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
             }}>
                 <g ref={sceneRef}>
                     <g>
-                        {scene.fragments.map((fragment, fragmentIndex) => (
-                            <g
-                                key={fragment.id}
-                                role="img"
-                                aria-label={`Fragment ${fragment.id + 1}, containing operators: ${fragment.operatorIds
-                                    .map(operatorId => scene.operators[operatorId]?.label)
-                                    .filter((label): label is string => label != null)
-                                    .join(', ')}`}
-                            >
-                                <path
-                                    className={`${graphStyles.fragment} ${styles.fragment}`}
-                                    d={fragment.path}
+                        {scene.fragments.map((fragment, fragmentIndex) => {
+                            const progress = showProgress ? fragmentProgress(execution, fragment.id) : null;
+                            return (
+                                <g
+                                    key={fragment.id}
+                                    className={graphStyles.fragment_colors}
                                     data-color={fragmentIndex % 6}
-                                    data-status={fragmentStatus(execution, fragment.id)}
-                                />
-                            </g>
-                        ))}
+                                    role="img"
+                                    aria-label={`Fragment ${fragment.id + 1}${progress?.text == null ? '' : `, ${progress.text} splits`}, containing operators: ${fragment.operatorIds
+                                        .map(operatorId => scene.operators[operatorId]?.label)
+                                        .filter((label): label is string => label != null)
+                                        .join(', ')}`}
+                                >
+                                    <path
+                                        className={`${graphStyles.fragment} ${styles.fragment}`}
+                                        d={fragment.path}
+                                        data-status={fragmentStatus(execution, fragment.id)}
+                                    />
+                                    {progress?.percent != null && (
+                                        // The completed share of the work runs along the contour
+                                        <path
+                                            className={styles.fragment_progress}
+                                            d={fragment.path}
+                                            pathLength={100}
+                                            strokeDasharray={`${progress.percent} 100`}
+                                            data-testid="fragment-progress"
+                                        />
+                                    )}
+                                </g>
+                            );
+                        })}
                     </g>
                     <g>
                         {scene.pipelines.map(pipeline => (
@@ -490,6 +519,25 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                                 <text fill={highlightedEdgeSet.has(rendered.edge) ? '#ffffff' : rendered.badge.foreground}>{rendered.badge.text}</text>
                             </g>
                         )])}
+                    </g>
+                    <g aria-hidden="true">
+                        {showProgress && scene.fragments.map((fragment, fragmentIndex) => {
+                            const text = fragmentProgress(execution, fragment.id)?.text;
+                            if (text == null || fragment.corner == null) return null;
+                            const width = text.length * 5.5 + 10;
+                            return (
+                                <g
+                                    key={fragment.id}
+                                    className={`${graphStyles.fragment_colors} ${styles.fragment_badge}`}
+                                    data-color={fragmentIndex % 6}
+                                    transform={`translate(${fragment.corner.x}, ${fragment.corner.y})`}
+                                    data-status={fragmentStatus(execution, fragment.id)}
+                                >
+                                    <rect x={-width / 2} y={-EDGE_BADGE_HEIGHT / 2} width={width} height={EDGE_BADGE_HEIGHT} rx={EDGE_BADGE_HEIGHT / 2} />
+                                    <text>{text}</text>
+                                </g>
+                            );
+                        })}
                     </g>
                     <g>
                         {scene.operators.map(operator => (

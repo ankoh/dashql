@@ -180,7 +180,7 @@ describe('QueryProfileView keyboard navigation', () => {
 
     function renderPlan(edgeRendering?: React.ComponentProps<typeof QueryProfileView>['edgeRendering']) {
         // The tests mutate the shared scene fixture in place, the view memoizes derived edges per scene
-        const freshScene: QueryProfileViewDependencies = { materializeProfileScene: () => ({ ...scene }) };
+        const freshScene: QueryProfileViewDependencies = { ...dependencies, materializeProfileScene: () => ({ ...scene }) };
         act(() => root.render(<QueryProfileView plan={plan} execution={executionOf(actualRows)} edgeRendering={edgeRendering} dependencies={freshScene} />));
     }
 
@@ -435,5 +435,73 @@ describe('QueryProfileView keyboard navigation', () => {
         expect(first.querySelector('[data-plan-port="input"]')).toBeNull();
         expect(second.querySelector('[data-plan-port="input"]')?.getAttribute('aria-hidden')).toEqual('true');
         expect(second.querySelector('[data-plan-port="output"]')?.getAttribute('aria-hidden')).toEqual('true');
+    });
+});
+
+describe('QueryProfileView fragment progress', () => {
+    const view = dashql.buffers.profile;
+    const plan = {} as dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>;
+    const progressScene: ProfileScene = {
+        ...scene,
+        fragments: [
+            { id: 0, operatorIds: [0, 1], path: 'M 0 0 L 200 0 L 200 80 L 0 80 Z', corner: { x: 200, y: 0 } },
+            { id: 1, operatorIds: [2], path: 'M 240 0 L 320 0 L 320 80 L 240 80 Z', corner: { x: 320, y: 0 } },
+        ],
+    };
+    const fragmentDependencies: QueryProfileViewDependencies = { ...dependencies, materializeProfileScene: () => progressScene };
+
+    /// The state of a fragment with work done of work total
+    function fragment(status: dashql.buffers.profile.ProfileExecutionStatus, done: number, total: number) {
+        const stats = new view.ProfileStatsT();
+        stats.reported = view.ProfileStatsField.WORK_DONE | view.ProfileStatsField.WORK_TOTAL;
+        stats.workDone = BigInt(done);
+        stats.workTotal = BigInt(total);
+        return { status, stats };
+    }
+
+    let container: HTMLDivElement;
+    let root: Root;
+    beforeEach(() => {
+        ResizeObserverMock.reset();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+    });
+    afterEach(() => {
+        act(() => root.unmount());
+        container.remove();
+    });
+
+    it('runs the progress of a running fragment along its contour and shows its work at the corner', () => {
+        const execution = new ProfileExecutionState(null, [
+            fragment(view.ProfileExecutionStatus.RUNNING, 4, 8),
+            fragment(view.ProfileExecutionStatus.SUCCEEDED, 8, 8),
+        ], [], [], []);
+        act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
+        const progress = [...container.querySelectorAll('[data-testid="fragment-progress"]')];
+        expect(progress.map(path => [path.getAttribute('d'), path.getAttribute('stroke-dasharray')]))
+            .toEqual([['M 0 0 L 200 0 L 200 80 L 0 80 Z', '50 100']]);
+        // A succeeded fragment needs no badge, its contour says it
+        expect([...container.querySelectorAll('text')].map(text => text.textContent)).toContain('4/8');
+        expect([...container.querySelectorAll('text')].map(text => text.textContent)).not.toContain('8/8');
+        expect(container.querySelector('[aria-label^="Fragment 1, 4/8 splits"]')).not.toBeNull();
+    });
+
+    it('keeps the color of every fragment whatever its status', () => {
+        const execution = new ProfileExecutionState(null, [
+            fragment(view.ProfileExecutionStatus.SUCCEEDED, 8, 8),
+            fragment(view.ProfileExecutionStatus.SUCCEEDED, 8, 8),
+        ], [], [], []);
+        act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
+        const contours = [...container.querySelectorAll('[aria-label^="Fragment"]')];
+        expect(contours.map(contour => contour.getAttribute('data-color'))).toEqual(['0', '1']);
+        expect(contours.map(contour => contour.querySelector('path')?.getAttribute('data-status'))).toEqual(['succeeded', 'succeeded']);
+    });
+
+    it('shows no progress without the progress mode', () => {
+        const execution = new ProfileExecutionState(null, [fragment(view.ProfileExecutionStatus.RUNNING, 4, 8)], [], [], []);
+        act(() => root.render(<QueryProfileView plan={plan} execution={execution} dependencies={fragmentDependencies} />));
+        expect(container.querySelector('[data-testid="fragment-progress"]')).toBeNull();
+        expect([...container.querySelectorAll('text')].map(text => text.textContent)).not.toContain('4/8');
     });
 });

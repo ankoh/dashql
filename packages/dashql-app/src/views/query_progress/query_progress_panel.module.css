@@ -66,56 +66,6 @@
     .bar[data-indeterminate="true"] .bar_fill { animation: none; width: 100% !important; opacity: 0.3; }
 }
 
-/* The stages: name, status, bar, splits, rows, cpu */
-.stages {
-    display: grid;
-    grid-template-columns: minmax(6rem, auto) 4.5rem minmax(4rem, 1fr) auto auto auto;
-    column-gap: 12px;
-    align-items: center;
-    padding: 4px 12px 8px;
-    overflow-y: auto;
-    font-size: var(--font_size_small);
-}
-
-.stage {
-    display: contents;
-}
-
-.stage > * {
-    line-height: 1.75rem;
-}
-
-.stage_name {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-}
-
-.stage_dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: var(--status_color_other);
-}
-
-.stage[data-status="running"] .stage_dot { background: var(--status_color_in_progress); }
-.stage[data-status="succeeded"] .stage_dot { background: var(--status_color_success); }
-.stage[data-status="failed"] .stage_dot { background: var(--status_color_failed); }
-.stage[data-status="succeeded"] .bar_fill { background: var(--status_color_success); }
-.stage[data-status="failed"] .bar_fill { background: var(--status_color_failed); }
-
-.stage_status {
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 44%);
-}
-
-.stage_figure {
-    text-align: right;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
 /* The profile of the query, the plan with its stages */
 .profile {
     position: relative;

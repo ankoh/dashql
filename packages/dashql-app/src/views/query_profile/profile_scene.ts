@@ -59,6 +59,9 @@ export interface ProfileSceneFragment {
     id: number;
     operatorIds: readonly number[];
     path: string;
+    /// The top right corner of the contour around the root operator, where the progress badge sits.
+    /// Null if the fragment has no root operator.
+    corner: { x: number; y: number } | null;
 }
 
 export interface ProfileScene {
@@ -321,11 +324,14 @@ function traceFragmentRectangles(rectangles: readonly ProfileSceneRect[]): strin
     return parts.join(' ');
 }
 
+/// The padding of a fragment contour around its operators
+const FRAGMENT_PADDING = 12;
+
 export function buildFragmentPath(
     operatorIds: readonly number[],
     operators: readonly Pick<ProfileSceneOperator, 'rect'>[],
     edges: readonly Pick<ProfileSceneEdge, 'childOperator' | 'parentOperator'>[] = [],
-    padding = 12,
+    padding = FRAGMENT_PADDING,
     corridorWidth = padding * 2,
 ): string {
     const rectangles: ProfileSceneRect[] = [];
@@ -442,11 +448,13 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
     const enclosed: number[][] = [];
     const parents: number[] = [];
     const hidden: boolean[] = [];
+    const roots: number[] = [];
     for (let i = 0; i < fragmentCount; ++i) {
         const fragment = vm.fragments(i, tmpFragment)!;
         enclosed.push(readIndexRange(j => vm.fragmentOperators(j), fragment.operatorsBegin(), fragment.operatorCount()));
         parents.push(fragment.parentFragment());
         hidden.push(fragment.hidden() !== 0);
+        roots.push(fragment.rootOperator());
     }
     for (let i = fragmentCount - 1; i >= 0; --i) {
         const parent = parents[i];
@@ -455,10 +463,15 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
     const fragments: ProfileSceneFragment[] = [];
     for (let i = 0; i < fragmentCount; ++i) {
         if (hidden[i]) continue;
+        const root = operators[roots[i]];
         fragments.push({
             id: i,
             operatorIds: enclosed[i],
-            path: buildFragmentPath(enclosed[i], operators, edges),
+            path: buildFragmentPath(enclosed[i], operators, edges, FRAGMENT_PADDING),
+            corner: root == null ? null : {
+                x: root.rect.x + root.rect.width / 2 + FRAGMENT_PADDING,
+                y: root.rect.y - root.rect.height / 2 - FRAGMENT_PADDING,
+            },
         });
     }
 

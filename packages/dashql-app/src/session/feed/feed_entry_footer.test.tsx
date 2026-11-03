@@ -9,11 +9,14 @@ import { ComputationRegistry } from '../../compute/computation_registry.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
-import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
+import * as dashql from '@ankoh/dashql-core';
+import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
-import type { QueryProfileProgress } from '../../query/query_progress_model.js';
+import { QueryProgressModels, type QueryProfileProgress } from '../../query/query_progress_model.js';
 import { ProfileExecutionState } from '../../query/profile_execution_state.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -212,5 +215,32 @@ describe('FeedEntryFooter', () => {
         expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Execution log', 'Query progress']);
         expect(tabs[1].getAttribute('aria-selected')).toBe('true');
         expect(container.querySelector('[data-testid="query-progress-panel"]')?.textContent).toContain('Running');
+        // Without operators, the plan is not known yet and there is no tree
+        expect(container.querySelector('[data-testid="query-progress-profile"]')).toBeNull();
+    });
+
+    it('shows the plan of a running query as a tree in the progress tab', async () => {
+        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        const models = new QueryProgressModels();
+        const plan = { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }] };
+        const info = { queryId: 'q', stages: { stages: [{ stageId: 'q.0', plan: { jsonRepresentation: JSON.stringify(plan) } }] } };
+        const profileProgress = models.apply(core, 44, { kind: 'trino_query_info', info, receivedAt: 1 })!;
+        const queryState = {
+            queryId: 44,
+            traceId: 11,
+            status: QueryExecutionStatus.RUNNING,
+            metrics: { queryRequestedAt: new Date() },
+            latestProgressUpdate: { phase: 'RUNNING', profileProgress },
+        } as unknown as QueryExecutionState;
+        act(() => root.render(
+            <FeedEntryFooter sessionId="session" queryState={queryState} visualizeQuery={null} selectedTab={FeedEntryTab.Progress} dependencies={dependencies} />,
+        ));
+        const profile = container.querySelector<HTMLElement>('[data-testid="query-progress-profile"]');
+        expect(profile?.style.height).toEqual('240px');
+        expect(profile?.querySelector('[aria-label="Query execution plan with 2 operators"]')).not.toBeNull();
+        act(() => root.unmount());
+        root = createRoot(container);
+        models.release(44);
+        core.resetUnsafe();
     });
 });

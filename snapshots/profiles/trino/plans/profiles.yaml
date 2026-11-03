@@ -564,18 +564,8 @@ trino-profile-snapshots:
         work-total: 21
       - time: 1853
         entity: fragment
-        index: 2
-        status: pending
-        tuples-in: 0
-        bytes-in: 0
-        cpu-time-us: 0
-        wall-time-us: 0
-        work-done: 0
-        work-total: 2
-      - time: 1853
-        entity: fragment
         index: 3
-        status: pending
+        status: running
         tuples-in: 6001215
         bytes-in: 0
         cpu-time-us: 2500000
@@ -595,18 +585,8 @@ trino-profile-snapshots:
         work-total: 21
       - time: 1858
         entity: fragment
-        index: 1
-        status: pending
-        tuples-in: 0
-        bytes-in: 0
-        cpu-time-us: 0
-        wall-time-us: 0
-        work-done: 0
-        work-total: 2
-      - time: 1858
-        entity: fragment
         index: 2
-        status: pending
+        status: running
         tuples-in: 64
         bytes-in: 3012
         cpu-time-us: 3000
@@ -1435,18 +1415,8 @@ trino-profile-snapshots:
         work-total: 21
       - time: 1853
         entity: fragment
-        index: 2
-        status: pending
-        tuples-in: 0
-        bytes-in: 0
-        cpu-time-us: 0
-        wall-time-us: 0
-        work-done: 0
-        work-total: 2
-      - time: 1853
-        entity: fragment
         index: 3
-        status: pending
+        status: running
         tuples-in: 6001215
         bytes-in: 0
         cpu-time-us: 2500000
@@ -1466,18 +1436,8 @@ trino-profile-snapshots:
         work-total: 21
       - time: 1858
         entity: fragment
-        index: 1
-        status: pending
-        tuples-in: 0
-        bytes-in: 0
-        cpu-time-us: 0
-        wall-time-us: 0
-        work-done: 0
-        work-total: 2
-      - time: 1858
-        entity: fragment
         index: 2
-        status: pending
+        status: running
         tuples-in: 64
         bytes-in: 3012
         cpu-time-us: 3000
@@ -2454,7 +2414,7 @@ trino-profile-snapshots:
       - time: 1222
         entity: fragment
         index: 2
-        status: pending
+        status: running
         tuples-in: 150000
         bytes-in: 0
         cpu-time-us: 131000
@@ -2483,16 +2443,6 @@ trino-profile-snapshots:
         spilled-bytes: 0
         work-done: 16
         work-total: 55
-      - time: 2535
-        entity: fragment
-        index: 1
-        status: pending
-        tuples-in: 0
-        bytes-in: 0
-        cpu-time-us: 0
-        wall-time-us: 0
-        work-done: 0
-        work-total: 37
       - time: 2546
         entity: query
         status: succeeded

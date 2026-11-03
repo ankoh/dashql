@@ -27,11 +27,12 @@ fn query_status(state: &str) -> Option<Status> {
     }
 }
 
-/// The status of a Trino stage state (`StageState`)
+/// The status of a Trino stage state (`StageState`). A stage is `PENDING` after `RUNNING`: its tasks are done,
+/// the stage is not, it still runs.
 fn stage_status(state: &str) -> Option<Status> {
     match state {
-        "PLANNED" | "SCHEDULING" | "PENDING" => Some(Status::Pending),
-        "SCHEDULED" | "RUNNING" => Some(Status::Running),
+        "PLANNED" | "SCHEDULING" => Some(Status::Pending),
+        "SCHEDULED" | "RUNNING" | "PENDING" => Some(Status::Running),
         "FINISHED" => Some(Status::Succeeded),
         "FAILED" | "ABORTED" => Some(Status::Failed),
         "CANCELED" => Some(Status::Skipped),
