@@ -1,6 +1,9 @@
 :root {
     font-family: var(--font_family);
     color: var(--base_color);
+    /* JetBrains Mono draws operators like <= or != as ligatures that read like the Unicode symbols, SQL shows what
+       is typed */
+    font-variant-ligatures: no-contextual;
 }
 
 * {
