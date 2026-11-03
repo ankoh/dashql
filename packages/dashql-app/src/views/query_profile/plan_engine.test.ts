@@ -1,4 +1,4 @@
-import * as arrow from 'apache-arrow';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import * as dashql from '@ankoh/dashql-core';
 import { detectPlanEngine } from './plan_engine.js';
 import { peekFormat } from '../query_result/format_peek.js';
@@ -34,8 +34,8 @@ describe('detectPlanEngine', () => {
         expect(peekFormat(TRINO_PLAN)).toEqual('plan');
         expect(peekFormat('{"a": 1}')).toEqual('json');
         for (const plan of [HYPER_PLAN, TRINO_PLAN]) {
-            expect(getPlanResultText(arrow.tableFromArrays({ value: [plan] }))).toEqual(plan);
+            expect(getPlanResultText(tableFromArrays({ value: [plan] }))).toEqual(plan);
         }
-        expect(getPlanResultText(arrow.tableFromArrays({ value: ['{"0": {"id": "1"}}'] }))).toBeNull();
+        expect(getPlanResultText(tableFromArrays({ value: ['{"0": {"id": "1"}}'] }))).toBeNull();
     });
 });
