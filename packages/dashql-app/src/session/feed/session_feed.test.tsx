@@ -793,6 +793,36 @@ describe('Session feed composer', () => {
         }
     });
 
+    it('keeps the mounted rows of the scripts below a script that is inserted above them', () => {
+        const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(1000);
+        try {
+            // A row remembers the script that it mounted with
+            const ScriptFeedRow = (props: any) => {
+                const [mountedScriptId] = React.useState(() => props.entries[props.index]?.scriptId);
+                return <div style={props.style} data-testid="row" data-script-key={props.entries[props.index]?.scriptId}
+                    data-mounted-script-key={mountedScriptId} />;
+            };
+            const renderFeed = (sessionScripts: SessionScripts) => act(() => root.render(<LoggerProvider>
+                <SessionConnectionAttentionContext.Provider value={attention as any}>
+                    <SessionFeed sessionScripts={sessionScripts} modifySessionScripts={vi.fn()} conn={onlineConn}
+                        active={true} dependencies={{ ...feedDependencies, ScriptFeedRow }} />
+                </SessionConnectionAttentionContext.Provider>
+            </LoggerProvider>));
+            const rows = () => Array.from(container.querySelectorAll<HTMLElement>('[data-testid="row"]'))
+                .map(row => [row.dataset.scriptKey, row.dataset.mountedScriptKey]);
+            renderFeed(session(['1_alpha.sql', '2_beta.sql']));
+            expect(rows()).toEqual([['1', '1'], ['2', '2']]);
+
+            // The created script lands above the first script, the rows of the first and the second script move down
+            const created = session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']);
+            created.scriptOrder = ['3_gamma.sql', '1_alpha.sql', '2_beta.sql'];
+            renderFeed(created);
+            expect(rows()).toEqual([['3', '3'], ['1', '1'], ['2', '2']]);
+        } finally {
+            clientHeight.mockRestore();
+        }
+    });
+
     it('follows the agent to the results of a script it runs', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;

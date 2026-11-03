@@ -632,8 +632,8 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         rowRef.current = node;
         setNodeRef(node);
     }, [setNodeRef]);
-    // The list keys its rows by index, a script inserted above moves the scripts down into the mounted rows.
-    // A row measures again when it shows another script, its size may not change and the size observer stays silent.
+    // The height cache stores the height of the script at the index of a row.
+    // A row measures again when its index or its script changes, its size may not change and the size observer stays silent.
     const rowScriptId = entry?.scriptId;
     React.useLayoutEffect(() => {
         const row = rowRef.current;

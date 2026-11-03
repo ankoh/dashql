@@ -144,6 +144,12 @@ function useScriptConnectionViews(connections: ReadonlyMap<string, ConnectionSta
     return views.current;
 }
 
+/// The rows are keyed by script, a script inserted above moves the mounted rows of the scripts below instead of
+/// handing their rows to other scripts. The cards keep their editors and their measured heights.
+function feedRowKey(index: number, rowProps: ScriptFeedRowProps): React.Key {
+    return rowProps.entries[index]?.scriptId ?? `index-${index}`;
+}
+
 function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
@@ -809,6 +815,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                             rowCount={entries.length}
                             overscanCount={OVERSCAN_ROW_COUNT}
                             rowHeight={feedLayout.rowHeights}
+                            rowKey={feedRowKey}
                             rowComponent={dependencies.ScriptFeedRow}
                             rowProps={rowProps}
                         />
