@@ -20,6 +20,7 @@ Please consult relevant docs in that directory before making changes.
 - Rust core (parser design, parse-tree change rules, core quirks kept on purpose)
     - `docs/design/core_parser.md`
     - `docs/design/core_quirks.md`
+    - `docs/design/trino_plan.md` (Trino plan fragments to one operator tree, tree layout, stage contours)
 
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)
     - `docs/design/app_csp.md`
