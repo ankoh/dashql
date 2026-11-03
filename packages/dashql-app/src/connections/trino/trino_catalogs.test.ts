@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { parseTrinoCatalogEntry, trinoCatalogEntries, trinoCatalogScopes } from './trino_catalogs.js';
+import type { QueryExecutor } from '../query_executor.js';
+import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogEntries, trinoCatalogScopes } from './trino_catalogs.js';
+import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const params = (fields: Partial<connection.TrinoConnectionParams>): connection.TrinoConnectionParams => ({
     endpoint: 'https://trino.example.com',
@@ -34,4 +37,15 @@ describe('Trino catalog entries', () => {
         ]);
     });
 
+    it('reads all catalogs of the server', async () => {
+        const executor = vi.fn<QueryExecutor>(() => [3, Promise.resolve(tableFromArrays({ catalog_name: ['hive', 'system'] }))]);
+        const dispatch = vi.fn();
+        const scopes = await queryTrinoCatalogScopes('connection', dispatch, 7, executor);
+        expect(executor.mock.calls[0][1].query).toBe(TRINO_CATALOGS_QUERY);
+        expect(dispatch).toHaveBeenCalledWith('connection', { type: CATALOG_UPDATE_REGISTER_QUERY, value: [7, 3] });
+        expect(scopes).toEqual([
+            { catalog: 'hive', schemas: [] },
+            { catalog: 'system', schemas: [] },
+        ]);
+    });
 });

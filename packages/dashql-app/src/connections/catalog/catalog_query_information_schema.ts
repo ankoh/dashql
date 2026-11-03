@@ -166,7 +166,7 @@ export async function updateInformationSchemaCatalog(
     _catalogFunctionScript: dashql.DashQLScript,
     options: CatalogBatchOptions = {},
 ): Promise<void> {
-    // Without a default catalog an information_schema needs a catalog
+    // Every information_schema belongs to a catalog, without one there is nothing to read
     if (scopes.length === 0) {
         throw new Error('no catalogs to read the information_schema of');
     }

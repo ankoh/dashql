@@ -1,5 +1,12 @@
+import type * as arrow from 'apache-arrow';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+
 import type { InformationSchemaScope } from '../catalog/catalog_query_information_schema.js';
+import type { QueryExecutor } from '../query_executor.js';
+import type { QueryExecutionArgs } from '../query_execution_args.js';
+import type { DynamicConnectionDispatch } from '../connection_registry.js';
+import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
+import { QueryType } from '../../query/query_execution_state.js';
 
 /// The fields of the Trino params that name catalogs
 type TrinoCatalogParams = Pick<connection.TrinoConnectionParams, 'catalogs' | 'catalogName' | 'schemaNames'>;
@@ -49,3 +56,39 @@ export function trinoCatalogScopes(params: TrinoCatalogParams): InformationSchem
     return [...scopes].map(([catalog, scope]) => ({ catalog, schemas: scope.all ? [] : [...scope.schemas] }));
 }
 
+/// The query of the catalogs of the server
+export const TRINO_CATALOGS_QUERY = 'SELECT catalog_name FROM system.metadata.catalogs ORDER BY catalog_name';
+
+/// The catalogs of the server, all schemas of each.
+/// The catalog loader reads them when the params name no catalogs.
+export async function queryTrinoCatalogScopes(connectionId: string, connectionDispatch: DynamicConnectionDispatch, updateId: number, executor: QueryExecutor, abortSignal?: AbortSignal): Promise<InformationSchemaScope[]> {
+    const args: QueryExecutionArgs = {
+        query: TRINO_CATALOGS_QUERY,
+        abortSignal,
+        throwOnError: true,
+        metadata: {
+            queryType: QueryType.CATALOG_QUERY_INFORMATION_SCHEMA,
+            title: "Catalogs",
+            description: null,
+            issuer: "Catalog Update",
+            userProvided: false
+        }
+    };
+    const [queryId, queryExecution] = executor(connectionId, args);
+    connectionDispatch(connectionId, {
+        type: CATALOG_UPDATE_REGISTER_QUERY,
+        value: [updateId, queryId]
+    });
+    const result = await queryExecution as arrow.Table<{ catalog_name: arrow.Utf8 }> | null;
+    const scopes: InformationSchemaScope[] = [];
+    for (const batch of result?.batches ?? []) {
+        const names = batch.getChild('catalog_name');
+        for (let i = 0; i < batch.numRows; ++i) {
+            const name = names?.at(i);
+            if (name) {
+                scopes.push({ catalog: name, schemas: [] });
+            }
+        }
+    }
+    return scopes;
+}
