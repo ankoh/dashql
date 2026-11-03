@@ -55,6 +55,45 @@ export function isBuilderEditable(spec: ChartSpec): boolean {
     return layers.every(layer => isObject(layer) && isSingleView(layer));
 }
 
+function isFieldOrDatumDef(def: unknown): def is ChannelDef {
+    return isObject(def) && ('field' in def || 'datum' in def);
+}
+
+/// The channel of a layer that inherits the channel of the shared encoding, the rules of the normalizer of Vega-Lite:
+/// a field or datum def overrides the keys of the shared def, a condition with a field or datum def does the same in
+/// the condition, null removes the channel, any other def replaces it, and a missing def inherits the shared one.
+function inheritChannel(shared: unknown, own: unknown): unknown {
+    if (own === undefined) return shared;
+    if (own === null || !isObject(shared)) return own;
+    if (isFieldOrDatumDef(own)) return { ...shared, ...own };
+    if (isFieldOrDatumDef(own.condition)) return { ...own, condition: { ...shared, ...own.condition } };
+    return own;
+}
+
+/// Move an encoding that the layers share into the layers, the builder edits the encoding of a layer only. The layers
+/// render as before, null if the spec has no shared encoding or if the builder cannot edit the layers anyway.
+export function inlineSharedEncoding(spec: ChartSpec): ChartSpec | null {
+    const layers = getLayers(spec);
+    const shared = spec.encoding;
+    if (layers == null || layers.length === 0 || !isObject(shared) || 'mark' in spec) return null;
+    if (COMPOSITION_KEYS.some(key => key !== 'layer' && key in spec)) return null;
+    if (!layers.every(layer => isObject(layer) && isSingleView(layer))) return null;
+    const top = { ...spec };
+    delete top.encoding;
+    return {
+        ...top,
+        layer: layers.map(layer => {
+            const own = getEncoding(layer);
+            const encoding: Record<string, unknown> = {};
+            for (const channel of new Set([...Object.keys(shared), ...Object.keys(own)])) {
+                const def = inheritChannel(shared[channel], own[channel]);
+                if (def != null) encoding[channel] = def;
+            }
+            return withEncoding(layer, encoding);
+        }),
+    };
+}
+
 /// The number of views that the builder edits, a single view is one layer
 export function layerCount(spec: ChartSpec): number {
     return getLayers(spec)?.length ?? 1;

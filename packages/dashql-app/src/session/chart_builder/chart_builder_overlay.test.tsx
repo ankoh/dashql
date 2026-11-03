@@ -185,6 +185,28 @@ describe('ChartBuilderOverlay', () => {
         expect(byTestId('chart-mark-bar')?.getAttribute('aria-pressed')).toBe('true');
     });
 
+    it('moves an encoding that the layers share into the layers and stages the move', () => {
+        const onChange = vi.fn();
+        const shared = {
+            encoding: { x: { field: 'vol', type: 'quantitative' } },
+            layer: [{ mark: 'rule', encoding: { x: null, y: { datum: 0 } } }, { mark: 'point' }],
+        };
+        const inlined = { layer: [{ mark: 'rule', encoding: { y: { datum: 0 } } }, { mark: 'point', encoding: { x: { field: 'vol', type: 'quantitative' } } }] };
+        render({ onChange, visualizeQuery: vegaLite(shared) });
+        expect(byTestId('chart-builder-unsupported')).toBeNull();
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(onChange.mock.lastCall![0])).toEqual(inlined);
+
+        // A shared encoding typed in the JSON moves once the builder shows the spec
+        act(() => byTestId('chart-mode-json')!.click());
+        const view = EditorView.findFromDOM(byTestId('chart-json-editor')!.querySelector('.cm-editor') as HTMLElement)!;
+        act(() => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: JSON.stringify(shared) } }));
+        expect(JSON.parse(onChange.mock.lastCall![0])).toEqual(shared);
+        act(() => byTestId('chart-mode-builder')!.click());
+        expect(JSON.parse(onChange.mock.lastCall![0])).toEqual(inlined);
+        expect(byTestId('chart-builder')).not.toBeNull();
+    });
+
     it('sends composed views to the JSON', () => {
         render({ onChange: vi.fn(), visualizeQuery: vegaLite({ hconcat: [{ mark: 'bar' }, { mark: 'rule' }] }) });
         expect(byTestId('chart-builder-unsupported')).not.toBeNull();

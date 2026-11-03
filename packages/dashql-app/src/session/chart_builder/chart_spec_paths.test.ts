@@ -1,3 +1,4 @@
+import { compile, type TopLevelSpec } from 'vega-lite';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,6 +9,7 @@ import {
     encodedFields,
     getLayer,
     getMarkType,
+    inlineSharedEncoding,
     isBuilderEditable,
     layerCount,
     newLayerView,
@@ -87,6 +89,62 @@ describe('chart spec paths', () => {
         expect(isBuilderEditable({ facet: { row: { field: 'a' } }, spec: { mark: 'bar' } })).toBe(false);
         expect(encodedFields({ encoding: { x: { field: 'a' }, tooltip: [{ field: 'b' }, { field: 'a' }], color: { value: 'red' } } })).toEqual(['a', 'b']);
         expect(encodedFields({ layer: [{ encoding: { x: { field: 'a' } } }, { encoding: { y: { field: 'b' } } }] })).toEqual(['a', 'b']);
+    });
+
+    it('moves an encoding that the layers share into the layers', () => {
+        const spec = {
+            title: 'Risk vs. return',
+            transform: [{ calculate: 'toNumber(datum.v)', as: 'vol' }],
+            encoding: {
+                x: { field: 'vol', type: 'quantitative', scale: { zero: false } },
+                y: { field: 'ret', type: 'quantitative', title: 'Return' },
+                opacity: { value: 0.8 },
+            },
+            layer: [
+                { mark: { type: 'rule', strokeDash: [4, 4] }, encoding: { x: null, y: { datum: 0 } } },
+                { mark: 'point', encoding: { color: { field: 'sector', type: 'nominal' } } },
+                { mark: 'text', encoding: { text: { field: 'ticker', type: 'nominal' }, opacity: { condition: { param: 'p', field: 'w' }, value: 0.2 } } },
+            ],
+        };
+        const inlined = inlineSharedEncoding(spec)!;
+        expect(inlined).toEqual({
+            title: 'Risk vs. return',
+            transform: [{ calculate: 'toNumber(datum.v)', as: 'vol' }],
+            layer: [
+                {
+                    mark: { type: 'rule', strokeDash: [4, 4] },
+                    // A datum keeps the keys of the shared field def like Vega-Lite, the title still names the rule
+                    encoding: { y: { field: 'ret', type: 'quantitative', title: 'Return', datum: 0 }, opacity: { value: 0.8 } },
+                },
+                {
+                    mark: 'point',
+                    encoding: {
+                        color: { field: 'sector', type: 'nominal' },
+                        x: { field: 'vol', type: 'quantitative', scale: { zero: false } },
+                        y: { field: 'ret', type: 'quantitative', title: 'Return' },
+                        opacity: { value: 0.8 },
+                    },
+                },
+                {
+                    mark: 'text',
+                    encoding: {
+                        text: { field: 'ticker', type: 'nominal' },
+                        opacity: { condition: { value: 0.8, param: 'p', field: 'w' }, value: 0.2 },
+                        x: { field: 'vol', type: 'quantitative', scale: { zero: false } },
+                        y: { field: 'ret', type: 'quantitative', title: 'Return' },
+                    },
+                },
+            ],
+        });
+        expect(isBuilderEditable(inlined)).toBe(true);
+        // The layers render as before
+        const vega = (s: object) => compile({ data: { values: [] }, params: [{ name: 'p', select: 'point' }], ...s } as unknown as TopLevelSpec).spec;
+        expect(vega(inlined)).toEqual(vega(spec));
+
+        // Specs without a shared encoding or with layers that the builder cannot edit stay
+        expect(inlineSharedEncoding({ layer: [{ mark: 'bar' }] })).toBeNull();
+        expect(inlineSharedEncoding({ mark: 'bar', encoding: { x: { field: 'a' } } })).toBeNull();
+        expect(inlineSharedEncoding({ encoding: { x: { field: 'a' } }, layer: [{ layer: [{ mark: 'bar' }] }] })).toBeNull();
     });
 
     it('edits layers of single views', () => {

@@ -13,7 +13,7 @@ import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { chartColumns } from './chart_columns.js';
 import { ChartSpecBuilder } from './chart_spec_builder.js';
 import { ChartSpecJsonEditor } from './chart_spec_json_editor.js';
-import { encodedFields, type ChartSpec } from './chart_spec_paths.js';
+import { encodedFields, inlineSharedEncoding, type ChartSpec } from './chart_spec_paths.js';
 import * as styles from './chart_builder.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
@@ -73,6 +73,14 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
         setSpec(next);
         onChangeRef.current(JSON.stringify(next));
     }, []);
+
+    // The builder edits the encoding of a layer only. An encoding that the layers share moves into the layers when
+    // the builder shows the spec, the script shows the move as a diff like any other edit.
+    React.useLayoutEffect(() => {
+        if (mode !== ChartBuilderMode.Builder) return;
+        const inlined = inlineSharedEncoding(spec);
+        if (inlined != null) updateSpec(inlined);
+    }, [mode, spec, updateSpec]);
 
     // Check the spec once the user pauses, the problems show in the header
     React.useEffect(() => {
