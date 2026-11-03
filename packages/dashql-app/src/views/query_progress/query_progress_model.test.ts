@@ -111,6 +111,26 @@ describe('QueryProgressModels', () => {
     });
 });
 
+describe('Hyper query progress', () => {
+    it('reports the progress of the whole query', () => {
+        const models = new QueryProgressModels();
+        const status = (completionStatus: string, progress: number | null) => ({
+            completionStatus, rowCount: 7, progress, executionStats: { wallClockTime: 1500, rowsProcessed: 12000 },
+        });
+        const running = models.apply(core, 4, { kind: 'hyper_query_status', status: status('RUNNING_OR_UNSPECIFIED', 0.42), receivedAt: 1 })!;
+        const query = running.execution.query!;
+        expect(query.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.RUNNING);
+        expect(workOf(query)).toEqual({ done: 420, total: 1000 });
+        expect([query.stats.tuplesIn, query.stats.tuplesOut, query.stats.wallTimeUs]).toEqual([12000n, 7n, 1_500_000n]);
+        // Percentages count like fractions
+        expect(workOf(models.apply(core, 4, { kind: 'hyper_query_status', status: status('RUNNING_OR_UNSPECIFIED', 60), receivedAt: 2 })!.execution.query)).toEqual({ done: 600, total: 1000 });
+        const finished = models.apply(core, 4, { kind: 'hyper_query_status', status: status('FINISHED', null), receivedAt: 3 })!;
+        expect(finished.execution.query!.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
+        expect(listProgressStages(finished)).toHaveLength(0);
+        models.release(4);
+    });
+});
+
 describe('query progress formatting', () => {
     it('never moves the bar backwards when the engine learns about more work', () => {
         let fraction = monotonicFraction(0, { done: 5, total: 10 });

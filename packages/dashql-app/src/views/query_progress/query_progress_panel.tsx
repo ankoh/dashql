@@ -120,6 +120,8 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const stages = React.useMemo(() => profileProgress == null ? [] : listProgressStages(profileProgress), [profileProgress]);
     const structure = profileProgress?.structure ?? null;
     const hasOperators = React.useMemo(() => structure != null && structure.read().operatorsLength() > 0, [structure]);
+    // Trino counts work in splits, other engines report a fraction
+    const countsSplits = React.useMemo(() => structure?.read().engine() === dashql.buffers.profile.ProfileEngine.TRINO, [structure]);
 
     const rows = stat(queryState, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn) ?? progress?.rowsProcessed ?? null;
     const cpuUs = stat(queryState, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs);
@@ -141,7 +143,7 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                 />
                 <div className={styles.figures}>
                     <Figure label="Elapsed" value={formatElapsed(elapsedMs)} />
-                    <Figure label="Splits" value={work == null ? null : `${formatCompactCount(work.done)} / ${formatCompactCount(work.total)}`} />
+                    <Figure label="Splits" value={work == null || !countsSplits ? null : `${formatCompactCount(work.done)} / ${formatCompactCount(work.total)}`} />
                     <Figure label="Rows" value={rows == null ? null : formatCompactCount(rows)} />
                     <Figure label="Rows/s" value={rows == null || seconds < 0.5 ? null : formatCompactCount(rows / seconds)} />
                     <Figure label="CPU" value={cpuUs == null ? null : formatElapsed(cpuUs / 1000)} />

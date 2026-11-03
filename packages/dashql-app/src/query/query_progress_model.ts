@@ -8,7 +8,38 @@ export type EngineProgressPayload =
     /// The QueryInfo of a Trino query (`/v1/query/{id}`) with the plans of its stages
     | { kind: 'trino_query_info'; info: object; receivedAt: number }
     /// A pruned QueryInfo (`/v1/query/{id}?pruned=true`): the operator summaries of the stages, without plans
-    | { kind: 'trino_query_info_stats'; info: object; receivedAt: number };
+    | { kind: 'trino_query_info_stats'; info: object; receivedAt: number }
+    /// The status of a Hyper query (web HTTP API): the progress and the processed rows of the whole query
+    | { kind: 'hyper_query_status'; status: HyperQueryStatus; receivedAt: number };
+
+/// The status of a Hyper query, the fields of the Hyper HTTP API that describe its progress
+export interface HyperQueryStatus {
+    completionStatus: string;
+    rowCount: number | null;
+    progress: number | null;
+    executionStats: { wallClockTime: number; rowsProcessed: number } | null;
+}
+
+/// The work units of a progress fraction, Hyper reports a fraction instead of work units
+const HYPER_PROGRESS_UNITS = 1000;
+
+/// The input events of the status of a Hyper query: the query only, Hyper reports no stages or pipelines yet
+function hyperQueryEvents(status: HyperQueryStatus, time: number): object[] {
+    const stats: Record<string, number> = {};
+    if (status.executionStats != null) {
+        stats.tuplesIn = Math.max(0, Math.round(status.executionStats.rowsProcessed));
+        stats.wallTimeUs = Math.max(0, Math.round(status.executionStats.wallClockTime * 1000));
+    }
+    if (status.rowCount != null) stats.tuplesOut = Math.max(0, Math.round(status.rowCount));
+    if (status.progress != null) {
+        // A fraction, values above 1 are percentages
+        const fraction = Math.min(1, Math.max(0, status.progress > 1 ? status.progress / 100 : status.progress));
+        stats.workDone = Math.round(fraction * HYPER_PROGRESS_UNITS);
+        stats.workTotal = HYPER_PROGRESS_UNITS;
+    }
+    const finished = status.completionStatus === 'FINISHED';
+    return [{ type: 'updateQuery', time: Math.max(0, Math.round(time)), status: finished ? 'succeeded' : 'running', stats }];
+}
 
 /// The structured progress of a query: the profile structure (stages, the plan operators once the plan is known)
 /// and its execution state
@@ -24,6 +55,8 @@ function engineOf(payload: EngineProgressPayload): dashql.buffers.profile.Profil
         case 'trino_query_info':
         case 'trino_query_info_stats':
             return dashql.buffers.profile.ProfileEngine.TRINO;
+        case 'hyper_query_status':
+            return dashql.buffers.profile.ProfileEngine.HYPER;
     }
 }
 
@@ -69,6 +102,11 @@ export class QueryProgressModel {
                 // The operator summaries of the stages that finished already
                 this.profile.applyTrinoQueryInfo(JSON.stringify(payload.info), payload.receivedAt);
                 execution = ProfileExecutionState.EMPTY.withEvents(this.profile.snapshotEvents().read());
+                break;
+            }
+            case 'hyper_query_status': {
+                const events = this.profile.applyEvents(JSON.stringify(hyperQueryEvents(payload.status, payload.receivedAt)));
+                execution = this.progress.execution.withEvents(events.read());
                 break;
             }
             case 'trino_query_info_stats': {

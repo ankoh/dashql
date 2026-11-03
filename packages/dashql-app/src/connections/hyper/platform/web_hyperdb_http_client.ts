@@ -101,6 +101,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             rowsProcessed: stats?.rowsProcessed ?? null,
             executionTimeMs: stats?.wallClockTime ?? null,
             metrics: { ...this.metrics },
+            engineProgress: { kind: 'hyper_query_status', status: this.status, receivedAt: Date.now() },
         });
     }
 

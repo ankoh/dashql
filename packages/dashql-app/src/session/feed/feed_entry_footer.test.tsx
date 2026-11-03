@@ -188,7 +188,7 @@ describe('FeedEntryFooter', () => {
             useResultRowCount: () => ({ hasResult: false, totalRows: null }),
         } as unknown as FeedEntryFooterDependencies;
         const profileProgress = {
-            structure: { read: () => ({ fragmentsLength: () => 0, operatorsLength: () => 0 }) },
+            structure: { read: () => ({ fragmentsLength: () => 0, operatorsLength: () => 0, engine: () => 0 }) },
             execution: ProfileExecutionState.EMPTY,
         } as unknown as QueryProfileProgress;
         const queryState = {
