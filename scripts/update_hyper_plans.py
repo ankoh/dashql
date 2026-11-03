@@ -9,7 +9,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = Path(os.path.dirname(SCRIPT_DIR))
-SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "plans" / "hyper"
+SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "profiles" / "hyper"
 SETUP_FILE = SNAPSHOTS_DIR / "setup" / "setup.sql"
 QUERIES_DIR = SNAPSHOTS_DIR / "queries"
 OUTPUT_DIR = SNAPSHOTS_DIR / "tests"
@@ -29,7 +29,7 @@ def _yaml_escape_single_quoted(s):
 def write_yaml_template(folder_name, snapshots):
     output_file = OUTPUT_DIR / f"{folder_name}.tpl.yaml"
 
-    lines = ["plan-snapshots:"]
+    lines = ["profile-snapshots:"]
     for filename, plan_json in snapshots.items():
         name = re.sub(r"[-.]", "_", filename)
         # Single-quoted style for input so the JSON stays on one line

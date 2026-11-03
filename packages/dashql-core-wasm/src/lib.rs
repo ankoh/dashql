@@ -1252,23 +1252,23 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
 }
 
 
-/// A plan view model (`dashql_plan_view_model_*`)
+/// A query profile (`dashql_query_profile_*`)
 #[wasm_bindgen]
-pub struct PlanViewModel {
-    /// The core plan view model
-    inner: dashql_core_view::PlanViewModel,
+pub struct QueryProfile {
+    /// The core query profile
+    inner: dashql_core_profile::QueryProfile,
 }
 
 #[wasm_bindgen]
-impl PlanViewModel {
+impl QueryProfile {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> PlanViewModel {
-        PlanViewModel {
-            inner: dashql_core_view::PlanViewModel::new(),
+    pub fn new() -> QueryProfile {
+        QueryProfile {
+            inner: dashql_core_profile::QueryProfile::new(),
         }
     }
 
-    /// Configure the layout with a packed `PlanLayoutConfig`
+    /// Configure the layout with a packed `ProfileLayoutConfig`
     #[allow(clippy::too_many_arguments)]
     pub fn configure(
         &mut self,
@@ -1283,7 +1283,7 @@ impl PlanViewModel {
         width_per_label_char: f64,
         node_min_width: f64,
     ) {
-        let config = dashql_buffers::view::PlanLayoutConfig::new(
+        let config = dashql_buffers::profile::ProfileLayoutConfig::new(
             level_height,
             node_height,
             node_margin_horizontal,
@@ -1322,21 +1322,21 @@ impl PlanViewModel {
         self.inner.structure_version()
     }
 
-    /// Apply input events (a JSON array), returns the packed `PlanEvents` of the effective state changes
+    /// Apply input events (a JSON array), returns the packed `QueryProfileEvents` of the effective state changes
     #[wasm_bindgen(js_name = applyEvents)]
     pub fn apply_events(&mut self, events: &[u8]) -> Result<Vec<u8>, JsError> {
         let updates = self.inner.apply_events_json(events).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(self.inner.pack_events(&updates))
     }
 
-    /// Start an empty model for a query of an engine (`PlanEngine`), the structure appears with the progress
+    /// Start an empty model for a query of an engine (`ProfileEngine`), the structure appears with the progress
     #[wasm_bindgen(js_name = startQuery)]
     pub fn start_query(&mut self, engine: u8) {
-        self.inner.start_query(dashql_buffers::view::PlanEngine(engine));
+        self.inner.start_query(dashql_buffers::profile::ProfileEngine(engine));
     }
 
     /// Apply the `stats` of a Trino `/v1/statement` response (JSON) received at a time in milliseconds since
-    /// epoch, returns the packed `PlanEvents` of the effective state changes
+    /// epoch, returns the packed `QueryProfileEvents` of the effective state changes
     #[wasm_bindgen(js_name = applyTrinoStatementStats)]
     pub fn apply_trino_statement_stats(&mut self, stats: &[u8], time: f64) -> Result<Vec<u8>, JsError> {
         let updates = self
@@ -1346,19 +1346,19 @@ impl PlanViewModel {
         Ok(self.inner.pack_events(&updates))
     }
 
-    /// The current execution state as packed `PlanEvents`, one update per entity with state
+    /// The current execution state as packed `QueryProfileEvents`, one update per entity with state
     #[wasm_bindgen(js_name = snapshotEvents)]
     pub fn snapshot_events(&self) -> Vec<u8> {
         self.inner.pack_events(&self.inner.snapshot_events())
     }
 
-    /// The packed `PlanViewModel`
+    /// The packed `QueryProfile`
     pub fn pack(&self) -> Vec<u8> {
         self.inner.pack_buffer()
     }
 }
 
-impl Default for PlanViewModel {
+impl Default for QueryProfile {
     fn default() -> Self {
         Self::new()
     }

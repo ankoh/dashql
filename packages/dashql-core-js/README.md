@@ -1,7 +1,7 @@
 # DashQL Core
 
 Portable ESM bindings for DashQL's SQL parser, analyzer, formatter, catalog,
-batch processing, and plan view models. FlatBuffers is the only runtime npm
+batch processing, and query profiles. FlatBuffers is the only runtime npm
 dependency. The package includes the wasm-bindgen glue, Wasm binary, generated
 FlatBuffer bindings, and TypeScript declarations.
 

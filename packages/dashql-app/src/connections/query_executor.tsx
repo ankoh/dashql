@@ -383,12 +383,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 abort: initialState.cancellation.signal,
                                 publishResults: args.publishResults !== false,
                                 onProgress: progress => {
-                                    const planProgress = progress.engineProgress == null
+                                    const profileProgress = progress.engineProgress == null
                                         ? null
                                         : applyEngineProgress(queryId, progress.engineProgress);
                                     queryTracker.dispatch({
                                         type: QUERY_PROGRESS_UPDATED,
-                                        value: [queryId, planProgress == null ? progress : { ...progress, planProgress }],
+                                        value: [queryId, profileProgress == null ? progress : { ...progress, profileProgress }],
                                     });
                                 },
                                 onBatch: (batch, stream) => queryTracker.dispatch({

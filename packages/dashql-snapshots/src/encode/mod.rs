@@ -9,7 +9,7 @@ pub mod completion;
 pub mod dataflow;
 pub mod diff;
 pub mod parser;
-pub mod plan_view_model;
+pub mod query_profile;
 pub mod planner;
 pub mod visualize;
 

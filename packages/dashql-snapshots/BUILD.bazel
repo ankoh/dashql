@@ -18,12 +18,12 @@ rust_library(
     visibility = [
         "//packages/dashql-core:__pkg__",
         "//packages/dashql-core-session:__pkg__",
-        "//packages/dashql-core-view:__pkg__",
+        "//packages/dashql-core-profile:__pkg__",
     ],
     deps = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-session:dashql_core_session",
-        "//packages/dashql-core-view:dashql_core_view",
+        "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-dataflow:dashql_dataflow",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
@@ -55,7 +55,7 @@ rust_binary(
         ":dashql_snapshots",
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-session:dashql_core_session",
-        "//packages/dashql-core-view:dashql_core_view",
+        "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
     ],

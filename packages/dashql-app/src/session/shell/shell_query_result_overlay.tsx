@@ -10,8 +10,8 @@ import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '../../ui/foundatio
 import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
 import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
 import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
-import { PlanView } from '../../views/plan/plan_view.js';
-import { usePlanViewModel } from '../../views/plan/engine_plan_view.js';
+import { QueryProfileView } from '../../views/query_profile/query_profile_view.js';
+import { useQueryProfile } from '../../views/query_profile/engine_profile_view.js';
 import { TabHeader } from '../tab_header.js';
 import { getPlanResultText } from '../../shell/shell_result.js';
 import { classNames } from '../../utils/classnames.js';
@@ -19,14 +19,14 @@ import * as styles from './shell_query_result_overlay.module.css';
 
 export interface ShellQueryResultOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;
-    PlanView: typeof PlanView;
-    usePlanViewModel: typeof usePlanViewModel;
+    QueryProfileView: typeof QueryProfileView;
+    useQueryProfile: typeof useQueryProfile;
 }
 
 const DEFAULT_DEPENDENCIES: ShellQueryResultOverlayDependencies = {
     QueryResultDetails,
-    PlanView,
-    usePlanViewModel,
+    QueryProfileView,
+    useQueryProfile,
 };
 
 interface Props {
@@ -53,13 +53,13 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
     dependencies = DEFAULT_DEPENDENCIES,
 }) => {
     const ResultDetails = dependencies.QueryResultDetails;
-    const PlanViewComponent = dependencies.PlanView;
+    const ProfileViewComponent = dependencies.QueryProfileView;
     const closeRef = React.useRef<HTMLButtonElement>(null);
     const dialogRef = React.useRef<HTMLElement>(null);
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
-    const { plan, execution } = dependencies.usePlanViewModel(dashql.buffers.view.PlanEngine.HYPER, planText);
+    const { plan, execution } = dependencies.useQueryProfile(dashql.buffers.profile.ProfileEngine.HYPER, planText);
     const hasPlan = plan != null;
     const [selectedTab, setSelectedTab] = React.useState<ResultTab>(ResultTab.Data);
     const selectedPlanQueryIdRef = React.useRef<number | null>(null);
@@ -137,10 +137,10 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
         [ResultTab.Plan]: () => (
             <div className={styles.plan_tab}>
                 <TabHeader title="Query Plan" actions={planActions} />
-                <div className={styles.plan_body}>{plan != null && <PlanViewComponent plan={plan} execution={execution} />}</div>
+                <div className={styles.plan_body}>{plan != null && <ProfileViewComponent plan={plan} execution={execution} />}</div>
             </div>
         ),
-    }), [closeButton, planActions, plan, execution, PlanViewComponent, query, ResultDetails]);
+    }), [closeButton, planActions, plan, execution, ProfileViewComponent, query, ResultDetails]);
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: dialogRef as React.RefObject<HTMLElement>,

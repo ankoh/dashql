@@ -1,12 +1,12 @@
 import * as dashql from '@ankoh/dashql-core';
-import { isStatReported, type PlanEntityState } from '../../query/plan_execution_state.js';
-import type { QueryPlanProgress } from '../../query/query_progress_model.js';
+import { isStatReported, type ProfileEntityState } from '../../query/profile_execution_state.js';
+import type { QueryProfileProgress } from '../../query/query_progress_model.js';
 
-const view = dashql.buffers.view;
-type PlanStatsT = dashql.buffers.view.PlanStatsT;
+const view = dashql.buffers.profile;
+type ProfileStatsT = dashql.buffers.profile.ProfileStatsT;
 
 /// A statistic as number, null if not reported
-export function stat(state: PlanEntityState | null | undefined, field: dashql.buffers.view.PlanStatsField, value: (stats: PlanStatsT) => bigint): number | null {
+export function stat(state: ProfileEntityState | null | undefined, field: dashql.buffers.profile.ProfileStatsField, value: (stats: ProfileStatsT) => bigint): number | null {
     if (state == null || !isStatReported(state.stats, field)) return null;
     return Number(value(state.stats));
 }
@@ -18,9 +18,9 @@ export interface ProgressWork {
 }
 
 /// The work of an entity, null if unknown or nothing is scheduled yet
-export function workOf(state: PlanEntityState | null | undefined): ProgressWork | null {
-    const done = stat(state, view.PlanStatsField.WORK_DONE, s => s.workDone);
-    const total = stat(state, view.PlanStatsField.WORK_TOTAL, s => s.workTotal);
+export function workOf(state: ProfileEntityState | null | undefined): ProgressWork | null {
+    const done = stat(state, view.ProfileStatsField.WORK_DONE, s => s.workDone);
+    const total = stat(state, view.ProfileStatsField.WORK_TOTAL, s => s.workTotal);
     if (done == null || total == null || total === 0) return null;
     return { done: Math.min(done, total), total };
 }
@@ -33,16 +33,16 @@ export interface ProgressStageRow {
     label: string;
     /// The nesting depth
     depth: number;
-    status: dashql.buffers.view.PlanExecutionStatus;
+    status: dashql.buffers.profile.ProfileExecutionStatus;
     work: ProgressWork | null;
     rows: number | null;
     cpuTimeUs: number | null;
 }
 
 /// The stages of a query, parents before their children
-export function listProgressStages(progress: QueryPlanProgress): ProgressStageRow[] {
+export function listProgressStages(progress: QueryProfileProgress): ProgressStageRow[] {
     const vm = progress.structure.read();
-    const fragment = new view.PlanFragment();
+    const fragment = new view.ProfileFragment();
     const children: number[][] = [];
     const roots: number[] = [];
     for (let i = 0; i < vm.fragmentsLength(); ++i) children.push([]);
@@ -62,10 +62,10 @@ export function listProgressStages(progress: QueryPlanProgress): ProgressStageRo
             index,
             label: engineId < vm.stringDictionaryLength() ? vm.stringDictionary(engineId) : `${index}`,
             depth,
-            status: state?.status ?? view.PlanExecutionStatus.UNKNOWN,
+            status: state?.status ?? view.ProfileExecutionStatus.UNKNOWN,
             work: workOf(state),
-            rows: stat(state, view.PlanStatsField.TUPLES_IN, s => s.tuplesIn),
-            cpuTimeUs: stat(state, view.PlanStatsField.CPU_TIME, s => s.cpuTimeUs),
+            rows: stat(state, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn),
+            cpuTimeUs: stat(state, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs),
         });
         for (const child of [...children[index]].reverse()) pending.push([child, depth + 1]);
     }
@@ -73,13 +73,13 @@ export function listProgressStages(progress: QueryPlanProgress): ProgressStageRo
 }
 
 /// A label of an execution status
-export function formatExecutionStatus(status: dashql.buffers.view.PlanExecutionStatus): string {
+export function formatExecutionStatus(status: dashql.buffers.profile.ProfileExecutionStatus): string {
     switch (status) {
-        case view.PlanExecutionStatus.PENDING: return 'Pending';
-        case view.PlanExecutionStatus.RUNNING: return 'Running';
-        case view.PlanExecutionStatus.SUCCEEDED: return 'Done';
-        case view.PlanExecutionStatus.FAILED: return 'Failed';
-        case view.PlanExecutionStatus.SKIPPED: return 'Skipped';
+        case view.ProfileExecutionStatus.PENDING: return 'Pending';
+        case view.ProfileExecutionStatus.RUNNING: return 'Running';
+        case view.ProfileExecutionStatus.SUCCEEDED: return 'Done';
+        case view.ProfileExecutionStatus.FAILED: return 'Failed';
+        case view.ProfileExecutionStatus.SKIPPED: return 'Skipped';
         default: return 'Unknown';
     }
 }

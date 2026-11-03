@@ -6,8 +6,8 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../views/plan/plan_view.js';
-import { PlanExecutionState } from '../query/plan_execution_state.js';
+import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
+import { ProfileExecutionState } from '../query/profile_execution_state.js';
 import { CodeMirror } from '../session/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
@@ -50,13 +50,13 @@ export interface PlanDialogHookResult {
 type PlanDialogEvents = Pick<PlatformEventListener, 'subscribeFallbackPasteEvents' | 'unsubscribeFallbackPasteEvents'>;
 
 export interface PlanDialogDependencies {
-    createPlanLayoutConfig: typeof createPlanLayoutConfig;
-    PlanView: React.ComponentType<PlanViewProps>;
+    createProfileLayoutConfig: typeof createProfileLayoutConfig;
+    QueryProfileView: React.ComponentType<QueryProfileViewProps>;
 }
 
 const DEFAULT_DEPENDENCIES: PlanDialogDependencies = {
-    createPlanLayoutConfig,
-    PlanView,
+    createProfileLayoutConfig,
+    QueryProfileView,
 };
 
 export function usePlanDialog(
@@ -125,21 +125,21 @@ function errorMessage(error: unknown): string {
 }
 
 function PlanDialog(props: PlanDialogProps) {
-    const PlanViewComponent = props.dependencies.PlanView;
+    const ProfileViewComponent = props.dependencies.QueryProfileView;
     const headingId = React.useId();
     const dialogRef = React.useRef<HTMLElement>(null);
     const editorFocusRef = React.useRef<HTMLElement>(null);
     const editorViewRef = React.useRef<EditorView | null>(null);
     const rawTextRef = React.useRef('');
-    const viewModelRef = React.useRef<dashql.DashQLPlanViewModel | null>(null);
+    const viewModelRef = React.useRef<dashql.DashQLQueryProfile | null>(null);
     const [mode, setMode] = React.useState(PlanMode.Raw);
-    const [plan, setPlan] = React.useState<dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel> | null>(null);
-    const [execution, setExecution] = React.useState(PlanExecutionState.EMPTY);
+    const [plan, setPlan] = React.useState<dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile> | null>(null);
+    const [execution, setExecution] = React.useState(ProfileExecutionState.EMPTY);
     const [diagnostic, setDiagnostic] = React.useState<string | null>(null);
     const [expanded, setExpanded] = React.useState(false);
     const onRawChangeRef = React.useRef<(text: string) => void>(() => {});
     const rawTextIsValidRef = React.useRef(false);
-    const layoutConfig = React.useMemo(() => props.dependencies.createPlanLayoutConfig(false), [props.dependencies]);
+    const layoutConfig = React.useMemo(() => props.dependencies.createProfileLayoutConfig(false), [props.dependencies]);
 
     const validate = React.useCallback((text: string): boolean => {
         setPlan(null);
@@ -148,14 +148,14 @@ function PlanDialog(props: PlanDialogProps) {
             return false;
         }
 
-        viewModelRef.current ??= props.core.createPlanViewModel(layoutConfig);
+        viewModelRef.current ??= props.core.createQueryProfile(layoutConfig);
         try {
             const nextPlan = viewModelRef.current.loadHyperPlan(text);
             if (nextPlan.read().operatorsLength() === 0) {
                 throw new Error('Plan contains no operators');
             }
             setPlan(nextPlan);
-            setExecution(PlanExecutionState.EMPTY.withEvents(viewModelRef.current.snapshotEvents().read()));
+            setExecution(ProfileExecutionState.EMPTY.withEvents(viewModelRef.current.snapshotEvents().read()));
             setDiagnostic(null);
             return true;
         } catch (error) {
@@ -205,7 +205,7 @@ function PlanDialog(props: PlanDialogProps) {
     }, []);
 
     React.useEffect(() => () => {
-        // A pending validation must not load a plan into the destroyed view model
+        // A pending validation must not load a plan into the destroyed query profile
         cancelValidation();
         viewModelRef.current?.destroy();
         viewModelRef.current = null;
@@ -323,7 +323,7 @@ function PlanDialog(props: PlanDialogProps) {
                     )}
                     {mode === PlanMode.Viewer && plan != null && (
                         <div className={styles.viewer}>
-                            <PlanViewComponent plan={plan} execution={execution} autoFocus />
+                            <ProfileViewComponent plan={plan} execution={execution} autoFocus />
                         </div>
                     )}
                 </div>

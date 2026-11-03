@@ -1,0 +1,7 @@
+# The Trino API responses recorded by //packages/trino-testing:trino_recorder, the fixtures of the Trino progress
+# snapshots (snapshots/profiles/trino/tests/)
+filegroup(
+    name = "files",
+    srcs = glob(["*.json"]),
+    visibility = ["//visibility:public"],
+)

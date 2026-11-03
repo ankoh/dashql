@@ -16,8 +16,8 @@ import {
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const dependencies: PlanDialogDependencies = {
-    createPlanLayoutConfig: () => new dashql.buffers.view.PlanLayoutConfigT(),
-    PlanView: props => (
+    createProfileLayoutConfig: () => new dashql.buffers.profile.ProfileLayoutConfigT(),
+    QueryProfileView: props => (
         <div
             data-testid="plan-view"
             data-operator-count={props.plan.read().operatorsLength()}

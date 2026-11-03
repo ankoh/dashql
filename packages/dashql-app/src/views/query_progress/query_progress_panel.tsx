@@ -17,7 +17,7 @@ import {
     type ProgressWork,
 } from './query_progress_model.js';
 
-const view = dashql.buffers.view;
+const view = dashql.buffers.profile;
 
 /// Is a query still running?
 function isActive(status: QueryExecutionStatus): boolean {
@@ -56,12 +56,12 @@ function useMonotonicFraction(queryId: number, work: ProgressWork | null): numbe
 }
 
 /// The status of a stage as data attribute value
-function statusKey(status: dashql.buffers.view.PlanExecutionStatus): string {
+function statusKey(status: dashql.buffers.profile.ProfileExecutionStatus): string {
     switch (status) {
-        case view.PlanExecutionStatus.RUNNING: return 'running';
-        case view.PlanExecutionStatus.SUCCEEDED: return 'succeeded';
-        case view.PlanExecutionStatus.FAILED: return 'failed';
-        case view.PlanExecutionStatus.PENDING: return 'pending';
+        case view.ProfileExecutionStatus.RUNNING: return 'running';
+        case view.ProfileExecutionStatus.SUCCEEDED: return 'succeeded';
+        case view.ProfileExecutionStatus.FAILED: return 'failed';
+        case view.ProfileExecutionStatus.PENDING: return 'pending';
         default: return 'other';
     }
 }
@@ -105,18 +105,18 @@ interface QueryProgressPanelProps {
 export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const { query } = props;
     const progress = query.latestProgressUpdate;
-    const planProgress = progress?.planProgress ?? null;
-    const queryState = planProgress?.execution.query ?? null;
+    const profileProgress = progress?.profileProgress ?? null;
+    const queryState = profileProgress?.execution.query ?? null;
     const active = isActive(query.status);
     const elapsedMs = useElapsed(query);
     const work = workOf(queryState);
     const fraction = useMonotonicFraction(query.queryId, work);
-    const stages = React.useMemo(() => planProgress == null ? [] : listProgressStages(planProgress), [planProgress]);
+    const stages = React.useMemo(() => profileProgress == null ? [] : listProgressStages(profileProgress), [profileProgress]);
 
-    const rows = stat(queryState, view.PlanStatsField.TUPLES_IN, s => s.tuplesIn) ?? progress?.rowsProcessed ?? null;
-    const cpuUs = stat(queryState, view.PlanStatsField.CPU_TIME, s => s.cpuTimeUs);
-    const memory = stat(queryState, view.PlanStatsField.MEMORY_BYTES, s => s.memoryBytes);
-    const spilled = stat(queryState, view.PlanStatsField.SPILLED_BYTES, s => s.spilledBytes);
+    const rows = stat(queryState, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn) ?? progress?.rowsProcessed ?? null;
+    const cpuUs = stat(queryState, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs);
+    const memory = stat(queryState, view.ProfileStatsField.MEMORY_BYTES, s => s.memoryBytes);
+    const spilled = stat(queryState, view.ProfileStatsField.SPILLED_BYTES, s => s.spilledBytes);
     const phase = active ? (progress?.phase ?? null) : null;
     const phaseLabel = phase != null ? formatPhase(phase) : QueryExecutionStatus[query.status] != null
         ? formatPhase(QueryExecutionStatus[query.status]) : null;
@@ -156,10 +156,10 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                             </span>
                             <span className={styles.stage_status}>{formatExecutionStatus(stage.status)}</span>
                             <ProgressBar
-                                fraction={stage.status === view.PlanExecutionStatus.SUCCEEDED ? 1
+                                fraction={stage.status === view.ProfileExecutionStatus.SUCCEEDED ? 1
                                     : stage.work == null ? null : stage.work.done / stage.work.total}
                                 label={`Stage ${stage.label} progress`}
-                                active={stage.status === view.PlanExecutionStatus.RUNNING}
+                                active={stage.status === view.ProfileExecutionStatus.RUNNING}
                             />
                             <span className={styles.stage_figure}>
                                 {stage.work == null ? '' : `${formatCompactCount(stage.work.done)} / ${formatCompactCount(stage.work.total)}`}
@@ -176,5 +176,5 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
 
 /// Does a query have structured progress to show?
 export function hasQueryProgress(query: QueryExecutionState | null): boolean {
-    return query?.latestProgressUpdate?.planProgress != null;
+    return query?.latestProgressUpdate?.profileProgress != null;
 }

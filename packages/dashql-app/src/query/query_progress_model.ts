@@ -1,42 +1,42 @@
 import * as dashql from '@ankoh/dashql-core';
-import { PlanExecutionState } from './plan_execution_state.js';
+import { ProfileExecutionState } from './profile_execution_state.js';
 
 /// A raw progress payload of an engine, the progress model of the query turns it into events
 export type EngineProgressPayload =
     /// The `stats` of a Trino `/v1/statement` response
     | { kind: 'trino_statement_stats'; stats: object; receivedAt: number };
 
-/// The structured progress of a query: the plan structure (stages, later the plan) and its execution state
-export interface QueryPlanProgress {
-    structure: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>;
-    execution: PlanExecutionState;
+/// The structured progress of a query: the profile structure (stages, later the plan operators) and its execution state
+export interface QueryProfileProgress {
+    structure: dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>;
+    execution: ProfileExecutionState;
 }
 
 /// The engine of a payload
-function engineOf(payload: EngineProgressPayload): dashql.buffers.view.PlanEngine {
+function engineOf(payload: EngineProgressPayload): dashql.buffers.profile.ProfileEngine {
     switch (payload.kind) {
         case 'trino_statement_stats':
-            return dashql.buffers.view.PlanEngine.TRINO;
+            return dashql.buffers.profile.ProfileEngine.TRINO;
     }
 }
 
-/// The progress model of one query: a core plan view model that the payloads of the engine are applied to.
-/// The model lives in the query executor; the query state only holds the immutable `QueryPlanProgress`.
+/// The progress model of one query: a core query profile that the payloads of the engine are applied to.
+/// The model lives in the query executor; the query state only holds the immutable `QueryProfileProgress`.
 export class QueryProgressModel {
-    private viewModel: dashql.DashQLPlanViewModel;
-    private engine: dashql.buffers.view.PlanEngine;
-    private progress: QueryPlanProgress;
+    private viewModel: dashql.DashQLQueryProfile;
+    private engine: dashql.buffers.profile.ProfileEngine;
+    private progress: QueryProfileProgress;
 
-    public constructor(core: dashql.DashQL, engine: dashql.buffers.view.PlanEngine, layout = new dashql.buffers.view.PlanLayoutConfigT()) {
-        this.viewModel = core.createPlanViewModel(layout);
+    public constructor(core: dashql.DashQL, engine: dashql.buffers.profile.ProfileEngine, layout = new dashql.buffers.profile.ProfileLayoutConfigT()) {
+        this.viewModel = core.createQueryProfile(layout);
         this.engine = engine;
-        this.progress = { structure: this.viewModel.startQuery(engine), execution: PlanExecutionState.EMPTY };
+        this.progress = { structure: this.viewModel.startQuery(engine), execution: ProfileExecutionState.EMPTY };
     }
 
     /// Apply a payload of the engine, a payload of another engine changes nothing
-    public apply(payload: EngineProgressPayload): QueryPlanProgress {
+    public apply(payload: EngineProgressPayload): QueryProfileProgress {
         if (engineOf(payload) !== this.engine) return this.progress;
-        let events: dashql.FlatBufferPtr<dashql.buffers.view.PlanEvents>;
+        let events: dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfileEvents>;
         switch (payload.kind) {
             case 'trino_statement_stats':
                 events = this.viewModel.applyTrinoStatementStats(JSON.stringify(payload.stats), payload.receivedAt);
@@ -61,7 +61,7 @@ export class QueryProgressModels {
 
     /// Apply a payload to the model of a query. Without core (still loading) the payload is dropped, the counters
     /// are cumulative, so the next payload catches up.
-    public apply(core: dashql.DashQL | null, queryId: number, payload: EngineProgressPayload): QueryPlanProgress | null {
+    public apply(core: dashql.DashQL | null, queryId: number, payload: EngineProgressPayload): QueryProfileProgress | null {
         let model = this.models.get(queryId);
         if (model == null) {
             if (core == null) return null;

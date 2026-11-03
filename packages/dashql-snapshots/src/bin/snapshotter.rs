@@ -1,11 +1,11 @@
 //! Regenerates the snapshot files `snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
 //!
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
-//! dataflow, completion, formatter, hyper_plan, plan_progress, trino_progress, visualize, diff. An empty filter
+//! dataflow, completion, formatter, hyper_profile, profile_progress, trino_progress, visualize, diff. An empty filter
 //! updates all of them.
 //!
 //! The output keeps the format of the checked-in snapshot files (the emitter style of rapidyaml):
-//! - parser, formatter, diff, hyper_plan, plan_progress and trino_progress build new files from the inputs of the
+//! - parser, formatter, diff, hyper_profile, profile_progress and trino_progress build new files from the inputs of the
 //!   templates,
 //! - analyzer, completion, planner, dataflow and visualize write the templates back with the results appended,
 //! - comments of the templates are dropped,
@@ -25,8 +25,8 @@ use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_sp
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
-use dashql_snapshots::encode::plan_view_model::{
-    encode_hyper_plan, encode_plan_progress, encode_trino_statement_progress,
+use dashql_snapshots::encode::query_profile::{
+    encode_hyper_profile, encode_profile_progress, encode_trino_statement_progress,
 };
 use dashql_snapshots::encode::visualize::encode_markdown_spec;
 use dashql_snapshots::encode::{analyzer, dataflow, diff, encode_location_text, parser, planner, Map};
@@ -482,15 +482,15 @@ fn generate_formatter_snapshots(dir: &Path) {
 }
 
 // ---------------------------------------------------------------------------
-// Hyper plans
+// Hyper profiles (the structure of Hyper plans)
 
-fn generate_hyper_plan_snapshots(dir: &Path) {
+fn generate_hyper_profile_snapshots(dir: &Path) {
     for path in templates(dir) {
-        let Some(template) = read_template(&path, "plan-snapshots") else { continue };
+        let Some(template) = read_template(&path, "profile-snapshots") else { continue };
         let out = output_path(&path);
         println!("FILE {}", out.display());
         let mut cases = Vec::new();
-        for test in template.get("plan-snapshots").unwrap().children() {
+        for test in template.get("profile-snapshots").unwrap().children() {
             if !test.has("name") {
                 continue;
             }
@@ -501,7 +501,7 @@ fn generate_hyper_plan_snapshots(dir: &Path) {
             }
             // The plan is not trimmed
             let input = text(test, "input");
-            let encoded = match encode_hyper_plan(input) {
+            let encoded = match encode_hyper_profile(input) {
                 Ok(encoded) => encoded,
                 Err(e) => {
                     println!("  ERROR {e}");
@@ -514,7 +514,7 @@ fn generate_hyper_plan_snapshots(dir: &Path) {
             item.0.extend(encoded.0);
             cases.push(item.into_node());
         }
-        write_first_entry(&out, &snapshot_root("plan-snapshots", cases));
+        write_first_entry(&out, &snapshot_root("profile-snapshots", cases));
     }
 }
 
@@ -552,9 +552,9 @@ fn generate_trino_progress_snapshots(dir: &Path, recordings: &Path) {
 }
 
 // ---------------------------------------------------------------------------
-// Plan progress (a plan, input events, the output events)
+// Profile progress (a Hyper plan, input events, the output events)
 
-fn generate_plan_progress_snapshots(dir: &Path) {
+fn generate_profile_progress_snapshots(dir: &Path) {
     for path in templates(dir) {
         let Some(template) = read_template(&path, "progress-snapshots") else { continue };
         let out = output_path(&path);
@@ -564,7 +564,7 @@ fn generate_plan_progress_snapshots(dir: &Path) {
             let name = text(test, "name");
             println!("  TEST {name}");
             let (plan, events) = (text(test, "plan"), text(test, "events"));
-            let updates = match encode_plan_progress(plan, events) {
+            let updates = match encode_profile_progress(plan, events) {
                 Ok(updates) => updates,
                 Err(e) => {
                     println!("  ERROR {e}");
@@ -633,7 +633,7 @@ fn main() -> ExitCode {
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!("Usage: snapshotter --source_dir <dir> [--filter <category>]");
         println!(
-            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_plan, plan_progress, trino_progress, visualize, diff. Empty = all."
+            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_profile, profile_progress, trino_progress, visualize, diff. Empty = all."
         );
         return ExitCode::SUCCESS;
     }
@@ -669,14 +669,14 @@ fn main() -> ExitCode {
     if selected("formatter") {
         generate_formatter_snapshots(&snapshots.join("formatter"));
     }
-    if selected("hyper_plan") {
-        generate_hyper_plan_snapshots(&snapshots.join("plans").join("hyper").join("tests"));
+    if selected("hyper_profile") {
+        generate_hyper_profile_snapshots(&snapshots.join("profiles").join("hyper").join("tests"));
     }
-    if selected("plan_progress") {
-        generate_plan_progress_snapshots(&snapshots.join("plans").join("progress"));
+    if selected("profile_progress") {
+        generate_profile_progress_snapshots(&snapshots.join("profiles").join("progress"));
     }
     if selected("trino_progress") {
-        let trino = snapshots.join("plans").join("trino");
+        let trino = snapshots.join("profiles").join("trino");
         generate_trino_progress_snapshots(&trino.join("tests"), &trino.join("recordings"));
     }
     if selected("visualize") {

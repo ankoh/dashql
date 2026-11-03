@@ -58,7 +58,7 @@ bazel build //...
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, catalog changes, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
-| `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans |
+| `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
@@ -107,7 +107,7 @@ bazel test //...
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
 | `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
-| `//packages/dashql-core-view:all` | Plan view model unit tests, and the plan and progress snapshot tests |
+| `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
@@ -137,7 +137,7 @@ Trino. The regular tests read the checked-in recordings instead.
 # Check the assumptions of the query progress model against Trino
 bazel test //packages/trino-testing:trino_assumptions_test
 
-# Refresh snapshots/plans/trino/recordings/ (statement polls, QueryInfo samples, EXPLAIN plans)
+# Refresh snapshots/profiles/trino/recordings/ (statement polls, QueryInfo samples, EXPLAIN plans)
 bazel run //packages/trino-testing:trino_recorder
 ```
 
@@ -166,9 +166,9 @@ bazel run //snapshots/planner:update
 bazel run //snapshots/dataflow:update
 bazel run //snapshots/visualize:update
 bazel run //snapshots/diff:update
-bazel run //snapshots/plans/hyper/tests:update
-bazel run //snapshots/plans/progress:update
-bazel run //snapshots/plans/trino/tests:update
+bazel run //snapshots/profiles/hyper/tests:update
+bazel run //snapshots/profiles/progress:update
+bazel run //snapshots/profiles/trino/tests:update
 # All categories at once
 bazel run //snapshots:update
 ```
@@ -354,7 +354,7 @@ bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test //pac
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-session:all \
-    //packages/dashql-core-shell:all //packages/dashql-core-view:all //packages/dashql-dataflow:all \
+    //packages/dashql-core-shell:all //packages/dashql-core-profile:all //packages/dashql-dataflow:all \
     //packages/dashql-snapshots:all
 ```
 
@@ -430,7 +430,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-shell-wasm`, `dashql-cli` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-shell-wasm`, `dashql-cli` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

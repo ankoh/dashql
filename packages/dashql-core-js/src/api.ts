@@ -14,7 +14,7 @@ export type DashQLBindings = Pick<
     | 'Script'
     | 'ScriptBatch'
     | 'ScriptSession'
-    | 'PlanViewModel'
+    | 'QueryProfile'
     | 'SessionPlanRequest'
     | 'TableParameters'
     | 'planSession'
@@ -163,10 +163,10 @@ const SESSION_DATAFLOW_TYPE = Symbol('SESSION_DATAFLOW_TYPE');
 const SESSION_INPUTS_TYPE = Symbol('SESSION_INPUTS_TYPE');
 const TABLE_PARAMETERS_TYPE = Symbol('TABLE_PARAMETERS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
-const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
-const PLAN_EVENTS_TYPE = Symbol('PLAN_EVENTS_TYPE');
+const FLAT_QUERY_PROFILE_TYPE = Symbol('FLAT_QUERY_PROFILE_TYPE');
+const QUERY_PROFILE_EVENTS_TYPE = Symbol('QUERY_PROFILE_EVENTS_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
-const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
+const QUERY_PROFILE_TYPE = Symbol('QUERY_PROFILE_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 
@@ -391,9 +391,9 @@ export class DashQL {
         return this.bindings.quoteIdentifier(text);
     }
 
-    public createPlanViewModel(layoutConfig: buffers.view.PlanLayoutConfigT): DashQLPlanViewModel {
-        const ptr = new Ptr(PLAN_VIEW_MODEL_TYPE, this, new this.bindings.PlanViewModel());
-        return new DashQLPlanViewModel(ptr, layoutConfig);
+    public createQueryProfile(layoutConfig: buffers.profile.ProfileLayoutConfigT): DashQLQueryProfile {
+        const ptr = new Ptr(QUERY_PROFILE_TYPE, this, new this.bindings.QueryProfile());
+        return new DashQLQueryProfile(ptr, layoutConfig);
     }
 
     /// Append catalog changes to catalog changes SQL, returns the compacted SQL
@@ -556,7 +556,7 @@ export class ParserError extends Error {
 type NativeScriptSession = glue.ScriptSession;
 type NativeScript = glue.Script;
 type NativeCatalog = glue.Catalog;
-type NativePlanViewModel = glue.PlanViewModel;
+type NativeQueryProfile = glue.QueryProfile;
 
 /// The names that qualify the relations of unqualified statements, they depend on the connection
 export interface CatalogNameDefaults {
@@ -1180,23 +1180,23 @@ export namespace ContextObjectChildID {
     }
 }
 
-export class DashQLPlanViewModel {
-    public readonly ptr: Ptr<typeof PLAN_VIEW_MODEL_TYPE, NativePlanViewModel>;
-    public layout: buffers.view.PlanLayoutConfigT;
-    public buffer: FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> | null;
+export class DashQLQueryProfile {
+    public readonly ptr: Ptr<typeof QUERY_PROFILE_TYPE, NativeQueryProfile>;
+    public layout: buffers.profile.ProfileLayoutConfigT;
+    public buffer: FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> | null;
 
-    public constructor(ptr: Ptr<typeof PLAN_VIEW_MODEL_TYPE, NativePlanViewModel>, layout: buffers.view.PlanLayoutConfigT) {
+    public constructor(ptr: Ptr<typeof QUERY_PROFILE_TYPE, NativeQueryProfile>, layout: buffers.profile.ProfileLayoutConfigT) {
         this.ptr = ptr;
         this.layout = layout;
         this.reconfigure(layout);
         this.buffer = null;
     }
-    /// Delete the plan view model
+    /// Delete the query profile
     public destroy() {
         this.ptr.destroy();
     }
-    /// Reconfigure the plan view model
-    public reconfigure(config: buffers.view.PlanLayoutConfigT) {
+    /// Reconfigure the query profile
+    public reconfigure(config: buffers.profile.ProfileLayoutConfigT) {
         this.layout = config;
         this.ptr.assertNotNull().configure(
             this.layout.levelHeight,
@@ -1211,56 +1211,56 @@ export class DashQLPlanViewModel {
             this.layout.nodeMinWidth,
         );
     }
-    /// Pack the view model as FlatBuffer
-    public pack(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+    /// Pack the query profile as FlatBuffer
+    public pack(): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         const bytes = this.ptr.assertNotNull().pack();
-        this.buffer = new FlatBufferPtr(FLAT_PLAN_VIEW_MODEL_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanViewModel());
+        this.buffer = new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this.ptr.api, bytes, () => new buffers.profile.QueryProfile());
         return this.buffer;
     }
     /// Reset the plan
-    public reset(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+    public reset(): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         this.ptr.assertNotNull().reset();
         return this.pack();
     }
     /// Reset the execution state. The structure that was registered at runtime is dropped, so the structure is
     /// repacked.
-    public resetExecution(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+    public resetExecution(): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         this.ptr.assertNotNull().resetExecution();
         return this.pack();
     }
     /// Load a Hyper plan. An analyzed plan carries its execution state, read it with `snapshotEvents`.
-    public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+    public loadHyperPlan(plan: string): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         this.ptr.assertNotNull().loadHyperPlan(this.ptr.api.encoder.encode(plan));
         return this.pack();
     }
     /// Start an empty model for a query of an engine, the structure appears with the progress
-    public startQuery(engine: buffers.view.PlanEngine): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+    public startQuery(engine: buffers.profile.ProfileEngine): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         this.ptr.assertNotNull().startQuery(engine);
         return this.pack();
     }
-    /// Apply input events (their JSON form, see `PlanInputEvent` in dashql-core-view) and return the updates of the
+    /// Apply input events (their JSON form, see `ProfileInputEvent` in dashql-core-profile) and return the updates of the
     /// effective state. When the events register structure, the structure is repacked: compare the structure
     /// version of the events with the one of `buffer`.
-    public applyEvents(events: string): FlatBufferPtr<buffers.view.PlanEvents> {
+    public applyEvents(events: string): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
         const bytes = this.ptr.assertNotNull().applyEvents(this.ptr.api.encoder.encode(events));
         return this.readEvents(bytes);
     }
     /// Apply the `stats` of a Trino `/v1/statement` response (JSON) received at a time in milliseconds since epoch.
     /// New stages register fragments, the structure is then repacked.
-    public applyTrinoStatementStats(stats: string, time: number): FlatBufferPtr<buffers.view.PlanEvents> {
+    public applyTrinoStatementStats(stats: string, time: number): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
         const bytes = this.ptr.assertNotNull().applyTrinoStatementStats(this.ptr.api.encoder.encode(stats), time);
         return this.readEvents(bytes);
     }
     /// Wrap packed events, repack the structure if the events belong to a newer one
-    private readEvents(bytes: Uint8Array): FlatBufferPtr<buffers.view.PlanEvents> {
+    private readEvents(bytes: Uint8Array): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
         if (this.buffer == null || this.buffer.read().structureVersion() !== this.ptr.assertNotNull().structureVersion()) {
             this.pack();
         }
-        return new FlatBufferPtr(PLAN_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanEvents());
+        return new FlatBufferPtr(QUERY_PROFILE_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.profile.QueryProfileEvents());
     }
     /// The current execution state: one update per entity that has a state
-    public snapshotEvents(): FlatBufferPtr<buffers.view.PlanEvents> {
+    public snapshotEvents(): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
         const bytes = this.ptr.assertNotNull().snapshotEvents();
-        return new FlatBufferPtr(PLAN_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanEvents());
+        return new FlatBufferPtr(QUERY_PROFILE_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.profile.QueryProfileEvents());
     }
 }

@@ -53,7 +53,7 @@ bazel run //snapshots/diff:update
 bazel run //snapshots/formatter:update
 bazel run //snapshots/parser:update
 bazel run //snapshots/planner:update
-bazel run //snapshots/plans/hyper/tests:update
+bazel run //snapshots/profiles/hyper/tests:update
 bazel run //snapshots/visualize:update
 
 # Upgrade the Rust crates declared in bazel/crates/*.MODULE.bazel

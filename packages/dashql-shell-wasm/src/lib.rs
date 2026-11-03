@@ -2,7 +2,7 @@
 //! statuses at the boundary.
 //!
 //! The module carries the whole core: it re-exports the core bindings
-//! (`Catalog`, `Script`, `ScriptBatch`, `PlanViewModel`, `processBatch`, ...) with their JS names, so a shell
+//! (`Catalog`, `Script`, `ScriptBatch`, `QueryProfile`, `processBatch`, ...) with their JS names, so a shell
 //! takes a `Catalog` of the same module and JS uses one initialized module for the core and the shell.
 //!
 //! Keys, completion statuses and statuses are the numbers of the TypeScript enums in

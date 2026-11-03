@@ -54,7 +54,7 @@ describe('QueryProgressModels', () => {
         const stages = listProgressStages(second);
         expect(stages.map(s => [s.label, s.depth])).toEqual([['0', 0], ['1', 1], ['2', 2]]);
         expect(stages[1].work).toEqual({ done: 4, total: 8 });
-        expect(stages[2].status).toEqual(dashql.buffers.view.PlanExecutionStatus.SUCCEEDED);
+        expect(stages[2].status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
         expect(stages[2].cpuTimeUs).toEqual(42000);
         expect(stages[0].rows).toBeNull();
 

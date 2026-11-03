@@ -1,6 +1,6 @@
 # The DashQL core, the language: scripts, catalog, analyzer, cursor, completion, formatter and script diffs. The
 # workflows on top (sessions, execution, planner, batch, visualizations) are //packages/dashql-core-session, the
-# shell is //packages/dashql-core-shell, the plan view model //packages/dashql-core-view, the wasm modules are
+# shell is //packages/dashql-core-shell, the query profile //packages/dashql-core-profile, the wasm modules are
 # //packages/dashql-core-wasm and //packages/dashql-shell-wasm.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).

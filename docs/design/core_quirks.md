@@ -84,7 +84,7 @@ entry when you find another one. The headings name where the behavior lives.
 - **Unknown enum values** are unformattable, and unknown operators get precedence 0, non-associative
   (`get_operator_precedence`).
 
-## Plan view model (`packages/dashql-core-view/src/`)
+## Query profile (`packages/dashql-core-profile/src/`)
 
 - **Roots are placed in reverse plan order** (`flatten_operators`).
 - **Fragment order.** Execution-target fragments come in reverse root order, before federate fragments

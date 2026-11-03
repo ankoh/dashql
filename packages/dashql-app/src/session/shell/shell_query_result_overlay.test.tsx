@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
-import { PlanExecutionState } from '../../query/plan_execution_state.js';
+import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,
@@ -16,14 +16,14 @@ import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
-    usePlanViewModel: (_engine: dashql.buffers.view.PlanEngine, planText: string | null) => ({
+    useQueryProfile: (_engine: dashql.buffers.profile.ProfileEngine, planText: string | null) => ({
         plan: planText?.includes('executiontarget')
-            ? { read: () => ({}) } as unknown as dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>
+            ? { read: () => ({}) } as unknown as dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>
             : null,
-        execution: PlanExecutionState.EMPTY,
+        execution: ProfileExecutionState.EMPTY,
         rejected: planText != null && !planText.includes('executiontarget'),
     }),
-    PlanView: () => <div data-testid="mock-plan-view">Query plan viewer</div>,
+    QueryProfileView: () => <div data-testid="mock-plan-view">Query plan viewer</div>,
 };
 
 // Tab ids of the vertical tabs in the overlay

@@ -12,8 +12,8 @@ import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
-import type { QueryPlanProgress } from '../../query/query_progress_model.js';
-import { PlanExecutionState } from '../../query/plan_execution_state.js';
+import type { QueryProfileProgress } from '../../query/query_progress_model.js';
+import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -187,16 +187,16 @@ describe('FeedEntryFooter', () => {
             ...dependencies,
             useResultRowCount: () => ({ hasResult: false, totalRows: null }),
         } as unknown as FeedEntryFooterDependencies;
-        const planProgress = {
+        const profileProgress = {
             structure: { read: () => ({ fragmentsLength: () => 0 }) },
-            execution: PlanExecutionState.EMPTY,
-        } as unknown as QueryPlanProgress;
+            execution: ProfileExecutionState.EMPTY,
+        } as unknown as QueryProfileProgress;
         const queryState = {
             queryId: 43,
             traceId: 10,
             status: QueryExecutionStatus.RUNNING,
             metrics: { queryRequestedAt: new Date() },
-            latestProgressUpdate: { phase: 'RUNNING', planProgress },
+            latestProgressUpdate: { phase: 'RUNNING', profileProgress },
         } as unknown as QueryExecutionState;
         const Footer = () => {
             const tabs = useFeedEntryTabs(queryState, null, running);
