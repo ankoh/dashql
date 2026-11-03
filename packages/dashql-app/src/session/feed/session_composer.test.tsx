@@ -109,9 +109,9 @@ describe('Session composer', () => {
         expect(editor.state.doc.toString()).toBe('select 1\n');
     });
 
-    it('scrolls long lines without showing a scrollbar', async () => {
+    it('wraps long lines and scrolls without showing a scrollbar', async () => {
         const editor = await render();
-        expect(editor.lineWrapping).toBe(false);
+        expect(editor.lineWrapping).toBe(true);
         expect(getComputedStyle(editor.scrollDOM).scrollbarWidth).toBe('none');
     });
 

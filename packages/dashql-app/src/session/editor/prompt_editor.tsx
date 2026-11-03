@@ -27,7 +27,7 @@ const SQL_ASSIST_EXTENSIONS = DashQLExtensions.filter(extension => extension !==
 
 /// Create CodeMirror extensions for a prompt editor.
 /// This is a minimal setup without line numbers and gutters that grows with its content.
-/// It scrolls beyond its maximum height and along long lines without showing scrollbars.
+/// Long lines wrap, the prompt scrolls beyond its maximum height without showing scrollbars.
 /// Enter submits, Shift+Enter inserts a newline.
 function createPromptExtensions(configurable: Extension[], callbacks: React.RefObject<PromptEditorCallbacks>): Extension[] {
     const submit = (view: EditorView) => {
@@ -57,6 +57,7 @@ function createPromptExtensions(configurable: Extension[], callbacks: React.RefO
                 callbacks.current?.onTextChange?.(update.state.doc.toString());
             }
         }),
+        EditorView.lineWrapping,
         EditorView.theme({
             '&': { minHeight: '24px', backgroundColor: 'transparent' },
             '&.cm-focused': { outline: 'none' },

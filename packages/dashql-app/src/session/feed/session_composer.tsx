@@ -233,8 +233,8 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     );
     const agent = props.agent ?? null;
     const placeholder = naturalLanguage
-        ? 'Ask a question about your data'
-        : (hero ? 'select * from ...' : 'Write a query, press Enter to run it');
+        ? 'Ask a question about your data, Shift+Enter for a new line'
+        : (hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line');
     return (
         <div
             className={styles.composer}
