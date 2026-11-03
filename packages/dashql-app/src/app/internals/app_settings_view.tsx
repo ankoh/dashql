@@ -36,10 +36,10 @@ const LOG_LEVELS = [
     { level: LogLevel.Error, label: 'Error' },
 ];
 
-function SettingsSection(props: { title: string; children: React.ReactNode; }) {
+function SettingsSection(props: { title: string; hideTitle?: boolean; children: React.ReactNode; }) {
     return (
         <section className={styles.settings_section} aria-label={props.title}>
-            <h3 className={styles.section_title}>{props.title}</h3>
+            {!props.hideTitle && <h3 className={styles.section_title}>{props.title}</h3>}
             <div className={styles.settings_container}>
                 {props.children}
             </div>
@@ -210,7 +210,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                 </div>
             </div>
             <div className={styles.internals_container}>
-                <SettingsSection title="General">
+                <SettingsSection title="General" hideTitle>
                     <div
                         id="app-setting-flavor"
                         className={styles.setting_name}
