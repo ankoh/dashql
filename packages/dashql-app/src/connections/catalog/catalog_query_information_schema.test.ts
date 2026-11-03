@@ -24,6 +24,23 @@ describe('information_schema batch refresh', () => {
             {} as any, {} as any, {} as any, {} as any)).rejects.toThrow('information_schema returned no catalog relations');
     });
 
+    it('orders the columns by bigint ordinal positions', async () => {
+        const catalog = { replaceDescriptor: vi.fn() };
+        const source = { catalog_entry_id: 7, replaceText: vi.fn(), toString: () => '' };
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({
+            table_catalog: ['db', 'db'], table_schema: ['public', 'public'], table_name: ['items', 'items'],
+            column_name: ['name', 'id'], ordinal_position: [2n, 1n], data_type: ['varchar', 'bigint'],
+        }))]);
+        const builder = new flatbuffers.Builder();
+        builder.finish(new buffers.catalog.CatalogDescriptorT().pack(builder));
+        const processor = vi.fn(async (request: BatchRequest) => ({
+            scripts: request.scripts.map(script => ({ id: script.id, diagnostics: [], catalogDescriptor: builder.asUint8Array() })),
+        }));
+        await updateInformationSchemaCatalog('connection', vi.fn(), 1, 'db', [], executor,
+            catalog as any, {} as any, source as any, {} as any, { processor });
+        expect(source.replaceText).toHaveBeenCalledWith(expect.stringMatching(/"id"[\s\S]*"name"/));
+    });
+
     it.each(['success', 'worker failure', 'aborted'])('publishes only a successfully prepared, current response: %s', async outcome => {
         const catalog = { replaceDescriptor: vi.fn() };
         const source = { catalog_entry_id: 7, replaceText: vi.fn(), toString: () => '' };

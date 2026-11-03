@@ -14,7 +14,8 @@ export type InformationSchemaColumnsTable = arrow.Table<{
     table_schema: arrow.Utf8;
     table_name: arrow.Utf8;
     column_name: arrow.Utf8;
-    ordinal_position: arrow.Int32;
+    /// Trino types the ordinal position as bigint, its values are then BigInt
+    ordinal_position: arrow.Int32 | arrow.Int64;
     is_nullable: arrow.Utf8;  // 'YES' or 'NO'
     data_type: arrow.Utf8;
 }>;
@@ -72,7 +73,7 @@ function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumn
             // Add column metadata
             columns.push({
                 name: columnName,
-                ordinalPosition: ordinalPosition ?? columns.length,
+                ordinalPosition: ordinalPosition != null ? Number(ordinalPosition) : columns.length,
                 dataType: dataType ?? null,
             });
         }
