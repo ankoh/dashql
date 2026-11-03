@@ -188,38 +188,43 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 <h2 className={styles.card_title}>{displayName}</h2>
                 {props.shifted && <span className={styles.shifted_badge} title="Moved to avoid overlapping another dashboard card">Shifted</span>}
                 {staged ? (
-                    <ButtonGroup className={styles.card_actions} aria-label={`Accept or reject the change of ${displayName}`}>
-                        <IconButton
-                            size={ButtonSize.Small}
-                            variant={ButtonVariant.Default}
-                            aria-label="Accept change"
-                            description="Keep the change of the script"
-                            data-testid="dashboard-card-accept"
-                            onClick={() => props.onAcceptDiff(props.script.scriptKey)}
-                        >
-                            <CheckIcon size={12} />
-                        </IconButton>
-                        <IconButton
-                            size={ButtonSize.Small}
-                            variant={ButtonVariant.Default}
-                            aria-label="Reject change"
-                            description="Restore the script"
-                            data-testid="dashboard-card-reject"
-                            onClick={() => props.onRejectDiff(props.script.scriptKey)}
-                        >
-                            <XIcon size={12} />
-                        </IconButton>
-                        <IconButton
-                            size={ButtonSize.Small}
-                            variant={ButtonVariant.Default}
-                            aria-label={`Edit ${displayName}`}
-                            description="Show the change in the script"
-                            data-testid="dashboard-card-edit"
-                            onClick={() => props.onOpenEditor(props.script.scriptKey)}
-                        >
-                            <PencilIcon size={12} />
-                        </IconButton>
-                    </ButtonGroup>
+                    <>
+                        {/* The script editor shows the change, accept and reject decide it */}
+                        <ButtonGroup className={styles.card_actions} aria-label={`Change ${displayName}`}>
+                            <IconButton
+                                size={ButtonSize.Small}
+                                variant={ButtonVariant.Default}
+                                aria-label={`Edit ${displayName}`}
+                                description="Show the change in the script"
+                                data-testid="dashboard-card-edit"
+                                onClick={() => props.onOpenEditor(props.script.scriptKey)}
+                            >
+                                <PencilIcon size={12} />
+                            </IconButton>
+                        </ButtonGroup>
+                        <ButtonGroup className={styles.card_actions} aria-label={`Accept or reject the change of ${displayName}`}>
+                            <IconButton
+                                size={ButtonSize.Small}
+                                variant={ButtonVariant.Default}
+                                aria-label="Accept change"
+                                description="Keep the change of the script"
+                                data-testid="dashboard-card-accept"
+                                onClick={() => props.onAcceptDiff(props.script.scriptKey)}
+                            >
+                                <CheckIcon size={12} />
+                            </IconButton>
+                            <IconButton
+                                size={ButtonSize.Small}
+                                variant={ButtonVariant.Default}
+                                aria-label="Reject change"
+                                description="Restore the script"
+                                data-testid="dashboard-card-reject"
+                                onClick={() => props.onRejectDiff(props.script.scriptKey)}
+                            >
+                                <XIcon size={12} />
+                            </IconButton>
+                        </ButtonGroup>
+                    </>
                 ) : (
                     <>
                         <ButtonGroup className={styles.card_actions} aria-label={`Run ${displayName}`}>
