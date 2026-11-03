@@ -94,6 +94,15 @@
     font-size: var(--font_size_body);
 }
 
+/* The texts of a turn can be selected and copied, the root disables the selection elsewhere */
+.turn_question,
+.turn_status,
+.turn_note,
+.turn_error {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
 /* A script that the agent wrote, scrolls the feed to it */
 .turn_script {
     flex: none;

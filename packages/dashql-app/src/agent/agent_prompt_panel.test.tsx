@@ -125,6 +125,28 @@ describe('Agent prompt panel', () => {
         expect(toggle.textContent).toBe('Show less');
     });
 
+    it('keeps the texts of a turn selectable', () => {
+        const agent = composerAgent({
+            turns: [
+                { questionId: 1, question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] }, scripts: [] },
+                { questionId: 2, question: { question: 'how many customers', status: null, error: 'HTTP 500', note: null, scripts: [] }, scripts: [] },
+                { questionId: 3, question: { question: 'top customers', status: 'dashql agent catalog', error: null, note: null, scripts: [] }, scripts: [] },
+            ],
+        });
+        act(() => root.render(<AgentPromptPanel agent={agent} />));
+        const turns = container.querySelectorAll('[data-testid="composer-agent-turn"]');
+        // The root of the app disables the selection, the question, the answer, the error and the status line enable it again
+        const texts = [
+            turns[0].querySelector<HTMLElement>('[title="how many orders"]')!,
+            turns[0].querySelector<HTMLElement>('[role="note"]')!,
+            turns[1].querySelector<HTMLElement>('[role="alert"]')!,
+            turns[2].querySelector<HTMLElement>('[role="status"]')!,
+        ];
+        for (const text of texts) {
+            expect(getComputedStyle(text).userSelect).toBe('text');
+        }
+    });
+
     it('drops the markdown markers of an answer', () => {
         expect(plainAgentNote('### Result\n\nThe **top** customer is `acme`.\n\n\n\nDone.')).toBe('Result\n\nThe top customer is acme.\n\nDone.');
         expect(plainAgentNote('  There are 42 orders  ')).toBe('There are 42 orders');
