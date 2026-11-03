@@ -28,12 +28,12 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
         };
     },
     loginHint: params => params.auth?.basic?.username || null,
+    // The credentials and the user stay out, a new token or another login reuses the cached results
     cacheSignature: params => ({
         case: "trino",
         endpoint: params.endpoint,
         auth: {
             authType: params.auth?.authType,
-            basicUsername: params.auth?.basic?.username,
             oauthAuthUrl: params.auth?.oauth?.authorizationUrl,
             oauthTokenUrl: params.auth?.oauth?.tokenUrl,
             oauthRedirectUrl: params.auth?.oauth?.callbackUrl,

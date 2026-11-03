@@ -160,7 +160,7 @@ describe('createConnectionParamsSignature', () => {
         const params = trino('sales', ['hive.sales', 'iceberg']);
         expect(createConnectionParamsSignature(params)).toEqual(createConnectionParamsSignature(trino('sales', ['iceberg'])));
         expect(createConnectionParamsSignature(params)).not.toEqual(createConnectionParamsSignature(trino('hr', ['hive.sales', 'iceberg'])));
-        expect(createConnectionParamsSignature(params)).toMatchObject({ case: 'trino', defaults: { catalog: 'hive', schema: 'sales' }, auth: { basicUsername: 'u' } });
+        expect(createConnectionParamsSignature(params)).toMatchObject({ case: 'trino', defaults: { catalog: 'hive', schema: 'sales' } });
     });
 
     it('identifies Trino results of params that predate the default catalog like the renamed params', () => {
@@ -169,13 +169,34 @@ describe('createConnectionParamsSignature', () => {
         expect(createConnectionParamsSignature(legacy)).toEqual(createConnectionParamsSignature(current));
     });
 
-    it('ignores the order of the attached databases, metadata and parameters of Hyper', () => {
+    it('leaves the Trino credentials and user out of the signature', () => {
+        const trino = (username: string, secret: string) => ({ trino: { endpoint: 'https://trino', defaultCatalog: 'hive', auth: { authType: 'AUTH_BASIC', basic: { username, secret } } } }) as unknown as ConnectionParams;
+        const signature = createConnectionParamsSignature(trino('alice', 'a'));
+        expect(signature).toEqual(createConnectionParamsSignature(trino('bob', 'b')));
+        expect(JSON.stringify(signature)).not.toContain('alice');
+    });
+
+    it('leaves the Salesforce login out of the signature', () => {
+        const salesforce = (login: string) => ({ salesforce: { instanceUrl: 'https://org', appConsumerKey: 'key', appConsumerSecret: 'secret', login } }) as unknown as ConnectionParams;
+        const signature = createConnectionParamsSignature(salesforce('alice@org'));
+        expect(signature).toEqual(createConnectionParamsSignature(salesforce('bob@org')));
+        expect(signature).toEqual({ case: 'salesforce', instanceUrl: 'https://org', appConsumerKey: 'key' });
+    });
+
+    it('leaves the gRPC metadata of Hyper out of the signature', () => {
+        const hyper = (metadata: Record<string, string>) => ({ hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper', metadata } }) as unknown as ConnectionParams;
+        const signature = createConnectionParamsSignature(hyper({ authorization: 'Bearer a' }));
+        expect(signature).toEqual(createConnectionParamsSignature(hyper({ authorization: 'Bearer b' })));
+        expect(signature).not.toHaveProperty('gRPCMetadata');
+    });
+
+    it('ignores the order of the attached databases and parameters of Hyper', () => {
         const hyper = (paths: string[], metadata: Record<string, string>) => ({
             hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper', attachedDatabases: paths.map(path => ({ path, alias: path })), metadata, queryParameters: { b: '2', a: '1' } },
         }) as unknown as ConnectionParams;
         const signature = createConnectionParamsSignature(hyper(['/b', '/a'], { y: '1', x: '2' }));
         expect(signature).toEqual(createConnectionParamsSignature(hyper(['/a', '/b'], { x: '2', y: '1' })));
-        expect(signature).toMatchObject({ case: 'hyper', attachedDatabases: [{ path: '/a' }, { path: '/b' }], gRPCMetadata: [['x', '2'], ['y', '1']], queryParameters: [['a', '1'], ['b', '2']] });
+        expect(signature).toMatchObject({ case: 'hyper', attachedDatabases: [{ path: '/a' }, { path: '/b' }], queryParameters: [['a', '1'], ['b', '2']] });
     });
 });
 

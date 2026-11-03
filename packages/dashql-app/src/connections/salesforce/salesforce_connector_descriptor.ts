@@ -16,11 +16,11 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
     sanitizeForSharing: (params, withLoginHint) => ({ ...params, appConsumerSecret: "", ...(withLoginHint ? {} : { login: "" }) }),
     loginHint: params => params.login || null,
+    // The login stays out, another user of the same org reuses the cached results
     cacheSignature: params => ({
         case: "salesforce",
         instanceUrl: params.instanceUrl,
         appConsumerKey: params.appConsumerKey,
-        login: params.login,
     }),
     catalogNameDefaults: () => ({ databaseName: SALESFORCE_CATALOG_DATABASE, schemaName: SALESFORCE_CATALOG_SCHEMA }),
     executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'salesforce' ? args.channelOverride.channel : details.channel, 'Salesforce')
