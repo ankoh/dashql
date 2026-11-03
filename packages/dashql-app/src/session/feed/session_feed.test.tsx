@@ -749,10 +749,12 @@ describe('Session feed composer', () => {
             await act(async () => feedState.agentListener!.edited(3));
             expect(scrollTo).toHaveBeenCalledOnce();
 
-            // A run of another script while the agent still works scrolls back to it
+            // A run of another script while the agent still works scrolls back to it.
+            // The first script scrolls to the top of the feed, with the add button above it.
             await act(async () => feedState.agentListener!.ran(1));
             expect(scrollTo).toHaveBeenCalledTimes(2);
-            expect((scrollTo.mock.calls[1][0] as ScrollToOptions).top!).toBeLessThan(scrolled);
+            expect(scrolled).toBeGreaterThan(0);
+            expect((scrollTo.mock.calls[1][0] as ScrollToOptions).top!).toBe(0);
 
             // Once the user scrolls the feed, the agent's edits stay where they are
             act(() => container.querySelector('[data-testid="feed-list"]')!.dispatchEvent(new WheelEvent('wheel', { bubbles: true })));

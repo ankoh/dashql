@@ -569,15 +569,15 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         const index = entries.findIndex(entry => entry.scriptId === scriptKey);
         const element = feedLayout.listRef.current?.element;
         if (index < 0 || element == null) return;
-        const span = feedLayout.getEntrySpan(index);
-        let top = span[0];
-        const bottom = span[1];
+        const [cardTop, bottom] = feedLayout.getEntrySpan(index);
+        // The first script also shows the space above the feed, the add button above the script sits in it
+        let top = index === 0 ? 0 : cardTop;
         const viewportHeight = element.clientHeight;
-        if (target === 'result' && bottom - top > viewportHeight) {
+        if (target === 'result' && bottom - cardTop > viewportHeight) {
             const item = element.querySelector(`[data-script-key="${scriptKey}"]`);
             const result = item?.querySelector('[data-feed-result]');
             if (item != null && result != null) {
-                top += result.getBoundingClientRect().top - item.getBoundingClientRect().top;
+                top = cardTop + result.getBoundingClientRect().top - item.getBoundingClientRect().top;
             }
         }
         const offset = revealScrollOffset(top, bottom, element.scrollTop, viewportHeight);
