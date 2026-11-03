@@ -66,7 +66,7 @@ function inheritChannel(shared: unknown, own: unknown): unknown {
     if (own === undefined) return shared;
     if (own === null || !isObject(shared)) return own;
     if (isFieldOrDatumDef(own)) return { ...shared, ...own };
-    if (isFieldOrDatumDef(own.condition)) return { ...own, condition: { ...shared, ...own.condition } };
+    if (isObject(own) && isFieldOrDatumDef(own.condition)) return { ...own, condition: { ...shared, ...own.condition } };
     return own;
 }
 
