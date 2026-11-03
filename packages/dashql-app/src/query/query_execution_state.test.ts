@@ -1,5 +1,4 @@
 // @vitest-environment node
-import * as arrow from 'apache-arrow';
 
 import {
     EXECUTE_QUERY,
@@ -28,6 +27,7 @@ import {
     type QueryMetadata,
 } from './query_execution_state.js';
 import { LoggableException } from '../platform/logger/logger.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function history(): QueryExecutionHistoryState {
     return {
@@ -50,7 +50,7 @@ function start(state: QueryExecutionHistoryState, queryId: number, meta: QueryMe
 
 /// Finish a started query with a one-row table
 function finish(state: QueryExecutionHistoryState, queryId: number): QueryExecutionHistoryState {
-    const table = arrow.tableFromArrays({ a: new Int32Array([queryId]) });
+    const table = tableFromArrays({ a: new Int32Array([queryId]) });
     state = reduceQueryAction(state, { type: QUERY_RECEIVED_BATCH, value: [queryId, table.batches[0], createQueryResponseStreamMetrics()] });
     state = reduceQueryAction(state, { type: QUERY_RECEIVED_ALL_BATCHES, value: [queryId, table, new Map(), createQueryResponseStreamMetrics()] });
     return reduceQueryAction(state, { type: QUERY_SUCCEEDED, value: [queryId] });

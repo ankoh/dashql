@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 
 import { appendRowNumbers } from '../analyze_table.js';
 import { createArrowFieldIndex } from '../computation_state.js';
@@ -8,6 +7,7 @@ import { filterTable } from './table_filtering.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('filterTable', () => {
     let database: HyperDB | null = null;
@@ -22,7 +22,7 @@ describe('filterTable', () => {
 
     it('lists the rows of the filter in the order of the input', async () => {
         const values = Float64Array.from({ length: 100 }, (_, i) => (i * 37) % 100);
-        const [table, rowNumberFieldName] = appendRowNumbers(arrow.tableFromArrays({ value: values }));
+        const [table, rowNumberFieldName] = appendRowNumbers(tableFromArrays({ value: values }));
         const inputDataFrame = await DataFrame.fromArrowTable(database!, table, 'input');
 
         const filter = await filterTable({

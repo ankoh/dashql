@@ -1,5 +1,4 @@
 import { vi } from 'vitest';
-import * as arrow from 'apache-arrow';
 
 import { AsyncValue } from '../utils/async_value.js';
 import { LoggableException } from '../platform/logger/logger.js';
@@ -39,6 +38,7 @@ import { ComputationRegistry, useComputationRegistry } from './computation_regis
 import { ComputeQueryExecutionProvider } from './compute_query_execution.js';
 import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from './computation_state.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -47,7 +47,7 @@ function ScheduleTask(props: { task: TaskVariant }) {
     React.useEffect(() => {
         dispatch({
             type: COMPUTATION_FROM_QUERY_RESULT,
-            value: [props.task.value.tableId, arrow.tableFromArrays({ value: [1] }), [], new AbortController()],
+            value: [props.task.value.tableId, tableFromArrays({ value: [1] }), [], new AbortController()],
         });
         dispatch({ type: SCHEDULE_TASK, value: props.task });
     }, [dispatch, props.task]);

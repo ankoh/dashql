@@ -9,6 +9,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const ROWNUM: ColumnGroup = { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } };
 const NAME: ColumnGroup = { type: STRING_COLUMN, value: { inputFieldName: 'name', inputFieldType: new arrow.Utf8(), inputFieldNullable: true, statsFields: null, valueIdFieldName: null } };
@@ -44,7 +45,7 @@ describe('useQueryResultSearch', () => {
 
     it('searches the column names of the result', async () => {
         const { dispatch, ofType } = recordingDispatch();
-        const { query, dataFrame } = queryingDataFrame(async () => arrow.tableFromArrays({ column_idx: Int32Array.from([0]), column_group_idx: Int32Array.from([1]) }));
+        const { query, dataFrame } = queryingDataFrame(async () => tableFromArrays({ column_idx: Int32Array.from([0]), column_group_idx: Int32Array.from([1]) }));
         const state = mockTableComputation([ROWNUM, NAME], { dataFrame });
         renderSearch({ ...state, columnSearch: requested(state.columnSearch, 'na') }, dispatch);
 

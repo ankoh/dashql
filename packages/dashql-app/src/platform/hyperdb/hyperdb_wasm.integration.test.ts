@@ -14,6 +14,7 @@ import { createExecutionMounts } from '../../session/scripts/session_execution.j
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { markSessionAttachmentsChanged, readAttachmentColumns, unmountSessionAttachments } from '../../session/attachments/attachment_mounts.js';
+import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
@@ -300,7 +301,7 @@ describe('HyperDB embedded database integration', () => {
         const name = `dashql-attachments-${crypto.randomUUID()}`;
         const directory = await root.getDirectoryHandle(name, { create: true });
         const write = async (file: string, values: number[]) => {
-            const bytes = await exportArrowTableAsParquet(database!, arrow.tableFromArrays({ value: BigInt64Array.from(values.map(BigInt)) }));
+            const bytes = await exportArrowTableAsParquet(database!, tableFromArrays({ value: BigInt64Array.from(values.map(BigInt)) }));
             const writer = await (await directory.getFileHandle(file, { create: true })).createWritable();
             await writer.write(bytes as BlobPart);
             await writer.close();
@@ -341,10 +342,10 @@ describe('HyperDB embedded database integration', () => {
             await writer.close();
         };
         try {
-            await write(arrow.tableFromArrays({ region: ['eu'], amount: Int32Array.from([1]) }));
+            await write(tableFromArrays({ region: ['eu'], amount: Int32Array.from([1]) }));
             expect(await readAttachmentColumns(database!, sessionId, 'sales.parquet')).toEqual(['region', 'amount']);
             // A changed attachment is read again once the mount is marked stale
-            await write(arrow.tableFromArrays({ id: Int32Array.from([1]) }));
+            await write(tableFromArrays({ id: Int32Array.from([1]) }));
             markSessionAttachmentsChanged(sessionId);
             expect(await readAttachmentColumns(database!, sessionId, 'sales.parquet')).toEqual(['id']);
         } finally {
@@ -358,7 +359,7 @@ describe('HyperDB embedded database integration', () => {
     });
 
     it('exports an Arrow table as Parquet through OPFS', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             id: Int32Array.from([1, 2, 3]),
             name: ['alpha', 'beta', 'gamma'],
         });
@@ -401,7 +402,7 @@ describe('HyperDB embedded database integration', () => {
     const KEY_B = 'b'.repeat(64);
 
     it('writes query results into the cache folder and reads them back from disk', async () => {
-        const table = arrow.tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
+        const table = tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
         const { cache, files, cleanup } = await testCache();
         try {
             const name = cache.newFileName(KEY_A);
@@ -414,7 +415,7 @@ describe('HyperDB embedded database integration', () => {
 
             // A new write of the key replaces the older file
             const newer = cache.newFileName(KEY_A);
-            await cache.writeTable(database!, arrow.tableFromArrays({ id: Int32Array.from([4]), name: ['delta'] }), newer);
+            await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([4]), name: ['delta'] }), newer);
             expect(await files()).toEqual([newer, `${newer}.last_access`]);
             expect(toPlainObjects(await cache.readTable(database!, newer))).toEqual([{ id: 4, name: 'delta' }]);
         } finally {
@@ -423,7 +424,7 @@ describe('HyperDB embedded database integration', () => {
     }, 60_000);
 
     it('keeps the files that a run reads and writes until it ended', async () => {
-        const table = arrow.tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
+        const table = tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
         const { cache, files, cleanup } = await testCache();
         try {
             const cached = cache.newFileName(KEY_A);
@@ -460,7 +461,7 @@ describe('HyperDB embedded database integration', () => {
     }, 60_000);
 
     it('forgets removed files of the cache while a run reads through the mount', async () => {
-        const table = arrow.tableFromArrays({ id: Int32Array.from([1]) });
+        const table = tableFromArrays({ id: Int32Array.from([1]) });
         const { cache, cleanup } = await testCache();
         try {
             const first = cache.newFileName(KEY_A);
@@ -468,7 +469,7 @@ describe('HyperDB embedded database integration', () => {
             expect(toPlainObjects(await cache.readTable(database!, first))).toEqual([{ id: 1 }]);
             // A run keeps reading its file through the shared mount while the cache removes another one
             const kept = cache.newFileName(KEY_B);
-            await cache.writeTable(database!, arrow.tableFromArrays({ id: Int32Array.from([2]) }), kept);
+            await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([2]) }), kept);
             const mounts = createExecutionMounts(cache, database!);
             try {
                 await mounts.use(`${mounts.prefix}/${kept}`);
@@ -536,15 +537,15 @@ describe('HyperDB embedded database integration', () => {
     it('round-trips Arrow tables through external Arrow stream scans', async () => {
         const connection = await database!.connect();
         const table = new arrow.Table({
-            id: arrow.vectorFromArray([1, 2, null], new arrow.Int32()),
-            big: arrow.vectorFromArray([1n, 2n, 3n], new arrow.Int64()),
-            label: arrow.vectorFromArray(['a', 'b', 'a'], new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32())),
-            long: arrow.vectorFromArray(['x', null, 'z'], new arrow.LargeUtf8()),
-            score: arrow.vectorFromArray([1.5, null, 3.5], new arrow.Float64()),
-            flag: arrow.vectorFromArray([true, false, null], new arrow.Bool()),
-            day: arrow.vectorFromArray([new Date(Date.UTC(2026, 0, 2)), null, null], new arrow.DateDay()),
-            at: arrow.vectorFromArray([new Date(Date.UTC(2026, 0, 2, 3, 4, 5)), null, null], new arrow.TimestampMillisecond()),
-            tags: arrow.vectorFromArray([['p', 'q'], null, []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            id: vectorFromArray([1, 2, null], new arrow.Int32()),
+            big: vectorFromArray([1n, 2n, 3n], new arrow.Int64()),
+            label: vectorFromArray(['a', 'b', 'a'], new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32())),
+            long: vectorFromArray(['x', null, 'z'], new arrow.LargeUtf8()),
+            score: vectorFromArray([1.5, null, 3.5], new arrow.Float64()),
+            flag: vectorFromArray([true, false, null], new arrow.Bool()),
+            day: vectorFromArray([new Date(Date.UTC(2026, 0, 2)), null, null], new arrow.DateDay()),
+            at: vectorFromArray([new Date(Date.UTC(2026, 0, 2, 3, 4, 5)), null, null], new arrow.TimestampMillisecond()),
+            tags: vectorFromArray([['p', 'q'], null, []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
         });
 
         await connection.insertArrowTable(table, { name: 'round_trip' });
@@ -613,7 +614,7 @@ describe('HyperDB embedded database integration', () => {
     it('keeps shared tables visible across physical DataFrame connections', async () => {
         const inputName = generateTableName('__hyper_input');
         const summaryName = generateTableName('__hyper_summary');
-        const input = await DataFrame.fromArrowTable(database!, arrow.tableFromArrays({
+        const input = await DataFrame.fromArrowTable(database!, tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
         }), inputName);
@@ -647,13 +648,13 @@ describe('HyperDB embedded database integration', () => {
 
     it('appends Arrow batches to a shared table', async () => {
         const first = await database!.connect();
-        await first.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([1, 2]) }), {
+        await first.insertArrowTable(tableFromArrays({ value: new Int32Array([1, 2]) }), {
             name: 'hyper_append_rows',
         });
         await first.close();
 
         const second = await database!.connect();
-        await second.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([3, 4]) }), {
+        await second.insertArrowTable(tableFromArrays({ value: new Int32Array([3, 4]) }), {
             name: 'hyper_append_rows',
             create: false,
         });

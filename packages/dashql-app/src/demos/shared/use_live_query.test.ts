@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import { LiveQueryLoop, type LiveQueryState } from './use_live_query.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 /// Run the pending promise callbacks
 async function flush() {
@@ -53,7 +54,7 @@ describe('LiveQueryLoop', () => {
         // A slow query delays the next run
         await vi.advanceTimersByTimeAsync(500);
         expect(database.queries).toHaveLength(1);
-        database.queries[0].resolve(arrow.tableFromArrays({ x: [1] }));
+        database.queries[0].resolve(tableFromArrays({ x: [1] }));
         await flush();
         expect(results).toHaveLength(1);
         expect(results[0].table?.numRows).toBe(1);

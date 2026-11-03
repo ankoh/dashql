@@ -5,6 +5,7 @@ import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -30,7 +31,7 @@ describe('DataFrame', () => {
     it('keeps named tables readable across ad-hoc connections', async () => {
         const tableName = generateTableName('__frame');
         const summaryName = generateTableName('__summary');
-        const inputTable = arrow.tableFromArrays({
+        const inputTable = tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
         });
@@ -65,7 +66,7 @@ describe('DataFrame', () => {
 
     it('drops a data frame when its last registry reference is released', async () => {
         const tableName = generateTableName('__released');
-        const dataFrame = await DataFrame.fromArrowTable(database!, arrow.tableFromArrays({ id: [1] }), tableName);
+        const dataFrame = await DataFrame.fromArrowTable(database!, tableFromArrays({ id: [1] }), tableName);
         const registry = new DataFrameRegistry(new TestLogger());
         const destroy = vi.spyOn(dataFrame, 'destroy');
 

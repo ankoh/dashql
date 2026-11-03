@@ -11,6 +11,7 @@ import {
     SHELL_AUTO_OVERLAY_ROW_LIMIT,
     type ShellOutputMode,
 } from '../../shell/shell_result.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('session shell environment', () => {
     it('renders small auto-mode results in the terminal', async () => {
@@ -22,7 +23,7 @@ describe('session shell environment', () => {
             expect(args.cacheable).toBe(false);
             expect(args.throwOnError).toBe(true);
             args.onLog?.('Executing query');
-            return [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))];
+            return [7, Promise.resolve(tableFromArrays({ value: [42] }))];
         });
         const cancel = vi.fn();
         const environment = createSessionShellEnvironment('session', 'connection-7', execute, cancel);
@@ -38,7 +39,7 @@ describe('session shell environment', () => {
     it('forwards labeled timings from the query executor', async () => {
         const execute = vi.fn<QueryExecutor>((_connectionId, args) => {
             args.onTiming?.('Results', 12.5);
-            return [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))];
+            return [7, Promise.resolve(tableFromArrays({ value: [42] }))];
         });
         const environment = createSessionShellEnvironment('session', 'connection-7', execute, vi.fn());
         const onTiming = vi.fn();
@@ -51,7 +52,7 @@ describe('session shell environment', () => {
 
     it('opens auto-mode results in the overlay above the row limit', async () => {
         const rowCount = SHELL_AUTO_OVERLAY_ROW_LIMIT + 1;
-        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({
+        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(tableFromArrays({
             value: Array.from({ length: rowCount }, (_, index) => index),
         }))]);
         const environment = createSessionShellEnvironment('session', 'session-1', execute, vi.fn());
@@ -65,7 +66,7 @@ describe('session shell environment', () => {
 
     it('opens auto-mode results in the overlay when their natural width exceeds the terminal', async () => {
         let terminalColumns = 20;
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             identifier: [1],
             description: ['a result value that does not fit'],
         });
@@ -92,7 +93,7 @@ describe('session shell environment', () => {
 
     it('opens a 1x1 plan candidate in auto mode even when it fits in the terminal', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
-        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [plan] }))]);
+        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(tableFromArrays({ value: [plan] }))]);
         const environment = createSessionShellEnvironment('session', 'session-1', execute, vi.fn(), () => 'auto', () => 1000);
         const result = vi.fn();
 
@@ -104,7 +105,7 @@ describe('session shell environment', () => {
 
     it('honors forced UI, terminal, and off output modes', async () => {
         let mode: ShellOutputMode = 'ui';
-        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))]);
+        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(tableFromArrays({ value: [42] }))]);
         const release = vi.fn();
         const environment = createSessionShellEnvironment('session', 'session-1', execute, vi.fn(), () => mode, () => 100, release);
         const result = vi.fn();
@@ -129,7 +130,7 @@ describe('session shell environment', () => {
     });
 
     it('does not open a result UI for successful statements without columns', async () => {
-        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({}))]);
+        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(tableFromArrays({}))]);
         const environment = createSessionShellEnvironment('session', 'session-1', execute, vi.fn(), () => 'ui');
         const result = vi.fn();
 
@@ -165,7 +166,7 @@ describe('session shell environment', () => {
 
         abort.abort();
         expect(cancel).toHaveBeenCalledWith('connection-7', 9);
-        resolveExecution!(arrow.tableFromArrays({ value: [42] }));
+        resolveExecution!(tableFromArrays({ value: [42] }));
         await execution;
     });
 });

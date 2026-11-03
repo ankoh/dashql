@@ -9,6 +9,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { buffers } from '@ankoh/dashql-core';
 import { MarkdownView, type MarkdownViewDependencies } from './markdown_view.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const Node = buffers.visualization.MarkdownNodeT;
 const NodeType = buffers.visualization.MarkdownNodeType;
@@ -46,7 +47,7 @@ describe('MarkdownView', () => {
     });
 
     it('renders every result row using formatted Arrow values', () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             product: ['Alpha', 'Beta'],
             revenue: new Int32Array([1234567, 2000]),
         });
@@ -72,7 +73,7 @@ describe('MarkdownView', () => {
     });
 
     it('renders interpolated Markdown syntax as plain text', () => {
-        const table = arrow.tableFromArrays({ value: ['**owned** [click](javascript:alert(1))\n# heading'] });
+        const table = tableFromArrays({ value: ['**owned** [click](javascript:alert(1))\n# heading'] });
 
         act(() => root.render(
             <MarkdownView
@@ -95,7 +96,7 @@ describe('MarkdownView', () => {
     });
 
     it('renders core-approved links and formatted image alt text', () => {
-        const table = arrow.tableFromArrays({ product: ['Alpha'] });
+        const table = tableFromArrays({ product: ['Alpha'] });
 
         act(() => root.render(
             <MarkdownView

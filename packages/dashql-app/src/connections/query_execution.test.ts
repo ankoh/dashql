@@ -14,6 +14,7 @@ import { createTrace } from '../platform/logger/trace_context.js';
 import { HyperHttpError } from './hyper/hyperdb_http_client.js';
 import { logQueryFailure } from './query_executor.js';
 import { consumeQueryResponseStream } from './query_execution.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function createStream(table: arrow.Table): QueryExecutionResponseStream {
     const metrics = {
@@ -40,7 +41,7 @@ function createStream(table: arrow.Table): QueryExecutionResponseStream {
 
 describe('consumeQueryResponseStream', () => {
     it('publishes batches and builds the output table', async () => {
-        const input = arrow.tableFromArrays({ value: [1, 2, 3] });
+        const input = tableFromArrays({ value: [1, 2, 3] });
         const stream = createStream(input);
         const onProgress = vi.fn<(progress: QueryExecutionProgress) => void>();
         const onBatch = vi.fn();
@@ -59,7 +60,7 @@ describe('consumeQueryResponseStream', () => {
     });
 
     it('drains command results without publishing or requesting a schema', async () => {
-        const input = arrow.tableFromArrays({ ignored: [1] });
+        const input = tableFromArrays({ ignored: [1] });
         const stream = createStream(input);
         stream.getSchema = vi.fn(stream.getSchema);
         const onBatch = vi.fn();
@@ -77,7 +78,7 @@ describe('consumeQueryResponseStream', () => {
     });
 
     it('reports execution completion before constructing the result table', async () => {
-        const input = arrow.tableFromArrays({ value: [1] });
+        const input = tableFromArrays({ value: [1] });
         const stream = createStream(input);
         const events: string[] = [];
         stream.produce = async () => {};

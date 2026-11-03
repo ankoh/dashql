@@ -20,6 +20,7 @@ import { SET_CROSS_FILTERS } from '../../compute/computation_state.js';
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const dependencies = {
     QueryResultToolbar: () => null,
@@ -130,13 +131,13 @@ describe('QueryResultDetails', () => {
     });
 
     it('downloads the complete original result as an Arrow IPC file without computed columns', async () => {
-        const resultTable = arrow.tableFromArrays({ value: [10, 20, 30] });
+        const resultTable = tableFromArrays({ value: [10, 20, 30] });
         mockState.computationState = {
             tableComputations: {
                 42: {
-                    dataTable: arrow.tableFromArrays({ _rownum: [1, 2, 3], value: [10, 20, 30], _1_bin: [0, 1, 2] }),
+                    dataTable: tableFromArrays({ _rownum: [1, 2, 3], value: [10, 20, 30], _1_bin: [0, 1, 2] }),
                     crossFilters: new CrossFilters(),
-                    filterTable: { dataTable: arrow.tableFromArrays({ _rownum: [2] }) },
+                    filterTable: { dataTable: tableFromArrays({ _rownum: [2] }) },
                 },
             },
         };
@@ -172,7 +173,7 @@ describe('QueryResultDetails', () => {
         ));
         const button = () => downloadButton(container);
 
-        render(QueryExecutionStatus.RUNNING, arrow.tableFromArrays({ value: [1] }));
+        render(QueryExecutionStatus.RUNNING, tableFromArrays({ value: [1] }));
         expect(button().disabled).toBe(true);
         render(QueryExecutionStatus.SUCCEEDED, null);
         expect(button().disabled).toBe(true);
@@ -183,7 +184,7 @@ describe('QueryResultDetails', () => {
         mockState.computationState = { tableComputations: {} };
         act(() => root.render(
             <QueryResultDetails
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: arrow.tableFromArrays({ value: [1] }) } as any}
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: tableFromArrays({ value: [1] }) } as any}
                 debugMode={false}
                 dependencies={dependencies}
             />,
@@ -199,7 +200,7 @@ describe('QueryResultDetails', () => {
         mockState.download.mockRejectedValueOnce(new Error('Disk full'));
         act(() => root.render(
             <QueryResultDetails
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: arrow.tableFromArrays({ value: [1] }) } as any}
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: tableFromArrays({ value: [1] }) } as any}
                 debugMode={false}
                 dependencies={dependencies}
             />,

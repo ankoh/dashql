@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 
 import { appendRowNumbers, buildGridColumnGroups } from '../analyze_table.js';
 import { ComputationStateVersion } from '../computation_types.js';
@@ -8,6 +7,7 @@ import { computeTableAggregates } from './table_aggregation.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('computeSystemColumns', () => {
     let database: HyperDB | null = null;
@@ -23,7 +23,7 @@ describe('computeSystemColumns', () => {
     it('keeps the order of the rows of the input', async () => {
         // Hyper numbers the rows of a table of 20 rows or more in another order with row_number() OVER ()
         const queries = Array.from({ length: 100 }, (_, i) => `select ${String.fromCharCode(97 + (i * 7) % 26)} from t${i}`);
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             query: queries,
             total_ms: Float64Array.from(queries, (_, i) => 10_000 - i * 100),
         });

@@ -5,6 +5,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { buildHyperCloudCatalogQuery, generateCatalogSQLFromHyperCloud, updateHyperCatalog } from './hyper_catalog_update.js';
 import type { QueryExecutor } from '../query_executor.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS } from '../catalog/catalog_query_pg_attribute.js';
+import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -19,7 +20,7 @@ beforeEach(() => {
 });
 
 function pgResult(tableName: string) {
-    return arrow.tableFromArrays({
+    return tableFromArrays({
         table_schema: ['public'],
         table_name: [tableName],
         column_name: ['id'],
@@ -32,7 +33,7 @@ function pgResult(tableName: string) {
 }
 
 function cloudResult(databaseName = 'Cloud Database') {
-    return arrow.tableFromArrays({
+    return tableFromArrays({
         database_name: [databaseName, databaseName],
         schema_name: ['sales', 'sales'],
         table_name: ['orders', 'orders'],
@@ -43,16 +44,16 @@ function cloudResult(databaseName = 'Cloud Database') {
 }
 
 function functionResult() {
-    return arrow.tableFromArrays({
+    return tableFromArrays({
         function_schema: ['pg_catalog'],
         function_name: ['wasm_catalog_function'],
         return_type: ['bigint'],
         returns_set: [false],
         function_kind: ['f'],
     }).assign(new arrow.Table({
-        argument_types: arrow.vectorFromArray([['integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-        argument_names: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-        argument_modes: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        argument_types: vectorFromArray([['integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        argument_names: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        argument_modes: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
     }));
 }
 
@@ -77,7 +78,7 @@ describe('Hyper catalog query generation', () => {
     });
 
     it('declares a column once when the Hyper Cloud metadata lists it twice', () => {
-        const result = arrow.tableFromArrays({
+        const result = tableFromArrays({
             schema_name: ['sales', 'sales', 'sales', 'sales'],
             table_name: ['orders', 'orders', 'orders', 'orders'],
             column_name: ['id', 'name', 'id', 'name'],

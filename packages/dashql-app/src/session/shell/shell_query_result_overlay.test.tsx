@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import type * as dashql from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
@@ -13,6 +12,7 @@ import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,
 } from './shell_query_result_overlay.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
@@ -118,7 +118,7 @@ describe('ShellQueryResultOverlay', () => {
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: arrow.tableFromArrays({ value: [plan] }),
+                    resultTable: tableFromArrays({ value: [plan] }),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
@@ -154,7 +154,7 @@ describe('ShellQueryResultOverlay', () => {
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: arrow.tableFromArrays({ value: ['{"key":1}'] }),
+                    resultTable: tableFromArrays({ value: ['{"key":1}'] }),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
@@ -174,7 +174,7 @@ describe('ShellQueryResultOverlay', () => {
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: arrow.tableFromArrays({ value: [plan] }),
+                    resultTable: tableFromArrays({ value: [plan] }),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
@@ -213,7 +213,7 @@ describe('ShellQueryResultOverlay', () => {
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: arrow.tableFromArrays({ value: [plan] }),
+                    resultTable: tableFromArrays({ value: [plan] }),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}

@@ -9,6 +9,7 @@ import { HttpClient, HttpFetchResult } from '../../../platform/http/http_client.
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 import { HyperDatabaseConnectionContext, AttachedDatabase } from '../hyperdb_grpc_client.js';
 import { QueryExecutionProgress } from '../../../query/query_execution_state.js';
+import { tableFromArrays } from '../../../tests/arrow_fixtures.js';
 
 const ENDPOINT = 'https://hyper.mock.local';
 
@@ -34,7 +35,7 @@ function makeHyperArgs(): connection.HyperConnectionParams {
 
 /// Encode a single-int32-column table as a full Arrow stream (schema + record batch).
 function encodeIntTable(name: string, values: number[]): Uint8Array {
-    const table = arrow.tableFromArrays({ [name]: Int32Array.from(values) });
+    const table = tableFromArrays({ [name]: Int32Array.from(values) });
     return arrow.tableToIPC(table, 'stream');
 }
 

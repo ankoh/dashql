@@ -1,5 +1,4 @@
 import * as core from '@ankoh/dashql-core';
-import { tableFromArrays } from 'apache-arrow';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
@@ -27,6 +26,7 @@ import {
 } from './session_scripts.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
 import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

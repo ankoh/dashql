@@ -1,14 +1,14 @@
-import * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
 
 import { createTableComputationState, SCHEDULE_TASK, type ComputationAction, type TableComputationState } from '../../compute/computation_state.js';
 import type { ColumnGroup, TaskVariant } from '../../compute/computation_types.js';
 import type { AsyncValue } from '../../utils/async_value.js';
 import { mockDataFrame } from './compute_query.js';
+import { tableFromArrays } from '../arrow_fixtures.js';
 
 /// Table 1 with the column groups, a data frame of a table without a database and the row number column `rownum`
 export function mockTableComputation(columnGroups: ColumnGroup[], fields: Partial<TableComputationState> = {}): TableComputationState {
-    const table = arrow.tableFromArrays({ rownum: Int32Array.from([0, 1, 2]) });
+    const table = tableFromArrays({ rownum: Int32Array.from([0, 1, 2]) });
     return {
         ...createTableComputationState(1, table, columnGroups, new AbortController()),
         dataFrame: mockDataFrame('input'),

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { EditorView } from '@codemirror/view';
@@ -10,6 +9,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { authoredChartSpec, ChartBuilderOverlay, type ChartBuilderOverlayDependencies } from './chart_builder_overlay.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -93,7 +93,7 @@ describe('ChartBuilderOverlay', () => {
 
     it('lists the columns of the result in the field dropdown', () => {
         const onChange = vi.fn();
-        const resultTable = arrow.tableFromArrays({ region: ['a', 'b'], revenue: Float64Array.from([1, 2]) });
+        const resultTable = tableFromArrays({ region: ['a', 'b'], revenue: Float64Array.from([1, 2]) });
         const queryState = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable } as unknown as QueryExecutionState;
         render({ onChange, queryState });
         expect(Array.from(document.querySelectorAll('[data-testid="chart-column"]')).map(c => c.textContent)).toEqual(['Nregion', 'Qrevenue']);

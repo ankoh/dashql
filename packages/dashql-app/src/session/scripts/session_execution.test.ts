@@ -1,11 +1,11 @@
 import * as core from '@ankoh/dashql-core';
-import { tableFromArrays } from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
 import { runSessionExecution, type SessionExecutionState } from './session_execution.js';
 import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type SessionScripts } from './session_scripts.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;

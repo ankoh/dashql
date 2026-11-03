@@ -19,6 +19,7 @@ import { mockTableComputation, recordingDispatch } from '../../tests/mocks/compu
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { type CrossFilterController, useCrossFilters } from './use_cross_filters.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const SCORE = {
     inputFieldName: 'score',
@@ -115,8 +116,8 @@ describe('useCrossFilters', () => {
         const state: TableComputationState = {
             ...tableState(),
             tableAggregation: {} as TableAggregation,
-            filterTable: { dataTable: arrow.tableFromArrays({ rownum: Int32Array.from([0, 1, 2]) }), version: tableState().version } as unknown as FilterTable,
-            dataSearchTable: { dataTable: arrow.tableFromArrays({ row_idx: Int32Array.from([1, 2, 5]) }), requestId: 3 } as unknown as DataSearchTable,
+            filterTable: { dataTable: tableFromArrays({ rownum: Int32Array.from([0, 1, 2]) }), version: tableState().version } as unknown as FilterTable,
+            dataSearchTable: { dataTable: tableFromArrays({ row_idx: Int32Array.from([1, 2, 5]) }), requestId: 3 } as unknown as DataSearchTable,
             columnAggregates: [null, {} as ColumnAggregationVariant, null],
         };
         hook.render(state);

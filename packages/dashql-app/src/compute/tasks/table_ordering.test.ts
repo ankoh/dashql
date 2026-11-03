@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 
 import { appendRowNumbers } from '../analyze_table.js';
 import { createArrowFieldIndex } from '../computation_state.js';
@@ -8,6 +7,7 @@ import { sortTable } from './table_ordering.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('sortTable', () => {
     let database: HyperDB | null = null;
@@ -22,7 +22,7 @@ describe('sortTable', () => {
 
     it('orders the rows by the constraints and equal rows by their row number', async () => {
         const groups = Int32Array.from({ length: 100 }, (_, i) => (i * 7) % 5);
-        const [table, rowNumberFieldName] = appendRowNumbers(arrow.tableFromArrays({ group: groups }));
+        const [table, rowNumberFieldName] = appendRowNumbers(tableFromArrays({ group: groups }));
         const inputDataFrame = await DataFrame.fromArrowTable(database!, table, 'input');
 
         const ordering = await sortTable({

@@ -16,6 +16,7 @@ import {
     type ColumnMetadata,
     type SchemaMetadata
 } from './catalog_sql_generator.js';
+import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -293,7 +294,7 @@ describe('PostgreSQL function SQL descriptors', () => {
     afterEach(() => dql.resetUnsafe());
 
     it('queries structured types/names/modes and scalar result types instead of display signatures or defaults', async () => {
-        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({}))]);
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
         await queryPgProc('connection', vi.fn(), 1, executor);
         const sql = executor.mock.calls[0][1].query;
         expect(sql).toContain('p.proallargtypes IS NOT NULL');
@@ -309,7 +310,7 @@ describe('PostgreSQL function SQL descriptors', () => {
     });
 
     it('processes multi-argument, named/defaulted, mode, array, decimal and overload signatures on the real core', () => {
-        const result = arrow.tableFromArrays({
+        const result = tableFromArrays({
             function_schema: Array(6).fill('public'),
             function_name: ['multi', 'named_defaults', 'modes', 'arrays_decimal', 'overloaded', 'overloaded'],
             return_type: ['integer', 'numeric(12, 3)', 'bigint', 'integer[]', 'integer', 'text'],
@@ -325,15 +326,15 @@ describe('PostgreSQL function SQL descriptors', () => {
                 'integer', 'text',
             ],
         }).assign(new arrow.Table({
-            argument_types: arrow.vectorFromArray([
+            argument_types: vectorFromArray([
                 ['integer', 'integer'],
                 ['integer', 'text', 'numeric(12, 3)'],
                 ['integer', 'bigint', 'text', 'integer[]'],
                 ['integer[]', 'numeric(18, 4)', 'character varying(40)', 'timestamp with time zone'],
                 ['integer'], ['text'],
             ], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-            argument_names: arrow.vectorFromArray([null, ['input', 'name, with quotes"', 'amount'], ['first', 'output', 'in_out', 'variadic_input'], [], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-            argument_modes: arrow.vectorFromArray([null, [], ['i', 'o', 'b', 'v'], [], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_names: vectorFromArray([null, ['input', 'name, with quotes"', 'amount'], ['first', 'output', 'in_out', 'variadic_input'], [], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_modes: vectorFromArray([null, [], ['i', 'o', 'b', 'v'], [], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
         }));
         const sql = generateCatalogSQLFromPgProc(result as any, 'db');
         expect(sql).toContain('"multi"("arg1" integer, "arg2" integer)');
@@ -368,13 +369,13 @@ describe('PostgreSQL function SQL descriptors', () => {
     });
 
     it('logs and skips set/table results and qualified custom types while preserving supported declarations', () => {
-        const result = arrow.tableFromArrays({
+        const result = tableFromArrays({
             function_schema: Array(4).fill('public'), function_name: ['set_result', 'table_result', 'custom_type', 'supported'],
             return_type: ['integer', 'record', 'integer', 'integer'], returns_set: [true, false, false, false], function_kind: Array(4).fill('f'),
         }).assign(new arrow.Table({
-            argument_types: arrow.vectorFromArray([['integer'], ['integer', 'text'], ['public.custom_type'], ['integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-            argument_names: arrow.vectorFromArray(Array(4).fill([]), new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-            argument_modes: arrow.vectorFromArray([[], ['i', 't'], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_types: vectorFromArray([['integer'], ['integer', 'text'], ['public.custom_type'], ['integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_names: vectorFromArray(Array(4).fill([]), new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_modes: vectorFromArray([[], ['i', 't'], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
         }));
         const logger = { warn: vi.fn() };
         const sql = generateCatalogSQLFromPgProc(result as any, 'db', logger as any);

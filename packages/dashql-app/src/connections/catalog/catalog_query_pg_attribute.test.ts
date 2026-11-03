@@ -7,12 +7,13 @@ import type { BatchRequest } from '@ankoh/dashql-core';
 
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, updatePgCatalog, updatePgSchemaScript } from './catalog_query_pg_attribute.js';
 import type { QueryExecutor } from '../query_executor.js';
+import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 describe('updatePgSchemaScript', () => {
     it('rejects an empty relation result instead of reporting a successful refresh', async () => {
-        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({}))]);
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
 
         await expect(updatePgSchemaScript(
             { info: vi.fn() } as any,
@@ -38,7 +39,7 @@ describe('real-core empty PostgreSQL function refresh', () => {
     it('publishes the relations of pg_attribute into the relation script', async () => {
         const catalog = dql.createCatalog();
         const relations = dql.createScript(catalog);
-        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({
             table_schema: ['public', 'public'], table_name: ['items', 'items'], column_name: ['id', 'name'], ordinal_position: [1, 2], data_type: ['bigint', 'text'],
         }))]);
         const dispatch = vi.fn();
@@ -55,15 +56,15 @@ describe('real-core empty PostgreSQL function refresh', () => {
         const functions = dql.createScript(catalog);
         let emptyFunctions = false;
         const executor = vi.fn<QueryExecutor>((_id, args) => [1, Promise.resolve(args.query.includes('FROM pg_proc p')
-            ? emptyFunctions ? arrow.tableFromArrays({}) : arrow.tableFromArrays({
+            ? emptyFunctions ? tableFromArrays({}) : tableFromArrays({
                 function_schema: ['public'], function_name: ['old_fn'],
                 returns_set: [false], return_type: ['integer'], function_kind: ['f'],
             }).assign(new arrow.Table({
-                argument_types: arrow.vectorFromArray([['integer', 'integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_names: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_modes: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+                argument_types: vectorFromArray([['integer', 'integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+                argument_names: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+                argument_modes: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
             }))
-            : arrow.tableFromArrays({ table_schema: ['public'], table_name: ['items'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
+            : tableFromArrays({ table_schema: ['public'], table_name: ['items'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
         const logger = { info: vi.fn(), warn: vi.fn() };
         const refresh = () => updatePgCatalog(logger as any, 'connection', vi.fn(), 1, 'db', [], executor,
             catalog, dql, relations, functions, { processor: async request => dql.processBatch(request) });
@@ -89,7 +90,7 @@ describe('queryPgAttribute', () => {
         let query = '';
         const executor = vi.fn<QueryExecutor>((_connectionId, args) => {
             query = args.query;
-            return [1, Promise.resolve(arrow.tableFromArrays({}))];
+            return [1, Promise.resolve(tableFromArrays({}))];
         });
 
         await queryPgAttribute('session', vi.fn(), 7, 'catalog', [], executor, 'db"name');
@@ -112,15 +113,15 @@ describe('updatePgCatalog', () => {
             id: script.id, diagnostics: [], catalogDescriptor: descriptor,
         })) }));
         const executor = vi.fn<QueryExecutor>((_id, args) => [1, Promise.resolve(args.query.includes('FROM pg_proc p')
-            ? arrow.tableFromArrays({
+            ? tableFromArrays({
                 function_schema: ['public'], function_name: ['test_fn'],
                 return_type: ['bigint'], returns_set: [false], function_kind: ['f'],
             }).assign(new arrow.Table({
-                argument_types: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_names: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_modes: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+                argument_types: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+                argument_names: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+                argument_modes: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
             }))
-            : arrow.tableFromArrays({ table_schema: ['public'], table_name: ['test_table'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
+            : tableFromArrays({ table_schema: ['public'], table_name: ['test_table'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
         await updatePgCatalog({ info: vi.fn() } as any, 'connection', vi.fn(), 1, 'db', [], executor,
             catalog as any, {} as any, relations as any, functions as any, { processor });
         expect(processor).toHaveBeenCalledTimes(1);
@@ -139,7 +140,7 @@ describe('updatePgCatalog', () => {
         const functions = { replaceText: vi.fn() };
         const executor = vi.fn<QueryExecutor>((_id, args) => [1, args.query.includes('FROM pg_proc p')
             ? Promise.reject(new Error('functions unavailable'))
-            : Promise.resolve(arrow.tableFromArrays({ table_schema: ['public'], table_name: ['test_table'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
+            : Promise.resolve(tableFromArrays({ table_schema: ['public'], table_name: ['test_table'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
         const processor = vi.fn();
         await expect(updatePgCatalog({ info: vi.fn() } as any, 'connection', vi.fn(), 1, 'db', [], executor,
             catalog as any, {} as any, relations as any, functions as any, { processor })).rejects.toThrow('functions unavailable');

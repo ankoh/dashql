@@ -7,7 +7,7 @@ import {
     collectSearchableResultColumns,
     parseDataSearchMatches,
 } from './query_result_search_sql.js';
-import * as arrow from 'apache-arrow';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 function stringGroup(name: string): ColumnGroup {
     return {
@@ -135,7 +135,7 @@ describe('query result search SQL', () => {
     });
 
     it('parses Arrow list values into matching column indexes', () => {
-        const result = arrow.tableFromArrays({
+        const result = tableFromArrays({
             row_idx: new Int32Array([1, 3]),
             column_indices: [[0, 2], [1]],
         });

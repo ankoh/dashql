@@ -1,12 +1,12 @@
-import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { resolveSearchedRowIndices } from './visible_rows.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('resolveSearchedRowIndices', () => {
     it('intersects Data matches with cross-filtered rows', () => {
         const computation = {
-            filterTable: { dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([1, 3, 4]) }) },
+            filterTable: { dataTable: tableFromArrays({ row_idx: new Int32Array([1, 3, 4]) }) },
             orderingTable: null,
             dataSearch: { matchingRows: new Map([[2, [0]], [3, [1]], [4, [0]]]) },
         } as any;
@@ -16,7 +16,7 @@ describe('resolveSearchedRowIndices', () => {
     it('preserves the active ordering while intersecting matches', () => {
         const computation = {
             filterTable: null,
-            orderingTable: { dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([4, 2, 1]) }) },
+            orderingTable: { dataTable: tableFromArrays({ row_idx: new Int32Array([4, 2, 1]) }) },
             dataSearch: { matchingRows: new Map([[1, [0]], [4, [1]]]) },
         } as any;
         expect(Array.from(resolveSearchedRowIndices(computation)!)).toEqual([3, 0]);
@@ -26,7 +26,7 @@ describe('resolveSearchedRowIndices', () => {
         const computation = {
             filterTable: null,
             orderingTable: null,
-            dataSearchTable: { dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([2, 4]) }) },
+            dataSearchTable: { dataTable: tableFromArrays({ row_idx: new Int32Array([2, 4]) }) },
             dataSearch: { matchingRows: new Map([[2, [0]], [4, [1]]]) },
         } as any;
         expect(Array.from(resolveSearchedRowIndices(computation)!)).toEqual([1, 3]);

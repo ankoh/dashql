@@ -18,9 +18,10 @@ import {
 } from '../computation_types.js';
 import { executeReturning, mockDataFrame as frame } from '../../tests/mocks/compute_query.js';
 import { computeFilteredColumnAggregates } from './column_aggregation.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 /// The table aggregate with the stats of the string column name (_0) and the ordinal column score (_1)
-const statsTable = arrow.tableFromArrays({
+const statsTable = tableFromArrays({
     _count_star: BigInt64Array.from([10n]),
     _0_count: BigInt64Array.from([8n]),
     _0_distinct: BigInt64Array.from([3n]),
@@ -65,8 +66,8 @@ function filteredTask(columnEntry: ColumnGroup = NAME): WithFilter<ColumnAggrega
             tableFormatter: new ArrowTableFormatter(statsTable.schema, statsTable.batches, new TestLogger()),
             countStarFieldName: '_count_star',
         },
-        filterTable: { inputRowNumberColumnName: 'rownum', dataFrame: frame('filter'), dataTable: arrow.tableFromArrays({ row: Int32Array.from([0]) }) } as unknown as FilterTable,
-        dataSearchTable: { inputRowNumberColumnName: 'rownum', dataFrame: frame('search'), dataTable: arrow.tableFromArrays({ row_idx: Int32Array.from([0]) }) } as unknown as DataSearchTable,
+        filterTable: { inputRowNumberColumnName: 'rownum', dataFrame: frame('filter'), dataTable: tableFromArrays({ row: Int32Array.from([0]) }) } as unknown as FilterTable,
+        dataSearchTable: { inputRowNumberColumnName: 'rownum', dataFrame: frame('search'), dataTable: tableFromArrays({ row_idx: Int32Array.from([0]) }) } as unknown as DataSearchTable,
         selectionRowCount: 5,
         unfilteredAggregate: {} as ColumnAggregationVariant,
     };
@@ -74,7 +75,7 @@ function filteredTask(columnEntry: ColumnGroup = NAME): WithFilter<ColumnAggrega
 
 describe('computeFilteredColumnAggregates', () => {
     it('counts the frequent values of the selected rows', async () => {
-        const { executeQuery } = executeReturning(arrow.tableFromArrays({
+        const { executeQuery } = executeReturning(tableFromArrays({
             key: ['a', 'b'],
             keyId: BigInt64Array.from([1n, 2n]),
             count: BigInt64Array.from([4n, 2n]),
@@ -92,7 +93,7 @@ describe('computeFilteredColumnAggregates', () => {
     });
 
     it('counts the bins of the selected rows', async () => {
-        const { executeQuery } = executeReturning(arrow.tableFromArrays({
+        const { executeQuery } = executeReturning(tableFromArrays({
             bin: Int32Array.from([0, 1, 2]),
             count: BigInt64Array.from([3n, 1n, 1n]),
             binWidth: Float64Array.from([4, 4, 0]),

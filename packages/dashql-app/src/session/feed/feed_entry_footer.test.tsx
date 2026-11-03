@@ -11,6 +11,7 @@ import { ChartDownloadButton } from '../../views/visualization/chart_download_bu
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -97,7 +98,7 @@ describe('FeedEntryFooter', () => {
     }
 
     it('downloads the full original result as Arrow from the feed header without opening Details', async () => {
-        const resultTable = arrow.tableFromArrays({ value: [10, 20, 30] });
+        const resultTable = tableFromArrays({ value: [10, 20, 30] });
         renderFooter(resultTable);
         expect(container.querySelector('[data-testid="feed-preview"]')).not.toBeNull();
 
@@ -114,7 +115,7 @@ describe('FeedEntryFooter', () => {
     });
 
     it('opens Details from the expand button beside the download button', () => {
-        renderFooter(arrow.tableFromArrays({ value: [10, 20, 30] }));
+        renderFooter(tableFromArrays({ value: [10, 20, 30] }));
         const download = container.querySelector('[data-testid="download-query-result"]')!;
         const expand = container.querySelector<HTMLButtonElement>('[data-testid="tab-header-expand"]')!;
         expect(expand).not.toBeNull();
@@ -126,7 +127,7 @@ describe('FeedEntryFooter', () => {
     });
 
     it('downloads the full original result as Parquet through the compute database', async () => {
-        const resultTable = arrow.tableFromArrays({ value: [10, 20, 30] });
+        const resultTable = tableFromArrays({ value: [10, 20, 30] });
         const parquet = new TextEncoder().encode('PAR1');
         exportParquet.mockResolvedValue(parquet);
         renderFooter(resultTable);
@@ -141,7 +142,7 @@ describe('FeedEntryFooter', () => {
         const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
         const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
         renderPng.mockResolvedValue({ png, width: 1600, height: 1000 });
-        renderFooter(arrow.tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
+        renderFooter(tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
         expect(container.querySelector('[data-testid="download-query-result"]')).toBeNull();
 
         const button = container.querySelector<HTMLButtonElement>('[data-testid="download-chart-png"]')!;
@@ -153,7 +154,7 @@ describe('FeedEntryFooter', () => {
     });
 
     it('shows a chart that the result gets after it is shown as table', async () => {
-        const resultTable = arrow.tableFromArrays({ value: [10, 20, 30] });
+        const resultTable = tableFromArrays({ value: [10, 20, 30] });
         renderFooter(resultTable);
         expect(container.querySelector('[data-testid="download-query-result"]')).not.toBeNull();
 
@@ -167,7 +168,7 @@ describe('FeedEntryFooter', () => {
 
     it('lists the usable tabs and switches the panel from the tab strip', () => {
         const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
-        renderFooter(arrow.tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
+        renderFooter(tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
         const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
         expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Execution log', 'Query results', 'Visualization']);
         expect(tabs[2].getAttribute('aria-selected')).toBe('true');

@@ -11,6 +11,7 @@ import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
 import { CrossFilters } from './cross_filters.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function createOrdinalAggregate(
     columnEntry: OrdinalGridColumnGroup,
@@ -120,7 +121,7 @@ function releaseAllRegisteredDataFramesFromLatestState(state: ComputationState, 
 describe('ComputationState', () => {
     const logger = new TestLogger();
 
-    const inputTable = arrow.tableFromArrays({
+    const inputTable = tableFromArrays({
         rowNumber: new Int32Array([0, 1, 2, 3]),
         score: new Float64Array([42, 10, 10, 30]),
     });
@@ -151,7 +152,7 @@ describe('ComputationState', () => {
         },
     ];
 
-    const aggregateTable = arrow.tableFromArrays({
+    const aggregateTable = tableFromArrays({
         "_count_star": new BigUint64Array([BigInt(4)]),
         "_1_count": new BigUint64Array([BigInt(4)]),
         "_1_min": new Float64Array([10]),
@@ -164,7 +165,7 @@ describe('ComputationState', () => {
     ]);
     const aggregateTableFormatter = new ArrowTableFormatter(aggregateTable.schema, aggregateTable.batches, logger);
 
-    const scoreAggregateTable: BinnedValuesTable<arrow.Float64, arrow.Float64> = arrow.tableFromArrays({
+    const scoreAggregateTable: BinnedValuesTable<arrow.Float64, arrow.Float64> = tableFromArrays({
         "bin": new Int32Array([0, 1, 2, 3]),
         "binWidth": new Float64Array([2, 0, 1, 1]),
         "binLowerBound": new Float64Array([10, 10, 10, 10]),
@@ -173,7 +174,7 @@ describe('ComputationState', () => {
     });
     const scoreAggregateTableFormatter = new ArrowTableFormatter(scoreAggregateTable.schema, scoreAggregateTable.batches, logger);
 
-    const filterTable = arrow.tableFromArrays({
+    const filterTable = tableFromArrays({
         "rowNumber": new Int32Array([0, 1]),
     });
     const ordinalColumnAnalysis: OrdinalColumnAnalysis = {
@@ -261,7 +262,7 @@ describe('ComputationState', () => {
             type: DATA_SEARCH_SUCCEEDED,
             value: [1, dataFrame, 1, {
                 inputRowNumberColumnName: 'rowNumber',
-                dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([2, 3]), column_indices: [[1], [1]] }),
+                dataTable: tableFromArrays({ row_idx: new Int32Array([2, 3]), column_indices: [[1], [1]] }),
                 dataFrame: searchFrame,
                 version: new ComputationStateVersion(2, 7),
                 requestId: 1,
@@ -284,7 +285,7 @@ describe('ComputationState', () => {
             type: DATA_SEARCH_SUCCEEDED,
             value: [1, dataFrame, 1, {
                 inputRowNumberColumnName: 'rowNumber',
-                dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([2]), column_indices: [[1]] }),
+                dataTable: tableFromArrays({ row_idx: new Int32Array([2]), column_indices: [[1]] }),
                 dataFrame: searchFrame,
                 version: state.tableComputations[1].version,
                 requestId: 1,

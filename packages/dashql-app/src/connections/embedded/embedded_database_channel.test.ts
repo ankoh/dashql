@@ -5,6 +5,7 @@ import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
 import type { EmbeddedConnection, EmbeddedResultStream } from '../../platform/database/embedded_database.js';
 import { QueryExecutionStatus, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 /// A result stream over the batches of a table, onDone runs when it is read to the end or cancelled.
 async function readTable(table: arrow.Table, onDone: () => void = () => {}): Promise<EmbeddedResultStream> {
@@ -62,7 +63,7 @@ function createExclusiveConnection() {
     return { connection, running };
 }
 
-const ONE_ROW = arrow.tableFromArrays({ value: [1] });
+const ONE_ROW = tableFromArrays({ value: [1] });
 
 describe('EmbeddedDatabaseChannel', () => {
     it('runs concurrent queries one at a time on the shared connection', async () => {
@@ -158,7 +159,7 @@ describe('EmbeddedDatabaseChannel', () => {
     });
 
     it('streams the result batches to the query response stream', async () => {
-        const table = arrow.tableFromArrays({ value: [1, 2, 3] });
+        const table = tableFromArrays({ value: [1, 2, 3] });
         const connection: EmbeddedConnection = {
             close: vi.fn().mockResolvedValue(undefined),
             query: vi.fn(),

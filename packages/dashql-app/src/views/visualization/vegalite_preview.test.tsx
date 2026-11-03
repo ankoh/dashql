@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +8,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
 import type { VegaLiteViewDependencies } from './vegalite_view.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const dependencies = {
@@ -36,7 +36,7 @@ describe('VegaLitePreview', () => {
         const query = {
             queryId: 1,
             status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: arrow.tableFromArrays({ region: ['EU'], amount: [1] }),
+            resultTable: tableFromArrays({ region: ['EU'], amount: [1] }),
         } as QueryExecutionState;
         await act(async () => {
             root.render(

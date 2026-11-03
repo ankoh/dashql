@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DashQLShell } from './api.js';
 import { embedDashQLShell, type BrowserShellController } from './browser_shell.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -23,7 +24,7 @@ describe('browser shell prompt queue', () => {
             environment: {
                 executeQuery: async query => {
                     queries.push(query);
-                    return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+                    return arrow.tableToIPC(tableFromArrays({}), 'file');
                 },
             },
             terminalColumns: 80,

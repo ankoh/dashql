@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 import { expressionInterpreter } from 'vega-interpreter';
 import * as vega from 'vega';
 import { compile } from 'vega-lite';
@@ -13,6 +12,7 @@ import {
     VegaCrossFilterUpdater,
     VegaCrossFilterView,
 } from './vegalite_crossfilter.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('injectVegaLiteCrossFilter', () => {
     it('prepends a row-id membership filter without mutating the authored spec', () => {
@@ -156,8 +156,8 @@ describe('injectVegaLiteCrossFilter', () => {
 
 describe('filterTableToVegaCrossFilterRows', () => {
     it('converts integer and bigint row ids to Vega numbers', () => {
-        const intTable = arrow.tableFromArrays({ _rownum: new Int32Array([1, 4]) });
-        const bigintTable = arrow.tableFromArrays({ _rownum: new BigInt64Array([2n, 8n]) });
+        const intTable = tableFromArrays({ _rownum: new Int32Array([1, 4]) });
+        const bigintTable = tableFromArrays({ _rownum: new BigInt64Array([2n, 8n]) });
 
         expect(filterTableToVegaCrossFilterRows(intTable, 'selected')).toEqual([
             { [MASK_ROW_ID_FIELD]: 1, selected: true },
@@ -170,7 +170,7 @@ describe('filterTableToVegaCrossFilterRows', () => {
     });
 
     it('rejects a table that is not a row-id relation', () => {
-        const table = arrow.tableFromArrays({ a: [1], b: [2] });
+        const table = tableFromArrays({ a: [1], b: [2] });
         expect(filterTableToVegaCrossFilterRows(table, 'selected')).toEqual([]);
     });
 });

@@ -6,9 +6,10 @@ import { createTableComputationState } from '../../compute/computation_state.js'
 import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '../../compute/computation_types.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
+import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 function createTableState() {
-    const table = arrow.tableFromArrays({
+    const table = tableFromArrays({
         rownum: Int32Array.from([0, 1]),
         a: Int32Array.from([1, 2]),
         b: Int32Array.from([3, 4]),
@@ -40,12 +41,12 @@ function columnWidths(layout: DataTableLayout): number[] {
 
 /// A table with an ordinal column a and its bin column, and a string column s and its value ids
 function createTableStateWithSystemColumns() {
-    const ints = (...values: number[]) => arrow.vectorFromArray(Int32Array.from(values));
+    const ints = (...values: number[]) => vectorFromArray(Int32Array.from(values));
     const table = new arrow.Table({
         rownum: ints(0, 1),
         a: ints(1, 2),
         a_bin: ints(0, 1),
-        s: arrow.vectorFromArray(['x', 'y'], new arrow.Utf8()),
+        s: vectorFromArray(['x', 'y'], new arrow.Utf8()),
         s_id: ints(0, 1),
     });
     const columnGroups: ColumnGroup[] = [

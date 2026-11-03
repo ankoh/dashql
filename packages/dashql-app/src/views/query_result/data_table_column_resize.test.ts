@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,6 +5,7 @@ import { findResizableColumn, MIN_RESIZED_COLUMN_WIDTH, type DataTableColumnResi
 import { createTestRoot } from '../../tests/react_root.js';
 import * as styles from './data_table.module.css';
 import type { DataTableLayout } from './data_table_layout.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 function createLayout(columnXOffsets: number[]): DataTableLayout {
     const columnCount = columnXOffsets.length - 1;
@@ -58,7 +58,7 @@ describe('useDataTableColumnResize', () => {
         grid = document.createElement('div');
         grid.style.cssText = 'position: fixed; left: 0; top: 0; width: 500px; height: 200px;';
         document.body.appendChild(grid);
-        const table = arrow.tableFromArrays({ rownum: Int32Array.from([0]), a: Int32Array.from([1]), b: Int32Array.from([2]), c: Int32Array.from([3]) });
+        const table = tableFromArrays({ rownum: Int32Array.from([0]), a: Int32Array.from([1]), b: Int32Array.from([2]), c: Int32Array.from([3]) });
         const layout = createLayout([0, 48, 168, 288, 408]);
         let widths: ResizedColumnWidths = new Map();
         const setWidths = (update: React.SetStateAction<ResizedColumnWidths>) => { widths = typeof update === 'function' ? update(widths) : update; };

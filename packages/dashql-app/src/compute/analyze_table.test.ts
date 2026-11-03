@@ -9,6 +9,7 @@ import { computeTableAggregates } from './tasks/table_aggregation.js';
 import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from './computation_types.js';
 import { DataFrame } from './data_frame.js';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 describe('analyzeTable', () => {
     it('ignores results without columns', async () => {
@@ -20,7 +21,7 @@ describe('analyzeTable', () => {
 
         await expect(analyzeTable(
             1,
-            arrow.tableFromArrays({}),
+            tableFromArrays({}),
             dispatch,
             database,
             new TestLogger(),
@@ -52,7 +53,7 @@ describe('computeTableAggregates', () => {
     }
 
     async function computeIntegerColumnEntries(min: number, max: number) {
-        const statsTable = arrow.tableFromArrays({
+        const statsTable = tableFromArrays({
             _count: new BigInt64Array([BigInt(max - min + 1)]),
             _0_count: new BigInt64Array([BigInt(max - min + 1)]),
             _0_min: new Int32Array([min]),

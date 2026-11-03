@@ -6,6 +6,7 @@ import {
     HyperDB,
     HyperDBConnection,
 } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -37,7 +38,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('order by Float64', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             id: new Int32Array([1, 2, 3, 4]),
             score: new Float64Array([42.0, 10.2, 10.1, 30.005]),
         });
@@ -58,7 +59,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('value identifier (dense_rank)', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             category: ['B', 'A', 'C', 'A', 'B'],
             value: new Float64Array([1, 2, 3, 4, 5]),
         });
@@ -84,7 +85,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('filters rows by categorical value identifier', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             category: ['B', 'A', null, 'A', 'B'],
             rn: new BigInt64Array([1n, 2n, 3n, 4n, 5n]),
         });
@@ -102,7 +103,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('assigns null categories a filterable value identifier', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             category: ['B', 'A', null, 'A', 'B'],
             rn: new BigInt64Array([1n, 2n, 3n, 4n, 5n]),
         });
@@ -120,7 +121,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('scalar filter range', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             score: new Float64Array([42.0, 10.2, 10.1, 30.005]),
             rn: new BigInt64Array([1n, 2n, 3n, 4n]),
         });
@@ -256,11 +257,11 @@ describe('SQLFrame execution', () => {
     });
 
     it('semi-join filter', async () => {
-        const mainTable = arrow.tableFromArrays({
+        const mainTable = tableFromArrays({
             id: new Int32Array([1, 2, 3, 4, 5]),
             name: ['a', 'b', 'c', 'd', 'e'],
         });
-        const filterTable = arrow.tableFromArrays({
+        const filterTable = tableFromArrays({
             filter_id: new Int32Array([2, 4]),
         });
         await conn.insertArrowTable(mainTable, { name: 'input', create: true });
@@ -280,7 +281,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('group by with count', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             category: ['A', 'B', 'A', 'B', 'A'],
             value: new Float64Array([10, 20, 30, 40, 50]),
         });
@@ -303,7 +304,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('group by with aggregates', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             category: ['A', 'B', 'A', 'B', 'A'],
             value: new Float64Array([10, 20, 30, 40, 50]),
         });
@@ -330,7 +331,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('binned group by', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             score: new Float64Array([
                 42, 10, 10, 30,
                 436, 28054, 7554, 23269, 3972,
@@ -338,7 +339,7 @@ describe('SQLFrame execution', () => {
                 12329, 22070, 9231, 2636, 15536,
             ]),
         });
-        const statsTable = arrow.tableFromArrays({
+        const statsTable = tableFromArrays({
             min_score: new Float64Array([10]),
             max_score: new Float64Array([28054]),
         });
@@ -403,10 +404,10 @@ describe('SQLFrame execution', () => {
     });
 
     it('uses unit-width bins for small integer domains', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             value: new Int32Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         });
-        const statsTable = arrow.tableFromArrays({
+        const statsTable = tableFromArrays({
             min_value: new Int32Array([0]),
             max_value: new Int32Array([9]),
         });
@@ -533,7 +534,7 @@ describe('SQLFrame execution', () => {
     });
 
     it('projection', async () => {
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             name: ['Alice', 'Bob', 'Charlie'],
             score: new Float64Array([85, 90, 95]),

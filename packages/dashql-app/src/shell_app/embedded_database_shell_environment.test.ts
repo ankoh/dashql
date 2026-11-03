@@ -4,6 +4,7 @@ import * as arrow from 'apache-arrow';
 import { QueryExecutionStatus } from '../query/query_execution_state.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -13,7 +14,7 @@ function deferred<T>() {
 
 describe('embedded database shell environment', () => {
     it('executes against the provided connection', async () => {
-        const query = vi.fn().mockResolvedValue(arrow.tableFromArrays({ value: [42] }));
+        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
 
         const result = await environment.executeQuery('SELECT 42');
@@ -22,8 +23,8 @@ describe('embedded database shell environment', () => {
     });
 
     it('executes repeated queries against the database instead of caching results', async () => {
-        const first = arrow.tableFromArrays({ value: [1] });
-        const second = arrow.tableFromArrays({ value: [2] });
+        const first = tableFromArrays({ value: [1] });
+        const second = tableFromArrays({ value: [2] });
         const query = vi.fn()
             .mockResolvedValueOnce(first)
             .mockResolvedValueOnce(second);
@@ -38,7 +39,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('reports progress while the database query is running', async () => {
-        const query = vi.fn().mockResolvedValue(arrow.tableFromArrays({ value: [42] }));
+        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
         const onProgress = vi.fn();
 
@@ -48,7 +49,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('passes results as Arrow IPC streams to the shell renderer', async () => {
-        const query = vi.fn().mockResolvedValue(arrow.tableFromArrays({ value: [42] }));
+        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
 
         const result = await environment.executeQuery('SELECT 42');
@@ -58,7 +59,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('normalizes successful queries without result chunks', async () => {
-        const query = vi.fn().mockResolvedValue(arrow.tableFromArrays({}));
+        const query = vi.fn().mockResolvedValue(tableFromArrays({}));
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
 
         const result = await environment.executeQuery('CREATE TABLE foo(a INT)');
@@ -68,7 +69,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('prepares and opens results in UI mode', async () => {
-        const table = arrow.tableFromArrays({ value: [42] });
+        const table = tableFromArrays({ value: [42] });
         const query = vi.fn().mockResolvedValue(table);
         const prepareResult = vi.fn();
         const environment = createEmbeddedDatabaseShellEnvironment(
@@ -89,7 +90,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('opens the UI result only after aggregate preparation completes', async () => {
-        const table = arrow.tableFromArrays({ value: [42] });
+        const table = tableFromArrays({ value: [42] });
         const preparation = deferred<void>();
         const environment = createEmbeddedDatabaseShellEnvironment(
             { query: vi.fn().mockResolvedValue(table) } as any,
@@ -107,7 +108,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('reports UI result analysis as postprocessing', async () => {
-        const table = arrow.tableFromArrays({ value: [42] });
+        const table = tableFromArrays({ value: [42] });
         const events: string[] = [];
         const query = vi.fn().mockResolvedValue(table);
         const environment = createEmbeddedDatabaseShellEnvironment(
@@ -134,7 +135,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('omits postprocessing when results stay in the terminal', async () => {
-        const table = arrow.tableFromArrays({ value: [42] });
+        const table = tableFromArrays({ value: [42] });
         const query = vi.fn().mockResolvedValue(table);
         const prepareResult = vi.fn();
         const environment = createEmbeddedDatabaseShellEnvironment(
@@ -161,7 +162,7 @@ describe('embedded database shell environment', () => {
 
     it('prepares and opens a 1x1 plan candidate in auto mode', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
-        const table = arrow.tableFromArrays({ value: [plan] });
+        const table = tableFromArrays({ value: [plan] });
         const query = vi.fn().mockResolvedValue(table);
         const prepareResult = vi.fn();
         const environment = createEmbeddedDatabaseShellEnvironment(
@@ -183,7 +184,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('does not open a result UI for successful statements without columns', async () => {
-        const query = vi.fn().mockResolvedValue(arrow.tableFromArrays({}));
+        const query = vi.fn().mockResolvedValue(tableFromArrays({}));
         const prepareResult = vi.fn();
         const environment = createEmbeddedDatabaseShellEnvironment(
             { query } as any,
@@ -203,7 +204,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('suppresses query output in off mode', async () => {
-        const table = arrow.tableFromArrays({ value: [42] });
+        const table = tableFromArrays({ value: [42] });
         const query = vi.fn().mockResolvedValue(table);
         const environment = createEmbeddedDatabaseShellEnvironment(
             { query } as any,
@@ -230,7 +231,7 @@ describe('embedded database shell environment', () => {
     });
 
     it('tracks successful queries with their row count', async () => {
-        const query = vi.fn().mockResolvedValue(arrow.tableFromArrays({ value: [1, 2, 3] }));
+        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [1, 2, 3] }));
         const tracker = new ShellQueryExecutionTracker();
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
 

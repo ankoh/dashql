@@ -9,6 +9,7 @@ import {
     HyperDBConnection,
 } from '../platform/hyperdb/hyperdb_wasm.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -135,7 +136,7 @@ describe('DashQL shell Wasm', () => {
         shell.destroy();
         shell = await DashQLShell.create({
             environment: {
-                executeQuery: async () => arrow.tableToIPC(arrow.tableFromArrays({}), 'file'),
+                executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file'),
             },
             terminalColumns: 80,
             trackSessionRelations: true,
@@ -159,7 +160,7 @@ describe('DashQL shell Wasm', () => {
                     if (query.startsWith('CREATE TABLE failed') || query.startsWith('DROP TABLE retained')) {
                         throw new Error('expected');
                     }
-                    return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+                    return arrow.tableToIPC(tableFromArrays({}), 'file');
                 },
             },
             trackSessionRelations: true,
@@ -184,7 +185,7 @@ describe('DashQL shell Wasm', () => {
         shell.destroy();
         shell = await DashQLShell.create({
             environment: {
-                executeQuery: async () => arrow.tableToIPC(arrow.tableFromArrays({}), 'file'),
+                executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file'),
             },
             wasmBinary: await DASHQL_SHELL_PRECOMPILED,
         });
@@ -242,7 +243,7 @@ describe('DashQL shell Wasm', () => {
             environment: {
                 executeQuery: async (_query, _signal, _onProgress, onResult) => {
                     onResult?.(42, 1);
-                    return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+                    return arrow.tableToIPC(tableFromArrays({}), 'file');
                 },
             },
             terminalColumns: 80,
@@ -287,7 +288,7 @@ describe('DashQL shell Wasm', () => {
     it('passes query effects to the environment', async () => {
         executeQuery = async query => {
             expect(query).toBe('CREATE TABLE foo(a INT)');
-            return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+            return arrow.tableToIPC(tableFromArrays({}), 'file');
         };
         await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
     });
@@ -480,7 +481,7 @@ describe('DashQL shell Wasm', () => {
                     onTiming?.('Results', 1234);
                     onTiming?.('Postprocess', 12);
                     onTiming?.('Postprocess', 3);
-                    return arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'file');
+                    return arrow.tableToIPC(tableFromArrays({ value: [42] }), 'file');
                 },
             },
             terminalColumns: 80,

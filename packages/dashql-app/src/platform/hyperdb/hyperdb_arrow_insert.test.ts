@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { forbidEval } from '../../tests/forbid_eval.js';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
+import { vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 function tableOf(columns: Record<string, arrow.Vector>): arrow.Table {
     return new arrow.Table(columns);
@@ -11,27 +12,27 @@ function tableOf(columns: Record<string, arrow.Vector>): arrow.Table {
 describe('Hyper Arrow inserts', () => {
     it('describes the Hyper type that corresponds to each Arrow type', () => {
         const table = tableOf({
-            int8: arrow.vectorFromArray([1], new arrow.Int8()),
-            int16: arrow.vectorFromArray([1], new arrow.Int16()),
-            int32: arrow.vectorFromArray([1], new arrow.Int32()),
-            int64: arrow.vectorFromArray([1n], new arrow.Int64()),
-            uint8: arrow.vectorFromArray([1], new arrow.Uint8()),
-            uint16: arrow.vectorFromArray([1], new arrow.Uint16()),
-            uint32: arrow.vectorFromArray([1], new arrow.Uint32()),
-            uint64: arrow.vectorFromArray([1n], new arrow.Uint64()),
-            float32: arrow.vectorFromArray([1.5], new arrow.Float32()),
-            float64: arrow.vectorFromArray([1.5], new arrow.Float64()),
-            text: arrow.vectorFromArray(['a'], new arrow.Utf8()),
-            bytes: arrow.vectorFromArray([new Uint8Array([1])], new arrow.Binary()),
-            flag: arrow.vectorFromArray([true], new arrow.Bool()),
-            amount: arrow.vectorFromArray([null], new arrow.Decimal(2, 10, 128)),
-            day: arrow.vectorFromArray([new Date(0)], new arrow.DateDay()),
-            clock: arrow.vectorFromArray([1000], new arrow.TimeMillisecond()),
-            local: arrow.vectorFromArray([new Date(0)], new arrow.TimestampMillisecond()),
-            zoned: arrow.vectorFromArray([new Date(0)], new arrow.TimestampMicrosecond('UTC')),
-            span: arrow.vectorFromArray([null], new arrow.IntervalMonthDayNano()),
-            list: arrow.vectorFromArray([[1, 2]], new arrow.List(new arrow.Field('item', new arrow.Int32(), true))),
-            strict: arrow.vectorFromArray([['a']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), false))),
+            int8: vectorFromArray([1], new arrow.Int8()),
+            int16: vectorFromArray([1], new arrow.Int16()),
+            int32: vectorFromArray([1], new arrow.Int32()),
+            int64: vectorFromArray([1n], new arrow.Int64()),
+            uint8: vectorFromArray([1], new arrow.Uint8()),
+            uint16: vectorFromArray([1], new arrow.Uint16()),
+            uint32: vectorFromArray([1], new arrow.Uint32()),
+            uint64: vectorFromArray([1n], new arrow.Uint64()),
+            float32: vectorFromArray([1.5], new arrow.Float32()),
+            float64: vectorFromArray([1.5], new arrow.Float64()),
+            text: vectorFromArray(['a'], new arrow.Utf8()),
+            bytes: vectorFromArray([new Uint8Array([1])], new arrow.Binary()),
+            flag: vectorFromArray([true], new arrow.Bool()),
+            amount: vectorFromArray([null], new arrow.Decimal(2, 10, 128)),
+            day: vectorFromArray([new Date(0)], new arrow.DateDay()),
+            clock: vectorFromArray([1000], new arrow.TimeMillisecond()),
+            local: vectorFromArray([new Date(0)], new arrow.TimestampMillisecond()),
+            zoned: vectorFromArray([new Date(0)], new arrow.TimestampMicrosecond('UTC')),
+            span: vectorFromArray([null], new arrow.IntervalMonthDayNano()),
+            list: vectorFromArray([[1, 2]], new arrow.List(new arrow.Field('item', new arrow.Int32(), true))),
+            strict: vectorFromArray([['a']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), false))),
         });
 
         const insert = prepareHyperArrowInsert(table);
@@ -58,12 +59,12 @@ describe('Hyper Arrow inserts', () => {
             new arrow.Field('docs', new arrow.List(annotated('item', new arrow.Utf8(), { 'hyper:type': 'JSON' })), true),
         ];
         const vectors = [
-            arrow.vectorFromArray(['{}'], new arrow.Utf8()),
-            arrow.vectorFromArray([1], new arrow.Uint32()),
-            arrow.vectorFromArray([new Uint8Array([1])], new arrow.Binary()),
-            arrow.vectorFromArray(['abc'], new arrow.Utf8()),
-            arrow.vectorFromArray(['abcde'], new arrow.Utf8()),
-            arrow.vectorFromArray([['{}']], fields[5].type),
+            vectorFromArray(['{}'], new arrow.Utf8()),
+            vectorFromArray([1], new arrow.Uint32()),
+            vectorFromArray([new Uint8Array([1])], new arrow.Binary()),
+            vectorFromArray(['abc'], new arrow.Utf8()),
+            vectorFromArray(['abcde'], new arrow.Utf8()),
+            vectorFromArray([['{}']], fields[5].type),
         ];
         const schema = new arrow.Schema(fields);
         const table = new arrow.Table([new arrow.RecordBatch(schema, arrow.makeData({
@@ -86,13 +87,13 @@ describe('Hyper Arrow inserts', () => {
             data: new BigInt64Array([1_500_000n, 3_000_999n]),
         }));
         const table = tableOf({
-            label: arrow.vectorFromArray(['a', null], new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32())),
-            level: arrow.vectorFromArray([7, 7], new arrow.Dictionary(new arrow.Int16(), new arrow.Int8())),
-            long: arrow.vectorFromArray(['x', null], new arrow.LargeUtf8()),
-            blob: arrow.vectorFromArray([null, new Uint8Array([1, 2])], new arrow.LargeBinary()),
-            code: arrow.vectorFromArray([new Uint8Array([3, 4]), new Uint8Array([5, 6])], new arrow.FixedSizeBinary(2)),
-            half: arrow.vectorFromArray([1.5, null], new arrow.Float16()),
-            missing: arrow.vectorFromArray([null, null], new arrow.Null()),
+            label: vectorFromArray(['a', null], new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32())),
+            level: vectorFromArray([7, 7], new arrow.Dictionary(new arrow.Int16(), new arrow.Int8())),
+            long: vectorFromArray(['x', null], new arrow.LargeUtf8()),
+            blob: vectorFromArray([null, new Uint8Array([1, 2])], new arrow.LargeBinary()),
+            code: vectorFromArray([new Uint8Array([3, 4]), new Uint8Array([5, 6])], new arrow.FixedSizeBinary(2)),
+            half: vectorFromArray([1.5, null], new arrow.Float16()),
+            missing: vectorFromArray([null, null], new arrow.Null()),
             nanos,
         });
 
@@ -118,7 +119,7 @@ describe('Hyper Arrow inserts', () => {
 
     it('rejects Arrow types that Hyper cannot import', () => {
         const table = tableOf({
-            point: arrow.vectorFromArray([{ x: 1 }], new arrow.Struct([new arrow.Field('x', new arrow.Int32(), true)])),
+            point: vectorFromArray([{ x: 1 }], new arrow.Struct([new arrow.Field('x', new arrow.Int32(), true)])),
         });
 
         expect(() => prepareHyperArrowInsert(table)).toThrow('Hyper cannot import Arrow columns of type Struct');

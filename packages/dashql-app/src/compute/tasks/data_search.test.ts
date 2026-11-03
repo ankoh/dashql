@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import { LoggableException } from '../../platform/logger/logger.js';
@@ -8,6 +7,7 @@ import type { ComputeQueryExecution } from '../computation_tasks.js';
 import { DATA_SEARCH_ROW_FIELD } from '../sql/query_result_search_sql.js';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
 import { searchData } from './data_search.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const TASK: DataSearchTask = {
     tableId: 1,
@@ -22,7 +22,7 @@ const TASK: DataSearchTask = {
 
 describe('searchData', () => {
     it('reads the matching rows ordered by row', async () => {
-        const table = arrow.tableFromArrays({ [DATA_SEARCH_ROW_FIELD]: Int32Array.from([3, 5]) });
+        const table = tableFromArrays({ [DATA_SEARCH_ROW_FIELD]: Int32Array.from([3, 5]) });
         const { dataFrame, executeQuery } = executeReturning(table);
 
         const result = await searchData(TASK, new TestLogger(), executeQuery);

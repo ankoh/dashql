@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter = {
@@ -45,7 +45,7 @@ describe('VegaLiteView', () => {
         const query = {
             queryId: 1,
             status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: arrow.tableFromArrays({ value: [1] }),
+            resultTable: tableFromArrays({ value: [1] }),
         } as QueryExecutionState;
 
         act(() => {
@@ -72,7 +72,7 @@ describe('VegaLiteView', () => {
         const query = {
             queryId: 1,
             status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: arrow.tableFromArrays({ value: [1] }),
+            resultTable: tableFromArrays({ value: [1] }),
         } as QueryExecutionState;
         const render = (spec: object) => root.render(
             <VegaLiteView query={query} vegaLiteSpec={spec as any} height={180} dependencies={dependencies} />,

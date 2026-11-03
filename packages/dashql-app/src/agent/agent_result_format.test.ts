@@ -1,10 +1,10 @@
-import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { formatResultSlice, sliceResult } from './agent_result_format.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 describe('agent result format', () => {
-    const table = arrow.tableFromArrays({
+    const table = tableFromArrays({
         id: Int32Array.from({ length: 120 }, (_, i) => i + 1),
         name: Array.from({ length: 120 }, (_, i) => (i === 1 ? null : `name\t${i}`)),
     });
@@ -33,11 +33,11 @@ describe('agent result format', () => {
     });
 
     it('converts values to JSON', () => {
-        const values = arrow.tableFromArrays({ big: BigInt64Array.from([1n, 2n ** 60n]) });
+        const values = tableFromArrays({ big: BigInt64Array.from([1n, 2n ** 60n]) });
         expect(sliceResult(values, 0, 10).rows).toEqual([[1], ['1152921504606846976']]);
     });
 
     it('prints an empty result', () => {
-        expect(formatResultSlice(sliceResult(arrow.tableFromArrays({ id: Int32Array.from([]) }), 0, 20), 'q1')).toBe('0 rows, 1 column\nid (Int32)');
+        expect(formatResultSlice(sliceResult(tableFromArrays({ id: Int32Array.from([]) }), 0, 20), 'q1')).toBe('0 rows, 1 column\nid (Int32)');
     });
 });

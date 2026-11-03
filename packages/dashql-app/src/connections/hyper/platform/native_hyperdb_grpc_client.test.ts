@@ -8,6 +8,7 @@ import { AsyncConsumerLambdas } from '../../../utils/async_consumer.js';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../../tests/mocks/native_proxy.js';
 import type { HyperDatabaseConnectionContext } from '../hyperdb_grpc_client.js';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
+import { tableFromArrays } from '../../../tests/arrow_fixtures.js';
 
 const hyper = pb.salesforce_hyperdb_grpc_v1.pb;
 const PROXY = { proxyEndpoint: new URL('dashql-native://localhost') };
@@ -36,7 +37,7 @@ describe('NativeHyperDatabaseClient', () => {
     });
 
     it('executes a query with the attached databases and parameters and reads the Arrow batches', async () => {
-        const table = arrow.tableFromArrays({ a: Int32Array.from([1, 2, 3]) });
+        const table = tableFromArrays({ a: Int32Array.from([1, 2, 3]) });
         const { seen } = installNativeGrpcProxy([nativeStreamBatch('StreamFinished', resultMessages(table))]);
         const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
         expect(seen[0].headers.get('dashql-tls')).toBeNull();

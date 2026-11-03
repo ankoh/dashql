@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +15,7 @@ import { createScriptRef } from '../session/scripts/script_types.js';
 import { acquireSessionExecution, isSessionExecutionRunning, releaseSessionExecution } from '../session/scripts/session_execution.js';
 import { SessionTestBackend } from '../storage/session_test_backend.js';
 import { StorageWriter } from '../storage/storage_writer.js';
+import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 /// A script with a text and the diagnostics of its analysis
 function script(scriptKey: number, fileName: string, text: string, diagnostics: unknown[] = []) {
@@ -245,7 +245,7 @@ describe('agent commands', () => {
 
     it('pages through the last result of a script', async () => {
         state.scripts[1].latestQueryId = 7;
-        const table = arrow.tableFromArrays({ n: Int32Array.from({ length: 60 }, (_, i) => i) });
+        const table = tableFromArrays({ n: Int32Array.from({ length: 60 }, (_, i) => i) });
         connections.get('db').queriesFinished.set(7, { resultTable: table, error: null });
         const second = await run('result', { script: 'orders', page: 2 });
         expect(second.text).toContain('(rows 51-60 of 60)');
@@ -276,7 +276,7 @@ describe('agent commands', () => {
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec } };
         await expect(run('vis.image', { script: 'orders' })).rejects.toThrow('orders has no result');
         state.scripts[1].latestQueryId = 7;
-        connections.get('db').queriesFinished.set(7, { resultTable: arrow.tableFromArrays({ n: Int32Array.from([1, 2, 3]) }), error: null });
+        connections.get('db').queriesFinished.set(7, { resultTable: tableFromArrays({ n: Int32Array.from([1, 2, 3]) }), error: null });
 
         const result = await run('vis.image', { script: 'orders', width: 200, height: 100, scale: 1 });
         expect(result.text).toMatch(/^Rendered the chart of orders: 200x100 pixels, 3 rows, \d+ KiB$/);
@@ -402,7 +402,7 @@ describe('agent run command', () => {
     };
 
     it('waits for the run of another script of the session', async () => {
-        const executeQuery = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({ n: Int32Array.from([1]) }))]);
+        const executeQuery = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({ n: Int32Array.from([1]) }))]);
         const run = setup('select 1 as n', executeQuery);
         // Another turn runs a script of the session
         expect(acquireSessionExecution(run.session())).toBe(true);
@@ -438,7 +438,7 @@ describe('agent run command', () => {
     it('returns the last output of the script', async () => {
         let queryId = 0;
         const executeQuery = vi.fn<QueryExecutor>((_connectionId, args) =>
-            [++queryId, Promise.resolve(args.query.startsWith('select') ? arrow.tableFromArrays({ n: Int32Array.from([1, 2]) }) : null)]);
+            [++queryId, Promise.resolve(args.query.startsWith('select') ? tableFromArrays({ n: Int32Array.from([1, 2]) }) : null)]);
         const run = setup('select 1 as n; create table t (a int)', executeQuery);
         const result = await run({});
         expect(executeQuery.mock.calls.map(([, args]) => args.query)).toEqual(['select 1 as n', 'create table t (a int)']);

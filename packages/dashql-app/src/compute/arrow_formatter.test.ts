@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, dataTypeToString, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from './arrow_formatter.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import type { LoggerLike } from '../platform/logger/logger.js';
+import { tableFromArrays, vectorFromArray } from '../tests/arrow_fixtures.js';
 
 describe('TableFormatter', () => {
     it("can be constructed from a single column", () => {
@@ -11,7 +12,7 @@ describe('TableFormatter', () => {
         const testData = Int32Array.from(
             { length: LENGTH },
             () => Number((Math.random() * 20).toFixed(0)));
-        const table = arrow.tableFromArrays({
+        const table = tableFromArrays({
             test: testData,
         });
 
@@ -21,7 +22,7 @@ describe('TableFormatter', () => {
 
     it("formats only requested rows until the full batch is requested", () => {
         const logger = new TestLogger();
-        const table = arrow.tableFromArrays({ test: Int32Array.from([10, 20, 30]) });
+        const table = tableFromArrays({ test: Int32Array.from([10, 20, 30]) });
         const formatter = new ArrowTextColumnFormatter(logger, 0, table.schema, table.batches);
 
         expect(formatter.getValue(0, 1)).toEqual('20');
@@ -64,7 +65,7 @@ describe('makeArrowValueFormatter', () => {
 
     it('formats list values as compact previews', () => {
         const type = new arrow.List(new arrow.Field('item', new arrow.Int32(), true));
-        const values = arrow.vectorFromArray([[1, 2, null, 4, 5, 6]], type);
+        const values = vectorFromArray([[1, 2, null, 4, 5, 6]], type);
         const f = makeArrowValueFormatter(field('items', type));
 
         expect(f.format(values.get(0))).toBe('[1, 2, null, 4, 5, ... +1 more]');
@@ -158,7 +159,7 @@ describe('arrowValueToJson', () => {
     it('converts nested Arrow list vectors without truncating values', () => {
         const innerType = new arrow.List(new arrow.Field('item', new arrow.Int64(), true));
         const outerType = new arrow.List(new arrow.Field('item', innerType, true));
-        const values = arrow.vectorFromArray([[[1n, 2n], null, [3n, 4n, 5n, 6n, 7n, 8n]]], outerType);
+        const values = vectorFromArray([[[1n, 2n], null, [3n, 4n, 5n, 6n, 7n, 8n]]], outerType);
 
         expect(arrowValueToJson(values.get(0))).toEqual([
             [1n, 2n],
@@ -173,7 +174,7 @@ describe('arrowValueToJson', () => {
             new arrow.Field('active', new arrow.Bool(), false),
         ]);
         const listType = new arrow.List(new arrow.Field('item', structType, true));
-        const values = arrow.vectorFromArray([[{ name: 'one', active: true }]], listType);
+        const values = vectorFromArray([[{ name: 'one', active: true }]], listType);
 
         expect(arrowValueToJson(values.get(0))).toEqual([{ name: 'one', active: true }]);
     });

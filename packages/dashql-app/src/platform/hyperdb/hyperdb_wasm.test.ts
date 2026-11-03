@@ -10,6 +10,7 @@ import {
     type HyperDBResult,
     type HyperDBSettings,
 } from './hyperdb_wasm.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 type MountSource = Parameters<HyperDBClient['mount']>[0];
 /// A scripted poll result, hold answers pending while the client holds queries
@@ -604,7 +605,7 @@ describe('HyperDB embedded database adapter', () => {
 
     it('rejects a closed connection while its session serves the next connection', async () => {
         const client = new FakeHyperDBEngineClient();
-        client.queryResults.set('SELECT 1 AS value', ipc(arrow.tableFromArrays({ value: new Int32Array([1]) })));
+        client.queryResults.set('SELECT 1 AS value', ipc(tableFromArrays({ value: new Int32Array([1]) })));
         const database = await createDatabase(client);
         const first = await database.connect({ pooled: true });
         await first.close();
@@ -620,7 +621,7 @@ describe('HyperDB embedded database adapter', () => {
 
     it('does not reuse a pooled session whose query could not be finished', async () => {
         const client = new FakeHyperDBEngineClient();
-        client.queryResults.set('SELECT 1 AS value', ipc(arrow.tableFromArrays({ value: new Int32Array([1]) })));
+        client.queryResults.set('SELECT 1 AS value', ipc(tableFromArrays({ value: new Int32Array([1]) })));
         const database = await createDatabase(client);
         const first = await database.connect({ pooled: true });
 
@@ -642,7 +643,7 @@ describe('HyperDB embedded database adapter', () => {
         const database = await createDatabase(client);
         const writer = await database.connect();
 
-        await writer.insertArrowTable(arrow.tableFromArrays({
+        await writer.insertArrowTable(tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
         }), { name: '__frame', create: true });
@@ -674,7 +675,7 @@ describe('HyperDB embedded database adapter', () => {
         const database = await createDatabase(client);
         const connection = await database.connect();
 
-        await connection.insertArrowTable(arrow.tableFromArrays({ label: ['first', 'second'] }), {
+        await connection.insertArrowTable(tableFromArrays({ label: ['first', 'second'] }), {
             name: 'labels',
             create: true,
         });
@@ -693,11 +694,11 @@ describe('HyperDB embedded database adapter', () => {
         const database = await createDatabase(client);
         const connection = await database.connect();
 
-        await connection.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([1]) }), {
+        await connection.insertArrowTable(tableFromArrays({ value: new Int32Array([1]) }), {
             schema: 'pg_temp',
             name: 'values',
         });
-        await connection.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([2]) }), {
+        await connection.insertArrowTable(tableFromArrays({ value: new Int32Array([2]) }), {
             schema: 'pg_temp',
             name: 'values',
             create: false,
@@ -721,7 +722,7 @@ describe('HyperDB embedded database adapter', () => {
         const connection = await database.connect();
         client.queryResults.set(
             'CREATE TABLE "derived""rows" AS SELECT 1',
-            ipc(arrow.tableFromArrays({})),
+            ipc(tableFromArrays({})),
         );
 
         await connection.createTableAs('derived"rows', 'SELECT 1');
@@ -733,8 +734,8 @@ describe('HyperDB embedded database adapter', () => {
 
     it('submits operations through separate physical connections without a global lock', async () => {
         const client = new FakeHyperDBEngineClient();
-        const firstResult = ipc(arrow.tableFromArrays({ value: new Int32Array([1]) }));
-        const secondResult = ipc(arrow.tableFromArrays({ value: new Int32Array([2]) }));
+        const firstResult = ipc(tableFromArrays({ value: new Int32Array([1]) }));
+        const secondResult = ipc(tableFromArrays({ value: new Int32Array([2]) }));
         client.queryResults.set('SELECT 1 AS value', firstResult);
         client.queryResults.set('SELECT 2 AS value', secondResult);
         const database = await createDatabase(client);
@@ -759,7 +760,7 @@ describe('HyperDB embedded database adapter', () => {
 
     it('releases failed queries and leaves other connections usable', async () => {
         const client = new FakeHyperDBEngineClient();
-        client.queryResults.set('SELECT 42 AS answer', ipc(arrow.tableFromArrays({ answer: new Int32Array([42]) })));
+        client.queryResults.set('SELECT 42 AS answer', ipc(tableFromArrays({ answer: new Int32Array([42]) })));
         const database = await createDatabase(client);
         const first = await database.connect();
         const second = await database.connect();
@@ -785,7 +786,7 @@ describe('HyperDB embedded database adapter', () => {
         await expect(first.query('SELECT 1')).rejects.toThrow('start failed');
 
         client.failStartQuery = false;
-        client.queryResults.set('SELECT 2 AS value', ipc(arrow.tableFromArrays({ value: new Int32Array([2]) })));
+        client.queryResults.set('SELECT 2 AS value', ipc(tableFromArrays({ value: new Int32Array([2]) })));
         await expect(second.query('SELECT 2 AS value')).resolves.toBeDefined();
 
         await first.close();
@@ -808,7 +809,7 @@ describe('HyperDB embedded database adapter', () => {
     it('cancels a query in the engine while it is still computing', async () => {
         const client = new FakeHyperDBEngineClient();
         client.scriptedQueries.set('SELECT slow', ['hold', { state: 'done' }]);
-        client.queryResults.set('SELECT 1 AS value', ipc(arrow.tableFromArrays({ value: new Int32Array([1]) })));
+        client.queryResults.set('SELECT 1 AS value', ipc(tableFromArrays({ value: new Int32Array([1]) })));
         const database = await createDatabase(client);
         const connection = await database.connect();
         const abort = new AbortController();
@@ -828,7 +829,7 @@ describe('HyperDB embedded database adapter', () => {
 
     it('streams result batches before the query finished', async () => {
         const client = new FakeHyperDBEngineClient();
-        const bytes = ipc(arrow.tableFromArrays({ value: new Int32Array([7]) }));
+        const bytes = ipc(tableFromArrays({ value: new Int32Array([7]) }));
         // The end-of-stream marker is split, Arrow reads ahead when a message ends with a chunk.
         client.scriptedQueries.set('SELECT 7 AS value', [
             { state: 'chunk', payload: bytes.subarray(0, bytes.byteLength - 4) },
@@ -855,7 +856,7 @@ describe('HyperDB embedded database adapter', () => {
 
     it('cancels a stream that is not read to the end', async () => {
         const client = new FakeHyperDBEngineClient();
-        const bytes = ipc(arrow.tableFromArrays({ value: new Int32Array([7]) }));
+        const bytes = ipc(tableFromArrays({ value: new Int32Array([7]) }));
         client.scriptedQueries.set('SELECT 7 AS value', [
             { state: 'chunk', payload: bytes.subarray(0, bytes.byteLength - 4) },
             'hold',
