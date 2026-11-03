@@ -9,6 +9,23 @@ const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
 const HYPERDB_WASM_VERSION = "__HYPERDB_WASM_VERSION__";
 
+// Does a chunk or a chunk it imports, statically or dynamically, reference a Wasm asset? The HyperDB module ships
+// precompressed, its asset is hyperdb-wasm.wasm.[hash].br.
+function loadsWasm(entry: vite.Rollup.OutputChunk, bundle: vite.Rollup.OutputBundle): boolean {
+    const pending = [entry.fileName];
+    const visited = new Set<string>();
+    for (let fileName = pending.pop(); fileName !== undefined; fileName = pending.pop()) {
+        const chunk = bundle[fileName];
+        if (visited.has(fileName) || chunk?.type !== 'chunk') continue;
+        visited.add(fileName);
+        for (const asset of chunk.viteMetadata?.importedAssets ?? []) {
+            if (/\.wasm(\.|$)/.test(path.basename(asset))) return true;
+        }
+        pending.push(...chunk.imports, ...chunk.dynamicImports);
+    }
+    return false;
+}
+
 export default vite.defineConfig(({ mode, command }) => {
     const isElectronBuild = mode === 'electron';
     const isReloc = mode === 'reloc' || isElectronBuild;
@@ -160,10 +177,39 @@ export default vite.defineConfig(({ mode, command }) => {
         },
     };
 
+    // 'wasm-unsafe-eval' lets a page compile WebAssembly, CSP has no narrower source for it. Only script-src carries it,
+    // and only on the pages whose bundle loads a Wasm module. A build fails on it in default-src, where script-src
+    // overrides it, on a page without Wasm, and on a page with Wasm but without it in script-src. Pages without a policy
+    // (the test frame, the HyperDB capability probe) compile Wasm unrestricted and are skipped.
+    const wasmCompilation = {
+        name: 'dashql-wasm-compilation',
+        transformIndexHtml: {
+            order: 'post' as const,
+            handler(html: string, ctx: vite.IndexHtmlTransformContext): string {
+                if (/\bdefault-src [^;"]*'wasm-unsafe-eval'/.test(html)) {
+                    throw new Error(`${ctx.path}: default-src allows 'wasm-unsafe-eval', only script-src needs it`);
+                }
+                if (ctx.bundle == null || ctx.chunk == null || !html.includes('Content-Security-Policy')) {
+                    return html;
+                }
+                const allowed = /\bscript-src [^;"]*'wasm-unsafe-eval'/.test(html);
+                const loaded = loadsWasm(ctx.chunk, ctx.bundle);
+                if (allowed && !loaded) {
+                    throw new Error(`${ctx.path}: script-src allows 'wasm-unsafe-eval', the page loads no Wasm module`);
+                }
+                if (!allowed && loaded) {
+                    throw new Error(`${ctx.path}: the page loads a Wasm module, script-src lacks 'wasm-unsafe-eval'`);
+                }
+                return html;
+            },
+        },
+    };
+
     return {
         plugins: [
             react(),
             inlineScripts,
+            wasmCompilation,
             ...(mode === 'pages' ? [precompressWasm] : []),
             serveCoreFromBazel,
             // In the Bazel sandbox, HTML entry files are symlinks to the execroot. Rolldown
