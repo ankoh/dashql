@@ -12,6 +12,7 @@ import {
     STORAGE_CATALOG_RELATIONS,
 } from '../../storage/storage_backend.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { SESSION_FORMAT_VERSION } from '../../storage/migration/versions.js';
 import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
 import {
     bundleCatalogPath,
@@ -171,6 +172,34 @@ export async function exportSessionAsUrl(
         connectionParams,
         { ...options, withCatalog: options.withCatalog ?? false },
     );
+    return await encodeSessionZipAsUrl(zipBlob, target);
+}
+
+/// Export a connection as a shareable link: the link carries an empty session that holds only the connection.
+/// The params are sanitized, the session and the connection receive fresh ids.
+export async function exportConnectionAsUrl(
+    params: ConnectionParams,
+    name: string | null,
+    target: SessionLinkTarget,
+    options: Pick<SharedSessionExportOptions, 'withLoginHint'> = {},
+): Promise<URL> {
+    const session: SessionData = {
+        formatVersion: SESSION_FORMAT_VERSION,
+        sessionId: crypto.randomUUID(),
+        connections: [{
+            connectionId: crypto.randomUUID(),
+            params: sanitizeConnectionParamsForSharing(params, options.withLoginHint ?? true),
+            ...(name == null ? {} : { name }),
+        }],
+        scripts: [],
+        attachments: [],
+        metadata: { createdAt: new Date().toISOString() },
+    };
+    return await encodeSessionZipAsUrl(await createSessionZip(session, []), target);
+}
+
+/// Encode a session ZIP as a link that carries it inline.
+async function encodeSessionZipAsUrl(zipBlob: Blob, target: SessionLinkTarget): Promise<URL> {
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

@@ -17,6 +17,7 @@ import {
     CpuIcon,
     DatabaseIcon,
     FileDirectoryIcon,
+    LinkIcon,
     PencilIcon,
     SymbolIcon,
     SyncIcon,
@@ -39,6 +40,7 @@ import {
     type ConnectionLabelParts,
 } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
+import { ConnectionURLShareOverlay } from './connection_url_share_overlay.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 
@@ -783,6 +785,9 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
 
 export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
+    const [shareOpen, setShareOpen] = React.useState(false);
+    // The embedded Hyper is local to the app, a link to it would open an empty session on the embedded Hyper of the recipient
+    const canShare = !isHyperWasmConnection(database);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
     const isRefreshing = isCatalogRefreshRunning(database);
@@ -853,6 +858,19 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         </ActionList.Leading>
                         <ActionList.ItemText>Refresh</ActionList.ItemText>
                     </ActionList.ListItem>
+                    {/* The list takes elements only, the fragment wraps the optional item */}
+                    <>{canShare && (
+                        <ActionList.ListItem data-testid="connection-menu-item" data-action="share-url" onClick={(event) => {
+                            event.stopPropagation();
+                            setShareOpen(value => !value);
+                        }}>
+                            <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>
+                                Share as URL
+                                <ConnectionURLShareOverlay database={database} isOpen={shareOpen} setIsOpen={setShareOpen} />
+                            </ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     {/* The list takes elements only, the fragments wrap the optional items */}
                     <>{onMerge && mergeCandidateCount > 0 && (
                         <ActionList.ListItem data-testid="connection-menu-item" data-action="merge" onClick={() => {

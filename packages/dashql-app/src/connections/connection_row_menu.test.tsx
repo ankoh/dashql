@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from './connection_state.js';
+import { HYPER_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 
 const refreshCatalog = vi.fn();
 
@@ -19,10 +20,12 @@ const dependencies: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue: () => refreshCatalog,
 };
 
-function database(): ConnectionState {
+function database(connector: symbol = HYPER_CONNECTOR): ConnectionState {
     return {
         connectionId: 'database-1',
         connectionHealth: ConnectionHealth.ONLINE,
+        details: { type: connector, value: { proto: { setupParams: {} } } },
+        params: connector === TRINO_CONNECTOR ? { trino: { endpoint: 'https://trino.example' } } : { hyper: {} },
         catalogUpdates: {
             currentFullRefresh: null,
             tasksRunning: new Map(),
@@ -46,10 +49,10 @@ describe('ConnectionRowMenu', () => {
         container.remove();
     });
 
-    function renderMenu(onOpenSettings = vi.fn(), onRename?: () => void) {
+    function renderMenu(onOpenSettings = vi.fn(), onRename?: () => void, connection = database()) {
         act(() => root.render(
             <ConnectionRowMenu
-                database={database()}
+                database={connection}
                 label="Hyper / WASM"
                 onOpenSettings={onOpenSettings}
                 onRename={onRename}
@@ -87,6 +90,19 @@ describe('ConnectionRowMenu', () => {
         renderMenu();
 
         expect(document.querySelector('[data-testid="connection-menu-item"][data-action="rename"]')).toBeNull();
+    });
+
+    it('offers no link to the embedded Hyper', () => {
+        renderMenu();
+
+        expect(document.querySelector('[data-testid="connection-menu-item"][data-action="share-url"]')).toBeNull();
+    });
+
+    it('opens the link of a connection from the intermediary menu', () => {
+        renderMenu(vi.fn(), undefined, database(TRINO_CONNECTOR));
+        clickAction('share-url');
+
+        expect(document.querySelector('[data-testid="connection-share-overlay"]')).not.toBeNull();
     });
 
     it('forces a catalog refresh from the intermediary menu', () => {

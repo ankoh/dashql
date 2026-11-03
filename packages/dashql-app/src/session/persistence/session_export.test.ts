@@ -5,6 +5,7 @@ import { BASE64URL_CODEC } from '../../utils/base64.js';
 import {
     createSessionZip,
     exportSessionAsSharedZip,
+    exportConnectionAsUrl,
     exportSessionAsUrl,
     exportSessionAsZip,
     SessionLinkTarget,
@@ -297,5 +298,31 @@ describe('V2 session export', () => {
 
         expect(exported.sessionId).not.toBe(TEST_SESSION_ID);
         expect(exported.defaultConnectionId).not.toBe(TEST_CONNECTION_ID);
+    });
+
+    it('shares a connection as an empty session that holds only the connection', async () => {
+        const metadata = { authorization: 'bearer-secret' };
+        const params = { trino: { endpoint: 'https://trino.example', catalogName: 'catalog', metadata } } as any;
+
+        const url = await exportConnectionAsUrl(params, 'Warehouse', SessionLinkTarget.WEB);
+        const eventJson = new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!));
+        const event = JSON.parse(eventJson) as { session: string };
+        const zip = BASE64URL_CODEC.decode(event.session);
+        const archive = await JSZip.loadAsync(zip);
+        const text = await archive.file('dashql-session.json')!.async('text');
+        const exported = JSON.parse(text) as SessionData;
+
+        expect(text).not.toContain('bearer-secret');
+        expect(exported.scripts).toEqual([]);
+        expect(exported.connections).toHaveLength(1);
+        expect(exported.connections[0].name).toBe('Warehouse');
+        expect((exported.connections[0].params as any).trino.endpoint).toBe('https://trino.example');
+
+        const target = new SessionTestBackend();
+        const sessionId = await importSessionFromZip(new Blob([zip]), target);
+        expect(sessionId).toBe(exported.sessionId);
+        expect(await target.loadScripts(sessionId)).toEqual([]);
+        expect((await target.loadSession(sessionId)).connections.map(connection => connection.connectionId))
+            .toEqual([exported.connections[0].connectionId]);
     });
 });

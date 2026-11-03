@@ -16,6 +16,8 @@ interface Props {
     withLoginHint: boolean;
     settings: SessionExportSettings;
     setSettings: (s: SessionExportSettings) => void;
+    /// Show the toggles of the UUIDs and the catalog, an export of a single connection has neither
+    withSessionParts?: boolean;
 }
 
 export const SessionExportSettingsView: React.FC<Props> = (props: Props) => {
@@ -50,29 +52,31 @@ export const SessionExportSettingsView: React.FC<Props> = (props: Props) => {
                         aria-labelledby="export-toggle-login-hint-label"
                     />
                 </div>
-                <div id="export-toggle-preserve-uuids-label" className={styles.part_name}>
-                    Preserve UUIDs
-                </div>
-                <div className={styles.part_toggle}>
-                    <ToggleSwitch
-                        size="medium"
-                        checked={props.settings.preserveUUIDs}
-                        onClick={togglePreserveUUIDs}
-                        aria-labelledby="export-toggle-preserve-uuids-label"
-                    />
-                </div>
-                <div id="export-toggle-catalog-label" className={styles.part_name}>
-                    Catalog Data
-                </div>
-                <div className={styles.part_toggle}>
-                    <ToggleSwitch
-                        size="medium"
-                        checked={props.settings.withCatalog}
-                        disabled={!props.withCatalog}
-                        onClick={toggleCatalog}
-                        aria-labelledby="export-toggle-catalog-label"
-                    />
-                </div>
+                {props.withSessionParts !== false && <>
+                    <div id="export-toggle-preserve-uuids-label" className={styles.part_name}>
+                        Preserve UUIDs
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={props.settings.preserveUUIDs}
+                            onClick={togglePreserveUUIDs}
+                            aria-labelledby="export-toggle-preserve-uuids-label"
+                        />
+                    </div>
+                    <div id="export-toggle-catalog-label" className={styles.part_name}>
+                        Catalog Data
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={props.settings.withCatalog}
+                            disabled={!props.withCatalog}
+                            onClick={toggleCatalog}
+                            aria-labelledby="export-toggle-catalog-label"
+                        />
+                    </div>
+                </>}
             </div>
         </div>
     );

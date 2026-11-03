@@ -7,7 +7,7 @@ import { connectionMergeCandidates } from './connection_merge.js';
 import { createDefaultConnectionParamsForConnector } from './connection_params.js';
 import { NO_CONNECTION_REFERENCES, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from './connection_state.js';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -29,6 +29,10 @@ function database(connectionId: string, params: any, health = ConnectionHealth.N
         active,
         connectionHealth: health,
         connectorInfo: CONNECTOR_INFOS[connectorType],
+        details: {
+            type: connectorType === ConnectorType.HYPER ? HYPER_CONNECTOR : TRINO_CONNECTOR,
+            value: { proto: { setupParams: Object.values(params)[0] } },
+        },
         catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
     } as unknown as ConnectionState;
 }
