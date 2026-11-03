@@ -1,6 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
+import { forbidEval } from '../../tests/forbid_eval.js';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
 
 function tableOf(columns: Record<string, arrow.Vector>): arrow.Table {
@@ -77,7 +78,7 @@ describe('Hyper Arrow inserts', () => {
         ].join(', '));
     });
 
-    it('converts the columns that Hyper cannot read', () => {
+    it('converts the columns that Hyper cannot read without evaluating code, the Content-Security-Policy of the app forbids it', async () => {
         const nanos = arrow.makeVector(arrow.makeData({
             type: new arrow.TimestampNanosecond(),
             length: 2,
@@ -85,23 +86,32 @@ describe('Hyper Arrow inserts', () => {
             data: new BigInt64Array([1_500_000n, 3_000_999n]),
         }));
         const table = tableOf({
-            label: arrow.vectorFromArray(['a', 'b'], new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32())),
+            label: arrow.vectorFromArray(['a', null], new arrow.Dictionary(new arrow.Utf8(), new arrow.Int32())),
+            level: arrow.vectorFromArray([7, 7], new arrow.Dictionary(new arrow.Int16(), new arrow.Int8())),
             long: arrow.vectorFromArray(['x', null], new arrow.LargeUtf8()),
-            half: arrow.vectorFromArray([1.5, 2.5], new arrow.Float16()),
+            blob: arrow.vectorFromArray([null, new Uint8Array([1, 2])], new arrow.LargeBinary()),
+            code: arrow.vectorFromArray([new Uint8Array([3, 4]), new Uint8Array([5, 6])], new arrow.FixedSizeBinary(2)),
+            half: arrow.vectorFromArray([1.5, null], new arrow.Float16()),
             missing: arrow.vectorFromArray([null, null], new arrow.Null()),
             nanos,
         });
 
-        const insert = prepareHyperArrowInsert(table);
+        const insert = await forbidEval(() => prepareHyperArrowInsert(table));
 
-        expect(insert.columns).toBe('"label" text, "long" text, "half" real, "missing" text, "nanos" timestamp');
+        expect(insert.columns).toBe([
+            '"label" text', '"level" smallint', '"long" text', '"blob" bytea', '"code" bytea', '"half" real',
+            '"missing" text', '"nanos" timestamp',
+        ].join(', '));
         expect(insert.table.schema.fields.map(field => String(field.type))).toEqual([
-            'Utf8', 'Utf8', 'Float32', 'Utf8', 'Timestamp<MICROSECOND>',
+            'Utf8', 'Int16', 'Utf8', 'Binary', 'Binary', 'Float32', 'Utf8', 'Timestamp<MICROSECOND>',
         ]);
         expect(insert.table.numRows).toBe(2);
-        expect([...insert.table.getChild('label')!]).toEqual(['a', 'b']);
+        expect([...insert.table.getChild('label')!]).toEqual(['a', null]);
+        expect([...insert.table.getChild('level')!]).toEqual([7, 7]);
         expect([...insert.table.getChild('long')!]).toEqual(['x', null]);
-        expect([...insert.table.getChild('half')!]).toEqual([1.5, 2.5]);
+        expect([...insert.table.getChild('blob')!]).toEqual([null, new Uint8Array([1, 2])]);
+        expect([...insert.table.getChild('code')!]).toEqual([new Uint8Array([3, 4]), new Uint8Array([5, 6])]);
+        expect([...insert.table.getChild('half')!]).toEqual([1.5, null]);
         expect([...insert.table.getChild('missing')!]).toEqual([null, null]);
         expect([...insert.table.getChild('nanos')!.data[0].values]).toEqual([1_500n, 3_000n]);
     });

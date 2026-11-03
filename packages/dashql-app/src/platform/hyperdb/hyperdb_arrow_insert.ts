@@ -1,5 +1,7 @@
 import * as arrow from 'apache-arrow';
 
+import { binaryVector, boolVector, floatVector, intVector, utf8Vector } from '../../utils/arrow_vectors.js';
+
 /// An Arrow table that Hyper can read with external(format => 'arrowstream').
 export interface HyperArrowInsert {
     /// The table with the columns converted to types that Hyper reads
@@ -90,21 +92,44 @@ function readableHyperType(field: arrow.Field): string | null {
     }
 }
 
+/// A vector of values of an Arrow type in a type that Hyper reads, one chunk.
+/// The vector is assembled from its buffers, the Arrow builders evaluate code (see arrow_vectors.ts).
+function readableVector(type: arrow.DataType, values: unknown[]): arrow.Vector {
+    switch (type.typeId) {
+        case arrow.Type.Utf8:
+        case arrow.Type.LargeUtf8:
+            return utf8Vector(values as Array<string | null>);
+        case arrow.Type.Binary:
+        case arrow.Type.LargeBinary:
+        case arrow.Type.FixedSizeBinary:
+            return binaryVector(values as Array<Uint8Array | null>);
+        case arrow.Type.Float:
+            return (type as arrow.Float).precision === arrow.Precision.DOUBLE
+                ? floatVector(new arrow.Float64(), values as Array<number | null>)
+                : floatVector(new arrow.Float32(), values as Array<number | null>);
+        case arrow.Type.Int:
+            return intVector(type as arrow.Int, values as Array<number | bigint | null>);
+        case arrow.Type.Bool:
+            return boolVector(values as Array<boolean | null>);
+        case arrow.Type.Null:
+            return utf8Vector(values.map(() => null));
+        default:
+            throw new Error(`Hyper cannot import Arrow columns of type ${String(type)}`);
+    }
+}
+
 /// Convert a column that Hyper cannot read to a type that it reads.
 function convertColumn(vector: arrow.Vector): arrow.Vector {
     const type = vector.type as arrow.DataType;
     switch (type.typeId) {
         case arrow.Type.Dictionary:
-            return arrow.vectorFromArray([...vector], (type as arrow.Dictionary).dictionary);
+            return readableVector((type as arrow.Dictionary).dictionary, [...vector]);
         case arrow.Type.LargeUtf8:
-            return arrow.vectorFromArray([...vector], new arrow.Utf8());
         case arrow.Type.LargeBinary:
         case arrow.Type.FixedSizeBinary:
-            return arrow.vectorFromArray([...vector], new arrow.Binary());
         case arrow.Type.Float:
-            return arrow.vectorFromArray([...vector], new arrow.Float32());
         case arrow.Type.Null:
-            return arrow.vectorFromArray(new Array<null>(vector.length).fill(null), new arrow.Utf8());
+            return readableVector(type, [...vector]);
         case arrow.Type.Timestamp: {
             // Hyper keeps microseconds, nanoseconds are truncated.
             const timezone = (type as arrow.Timestamp).timezone;

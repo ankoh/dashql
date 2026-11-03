@@ -3,23 +3,11 @@ import * as arrow from 'apache-arrow';
 import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../../platform/database/embedded_database.js';
 import { quoteLiteral } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import { ConnectorType } from '../../connections/connector_info.js';
+import { utf8Vector } from '../../utils/arrow_vectors.js';
 import type { SnippetRegistry } from './snippet_registry.js';
 
 /// The table of the snippets in the snippet database, one row per snippet and connector
 export const SNIPPET_SEARCH_TABLE = 'snippets';
-
-/// A Utf8 vector of strings, assembled from its buffers.
-/// The Arrow builders compile their null check with `new Function`, which the Content-Security-Policy of the app
-/// forbids.
-function utf8Vector(values: string[]): arrow.Vector<arrow.Utf8> {
-    const encoder = new TextEncoder();
-    const encoded = values.map(value => encoder.encode(value));
-    const valueOffsets = new Int32Array(values.length + 1);
-    encoded.forEach((bytes, i) => (valueOffsets[i + 1] = valueOffsets[i] + bytes.length));
-    const data = new Uint8Array(valueOffsets[values.length]);
-    encoded.forEach((bytes, i) => data.set(bytes, valueOffsets[i]));
-    return arrow.makeVector(arrow.makeData({ type: new arrow.Utf8(), length: values.length, nullCount: 0, valueOffsets, data }));
-}
 
 /// The rows of the snippet table
 function snippetRows(registry: SnippetRegistry): arrow.Table {

@@ -2,6 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { forbidEval } from '../../tests/forbid_eval.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { ConnectorType } from '../../connections/connector_info.js';
@@ -84,17 +85,10 @@ describe('Snippet search', () => {
     });
 
     it('fills the snippet table without evaluating code, the Content-Security-Policy of the app forbids it', async () => {
-        const evaluate = globalThis.Function;
-        globalThis.Function = new Proxy(evaluate, {
-            apply: () => { throw new EvalError('unsafe-eval'); },
-            construct: () => { throw new EvalError('unsafe-eval'); },
-        });
-        try {
+        await forbidEval(async () => {
             const other = buildSnippetRegistry(core, { 'hyper/json/access.sql': file('Read a field of a JSON object.', "select '{}'::json;") });
             expect(await ids(ConnectorType.HYPER, 'json', other)).toEqual(['json/access']);
-        } finally {
-            globalThis.Function = evaluate;
-        }
+        });
     });
 
     it('runs concurrent searches one after the other', async () => {
