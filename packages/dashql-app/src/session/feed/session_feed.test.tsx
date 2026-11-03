@@ -747,6 +747,33 @@ describe('Session feed composer', () => {
         }
     });
 
+    it('scrolls to a script that the insert button creates between two scripts', async () => {
+        const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
+        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
+            const top = typeof options === 'object' ? options.top ?? 0 : 0;
+            Object.defineProperty(this, 'scrollTop', { value: top, configurable: true });
+        });
+        try {
+            const before = session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']);
+            // The created script lands between the second and the third script and takes the focus
+            const created = session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql', '4_delta.sql']);
+            created.scriptOrder = ['1_alpha.sql', '2_beta.sql', '4_delta.sql', '3_gamma.sql'];
+            const modify = vi.fn(() => Promise.resolve(created));
+            render(before, modify);
+            for (let i = 0; i < 3; ++i) act(() => feedState.rowProps.onRowHeightChange(i, 200));
+            scrollTo.mockClear();
+
+            act(() => feedState.rowProps.onCreate(2));
+            expect(modify).toHaveBeenCalledExactlyOnceWith({ type: CREATE_SCRIPT, value: { index: 2 } });
+            render(created, modify);
+            await vi.waitFor(() => expect(scrollTo).toHaveBeenCalled());
+            expect((scrollTo.mock.lastCall![0] as ScrollToOptions).top!).toBeGreaterThan(0);
+        } finally {
+            scrollTo.mockRestore();
+            clientHeight.mockRestore();
+        }
+    });
+
     it('follows the agent to the results of a script it runs', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;

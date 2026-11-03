@@ -538,22 +538,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         requestAnimationFrame(() => view.focus());
     }, []);
 
-    const handleCreate = React.useCallback((index: number) => {
-        const result = props.modifySessionScripts({ type: CREATE_SCRIPT, value: { index } });
-        if (!result) return;
-        void result.then(next => {
-            if (next == null) return;
-            const created = getSelectedScriptRef(next);
-            if (created == null) return;
-            const view = editorViewsRef.current.get(created.scriptId);
-            if (view != null) {
-                view.focus();
-            } else {
-                pendingCreatedScriptKeyRef.current = created.scriptId;
-            }
-        });
-    }, [props.modifySessionScripts]);
-
     // The composer appends its draft as a new script and runs it right away.
     // The composer keeps a SQL draft while its connection is not connected, a script that the agent writes
     // on a connection that is not connected is only created and the connection asks for attention.
@@ -640,6 +624,26 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         followedRef.current = { scriptKey, target: 'script' };
         setFollowRequest(n => n + 1);
     }, [revealRequest, props.active, props.sessionScripts.sessionId, props.sessionScripts.scriptRefs]);
+
+    const handleCreate = React.useCallback((index: number) => {
+        const result = props.modifySessionScripts({ type: CREATE_SCRIPT, value: { index } });
+        if (!result) return;
+        void result.then(next => {
+            if (next == null) return;
+            const created = getSelectedScriptRef(next);
+            if (created == null) return;
+            // The created script stays in view like a followed one, until the user scrolls, clicks or types in the feed
+            followAgentRef.current = false;
+            followedRef.current = { scriptKey: created.scriptId, target: 'script' };
+            setFollowRequest(n => n + 1);
+            const view = editorViewsRef.current.get(created.scriptId);
+            if (view != null) {
+                view.focus();
+            } else {
+                pendingCreatedScriptKeyRef.current = created.scriptId;
+            }
+        });
+    }, [props.modifySessionScripts]);
 
     // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();
