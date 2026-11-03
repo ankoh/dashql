@@ -5,10 +5,10 @@ import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
 import {
+    BroomIcon,
     FileDirectoryFillIcon,
     FileDirectoryIcon,
     FileIcon,
-    StackCheckIcon,
     SyncIcon,
     XIcon,
 } from '../../ui/foundations/symbol_icon.js';
@@ -387,7 +387,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
                         disabled={cleanupBusy || reviewing != null}
                         onClick={() => void startCleanup()}
                     >
-                        <StackCheckIcon />
+                        <BroomIcon />
                     </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
