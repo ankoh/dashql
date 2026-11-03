@@ -504,6 +504,20 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 </div>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
+                        <ValueListBuilder
+                            title="Catalogs"
+                            caption="Relations to load, 'catalog' for all schemas or 'catalog.schema' for one. Without entries the default catalog is loaded."
+                            valueIcon={BookIcon}
+                            addButtonLabel="Add Catalog"
+                            elements={catalogs}
+                            modifyElements={modifyCatalogs}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                        />
+                    </div>
+                </div>
+                <div className={style.section}>
+                    <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <TextField
                             name="Default Catalog"
                             caption="Catalog of the names that statements leave out"
@@ -532,16 +546,6 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             readOnly={freezeInput}
                             autoComplete={false}
                             logContext={LOG_CTX}
-                        />
-                        <ValueListBuilder
-                            title="Catalogs"
-                            caption="Relations to load, 'catalog' for all schemas or 'catalog.schema' for one. Without entries the default catalog is loaded."
-                            valueIcon={BookIcon}
-                            addButtonLabel="Add Catalog"
-                            elements={catalogs}
-                            modifyElements={modifyCatalogs}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
                         />
                     </div>
                 </div>
