@@ -9,7 +9,15 @@ import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { QueryType } from '../../query/query_execution_state.js';
 
 /// The fields of the Trino params that name catalogs
-type TrinoCatalogParams = Pick<connection.TrinoConnectionParams, 'catalogs' | 'catalogName' | 'schemaNames'>;
+type TrinoCatalogParams = Pick<connection.TrinoConnectionParams, 'defaultCatalog' | 'defaultSchema' | 'catalogs' | 'catalogName' | 'schemaNames'>;
+
+/// The catalog and schema of the names that statements leave out, sent as `X-Trino-Catalog` and `X-Trino-Schema`
+export interface TrinoSessionDefaults {
+    /// The default catalog, null if there is none
+    catalog: string | null;
+    /// The default schema, null if there is none. Trino takes a default schema only with a default catalog.
+    schema: string | null;
+}
 
 /// A catalog entry `catalog` or `catalog.schema`, split at the first dot. Null if the entry names no catalog.
 export function parseTrinoCatalogEntry(entry: string): { catalog: string; schema: string | null } | null {
@@ -19,25 +27,33 @@ export function parseTrinoCatalogEntry(entry: string): { catalog: string; schema
     return catalog.length === 0 ? null : { catalog, schema: schema.length === 0 ? null : schema };
 }
 
-/// The catalog entries of the params.
-/// Params that predate the entries name one catalog and schemas of it, they read as one entry per schema.
-export function trinoCatalogEntries(params: TrinoCatalogParams): string[] {
-    if (params.catalogs != null) {
-        return params.catalogs;
-    }
-    const catalog = params.catalogName ?? '';
-    if (catalog.length === 0) {
-        return [];
-    }
-    const schemas = params.schemaNames ?? [];
-    return schemas.length === 0 ? [catalog] : schemas.map(schema => `${catalog}.${schema}`);
+/// The params with the fields that replaced `catalogName` and `schemaNames`.
+/// The catalog name was the default catalog, the schema names were the schemas of it that the catalog loader reads.
+export function withTrinoCatalogFields<P extends TrinoCatalogParams>(params: P): Omit<P, 'catalogName' | 'schemaNames'> {
+    const { catalogName, schemaNames, ...rest } = params;
+    const catalog = catalogName ?? '';
+    return {
+        ...rest,
+        defaultCatalog: rest.defaultCatalog ?? catalog,
+        catalogs: rest.catalogs ?? (catalog.length === 0 ? [] : (schemaNames ?? []).map(schema => `${catalog}.${schema}`)),
+    };
+}
+
+/// The default catalog and schema of the params
+export function trinoSessionDefaults(params: TrinoCatalogParams): TrinoSessionDefaults {
+    const fields = withTrinoCatalogFields(params);
+    const catalog = fields.defaultCatalog?.trim() ?? '';
+    const schema = fields.defaultSchema?.trim() ?? '';
+    return catalog.length === 0
+        ? { catalog: null, schema: null }
+        : { catalog, schema: schema.length === 0 ? null : schema };
 }
 
 /// The catalogs that the catalog loader reads, in the order of their first entry.
-/// An entry without a schema reads all schemas of its catalog.
+/// An entry without a schema reads all schemas of its catalog. Without entries it reads the default catalog.
 export function trinoCatalogScopes(params: TrinoCatalogParams): InformationSchemaScope[] {
     const scopes = new Map<string, { schemas: Set<string>; all: boolean }>();
-    for (const entry of trinoCatalogEntries(params)) {
+    for (const entry of withTrinoCatalogFields(params).catalogs ?? []) {
         const parsed = parseTrinoCatalogEntry(entry);
         if (parsed == null) {
             continue;
@@ -52,6 +68,10 @@ export function trinoCatalogScopes(params: TrinoCatalogParams): InformationSchem
         } else {
             scope.schemas.add(parsed.schema);
         }
+    }
+    if (scopes.size === 0) {
+        const { catalog } = trinoSessionDefaults(params);
+        return catalog == null ? [] : [{ catalog, schemas: [] }];
     }
     return [...scopes].map(([catalog, scope]) => ({ catalog, schemas: scope.all ? [] : [...scope.schemas] }));
 }

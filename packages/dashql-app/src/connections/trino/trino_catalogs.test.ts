@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { QueryExecutor } from '../query_executor.js';
-import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogEntries, trinoCatalogScopes } from './trino_catalogs.js';
+import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogScopes, trinoSessionDefaults, withTrinoCatalogFields } from './trino_catalogs.js';
 import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
@@ -23,10 +23,29 @@ describe('Trino catalog entries', () => {
     });
 
     it('reads the catalog and schemas of params that predate the entries', () => {
-        expect(trinoCatalogEntries(params({ catalogName: 'hive', schemaNames: ['sales', 'hr'] }))).toEqual(['hive.sales', 'hive.hr']);
-        expect(trinoCatalogEntries(params({ catalogName: 'hive' }))).toEqual(['hive']);
-        expect(trinoCatalogEntries(params({ catalogName: '' }))).toEqual([]);
-        expect(trinoCatalogEntries(params({ catalogs: ['iceberg'], catalogName: 'hive' }))).toEqual(['iceberg']);
+        const fields = (legacy: Partial<connection.TrinoConnectionParams>) => {
+            const { defaultCatalog, defaultSchema, catalogs, catalogName, schemaNames } = withTrinoCatalogFields(params(legacy)) as connection.TrinoConnectionParams;
+            return { defaultCatalog, defaultSchema, catalogs, catalogName, schemaNames };
+        };
+        expect(fields({ catalogName: 'hive', schemaNames: ['sales', 'hr'] })).toEqual({ defaultCatalog: 'hive', catalogs: ['hive.sales', 'hive.hr'] });
+        expect(fields({ catalogName: 'hive' })).toEqual({ defaultCatalog: 'hive', catalogs: [] });
+        expect(fields({ catalogName: '' })).toEqual({ defaultCatalog: '', catalogs: [] });
+        expect(fields({ defaultCatalog: 'iceberg', defaultSchema: 'sales', catalogs: ['iceberg'] }))
+            .toEqual({ defaultCatalog: 'iceberg', defaultSchema: 'sales', catalogs: ['iceberg'] });
+    });
+
+    it('sends a default schema only with a default catalog', () => {
+        expect(trinoSessionDefaults(params({ defaultCatalog: ' hive ', defaultSchema: ' sales ' }))).toEqual({ catalog: 'hive', schema: 'sales' });
+        expect(trinoSessionDefaults(params({ defaultCatalog: 'hive', defaultSchema: '' }))).toEqual({ catalog: 'hive', schema: null });
+        expect(trinoSessionDefaults(params({ defaultSchema: 'sales' }))).toEqual({ catalog: null, schema: null });
+        expect(trinoSessionDefaults(params({ catalogName: 'hive', schemaNames: ['sales'] }))).toEqual({ catalog: 'hive', schema: null });
+    });
+
+    it('reads the default catalog without entries', () => {
+        expect(trinoCatalogScopes(params({ defaultCatalog: 'hive', catalogs: [] }))).toEqual([{ catalog: 'hive', schemas: [] }]);
+        expect(trinoCatalogScopes(params({ catalogName: 'hive' }))).toEqual([{ catalog: 'hive', schemas: [] }]);
+        expect(trinoCatalogScopes(params({ defaultCatalog: 'hive', catalogs: ['iceberg'] }))).toEqual([{ catalog: 'iceberg', schemas: [] }]);
+        expect(trinoCatalogScopes(params({ catalogs: [] }))).toEqual([]);
     });
 
     it('groups the entries by catalog in the order of their first entry', () => {

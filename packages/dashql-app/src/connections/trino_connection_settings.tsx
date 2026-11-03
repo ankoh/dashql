@@ -25,7 +25,7 @@ import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
 import { LoggableException, stringifyError } from '../platform/logger/logger.js';
-import { trinoCatalogEntries } from './trino/trino_catalogs.js';
+import { withTrinoCatalogFields } from './trino/trino_catalogs.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -47,18 +47,14 @@ const DEFAULT_TRINO_PARAMS: connection.TrinoConnectionParams = {
     metadata: {
         message: ""
     },
+    defaultCatalog: "",
+    defaultSchema: "",
     catalogs: [],
 };
 
-/// The params with the catalog entries, params that predate them name one catalog and its schemas
-function withCatalogEntries(params: connection.TrinoConnectionParams): connection.TrinoConnectionParams {
-    const { catalogName: _catalogName, schemaNames: _schemaNames, ...rest } = params;
-    return { ...rest, catalogs: trinoCatalogEntries(params) };
-}
-
 export function buildPageStateFromParams(params: connection.TrinoConnectionParams | null | undefined): PageState {
     const active = params ?? null;
-    const newParams = params ? withCatalogEntries(params) : DEFAULT_TRINO_PARAMS;
+    const newParams = params ? withTrinoCatalogFields(params) : DEFAULT_TRINO_PARAMS;
     const metadataData = newParams.metadata ?? {};
     return {
         activeParams: active,
@@ -227,6 +223,22 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     }));
 
 
+    const defaultCatalog = pageState.newParams.defaultCatalog ?? "";
+    const setDefaultCatalog: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: {
+            ...s.newParams,
+            defaultCatalog: v
+        }
+    }));
+    const defaultSchema = pageState.newParams.defaultSchema ?? "";
+    const setDefaultSchema: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: {
+            ...s.newParams,
+            defaultSchema: v
+        }
+    }));
     const catalogs = pageState.newParams.catalogs ?? [];
     const modifyCatalogs: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
         ...s,
@@ -492,9 +504,38 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 </div>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
+                        <TextField
+                            name="Default Catalog"
+                            caption="Catalog of the names that statements leave out"
+                            value={defaultCatalog}
+                            placeholder=""
+                            leadingVisual={BookIcon}
+                            onChange={(e) => setDefaultCatalog(e.target.value)}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            autoComplete={false}
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            name="Default Schema"
+                            caption="Schema of the names that statements leave out"
+                            value={defaultSchema}
+                            placeholder=""
+                            validation={
+                                defaultSchema.trim().length > 0 && defaultCatalog.trim().length == 0
+                                    ? { type: VALIDATION_WARNING, value: "A default schema needs a default catalog" }
+                                    : undefined
+                            }
+                            leadingVisual={BookIcon}
+                            onChange={(e) => setDefaultSchema(e.target.value)}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            autoComplete={false}
+                            logContext={LOG_CTX}
+                        />
                         <ValueListBuilder
                             title="Catalogs"
-                            caption="Relations to load, 'catalog' for all schemas or 'catalog.schema' for one. Queries name the catalog of every relation."
+                            caption="Relations to load, 'catalog' for all schemas or 'catalog.schema' for one. Without entries the default catalog is loaded."
                             valueIcon={BookIcon}
                             addButtonLabel="Add Catalog"
                             elements={catalogs}

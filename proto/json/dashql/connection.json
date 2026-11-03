@@ -825,23 +825,31 @@
           "$ref": "auth.json#/definitions/TrinoAuthParams",
           "description": "The authentication params"
         },
+        "defaultCatalog": {
+          "type": "string",
+          "description": "The catalog of the names that statements leave out, sent as X-Trino-Catalog"
+        },
+        "defaultSchema": {
+          "type": "string",
+          "description": "The schema of the names that statements leave out, sent as X-Trino-Schema with the default catalog"
+        },
         "catalogs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "The catalogs whose relations the catalog loader reads, 'catalog' for all of its schemas or 'catalog.schema' for one. Queries set no default catalog or schema."
+          "description": "The catalogs whose relations the catalog loader reads, 'catalog' for all of its schemas or 'catalog.schema' for one. Without them it reads the default catalog."
         },
         "catalogName": {
           "type": "string",
-          "description": "Superseded by catalogs, read only from params that predate them: the catalog"
+          "description": "Renamed to defaultCatalog, read only from params that predate it"
         },
         "schemaNames": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Superseded by catalogs, read only from params that predate them: the schemas of the default catalog"
+          "description": "Replaced by catalogs, read only from params that predate them: the schemas of catalogName that the catalog loader reads"
         },
         "metadata": {
           "type": "object",

@@ -9,6 +9,7 @@ import type { TrinoApiClientInterface, TrinoQueryResult } from './trino_api_clie
 import { TrinoApiEndpoint } from './trino_api_client.js';
 import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
 import { TrinoChannel, TrinoQueryResultStream } from './trino_channel.js';
+import type { TrinoSessionDefaults } from './trino_catalogs.js';
 import * as proto from '../../proto.js';
 import * as buf from '@bufbuild/protobuf';
 
@@ -223,10 +224,14 @@ describe('TrinoQueryResultStream', () => {
 
 describe('TrinoChannel', () => {
     /// A channel with basic auth whose HTTP client answers every request with the response
-    function channel(response: () => Response) {
+    function channel(response: () => Response, defaults: TrinoSessionDefaults = { catalog: null, schema: null }) {
         const { fetch, endpoint, client } = basicTrinoApi(response);
-        return { fetch, channel: new TrinoChannel(new TestLogger(), client, endpoint) };
+        return { fetch, channel: new TrinoChannel(new TestLogger(), client, endpoint, defaults) };
     }
+    const sessionHeaders = (fetch: { mock: { calls: unknown[][] } }) => {
+        const headers = new Headers((fetch.mock.calls[0] as [URL, RequestInit])[1].headers);
+        return [headers.get('X-Trino-Catalog'), headers.get('X-Trino-Schema')];
+    };
     const query = (text: string) => buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, { query: text });
 
     it('posts the statement without a default catalog or schema and opens the result stream', async () => {
@@ -240,6 +245,16 @@ describe('TrinoChannel', () => {
         expect([headers.get('X-Trino-Catalog'), headers.get('X-Trino-Schema'), headers.get('X-Trino-User'), headers.get('Authorization')]).toEqual([null, null, 'user', `Basic ${btoa('user:secret')}`]);
         expect((await stream.getSchema())?.fields.map(field => field.name)).toEqual(['customer_id']);
         expect(stream.getMetrics()).toMatchObject({ totalQueryRequestsStarted: 1, totalQueryRequestsSucceeded: 1 });
+    });
+
+    it('sends the default catalog and schema', async () => {
+        const finished = () => new Response(JSON.stringify({ id: 'q1', columns: COLUMNS, stats: { state: 'FINISHED' } }));
+        const withSchema = channel(finished, { catalog: 'hive', schema: 'sales' });
+        await withSchema.channel.executeQuery(query('select 1'));
+        expect(sessionHeaders(withSchema.fetch)).toEqual(['hive', 'sales']);
+        const withoutSchema = channel(finished, { catalog: 'hive', schema: null });
+        await withoutSchema.channel.executeQuery(query('select 1'));
+        expect(sessionHeaders(withoutSchema.fetch)).toEqual(['hive', null]);
     });
 
     it('fails on statements that Trino rejects', async () => {

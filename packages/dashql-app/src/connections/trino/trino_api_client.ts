@@ -4,6 +4,7 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import { HttpClient, HttpFetchResult } from "../../platform/http/http_client.js";
 import { LoggableException, Logger } from "../../platform/logger/logger.js";
 import { dateToTimestamp } from '../proto_helper.js';
+import type { TrinoSessionDefaults } from './trino_catalogs.js';
 
 const LOG_CTX = "trino_api";
 
@@ -201,7 +202,7 @@ export interface TrinoQueryInfo {
 
 export interface TrinoApiClientInterface {
     /// Run a query
-    runQuery(endpoint: TrinoApiEndpoint, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
+    runQuery(endpoint: TrinoApiEndpoint, defaults: TrinoSessionDefaults, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query result
     getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query info, a pruned query info leaves out the plans of the stages and keeps their statistics
@@ -259,11 +260,17 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Run a query
-    /// Statements name the catalog and schema of their relations, the requests set no default catalog or schema
-    async runQuery(endpoint: TrinoApiEndpoint, text: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
+    async runQuery(endpoint: TrinoApiEndpoint, defaults: TrinoSessionDefaults, text: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
         this.logger.debug("Running query", { "text": text }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/statement`);
         const headers = await this.getHeaders(endpoint);
+        // Trino sees every catalog of the server, the defaults only resolve the names that statements leave out
+        if (defaults.catalog != null) {
+            headers.set('X-Trino-Catalog', defaults.catalog);
+            if (defaults.schema != null) {
+                headers.set('X-Trino-Schema', defaults.schema);
+            }
+        }
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'POST',
             body: text,

@@ -22,6 +22,7 @@ import { LoggableException, Logger, stringifyError } from '../../platform/logger
 import { RESET_CONNECTION } from '../connection_state.js';
 import { requestTrinoAccessToken, TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
+import { trinoSessionDefaults } from './trino_catalogs.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { PlatformType } from '../../platform/platform_type.js';
@@ -61,7 +62,7 @@ async function setupTrinoConnectionBasic(
             })
         });
         const endpoint = new TrinoApiEndpoint(params.endpoint, auth);
-        channel = new TrinoChannel(logger, client, endpoint);
+        channel = new TrinoChannel(logger, client, endpoint, trinoSessionDefaults(params));
 
         // Mark the channel as ready
         modifyState({
@@ -236,7 +237,7 @@ async function setupTrinoConnectionOAuth(
             authCode,
             accessToken
         });
-        channel = new TrinoChannel(logger, client, endpoint);
+        channel = new TrinoChannel(logger, client, endpoint, trinoSessionDefaults(params));
 
         // Mark the channel as ready
         modifyState({

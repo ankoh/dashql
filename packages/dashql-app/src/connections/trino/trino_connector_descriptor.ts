@@ -2,6 +2,7 @@ import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '../connector_info.js';
 import { createTrinoConnectionStateDetails, reduceTrinoConnectorState } from './trino_connection_state.js';
 import { queryParam, requireChannel } from '../query_channel.js';
+import { trinoSessionDefaults } from './trino_catalogs.js';
 
 /// Trino connections
 export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
@@ -39,10 +40,14 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
             oauthClientId: params.auth?.oauth?.clientId,
             oauthScopes: params.auth?.oauth?.scopes,
         },
-        // The catalogs only decide which relations the catalog loader reads, queries name their catalogs
+        // The defaults resolve the names that statements leave out, the catalogs only decide what the catalog loader reads
+        defaults: trinoSessionDefaults(params),
     }),
-    // Requests set no default catalog or schema, statements name both
-    catalogNameDefaults: () => ({ databaseName: '', schemaName: '' }),
+    // The relations of statements get the defaults of the requests
+    catalogNameDefaults: details => {
+        const defaults = details.proto.setupParams ? trinoSessionDefaults(details.proto.setupParams) : null;
+        return { databaseName: defaults?.catalog ?? '', schemaName: defaults?.schema ?? '' };
+    },
     executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'trino' ? args.channelOverride.channel : details.channel, 'Trino')
         .executeQuery(queryParam(args), abort),
     maxConcurrentQueries: () => 1,

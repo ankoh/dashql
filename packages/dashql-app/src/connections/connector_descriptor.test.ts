@@ -31,10 +31,13 @@ describe('connector capabilities', () => {
         expect(connectionReadsAttachments(null)).toBe(false);
     });
 
-    it('qualifies the relations of Trino statements with no default catalog or schema', () => {
-        const defaults = catalogNameDefaults(getConnectionStateDetailsFromParams({
-            trino: { endpoint: 'https://trino.example', auth: { authType: 'AUTH_BASIC' }, catalogs: ['hive.sales', 'iceberg'] },
+    it('qualifies the relations of Trino statements with the default catalog and schema', () => {
+        const defaults = (fields: { defaultCatalog?: string; defaultSchema?: string }) => catalogNameDefaults(getConnectionStateDetailsFromParams({
+            trino: { endpoint: 'https://trino.example', auth: { authType: 'AUTH_BASIC' }, catalogs: ['iceberg'], ...fields },
         }));
-        expect(defaults).toEqual({ databaseName: '', schemaName: '' });
+        expect(defaults({ defaultCatalog: 'hive', defaultSchema: 'sales' })).toEqual({ databaseName: 'hive', schemaName: 'sales' });
+        expect(defaults({ defaultCatalog: 'hive' })).toEqual({ databaseName: 'hive', schemaName: '' });
+        expect(defaults({})).toEqual({ databaseName: '', schemaName: '' });
+        expect(catalogNameDefaults(getConnectionStateDetailsFromParams(trino))).toEqual({ databaseName: 'c', schemaName: '' });
     });
 });

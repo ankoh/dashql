@@ -9,6 +9,7 @@ import { ChannelError, RawProxyError } from '../../platform/channel_common.js';
 import { AsyncValue } from '../../utils/async_value.js';
 import { AsyncConsumer } from '../../utils/async_consumer.js';
 import { translateAnyRowsToArrowBatch } from './arrow_conversion.js';
+import type { TrinoSessionDefaults } from './trino_catalogs.js';
 
 const LOG_CTX = 'trino_channel';
 /// Sample the statistics of the stages this often, Trino refreshes them about every 3 seconds
@@ -300,12 +301,15 @@ export class TrinoChannel implements TrinoChannelInterface {
     apiClient: TrinoApiClientInterface;
     /// The trino api endpoint
     endpoint: TrinoApiEndpoint;
+    /// The catalog and schema of the names that statements leave out
+    defaults: TrinoSessionDefaults;
 
     /// Constructor
-    constructor(logger: Logger, client: TrinoApiClientInterface, endpoint: TrinoApiEndpoint) {
+    constructor(logger: Logger, client: TrinoApiClientInterface, endpoint: TrinoApiEndpoint, defaults: TrinoSessionDefaults) {
         this.logger = logger;
         this.apiClient = client;
         this.endpoint = endpoint;
+        this.defaults = defaults;
     }
 
     /// Execute Query
@@ -317,7 +321,7 @@ export class TrinoChannel implements TrinoChannelInterface {
             this.logger.debug("Executing query", {}, LOG_CTX);
             metrics.totalQueryRequestsStarted += 1;
 
-            const result = await this.apiClient.runQuery(this.endpoint, param.query, abort);
+            const result = await this.apiClient.runQuery(this.endpoint, this.defaults, param.query, abort);
             const timeAfter = (new Date()).getTime();
 
             metrics.totalQueryRequestsSucceeded += 1;

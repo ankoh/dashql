@@ -155,11 +155,18 @@ describe('sanitizeConnectionParamsForSharing', () => {
 });
 
 describe('createConnectionParamsSignature', () => {
-    it('identifies Trino results by the endpoint and auth, not by the loaded catalogs', () => {
-        const trino = (catalogs: string[]) => ({ trino: { endpoint: 'https://trino', catalogs, auth: { authType: 'AUTH_BASIC', basic: { username: 'u' } } } }) as unknown as ConnectionParams;
-        const params = trino(['hive.sales', 'iceberg']);
-        expect(createConnectionParamsSignature(params)).toEqual(createConnectionParamsSignature(trino(['iceberg'])));
-        expect(createConnectionParamsSignature(params)).toEqual({ case: 'trino', endpoint: 'https://trino', auth: expect.objectContaining({ authType: 'AUTH_BASIC', basicUsername: 'u' }) });
+    it('identifies Trino results by the default catalog and schema, not by the loaded catalogs', () => {
+        const trino = (defaultSchema: string, catalogs: string[]) => ({ trino: { endpoint: 'https://trino', defaultCatalog: 'hive', defaultSchema, catalogs, auth: { authType: 'AUTH_BASIC', basic: { username: 'u' } } } }) as unknown as ConnectionParams;
+        const params = trino('sales', ['hive.sales', 'iceberg']);
+        expect(createConnectionParamsSignature(params)).toEqual(createConnectionParamsSignature(trino('sales', ['iceberg'])));
+        expect(createConnectionParamsSignature(params)).not.toEqual(createConnectionParamsSignature(trino('hr', ['hive.sales', 'iceberg'])));
+        expect(createConnectionParamsSignature(params)).toMatchObject({ case: 'trino', defaults: { catalog: 'hive', schema: 'sales' }, auth: { basicUsername: 'u' } });
+    });
+
+    it('identifies Trino results of params that predate the default catalog like the renamed params', () => {
+        const legacy = { trino: { endpoint: 'https://trino', catalogName: 'hive', schemaNames: ['sales'], auth: { authType: 'AUTH_BASIC' } } } as unknown as ConnectionParams;
+        const current = { trino: { endpoint: 'https://trino', defaultCatalog: 'hive', catalogs: ['hive.sales'], auth: { authType: 'AUTH_BASIC' } } } as unknown as ConnectionParams;
+        expect(createConnectionParamsSignature(legacy)).toEqual(createConnectionParamsSignature(current));
     });
 
     it('ignores the order of the attached databases, metadata and parameters of Hyper', () => {
