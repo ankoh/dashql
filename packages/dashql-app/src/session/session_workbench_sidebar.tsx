@@ -84,6 +84,7 @@ import { useSessionImport } from './persistence/session_import_provider.js';
 import { describeSessionValidationError } from '../storage/session_validation.js';
 import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
 import { scriptDisplayName } from './scripts/script_types.js';
+import { renameScript } from './scripts/script_rename.js';
 import {
     useInvalidSessions,
     useSessionScripts,
@@ -494,25 +495,124 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
         </li>
         {expanded && scriptNames.map(fileName => (
-            <li
+            <SessionScriptRow
                 key={`${item.sessionId}/${fileName}`}
-                className={classNames(styles.entry_surface, styles.entry_interactive, styles.script_row)}
-                // The file icons of the scripts sit directly below the icon of their session
-                style={{ paddingLeft: sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN }}
-                data-testid="session-script-row"
-            >
+                fileName={fileName}
+                depth={depth}
+                onOpen={() => openScript(fileName)}
+                onRename={name => { void renameScript(item.scripts, modifySessionScripts, fileName, name, null); }}
+            />
+        ))}
+        </>
+    );
+};
+
+interface SessionScriptRowProps {
+    fileName: string;
+    /// The depth of the session of the script
+    depth: number;
+    /// Open the script
+    onOpen: () => void;
+    /// Rename the script, the name is a display name
+    onRename: (name: string) => void;
+}
+
+/// A script of an expanded session. A double-click on the name or the rename action of the menu edits the name.
+const SessionScriptRow: React.FC<SessionScriptRowProps> = ({ fileName, depth, onOpen, onRename }) => {
+    const displayName = scriptDisplayName(fileName);
+    const [renaming, setRenaming] = React.useState(false);
+    const renameInputRef = React.useRef<HTMLInputElement>(null);
+    React.useEffect(() => {
+        if (!renaming) return;
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+    }, [renaming]);
+    const commitRename = React.useCallback((name: string) => {
+        setRenaming(false);
+        if (name.trim() !== displayName) onRename(name);
+    }, [displayName, onRename]);
+    const cancelRename = React.useCallback(() => setRenaming(false), []);
+    return (
+        <li
+            className={classNames(styles.entry_surface, styles.entry_interactive, styles.script_row)}
+            // The file icons of the scripts sit directly below the icon of their session
+            style={{ paddingLeft: sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN }}
+            data-testid="session-script-row"
+        >
+            {renaming ? (
+                <div className={styles.script_rename}>
+                    <FileIcon size={14} aria-hidden="true" />
+                    <NameInput
+                        ref={renameInputRef}
+                        className={classNames(styles.session_rename_input, styles.script_rename_input)}
+                        name={displayName}
+                        onCommit={commitRename}
+                        onCancel={cancelRename}
+                        ariaLabel="Script name"
+                        placeholder="Name this script"
+                    />
+                </div>
+            ) : (
                 <button
                     type="button"
                     className={styles.session_button}
                     title={fileName}
-                    onClick={() => openScript(fileName)}
+                    onClick={onOpen}
+                    onDoubleClick={() => setRenaming(true)}
                 >
                     <FileIcon size={14} aria-hidden="true" />
-                    <span className={styles.script_name}>{scriptDisplayName(fileName)}</span>
+                    <span className={styles.script_name}>{displayName}</span>
                 </button>
-            </li>
-        ))}
-        </>
+            )}
+            <ScriptRowMenu name={displayName} onRename={() => setRenaming(true)} />
+        </li>
+    );
+};
+
+const ScriptRowMenu: React.FC<{ name: string; onRename: () => void }> = ({ name, onRename }) => {
+    const [open, setOpen] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    return (
+        <AnchoredOverlay
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+            anchorRef={triggerRef}
+            returnFocusRef={triggerRef}
+            side={AnchorSide.OutsideRight}
+            align={AnchorAlignment.Start}
+            anchorOffset={4}
+            renderAnchor={(anchorProps) => (
+                <IconButton
+                    {...anchorProps}
+                    ref={triggerRef}
+                    size={ButtonSize.Small}
+                    variant={ButtonVariant.Invisible}
+                    className={styles.session_menu_button}
+                    data-testid="script-row-menu"
+                    aria-label={`More actions for script ${name}`}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        anchorProps.onClick?.(event);
+                    }}
+                >
+                    <MoreIcon size={14} />
+                </IconButton>
+            )}
+        >
+            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for script ${name}`}>
+                <ActionList.List aria-label={`Actions for script ${name}`}>
+                    <ActionList.ListItem data-testid="script-menu-item" data-action="rename" onClick={(event) => {
+                        event.stopPropagation();
+                        setOpen(false);
+                        onRename();
+                    }}>
+                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Rename</ActionList.ItemText>
+                    </ActionList.ListItem>
+                </ActionList.List>
+            </div>
+        </AnchoredOverlay>
     );
 };
 

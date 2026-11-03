@@ -7,7 +7,7 @@ import { TestLogger } from '../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
 import { SessionTestRegistry } from '../storage/session_test_backend.js';
 import { StorageBackendType } from '../storage/storage_backend.js';
-import { SELECT_SCRIPT } from './scripts/session_scripts.js';
+import { RENAME_SCRIPT, SELECT_SCRIPT } from './scripts/session_scripts.js';
 import { SessionWorkbenchSidebar, type SessionWorkbenchSidebarDependencies } from './session_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -75,7 +75,8 @@ const dependencies = {
 } as unknown as SessionWorkbenchSidebarDependencies;
 
 function addSession(sessionId: string, name: string, scriptOrder: string[] = []): void {
-    state.sessionScriptsMap.set(sessionId, { sessionId, name, sessionMetadata: {}, scripts: {}, scriptOrder });
+    const scriptRefs = Object.fromEntries(scriptOrder.map((fileName, scriptId) => [fileName, { fileName, scriptId }]));
+    state.sessionScriptsMap.set(sessionId, { sessionId, name, sessionMetadata: {}, scripts: {}, scriptRefs, scriptOrder });
 }
 
 describe('SessionWorkbenchSidebar folders', () => {
@@ -198,6 +199,43 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '2:revenue', '0:Root']);
         expect(state.navigate).not.toHaveBeenCalled();
         expect(container.querySelector('input[aria-label="Session name"]')).toBeNull();
+    });
+
+    it('renames a script of an expanded session', async () => {
+        addSession(CLIENT_SESSION, 'Client', ['orders.sql', 'revenue.sql']);
+        render();
+        act(() => sessionRow('Client').querySelector<HTMLButtonElement>(':scope > button')!.click());
+        const scriptRow = (name: string) => Array.from(container.querySelectorAll<HTMLElement>('[data-testid="session-script-row"]'))
+            .find(row => rowLabel(row) === name || row.querySelector('input')?.value === name)!;
+
+        // A double-click on the name edits it, the input shows the name without the extension
+        act(() => scriptRow('revenue').querySelector<HTMLButtonElement>(':scope > button')!
+            .dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+        const input = container.querySelector<HTMLInputElement>('input[aria-label="Script name"]')!;
+        expect(input.value).toBe('revenue');
+        state.modifySessionScripts.mockReset();
+        await act(async () => {
+            input.focus();
+            input.value = 'income';
+            input.blur();
+        });
+        expect(state.modifySessionScripts).toHaveBeenCalledWith({ type: RENAME_SCRIPT, value: { fileName: 'revenue.sql', newFileName: 'income' } });
+        expect(container.querySelector('input[aria-label="Script name"]')).toBeNull();
+
+        // The rename action of the menu edits the name too, an unchanged name renames nothing
+        act(() => scriptRow('orders').querySelector<HTMLButtonElement>('[data-testid="script-row-menu"]')!.click());
+        await act(async () => {
+            document.querySelector<HTMLElement>('[data-testid="script-menu-item"][data-action="rename"]')!.click();
+        });
+        const menuInput = container.querySelector<HTMLInputElement>('input[aria-label="Script name"]')!;
+        expect(menuInput.value).toBe('orders');
+        state.modifySessionScripts.mockReset();
+        await act(async () => {
+            menuInput.focus();
+            menuInput.blur();
+        });
+        expect(state.modifySessionScripts).not.toHaveBeenCalled();
+        expect(container.querySelector('input[aria-label="Script name"]')).toBeNull();
     });
 
     it('creates a session in a folder', async () => {

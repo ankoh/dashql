@@ -127,7 +127,7 @@
 
 .script_row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) max-content;
     align-items: center;
     min-width: 0;
     min-height: 24px;
@@ -224,6 +224,28 @@
 
 .session_rename_input:focus {
     outline: none;
+}
+
+/* The menu button of a script row is lower than the one of a session row, like the row */
+.entry_surface.script_row .session_menu_button {
+    width: 28px;
+    height: 20px;
+}
+
+/* The rename input of a script replaces its name, next to the file icon */
+.script_rename {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 1px 0;
+}
+
+.script_rename_input {
+    font-size: 12px;
+    font-weight: 400;
 }
 
 .database_body {
