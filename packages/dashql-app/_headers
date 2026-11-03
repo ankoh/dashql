@@ -3,6 +3,13 @@
   Cross-Origin-Opener-Policy: same-origin
   Access-Control-Allow-Origin: *
 
+# A worker takes the Content-Security-Policy of its script response, the <meta> policy of the page does not reach it.
+# A page ignores the policy of a script that it loads, so the rule covers every script. The core batch worker compiles
+# Wasm, the HyperDB worker imports its engine from a blob: URL and reads mounted files with fetches of blob: URLs.
+# See docs/design/app_csp.md.
+/static/js/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: http: https: ws: wss:
+
 # Vite fingerprints files in these output directories. Their URLs change with their contents, so
 # browsers can retain successful responses across deployments. Keep mutable static/config.json
 # outside these rules.

@@ -21,6 +21,9 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/core_parser.md`
     - `docs/design/core_quirks.md`
 
+- Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)
+    - `docs/design/app_csp.md`
+
 - Third-party notices
     - `NOTICE` lists vendored third-party code and assets with their licenses. Add an entry when you
       vendor something, and remove it when that code is deleted.
