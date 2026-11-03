@@ -202,3 +202,14 @@ use_repo(
     "tableauhyperapi_cxx_macos_arm64",
     "tableauhyperapi_cxx_macos_x86_64",
 )
+
+# Trino server (core + tpch plugin) and a Java runtime for //packages/trino-testing.
+# Only the Trino integration tests depend on them, so they are fetched on first use.
+trino = use_extension("//bazel:external_trino.bzl", "trino_ext")
+use_repo(
+    trino,
+    "temurin_jre_25_linux_x86_64",
+    "temurin_jre_25_macos_arm64",
+    "temurin_jre_25_macos_x86_64",
+    "trino_server",
+)

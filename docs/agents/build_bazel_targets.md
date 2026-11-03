@@ -124,6 +124,22 @@ bazel test //...
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |
 | `//packages/dashql-org:check` | `astro check` of the website |
+| `//packages/trino-testing:trino_assumptions_test` | Checks the Trino API assumptions of the query progress model against a live Trino (manual, local only) |
+
+### Trino (manual, local only)
+
+`//packages/trino-testing` starts a single-node Trino 484 with only the tpch catalog. On first use Bazel
+downloads the server, the tpch plugin and a Java 25 runtime, about 370 MB (`//bazel:external_trino.bzl`).
+Every target there is `manual`, so `bazel build //...`, `bazel test //...` and CI never fetch or start
+Trino. The regular tests read the checked-in recordings instead.
+
+```bash
+# Check the assumptions of the query progress model against Trino
+bazel test //packages/trino-testing:trino_assumptions_test
+
+# Refresh snapshots/plans/trino/recordings/ (statement polls, QueryInfo samples, EXPLAIN plans)
+bazel run //packages/trino-testing:trino_recorder
+```
 
 ### Test Output
 

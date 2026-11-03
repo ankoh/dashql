@@ -422,6 +422,48 @@
         }
       }
     },
+    "//bazel:external_trino.bzl%trino_ext": {
+      "general": {
+        "bzlTransitiveDigest": "18+SdAQjpbG4k1vzf5n9iNYNNdhIpPF8u4BnJxbCak8=",
+        "usagesDigest": "fw92zzHc3ulFpyFWuQqyiSZ+hjZm6eM+/G3zUCAM8Ds=",
+        "recordedInputs": [
+          "REPO_MAPPING:,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "trino_server": {
+            "repoRuleId": "@@//bazel:external_trino.bzl%trino_server_repository",
+            "attributes": {}
+          },
+          "temurin_jre_25_linux_x86_64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz",
+              "sha256": "6fac98f0c8202efc3135a9e9e42aa61963ec42d1c5cbb40caf231e7b14a24ef6",
+              "strip_prefix": "jdk-25.0.5+8-jre",
+              "build_file_content": "package(default_visibility = [\"//visibility:public\"])\n\nexports_files([\"bin/java\"])\n\nfilegroup(\n    name = \"runtime\",\n    srcs = glob([\"**\"], exclude = [\"BUILD.bazel\", \"WORKSPACE\", \"REPO.bazel\"]),\n)\n"
+            }
+          },
+          "temurin_jre_25_macos_arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_aarch64_mac_hotspot_25.0.5_8.tar.gz",
+              "sha256": "72ebd76b502c849e88dea39afae51baf5f82f2b5b1b6389c28ea707b20451bce",
+              "strip_prefix": "jdk-25.0.5+8-jre/Contents/Home",
+              "build_file_content": "package(default_visibility = [\"//visibility:public\"])\n\nexports_files([\"bin/java\"])\n\nfilegroup(\n    name = \"runtime\",\n    srcs = glob([\"**\"], exclude = [\"BUILD.bazel\", \"WORKSPACE\", \"REPO.bazel\"]),\n)\n"
+            }
+          },
+          "temurin_jre_25_macos_x86_64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_mac_hotspot_25.0.5_8.tar.gz",
+              "sha256": "806902c796c670969b7b27df73b8f0fe0924a61bd65083aa53064115e49cab2d",
+              "strip_prefix": "jdk-25.0.5+8-jre/Contents/Home",
+              "build_file_content": "package(default_visibility = [\"//visibility:public\"])\n\nexports_files([\"bin/java\"])\n\nfilegroup(\n    name = \"runtime\",\n    srcs = glob([\"**\"], exclude = [\"BUILD.bazel\", \"WORKSPACE\", \"REPO.bazel\"]),\n)\n"
+            }
+          }
+        }
+      }
+    },
     "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
       "general": {
         "bzlTransitiveDigest": "0Y2WXnkZSrBAGnC/jfDe/wjW2fWUWitBbpCD/KH1NCU=",

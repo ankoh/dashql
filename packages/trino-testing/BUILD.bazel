@@ -1,0 +1,127 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+
+package(default_visibility = ["//visibility:private"])
+
+# A Trino server for local checks of the query progress model. Bazel downloads the server (core + tpch
+# plugin) and a Java runtime on first use (//bazel:external_trino.bzl). Every target here is manual, so
+# neither `bazel build //...` nor `bazel test //...` (and CI) fetches or starts Trino:
+#
+#   bazel test //packages/trino-testing:trino_assumptions_test   check the assumptions against Trino
+#   bazel run //packages/trino-testing:trino_recorder            refresh snapshots/plans/trino/recordings/
+
+config_setting(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+)
+
+config_setting(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:macos",
+    ],
+)
+
+config_setting(
+    name = "macos_arm64",
+    constraint_values = [
+        "@platforms//cpu:arm64",
+        "@platforms//os:macos",
+    ],
+)
+
+alias(
+    name = "java",
+    tags = ["manual"],
+    actual = select({
+        ":linux_x86_64": "@temurin_jre_25_linux_x86_64//:bin/java",
+        ":macos_arm64": "@temurin_jre_25_macos_arm64//:bin/java",
+        ":macos_x86_64": "@temurin_jre_25_macos_x86_64//:bin/java",
+    }),
+)
+
+alias(
+    name = "java_runtime",
+    tags = ["manual"],
+    actual = select({
+        ":linux_x86_64": "@temurin_jre_25_linux_x86_64//:runtime",
+        ":macos_arm64": "@temurin_jre_25_macos_arm64//:runtime",
+        ":macos_x86_64": "@temurin_jre_25_macos_x86_64//:runtime",
+    }),
+)
+
+_SUPPORTED_PLATFORMS = select({
+    ":linux_x86_64": [],
+    ":macos_arm64": [],
+    ":macos_x86_64": [],
+    "//conditions:default": ["@platforms//:incompatible"],
+})
+
+_TRINO_DATA = [
+    ":java",
+    ":java_runtime",
+    "@trino_server//:bin/launcher",
+    "@trino_server//:server",
+]
+
+_TRINO_ENV = {
+    "TRINO_JAVA": "$(rootpath :java)",
+    "TRINO_LAUNCHER": "$(rootpath @trino_server//:bin/launcher)",
+}
+
+rust_library(
+    name = "trino_testing",
+    testonly = True,
+    srcs = glob(
+        ["src/**/*.rs"],
+        exclude = ["src/bin/**"],
+    ),
+    crate_name = "trino_testing",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    tags = ["manual"],
+    deps = [
+        "@crates//:reqwest",
+        "@crates//:serde_json",
+        "@crates//:tokio",
+    ],
+)
+
+# Records the Trino API responses into snapshots/plans/trino/recordings/
+rust_binary(
+    name = "trino_recorder",
+    testonly = True,
+    srcs = ["src/bin/trino_recorder.rs"],
+    data = _TRINO_DATA,
+    edition = "2021",
+    env = _TRINO_ENV,
+    tags = ["manual"],
+    target_compatible_with = _SUPPORTED_PLATFORMS,
+    deps = [
+        ":trino_testing",
+        "@crates//:serde_json",
+    ],
+)
+
+# Checks the assumptions of the query progress model against a live Trino
+rust_test(
+    name = "trino_assumptions_test",
+    size = "medium",
+    srcs = ["tests/trino_assumptions.rs"],
+    data = _TRINO_DATA,
+    edition = "2021",
+    env = _TRINO_ENV,
+    tags = [
+        "exclusive",
+        "manual",
+    ],
+    target_compatible_with = _SUPPORTED_PLATFORMS,
+    use_libtest_harness = False,
+    deps = [
+        ":trino_testing",
+        "@crates//:serde_json",
+    ],
+)
