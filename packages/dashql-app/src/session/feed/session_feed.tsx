@@ -83,7 +83,15 @@ export interface SessionFeedProps {
     /// another view, e.g. a connection overview, is open so it keeps its scroll position and measured row heights;
     /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
     active: boolean;
+    /// A script to scroll into view, e.g. one opened from the sidebar. A new request object reveals again.
+    revealRequest?: SessionFeedRevealRequest | null;
     dependencies?: SessionFeedDependencies;
+}
+
+/// A script that the feed scrolls into view once its session shows
+export interface SessionFeedRevealRequest {
+    sessionId: string;
+    fileName: string;
 }
 
 export interface SessionFeedDependencies {
@@ -617,6 +625,21 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         });
         return () => cancelAnimationFrame(frame);
     }, [revealScript, followRequest, feedLayout.rowHeightsVersion]);
+
+    // A requested script stays in view like a followed one, until the user scrolls, clicks or types in the feed.
+    // The request waits until the feed shows the session of the script.
+    const revealedRef = React.useRef<SessionFeedRevealRequest | null>(null);
+    const revealRequest = props.revealRequest ?? null;
+    React.useEffect(() => {
+        if (revealRequest == null || revealRequest === revealedRef.current || !props.active) return;
+        if (revealRequest.sessionId !== props.sessionScripts.sessionId) return;
+        const scriptKey = props.sessionScripts.scriptRefs[revealRequest.fileName]?.scriptId;
+        if (scriptKey == null) return;
+        revealedRef.current = revealRequest;
+        followAgentRef.current = false;
+        followedRef.current = { scriptKey, target: 'script' };
+        setFollowRequest(n => n + 1);
+    }, [revealRequest, props.active, props.sessionScripts.sessionId, props.sessionScripts.scriptRefs]);
 
     // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();

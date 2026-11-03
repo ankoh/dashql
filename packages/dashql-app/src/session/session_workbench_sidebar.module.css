@@ -125,6 +125,47 @@
     padding-left: 8px;
 }
 
+/* A session row leads with the caret that lists its scripts, in the caret column of the folder rows */
+.session_row_caret {
+    grid-template-columns: 12px minmax(0, 1fr) max-content;
+    column-gap: 8px;
+}
+
+.session_caret {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 2px;
+    color: var(--base_color_neutral_6);
+    background: transparent;
+    cursor: pointer;
+}
+
+.session_caret:hover {
+    color: var(--base_color_neutral_9);
+}
+
+.script_row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    min-width: 0;
+    min-height: 24px;
+    padding-right: 8px;
+}
+
+.script_name {
+    display: block;
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .entry_surface {
     border: 1px solid transparent;
     border-radius: var(--border_radius);

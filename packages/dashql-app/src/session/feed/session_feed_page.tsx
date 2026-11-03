@@ -17,7 +17,7 @@ import { SessionWorkbenchSidebar } from '../session_workbench_sidebar.js';
 import { SessionURLShareOverlay } from '../persistence/session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from '../persistence/session_file_save_overlay.js';
 import { ScriptDetails } from '../scripts/script_details.js';
-import { SessionFeed } from './session_feed.js';
+import { SessionFeed, type SessionFeedRevealRequest } from './session_feed.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { SessionViewMode, useSessionViewMode } from '../session_view_mode.js';
@@ -148,12 +148,21 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const activeView = dashboardActive ? SessionViewMode.Dashboard : dataflowActive ? SessionViewMode.Dataflow : SessionViewMode.Session;
     const overviewActive = overviewConnectionId != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive;
+    // A script opened from the sidebar shows in the feed
+    const [revealRequest, setRevealRequest] = React.useState<SessionFeedRevealRequest | null>(null);
+    const openScript = React.useCallback((sessionId: string, fileName: string) => {
+        setOverviewConnectionId(null);
+        setDetails(null);
+        if (mode !== SessionViewMode.Session) setMode(SessionViewMode.Session);
+        setRevealRequest({ sessionId, fileName });
+    }, [mode, setMode]);
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.SessionWorkbenchSidebar
             sessionScripts={props.sessionScripts}
             closeAfterSelection={closeAfterSelection ? () => setNavigationDrawerOpen(false) : undefined}
             openOverviewId={overviewConnectionId}
             onOpenOverview={setOverviewConnectionId}
+            onOpenScript={openScript}
         />
     );
 
@@ -277,6 +286,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             modifySessionScripts={props.modifySessionScripts}
                             draftRenameRef={draftRenameRef}
                             active={feedActive}
+                            revealRequest={revealRequest}
                             conn={props.connection}
                             scriptConnections={props.scriptConnections}
                         />

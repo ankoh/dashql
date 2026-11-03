@@ -7,6 +7,7 @@ import { TestLogger } from '../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
 import { SessionTestRegistry } from '../storage/session_test_backend.js';
 import { StorageBackendType } from '../storage/storage_backend.js';
+import { SELECT_SCRIPT } from './scripts/session_scripts.js';
 import { SessionWorkbenchSidebar, type SessionWorkbenchSidebarDependencies } from './session_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -18,6 +19,8 @@ const NEW_SESSION = '00000000-0000-4000-8000-00000000000d';
 
 const state = {
     createSession: vi.fn(),
+    navigate: vi.fn(),
+    modifySessionScripts: vi.fn(),
     sessionScriptsMap: new Map<string, unknown>(),
     registry: new SessionTestRegistry(),
     backend: null as CompositeStorageBackend | null,
@@ -39,7 +42,7 @@ const storageReader = {
 const storageWriter = { write: vi.fn(), deleteSession: vi.fn(), backend: {}, cancelPendingWritesForSession: vi.fn() };
 
 const dependencies = {
-    useRouterNavigate: () => vi.fn(),
+    useRouterNavigate: () => state.navigate,
     useRouteContext: () => ({ sessionId: ROOT_SESSION, sessionSetupStatus: 0 }),
     useConnectionRegistry: () => [{ connections: new Map() }, vi.fn()],
     useConnectionReferences: () => references,
@@ -49,7 +52,7 @@ const dependencies = {
     ConnectionSettingsOverlay: () => null,
     useSessionScriptsDeletion: () => vi.fn(),
     useSessionScriptsRegistry: () => [{ sessionScriptsMap: state.sessionScriptsMap }],
-    useSessionScripts: () => [null, vi.fn()],
+    useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
     useDetachConnection: () => vi.fn(),
@@ -70,35 +73,41 @@ const dependencies = {
     createConnectionStateFromParams: vi.fn(),
 } as unknown as SessionWorkbenchSidebarDependencies;
 
-function addSession(sessionId: string, name: string): void {
-    state.sessionScriptsMap.set(sessionId, { sessionId, name, sessionMetadata: {}, scripts: {} });
+function addSession(sessionId: string, name: string, scriptOrder: string[] = []): void {
+    state.sessionScriptsMap.set(sessionId, { sessionId, name, sessionMetadata: {}, scripts: {}, scriptOrder });
 }
 
 describe('SessionWorkbenchSidebar folders', () => {
     let container: HTMLDivElement;
     let root: Root;
 
-    function render(currentSessionId: string = ROOT_SESSION): void {
+    function render(currentSessionId: string = ROOT_SESSION, onOpenScript?: (sessionId: string, fileName: string) => void): void {
         act(() => root.render(<SessionWorkbenchSidebar
             sessionScripts={{ sessionId: currentSessionId, instance: {} } as any}
+            onOpenScript={onOpenScript}
             dependencies={dependencies}
         />));
     }
 
-    /// The label of a row, the folder name or the session name
+    /// The label of a row, the folder name, the session name or the script name
     function rowLabel(row: Element): string {
-        const button = row.querySelector(':scope > button');
+        const button = row.querySelector(':scope > button:not([data-testid="session-scripts-toggle"])');
         if (row.getAttribute('data-testid') === 'session-folder-row') return button?.getAttribute('title')?.split('/').pop() ?? '';
         return button?.textContent ?? '';
     }
 
-    /// The rows of the session list as `<depth>:<label>`
+    /// The rows of the session list as `<depth>:<label>`, the scripts of a session one level deeper
     function rows(): string[] {
         return Array.from(container.querySelectorAll('ul[aria-label="Sessions"] > li:not([data-testid="session-top-level-drop"])')).map(row => {
-            const caret = row.getAttribute('data-testid') === 'session-folder-row' ? 0 : 20;
+            const caret = row.getAttribute('data-testid') === 'session-script-row' ? 20 : 0;
             const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - caret) / 16;
             return `${depth}:${rowLabel(row)}`;
         });
+    }
+
+    function sessionRow(name: string): HTMLElement {
+        return Array.from(container.querySelectorAll<HTMLElement>('ul[aria-label="Sessions"] > li'))
+            .find(row => row.getAttribute('data-testid') == null && rowLabel(row) === name)!;
     }
 
     function folderRow(name: string): HTMLElement {
@@ -118,6 +127,8 @@ describe('SessionWorkbenchSidebar folders', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         state.createSession.mockReset().mockReturnValue({ sessionId: NEW_SESSION });
+        state.navigate.mockReset();
+        state.modifySessionScripts.mockReset();
         state.sessionScriptsMap.clear();
         state.registry = new SessionTestRegistry();
         await state.registry.createFolder(['clients']);
@@ -151,6 +162,31 @@ describe('SessionWorkbenchSidebar folders', () => {
 
         render(ACME_SESSION);
         await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']));
+    });
+
+    it('lists the scripts of an expanded session', () => {
+        addSession(CLIENT_SESSION, 'Client', ['orders.sql', 'revenue.sql']);
+        const onOpenScript = vi.fn();
+        render(ROOT_SESSION, onOpenScript);
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+        // Only a session with scripts has a caret
+        expect(sessionRow('Root').querySelector('[data-testid="session-scripts-toggle"]')).toBeNull();
+        const toggle = sessionRow('Client').querySelector<HTMLButtonElement>('[data-testid="session-scripts-toggle"]')!;
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+        act(() => toggle.click());
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '2:revenue', '0:Root']);
+
+        const revenue = Array.from(container.querySelectorAll<HTMLElement>('[data-testid="session-script-row"]'))
+            .find(row => rowLabel(row) === 'revenue')!;
+        act(() => revenue.querySelector<HTMLButtonElement>('button')!.click());
+        expect(state.modifySessionScripts).toHaveBeenCalledWith({ type: SELECT_SCRIPT, value: 'revenue.sql' });
+        expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_SESSION }));
+        expect(onOpenScript).toHaveBeenCalledWith(CLIENT_SESSION, 'revenue.sql');
+
+        act(() => toggle.click());
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
     });
 
     it('creates a session in a folder', async () => {
@@ -191,8 +227,7 @@ describe('SessionWorkbenchSidebar folders', () => {
 
     it('moves a session of a folder to the top level', async () => {
         render();
-        const client = Array.from(container.querySelectorAll('ul[aria-label="Sessions"] > li'))
-            .find(row => rowLabel(row) === 'Client')!;
+        const client = sessionRow('Client');
         act(() => (client.querySelector('[data-testid="session-row-menu"]') as HTMLButtonElement).click());
         await act(async () => {
             (document.querySelector('[data-testid="session-menu-item"][data-action="move-to-top-level"]') as HTMLElement).click();

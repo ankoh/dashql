@@ -30,7 +30,10 @@ import * as ActionList from '../ui/foundations/action_list.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import {
     AlertIcon,
+    ChevronDownIcon,
+    ChevronRightIcon,
     CopyIcon,
+    FileIcon,
     FileDirectoryIcon,
     FileDirectoryOpenFillIcon,
     FileDirectoryPlusIcon,
@@ -80,7 +83,8 @@ import {
 } from './persistence/app_state_loader.js';
 import { useSessionImport } from './persistence/session_import_provider.js';
 import { describeSessionValidationError } from '../storage/session_validation.js';
-import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
+import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
+import { scriptDisplayName } from './scripts/script_types.js';
 import {
     useInvalidSessions,
     useSessionScripts,
@@ -177,6 +181,8 @@ interface Props {
     openOverviewId?: string | null;
     /// Open the overview of a connection, or close it with null
     onOpenOverview?: (connectionId: string | null) => void;
+    /// Show a script of a session that was opened from the sidebar
+    onOpenScript?: (sessionId: string, fileName: string) => void;
     dependencies?: SessionWorkbenchSidebarDependencies;
 }
 
@@ -387,10 +393,16 @@ interface SessionRowProps {
     onDelete: () => void;
     /// Where a dragged session lands next to this one, null without a drag
     dropPosition: 'before' | 'after' | null;
+    /// Are the scripts of the session listed below it?
+    expanded: boolean;
+    /// Show or hide the scripts of the session
+    onToggle: () => void;
+    /// Open a script of the session
+    onOpenScript: (fileName: string) => void;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, onDuplicate, onMoveToTopLevel, onDelete, dropPosition, dependencies }) => {
+const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, onDuplicate, onMoveToTopLevel, onDelete, dropPosition, expanded, onToggle, onOpenScript, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
     const [, modifySessionScripts] = dependencies.useSessionScripts(item.sessionId);
     // The rename action swaps the name for an input until the edit is committed or abandoned
@@ -417,13 +429,21 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             if (startsRowDrag(event)) handler(event);
         }]),
     ), [listeners]);
+    const scriptNames = item.scripts.scriptOrder ?? [];
+    const openScript = (fileName: string) => {
+        void modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
+        onOpenScript(fileName);
+    };
+    const Caret = expanded ? ChevronDownIcon : ChevronRightIcon;
     return (
+        <>
         <li
             ref={rowRef}
             className={classNames(
                 styles.entry_surface,
                 styles.entry_interactive,
                 styles.session_row,
+                styles.session_row_caret,
                 {
                     [styles.entry_selected]: selected,
                     [styles.session_row_dragging]: isDragging,
@@ -434,13 +454,25 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             style={{
                 transform: CSS.Translate.toString(transform),
                 transition,
-                paddingLeft: sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN,
+                paddingLeft: sessionListRowPadding(depth),
                 // The insertion line of a drop starts at the icon of the session
                 ['--session_row_indent' as string]: `${sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN}px`,
             }}
             {...attributes}
             {...rowListeners}
         >
+            {scriptNames.length > 0 ? (
+                <button
+                    type="button"
+                    className={styles.session_caret}
+                    aria-expanded={expanded}
+                    aria-label={`${expanded ? 'Hide' : 'Show'} the scripts of ${item.label}`}
+                    data-testid="session-scripts-toggle"
+                    onClick={onToggle}
+                >
+                    <Caret size={12} />
+                </button>
+            ) : <span aria-hidden="true" />}
             {renaming ? (
                 <div className={styles.session_rename}>
                     <StackIcon size={14} aria-hidden="true" />
@@ -469,6 +501,26 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             )}
             <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onMoveToTopLevel={onMoveToTopLevel} onDelete={onDelete} dependencies={dependencies} />
         </li>
+        {expanded && scriptNames.map(fileName => (
+            <li
+                key={`${item.sessionId}/${fileName}`}
+                className={classNames(styles.entry_surface, styles.entry_interactive, styles.script_row)}
+                // The scripts sit one level deeper than their session
+                style={{ paddingLeft: sessionListRowPadding(depth + 1) + SESSION_LIST_CARET_COLUMN }}
+                data-testid="session-script-row"
+            >
+                <button
+                    type="button"
+                    className={styles.session_button}
+                    title={fileName}
+                    onClick={() => openScript(fileName)}
+                >
+                    <FileIcon size={14} aria-hidden="true" />
+                    <span className={styles.script_name}>{scriptDisplayName(fileName)}</span>
+                </button>
+            </li>
+        ))}
+        </>
     );
 };
 
@@ -536,6 +588,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const treeWriteRef = React.useRef(Promise.resolve());
     // The collapsed folders, by folder path key
     const [collapsedFolders, setCollapsedFolders] = React.useState<ReadonlySet<string>>(() => new Set());
+    // The sessions whose scripts are listed, all are collapsed at first
+    const [expandedSessions, setExpandedSessions] = React.useState<ReadonlySet<string>>(() => new Set());
     // The folder whose name is being edited, by folder path key
     const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
     // Where would the dragged row land?
@@ -716,6 +770,14 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         setCollapsedFolders(current => {
             const next = new Set(current);
             if (current.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
+    }, []);
+
+    const toggleSession = React.useCallback((sessionId: string) => {
+        setExpandedSessions(current => {
+            const next = new Set(current);
+            if (current.has(sessionId)) next.delete(sessionId); else next.add(sessionId);
             return next;
         });
     }, []);
@@ -916,6 +978,13 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         props.onOpenOverview?.(null);
         props.closeAfterSelection?.();
     }, [navigate, props.closeAfterSelection, props.onOpenOverview]);
+    /// Open a session at one of its scripts, the session row selects the script
+    const openScript = React.useCallback((item: SessionItem, fileName: string) => {
+        navigate({ type: SELECT_SESSION, value: item.sessionId });
+        props.onOpenOverview?.(null);
+        props.onOpenScript?.(item.sessionId, fileName);
+        props.closeAfterSelection?.();
+    }, [navigate, props.closeAfterSelection, props.onOpenOverview, props.onOpenScript]);
     const onOpenOverview = props.onOpenOverview;
     const closeAfterSelection = props.closeAfterSelection;
     const openOverview = React.useMemo(() => onOpenOverview == null ? undefined : (connectionId: string) => {
@@ -1025,6 +1094,9 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         onMoveToTopLevel={row.folderPath.length === 0 ? null : () => moveSession(row.item.sessionId, [], Number.MAX_SAFE_INTEGER)}
                                         onDelete={() => { void deleteSession(row.item); }}
                                         dropPosition={drop?.targetId === row.id && drop.position !== 'into' ? drop.position : null}
+                                        expanded={expandedSessions.has(row.item.sessionId)}
+                                        onToggle={() => toggleSession(row.item.sessionId)}
+                                        onOpenScript={fileName => openScript(row.item, fileName)}
                                         dependencies={dependencies}
                                     />
                                 ))}
