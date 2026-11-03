@@ -1,5 +1,6 @@
 import { QueryExecutionState, QueryExecutionStatus, queryIsDone } from '../query/query_execution_state.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { summarizeQueryProgress } from '../views/query_progress/query_progress_model.js';
 
 /// Which source produced the status shown in the bar.
 export const enum EntryStatusKind {
@@ -116,15 +117,18 @@ export function getQueryStatusText(
 /// Derive the status bar contents for a session entry from its query execution.
 export function deriveEntryStatus(query: QueryExecutionState | null): EntryStatus {
     if (query != null && !queryIsDone(query.status)) {
+        const statusText = getQueryStatusText(
+            query.status,
+            query.statementIndex,
+            query.statementCount,
+            query.statementSucceeded,
+        );
+        // Engines with structured progress add the phase, the progress and the throughput
+        const progress = summarizeQueryProgress(query.latestProgressUpdate);
         return {
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Running,
-            message: getQueryStatusText(
-                query.status,
-                query.statementIndex,
-                query.statementCount,
-                query.statementSucceeded,
-            ),
+            message: progress == null ? statusText : `${statusText} · ${progress}`,
             traceId: query.traceId,
             errorDetail: null,
         };

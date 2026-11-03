@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { QueryExecutionStatus } from '../query/query_execution_state.js';
+import * as dashql from '@ankoh/dashql-core';
+import { QueryExecutionStatus, type QueryExecutionState } from '../query/query_execution_state.js';
+import { ProfileExecutionState } from '../query/profile_execution_state.js';
 import { deriveEntryStatus, EntryStatusKind, getQueryStatusText } from './entry_status_model.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 
@@ -110,6 +112,25 @@ describe('deriveEntryStatus', () => {
         expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED }))).toMatchObject({ indicator: IndicatorStatus.Succeeded, message: 'Statement executed successfully' });
         expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED, servedFromCache: true }))).toMatchObject({ message: 'Result loaded from cache' });
         expect(deriveEntryStatus(null)).toEqual({ kind: EntryStatusKind.Idle, indicator: IndicatorStatus.None, message: 'Not run yet', traceId: null, errorDetail: null });
+    });
+
+    it('adds the phase, progress and throughput of structured progress to a running query', () => {
+        const profile = dashql.buffers.profile;
+        const stats = new profile.ProfileStatsT(
+            profile.ProfileStatsField.TUPLES_IN | profile.ProfileStatsField.WORK_DONE | profile.ProfileStatsField.WORK_TOTAL,
+            0n, 0n, 2_400_000n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 21n, 50n,
+        );
+        const execution = new ProfileExecutionState({ status: profile.ProfileExecutionStatus.RUNNING, stats }, [], [], [], []);
+        const running = (phase: string) => ({
+            queryId: 8,
+            status: QueryExecutionStatus.RUNNING,
+            statementIndex: null,
+            statementCount: null,
+            statementSucceeded: false,
+            latestProgressUpdate: { phase, executionTimeMs: 2000, profileProgress: { execution } },
+        }) as unknown as QueryExecutionState;
+        expect(deriveEntryStatus(running('RUNNING')).message).toBe('Executing query · 42% · 1.2M rows/s');
+        expect(deriveEntryStatus(running('FINISHING')).message).toBe('Executing query · Finishing · 42% · 1.2M rows/s');
     });
 });
 

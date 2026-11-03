@@ -1,6 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import { isStatReported, type ProfileEntityState } from '../../query/profile_execution_state.js';
 import type { QueryProfileProgress } from '../../query/query_progress_model.js';
+import type { QueryExecutionProgress } from '../../query/query_execution_state.js';
 
 const view = dashql.buffers.profile;
 type ProfileStatsT = dashql.buffers.profile.ProfileStatsT;
@@ -120,6 +121,21 @@ export function formatCompactBytes(bytes: number): string {
         unit += 1;
     }
     return `${Number(value.toPrecision(3))} ${units[unit]}`;
+}
+
+/// A short summary of the progress of a running query for its status line, e.g. `Planning` or `42% · 1.2M rows/s`.
+/// Null without structured progress.
+export function summarizeQueryProgress(progress: QueryExecutionProgress | null): string | null {
+    const execution = progress?.profileProgress?.execution;
+    if (progress == null || execution == null) return null;
+    const parts: string[] = [];
+    if (progress.phase != null && progress.phase !== 'RUNNING') parts.push(formatPhase(progress.phase));
+    const work = workOf(execution.query);
+    if (work != null) parts.push(`${Math.floor((work.done / work.total) * 100)}%`);
+    const rows = stat(execution.query, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn);
+    const seconds = (progress.executionTimeMs ?? 0) / 1000;
+    if (rows != null && rows > 0 && seconds >= 1) parts.push(`${formatCompactCount(rows / seconds)} rows/s`);
+    return parts.length === 0 ? null : parts.join(' · ');
 }
 
 /// The fraction of a progress bar that never moves backwards: Trino learns about splits while it schedules,
