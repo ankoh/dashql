@@ -1,4 +1,4 @@
-import { createReadStream, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
@@ -31,6 +31,38 @@ const mimeTypes = {
     '.woff2': 'font/woff2',
 };
 
+// The headers of the Cloudflare Pages deployment, read from the _headers file of the bundle. A line without indentation
+// is a URL pattern where `*` matches any characters, the indented `Name: value` lines below it are its headers. The
+// headers of every matching rule apply, a header of several rules joins their values with a comma, as on Pages.
+function readHeaderRules(file) {
+    const rules = [];
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+        if (line.trim() === '' || line.trimStart().startsWith('#')) continue;
+        if (!/^\s/.test(line)) {
+            const pattern = line.trim().split('*').map(part => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*');
+            rules.push({ pattern: new RegExp(`^${pattern}$`), headers: [] });
+            continue;
+        }
+        const separator = line.indexOf(':');
+        if (separator < 0 || rules.length === 0) throw new Error(`_headers: cannot read the line "${line}"`);
+        rules.at(-1).headers.push([line.slice(0, separator).trim(), line.slice(separator + 1).trim()]);
+    }
+    return rules;
+}
+
+const headerRules = readHeaderRules(join(root, '_headers'));
+
+function responseHeaders(pathname, file, size) {
+    const matched = {};
+    for (const rule of headerRules) {
+        if (!rule.pattern.test(pathname)) continue;
+        for (const [name, value] of rule.headers) {
+            matched[name] = matched[name] == null ? value : `${matched[name]}, ${value}`;
+        }
+    }
+    return { 'Content-Length': String(size), 'Content-Type': mimeTypes[extname(file)] ?? 'application/octet-stream', ...matched };
+}
+
 const server = createServer((request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
     const relative = normalize(pathname === '/' ? 'index.html' : pathname.slice(1));
@@ -40,18 +72,9 @@ const server = createServer((request, response) => {
         return;
     }
     try {
-        if (!statSync(file).isFile()) throw new Error('Not a file');
-        const headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Cross-Origin-Embedder-Policy': 'require-corp',
-            'Cross-Origin-Opener-Policy': 'same-origin',
-            'Content-Type': mimeTypes[extname(file)] ?? 'application/octet-stream',
-        };
-        if (file.endsWith('.br')) {
-            headers['Content-Encoding'] = 'br';
-            headers['Content-Type'] = 'application/wasm';
-        }
-        response.writeHead(200, headers);
+        const stat = statSync(file);
+        if (!stat.isFile()) throw new Error('Not a file');
+        response.writeHead(200, responseHeaders(pathname, file, stat.size));
         createReadStream(file).pipe(response);
     } catch {
         response.writeHead(404).end('Not found');

@@ -361,11 +361,13 @@ copy_to_directory(
     name = "coverage_pages",
     srcs = [
         ":coverage_pages_vite",
+        "_headers",
         "static/config.json",
     ],
     out = "coverage_pages_deploy",
     replace_prefixes = {
         "coverage_pages": "",
+        "packages/dashql-app/_headers": "_headers",
         "packages/dashql-app/static": "static",
     },
     visibility = ["//visibility:private"],
