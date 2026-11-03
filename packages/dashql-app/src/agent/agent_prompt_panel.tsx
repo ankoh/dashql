@@ -3,7 +3,7 @@ import * as styles from './agent_prompt_panel.module.css';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { SquareFillIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
+import { ChevronRightIcon, SquareFillIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { AgentConnectionStatus } from './agent_client.js';
 import type { AgentSessionContext } from './agent_protocol.js';
 import { stringifyError } from '../platform/logger/logger.js';
@@ -98,52 +98,48 @@ export function plainAgentNote(note: string): string {
         .trim();
 }
 
-/// The final message of the agent, clamped to two lines until it is expanded.
-/// The user watched the scripts change and run, a recap of them is rarely worth more than a glance.
-const AgentTurnNote: React.FC<{ note: string }> = ({ note }) => {
-    const text = React.useMemo(() => plainAgentNote(note), [note]);
-    const ref = React.useRef<HTMLDivElement>(null);
-    const [expanded, setExpanded] = React.useState(false);
-    const [overflows, setOverflows] = React.useState(false);
-    React.useLayoutEffect(() => {
-        const element = ref.current;
-        if (element == null || expanded) return;
-        const measure = () => setOverflows(element.scrollHeight > element.clientHeight + 1);
-        measure();
-        const observer = new ResizeObserver(measure);
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, [text, expanded]);
-    return (
-        <div className={styles.turn_note_container}>
-            <div ref={ref} className={styles.turn_note} role="note" data-expanded={expanded ? '' : undefined}>{text}</div>
-            {(overflows || expanded) && (
-                <button
-                    type="button"
-                    className={styles.turn_note_toggle}
-                    aria-expanded={expanded}
-                    data-testid="composer-agent-note-toggle"
-                    onClick={() => setExpanded(e => !e)}
-                >
-                    {expanded ? 'Show less' : 'Show more'}
-                </button>
-            )}
-        </div>
-    );
-};
-
-const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }> = ({ turn, agent }) => {
+/// A question of the session with the answer of the agent.
+/// A collapsed turn shows the question in one line, an expanded turn shows the question, the status line, the final
+/// message and the error in full.
+const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent; expanded: boolean; onToggle: () => void }> = ({ turn, agent, expanded, onToggle }) => {
     const { questionId, question } = turn;
     const working = isAgentAnswering(question);
     const failed = !working && question.error != null;
     const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
+    const note = React.useMemo(() => (question.note != null ? plainAgentNote(question.note) : null), [question.note]);
+    const questionTextId = React.useId();
     return (
-        <li className={styles.turn} data-state={working ? 'working' : (failed ? 'failed' : 'done')} data-testid="composer-agent-turn">
+        <li
+            className={styles.turn}
+            data-state={working ? 'working' : (failed ? 'failed' : 'done')}
+            data-expanded={expanded ? '' : undefined}
+            data-testid="composer-agent-turn"
+        >
             <div className={styles.turn_header}>
-                <span className={styles.turn_indicator}>
-                    <StatusIndicator status={indicator} width="12px" height="12px" />
+                <button
+                    type="button"
+                    className={styles.turn_toggle}
+                    aria-expanded={expanded}
+                    aria-labelledby={questionTextId}
+                    data-testid="composer-agent-turn-toggle"
+                    onClick={onToggle}
+                >
+                    <ChevronRightIcon size={12} className={styles.turn_chevron} />
+                    <span className={styles.turn_indicator}>
+                        <StatusIndicator status={indicator} width="12px" height="12px" />
+                    </span>
+                </button>
+                {/* The question is text that users can select and copy, not a part of the button.
+                    A click expands a collapsed turn, the chevron collapses an expanded one. */}
+                <span
+                    id={questionTextId}
+                    className={styles.turn_question}
+                    title={expanded ? undefined : question.question}
+                    data-testid="composer-agent-turn-question"
+                    onClick={expanded ? undefined : onToggle}
+                >
+                    {question.question}
                 </span>
-                <span className={styles.turn_question} title={question.question}>{question.question}</span>
                 {turn.scripts.map(script => (
                     <button
                         key={script.scriptKey}
@@ -178,18 +174,36 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }>
                     </IconButton>
                 )}
             </div>
-            {working && <div className={styles.turn_status} role="status">{question.status}</div>}
-            {failed && <div className={styles.turn_error} role="alert">{question.error}</div>}
-            {!working && !failed && question.note != null && <AgentTurnNote note={question.note} />}
+            {expanded && working && question.status != null && <div className={styles.turn_status} role="status">{question.status}</div>}
+            {expanded && failed && <div className={styles.turn_error} role="alert">{question.error}</div>}
+            {expanded && !working && !failed && note != null && <div className={styles.turn_note} role="note">{note}</div>}
         </li>
     );
 };
 
+/// Is a turn expanded unless the user toggled it? The latest turn and the turns the agent works on are.
+function isTurnExpandedByDefault(turn: ComposerAgentTurn, index: number, turns: readonly ComposerAgentTurn[]): boolean {
+    return index === turns.length - 1 || isAgentAnswering(turn.question);
+}
+
 /// The agent on top of the composer: the harness, the connection to the agent server and the questions of the
 /// session with their status lines, final messages, errors and the scripts the agent wrote.
+/// The questions scroll within a fixed height, each one expands and collapses.
 /// The scripts only show the edits of the agent.
 export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) => {
     const working = isAgentWorking(agent);
+    // The turns that the user expanded or collapsed
+    const [toggled, setToggled] = React.useState<ReadonlyMap<number, boolean>>(() => new Map());
+    const toggle = React.useCallback((questionId: number, expanded: boolean) => {
+        setToggled(prev => new Map(prev).set(questionId, expanded));
+    }, []);
+    // The turns scroll within a fixed height, a new question scrolls them to the bottom
+    const turnsRef = React.useRef<HTMLUListElement>(null);
+    const latestQuestionId = agent.turns.length > 0 ? agent.turns[agent.turns.length - 1].questionId : null;
+    React.useLayoutEffect(() => {
+        const list = turnsRef.current;
+        if (list != null) list.scrollTop = list.scrollHeight;
+    }, [latestQuestionId]);
     let detail: string;
     if (!agent.connected) {
         detail = `looking for the agent server on port ${agent.port}`;
@@ -207,8 +221,19 @@ export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) 
                 <span className={styles.header_detail} data-testid="composer-agent-detail">{detail}</span>
             </div>
             {agent.turns.length > 0 && (
-                <ul className={styles.turns} aria-label="Questions">
-                    {agent.turns.map(turn => <AgentTurnItem key={turn.questionId} turn={turn} agent={agent} />)}
+                <ul ref={turnsRef} className={styles.turns} aria-label="Questions">
+                    {agent.turns.map((turn, index, turns) => {
+                        const expanded = toggled.get(turn.questionId) ?? isTurnExpandedByDefault(turn, index, turns);
+                        return (
+                            <AgentTurnItem
+                                key={turn.questionId}
+                                turn={turn}
+                                agent={agent}
+                                expanded={expanded}
+                                onToggle={() => toggle(turn.questionId, !expanded)}
+                            />
+                        );
+                    })}
                 </ul>
             )}
         </div>

@@ -86,6 +86,9 @@ describe('Agent prompt panel', () => {
         act(() => root.render(<AgentPromptPanel agent={agent} />));
         const turns = container.querySelectorAll('[data-testid="composer-agent-turn"]');
         expect([...turns].map(turn => turn.getAttribute('data-state'))).toEqual(['done', 'failed', 'done']);
+        for (const turn of [turns[0], turns[1]]) {
+            act(() => turn.querySelector<HTMLButtonElement>('[data-testid="composer-agent-turn-toggle"]')!.click());
+        }
         expect(turns[0].querySelector('[role="note"]')?.textContent).toBe('There are 42 orders');
         expect(turns[0].querySelector('[data-testid="composer-agent-script"]')).toBeNull();
         expect(turns[1].querySelector('[role="alert"]')?.textContent).toBe('HTTP 500');
@@ -98,53 +101,85 @@ describe('Agent prompt panel', () => {
         expect(agent.onDismiss).toHaveBeenCalledExactlyOnceWith(2);
     });
 
-    it('clamps a long answer until it is expanded', () => {
+    it('expands the latest turn and toggles the others', () => {
         container.style.width = '320px';
         const recap = '## Summary\n\nI wrote **top_customers** with `dashql agent edit` and ran it.\n\n'
             + Array.from({ length: 8 }, (_, i) => `- step ${i}: looked at the catalog and the scripts again`).join('\n');
+        const longQuestion = 'which customers ordered the most in the last quarter, grouped by region and with the share of all orders';
         const agent = composerAgent({
             turns: [
-                { questionId: 1, question: { question: 'top customers', status: null, error: null, note: recap, scripts: [4] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
+                { questionId: 1, question: { question: longQuestion, status: null, error: null, note: recap, scripts: [4] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
                 { questionId: 2, question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] }, scripts: [] },
             ],
         });
         act(() => root.render(<AgentPromptPanel agent={agent} />));
         const turns = container.querySelectorAll('[data-testid="composer-agent-turn"]');
+        const toggle = turns[0].querySelector<HTMLButtonElement>('[data-testid="composer-agent-turn-toggle"]')!;
+        // An older turn is collapsed to its question, the latest one is expanded
+        expect(turns[0].hasAttribute('data-expanded')).toBe(false);
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(turns[0].querySelector<HTMLElement>('[data-testid="composer-agent-turn-question"]')!.title).toBe(longQuestion);
+        expect(turns[0].querySelector('[role="note"]')).toBeNull();
+        expect(turns[1].hasAttribute('data-expanded')).toBe(true);
+        expect(turns[1].querySelector('[role="note"]')?.textContent).toBe('There are 42 orders');
+
+        // An expanded turn shows its question and its answer in full
+        act(() => toggle.click());
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        const question = turns[0].querySelector<HTMLElement>('[data-testid="composer-agent-turn-question"]')!;
+        expect(question.scrollWidth).toBeLessThanOrEqual(question.clientWidth);
         const note = turns[0].querySelector<HTMLElement>('[role="note"]')!;
         expect(note.textContent!.startsWith('Summary\n\nI wrote top_customers with dashql agent edit and ran it.')).toBe(true);
-        expect(note.hasAttribute('data-expanded')).toBe(false);
-        expect(note.scrollHeight).toBeGreaterThan(note.clientHeight);
-        // A short answer needs no toggle
-        expect(turns[1].querySelector('[data-testid="composer-agent-note-toggle"]')).toBeNull();
+        expect(note.textContent).toContain('step 7');
+        expect(note.scrollHeight).toBeLessThanOrEqual(note.clientHeight);
 
-        const toggle = turns[0].querySelector<HTMLButtonElement>('[data-testid="composer-agent-note-toggle"]')!;
-        expect(toggle.textContent).toBe('Show more');
-        act(() => toggle.click());
-        expect(note.hasAttribute('data-expanded')).toBe(true);
-        expect(toggle.getAttribute('aria-expanded')).toBe('true');
-        expect(toggle.textContent).toBe('Show less');
+        // The latest turn collapses as well
+        act(() => turns[1].querySelector<HTMLButtonElement>('[data-testid="composer-agent-turn-toggle"]')!.click());
+        expect(turns[1].hasAttribute('data-expanded')).toBe(false);
+        expect(turns[1].querySelector('[role="note"]')).toBeNull();
     });
 
     it('keeps the texts of a turn selectable', () => {
         const agent = composerAgent({
             turns: [
-                { questionId: 1, question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] }, scripts: [] },
-                { questionId: 2, question: { question: 'how many customers', status: null, error: 'HTTP 500', note: null, scripts: [] }, scripts: [] },
-                { questionId: 3, question: { question: 'top customers', status: 'dashql agent catalog', error: null, note: null, scripts: [] }, scripts: [] },
+                { questionId: 1, question: { question: 'how many customers', status: null, error: null, note: 'There are 7 customers', scripts: [] }, scripts: [] },
+                { questionId: 2, question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] }, scripts: [] },
             ],
         });
         act(() => root.render(<AgentPromptPanel agent={agent} />));
         const turns = container.querySelectorAll('[data-testid="composer-agent-turn"]');
-        // The root of the app disables the selection, the question, the answer, the error and the status line enable it again
-        const texts = [
-            turns[0].querySelector<HTMLElement>('[title="how many orders"]')!,
-            turns[0].querySelector<HTMLElement>('[role="note"]')!,
-            turns[1].querySelector<HTMLElement>('[role="alert"]')!,
-            turns[2].querySelector<HTMLElement>('[role="status"]')!,
-        ];
-        for (const text of texts) {
-            expect(getComputedStyle(text).userSelect).toBe('text');
-        }
+        const question = turns[0].querySelector<HTMLElement>('[data-testid="composer-agent-turn-question"]')!;
+        // The question is not a part of the button but names it
+        const toggle = turns[0].querySelector<HTMLButtonElement>('[data-testid="composer-agent-turn-toggle"]')!;
+        expect(toggle.contains(question)).toBe(false);
+        expect(toggle.getAttribute('aria-labelledby')).toBe(question.id);
+        expect(getComputedStyle(question).userSelect).toBe('text');
+
+        // A click on the question expands a collapsed turn, but does not collapse an expanded one
+        act(() => question.click());
+        expect(turns[0].hasAttribute('data-expanded')).toBe(true);
+        const note = turns[0].querySelector<HTMLElement>('[role="note"]')!;
+        expect(getComputedStyle(note).userSelect).toBe('text');
+        act(() => question.click());
+        expect(turns[0].hasAttribute('data-expanded')).toBe(true);
+    });
+
+    it('scrolls to a new question', () => {
+        const turn = (questionId: number) => ({
+            questionId,
+            question: { question: `question ${questionId}`, status: null, error: null, note: 'answer\n'.repeat(12), scripts: [] },
+            scripts: [],
+        });
+        const turns = Array.from({ length: 6 }, (_, i) => turn(i + 1));
+        act(() => root.render(<AgentPromptPanel agent={composerAgent({ turns })} />));
+        const list = container.querySelector<HTMLElement>('[aria-label="Questions"]')!;
+        // The turns scroll within the height of the list
+        expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+        expect(list.scrollTop + list.clientHeight).toBeGreaterThanOrEqual(list.scrollHeight - 1);
+
+        act(() => { list.scrollTop = 0; });
+        act(() => root.render(<AgentPromptPanel agent={composerAgent({ turns: [...turns, turn(7)] })} />));
+        expect(list.scrollTop + list.clientHeight).toBeGreaterThanOrEqual(list.scrollHeight - 1);
     });
 
     it('drops the markdown markers of an answer', () => {
