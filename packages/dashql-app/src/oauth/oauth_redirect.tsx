@@ -358,7 +358,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                                             onClick={() => setLogsAreOpen(s => !s)}
                                         >
                                             <svg width="16px" height="16px">
-                                                <use xlinkHref={`${symbols}#cpu_24`} />
+                                                <use xlinkHref={`${symbols}#cpu_16`} />
                                             </svg>
                                         </IconButton>
                                     )}
