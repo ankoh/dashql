@@ -115,8 +115,11 @@ describe('connections of the same connector', () => {
         const rows = [
             { type: 'connection-group', key: 'g', label: 'This session' },
             { type: 'connection', key: 'a', database: hyper('a') },
+            { type: 'connection-group', key: 'h', label: 'Other connections' },
         ] as any;
-        expect(connectionTreeRowHeight(0, { rows })).toBeLessThan(connectionTreeRowHeight(1, { rows }));
+        // A heading that follows another group keeps more space above it than the first one
+        expect(connectionTreeRowHeight(0, { rows })).toBeLessThan(connectionTreeRowHeight(2, { rows }));
+        expect(connectionTreeRowHeight(1, { rows })).toBeLessThan(connectionTreeRowHeight(2, { rows }));
     });
 });
 

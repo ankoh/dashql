@@ -101,13 +101,16 @@ interface ConnectionGroupRow {
 
 type ConnectionTreeRow = ConnectionGroupRow | ConnectionListRow | ConnectionOverviewRow | ConnectionCatalogRow | CatalogRow;
 
-const CONNECTION_ROW_HEIGHT = 38;
-const CATALOG_ROW_HEIGHT = 34;
-/// The overview and catalog rows below a connection are as tall as the connection row
-const SECTION_ROW_HEIGHT = 38;
+/// The heights of the rows with their spacing, see the heights of the entries in connection_tree.module.css
+const CONNECTION_ROW_HEIGHT = 30;
+const CATALOG_ROW_HEIGHT = 26;
+/// The overview and catalog rows below a connection
+const SECTION_ROW_HEIGHT = 28;
 const CONNECTION_GROUP_ROW_HEIGHT = 26;
 /// The extra space above a group label that follows another group
-const CONNECTION_GROUP_GAP = 12;
+const CONNECTION_GROUP_GAP = 16;
+/// The extra space above the first group label
+const CONNECTION_GROUP_FIRST_GAP = 10;
 
 export function isVisibleCatalogNode(kind: CatalogNode['kind'], name: string): boolean {
     return (kind !== 'database' && kind !== 'schema') || name.trim().length > 0;
@@ -222,6 +225,12 @@ interface ConnectionTreeEntryProps {
     editor?: React.ReactNode;
 }
 
+/// The left padding of an entry: the overview and catalog sit a little deeper than their connection, the catalog
+/// entries one step per level
+function connectionTreeEntryPadding(depth: number): number {
+    return depth === 0 ? 8 : 16 + (depth - 1) * 12;
+}
+
 const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
     name,
     label,
@@ -247,7 +256,7 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
                 styles.tree_entry,
                 className,
             )}
-            style={{ paddingLeft: `${depth === 0 ? 8 : depth * 12}px` }}
+            style={{ paddingLeft: `${connectionTreeEntryPadding(depth)}px` }}
         >
             {editor != null ? (
                 <div className={styles.tree_entry_main} data-testid={testId}>
@@ -367,7 +376,7 @@ export interface ConnectionUsage {
 export function connectionTreeRowHeight(index: number, props: Pick<ConnectionTreeRowProps, 'rows'>): number {
     switch (props.rows[index]?.type) {
         case 'connection-group':
-            return CONNECTION_GROUP_ROW_HEIGHT + (index === 0 ? 4 : CONNECTION_GROUP_GAP);
+            return CONNECTION_GROUP_ROW_HEIGHT + (index === 0 ? CONNECTION_GROUP_FIRST_GAP : CONNECTION_GROUP_GAP);
         case 'connection':
             return CONNECTION_ROW_HEIGHT + (index === 0 ? 8 : 0);
         case 'connection-overview':
