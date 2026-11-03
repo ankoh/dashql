@@ -91,7 +91,7 @@
 .section_actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    column-gap: 6px;
 }
 
 .session_list {
