@@ -22,7 +22,7 @@ describe('dashboard source persistence', () => {
         });
     });
 
-    it('places a collapsed card and keeps the height of its tag', () => {
+    it('places a collapsed card', () => {
         const rewriteVisBoard = vi.fn(() => 'rewritten sql');
         const modify = vi.fn();
         const script = {
@@ -33,7 +33,7 @@ describe('dashboard source persistence', () => {
 
         persistDashboardPlacement(script, { id: 7, section: 'scripts', row: 2, column: 4, width: 5, height: 1 }, modify);
 
-        expect(rewriteVisBoard).toHaveBeenCalledWith(2, 2, 4, 5, 4);
+        expect(rewriteVisBoard).toHaveBeenCalledWith(2, 2, 4, 5, 1);
         expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'rewritten sql', withDiff: false } });
     });
 
@@ -58,7 +58,7 @@ describe('dashboard source persistence', () => {
     });
 
     it('removes the renderer of a visualized card', () => {
-        const rewriteVisRenderer = vi.fn(() => '/* @board width=6 height=3 */\nselect 1');
+        const rewriteVisRenderer = vi.fn(() => 'select 1');
         const modify = vi.fn();
         const script = {
             scriptKey: 7,
@@ -68,7 +68,7 @@ describe('dashboard source persistence', () => {
 
         expect(setDashboardRenderer(script, null, '', modify)).toBe(true);
         expect(rewriteVisRenderer).toHaveBeenCalledWith(1, null, '');
-        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: '/* @board width=6 height=3 */\nselect 1', withDiff: true } });
+        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'select 1', withDiff: true } });
     });
 
     it('starts a Markdown template with the columns', () => {

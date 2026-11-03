@@ -71,18 +71,24 @@ function findOpenPlacement(item: DashboardPlacement, placed: readonly DashboardP
     }
 }
 
-/** Place items deterministically, every section on its own. `ownerId` is placed first and therefore owns its requested cells. */
+/// Does an item ask for a position, a row or a column?
+function isPositioned(item: DashboardLayoutItem): boolean {
+    return item.row != null || item.column != null;
+}
+
+/**
+ * Place items deterministically, every section on its own. `ownerId` is placed first and therefore owns its
+ * requested cells. The items with a position follow, the items without one then flow into the first free space.
+ */
 export function placeDashboardItems(
     items: readonly DashboardLayoutItem[],
     ownerId: number | null = null,
 ): DashboardPlacement[] {
-    const normalized = items.map(normalize);
-    const ordered = ownerId == null
-        ? normalized
-        : [
-            ...normalized.filter(item => item.id === ownerId),
-            ...normalized.filter(item => item.id !== ownerId),
-        ];
+    const rank = (item: DashboardLayoutItem) => item.id === ownerId ? 0 : isPositioned(item) ? 1 : 2;
+    const ordered = items
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => rank(a.item) - rank(b.item) || a.index - b.index)
+        .map(({ item }) => normalize(item));
     const placed: DashboardPlacement[] = [];
     for (const item of ordered) {
         placed.push(findOpenPlacement(item, placed.filter(other => other.section === item.section)));

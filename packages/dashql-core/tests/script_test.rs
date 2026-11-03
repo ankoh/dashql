@@ -356,10 +356,10 @@ fn rewrite_vis_board_places_a_statement_without_a_renderer() {
     // Any statement is placed
     let mut script = parsed_script("create table t (a int)");
     assert_eq!(script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(), "/** @board width=6 height=3 */\ncreate table t (a int)");
-    // A new renderer goes in front of the placement
-    let mut script = parsed_script("/** @board width=4 height=3 */\nselect 1");
+    // A new renderer goes in front of a placement
+    let mut script = parsed_script("/** @vis table */\nselect 1");
     assert_eq!(
-        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
+        script.rewrite_vis_board(0, Some(&board(None, None, 4, 3)), false).unwrap(),
         "/**\n * @vis table\n * @board width=4 height=3\n */\nselect 1"
     );
 }
@@ -433,24 +433,40 @@ fn rewrite_vis_renderer_replaces_inserts_and_removes() {
         script.rewrite_vis_renderer(1, Some(&VisRenderer::Table), false).unwrap(),
         "select 0;\n/** @vis table */\nselect 1 as a"
     );
-    let mut script = parsed_script("/* @board width=4 */\nselect 1 as a");
-    assert_eq!(
-        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
-        "/**\n * @vis table\n * @board width=4\n */\nselect 1 as a"
-    );
     // Removing the only tag removes the comment
     let mut script = parsed_script("/* @vis table */\nselect 1 as a");
     assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "select 1 as a");
 }
 
 #[test]
+fn rewrite_vis_renderer_drops_the_placement_of_another_section() {
+    // A collapsed card that gets a renderer moves to the visualizations, its placement among the scripts is dropped
+    let mut script = parsed_script("/** @board row=2 column=4 width=4 height=1 */\nselect 1 as a");
+    assert_eq!(script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(), "/** @vis table */\nselect 1 as a");
+    let mut script = parsed_script("/**\n * @param :a = 1\n * @vis board width=4\n * @flow x=1 y=2\n */\nselect :a");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
+        "/**\n * @param :a = 1\n * @vis table\n * @flow x=1 y=2\n */\nselect :a"
+    );
+    let mut script = parsed_script("/** @board row=2 width=4 */\nselect 1 as a");
+    assert_eq!(script.rewrite_vegalite("{\"mark\": \"bar\"}", false).unwrap().0, "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1 as a");
+    // A visualization that loses its renderer collapses into the scripts, its placement is dropped
+    let mut script = parsed_script("/* @vis table\n   @board row=12 column=6 width=6 height=4 */\nselect 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "select 1");
+    // Replacing a renderer keeps the card in its section and its placement
+    let mut script = parsed_script("/* @vis table\n   @board row=12 column=6 width=6 height=4 */\nselect 1");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, Some(&vegalite("{\"mark\": \"bar\"}")), false).unwrap(),
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @board row=12 column=6 width=6 height=4\n */\nselect 1"
+    );
+}
+
+#[test]
 fn rewrite_vis_tags_removes_tags() {
     let mut script = parsed_script("/* @vis table\n   @board width=4 */\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** @board width=4 */\nselect 1");
-    let mut script = parsed_script("/* @vis table\n   @board width=4 */\nselect 1");
     assert_eq!(script.rewrite_vis_board(0, None, false).unwrap(), "/** @vis table */\nselect 1");
-    let mut script = parsed_script("/* Sales\n   @vis table\n   @board width=4\n*/\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/**\n * Sales\n *\n * @board width=4\n */\nselect 1");
+    let mut script = parsed_script("/* Sales\n   @vis table\n   @param :a = 1\n*/\nselect :a");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/**\n * Sales\n *\n * @param :a = 1\n */\nselect :a");
     // The text before the first tag stays an ordinary comment
     let mut script = parsed_script("/* Sales\n   @vis table\n*/\nselect 1");
     assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** Sales */\nselect 1");

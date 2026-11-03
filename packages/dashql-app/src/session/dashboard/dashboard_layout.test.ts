@@ -57,12 +57,27 @@ describe('dashboard layout', () => {
         ]);
         expect(placed).toEqual([
             { id: 1, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
-            { id: 2, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
             { id: 3, section: 'scripts', row: 0, column: 4, width: 4, height: 1 },
-            { id: 4, section: 'visualizations', row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 4, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
         expect(dashboardSectionRows(placed, 'scripts')).toBe(1);
         expect(dashboardSectionRows(placed, 'visualizations')).toBe(DASHBOARD_DEFAULT_HEIGHT);
+    });
+
+    it('flows cards without a position into the free space around the positioned cards', () => {
+        const placed = placeDashboardItems([
+            { id: 1, section: 'scripts', width: 4, height: 1 },
+            { id: 2, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
+            { id: 3, section: 'scripts', row: 0, column: 8, width: 4, height: 1 },
+            { id: 4, section: 'scripts', width: 4, height: 1 },
+        ]);
+        expect(placed).toEqual([
+            { id: 1, section: 'scripts', row: 0, column: 4, width: 4, height: 1 },
+            { id: 2, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
+            { id: 3, section: 'scripts', row: 0, column: 8, width: 4, height: 1 },
+            { id: 4, section: 'scripts', row: 1, column: 0, width: 4, height: 1 },
+        ]);
     });
 
     it('displaces only the cards of the section of a moved card', () => {

@@ -2,7 +2,7 @@ import type { LoggerLike } from '../../platform/logger/logger.js';
 import { chartStatementId } from '../scripts/script_compilation.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { SET_SCRIPT_TEXT, type ScriptData } from '../scripts/session_scripts.js';
-import { DASHBOARD_DEFAULT_HEIGHT, type DashboardPlacement } from './dashboard_layout.js';
+import type { DashboardPlacement } from './dashboard_layout.js';
 
 const LOG_CTX = 'dashboard';
 
@@ -17,7 +17,6 @@ function cardStatementId(script: ScriptData): number | null {
 }
 
 /// Write a placement into the `@board` tag of the statement that the card shows.
-/// A collapsed card shows one row, it keeps the height of its tag for the card it becomes with a renderer.
 /// A placement is not staged, but it joins a diff that the card already stages, rejecting the diff moves the card back.
 export function persistDashboardPlacement(
     script: ScriptData,
@@ -26,9 +25,6 @@ export function persistDashboardPlacement(
 ): void {
     const statementId = cardStatementId(script);
     if (statementId == null) return;
-    const height = script.annotations.visualizeQuery != null
-        ? placement.height
-        : script.annotations.boardPosition?.height ?? DASHBOARD_DEFAULT_HEIGHT;
     modifySessionScripts({
         type: SET_SCRIPT_TEXT,
         value: {
@@ -38,7 +34,7 @@ export function persistDashboardPlacement(
                 placement.row,
                 placement.column,
                 placement.width,
-                height,
+                placement.height,
             ),
             withDiff: script.pendingDiff != null,
         },
@@ -46,8 +42,8 @@ export function persistDashboardPlacement(
 }
 
 /// Give the card of a script a renderer, its `@vis` tag. Without a renderer, the tag is removed and the card collapses
-/// to its script, its `@board` tag keeps the placement. The rewrite is staged as a diff to accept or reject, like in
-/// the feed. Returns false if the tag could not be written.
+/// to its script. A card that changes the section loses its `@board` tag and flows into the other section. The rewrite
+/// is staged as a diff to accept or reject, like in the feed. Returns false if the tag could not be written.
 export function setDashboardRenderer(
     script: ScriptData,
     renderer: DashboardRenderer | null,

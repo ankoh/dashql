@@ -82,11 +82,14 @@ tag of the statement it shows (see Rewriting tags).
 
 Every script of the session is a card, placed by the `@board` tag of its last statement. A script whose last
 statement has no renderer is a collapsed card: a header of one row, 4 columns wide by default, whose width can change,
-but not its height. Its `@board` keeps the height of the card that it becomes with a renderer.
+but not its height.
 
 The board has two sections, each a grid of its own: the collapsed cards on top, the visualizations below. `row` and
 `column` count from the top left corner of the section of the card, and a card moves and resizes within its section.
-A collapsed card that gets a renderer moves to the visualizations, at the `row` and `column` of its `@board`.
+A card that gets its first renderer or loses its last one changes the section: the rewrite of the renderer also removes
+its `@board`, and the card flows into its new section with the default size of the section. The cards with a `row` or
+`column` are placed first, in the order of the session, the cards without one then take the first free space, row by
+row.
 
 The header of a collapsed card offers the renderers of a query as icons:
 
@@ -168,7 +171,8 @@ WHERE year = :year;                       * @board width=6 height=3
 - The description goes in front of the tags: the ordinary comments in their order, wherever they were, and the text
   before the first tag of a block comment, separated from the tags by an empty line. After a tag it would read as
   the content of the tag. Other blank lines between the comments of the annotation are removed.
-- A new renderer goes before the other `@vis`, `@board` and `@flow` tags, after the parameters. A new board placement
+- A new renderer goes before the other `@vis`, `@board` and `@flow` tags, after the parameters. Adding the first
+  renderer or removing the last one removes the `@board` tag, the card changes the section. A new board placement
   goes after the renderer, or where a renderer would go. A statement without comments gets a new comment on the line
   before it. A renderer needs a query, a board placement any statement.
 - Removing the last tag leaves the description as the comment, without a description it removes the comment.

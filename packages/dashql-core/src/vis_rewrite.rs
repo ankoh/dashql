@@ -5,7 +5,8 @@
 //! consolidated in one comment. The edited tag is printed anew, the other tags keep their content. A new
 //! renderer goes before the other `@vis` tags, a new board placement after the renderer or, without one, where a
 //! renderer would go. Any statement can be placed on the board, only queries have a renderer. The tags of older
-//! scripts, `@vis board`, `@vis card` and `@vis flow`, are replaced by `@board` and `@flow`. `/*` and `*/` in
+//! scripts, `@vis board`, `@vis card` and `@vis flow`, are replaced by `@board` and `@flow`. A statement that gains
+//! or loses its renderer loses its board placement, the card moves to another section of the board. `/*` and `*/` in
 //! the strings of a Vega-Lite spec are escaped, they would nest or end the comment.
 
 use crate::annotation::{Annotation, AnnotationTag};
@@ -173,7 +174,8 @@ fn rewrite_query(
     crate::annotation::rewrite(text, parsed, statement_id, edit)
 }
 
-/// Set or remove the renderer of a query. Returns the new text and the span of the written tag.
+/// Set or remove the renderer of a query. Adding the first renderer or removing the last one also removes the board
+/// placement. Returns the new text and the span of the written tag.
 pub(crate) fn rewrite_vis_renderer_tag(
     text: &str,
     parsed: &ParsedScript,
@@ -182,6 +184,12 @@ pub(crate) fn rewrite_vis_renderer_tag(
 ) -> Result<(String, Option<TextSpan>)> {
     rewrite_query(text, parsed, statement_id, |annotation| {
         let tags = &mut annotation.tags;
+        // A statement that gains or loses its renderer moves between the sections of the board, its placement in the
+        // section it leaves means nothing in the other one. The placement is dropped, the card flows into the free
+        // space of its new section.
+        if renderer.is_some() != tags.iter().any(is_renderer) {
+            tags.retain(|tag| !is_board(tag));
+        }
         Ok(match (renderer, tags.iter().position(is_renderer)) {
             (Some(renderer), Some(i)) => {
                 tags[i] = renderer.tag();
