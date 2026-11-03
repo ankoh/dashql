@@ -99,8 +99,9 @@ describe('SessionWorkbenchSidebar folders', () => {
     /// The rows of the session list as `<depth>:<label>`, the scripts of a session one level deeper
     function rows(): string[] {
         return Array.from(container.querySelectorAll('ul[aria-label="Sessions"] > li:not([data-testid="session-top-level-drop"])')).map(row => {
-            const caret = row.getAttribute('data-testid') === 'session-script-row' ? 20 : 0;
-            const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - caret) / 16;
+            // A script row starts below the icon of its session, after the caret column
+            const script = row.getAttribute('data-testid') === 'session-script-row';
+            const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - (script ? 20 : 0)) / 16 + (script ? 1 : 0);
             return `${depth}:${rowLabel(row)}`;
         });
     }

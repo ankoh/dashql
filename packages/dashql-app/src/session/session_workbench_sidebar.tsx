@@ -505,8 +505,8 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             <li
                 key={`${item.sessionId}/${fileName}`}
                 className={classNames(styles.entry_surface, styles.entry_interactive, styles.script_row)}
-                // The scripts sit one level deeper than their session
-                style={{ paddingLeft: sessionListRowPadding(depth + 1) + SESSION_LIST_CARET_COLUMN }}
+                // The file icons of the scripts sit directly below the icon of their session
+                style={{ paddingLeft: sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN }}
                 data-testid="session-script-row"
             >
                 <button

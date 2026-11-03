@@ -176,7 +176,9 @@
 
 .entry_interactive:hover,
 .entry_interactive:focus-visible,
-.entry_interactive:focus-within,
+.entry_interactive:focus-within:not(.script_row),
+/* A clicked script keeps the focus, its row only shows a focus from the keyboard */
+.script_row:has(:focus-visible),
 .entry_selected {
     border-color: var(--border_color_primary);
     background: var(--base_color_neutral_0);
