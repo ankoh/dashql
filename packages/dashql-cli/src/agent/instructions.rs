@@ -97,7 +97,7 @@ struct Note {
 }
 
 /// What the agent needs to know about the commands, after their table
-const COMMAND_NOTES: [Note; 7] = [
+const COMMAND_NOTES: [Note; 8] = [
     Note {
         feature: FEATURE_CONNECTIONS,
         text: "`scripts` lists the connections of the session with their connector, read-only or read-write, online or
@@ -131,9 +131,16 @@ const COMMAND_NOTES: [Note; 7] = [
     },
     Note {
         feature: FEATURE_VIS,
+        text: "Leave the size of a chart to DashQL: no `width`, `height`, `autosize` or `padding`, also not in the views
+  of a `layer`, `concat` or `facet`, and no `step` widths. DashQL fits every chart to its card, and the cards of
+  the feed, the dashboard and the dataflow differ in aspect ratio. Prefer a single view over `concat` and `facet`,
+  whose views do not fit their card.",
+    },
+    Note {
+        feature: FEATURE_VIS,
         text: "`vis image` renders the `@vis vegalite` chart of a script with the theme of DashQL, 800x500 at scale 2 unless
   given otherwise. Run the script first, the last result is the data. Look at the PNG to check the chart:
-  overlapping labels, unreadable axes, empty marks.",
+  overlapping labels, unreadable axes, empty marks. Check a narrow card too, e.g. `--width 400 --height 400`.",
     },
 ];
 
@@ -379,6 +386,7 @@ mod tests {
             assert!(text.contains(&command_table()));
             assert!(text.contains("| `dashql agent vis edit <script> [--file f]` |"));
             assert!(text.contains("- `run --force` runs a script with a `@manual` tag"));
+            assert!(text.contains("- Leave the size of a chart to DashQL"));
             assert!(text.contains("- Attachments are Parquet files of the session"));
             assert!(text.contains("`scripts` marks it as\n  `embedded Hyper`"));
             assert!(text.contains("`@param :min = 10`"));
