@@ -48,7 +48,13 @@ fn parse_auto_scans() {
 
 #[test]
 fn analyze_special_function_arguments() {
-    let scripts = ["select coalesce(a, b)", "select nullif(a, b)", "select current_time(2)", "select substring(a, 1, 2)"];
+    let scripts = [
+        "select coalesce(a, b)",
+        "select nullif(a, b)",
+        "select current_time(2)",
+        "select substring(a, 1, 2)",
+        "select try_cast(a as bigint)",
+    ];
     let catalog = Catalog::new();
     for input in scripts {
         let mut script = Script::new(&catalog);

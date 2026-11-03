@@ -631,6 +631,14 @@ parser-snapshots:
   - name: select_knownfunc_35
     input: |
       SELECT overlay('foooooooooooooooooo' placing 'bar' from 3);
+  # Parse try_cast(expr AS type)
+  - name: select_knownfunc_36
+    input: |
+      select try_cast(a as bigint);
+  # Parse try_cast as a column name
+  - name: select_knownfunc_37
+    input: |
+      select try_cast from t;
   # Parse FROM generate_series(...)
   - name: select_table_func_1
     input: |

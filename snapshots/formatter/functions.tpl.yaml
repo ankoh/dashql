@@ -22,6 +22,11 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: func_try_cast
+    input: select try_cast(json_extract_scalar(v, '$.count') as bigint) as n from t
+    dialects:
+      hyper:
+
   # EXTRACT
 
   - name: func_extract_year

@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn finds_keywords() {
-        assert_eq!(KEYWORDS.len(), 458);
+        assert_eq!(KEYWORDS.len(), 459);
         let select = Keyword::find(b"select").unwrap();
         assert_eq!(select.symbol, symbol_kind::S_SELECT);
         assert_eq!(select.category, KeywordCategory::SqlReserved);

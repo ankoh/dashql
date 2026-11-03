@@ -279,6 +279,7 @@ enum KnownFunction : uint8 {
     TRIM,
     NULLIF,
     COALESCE,
+    TRY_CAST,
 }
 
 enum RowLockingStrength: uint8 {

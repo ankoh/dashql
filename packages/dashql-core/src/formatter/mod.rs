@@ -192,6 +192,7 @@ fn get_known_function_text(function: KnownFunction) -> &'static str {
         F::TRIM => "trim",
         F::NULLIF => "nullif",
         F::COALESCE => "coalesce",
+        F::TRY_CAST => "try_cast",
         _ => "",
     }
 }

@@ -2040,6 +2040,19 @@ sql_func_expr_common_subexpr:
           ],
       )
   }
+  | TRY_CAST LRB sql_a_expr AS sql_typename RRB {
+      let args = ctx.object(
+          loc(&[@2, @3, @4, @5, @6]),
+          NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS,
+          &[attr(Key::SQL_FUNCTION_CAST_VALUE, ctx.expression($3)), attr(Key::SQL_FUNCTION_CAST_TYPE, $5)],
+      );
+      ctx.list(
+          &[
+              attr(Key::SQL_FUNCTION_NAME, enum_node(@1, KnownFunction::TRY_CAST)),
+              attr(Key::SQL_FUNCTION_CAST_ARGS, args),
+          ],
+      )
+  }
   | EXTRACT LRB sql_extract_list RRB {
       let args = ctx.object(loc(&[@2, @3, @4]), NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS, $3);
       ctx.list(

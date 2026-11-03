@@ -64,6 +64,23 @@ formatter-snapshots:
             expected: |-
               select cast('2021-01-01' as timestamp with time zone);
 
+  - name: func_try_cast
+    input: |-
+      select try_cast(json_extract_scalar(v, '$.count') as bigint) as n from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select try_cast(json_extract_scalar(v, '$.count') as bigint) as n from t;
+          - mode: compact
+            expected: |-
+              select try_cast(json_extract_scalar(v, '$.count') as bigint) as n from t;
+          - mode: pretty
+            expected: |-
+              select try_cast(json_extract_scalar(v, '$.count') as bigint) as n
+              from t;
+
   - name: func_extract_year
     input: |-
       select extract(year from d)
