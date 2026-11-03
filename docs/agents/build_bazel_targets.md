@@ -139,6 +139,9 @@ bazel test //packages/trino-testing:trino_assumptions_test
 
 # Refresh snapshots/profiles/trino/recordings/ (statement polls, QueryInfo samples, EXPLAIN plans)
 bazel run //packages/trino-testing:trino_recorder
+
+# Serve Trino at http://127.0.0.1:8080 for manual checks of the app, Enter stops it
+bazel run //packages/trino-testing:trino_server [-- --port 8080]
 ```
 
 ### Test Output

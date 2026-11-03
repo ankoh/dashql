@@ -8,6 +8,7 @@ package(default_visibility = ["//visibility:private"])
 #
 #   bazel test //packages/trino-testing:trino_assumptions_test   check the assumptions against Trino
 #   bazel run //packages/trino-testing:trino_recorder            refresh snapshots/profiles/trino/recordings/
+#   bazel run //packages/trino-testing:trino_server              serve Trino on port 8080 for the app
 
 config_setting(
     name = "linux_x86_64",
@@ -104,6 +105,19 @@ rust_binary(
         ":trino_testing",
         "@crates//:serde_json",
     ],
+)
+
+# Runs a local Trino for manual checks of the app: bazel run //packages/trino-testing:trino_server [-- --port 8080]
+rust_binary(
+    name = "trino_server",
+    testonly = True,
+    srcs = ["src/bin/trino_server.rs"],
+    data = _TRINO_DATA,
+    edition = "2021",
+    env = _TRINO_ENV,
+    tags = ["manual"],
+    target_compatible_with = _SUPPORTED_PLATFORMS,
+    deps = [":trino_testing"],
 )
 
 # Checks the assumptions of the query progress model against a live Trino

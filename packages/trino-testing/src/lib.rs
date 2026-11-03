@@ -83,8 +83,13 @@ fn write_config(etc: &Path, data: &Path, plugin_dir: &Path, port: u16) -> io::Re
 }
 
 impl TrinoServer {
-    /// Start a server and wait until it accepts queries
+    /// Start a server on a free port and wait until it accepts queries
     pub fn start() -> io::Result<Self> {
+        Self::start_on_port(free_port()?)
+    }
+
+    /// Start a server on a port and wait until it accepts queries
+    pub fn start_on_port(port: u16) -> io::Result<Self> {
         let launcher = runfile_from_env("TRINO_LAUNCHER")?;
         let java = runfile_from_env("TRINO_JAVA")?;
         let trino_home = launcher.parent().and_then(Path::parent).ok_or_else(|| io::Error::other("bad launcher path"))?;
@@ -93,7 +98,6 @@ impl TrinoServer {
         let scratch = scratch_dir("trino")?;
         let etc = scratch.join("etc");
         let data = scratch.join("data");
-        let port = free_port()?;
         write_config(&etc, &data, &trino_home.join("plugin"), port)?;
 
         // Keep the log next to the test outputs when Bazel collects them
