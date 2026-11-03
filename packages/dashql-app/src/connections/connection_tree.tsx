@@ -14,10 +14,10 @@ import { NameInput } from '../ui/foundations/name_input.js';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
+    CpuIcon,
     DatabaseIcon,
     FileDirectoryIcon,
     PencilIcon,
-    ProcessorIcon,
     SymbolIcon,
     SyncIcon,
     TableIcon,
@@ -485,7 +485,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     testId="connection-overview"
                     name={`Overview of ${label}`}
                     label="Overview"
-                    icon={<ProcessorIcon size={14} />}
+                    icon={<CpuIcon size={14} />}
                     depth={1}
                     selected={props.openOverviewId === row.database.connectionId}
                     onSelect={() => props.onOpenOverview?.(row.database.connectionId)}
