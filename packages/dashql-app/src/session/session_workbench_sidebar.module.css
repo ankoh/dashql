@@ -196,8 +196,9 @@
     font-size: 11px;
 }
 
+/* The menu button keeps the same distance to the right edge of the row as to its top */
 .session_menu_button {
-    margin-right: 4px;
+    margin-right: 2px;
 }
 
 /* The row menu button is lower than a small button, it would set the height of the rows */
