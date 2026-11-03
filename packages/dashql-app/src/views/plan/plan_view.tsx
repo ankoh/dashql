@@ -13,6 +13,7 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { computePlanFitTransform } from './plan_fit.js';
 import { PlanExecutionController } from './plan_execution_controller.js';
+import { PlanExecutionState } from './plan_execution_state.js';
 import { findPlanOperatorInDirection } from './plan_navigation.js';
 import type { PlanNavigationDirection } from './plan_navigation.js';
 import { getPlanOperatorSymbol, PLAN_OPERATOR_SYMBOL_SIZE, shouldRenderPlanOperatorSymbol } from './plan_operator_symbol.js';
@@ -55,7 +56,10 @@ export function createPlanLayoutConfig(showProgress: boolean): dashql.buffers.vi
 }
 
 export interface PlanViewProps {
+    /// The plan structure
     plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>;
+    /// The execution state (the rows of an analyzed plan, the progress of a running query)
+    execution?: PlanExecutionState;
     showProgress?: boolean;
     controllerRef?: React.RefObject<PlanExecutionController | null>;
     autoFocus?: boolean;
@@ -132,7 +136,7 @@ function formatRowCount(value: number): string {
     return ROW_COUNT_FORMAT.format(value);
 }
 
-export function PlanView({ plan, showProgress = false, controllerRef, autoFocus = false, edgeRendering, dependencies = DEFAULT_DEPENDENCIES }: PlanViewProps) {
+export function PlanView({ plan, execution = PlanExecutionState.EMPTY, showProgress = false, controllerRef, autoFocus = false, edgeRendering, dependencies = DEFAULT_DEPENDENCIES }: PlanViewProps) {
     const scene = React.useMemo(() => dependencies.materializePlanScene(plan), [dependencies, plan]);
     const ownController = React.useRef<PlanExecutionController | null>(null);
     ownController.current ??= new PlanExecutionController();
@@ -164,12 +168,16 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
         [rowColorScheme],
     );
     const renderedEdges: RenderedPlanEdge[] = React.useMemo(() => {
-        const rowValues = scene.edges.map(edge => edge.outputCardinalityProduced ?? edge.outputCardinalityEstimated);
+        const actualRows = scene.edges.map(edge => {
+            const rows = execution.edgeRows(edge.slot, edge.childOperator);
+            return rows == null ? null : Number(rows);
+        });
+        const rowValues = scene.edges.map((edge, edgeIndex) => actualRows[edgeIndex] ?? edge.outputCardinalityEstimated);
         const maxRowValue = rowValues.reduce((maximum, value) => Math.max(maximum, value), 0);
         return scene.edges.map((edge, edgeIndex) => {
             const child = scene.operators[edge.childOperator];
             const parent = scene.operators[edge.parentOperator];
-            const actual = edge.outputCardinalityProduced;
+            const actual = actualRows[edgeIndex];
             const difference = actual == null ? null : estimateRelativeDifference(edge.outputCardinalityEstimated, actual);
             const rowValue = rowValues[edgeIndex];
             const rowScaleValue = maxRowValue === 0 ? 0 : Math.log1p(rowValue) / Math.log1p(maxRowValue);
@@ -197,7 +205,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                 },
             };
         });
-    }, [scene, annotationMode, rowColorScheme, edgeDifferenceColor]);
+    }, [scene, execution, annotationMode, rowColorScheme, edgeDifferenceColor]);
     const highlightedEdges = React.useMemo(() => {
         const operatorId = selection?.operator.id;
         return operatorId == null
@@ -239,11 +247,12 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
 
     React.useLayoutEffect(() => {
         controller.reset(scene.operators.length, scene.pipelines.length);
+        controller.applyState(execution);
         if (controllerRef != null) controllerRef.current = controller;
         return () => {
             if (controllerRef != null) controllerRef.current = null;
         };
-    }, [controller, controllerRef, scene]);
+    }, [controller, controllerRef, scene, execution]);
 
     React.useLayoutEffect(() => {
         if (autoFocus) viewportRef.current?.focus();
@@ -610,8 +619,8 @@ const PlanOperatorNode = React.memo(function PlanOperatorNode(props: {
     const input = scene.layoutConfig.input!;
     const regionStart = input.nodePaddingLeft + input.iconWidth + input.iconMarginRight;
     const regionEnd = operator.rect.width - input.nodePaddingRight;
-    const renderSymbol = shouldRenderPlanOperatorSymbol(operator.typeName, operator.label);
-    const symbolName = renderSymbol ? getPlanOperatorSymbol(operator.typeName) : null;
+    const renderSymbol = shouldRenderPlanOperatorSymbol(operator.kind, operator.typeName, operator.label);
+    const symbolName = renderSymbol ? getPlanOperatorSymbol(operator.kind) : null;
     const OperatorSymbol = symbolName != null ? SymbolIcon(symbolName) : null;
     const activate = (event: React.MouseEvent<SVGGElement> | React.KeyboardEvent<SVGGElement>) => {
         if ('key' in event && event.key !== 'Enter' && event.key !== ' ') return;

@@ -17,6 +17,7 @@ snapshot_library(
         "//snapshots/parser:files",
         "//snapshots/planner:files",
         "//snapshots/plans/hyper/tests:files",
+        "//snapshots/plans/progress:files",
         "//snapshots/visualize:files",
     ],
 )

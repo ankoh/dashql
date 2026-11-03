@@ -107,7 +107,7 @@ bazel test //...
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
 | `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
-| `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests |
+| `//packages/dashql-core-view:all` | Plan view model unit tests, and the plan and progress snapshot tests |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
@@ -167,6 +167,7 @@ bazel run //snapshots/dataflow:update
 bazel run //snapshots/visualize:update
 bazel run //snapshots/diff:update
 bazel run //snapshots/plans/hyper/tests:update
+bazel run //snapshots/plans/progress:update
 # All categories at once
 bazel run //snapshots:update
 ```

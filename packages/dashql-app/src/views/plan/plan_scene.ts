@@ -10,40 +10,36 @@ export interface PlanSceneRect {
     height: number;
 }
 
+/// An operator of the plan structure. Execution state lives in `PlanExecutionState`.
 export interface PlanSceneOperator {
     id: number;
+    kind: dashql.buffers.view.PlanOperatorKind;
     typeName: string | null;
     label: string;
     displayLabel: string;
     rect: PlanSceneRect;
     ports: number;
-    statistics: PlanSceneOperatorStatistics;
+    /// The estimated output rows, NaN if the plan has no estimate
+    estimatedRows: number;
     properties: Record<string, unknown>;
-}
-
-export interface PlanSceneOperatorStatistics {
-    inputCardinalityEstimated: number;
-    inputCardinalityConsumed: bigint;
-    outputCardinalityEstimated: number;
-    outputCardinalityProduced: bigint;
-    hasOutputCardinalityProduced: boolean;
-    memoryBytes: bigint;
 }
 
 export const PLAN_OPERATOR_PORT_OUTPUT = 0b01;
 export const PLAN_OPERATOR_PORT_INPUT = 0b10;
 
 export interface PlanSceneEdge {
-    id: bigint;
+    id: number;
     childOperator: number;
     parentOperator: number;
+    /// The slot of the child that carries the edge (U32_MAX if none), its output is the flow over the edge
+    slot: number;
+    /// The estimated rows over the edge, 0 if the plan has no estimate
     outputCardinalityEstimated: number;
-    outputCardinalityProduced: number | null;
     path: string;
 }
 
 export interface PlanSceneCrossEdge {
-    id: bigint;
+    id: number;
     sourceOperator: number;
     targetOperator: number;
     kind: string;
@@ -78,24 +74,6 @@ function readString(vm: dashql.buffers.view.PlanViewModel, id: number): string |
     return id !== U32_MAX ? vm.stringDictionary(id) : null;
 }
 
-function readProperties(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator): Record<string, unknown> {
-    const properties: Record<string, unknown> = {};
-    const attribute = new dashql.buffers.view.PlanAttribute();
-    for (let i = 0; i < op.attributeCount(); ++i) {
-        const value = vm.attributes(op.attributesBegin() + i, attribute);
-        if (value == null) continue;
-        const name = readString(vm, value.name());
-        const json = readString(vm, value.valueJson());
-        if (name == null || json == null) continue;
-        try {
-            properties[name] = JSON.parse(json);
-        } catch {
-            properties[name] = json;
-        }
-    }
-    return properties;
-}
-
 function readAttributeRange(
     vm: dashql.buffers.view.PlanViewModel,
     begin: number,
@@ -116,22 +94,6 @@ function readAttributeRange(
         }
     }
     return properties;
-}
-
-function readNumberProperty(value: unknown, names: readonly string[]): number | null {
-    if (value == null || typeof value !== 'object' || Array.isArray(value)) return null;
-    const properties = value as Record<string, unknown>;
-    for (const name of names) {
-        const metric = properties[name];
-        if (typeof metric === 'number' && Number.isFinite(metric)) return metric;
-    }
-    return null;
-}
-
-export function hasOutputCardinalityProduced(properties: Record<string, unknown>): boolean {
-    const statistics = properties.statistics;
-    return readNumberProperty(statistics, ['output-rows', 'outputRows']) != null
-        || readNumberProperty(properties, ['output-rows', 'outputRows']) != null;
 }
 
 export function estimateRelativeDifference(estimated: number, actual: number): number {
@@ -381,22 +343,30 @@ export function buildFragmentPath(
     return traceFragmentRectangles(rectangles);
 }
 
+/// The values of a range of an index vector
+function readIndexRange(read: (index: number) => number | null, begin: number, count: number): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < count; ++i) {
+        const value = read(begin + i);
+        if (value != null) out.push(value);
+    }
+    return out;
+}
+
+/// Materialize the structure of a plan for rendering. The scene carries no execution state.
 export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>): PlanScene {
     const vm = viewModel.read();
     const layoutConfig = vm.layoutConfig()!.unpack();
+    const input = layoutConfig.input!;
     const operators: PlanSceneOperator[] = new Array(vm.operatorsLength());
     const tmpOperator = new dashql.buffers.view.PlanOperator();
-    const tmpStatistics = new dashql.buffers.view.PlanExecutionStatistics();
     for (let i = 0; i < vm.operatorsLength(); ++i) {
         const op = vm.operators(i, tmpOperator)!;
         const layout = op.layoutRect()!;
-        const statistics = op.executionStatistics(tmpStatistics)!;
-        const typeName = readString(vm, op.operatorTypeName());
-        const label = readString(vm, op.operatorLabel()) ?? typeName ?? 'operator';
-        const properties = readProperties(vm, op);
-        const hasProducedRows = hasOutputCardinalityProduced(properties);
-        const input = layoutConfig.input!;
+        const typeName = readString(vm, op.typeName());
+        const label = readString(vm, op.label()) ?? typeName ?? 'operator';
         const width = getPlanOperatorDisplayWidth(
+            op.kind(),
             typeName,
             label,
             layout.width(),
@@ -405,22 +375,16 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
             input.iconMarginRight,
             input.nodePaddingRight,
         );
-        operators[op.operatorId()] = {
-            id: op.operatorId(),
+        operators[i] = {
+            id: i,
+            kind: op.kind(),
             typeName,
             label,
-            displayLabel: truncatePlanLabel(label, layoutConfig.input!.maxLabelChars),
+            displayLabel: truncatePlanLabel(label, input.maxLabelChars),
             rect: { x: layout.x(), y: layout.y(), width, height: layout.height() },
             ports: 0,
-            statistics: {
-                inputCardinalityEstimated: statistics.inputCardinalityEstimated(),
-                inputCardinalityConsumed: statistics.inputCardinalityConsumed(),
-                outputCardinalityEstimated: statistics.outputCardinalityEstimated(),
-                outputCardinalityProduced: statistics.outputCardinalityProduced(),
-                hasOutputCardinalityProduced: hasProducedRows,
-                memoryBytes: statistics.memoryBytes(),
-            },
-            properties,
+            estimatedRows: op.estimatedRows(),
+            properties: readAttributeRange(vm, op.attributesBegin(), op.attributeCount()),
         };
     }
 
@@ -428,8 +392,8 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
     const tmpEdge = new dashql.buffers.view.PlanOperatorEdge();
     for (let i = 0; i < vm.operatorEdgesLength(); ++i) {
         const edge = vm.operatorEdges(i, tmpEdge)!;
-        const child = operators[edge.childOperator()];
-        const parent = operators[edge.parentOperator()];
+        const child = operators[edge.child()];
+        const parent = operators[edge.parent()];
         child.ports |= PLAN_OPERATOR_PORT_OUTPUT;
         parent.ports |= PLAN_OPERATOR_PORT_INPUT;
         const edgeType = selectVerticalEdgeType(child.rect.x, child.rect.y, parent.rect.x, parent.rect.y);
@@ -439,13 +403,11 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
             child.rect.width, child.rect.height, parent.rect.width, parent.rect.height, 4,
         ).render();
         edges.push({
-            id: edge.edgeId(),
+            id: i,
             childOperator: child.id,
             parentOperator: parent.id,
-            outputCardinalityEstimated: child.statistics.outputCardinalityEstimated,
-            outputCardinalityProduced: child.statistics.hasOutputCardinalityProduced
-                ? Number(child.statistics.outputCardinalityProduced)
-                : null,
+            slot: edge.slot(),
+            outputCardinalityEstimated: Number.isNaN(child.estimatedRows) ? 0 : child.estimatedRows,
             path,
         });
     }
@@ -454,14 +416,14 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
     const tmpCrossEdge = new dashql.buffers.view.PlanOperatorCrossEdge();
     for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
         const edge = vm.operatorCrossEdges(i, tmpCrossEdge)!;
-        const source = operators[edge.sourceNode()];
-        const target = operators[edge.targetNode()];
+        const source = operators[edge.source()];
+        const target = operators[edge.target()];
         if (source == null || target == null) continue;
         source.ports |= PLAN_OPERATOR_PORT_OUTPUT;
         target.ports |= PLAN_OPERATOR_PORT_INPUT;
         const properties = readAttributeRange(vm, edge.attributesBegin(), edge.attributeCount());
         crossEdges.push({
-            id: edge.edgeId(),
+            id: i,
             sourceOperator: source.id,
             targetOperator: target.id,
             kind: typeof properties.kind === 'string' ? properties.kind : 'reference',
@@ -470,38 +432,44 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         });
     }
 
-    const fragments: PlanSceneFragment[] = [];
+    // A fragment owns the operators that are not in a nested fragment, its contour encloses the nested ones too.
+    // Parents come before their children.
+    const fragmentCount = vm.fragmentsLength();
     const tmpFragment = new dashql.buffers.view.PlanFragment();
-    for (let i = 0; i < vm.fragmentsLength(); ++i) {
+    const enclosed: number[][] = [];
+    const parents: number[] = [];
+    const hidden: boolean[] = [];
+    for (let i = 0; i < fragmentCount; ++i) {
         const fragment = vm.fragments(i, tmpFragment)!;
-        const anchorOperator = fragment.anchorOperator();
-        if (operators[anchorOperator]?.typeName === 'executiontarget') continue;
-        const operatorIds: number[] = [];
-        for (let j = 0; j < fragment.operatorCount(); ++j) {
-            const operatorId = vm.fragmentOperators(fragment.operatorsBegin() + j);
-            if (operatorId != null) operatorIds.push(operatorId);
-        }
+        enclosed.push(readIndexRange(j => vm.fragmentOperators(j), fragment.operatorsBegin(), fragment.operatorCount()));
+        parents.push(fragment.parentFragment());
+        hidden.push(fragment.hidden() !== 0);
+    }
+    for (let i = fragmentCount - 1; i >= 0; --i) {
+        const parent = parents[i];
+        if (parent !== U32_MAX && parent < i) enclosed[parent].push(...enclosed[i]);
+    }
+    const fragments: PlanSceneFragment[] = [];
+    for (let i = 0; i < fragmentCount; ++i) {
+        if (hidden[i]) continue;
         fragments.push({
-            id: fragment.fragmentId(),
-            operatorIds,
-            path: buildFragmentPath(operatorIds, operators, edges),
+            id: i,
+            operatorIds: enclosed[i],
+            path: buildFragmentPath(enclosed[i], operators, edges),
         });
     }
 
     const pipelines: PlanScenePipeline[] = [];
     const tmpPipeline = new dashql.buffers.view.PlanPipeline();
+    const tmpSlot = new dashql.buffers.view.PlanSlot();
     for (let i = 0; i < vm.pipelinesLength(); ++i) {
         const pipeline = vm.pipelines(i, tmpPipeline)!;
-        const operatorIds: number[] = [];
-        for (let j = 0; j < pipeline.operatorCount(); ++j) {
-            const operatorId = vm.pipelineOperators(pipeline.operatorsBegin() + j);
-            if (operatorId != null) operatorIds.push(operatorId);
-        }
-        pipelines[pipeline.pipelineId()] = {
-            id: pipeline.pipelineId(),
+        const operatorIds = readIndexRange(j => vm.slots(j, tmpSlot)?.operator() ?? null, pipeline.slotsBegin(), pipeline.slotCount());
+        pipelines.push({
+            id: i,
             operatorIds,
             path: buildPipelinePath(operatorIds, operators),
-        };
+        });
     }
 
     const bounds = vm.layoutRect();

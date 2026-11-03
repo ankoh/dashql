@@ -1,5 +1,9 @@
 //! The plan view model and its FlatBuffers encoding.
+//!
+//! The structure (operators, edges, fragments, pipelines, slots) carries no execution state. The execution state
+//! lives in `progress` and leaves the model only as events.
 
+use super::progress::ExecutionState;
 use dashql_buffers::parser::SymbolSpan;
 use dashql_buffers::view as fb;
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
@@ -34,8 +38,10 @@ pub(super) struct ParsedOperatorNode {
     pub(super) parent_child_path: Vec<PathComponent>,
     /// The members of the operator object that contain no operators, values serialized as JSON
     pub(super) attributes: Vec<(String, String)>,
-    /// The execution statistics
-    pub(super) statistics: fb::PlanExecutionStatistics,
+    /// The estimated output rows
+    pub(super) estimated_rows: Option<f64>,
+    /// The runtime counters of an analyzed plan
+    pub(super) analyzed: super::progress::Stats,
     /// The references to other operators
     pub(super) references: Vec<OperatorReference>,
     /// The operator type
@@ -50,15 +56,24 @@ pub(super) struct ParsedOperatorNode {
     pub(super) source_location: Option<SymbolSpan>,
 }
 
-/// A fragment
+/// A fragment: a part of the plan that the engine schedules as a unit (a Hyper federate, a Trino stage).
+///
+/// Fragments form a hierarchy. Every operator belongs to its innermost fragment only, so rollups over the
+/// hierarchy count every operator once.
 #[derive(Debug, Default)]
 pub(super) struct Fragment {
-    /// The fragment id
-    pub(super) fragment_id: u32,
-    /// The operator that introduces the fragment
-    pub(super) anchor_operator: u32,
-    /// The anchor and all operators reachable below it
+    /// The fragment id of the engine
+    pub(super) engine_id: Option<String>,
+    /// The enclosing fragment
+    pub(super) parent_fragment: Option<u32>,
+    /// The root operator
+    pub(super) root_operator: Option<u32>,
+    /// The operators owned by the fragment
     pub(super) operators: Vec<u32>,
+    /// The attributes, values serialized as JSON
+    pub(super) attributes: Vec<(String, String)>,
+    /// Draw no contour?
+    pub(super) hidden: bool,
 }
 
 /// A pipeline.
@@ -66,22 +81,30 @@ pub(super) struct Fragment {
 /// Hyper implements a Fork operator that will effectively result in two pipeline targets.
 #[derive(Debug, Default)]
 pub(super) struct Pipeline {
-    /// The pipeline id
-    pub(super) pipeline_id: u32,
-    /// The id serialized by Hyper (not packed)
-    #[allow(dead_code)]
-    pub(super) source_pipeline_id: Option<u64>,
-    /// The operators that belong to this pipeline
-    pub(super) operators: Vec<u32>,
-    /// The edges in the pipeline
-    pub(super) edges: Vec<fb::PlanPipelineEdge>,
+    /// The pipeline id of the engine
+    pub(super) engine_id: Option<String>,
+    /// The fragment that runs the pipeline
+    pub(super) fragment: Option<u32>,
+    /// The slots of the pipeline (indexes into `PlanViewModel::slots`)
+    pub(super) slots: Vec<u32>,
+    /// The attributes, values serialized as JSON
+    pub(super) attributes: Vec<(String, String)>,
+}
+
+/// A slot: an operator in a pipeline, the finest grain of execution statistics
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Slot {
+    /// The pipeline
+    pub(super) pipeline: u32,
+    /// The operator
+    pub(super) operator: u32,
+    /// The role of the operator in the pipeline
+    pub(super) role: fb::PlanSlotRole,
 }
 
 /// A non-containment relationship between operators
 #[derive(Debug)]
 pub(super) struct OperatorCrossEdge {
-    /// The edge id
-    pub(super) edge_id: u32,
     /// The referenced producer operator
     pub(super) source_node: u32,
     /// The operator containing the reference
@@ -95,11 +118,6 @@ pub(super) struct OperatorCrossEdge {
 /// An operator edge
 #[derive(Debug)]
 pub(super) struct OperatorEdge {
-    /// The edge id
-    pub(super) edge_id: u32,
-    /// The pipeline (if assigned, not packed)
-    #[allow(dead_code)]
-    pub(super) pipeline: Option<u32>,
     /// The parent operator
     pub(super) parent_operator: u32,
     /// The child operator
@@ -108,27 +126,33 @@ pub(super) struct OperatorEdge {
     pub(super) parent_port_count: usize,
     /// The port id in the parent where this edge ends
     pub(super) parent_port_index: usize,
+    /// The slot of the child in the pipeline that carries the edge
+    pub(super) slot: Option<u32>,
 }
 
 /// A sealed operator node
 #[derive(Debug, Default)]
 pub(super) struct OperatorNode {
-    /// The operator id
-    pub(super) operator_id: u32,
     /// The operator type
     pub(super) operator_type: Option<String>,
     /// The operator label
     pub(super) operator_label: Option<String>,
-    /// The operator id serialized by Hyper
+    /// The engine-neutral operator kind
+    pub(super) kind: fb::PlanOperatorKind,
+    /// The operator id of the engine
+    pub(super) engine_id: Option<String>,
+    /// The operator id serialized by Hyper, until the cross edges and pipelines are resolved
     pub(super) source_operator_id: Option<u64>,
     /// The members of the operator object that contain no operators, values serialized as JSON
     pub(super) attributes: Vec<(String, String)>,
-    /// The execution statistics
-    pub(super) statistics: fb::PlanExecutionStatistics,
+    /// The estimated output rows
+    pub(super) estimated_rows: Option<f64>,
+    /// The runtime counters of an analyzed plan, until they are applied as events
+    pub(super) analyzed: super::progress::Stats,
     /// The references to other operators, until the cross edges are resolved
     pub(super) references: Vec<OperatorReference>,
-    /// The parent operator id
-    pub(super) parent_operator_id: Option<usize>,
+    /// The parent operator
+    pub(super) parent: Option<usize>,
     /// The parent path
     pub(super) parent_path: Vec<PathComponent>,
     /// The source location
@@ -141,6 +165,10 @@ pub(super) struct OperatorNode {
     pub(super) cross_edges_begin: usize,
     /// The number of outgoing cross edges
     pub(super) cross_edge_count: usize,
+    /// The slots of the operator
+    pub(super) slots: Vec<u32>,
+    /// The innermost fragment
+    pub(super) fragment: Option<u32>,
     /// The layout info
     pub(super) layout_rect: Option<fb::PlanLayoutRect>,
 }
@@ -151,14 +179,21 @@ impl OperatorNode {
         Self {
             operator_type: parsed.operator_type,
             operator_label: parsed.operator_label,
+            engine_id: parsed.source_operator_id.map(|id| id.to_string()),
             source_operator_id: parsed.source_operator_id,
             attributes: parsed.attributes,
-            statistics: parsed.statistics,
+            estimated_rows: parsed.estimated_rows,
+            analyzed: parsed.analyzed,
             references: parsed.references,
             parent_path: parsed.parent_child_path,
             source_location: parsed.source_location,
             ..Default::default()
         }
+    }
+
+    /// The child operators
+    pub(super) fn children(&self) -> std::ops::Range<usize> {
+        self.children_begin..self.children_begin + self.children_count
     }
 
     /// Serialize the parent child path
@@ -204,10 +239,39 @@ impl StringDictionary {
         self.string_ids.insert(s.to_string(), id);
         id
     }
+
+    /// Allocate an optional string, u32::MAX if there is none
+    fn allocate_opt(&mut self, s: Option<&str>) -> u32 {
+        s.map(|s| self.allocate(s)).unwrap_or(u32::MAX)
+    }
 }
 
-/// The view model of a Hyper plan
+/// Pack attributes, returns the begin and the count
+fn pack_attributes(
+    source: &[(String, String)],
+    strings: &mut StringDictionary,
+    attributes: &mut Vec<fb::PlanAttribute>,
+) -> (u32, u32) {
+    let begin = attributes.len();
+    for (name, value_json) in source {
+        attributes.push(fb::PlanAttribute::new(strings.allocate(name), strings.allocate(value_json)));
+    }
+    (begin as u32, (attributes.len() - begin) as u32)
+}
+
+/// An optional index as u32, u32::MAX if there is none
+pub(super) fn index_or_max(index: Option<u32>) -> u32 {
+    index.unwrap_or(u32::MAX)
+}
+
+/// The view model of a query plan.
+///
+/// It holds the structure of a plan (Hyper or Trino) and the execution state of a running or analyzed query.
 pub struct PlanViewModel {
+    /// The engine that produced the plan
+    pub(super) engine: fb::PlanEngine,
+    /// The structure version
+    pub(super) structure_version: u32,
     /// The operators
     pub(super) operators: Vec<OperatorNode>,
     /// The operator edges
@@ -216,10 +280,16 @@ pub struct PlanViewModel {
     pub(super) operator_cross_edges: Vec<OperatorCrossEdge>,
     /// The root operators
     pub(super) root_operators: Vec<u32>,
-    /// The pipelines
-    pub(super) pipelines: Vec<Pipeline>,
     /// The fragments
     pub(super) fragments: Vec<Fragment>,
+    /// The pipelines
+    pub(super) pipelines: Vec<Pipeline>,
+    /// The slots
+    pub(super) slots: Vec<Slot>,
+    /// The number of fragments, pipelines and slots of the loaded plan, the rest was registered at runtime
+    pub(super) loaded_counts: (usize, usize, usize),
+    /// The execution state
+    pub(super) execution: ExecutionState,
     /// The layout config
     pub(super) layout_config: fb::DerivedPlanLayoutConfig,
     /// The layout info of the entire plan
@@ -236,36 +306,80 @@ impl PlanViewModel {
     /// Constructor
     pub fn new() -> Self {
         Self {
+            engine: fb::PlanEngine::UNKNOWN,
+            structure_version: 0,
             operators: Vec::new(),
             operator_edges: Vec::new(),
             operator_cross_edges: Vec::new(),
             root_operators: Vec::new(),
-            pipelines: Vec::new(),
             fragments: Vec::new(),
+            pipelines: Vec::new(),
+            slots: Vec::new(),
+            loaded_counts: (0, 0, 0),
+            execution: ExecutionState::default(),
             layout_config: fb::DerivedPlanLayoutConfig::default(),
             layout_rect: None,
         }
     }
 
-    /// Reset the entire view model. The layout config is kept.
+    /// Reset the entire view model. The layout config is kept, the structure version grows.
     pub fn reset(&mut self) {
-        self.pipelines.clear();
+        self.engine = fb::PlanEngine::UNKNOWN;
+        self.structure_version = self.structure_version.wrapping_add(1);
         self.fragments.clear();
+        self.pipelines.clear();
+        self.slots.clear();
         self.root_operators.clear();
         self.operators.clear();
         self.operator_edges.clear();
         self.operator_cross_edges.clear();
+        self.loaded_counts = (0, 0, 0);
+        self.execution = ExecutionState::default();
         self.layout_rect = None;
     }
 
-    /// Reset the view model execution (not implemented, does nothing)
-    pub fn reset_execution(&mut self) {}
+    /// The structure version
+    pub fn structure_version(&self) -> u32 {
+        self.structure_version
+    }
 
-    /// Register a pipeline
-    pub(super) fn register_pipeline(&mut self, source_pipeline_id: Option<u64>) -> &mut Pipeline {
-        let pipeline_id = self.pipelines.len() as u32;
-        self.pipelines.push(Pipeline { pipeline_id, source_pipeline_id, ..Default::default() });
-        self.pipelines.last_mut().unwrap()
+    /// Seal the structure of a loaded plan: everything registered later is runtime structure
+    pub(super) fn seal_loaded_structure(&mut self) {
+        self.loaded_counts = (self.fragments.len(), self.pipelines.len(), self.slots.len());
+        self.execution.resize(self.fragments.len(), self.pipelines.len(), self.slots.len(), self.operators.len());
+    }
+
+    /// Add a pipeline with its slots, returns the pipeline index.
+    ///
+    /// An operator appears at most once per pipeline, the first role wins. Edges between two operators of the
+    /// pipeline that have no slot yet are carried by the slot of their child in this pipeline.
+    pub(super) fn add_pipeline(
+        &mut self,
+        engine_id: Option<String>,
+        fragment: Option<u32>,
+        slots: &[(u32, fb::PlanSlotRole)],
+        attributes: Vec<(String, String)>,
+    ) -> u32 {
+        let pipeline = self.pipelines.len() as u32;
+        let mut slot_of: HashMap<u32, u32> = HashMap::with_capacity(slots.len());
+        let mut pipeline_slots = Vec::with_capacity(slots.len());
+        for &(operator, role) in slots {
+            if slot_of.contains_key(&operator) {
+                continue;
+            }
+            let slot = self.slots.len() as u32;
+            self.slots.push(Slot { pipeline, operator, role });
+            self.operators[operator as usize].slots.push(slot);
+            slot_of.insert(operator, slot);
+            pipeline_slots.push(slot);
+        }
+        for edge in &mut self.operator_edges {
+            if edge.slot.is_none() && slot_of.contains_key(&edge.parent_operator) {
+                edge.slot = slot_of.get(&edge.child_operator).copied();
+            }
+        }
+        self.pipelines.push(Pipeline { engine_id, fragment, slots: pipeline_slots, attributes });
+        pipeline
     }
 
     /// Flatten the operators.
@@ -316,13 +430,12 @@ impl PlanViewModel {
     }
 
     /// Append a flattened operator and point its children at it
-    fn place_operator(&mut self, mut node: OperatorNode) -> usize {
+    fn place_operator(&mut self, node: OperatorNode) -> usize {
         let operator_id = self.operators.len();
-        node.operator_id = operator_id as u32;
-        let (children_begin, children_count) = (node.children_begin, node.children_count);
+        let children = node.children();
         self.operators.push(node);
-        for child in &mut self.operators[children_begin..children_begin + children_count] {
-            child.parent_operator_id = Some(operator_id);
+        for child in &mut self.operators[children] {
+            child.parent = Some(operator_id);
         }
         operator_id
     }
@@ -331,14 +444,16 @@ impl PlanViewModel {
     fn pack_operator(
         &self,
         op: &OperatorNode,
+        slots_begin: usize,
         strings: &mut StringDictionary,
         attributes: &mut Vec<fb::PlanAttribute>,
     ) -> fb::PlanOperator {
         let mut out = fb::PlanOperator::default();
-        out.set_operator_id(op.operator_id);
-        out.set_operator_type_name(op.operator_type.as_ref().map(|t| strings.allocate(t)).unwrap_or(u32::MAX));
-        out.set_operator_label(op.operator_label.as_ref().map(|l| strings.allocate(l)).unwrap_or(u32::MAX));
-        out.set_parent_operator_id(op.parent_operator_id.map(|p| p as u32).unwrap_or(u32::MAX));
+        out.set_engine_id(strings.allocate_opt(op.engine_id.as_deref()));
+        out.set_kind(op.kind);
+        out.set_type_name(strings.allocate_opt(op.operator_type.as_deref()));
+        out.set_label(strings.allocate_opt(op.operator_label.as_deref()));
+        out.set_parent(op.parent.map(|p| p as u32).unwrap_or(u32::MAX));
         out.set_parent_path(strings.allocate(&op.serialize_parent_path()));
         if let Some(loc) = &op.source_location {
             out.set_source_location(&SymbolSpan::new(loc.offset(), loc.length()));
@@ -347,17 +462,13 @@ impl PlanViewModel {
         out.set_children_count(op.children_count as u32);
         out.set_cross_edges_begin(op.cross_edges_begin as u32);
         out.set_cross_edge_count(op.cross_edge_count as u32);
-        let attributes_begin = attributes.len();
-        out.set_attributes_begin(attributes_begin as u32);
-        for (name, value_json) in &op.attributes {
-            let mut attribute = fb::PlanAttribute::default();
-            attribute.set_attribute_id(attributes.len() as u32);
-            attribute.set_name(strings.allocate(name));
-            attribute.set_value_json(strings.allocate(value_json));
-            attributes.push(attribute);
-        }
-        out.set_attribute_count((attributes.len() - attributes_begin) as u32);
-        out.set_execution_statistics(&op.statistics);
+        let (attributes_begin, attribute_count) = pack_attributes(&op.attributes, strings, attributes);
+        out.set_attributes_begin(attributes_begin);
+        out.set_attribute_count(attribute_count);
+        out.set_slots_begin(slots_begin as u32);
+        out.set_slot_count(op.slots.len() as u32);
+        out.set_fragment(index_or_max(op.fragment));
+        out.set_estimated_rows(op.estimated_rows.unwrap_or(f64::NAN));
         if let Some(rect) = &op.layout_rect {
             out.set_layout_rect(rect);
         }
@@ -368,44 +479,15 @@ impl PlanViewModel {
     pub fn pack<'a>(&self, builder: &mut FlatBufferBuilder<'a>) -> WIPOffset<fb::PlanViewModel<'a>> {
         // Track strings in a dictionary for flatbuffer
         let mut dictionary = StringDictionary::default();
-
-        // Pack plan fragments
-        let mut flat_fragments = Vec::with_capacity(self.fragments.len());
-        let mut flat_fragment_operators: Vec<u32> = Vec::new();
-        for f in &self.fragments {
-            let operators_begin = flat_fragment_operators.len();
-            flat_fragment_operators.extend_from_slice(&f.operators);
-            let mut fragment = fb::PlanFragment::default();
-            fragment.set_fragment_id(f.fragment_id);
-            fragment.set_anchor_operator(f.anchor_operator);
-            fragment.set_operators_begin(operators_begin as u32);
-            fragment.set_operator_count((flat_fragment_operators.len() - operators_begin) as u32);
-            flat_fragments.push(fragment);
-        }
-
-        // Pack plan pipelines
-        let mut flat_pipelines = Vec::with_capacity(self.pipelines.len());
-        let mut flat_pipeline_edges: Vec<fb::PlanPipelineEdge> = Vec::new();
-        let mut flat_pipeline_operators: Vec<u32> = Vec::new();
-        for p in &self.pipelines {
-            let edges_begin = flat_pipeline_edges.len();
-            flat_pipeline_edges.extend_from_slice(&p.edges);
-            let operators_begin = flat_pipeline_operators.len();
-            flat_pipeline_operators.extend_from_slice(&p.operators);
-            let mut pipeline = fb::PlanPipeline::default();
-            pipeline.set_pipeline_id(flat_pipelines.len() as u32);
-            pipeline.set_edges_begin(edges_begin as u32);
-            pipeline.set_edge_count((flat_pipeline_edges.len() - edges_begin) as u32);
-            pipeline.set_operators_begin(operators_begin as u32);
-            pipeline.set_operator_count((flat_pipeline_operators.len() - operators_begin) as u32);
-            flat_pipelines.push(pipeline);
-        }
-
-        // Pack plan operators
-        let mut flat_ops = Vec::with_capacity(self.operators.len());
         let mut flat_attributes: Vec<fb::PlanAttribute> = Vec::new();
+
+        // Pack plan operators and their slots
+        let mut flat_ops = Vec::with_capacity(self.operators.len());
+        let mut flat_operator_slots: Vec<u32> = Vec::with_capacity(self.slots.len());
         for op in &self.operators {
-            flat_ops.push(self.pack_operator(op, &mut dictionary, &mut flat_attributes));
+            let slots_begin = flat_operator_slots.len();
+            flat_operator_slots.extend_from_slice(&op.slots);
+            flat_ops.push(self.pack_operator(op, slots_begin, &mut dictionary, &mut flat_attributes));
         }
 
         // Pack the plan edges
@@ -413,49 +495,74 @@ impl PlanViewModel {
             .operator_edges
             .iter()
             .map(|edge| {
-                let mut out = fb::PlanOperatorEdge::default();
-                out.set_edge_id(edge.edge_id as u64);
-                out.set_parent_operator(edge.parent_operator);
-                out.set_parent_operator_port_count(edge.parent_port_count as u32);
-                out.set_parent_operator_port_index(edge.parent_port_index as u32);
-                out.set_child_operator(edge.child_operator);
-                out.set_pipeline_id(u32::MAX);
-                out
+                fb::PlanOperatorEdge::new(
+                    edge.child_operator,
+                    edge.parent_operator,
+                    edge.parent_port_index as u32,
+                    edge.parent_port_count as u32,
+                    index_or_max(edge.slot),
+                )
             })
             .collect();
 
         // Pack the plan cross edges and their relationship metadata
         let mut flat_cross_edges = Vec::with_capacity(self.operator_cross_edges.len());
         for edge in &self.operator_cross_edges {
-            let mut flat = fb::PlanOperatorCrossEdge::default();
-            flat.set_edge_id(edge.edge_id as u64);
-            flat.set_source_node(edge.source_node);
-            flat.set_target_node(edge.target_node);
-            flat.set_pipeline_id(u32::MAX);
             let attributes_begin = flat_attributes.len();
-            flat.set_attributes_begin(attributes_begin as u32);
+            let kind = (String::from("kind"), format!("\"{}\"", edge.kind));
+            pack_attributes(std::slice::from_ref(&kind), &mut dictionary, &mut flat_attributes);
+            pack_attributes(&edge.attributes, &mut dictionary, &mut flat_attributes);
+            flat_cross_edges.push(fb::PlanOperatorCrossEdge::new(
+                edge.source_node,
+                edge.target_node,
+                attributes_begin as u32,
+                (flat_attributes.len() - attributes_begin) as u32,
+            ));
+        }
 
-            let mut kind = fb::PlanAttribute::default();
-            kind.set_attribute_id(flat_attributes.len() as u32);
-            kind.set_name(dictionary.allocate("kind"));
-            kind.set_value_json(dictionary.allocate(&format!("\"{}\"", edge.kind)));
-            flat_attributes.push(kind);
-            for (name, value_json) in &edge.attributes {
-                let mut attribute = fb::PlanAttribute::default();
-                attribute.set_attribute_id(flat_attributes.len() as u32);
-                attribute.set_name(dictionary.allocate(name));
-                attribute.set_value_json(dictionary.allocate(value_json));
-                flat_attributes.push(attribute);
-            }
-            flat.set_attribute_count((flat_attributes.len() - attributes_begin) as u32);
-            flat_cross_edges.push(flat);
+        // Pack plan fragments
+        let mut flat_fragments = Vec::with_capacity(self.fragments.len());
+        let mut flat_fragment_operators: Vec<u32> = Vec::new();
+        for f in &self.fragments {
+            let operators_begin = flat_fragment_operators.len();
+            flat_fragment_operators.extend_from_slice(&f.operators);
+            let (attributes_begin, attribute_count) =
+                pack_attributes(&f.attributes, &mut dictionary, &mut flat_attributes);
+            flat_fragments.push(fb::PlanFragment::new(
+                dictionary.allocate_opt(f.engine_id.as_deref()),
+                index_or_max(f.parent_fragment),
+                index_or_max(f.root_operator),
+                operators_begin as u32,
+                (flat_fragment_operators.len() - operators_begin) as u32,
+                attributes_begin,
+                attribute_count,
+                f.hidden as u8,
+            ));
+        }
+
+        // Pack plan pipelines and their slots.
+        // Slots are created pipeline by pipeline (`add_pipeline`), so the slots of a pipeline are contiguous.
+        let flat_slots: Vec<fb::PlanSlot> =
+            self.slots.iter().map(|s| fb::PlanSlot::new(s.pipeline, s.operator, s.role)).collect();
+        let mut flat_pipelines = Vec::with_capacity(self.pipelines.len());
+        for p in &self.pipelines {
+            let (attributes_begin, attribute_count) =
+                pack_attributes(&p.attributes, &mut dictionary, &mut flat_attributes);
+            flat_pipelines.push(fb::PlanPipeline::new(
+                dictionary.allocate_opt(p.engine_id.as_deref()),
+                index_or_max(p.fragment),
+                p.slots.first().copied().unwrap_or(0),
+                p.slots.len() as u32,
+                attributes_begin,
+                attribute_count,
+            ));
         }
 
         let flat_fragments_ofs = builder.create_vector(&flat_fragments);
         let flat_fragment_operators_ofs = builder.create_vector(&flat_fragment_operators);
         let flat_pipelines_ofs = builder.create_vector(&flat_pipelines);
-        let flat_pipeline_edges_ofs = builder.create_vector(&flat_pipeline_edges);
-        let flat_pipeline_operators_ofs = builder.create_vector(&flat_pipeline_operators);
+        let flat_slots_ofs = builder.create_vector(&flat_slots);
+        let flat_operator_slots_ofs = builder.create_vector(&flat_operator_slots);
         let flat_ops_ofs = builder.create_vector(&flat_ops);
         let flat_attributes_ofs = builder.create_vector(&flat_attributes);
         let flat_edges_ofs = builder.create_vector(&flat_op_edges);
@@ -468,20 +575,21 @@ impl PlanViewModel {
         fb::PlanViewModel::create(
             builder,
             &fb::PlanViewModelArgs {
+                engine: self.engine,
+                structure_version: self.structure_version,
                 layout_config: Some(&self.layout_config),
+                layout_rect: self.layout_rect.as_ref(),
                 string_dictionary: Some(string_dictionary_ofs),
+                attributes: Some(flat_attributes_ofs),
+                operators: Some(flat_ops_ofs),
+                root_operators: Some(flat_roots_ofs),
+                operator_edges: Some(flat_edges_ofs),
+                operator_cross_edges: Some(flat_cross_edges_ofs),
                 fragments: Some(flat_fragments_ofs),
                 fragment_operators: Some(flat_fragment_operators_ofs),
                 pipelines: Some(flat_pipelines_ofs),
-                pipeline_edges: Some(flat_pipeline_edges_ofs),
-                pipeline_operators: Some(flat_pipeline_operators_ofs),
-                operators: Some(flat_ops_ofs),
-                attributes: Some(flat_attributes_ofs),
-                operator_edges: Some(flat_edges_ofs),
-                operator_cross_edges: Some(flat_cross_edges_ofs),
-                root_operators: Some(flat_roots_ofs),
-                layout_rect: self.layout_rect.as_ref(),
-                operator_pipelines: None,
+                slots: Some(flat_slots_ofs),
+                operator_slots: Some(flat_operator_slots_ofs),
             },
         )
     }

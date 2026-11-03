@@ -51,4 +51,22 @@ describe('Core plan scene integration', () => {
         }`);
         expect(materializePlanScene(plan).fragments).toHaveLength(0);
     });
+    it('encloses nested fragments in the contour of their parent', () => {
+        const plan = createViewModel().loadHyperPlan(`{
+            "operator":"federate","inputs":[{"operator":"map","input":{"operator":"federate","inputs":[{"operator":"scan"}]}}]
+        }`);
+        const fragments = materializePlanScene(plan).fragments;
+        expect(fragments.map(f => [...f.operatorIds].sort())).toEqual([[0, 1, 2, 3], [0, 1]]);
+    });
+    it('carries edges by the slots of their children', () => {
+        const plan = createViewModel().loadHyperPlan(`{
+            "operator":"executiontarget","operatorId":1,
+            "input":{"operator":"tablescan","operatorId":2},
+            "pipelines":[{"pipelineId":10,"operators":[2,1]}]
+        }`);
+        const scene = materializePlanScene(plan);
+        expect(scene.edges.map(e => e.slot)).toEqual([0]);
+        expect(scene.pipelines[0].operatorIds).toEqual([0, 1]);
+        expect(scene.operators[0].kind).toEqual(dashql.buffers.view.PlanOperatorKind.SCAN);
+    });
 });

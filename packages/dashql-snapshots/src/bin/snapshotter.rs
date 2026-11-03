@@ -1,10 +1,10 @@
 //! Regenerates the snapshot files `snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
 //!
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
-//! dataflow, completion, formatter, hyper_plan, visualize, diff. An empty filter updates all of them.
+//! dataflow, completion, formatter, hyper_plan, plan_progress, visualize, diff. An empty filter updates all of them.
 //!
 //! The output keeps the format of the checked-in snapshot files (the emitter style of rapidyaml):
-//! - parser, formatter, diff and hyper_plan build new files from the inputs of the templates,
+//! - parser, formatter, diff, hyper_plan and plan_progress build new files from the inputs of the templates,
 //! - analyzer, completion, planner, dataflow and visualize write the templates back with the results appended,
 //! - comments of the templates are dropped,
 //! - a blank line separates the cases and no line ends with a space.
@@ -19,12 +19,11 @@ use dashql_core::formatter::{
     FORMATTING_DEFAULT_INDENTATION_WIDTH, FORMATTING_DEFAULT_MAX_WIDTH,
 };
 use dashql_core::script_diff::ScriptDiff;
-use dashql_core_view::PlanViewModel;
 use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec};
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
-use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
+use dashql_snapshots::encode::plan_view_model::{encode_hyper_plan, encode_plan_progress};
 use dashql_snapshots::encode::visualize::encode_markdown_spec;
 use dashql_snapshots::encode::{analyzer, dataflow, diff, encode_location_text, parser, planner, Map};
 use dashql_snapshots::ryml::{self, Node};
@@ -498,20 +497,51 @@ fn generate_hyper_plan_snapshots(dir: &Path) {
             }
             // The plan is not trimmed
             let input = text(test, "input");
-            let mut view_model = PlanViewModel::new();
-            if let Err(e) = view_model.parse_hyper_plan(input.as_bytes()) {
-                println!("  ERROR {e:?}");
-                continue;
-            }
-            view_model.configure(&snapshot_config());
-            view_model.compute_layout();
+            let encoded = match encode_hyper_plan(input) {
+                Ok(encoded) => encoded,
+                Err(e) => {
+                    println!("  ERROR {e}");
+                    continue;
+                }
+            };
             let mut item = Map::new();
             item.plain("name", name);
             item.insert("input", Node::literal(input));
-            item.0.extend(encode_plan_view_model(&view_model.pack_buffer()).0);
+            item.0.extend(encoded.0);
             cases.push(item.into_node());
         }
         write_first_entry(&out, &snapshot_root("plan-snapshots", cases));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Plan progress (a plan, input events, the output events)
+
+fn generate_plan_progress_snapshots(dir: &Path) {
+    for path in templates(dir) {
+        let Some(template) = read_template(&path, "progress-snapshots") else { continue };
+        let out = output_path(&path);
+        println!("FILE {}", out.display());
+        let mut cases = Vec::new();
+        for test in template.get("progress-snapshots").unwrap().children() {
+            let name = text(test, "name");
+            println!("  TEST {name}");
+            let (plan, events) = (text(test, "plan"), text(test, "events"));
+            let updates = match encode_plan_progress(plan, events) {
+                Ok(updates) => updates,
+                Err(e) => {
+                    println!("  ERROR {e}");
+                    continue;
+                }
+            };
+            let mut item = Map::new();
+            item.plain("name", name);
+            item.insert("plan", Node::literal(plan));
+            item.insert("events", Node::literal(events));
+            item.insert("updates", updates);
+            cases.push(item.into_node());
+        }
+        write_first_entry(&out, &snapshot_root("progress-snapshots", cases));
     }
 }
 
@@ -566,7 +596,7 @@ fn main() -> ExitCode {
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!("Usage: snapshotter --source_dir <dir> [--filter <category>]");
         println!(
-            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_plan, visualize, diff. Empty = all."
+            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_plan, plan_progress, visualize, diff. Empty = all."
         );
         return ExitCode::SUCCESS;
     }
@@ -604,6 +634,9 @@ fn main() -> ExitCode {
     }
     if selected("hyper_plan") {
         generate_hyper_plan_snapshots(&snapshots.join("plans").join("hyper").join("tests"));
+    }
+    if selected("plan_progress") {
+        generate_plan_progress_snapshots(&snapshots.join("plans").join("progress"));
     }
     if selected("visualize") {
         generate_visualize_snapshots(&snapshots.join("visualize"));

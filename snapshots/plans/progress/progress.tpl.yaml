@@ -1,0 +1,87 @@
+progress-snapshots:
+  # A join in two pipelines: the build pipeline ends at the join, the probe pipeline passes through it.
+  # Slots: 0 build scan, 1 join (sink), 2 probe scan, 3 join (through), 4 execution target (sink).
+  - name: join_in_two_pipelines
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"join","operatorId":2,
+         "left":{"operator":"tablescan","operatorId":3},
+         "right":{"operator":"tablescan","operatorId":4}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1]}]}
+    events: |-
+      [
+        {"type":"updateQuery","time":1,"status":"running"},
+        {"type":"updateSlot","time":1,"slot":0,"status":"running","stats":{"startedAt":1,"tuplesIn":50,"tuplesOut":50}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"running","stats":{"startedAt":1,"tuplesIn":50}},
+        {"type":"updateSlot","time":2,"slot":0,"status":"succeeded","stats":{"finishedAt":2,"tuplesIn":100,"tuplesOut":100}},
+        {"type":"updateSlot","time":2,"slot":1,"status":"succeeded","stats":{"finishedAt":2,"tuplesIn":100,"tuplesOut":0,"memoryBytes":4096}},
+        {"type":"updateSlot","time":2,"slot":2,"status":"running","stats":{"startedAt":2,"tuplesIn":10,"tuplesOut":10}},
+        {"type":"updateSlot","time":2,"slot":3,"status":"running","stats":{"startedAt":2,"tuplesIn":10,"tuplesOut":4}},
+        {"type":"updateSlot","time":3,"slot":2,"status":"succeeded","stats":{"finishedAt":3,"tuplesIn":20,"tuplesOut":20}},
+        {"type":"updateSlot","time":3,"slot":3,"status":"succeeded","stats":{"finishedAt":3,"tuplesIn":20,"tuplesOut":8}},
+        {"type":"updateSlot","time":3,"slot":4,"status":"succeeded","stats":{"startedAt":2,"finishedAt":3,"tuplesIn":8,"tuplesOut":8}},
+        {"type":"updateQuery","time":3,"status":"succeeded"}
+      ]
+  # The engine reports operators only (like an analyzed Hyper plan): the fragments fill in from their operators
+  - name: operators_without_pipelines
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"federate","operatorId":2,"inputs":[{"operator":"tablescan","operatorId":3}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":7,"memoryBytes":10}},
+        {"type":"updateOperator","time":1,"operator":1,"status":"succeeded","stats":{"tuplesOut":7,"memoryBytes":20}},
+        {"type":"updateOperator","time":1,"operator":2,"status":"running","stats":{"tuplesOut":3}}
+      ]
+  # Nested federates: every operator belongs to its innermost fragment, so the outer fragment counts it once
+  - name: nested_federates
+    plan: |-
+      {"operator":"federate","inputs":[{"operator":"map","input":{"operator":"federate","inputs":[{"operator":"scan"}]}}]}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"cpuTimeUs":1}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"cpuTimeUs":2}},
+        {"type":"updateOperator","time":1,"operator":2,"stats":{"cpuTimeUs":4}},
+        {"type":"updateOperator","time":1,"operator":3,"stats":{"cpuTimeUs":8}}
+      ]
+  # A plan without pipelines that learns them at runtime (Trino pipelines come from the operator summaries)
+  - name: runtime_registered_pipelines
+    plan: |-
+      {"operator":"output","input":{"operator":"aggregate","input":{"operator":"scan"}}}
+    events: |-
+      [
+        {"type":"registerFragment","time":1,"engineId":"0"},
+        {"type":"updateFragment","time":1,"fragment":0,"status":"running","stats":{"workDone":0,"workTotal":4}},
+        {"type":"registerPipeline","time":2,"engineId":"0","fragment":0,
+         "slots":[{"operator":0,"role":"source"},{"operator":1,"role":"sink"}]},
+        {"type":"registerPipeline","time":2,"engineId":"1","fragment":0,
+         "slots":[{"operator":1,"role":"source"},{"operator":2,"role":"sink"}]},
+        {"type":"updateSlot","time":2,"slot":0,"status":"succeeded","stats":{"tuplesIn":1000,"tuplesOut":1000,"cpuTimeUs":300}},
+        {"type":"updateSlot","time":2,"slot":1,"status":"succeeded","stats":{"tuplesIn":1000,"tuplesOut":0,"cpuTimeUs":200}},
+        {"type":"updateSlot","time":2,"slot":2,"status":"running","stats":{"tuplesOut":3,"cpuTimeUs":10}},
+        {"type":"updateFragment","time":2,"fragment":0,"stats":{"workDone":3}}
+      ]
+  # No plan yet (Trino while planning): the query and fragments registered at runtime
+  - name: model_without_plan
+    plan: |-
+      {}
+    events: |-
+      [
+        {"type":"updateQuery","time":1,"status":"pending"},
+        {"type":"registerFragment","time":2,"engineId":"0"},
+        {"type":"registerFragment","time":2,"engineId":"1","parentFragment":0},
+        {"type":"updateFragment","time":2,"fragment":1,"status":"running","stats":{"cpuTimeUs":5,"workDone":1,"workTotal":3}},
+        {"type":"updateQuery","time":2,"status":"running","stats":{"workDone":1,"workTotal":3}},
+        {"type":"updateFragment","time":3,"fragment":1,"status":"succeeded","stats":{"cpuTimeUs":9,"workDone":3}},
+        {"type":"updateFragment","time":3,"fragment":0,"status":"running","stats":{"cpuTimeUs":1}}
+      ]
+  # Counters are cumulative: a repeated poll changes nothing and causes no updates
+  - name: repeated_poll
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"running","stats":{"tuplesOut":5}},
+        {"type":"updateOperator","time":2,"operator":0,"status":"running","stats":{"tuplesOut":5}},
+        {"type":"updateOperator","time":3,"operator":0,"stats":{"tuplesOut":6}}
+      ]

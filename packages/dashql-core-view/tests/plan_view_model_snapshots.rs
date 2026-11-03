@@ -1,39 +1,49 @@
-//! The Hyper plan view model snapshots (snapshots/plans/hyper/tests/*.yaml), produced by the Rust view model.
+//! The plan view model snapshots, produced by the Rust view model:
+//! - snapshots/plans/hyper/tests/*.yaml: the structure of Hyper plans (and the state of analyzed plans)
+//! - snapshots/plans/progress/*.yaml: a plan, input events, and the output events of the rollups
 //!
 //! The view model is encoded with `dashql_snapshots::encode::plan_view_model`.
 
-use dashql_core_view::PlanViewModel;
-use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
+use dashql_snapshots::encode::plan_view_model::{encode_hyper_plan, encode_plan_progress};
 use dashql_snapshots::{compare, load_category_from, run, snapshot_root, Arguments, Failed, Trial, Yaml};
+
+/// Compare sections, a section is missing on both sides or present on both sides
+fn compare_sections(expected: &Yaml, actual: &Yaml, keys: &[&str]) -> Result<(), Failed> {
+    for key in keys {
+        let (expected, actual) = (&expected[*key], &actual[*key]);
+        match (matches!(expected, Yaml::BadValue), matches!(actual, Yaml::BadValue)) {
+            (true, true) => {}
+            (true, false) => return Err(Failed::from(format!("{key}: missing in the snapshot"))),
+            _ => compare(expected, actual).map_err(|e| Failed::from(format!("{key}: {e}")))?,
+        }
+    }
+    Ok(())
+}
 
 fn main() {
     let args = Arguments::from_args();
-    let dir = snapshot_root().join("plans").join("hyper").join("tests");
-    let cases = load_category_from(&dir, "plan").expect("cannot load plan snapshots");
-    let trials = cases
-        .into_iter()
-        .map(|case| {
-            Trial::test(case.trial_name(), move || {
-                // The input is passed untrimmed
-                let input = case.node["input"].as_str().ok_or("case without input")?;
-                let mut view_model = PlanViewModel::new();
-                view_model.parse_hyper_plan(input.as_bytes()).map_err(|e| format!("cannot parse plan: {e:?}"))?;
-                view_model.configure(&snapshot_config());
-                view_model.compute_layout();
-                let produced = encode_plan_view_model(&view_model.pack_buffer()).into_yaml();
+    let plans = snapshot_root().join("plans");
+    let mut trials = Vec::new();
 
-                // Compare every section, a section is missing on both sides or present on both sides
-                for key in ["fragments", "operators", "operator-edges", "pipelines"] {
-                    let (expected, actual) = (&case.node[key], &produced[key]);
-                    match (matches!(expected, Yaml::BadValue), matches!(actual, Yaml::BadValue)) {
-                        (true, true) => {}
-                        (true, false) => return Err(Failed::from(format!("{key}: missing in the snapshot"))),
-                        _ => compare(expected, actual).map_err(|e| Failed::from(format!("{key}: {e}")))?,
-                    }
-                }
-                Ok(())
-            })
+    let cases = load_category_from(&plans.join("hyper").join("tests"), "plan").expect("cannot load plan snapshots");
+    trials.extend(cases.into_iter().map(|case| {
+        Trial::test(case.trial_name(), move || {
+            // The input is passed untrimmed
+            let input = case.node["input"].as_str().ok_or("case without input")?;
+            let produced = encode_hyper_plan(input)?.into_yaml();
+            let sections = ["fragments", "operators", "operator-edges", "pipelines", "events"];
+            compare_sections(&case.node, &produced, &sections)
         })
-        .collect();
+    }));
+
+    let cases = load_category_from(&plans.join("progress"), "progress").expect("cannot load progress snapshots");
+    trials.extend(cases.into_iter().map(|case| {
+        Trial::test(case.trial_name(), move || {
+            let plan = case.node["plan"].as_str().ok_or("case without plan")?;
+            let events = case.node["events"].as_str().ok_or("case without events")?;
+            let updates = encode_plan_progress(plan, events)?.to_yaml();
+            compare(&case.node["updates"], &updates).map_err(|e| Failed::from(format!("updates: {e}")))
+        })
+    }));
     run(&args, trials).exit();
 }

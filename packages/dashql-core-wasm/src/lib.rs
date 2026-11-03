@@ -1310,9 +1310,29 @@ impl PlanViewModel {
         self.inner.reset();
     }
 
+    /// Reset the execution state, drops the structure that was registered at runtime
     #[wasm_bindgen(js_name = resetExecution)]
     pub fn reset_execution(&mut self) {
         self.inner.reset_execution();
+    }
+
+    /// The structure version, the structure must be repacked when it changes
+    #[wasm_bindgen(js_name = structureVersion)]
+    pub fn structure_version(&self) -> u32 {
+        self.inner.structure_version()
+    }
+
+    /// Apply input events (a JSON array), returns the packed `PlanEvents` of the effective state changes
+    #[wasm_bindgen(js_name = applyEvents)]
+    pub fn apply_events(&mut self, events: &[u8]) -> Result<Vec<u8>, JsError> {
+        let updates = self.inner.apply_events_json(events).map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(self.inner.pack_events(&updates))
+    }
+
+    /// The current execution state as packed `PlanEvents`, one update per entity with state
+    #[wasm_bindgen(js_name = snapshotEvents)]
+    pub fn snapshot_events(&self) -> Vec<u8> {
+        self.inner.pack_events(&self.inner.snapshot_events())
     }
 
     /// The packed `PlanViewModel`

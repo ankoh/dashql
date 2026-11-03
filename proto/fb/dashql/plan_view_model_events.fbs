@@ -2,71 +2,93 @@ include "dashql/plan_view_model.fbs";
 
 namespace dashql.buffers.view;
 
-/// A change event to update fragment statistics
-table UpdateFragmentEvent {
-    /// The event time
-    event_time: uint64;
-    /// The fragment id
-    fragment_id: uint32;
-    /// The new execution status
-    execution_status: PlanExecutionStatus;
-    /// The new execution statistics
-    execution_statistics: PlanExecutionStatistics;
-}
-/// A change event to update pipeline statistics
-table UpdatePipelineEvent {
-    /// The event time
-    event_time: uint64;
-    /// The pipeline id
-    pipeline_id: uint32;
-    /// The new execution status
-    execution_status: PlanExecutionStatus;
-    /// The new execution statistics
-    execution_statistics: PlanExecutionStatistics;
-}
-/// A change event to update operator statistics
-table UpdateOperatorEvent {
-    /// The event time
-    event_time: uint64;
-    /// The operator id
-    operator_id: uint32;
-    /// The new execution status
-    execution_status: PlanExecutionStatus;
-    /// The new execution statistics
-    execution_statistics: PlanExecutionStatistics;
-}
-/// A change event to update edge statistics
-table UpdateOperatorEdgeEvent {
-    /// The event time
-    event_time: uint64;
-    /// The edge id
-    operator_edge_id: uint64;
-    /// The new execution status
-    execution_status: PlanExecutionStatus;
-    /// The new execution statistics
-    execution_statistics: PlanExecutionStatistics;
-}
-/// A change event to update cross-edge statistics
-table UpdateOperatorCrossEdgeEvent {
-    /// The event time
-    event_time: uint64;
-    /// The edge id
-    operator_cross_edge_id: uint64;
-    /// The new execution status
-    execution_status: PlanExecutionStatus;
-    /// The new execution statistics
-    execution_statistics: PlanExecutionStatistics;
+enum PlanExecutionStatus: uint8 {
+    UNKNOWN = 0,
+    PENDING = 1,
+    RUNNING = 2,
+    SUCCEEDED = 3,
+    FAILED = 4,
+    SKIPPED = 5,
 }
 
-union PlanChangeEvent {
-    UpdateFragmentEvent,
-    UpdatePipelineEvent,
-    UpdateOperatorEvent,
-    UpdateOperatorEdgeEvent,
-    UpdateOperatorCrossEdgeEvent,
+/// The bits of `PlanStats.reported`, a field is UNKNOWN unless its bit is set
+enum PlanStatsField: uint16 {
+    NONE = 0,
+    STARTED_AT = 1,
+    FINISHED_AT = 2,
+    TUPLES_IN = 4,
+    TUPLES_OUT = 8,
+    BYTES_IN = 16,
+    BYTES_OUT = 32,
+    CPU_TIME = 64,
+    WALL_TIME = 128,
+    BLOCKED_TIME = 256,
+    MEMORY_BYTES = 512,
+    SPILLED_BYTES = 1024,
+    WORK_DONE = 2048,
+    WORK_TOTAL = 4096,
 }
 
-/// A set of change events
-table PlanChangeEvents {
-    events: [PlanChangeEvent];
+/// The execution statistics of an entity. The counters are cumulative (not deltas).
+struct PlanStats {
+    /// The fields that are known (`PlanStatsField` bits), 0 vs. not reported is not the same
+    reported: uint16;
+    /// The time when the entity started in milliseconds since epoch
+    started_at: uint64;
+    /// The time when the entity finished in milliseconds since epoch
+    finished_at: uint64;
+    /// The tuples consumed
+    tuples_in: uint64;
+    /// The tuples produced
+    tuples_out: uint64;
+    /// The bytes consumed
+    bytes_in: uint64;
+    /// The bytes produced
+    bytes_out: uint64;
+    /// The CPU time in microseconds
+    cpu_time_us: uint64;
+    /// The wall time in microseconds
+    wall_time_us: uint64;
+    /// The blocked time in microseconds
+    blocked_time_us: uint64;
+    /// The memory currently attributed to the entity in bytes
+    memory_bytes: uint64;
+    /// The bytes spilled to disk
+    spilled_bytes: uint64;
+    /// The completed work units (splits, drivers, morsels)
+    work_done: uint64;
+    /// The known work units, may grow while the engine schedules
+    work_total: uint64;
+}
+
+/// The entity of an update
+enum PlanEntity: uint8 {
+    QUERY = 0,
+    FRAGMENT = 1,
+    PIPELINE = 2,
+    SLOT = 3,
+    OPERATOR = 4,
+}
+
+/// The effective state of an entity changed
+struct PlanUpdateEvent {
+    /// The event time in milliseconds since epoch
+    event_time: uint64;
+    /// The entity kind
+    entity: PlanEntity;
+    /// The entity index (0 for the query)
+    index: uint32;
+    /// The execution status
+    status: PlanExecutionStatus;
+    /// The execution statistics
+    stats: PlanStats;
+}
+
+/// The output events of the plan view model: the effective state of every entity that changed, whether reported
+/// by the engine or rolled up from finer entities.
+table PlanEvents {
+    /// The structure version the events refer to, the renderer repacks the structure when it differs
+    structure_version: uint32;
+    /// The updates
+    events: [PlanUpdateEvent];
 }

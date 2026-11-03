@@ -164,6 +164,7 @@ const SESSION_INPUTS_TYPE = Symbol('SESSION_INPUTS_TYPE');
 const TABLE_PARAMETERS_TYPE = Symbol('TABLE_PARAMETERS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
+const PLAN_EVENTS_TYPE = Symbol('PLAN_EVENTS_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
 const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
@@ -1216,19 +1217,36 @@ export class DashQLPlanViewModel {
         this.buffer = new FlatBufferPtr(FLAT_PLAN_VIEW_MODEL_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanViewModel());
         return this.buffer;
     }
-    /// Reset a Hyper plan
+    /// Reset the plan
     public reset(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         this.ptr.assertNotNull().reset();
         return this.pack();
     }
-    /// Reset the execution state of a Hyper plan
+    /// Reset the execution state. The structure that was registered at runtime is dropped, so the structure is
+    /// repacked.
     public resetExecution(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         this.ptr.assertNotNull().resetExecution();
         return this.pack();
     }
-    /// Load a Hyper plan
+    /// Load a Hyper plan. An analyzed plan carries its execution state, read it with `snapshotEvents`.
     public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         this.ptr.assertNotNull().loadHyperPlan(this.ptr.api.encoder.encode(plan));
         return this.pack();
+    }
+    /// Apply input events (their JSON form, see `PlanInputEvent` in dashql-core-view) and return the updates of the
+    /// effective state. When the events register structure, the structure is repacked: compare the structure
+    /// version of the events with the one of `buffer`.
+    public applyEvents(events: string): FlatBufferPtr<buffers.view.PlanEvents> {
+        const native = this.ptr.assertNotNull();
+        const bytes = native.applyEvents(this.ptr.api.encoder.encode(events));
+        if (this.buffer != null && this.buffer.read().structureVersion() !== native.structureVersion()) {
+            this.pack();
+        }
+        return new FlatBufferPtr(PLAN_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanEvents());
+    }
+    /// The current execution state: one update per entity that has a state
+    public snapshotEvents(): FlatBufferPtr<buffers.view.PlanEvents> {
+        const bytes = this.ptr.assertNotNull().snapshotEvents();
+        return new FlatBufferPtr(PLAN_EVENTS_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanEvents());
     }
 }

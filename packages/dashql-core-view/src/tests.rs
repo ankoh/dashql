@@ -96,15 +96,53 @@ fn explicit_pipelines_and_properties() {
     }"#,
     );
     let plan = root(&buffer);
+    assert_eq!(plan.engine(), fb::PlanEngine::HYPER);
     assert_eq!(plan.operators().unwrap().len(), 2);
     assert_eq!(plan.pipelines().unwrap().len(), 1);
-    assert_eq!(plan.pipelines().unwrap().get(0).operator_count(), 2);
-    assert_eq!(plan.pipeline_operators().unwrap().get(0), 0);
-    assert_eq!(plan.pipeline_operators().unwrap().get(1), 1);
-    assert_eq!(plan.pipelines().unwrap().get(0).edge_count(), 1);
-    assert_eq!(plan.pipeline_edges().unwrap().get(0).child_operator(), 0);
-    assert_eq!(plan.pipeline_edges().unwrap().get(0).parent_operator(), 1);
+    let pipeline = plan.pipelines().unwrap().get(0);
+    assert_eq!(string(&plan, pipeline.engine_id()), "10");
+    assert_eq!(pipeline.fragment(), 0);
+    assert_eq!(pipeline.slot_count(), 2);
+    let slots = plan.slots().unwrap();
+    let (scan, target) = (slots.get(0), slots.get(1));
+    assert_eq!((scan.pipeline(), scan.operator(), scan.role()), (0, 0, fb::PlanSlotRole::SOURCE));
+    assert_eq!((target.pipeline(), target.operator(), target.role()), (0, 1, fb::PlanSlotRole::SINK));
+    // The edge from the scan to the execution target is carried by the slot of the scan
+    let edge = plan.operator_edges().unwrap().get(0);
+    assert_eq!((edge.child(), edge.parent(), edge.slot()), (0, 1, 0));
+    for (operator, slot) in [(0, 0), (1, 1)] {
+        let op = plan.operators().unwrap().get(operator);
+        assert_eq!(op.slot_count(), 1);
+        assert_eq!(plan.operator_slots().unwrap().get(op.slots_begin() as usize), slot);
+    }
+    assert_eq!(string(&plan, plan.operators().unwrap().get(0).engine_id()), "2");
     assert!(plan.operators().unwrap().get(0).attribute_count() > 0);
+}
+
+#[test]
+fn pipeline_slots_have_roles() {
+    // A join in two pipelines: the build side ends at the join, the probe side passes through it
+    let buffer = pack_plan(
+        r#"{
+        "operator":"executiontarget","operatorId":1,
+        "input":{"operator":"join","operatorId":2,
+            "left":{"operator":"tablescan","operatorId":3},
+            "right":{"operator":"tablescan","operatorId":4}},
+        "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1],"cost":5}]
+    }"#,
+    );
+    let plan = root(&buffer);
+    let slots = plan.slots().unwrap();
+    let roles: Vec<_> = slots.iter().map(|s| (s.pipeline(), s.operator(), s.role())).collect();
+    use fb::PlanSlotRole as R;
+    assert_eq!(roles, vec![(0, 0, R::SOURCE), (0, 2, R::SINK), (1, 1, R::SOURCE), (1, 2, R::THROUGH), (1, 3, R::SINK)]);
+    let join = plan.operators().unwrap().get(2);
+    assert_eq!(join.kind(), fb::PlanOperatorKind::JOIN);
+    assert_eq!(join.slot_count(), 2);
+    // The pipeline members other than the id and the operators are attributes
+    let probe = plan.pipelines().unwrap().get(1);
+    assert_eq!(probe.attribute_count(), 1);
+    assert_eq!(string(&plan, plan.attributes().unwrap().get(probe.attributes_begin() as usize).name()), "cost");
 }
 
 #[test]
@@ -136,8 +174,8 @@ fn resolves_operator_cross_edges() {
     let mut kinds = Vec::new();
     let mut edges_by_kind = std::collections::HashMap::new();
     for edge in cross_edges {
-        assert!((edge.source_node() as usize) < plan.operators().unwrap().len());
-        assert!((edge.target_node() as usize) < plan.operators().unwrap().len());
+        assert!((edge.source() as usize) < plan.operators().unwrap().len());
+        assert!((edge.target() as usize) < plan.operators().unwrap().len());
         assert!(edge.attribute_count() >= 1);
         let attribute = attributes.get(edge.attributes_begin() as usize);
         assert_eq!(string(&plan, attribute.name()), "kind");
@@ -151,14 +189,14 @@ fn resolves_operator_cross_edges() {
     assert_eq!(count(r#""early-probe""#), 2);
     assert_eq!(count(r#""builder""#), 1);
     assert_eq!(count(r#""source""#), 1);
-    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""input""#].source_node()), 4);
-    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""input""#].target_node()), 6);
-    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""source""#].source_node()), 10);
-    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""source""#].target_node()), 11);
+    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""input""#].source()), 4);
+    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""input""#].target()), 6);
+    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""source""#].source()), 10);
+    assert_eq!(source_operator_id(&plan, edges_by_kind[r#""source""#].target()), 11);
 
-    for op in plan.operators().unwrap() {
+    for (operator_id, op) in plan.operators().unwrap().iter().enumerate() {
         for i in 0..op.cross_edge_count() {
-            assert_eq!(cross_edges.get((op.cross_edges_begin() + i) as usize).source_node(), op.operator_id());
+            assert_eq!(cross_edges.get((op.cross_edges_begin() + i) as usize).source(), operator_id as u32);
         }
     }
     assert_eq!(plan.operator_edges().unwrap().len(), plan.operators().unwrap().len() - 1);
@@ -181,8 +219,8 @@ fn resolves_hyphenated_explicit_scan_input_cross_edge() {
     let cross_edges = plan.operator_cross_edges().unwrap();
     assert_eq!(cross_edges.len(), 1);
     let edge = cross_edges.get(0);
-    assert_eq!(source_operator_id(&plan, edge.source_node()), 5);
-    assert_eq!(source_operator_id(&plan, edge.target_node()), 8);
+    assert_eq!(source_operator_id(&plan, edge.source()), 5);
+    assert_eq!(source_operator_id(&plan, edge.target()), 8);
 }
 
 #[test]
@@ -209,12 +247,17 @@ fn execution_target_creates_root_fragment_but_does_not_infer_pipelines() {
     assert_eq!(plan.operators().unwrap().len(), 2);
     assert_eq!(plan.fragments().unwrap().len(), 1);
     let fragment = plan.fragments().unwrap().get(0);
-    assert_eq!(fragment.anchor_operator(), 1);
+    assert_eq!(fragment.root_operator(), 1);
+    assert_eq!(fragment.hidden(), 1);
+    assert_eq!(fragment.parent_fragment(), u32::MAX);
     assert_eq!(fragment.operator_count(), 2);
     let fragment_operators = plan.fragment_operators().unwrap();
     assert_eq!(fragment_operators.get(fragment.operators_begin() as usize), 1);
     assert_eq!(fragment_operators.get(fragment.operators_begin() as usize + 1), 0);
     assert_eq!(plan.pipelines().unwrap().len(), 0);
+    for op in plan.operators().unwrap() {
+        assert_eq!(op.fragment(), 0);
+    }
 }
 
 /// The operators of a fragment
@@ -241,9 +284,11 @@ fn federate_creates_fragment_from_reachable_children() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 1);
     let fragment = plan.fragments().unwrap().get(0);
-    assert_eq!(fragment.fragment_id(), 0);
-    assert_eq!(fragment.anchor_operator(), 3);
+    assert_eq!(fragment.root_operator(), 3);
+    assert_eq!(fragment.hidden(), 0);
     assert_eq!(fragment_operators(&plan, fragment), vec![3, 2, 0, 1]);
+    // The output above the federate belongs to no fragment
+    assert_eq!(plan.operators().unwrap().get(4).fragment(), u32::MAX);
 }
 
 #[test]
@@ -257,13 +302,14 @@ fn execution_target_root_fragment_contains_federated_fragments() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 2);
     let root_fragment = plan.fragments().unwrap().get(0);
-    assert_eq!(root_fragment.fragment_id(), 0);
-    assert_eq!(root_fragment.anchor_operator(), 2);
-    assert_eq!(fragment_operators(&plan, root_fragment), vec![2, 1, 0]);
+    assert_eq!(root_fragment.root_operator(), 2);
+    assert_eq!(root_fragment.hidden(), 1);
+    assert_eq!(fragment_operators(&plan, root_fragment), vec![2]);
     let federated = plan.fragments().unwrap().get(1);
-    assert_eq!(federated.fragment_id(), 1);
-    assert_eq!(federated.anchor_operator(), 1);
-    assert_eq!(federated.operator_count(), 2);
+    assert_eq!(federated.root_operator(), 1);
+    assert_eq!(federated.parent_fragment(), 0);
+    assert_eq!(federated.hidden(), 0);
+    assert_eq!(fragment_operators(&plan, federated), vec![1, 0]);
 }
 
 #[test]
@@ -278,15 +324,15 @@ fn sibling_federates_create_distinct_fragments() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 2);
     let left = plan.fragments().unwrap().get(0);
-    assert_eq!(left.anchor_operator(), 3);
+    assert_eq!(left.root_operator(), 3);
     assert_eq!(fragment_operators(&plan, left), vec![3, 0]);
     let right = plan.fragments().unwrap().get(1);
-    assert_eq!(right.anchor_operator(), 4);
+    assert_eq!(right.root_operator(), 4);
     assert_eq!(fragment_operators(&plan, right), vec![4, 2, 1]);
 }
 
 #[test]
-fn nested_federates_have_overlapping_fragments() {
+fn nested_federates_nest_fragments() {
     let buffer = pack_plan(
         r#"{
         "operator":"federate",
@@ -299,11 +345,15 @@ fn nested_federates_have_overlapping_fragments() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 2);
     let outer = plan.fragments().unwrap().get(0);
-    assert_eq!(outer.anchor_operator(), 3);
-    assert_eq!(fragment_operators(&plan, outer), vec![3, 2, 1, 0]);
+    assert_eq!(outer.root_operator(), 3);
+    assert_eq!(outer.parent_fragment(), u32::MAX);
+    assert_eq!(fragment_operators(&plan, outer), vec![3, 2]);
     let inner = plan.fragments().unwrap().get(1);
-    assert_eq!(inner.anchor_operator(), 1);
+    assert_eq!(inner.root_operator(), 1);
+    assert_eq!(inner.parent_fragment(), 0);
     assert_eq!(fragment_operators(&plan, inner), vec![1, 0]);
+    let fragment_of: Vec<u32> = plan.operators().unwrap().iter().map(|op| op.fragment()).collect();
+    assert_eq!(fragment_of, vec![1, 1, 0, 0]);
 }
 
 #[test]
@@ -326,8 +376,8 @@ fn infers_scan_label_from_defined_attributes() {
     let plan = root(&buffer);
     assert_eq!(plan.operators().unwrap().len(), 2);
     let scan = plan.operators().unwrap().get(0);
-    assert_ne!(scan.operator_label(), u32::MAX);
-    assert_eq!(string(&plan, scan.operator_label()), "partsupp");
+    assert_ne!(scan.label(), u32::MAX);
+    assert_eq!(string(&plan, scan.label()), "partsupp");
 }
 
 #[test]
@@ -346,14 +396,13 @@ fn reads_kebab_case_debug_name() {
     let plan = root(&buffer);
     assert_eq!(plan.operators().unwrap().len(), 1);
     let scan = plan.operators().unwrap().get(0);
-    assert_ne!(scan.operator_label(), u32::MAX);
-    assert_eq!(string(&plan, scan.operator_label()), "supplier");
+    assert_ne!(scan.label(), u32::MAX);
+    assert_eq!(string(&plan, scan.label()), "supplier");
 }
 
 #[test]
 fn exposes_operator_statistics() {
-    let buffer = pack_plan(
-        r#"{
+    const PLAN: &str = r#"{
         "operator":"parquetscan",
         "operator-id":15,
         "estimated-rows":10000.5,
@@ -367,17 +416,23 @@ fn exposes_operator_statistics() {
             "rows-matching-restrictions":1987,
             "running":false
         }
-    }"#,
-    );
+    }"#;
+    let buffer = pack_plan(PLAN);
     let plan = root(&buffer);
     assert_eq!(plan.operators().unwrap().len(), 1);
     let op = plan.operators().unwrap().get(0);
-    let statistics = op.execution_statistics();
-    assert_eq!(statistics.input_cardinality_estimated(), 12000.25);
-    assert_eq!(statistics.input_cardinality_consumed(), 10000);
-    assert_eq!(statistics.output_cardinality_estimated(), 10000.5);
-    assert_eq!(statistics.output_cardinality_produced(), 1987);
-    assert_eq!(statistics.memory_bytes(), 4294967297);
+    assert_eq!(op.estimated_rows(), 10000.5);
+    assert_eq!(op.kind(), fb::PlanOperatorKind::SCAN);
+
+    // The counters of the analyzed plan are the execution state of the operator
+    let mut model = PlanViewModel::new();
+    model.parse_hyper_plan(PLAN.as_bytes()).unwrap();
+    let state = analyzed_operator(&model, 0);
+    assert_eq!(state.stats.tuples_in, Some(10000));
+    assert_eq!(state.stats.tuples_out, Some(1987));
+    assert_eq!(state.stats.memory_bytes, Some(4294967297));
+    let fields = [fb::PlanStatsField::TUPLES_IN, fb::PlanStatsField::TUPLES_OUT, fb::PlanStatsField::MEMORY_BYTES];
+    assert_eq!(state.stats.reported(), fields.iter().fold(0, |bits, field| bits | field.0));
 
     let mut found_raw_statistics = false;
     for i in 0..op.attribute_count() {
@@ -396,21 +451,30 @@ fn reads_nested_estimated_statistics() {
     }"#,
     );
     let plan = root(&buffer);
-    let statistics = plan.operators().unwrap().get(0).execution_statistics();
-    assert_eq!(statistics.input_cardinality_estimated(), 25.0);
-    assert_eq!(statistics.output_cardinality_estimated(), 4.8375);
+    assert_eq!(plan.operators().unwrap().get(0).estimated_rows(), 4.8375);
+}
+
+#[test]
+fn operators_without_estimate_have_nan_rows() {
+    let buffer = pack_plan(r#"{"operator":"scan"}"#);
+    assert!(root(&buffer).operators().unwrap().get(0).estimated_rows().is_nan());
+}
+
+/// The execution state of an operator of an analyzed plan
+fn analyzed_operator(model: &PlanViewModel, operator: u32) -> super::EntityState {
+    model
+        .snapshot_events()
+        .into_iter()
+        .find(|u| u.entity == fb::PlanEntity::OPERATOR && u.index == operator)
+        .map(|u| u.state)
+        .unwrap_or_default()
 }
 
 #[test]
 fn reads_camel_case_memory_bytes() {
-    let buffer = pack_plan(
-        r#"{
-        "operator":"scan",
-        "statistics":{"memoryBytes":2048}
-    }"#,
-    );
-    let plan = root(&buffer);
-    assert_eq!(plan.operators().unwrap().get(0).execution_statistics().memory_bytes(), 2048);
+    let mut model = PlanViewModel::new();
+    model.parse_hyper_plan(br#"{"operator":"scan","statistics":{"memoryBytes":2048}}"#).unwrap();
+    assert_eq!(analyzed_operator(&model, 0).stats.memory_bytes, Some(2048));
 }
 
 #[test]
@@ -430,14 +494,13 @@ fn reads_standard_json_only() {
 
 #[test]
 fn serializes_attributes_and_ignores_counts_that_are_not_unsigned() {
-    let buffer = pack_plan(
-        r#"{
+    const PLAN: &str = r#"{
         "operator":"scan",
         "values":[1, -0.0, 1.5e3, "a\u0000\"b\/"],
         "sqlpos":[[-1, 4294967296]],
         "statistics":{"processed-rows":-1,"output-rows":2.5,"memory-bytes":7}
-    }"#,
-    );
+    }"#;
+    let buffer = pack_plan(PLAN);
     let plan = root(&buffer);
     let op = plan.operators().unwrap().get(0);
     let attribute = |name: &str| {
@@ -450,10 +513,10 @@ fn serializes_attributes_and_ignores_counts_that_are_not_unsigned() {
     assert_eq!(attribute("values"), Some(r#"[1,-0.0,1500.0,"a\u0000\"b/"]"#));
     assert_eq!(op.source_location().offset(), 0);
     assert_eq!(op.source_location().length(), 0);
-    let statistics = op.execution_statistics();
-    assert_eq!(statistics.input_cardinality_consumed(), 0);
-    assert_eq!(statistics.output_cardinality_produced(), 0);
-    assert_eq!(statistics.memory_bytes(), 7);
+    let mut model = PlanViewModel::new();
+    model.parse_hyper_plan(PLAN.as_bytes()).unwrap();
+    let stats = analyzed_operator(&model, 0).stats;
+    assert_eq!((stats.tuples_in, stats.tuples_out, stats.memory_bytes), (None, None, Some(7)));
 }
 
 #[test]

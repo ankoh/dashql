@@ -4,64 +4,62 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { estimateRelativeDifference, type PlanScene, type PlanSceneOperator } from './plan_scene.js';
 import { formatEstimateSymbol, PlanView, type PlanViewDependencies } from './plan_view.js';
+import { PlanExecutionState } from './plan_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
+const NO_SLOT = 0xFFFFFFFF;
+
+/// The actual rows over the edges (the output of their child operators), null if unknown
+const actualRows: Array<number | null> = [null, null];
+
+/// The execution state with the actual rows as the output of the child operators of the edges
+function executionOf(rows: Array<number | null>): PlanExecutionState {
+    const view = dashql.buffers.view;
+    const operators = rows.map(value => value == null ? undefined : {
+        status: view.PlanExecutionStatus.SUCCEEDED,
+        stats: new view.PlanStatsT(view.PlanStatsField.TUPLES_OUT, 0n, 0n, 0n, BigInt(value)),
+    });
+    return new PlanExecutionState(null, [], [], [], operators);
+}
+
 const operators: PlanSceneOperator[] = [
     {
         id: 0,
+        kind: dashql.buffers.view.PlanOperatorKind.OTHER,
         typeName: null,
         label: 'Scan orders',
         displayLabel: 'Scan orders',
         rect: { x: 40, y: 40, width: 100, height: 32 },
         ports: 1,
-        statistics: {
-            inputCardinalityEstimated: 0,
-            inputCardinalityConsumed: 0n,
-            outputCardinalityEstimated: 10,
-            outputCardinalityProduced: 0n,
-            hasOutputCardinalityProduced: false,
-            memoryBytes: 0n,
-        },
+        estimatedRows: 10,
         properties: { table: 'orders' },
     },
     {
         id: 1,
+        kind: dashql.buffers.view.PlanOperatorKind.OTHER,
         typeName: null,
         label: 'Project total',
         displayLabel: 'Project total',
         rect: { x: 160, y: 40, width: 100, height: 32 },
         ports: 3,
-        statistics: {
-            inputCardinalityEstimated: 10,
-            inputCardinalityConsumed: 0n,
-            outputCardinalityEstimated: 10,
-            outputCardinalityProduced: 0n,
-            hasOutputCardinalityProduced: false,
-            memoryBytes: 0n,
-        },
+        estimatedRows: 10,
         properties: { expression: 'price * quantity' },
     },
     {
         id: 2,
+        kind: dashql.buffers.view.PlanOperatorKind.OTHER,
         typeName: null,
         label: 'Return results',
         displayLabel: 'Return results',
         rect: { x: 280, y: 40, width: 100, height: 32 },
         ports: 2,
-        statistics: {
-            inputCardinalityEstimated: 10,
-            inputCardinalityConsumed: 0n,
-            outputCardinalityEstimated: 10,
-            outputCardinalityProduced: 0n,
-            hasOutputCardinalityProduced: false,
-            memoryBytes: 0n,
-        },
+        estimatedRows: 10,
         properties: {},
     },
 ];
@@ -87,25 +85,25 @@ const scene: PlanScene = {
     operators,
     edges: [
         {
-            id: 10n,
+            id: 10,
             childOperator: 0,
+            slot: NO_SLOT,
             parentOperator: 1,
             outputCardinalityEstimated: 10,
-            outputCardinalityProduced: null,
             path: 'M 40 40 L 160 40',
         },
         {
-            id: 11n,
+            id: 11,
             childOperator: 1,
+            slot: NO_SLOT,
             parentOperator: 2,
             outputCardinalityEstimated: 10,
-            outputCardinalityProduced: null,
             path: 'M 160 40 L 280 40',
         },
     ],
     crossEdges: [
         {
-            id: 12n,
+            id: 12,
             sourceOperator: 0,
             targetOperator: 2,
             kind: 'reference',
@@ -142,13 +140,13 @@ describe('PlanView keyboard navigation', () => {
     beforeEach(() => {
         ResizeObserverMock.reset();
         scene.edges[0].outputCardinalityEstimated = 10;
-        scene.edges[0].outputCardinalityProduced = null;
+        actualRows[0] = null;
         scene.edges[1].outputCardinalityEstimated = 10;
-        scene.edges[1].outputCardinalityProduced = null;
+        actualRows[1] = null;
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        act(() => root.render(<PlanView plan={plan} dependencies={dependencies} />));
+        act(() => root.render(<PlanView plan={plan} execution={executionOf(actualRows)} dependencies={dependencies} />));
     });
 
     afterEach(() => {
@@ -180,7 +178,7 @@ describe('PlanView keyboard navigation', () => {
     function renderPlan(edgeRendering?: React.ComponentProps<typeof PlanView>['edgeRendering']) {
         // The tests mutate the shared scene fixture in place, the view memoizes derived edges per scene
         const freshScene: PlanViewDependencies = { materializePlanScene: () => ({ ...scene }) };
-        act(() => root.render(<PlanView plan={plan} edgeRendering={edgeRendering} dependencies={freshScene} />));
+        act(() => root.render(<PlanView plan={plan} execution={executionOf(actualRows)} edgeRendering={edgeRendering} dependencies={freshScene} />));
     }
 
     function annotationButton(mode: 'plain' | 'rows' | 'estimates'): HTMLButtonElement {
@@ -217,8 +215,8 @@ describe('PlanView keyboard navigation', () => {
     });
 
     it('renders actual rows in Rows mode when available', () => {
-        scene.edges[0].outputCardinalityProduced = 100;
-        scene.edges[1].outputCardinalityProduced = 1;
+        actualRows[0] = 100;
+        actualRows[1] = 1;
         renderPlan();
 
         expect(badge(10)?.getAttribute('transform')).toEqual('translate(100, 40)');
@@ -229,7 +227,7 @@ describe('PlanView keyboard navigation', () => {
     });
 
     it('switches between Plain, Rows, and Estimates annotations', () => {
-        scene.edges[0].outputCardinalityProduced = 100;
+        actualRows[0] = 100;
         renderPlan();
         expect(badge(10)).not.toBeNull();
         expect(rowsLegend()).not.toBeNull();
@@ -257,7 +255,7 @@ describe('PlanView keyboard navigation', () => {
     it('uses estimated rows per badge when actual rows are missing', () => {
         scene.edges[0].outputCardinalityEstimated = 100;
         scene.edges[1].outputCardinalityEstimated = 1;
-        scene.edges[0].outputCardinalityProduced = 50;
+        actualRows[0] = 50;
         renderPlan();
 
         expect(badge(10)?.textContent).toEqual('50');
@@ -275,9 +273,9 @@ describe('PlanView keyboard navigation', () => {
 
     it('uses the comparison scale for badge fill, adaptive text, and a gray border', () => {
         scene.edges[0].outputCardinalityEstimated = 200;
-        scene.edges[0].outputCardinalityProduced = 0;
+        actualRows[0] = 0;
         scene.edges[1].outputCardinalityEstimated = 0;
-        scene.edges[1].outputCardinalityProduced = 200;
+        actualRows[1] = 200;
         renderPlan();
         selectAnnotation('estimates');
 
@@ -289,7 +287,7 @@ describe('PlanView keyboard navigation', () => {
         expect(badge(10)?.textContent).toEqual(expectedEstimateSymbol(200, 0));
         expect(badge(11)?.textContent).toEqual(expectedEstimateSymbol(0, 200));
 
-        scene.edges[0].outputCardinalityProduced = 200;
+        actualRows[0] = 200;
         renderPlan();
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(242, 239, 238)');
         expect(badge(10)?.querySelector('text')?.getAttribute('fill')).toEqual('#000000');
@@ -297,9 +295,9 @@ describe('PlanView keyboard navigation', () => {
 
     it('supports a custom edge color interpolator', () => {
         scene.edges[0].outputCardinalityEstimated = 100;
-        scene.edges[0].outputCardinalityProduced = 0;
+        actualRows[0] = 0;
         scene.edges[1].outputCardinalityEstimated = 0;
-        scene.edges[1].outputCardinalityProduced = 100;
+        actualRows[1] = 100;
         renderPlan({ colorScheme: value => value < 0.5 ? '#000000' : '#ffffff' });
         selectAnnotation('estimates');
 
@@ -311,8 +309,8 @@ describe('PlanView keyboard navigation', () => {
     });
 
     it('paints the selected edge and its badge blue', () => {
-        scene.edges[0].outputCardinalityProduced = 100;
-        scene.edges[1].outputCardinalityProduced = 10;
+        actualRows[0] = 100;
+        actualRows[1] = 10;
         renderPlan();
         const viewport = container.querySelector<HTMLElement>('[role="region"]')!;
         key(viewport, 'ArrowRight');

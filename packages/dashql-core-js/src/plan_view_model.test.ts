@@ -53,8 +53,8 @@ describe('Plan View Model', () => {
             expect(planReader.rootOperatorsLength()).toEqual(1);
             expect(planReader.rootOperators(0)).toEqual(1);
             expect(planReader.pipelinesLength()).toEqual(0);
-            expect(planReader.stringDictionary(planReader.operators(1)!.operatorTypeName())).toEqual("executiontarget");
-            expect(planReader.stringDictionary(planReader.operators(0)!.operatorTypeName())).toEqual("tablescan");
+            expect(planReader.stringDictionary(planReader.operators(1)!.typeName())).toEqual("executiontarget");
+            expect(planReader.stringDictionary(planReader.operators(0)!.typeName())).toEqual("tablescan");
             const tableScan = planReader.operators(0)!;
             const properties: Record<string, unknown> = {};
             for (let i = 0; i < tableScan.attributeCount(); ++i) {
@@ -74,13 +74,47 @@ describe('Plan View Model', () => {
                 "pipelines":[{"pipelineId":10,"operators":[2,1]}]
             }`);
             const plan = planPtr.read();
+            expect(plan.engine()).toEqual(dashql.buffers.view.PlanEngine.HYPER);
             expect(plan.pipelinesLength()).toEqual(1);
-            expect(plan.pipelines(0)!.operatorCount()).toEqual(2);
-            expect(plan.pipelineOperators(plan.pipelines(0)!.operatorsBegin())).toEqual(0);
-            expect(plan.pipelineOperators(plan.pipelines(0)!.operatorsBegin() + 1)).toEqual(1);
-            expect(plan.pipelines(0)!.edgeCount()).toEqual(1);
-            expect(plan.pipelineEdges(0)!.childOperator()).toEqual(0);
-            expect(plan.pipelineEdges(0)!.parentOperator()).toEqual(1);
+            const pipeline = plan.pipelines(0)!;
+            expect(plan.stringDictionary(pipeline.engineId())).toEqual('10');
+            expect(pipeline.slotCount()).toEqual(2);
+            const scan = plan.slots(pipeline.slotsBegin())!;
+            const target = plan.slots(pipeline.slotsBegin() + 1)!;
+            expect([scan.operator(), scan.role()]).toEqual([0, dashql.buffers.view.PlanSlotRole.SOURCE]);
+            expect([target.operator(), target.role()]).toEqual([1, dashql.buffers.view.PlanSlotRole.SINK]);
+            const edge = plan.operatorEdges(0)!;
+            expect([edge.child(), edge.parent(), edge.slot()]).toEqual([0, 1, pipeline.slotsBegin()]);
+        });
+        it('applies input events and returns the effective state', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const plan = viewModel.loadHyperPlan(`{"operator":"output","input":{"operator":"scan"}}`);
+            const version = plan.read().structureVersion();
+            const events = viewModel.applyEvents(JSON.stringify([
+                { type: 'registerFragment', time: 1, engineId: '0' },
+                { type: 'registerPipeline', time: 1, fragment: 0, slots: [{ operator: 0, role: 'source' }, { operator: 1, role: 'sink' }] },
+                { type: 'updateSlot', time: 2, slot: 0, status: 'running', stats: { tuplesOut: 5 } },
+            ])).read();
+            // Registering repacks the structure
+            expect(events.structureVersion()).toEqual(version + 2);
+            expect(viewModel.buffer!.read().structureVersion()).toEqual(version + 2);
+            expect(viewModel.buffer!.read().slotsLength()).toEqual(2);
+
+            const view = dashql.buffers.view;
+            const updates = Array.from({ length: events.eventsLength() }, (_, i) => events.events(i)!);
+            const scan = updates.find(u => u.entity() === view.PlanEntity.OPERATOR && u.index() === 0)!;
+            expect(scan.status()).toEqual(view.PlanExecutionStatus.RUNNING);
+            expect(scan.stats().reported()).toEqual(view.PlanStatsField.TUPLES_OUT);
+            expect(scan.stats().tuplesOut()).toEqual(5n);
+
+            // A late reader gets the same state as a snapshot
+            const snapshot = viewModel.snapshotEvents().read();
+            expect(snapshot.eventsLength()).toEqual(updates.length);
+            expect(() => viewModel.applyEvents('[{"type":"updateSlot"}]')).toThrow();
+
+            // Resetting drops the registered structure
+            expect(viewModel.resetExecution().read().slotsLength()).toEqual(0);
+            expect(viewModel.snapshotEvents().read().eventsLength()).toEqual(0);
         });
         it('materializes operator cross edges', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
@@ -95,8 +129,7 @@ describe('Plan View Model', () => {
             const plan = planPtr.read();
             expect(plan.operatorCrossEdgesLength()).toEqual(1);
             const edge = plan.operatorCrossEdges(0)!;
-            expect(plan.operators(edge.sourceNode())!.crossEdgeCount()).toEqual(1);
-
+            expect(plan.operators(edge.source())!.crossEdgeCount()).toEqual(1);
         });
         it('creates fragments from federate descendants', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
@@ -110,8 +143,8 @@ describe('Plan View Model', () => {
             const plan = planPtr.read();
             expect(plan.fragmentsLength()).toEqual(1);
             const fragment = plan.fragments(0)!;
-            expect(fragment.fragmentId()).toEqual(0);
-            expect(fragment.anchorOperator()).toEqual(2);
+            expect(fragment.rootOperator()).toEqual(2);
+            expect(fragment.hidden()).toEqual(0);
             expect(fragment.operatorCount()).toEqual(3);
             expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(2);
             expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(1);
@@ -126,7 +159,8 @@ describe('Plan View Model', () => {
             const plan = planPtr.read();
             expect(plan.fragmentsLength()).toEqual(1);
             const fragment = plan.fragments(0)!;
-            expect(fragment.anchorOperator()).toEqual(1);
+            expect(fragment.rootOperator()).toEqual(1);
+            expect(fragment.hidden()).toEqual(1);
             expect(fragment.operatorCount()).toEqual(2);
             expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(1);
             expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(0);
@@ -143,9 +177,16 @@ describe('Plan View Model', () => {
             const plan = planPtr.read();
             const scan = plan.operators(0)!;
             const target = plan.operators(1)!;
-            expect(scan.executionStatistics()!.outputCardinalityEstimated()).toEqual(80);
-            expect(scan.executionStatistics()!.outputCardinalityProduced()).toEqual(0n);
-            expect(target.executionStatistics()!.outputCardinalityEstimated()).toEqual(100);
+            expect(scan.estimatedRows()).toEqual(80);
+            expect(target.estimatedRows()).toEqual(100);
+
+            // The analyzed rows are the execution state, 0 rows are reported rows
+            const view = dashql.buffers.view;
+            const snapshot = viewModel.snapshotEvents().read();
+            const scanState = Array.from({ length: snapshot.eventsLength() }, (_, i) => snapshot.events(i)!)
+                .find(u => u.entity() === view.PlanEntity.OPERATOR && u.index() === 0)!;
+            expect(scanState.stats().reported() & view.PlanStatsField.TUPLES_OUT).not.toEqual(0);
+            expect(scanState.stats().tuplesOut()).toEqual(0n);
 
             const properties: Record<string, unknown> = {};
             for (let i = 0; i < scan.attributeCount(); ++i) {

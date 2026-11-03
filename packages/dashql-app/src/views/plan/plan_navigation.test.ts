@@ -1,22 +1,17 @@
+import * as dashql from '@ankoh/dashql-core';
 import { findPlanOperatorInDirection } from './plan_navigation.js';
 import type { PlanSceneOperator } from './plan_scene.js';
 
 function operator(id: number, x: number, y: number): PlanSceneOperator {
     return {
         id,
+        kind: dashql.buffers.view.PlanOperatorKind.OTHER,
         typeName: null,
         label: `operator ${id}`,
         displayLabel: `operator ${id}`,
         rect: { x, y, width: 80, height: 32 },
         ports: 0,
-        statistics: {
-            inputCardinalityEstimated: 0,
-            inputCardinalityConsumed: 0n,
-            outputCardinalityEstimated: 0,
-            outputCardinalityProduced: 0n,
-            hasOutputCardinalityProduced: false,
-            memoryBytes: 0n,
-        },
+        estimatedRows: Number.NaN,
         properties: {},
     };
 }

@@ -1,0 +1,466 @@
+progress-snapshots:
+
+  - name: join_in_two_pipelines
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"join","operatorId":2,
+         "left":{"operator":"tablescan","operatorId":3},
+         "right":{"operator":"tablescan","operatorId":4}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1]}]}
+    events: |-
+      [
+        {"type":"updateQuery","time":1,"status":"running"},
+        {"type":"updateSlot","time":1,"slot":0,"status":"running","stats":{"startedAt":1,"tuplesIn":50,"tuplesOut":50}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"running","stats":{"startedAt":1,"tuplesIn":50}},
+        {"type":"updateSlot","time":2,"slot":0,"status":"succeeded","stats":{"finishedAt":2,"tuplesIn":100,"tuplesOut":100}},
+        {"type":"updateSlot","time":2,"slot":1,"status":"succeeded","stats":{"finishedAt":2,"tuplesIn":100,"tuplesOut":0,"memoryBytes":4096}},
+        {"type":"updateSlot","time":2,"slot":2,"status":"running","stats":{"startedAt":2,"tuplesIn":10,"tuplesOut":10}},
+        {"type":"updateSlot","time":2,"slot":3,"status":"running","stats":{"startedAt":2,"tuplesIn":10,"tuplesOut":4}},
+        {"type":"updateSlot","time":3,"slot":2,"status":"succeeded","stats":{"finishedAt":3,"tuplesIn":20,"tuplesOut":20}},
+        {"type":"updateSlot","time":3,"slot":3,"status":"succeeded","stats":{"finishedAt":3,"tuplesIn":20,"tuplesOut":8}},
+        {"type":"updateSlot","time":3,"slot":4,"status":"succeeded","stats":{"startedAt":2,"finishedAt":3,"tuplesIn":8,"tuplesOut":8}},
+        {"type":"updateQuery","time":3,"status":"succeeded"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: running
+        started-at: 1
+      - time: 1
+        entity: fragment
+        index: 0
+        status: running
+        started-at: 1
+      - time: 1
+        entity: pipeline
+        index: 0
+        status: running
+        started-at: 1
+        tuples-in: 50
+      - time: 1
+        entity: slot
+        index: 0
+        status: running
+        started-at: 1
+        tuples-in: 50
+        tuples-out: 50
+      - time: 1
+        entity: slot
+        index: 1
+        status: running
+        started-at: 1
+        tuples-in: 50
+      - time: 1
+        entity: operator
+        index: 0
+        status: running
+        started-at: 1
+        tuples-in: 50
+        tuples-out: 50
+      - time: 1
+        entity: operator
+        index: 2
+        status: running
+        started-at: 1
+        tuples-in: 50
+      - time: 2
+        entity: query
+        status: running
+        started-at: 1
+        memory-bytes: 4096
+      - time: 2
+        entity: fragment
+        index: 0
+        status: running
+        started-at: 1
+        memory-bytes: 4096
+      - time: 2
+        entity: pipeline
+        index: 0
+        status: succeeded
+        started-at: 1
+        finished-at: 2
+        tuples-in: 100
+        tuples-out: 0
+        memory-bytes: 4096
+      - time: 2
+        entity: pipeline
+        index: 1
+        status: running
+        started-at: 2
+        tuples-in: 10
+      - time: 2
+        entity: slot
+        index: 0
+        status: succeeded
+        started-at: 1
+        finished-at: 2
+        tuples-in: 100
+        tuples-out: 100
+      - time: 2
+        entity: slot
+        index: 1
+        status: succeeded
+        started-at: 1
+        finished-at: 2
+        tuples-in: 100
+        tuples-out: 0
+        memory-bytes: 4096
+      - time: 2
+        entity: slot
+        index: 2
+        status: running
+        started-at: 2
+        tuples-in: 10
+        tuples-out: 10
+      - time: 2
+        entity: slot
+        index: 3
+        status: running
+        started-at: 2
+        tuples-in: 10
+        tuples-out: 4
+      - time: 2
+        entity: operator
+        index: 0
+        status: succeeded
+        started-at: 1
+        finished-at: 2
+        tuples-in: 100
+        tuples-out: 100
+      - time: 2
+        entity: operator
+        index: 1
+        status: running
+        started-at: 2
+        tuples-in: 10
+        tuples-out: 10
+      - time: 2
+        entity: operator
+        index: 2
+        status: running
+        started-at: 1
+        tuples-in: 110
+        tuples-out: 4
+        memory-bytes: 4096
+      - time: 3
+        entity: query
+        status: succeeded
+        started-at: 1
+        finished-at: 3
+        tuples-out: 8
+        memory-bytes: 4096
+      - time: 3
+        entity: fragment
+        index: 0
+        status: succeeded
+        started-at: 1
+        finished-at: 3
+        tuples-out: 8
+        memory-bytes: 4096
+      - time: 3
+        entity: pipeline
+        index: 1
+        status: succeeded
+        started-at: 2
+        finished-at: 3
+        tuples-in: 20
+        tuples-out: 8
+      - time: 3
+        entity: slot
+        index: 2
+        status: succeeded
+        started-at: 2
+        finished-at: 3
+        tuples-in: 20
+        tuples-out: 20
+      - time: 3
+        entity: slot
+        index: 3
+        status: succeeded
+        started-at: 2
+        finished-at: 3
+        tuples-in: 20
+        tuples-out: 8
+      - time: 3
+        entity: slot
+        index: 4
+        status: succeeded
+        started-at: 2
+        finished-at: 3
+        tuples-in: 8
+        tuples-out: 8
+      - time: 3
+        entity: operator
+        index: 1
+        status: succeeded
+        started-at: 2
+        finished-at: 3
+        tuples-in: 20
+        tuples-out: 20
+      - time: 3
+        entity: operator
+        index: 2
+        status: succeeded
+        started-at: 1
+        finished-at: 3
+        tuples-in: 120
+        tuples-out: 8
+        memory-bytes: 4096
+      - time: 3
+        entity: operator
+        index: 3
+        status: succeeded
+        started-at: 2
+        finished-at: 3
+        tuples-in: 8
+        tuples-out: 8
+
+  - name: operators_without_pipelines
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"federate","operatorId":2,"inputs":[{"operator":"tablescan","operatorId":3}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":7,"memoryBytes":10}},
+        {"type":"updateOperator","time":1,"operator":1,"status":"succeeded","stats":{"tuplesOut":7,"memoryBytes":20}},
+        {"type":"updateOperator","time":1,"operator":2,"status":"running","stats":{"tuplesOut":3}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: running
+        tuples-out: 3
+        memory-bytes: 30
+      - time: 1
+        entity: fragment
+        index: 0
+        status: running
+        tuples-out: 3
+      - time: 1
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-out: 7
+        memory-bytes: 30
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-out: 7
+        memory-bytes: 10
+      - time: 1
+        entity: operator
+        index: 1
+        status: succeeded
+        tuples-out: 7
+        memory-bytes: 20
+      - time: 1
+        entity: operator
+        index: 2
+        status: running
+        tuples-out: 3
+
+  - name: nested_federates
+    plan: |-
+      {"operator":"federate","inputs":[{"operator":"map","input":{"operator":"federate","inputs":[{"operator":"scan"}]}}]}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"cpuTimeUs":1}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"cpuTimeUs":2}},
+        {"type":"updateOperator","time":1,"operator":2,"stats":{"cpuTimeUs":4}},
+        {"type":"updateOperator","time":1,"operator":3,"stats":{"cpuTimeUs":8}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        cpu-time-us: 15
+      - time: 1
+        entity: fragment
+        index: 0
+        cpu-time-us: 12
+      - time: 1
+        entity: fragment
+        index: 1
+        cpu-time-us: 3
+      - time: 1
+        entity: operator
+        index: 0
+        cpu-time-us: 1
+      - time: 1
+        entity: operator
+        index: 1
+        cpu-time-us: 2
+      - time: 1
+        entity: operator
+        index: 2
+        cpu-time-us: 4
+      - time: 1
+        entity: operator
+        index: 3
+        cpu-time-us: 8
+
+  - name: runtime_registered_pipelines
+    plan: |-
+      {"operator":"output","input":{"operator":"aggregate","input":{"operator":"scan"}}}
+    events: |-
+      [
+        {"type":"registerFragment","time":1,"engineId":"0"},
+        {"type":"updateFragment","time":1,"fragment":0,"status":"running","stats":{"workDone":0,"workTotal":4}},
+        {"type":"registerPipeline","time":2,"engineId":"0","fragment":0,
+         "slots":[{"operator":0,"role":"source"},{"operator":1,"role":"sink"}]},
+        {"type":"registerPipeline","time":2,"engineId":"1","fragment":0,
+         "slots":[{"operator":1,"role":"source"},{"operator":2,"role":"sink"}]},
+        {"type":"updateSlot","time":2,"slot":0,"status":"succeeded","stats":{"tuplesIn":1000,"tuplesOut":1000,"cpuTimeUs":300}},
+        {"type":"updateSlot","time":2,"slot":1,"status":"succeeded","stats":{"tuplesIn":1000,"tuplesOut":0,"cpuTimeUs":200}},
+        {"type":"updateSlot","time":2,"slot":2,"status":"running","stats":{"tuplesOut":3,"cpuTimeUs":10}},
+        {"type":"updateFragment","time":2,"fragment":0,"stats":{"workDone":3}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: running
+        work-done: 0
+        work-total: 4
+      - time: 1
+        entity: fragment
+        index: 0
+        status: running
+        work-done: 0
+        work-total: 4
+      - time: 2
+        entity: query
+        status: running
+        cpu-time-us: 510
+        work-done: 3
+        work-total: 4
+      - time: 2
+        entity: fragment
+        index: 0
+        status: running
+        cpu-time-us: 510
+        work-done: 3
+        work-total: 4
+      - time: 2
+        entity: pipeline
+        index: 0
+        status: succeeded
+        tuples-in: 1000
+        tuples-out: 0
+        cpu-time-us: 500
+      - time: 2
+        entity: pipeline
+        index: 1
+        status: running
+        cpu-time-us: 10
+      - time: 2
+        entity: slot
+        index: 0
+        status: succeeded
+        tuples-in: 1000
+        tuples-out: 1000
+        cpu-time-us: 300
+      - time: 2
+        entity: slot
+        index: 1
+        status: succeeded
+        tuples-in: 1000
+        tuples-out: 0
+        cpu-time-us: 200
+      - time: 2
+        entity: slot
+        index: 2
+        status: running
+        tuples-out: 3
+        cpu-time-us: 10
+      - time: 2
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-in: 1000
+        tuples-out: 1000
+        cpu-time-us: 300
+      - time: 2
+        entity: operator
+        index: 1
+        status: running
+        tuples-in: 1000
+        tuples-out: 3
+        cpu-time-us: 210
+
+  - name: model_without_plan
+    plan: |-
+      {}
+    events: |-
+      [
+        {"type":"updateQuery","time":1,"status":"pending"},
+        {"type":"registerFragment","time":2,"engineId":"0"},
+        {"type":"registerFragment","time":2,"engineId":"1","parentFragment":0},
+        {"type":"updateFragment","time":2,"fragment":1,"status":"running","stats":{"cpuTimeUs":5,"workDone":1,"workTotal":3}},
+        {"type":"updateQuery","time":2,"status":"running","stats":{"workDone":1,"workTotal":3}},
+        {"type":"updateFragment","time":3,"fragment":1,"status":"succeeded","stats":{"cpuTimeUs":9,"workDone":3}},
+        {"type":"updateFragment","time":3,"fragment":0,"status":"running","stats":{"cpuTimeUs":1}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+      - time: 2
+        entity: query
+        status: running
+        cpu-time-us: 5
+        work-done: 1
+        work-total: 3
+      - time: 2
+        entity: fragment
+        index: 1
+        status: running
+        cpu-time-us: 5
+        work-done: 1
+        work-total: 3
+      - time: 3
+        entity: query
+        status: running
+        cpu-time-us: 10
+        work-done: 1
+        work-total: 3
+      - time: 3
+        entity: fragment
+        index: 0
+        status: running
+        cpu-time-us: 1
+      - time: 3
+        entity: fragment
+        index: 1
+        status: succeeded
+        cpu-time-us: 9
+        work-done: 3
+        work-total: 3
+
+  - name: repeated_poll
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"running","stats":{"tuplesOut":5}},
+        {"type":"updateOperator","time":2,"operator":0,"status":"running","stats":{"tuplesOut":5}},
+        {"type":"updateOperator","time":3,"operator":0,"stats":{"tuplesOut":6}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: running
+      - time: 1
+        entity: fragment
+        index: 0
+        status: running
+      - time: 1
+        entity: operator
+        index: 0
+        status: running
+        tuples-out: 5
+      - time: 3
+        entity: operator
+        index: 0
+        status: running
+        tuples-out: 6

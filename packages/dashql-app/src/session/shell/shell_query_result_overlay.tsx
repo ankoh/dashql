@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as dashql from '@ankoh/dashql-core';
 import icons from '@ankoh/dashql-svg-symbols';
 
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
@@ -10,7 +11,7 @@ import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '../../ui/fou
 import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
 import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
 import { PlanView } from '../../views/plan/plan_view.js';
-import { useHyperPlan } from '../../views/plan/hyper_plan_view.js';
+import { usePlanViewModel } from '../../views/plan/engine_plan_view.js';
 import { TabHeader } from '../tab_header.js';
 import { getPlanResultText } from '../../shell/shell_result.js';
 import { classNames } from '../../utils/classnames.js';
@@ -19,13 +20,13 @@ import * as styles from './shell_query_result_overlay.module.css';
 export interface ShellQueryResultOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;
     PlanView: typeof PlanView;
-    useHyperPlan: typeof useHyperPlan;
+    usePlanViewModel: typeof usePlanViewModel;
 }
 
 const DEFAULT_DEPENDENCIES: ShellQueryResultOverlayDependencies = {
     QueryResultDetails,
     PlanView,
-    useHyperPlan,
+    usePlanViewModel,
 };
 
 interface Props {
@@ -58,7 +59,7 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
-    const { plan } = dependencies.useHyperPlan(planText);
+    const { plan, execution } = dependencies.usePlanViewModel(dashql.buffers.view.PlanEngine.HYPER, planText);
     const hasPlan = plan != null;
     const [selectedTab, setSelectedTab] = React.useState<ResultTab>(ResultTab.Data);
     const selectedPlanQueryIdRef = React.useRef<number | null>(null);
@@ -136,10 +137,10 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
         [ResultTab.Plan]: () => (
             <div className={styles.plan_tab}>
                 <TabHeader title="Query Plan" actions={planActions} />
-                <div className={styles.plan_body}>{plan != null && <PlanViewComponent plan={plan} />}</div>
+                <div className={styles.plan_body}>{plan != null && <PlanViewComponent plan={plan} execution={execution} />}</div>
             </div>
         ),
-    }), [closeButton, planActions, plan, PlanViewComponent, query, ResultDetails]);
+    }), [closeButton, planActions, plan, execution, PlanViewComponent, query, ResultDetails]);
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: dialogRef as React.RefObject<HTMLElement>,

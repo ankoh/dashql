@@ -3,6 +3,7 @@
 use super::plan_view_model::{
     Fragment, OperatorCrossEdge, OperatorEdge, OperatorReference, ParsedOperatorNode, PathComponent, PlanViewModel,
 };
+use super::progress::{PlanInputEvent, Stats};
 use dashql_buffers::parser::SymbolSpan;
 use dashql_buffers::status::StatusCode;
 use dashql_buffers::view as fb;
@@ -160,34 +161,59 @@ fn find_number<'a>(object: &'a Map<String, Value>, names: &[&str]) -> Option<&'a
     find_member(object, names).and_then(|member| member.as_number())
 }
 
-/// Read the execution statistics of an operator
-fn read_execution_statistics(source: &Map<String, Value>) -> fb::PlanExecutionStatistics {
-    let mut out = fb::PlanExecutionStatistics::default();
+/// Read the estimated output rows and the runtime counters of an analyzed plan (EXPLAIN ANALYZE)
+fn read_execution_statistics(source: &Map<String, Value>) -> (Option<f64>, Stats) {
     let runtime = source.get("statistics").and_then(Value::as_object).unwrap_or(source);
 
-    const ROWS_IN_TABLE: &[&str] = &["estimated-rows-in-table", "estimatedRowsInTable"];
-    let input_estimated = find_number(source, ROWS_IN_TABLE).or_else(|| find_number(runtime, ROWS_IN_TABLE));
-    if let Some(n) = input_estimated.and_then(|n| n.as_f64()) {
-        out.set_input_cardinality_estimated(n);
-    }
-
     const ROWS: &[&str] = &["estimated-rows", "estimatedRows", "cardinality"];
-    let output_estimated = find_number(source, ROWS).or_else(|| find_number(runtime, ROWS));
-    if let Some(n) = output_estimated.and_then(|n| n.as_f64()) {
-        out.set_output_cardinality_estimated(n);
-    }
+    let estimated_rows = find_number(source, ROWS).or_else(|| find_number(runtime, ROWS)).and_then(|n| n.as_f64());
 
     let count = |names: &[&str]| find_number(runtime, names).and_then(|n| n.as_u64());
-    if let Some(n) = count(&["processed-rows", "processedRows"]) {
-        out.set_input_cardinality_consumed(n);
+    let analyzed = Stats {
+        tuples_in: count(&["processed-rows", "processedRows"]),
+        tuples_out: count(&["output-rows", "outputRows"]),
+        memory_bytes: count(&["memory-bytes", "memoryBytes"]),
+        ..Default::default()
+    };
+    (estimated_rows, analyzed)
+}
+
+/// The engine-neutral kind of a Hyper operator
+fn hyper_operator_kind(operator_type: &str) -> fb::PlanOperatorKind {
+    use fb::PlanOperatorKind as K;
+    match operator_type.to_lowercase().replace('-', "").as_str() {
+        "output" => K::OUTPUT,
+        "scan" | "parquetscan" | "tablescan" => K::SCAN,
+        "explicitscan" => K::EXPLICIT_SCAN,
+        "virtualtable" => K::VIRTUAL_TABLE,
+        "tableconstruction" => K::TABLE_CONSTRUCTION,
+        "tablefunction" => K::TABLE_FUNCTION,
+        "select" => K::FILTER,
+        "map" => K::PROJECT,
+        "groupby" => K::AGGREGATE,
+        "window" => K::WINDOW,
+        "sort" => K::SORT,
+        "join" => K::JOIN,
+        "leftouterjoin" => K::LEFT_OUTER_JOIN,
+        "rightouterjoin" => K::RIGHT_OUTER_JOIN,
+        "fullouterjoin" => K::FULL_OUTER_JOIN,
+        "leftsemijoin" => K::LEFT_SEMI_JOIN,
+        "rightsemijoin" => K::RIGHT_SEMI_JOIN,
+        "leftantijoin" => K::LEFT_ANTI_JOIN,
+        "rightantijoin" => K::RIGHT_ANTI_JOIN,
+        "leftmarkjoin" => K::LEFT_MARK_JOIN,
+        "rightmarkjoin" => K::RIGHT_MARK_JOIN,
+        "unionall" => K::UNION_ALL,
+        "union" => K::UNION,
+        "intersectall" => K::INTERSECT_ALL,
+        "intersect" => K::INTERSECT,
+        "exceptall" => K::EXCEPT_ALL,
+        "except" => K::EXCEPT,
+        "iteration" => K::ITERATION,
+        "iterationincrement" => K::ITERATION_INCREMENT,
+        "insert" => K::INSERT,
+        _ => K::OTHER,
     }
-    if let Some(n) = count(&["output-rows", "outputRows"]) {
-        out.set_output_cardinality_produced(n);
-    }
-    if let Some(n) = count(&["memory-bytes", "memoryBytes"]) {
-        out.set_memory_bytes(n);
-    }
-    out
 }
 
 /// The references of an operator to other operators by their Hyper operator ids
@@ -233,11 +259,13 @@ fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> 
         .filter(|(_, value)| !contains_operator(value))
         .map(|(name, value)| (name.clone(), to_json(value)))
         .collect();
+    let (estimated_rows, analyzed) = read_execution_statistics(object);
     ParsedOperatorNode {
         parent_child_path,
         references: read_operator_references(&operator_type, object),
         attributes,
-        statistics: read_execution_statistics(object),
+        estimated_rows,
+        analyzed,
         operator_type: Some(operator_type),
         operator_label: node.operator_label,
         source_operator_id: node.source_operator_id,
@@ -247,10 +275,14 @@ fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> 
 }
 
 impl PlanViewModel {
-    /// Parse a Hyper plan
+    /// Parse a Hyper plan.
+    ///
+    /// The runtime counters of an analyzed plan (EXPLAIN ANALYZE) are applied as one batch of input events, the
+    /// same path as the progress of a running query.
     pub fn parse_hyper_plan(&mut self, plan: &[u8]) -> Result<(), StatusCode> {
         // Reset the current plan view model
         self.reset();
+        self.engine = fb::PlanEngine::HYPER;
 
         // Parse the document
         let document: Value =
@@ -355,6 +387,9 @@ impl PlanViewModel {
 
         // Flatten the Hyper operators
         self.flatten_operators(parsed_operators, root_operators);
+        for op in &mut self.operators {
+            op.kind = op.operator_type.as_deref().map(hyper_operator_kind).unwrap_or_default();
+        }
         // Resolve non-containment references between flattened operators
         self.identify_operator_cross_edges();
         // Identify fragments introduced by federates
@@ -365,15 +400,31 @@ impl PlanViewModel {
         if let Some(pipelines) = document.get("pipelines").and_then(Value::as_array) {
             self.parse_hyper_pipelines(pipelines);
         }
+        self.seal_loaded_structure();
+
+        // Apply the counters of an analyzed plan
+        let analyzed: Vec<PlanInputEvent> = self
+            .operators
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, op)| !op.analyzed.is_empty())
+            .map(|(operator, op)| PlanInputEvent::UpdateOperator {
+                time: 0,
+                operator: operator as u32,
+                status: None,
+                stats: std::mem::take(&mut op.analyzed),
+            })
+            .collect();
+        self.apply_events(&analyzed);
         Ok(())
     }
 
     /// Map the operator ids serialized by Hyper to operators, the first operator wins
     fn source_operator_ids(&self) -> HashMap<u64, u32> {
         let mut operator_ids = HashMap::new();
-        for op in &self.operators {
+        for (operator_id, op) in self.operators.iter().enumerate() {
             if let Some(source_operator_id) = op.source_operator_id {
-                operator_ids.entry(source_operator_id).or_insert(op.operator_id);
+                operator_ids.entry(source_operator_id).or_insert(operator_id as u32);
             }
         }
         operator_ids
@@ -384,10 +435,10 @@ impl PlanViewModel {
         let operator_ids = self.source_operator_ids();
 
         let mut pending: Vec<(u32, u32, &'static str, Vec<(String, String)>)> = Vec::new();
-        for op in &mut self.operators {
+        for (operator_id, op) in self.operators.iter_mut().enumerate() {
             for reference in std::mem::take(&mut op.references) {
                 if let Some(&source) = operator_ids.get(&reference.source_operator_id) {
-                    pending.push((source, op.operator_id, reference.kind, reference.attributes));
+                    pending.push((source, operator_id as u32, reference.kind, reference.attributes));
                 }
             }
         }
@@ -401,7 +452,6 @@ impl PlanViewModel {
             }
             source.cross_edge_count += 1;
             self.operator_cross_edges.push(OperatorCrossEdge {
-                edge_id: self.operator_cross_edges.len() as u32,
                 source_node,
                 target_node,
                 kind,
@@ -410,7 +460,10 @@ impl PlanViewModel {
         }
     }
 
-    /// Identify fragments introduced by federate operators
+    /// Identify fragments introduced by federate operators.
+    ///
+    /// An execution target at the root introduces a hidden root fragment, every federate a fragment. Fragments
+    /// nest: an operator belongs to its innermost fragment, a nested federate starts a child fragment.
     fn identify_fragments(&mut self) {
         let operators = &self.operators;
         let mut boundaries: Vec<u32> = Vec::new();
@@ -423,8 +476,7 @@ impl PlanViewModel {
             pending.push(root);
         }
         let push_children = |pending: &mut Vec<u32>, operator_id: u32| {
-            let op = &operators[operator_id as usize];
-            pending.extend((op.children_begin..op.children_begin + op.children_count).rev().map(|c| c as u32));
+            pending.extend(operators[operator_id as usize].children().rev().map(|c| c as u32));
         };
         while let Some(operator_id) = pending.pop() {
             if operators[operator_id as usize].operator_type.as_deref() == Some("federate") {
@@ -433,79 +485,97 @@ impl PlanViewModel {
             push_children(&mut pending, operator_id);
         }
         boundaries.splice(0..0, root_boundaries);
+        let fragment_of: HashMap<u32, u32> = boundaries.iter().enumerate().map(|(f, b)| (*b, f as u32)).collect();
 
-        for boundary_id in boundaries {
+        // Collect the operators of every fragment and stop at nested fragments.
+        // Enclosing fragments come first, so a nested fragment knows its parent before it is collected.
+        let mut parents: Vec<Option<u32>> = vec![None; boundaries.len()];
+        let mut fragments = Vec::with_capacity(boundaries.len());
+        for (f, &boundary_id) in boundaries.iter().enumerate() {
             let mut fragment = Fragment {
-                fragment_id: self.fragments.len() as u32,
-                anchor_operator: boundary_id,
+                parent_fragment: parents[f],
+                root_operator: Some(boundary_id),
                 operators: vec![boundary_id],
+                hidden: operators[boundary_id as usize].operator_type.as_deref() == Some("executiontarget"),
+                ..Default::default()
             };
             pending.clear();
             push_children(&mut pending, boundary_id);
             while let Some(operator_id) = pending.pop() {
+                if let Some(&nested) = fragment_of.get(&operator_id) {
+                    parents[nested as usize] = Some(f as u32);
+                    continue;
+                }
                 fragment.operators.push(operator_id);
                 push_children(&mut pending, operator_id);
             }
-            self.fragments.push(fragment);
+            fragments.push(fragment);
         }
+        for (f, fragment) in fragments.iter().enumerate() {
+            for &operator_id in &fragment.operators {
+                self.operators[operator_id as usize].fragment = Some(f as u32);
+            }
+        }
+        self.fragments = fragments;
     }
 
     /// Identify the operator edges
     fn identify_operator_edges(&mut self, child_edge_count: usize) {
         let mut child_edges = Vec::with_capacity(child_edge_count);
-        for parent in &self.operators {
-            let child_count = parent.children_count;
-            for child_id in 0..parent.children_count {
-                let child = &self.operators[parent.children_begin + child_id];
+        for (parent_id, parent) in self.operators.iter().enumerate() {
+            for (port, child_id) in parent.children().enumerate() {
                 child_edges.push(OperatorEdge {
-                    edge_id: child_edges.len() as u32,
-                    pipeline: None,
-                    parent_operator: parent.operator_id,
-                    child_operator: child.operator_id,
-                    parent_port_count: child_count,
-                    parent_port_index: child_id,
+                    parent_operator: parent_id as u32,
+                    child_operator: child_id as u32,
+                    parent_port_count: parent.children_count,
+                    parent_port_index: port,
+                    slot: None,
                 });
             }
         }
         self.operator_edges = child_edges;
     }
 
-    /// Read explicit Hyper pipelines
+    /// Read explicit Hyper pipelines.
+    ///
+    /// A member without a member child produces the tuples of the pipeline (source), a member without a member
+    /// parent consumes them (sink).
     fn parse_hyper_pipelines(&mut self, source_pipelines: &[Value]) {
         let operator_ids = self.source_operator_ids();
-
-        let mut next_edge_id: u64 = 0;
         for source_pipeline in source_pipelines {
             let Some(source_pipeline) = source_pipeline.as_object() else {
                 continue;
             };
-            let source_pipeline_id = source_pipeline.get("pipelineId").and_then(Value::as_u64);
-            let members = source_pipeline.get("operators").and_then(Value::as_array);
-            let pipeline = self.register_pipeline(source_pipeline_id);
-            let Some(members) = members else {
-                continue;
-            };
-            pipeline.operators =
-                members.iter().filter_map(|member| operator_ids.get(&member.as_u64()?).copied()).collect();
-            let pipeline_id = pipeline.pipeline_id;
-
-            let membership: HashSet<u32> = pipeline.operators.iter().copied().collect();
-            let mut edges = Vec::new();
-            for edge in &mut self.operator_edges {
-                if !membership.contains(&edge.child_operator) || !membership.contains(&edge.parent_operator) {
-                    continue;
-                }
-                edges.push(fb::PlanPipelineEdge::new(
-                    next_edge_id,
-                    pipeline_id,
-                    edge.child_operator,
-                    edge.parent_operator,
-                    0,
-                ));
-                next_edge_id += 1;
-                edge.pipeline = Some(pipeline_id);
-            }
-            self.pipelines.last_mut().unwrap().edges = edges;
+            let engine_id = source_pipeline.get("pipelineId").and_then(Value::as_u64).map(|id| id.to_string());
+            let members: Vec<u32> = source_pipeline
+                .get("operators")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|member| operator_ids.get(&member.as_u64()?).copied())
+                .collect();
+            let membership: HashSet<u32> = members.iter().copied().collect();
+            let slots: Vec<(u32, fb::PlanSlotRole)> = members
+                .iter()
+                .map(|&member| {
+                    let op = &self.operators[member as usize];
+                    let consumes = op.children().any(|child| membership.contains(&(child as u32)));
+                    let feeds = op.parent.is_some_and(|parent| membership.contains(&(parent as u32)));
+                    let role = match (consumes, feeds) {
+                        (false, _) => fb::PlanSlotRole::SOURCE,
+                        (true, true) => fb::PlanSlotRole::THROUGH,
+                        (true, false) => fb::PlanSlotRole::SINK,
+                    };
+                    (member, role)
+                })
+                .collect();
+            let fragment = members.first().and_then(|m| self.operators[*m as usize].fragment);
+            let attributes = source_pipeline
+                .iter()
+                .filter(|(name, _)| *name != "pipelineId" && *name != "operators")
+                .map(|(name, value)| (name.clone(), to_json(value)))
+                .collect();
+            self.add_pipeline(engine_id, fragment, &slots, attributes);
         }
     }
 }

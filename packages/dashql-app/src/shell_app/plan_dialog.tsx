@@ -7,6 +7,7 @@ import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../views/plan/plan_view.js';
+import { PlanExecutionState } from '../views/plan/plan_execution_state.js';
 import { CodeMirror } from '../session/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
@@ -133,6 +134,7 @@ function PlanDialog(props: PlanDialogProps) {
     const viewModelRef = React.useRef<dashql.DashQLPlanViewModel | null>(null);
     const [mode, setMode] = React.useState(PlanMode.Raw);
     const [plan, setPlan] = React.useState<dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel> | null>(null);
+    const [execution, setExecution] = React.useState(PlanExecutionState.EMPTY);
     const [diagnostic, setDiagnostic] = React.useState<string | null>(null);
     const [expanded, setExpanded] = React.useState(false);
     const onRawChangeRef = React.useRef<(text: string) => void>(() => {});
@@ -153,6 +155,7 @@ function PlanDialog(props: PlanDialogProps) {
                 throw new Error('Plan contains no operators');
             }
             setPlan(nextPlan);
+            setExecution(PlanExecutionState.EMPTY.withEvents(viewModelRef.current.snapshotEvents().read()));
             setDiagnostic(null);
             return true;
         } catch (error) {
@@ -320,7 +323,7 @@ function PlanDialog(props: PlanDialogProps) {
                     )}
                     {mode === PlanMode.Viewer && plan != null && (
                         <div className={styles.viewer}>
-                            <PlanViewComponent plan={plan} autoFocus />
+                            <PlanViewComponent plan={plan} execution={execution} autoFocus />
                         </div>
                     )}
                 </div>

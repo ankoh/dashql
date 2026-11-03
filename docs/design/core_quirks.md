@@ -89,9 +89,15 @@ entry when you find another one. The headings name where the behavior lives.
 - **Roots are placed in reverse plan order** (`flatten_operators`).
 - **Fragment order.** Execution-target fragments come in reverse root order, before federate fragments
   (`identify_fragments`).
-- **Lookups.** `find_number` stops at the first existing name even if it is not a number, a non-array
-  `earlyProbes` blocks the `early-probes` fallback, pipeline operator lists keep duplicates, and
-  pipeline edge ids count across pipelines.
+- **Lookups.** `find_number` stops at the first existing name even if it is not a number, and a
+  non-array `earlyProbes` blocks the `early-probes` fallback. An operator listed twice in a pipeline
+  gets one slot, the first role wins (`add_pipeline`).
+- **Kinds.** The Hyper kind mapping (`hyper_operator_kind`) covers exactly the operator types that
+  had a symbol in the renderer, plus the joins and set operations without one. Other Hyper scans
+  stay `OTHER`.
+- **Rollups.** A fragment is its own work, without its child fragments (Trino stage statistics), the
+  query sums all fragments. An operator in a sink slot only produces the output of its sink slots.
+  Input events for entities that do not exist are dropped silently (`apply_event`).
 
 ## Script session (`packages/dashql-core-session/src/script_session.rs`)
 

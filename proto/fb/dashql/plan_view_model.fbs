@@ -2,105 +2,104 @@ include "dashql/parsed_script.fbs";
 
 namespace dashql.buffers.view;
 
-struct PlanExecutionStatistics {
-    /// The time when the target started in milliseconds since epoch
-    started_at: uint64;
-    /// The time when the target finished in milliseconds since epoch
-    finished_at: uint64;
-
-    /// The estimated input cardinality
-    input_cardinality_estimated: double;
-    /// The cardinality that has been consumed already
-    input_cardinality_consumed: uint64;
-    /// The estimated input cardinality
-    output_cardinality_estimated: double;
-    /// The cardinality that has been produced already
-    output_cardinality_produced: uint64;
-    /// The memory currently attributed to the operator in bytes
-    memory_bytes: uint64;
-}
-
-enum PlanExecutionStatus: uint8 {
+/// The engine that produced a plan
+enum PlanEngine: uint8 {
     UNKNOWN = 0,
-    PENDING = 1,
-    RUNNING = 2,
-    SUCCEEDED = 3,
-    FAILED = 4,
-    SKIPPED = 5,
+    HYPER = 1,
+    TRINO = 2,
 }
 
+/// The engine-neutral kind of an operator, the renderer picks the operator symbol by kind.
+/// The engine type name stays the visible type of the operator.
+enum PlanOperatorKind: uint8 {
+    OTHER = 0,
+    OUTPUT,
+    SCAN,
+    EXPLICIT_SCAN,
+    VIRTUAL_TABLE,
+    TABLE_CONSTRUCTION,
+    TABLE_FUNCTION,
+    FILTER,
+    PROJECT,
+    AGGREGATE,
+    WINDOW,
+    SORT,
+    LIMIT,
+    JOIN,
+    LEFT_OUTER_JOIN,
+    RIGHT_OUTER_JOIN,
+    FULL_OUTER_JOIN,
+    LEFT_SEMI_JOIN,
+    RIGHT_SEMI_JOIN,
+    LEFT_ANTI_JOIN,
+    RIGHT_ANTI_JOIN,
+    LEFT_MARK_JOIN,
+    RIGHT_MARK_JOIN,
+    UNION_ALL,
+    UNION,
+    INTERSECT_ALL,
+    INTERSECT,
+    EXCEPT_ALL,
+    EXCEPT,
+    ITERATION,
+    ITERATION_INCREMENT,
+    INSERT,
+    EXCHANGE,
+}
+
+/// The role of an operator in a pipeline
+enum PlanSlotRole: uint8 {
+    /// The operator produces the tuples of the pipeline (a scan, the probe of a materialized input)
+    SOURCE = 0,
+    /// The operator passes tuples on to its parent in the same pipeline
+    THROUGH = 1,
+    /// The operator consumes the tuples of the pipeline (a hash build, the output)
+    SINK = 2,
+}
+
+/// The structure of a query plan: operators, edges, fragments, pipelines and their slots, laid out as a tree.
+///
+/// The structure carries no execution state. Execution state exists only as events (`PlanEvents`), which the
+/// renderer folds into its view state. Ids are indexes into the vectors, u32::MAX means none.
+/// Strings are indexes into the string dictionary.
 table PlanViewModel {
+    /// The engine that produced the plan
+    engine: PlanEngine;
+    /// The structure version, bumped whenever the structure changes (loading a plan, registering entities that
+    /// appear at runtime). Events name the version they belong to.
+    structure_version: uint32;
+
     /// The layout config
     layout_config: DerivedPlanLayoutConfig;
+    /// The layout info of the entire plan
+    layout_rect: PlanLayoutRect;
 
     /// The string dictionary allows us to implement most view model types as flat structs.
     /// We do this to simplify the renderer logic.
     string_dictionary: [string];
-    /// The fragments
-    fragments: [PlanFragment];
-    /// Operator ids grouped by fragment
-    fragment_operators: [uint32];
-    /// The pipelines
-    pipelines: [PlanPipeline];
-    /// The pipeline edges
-    pipeline_edges: [PlanPipelineEdge];
+    /// The attributes of operators, cross edges, fragments and pipelines
+    attributes: [PlanAttribute];
+
+    /// The operators
+    operators: [PlanOperator];
     /// The root operators
     root_operators: [uint32];
-    /// The plan operators
-    operators: [PlanOperator];
-    /// The pipelines per operator
-    operator_pipelines: [uint32];
-    /// The plan edges
+    /// The operator edges (child to parent)
     operator_edges: [PlanOperatorEdge];
-    /// The plan cross edges
+    /// The operator cross edges (references that are no containment)
     operator_cross_edges: [PlanOperatorCrossEdge];
-    /// The plan attributes
-    attributes: [PlanAttribute];
-    /// Operator ids grouped by pipeline
-    pipeline_operators: [uint32];
 
-    /// The layout info
-    layout_rect: PlanLayoutRect;
-}
+    /// The fragments
+    fragments: [PlanFragment];
+    /// The operators owned by a fragment, grouped by fragment
+    fragment_operators: [uint32];
 
-struct PlanFragment {
-    /// The fragment id
-    fragment_id: uint32;
-    /// The operator that introduces the fragment
-    anchor_operator: uint32;
-    /// The execution status
-    execution_status: PlanExecutionStatus;
-    /// The execution statistics
-    execution_statistics: PlanExecutionStatistics;
-    /// The begin of the attributes
-    attributes_begin: uint32;
-    /// The number of attributes
-    attribute_count: uint32;
-    /// The begin of the fragment's operator membership
-    operators_begin: uint32;
-    /// The number of operators in the fragment
-    operator_count: uint32;
-}
-
-struct PlanPipeline {
-    /// The pipeline id
-    pipeline_id: uint32;
-    /// The execution status
-    execution_status: PlanExecutionStatus;
-    /// The execution statistics
-    execution_statistics: PlanExecutionStatistics;
-    /// The pipeline edges begin
-    edges_begin: uint32;
-    /// The pipeline edges count
-    edge_count: uint32;
-    /// The begin of the pipeline's operator membership
-    operators_begin: uint32;
-    /// The number of operators in the pipeline
-    operator_count: uint32;
-    /// The begin of the attributes
-    attributes_begin: uint32;
-    /// The number of attributes
-    attribute_count: uint32;
+    /// The pipelines
+    pipelines: [PlanPipeline];
+    /// The slots (an operator in a pipeline), grouped by pipeline
+    slots: [PlanSlot];
+    /// The slots of an operator, grouped by operator
+    operator_slots: [uint32];
 }
 
 struct PlanLayoutConfig {
@@ -144,16 +143,25 @@ struct PlanLayoutRect {
     height: double;
 }
 
+struct PlanAttribute {
+    /// The name
+    name: uint32;
+    /// The value serialized as JSON
+    value_json: uint32;
+}
+
 struct PlanOperator {
-    /// The operator id
-    operator_id: uint32;
-    /// The operator name (if any)
-    operator_type_name: uint32;
-    /// The operator label (if any)
-    operator_label: uint32;
-    /// The parent operator id
-    parent_operator_id: uint32;
-    /// The path in the parent node
+    /// The operator id of the engine (string), u32::MAX if the engine has none
+    engine_id: uint32;
+    /// The engine-neutral operator kind
+    kind: PlanOperatorKind;
+    /// The operator type name of the engine (string)
+    type_name: uint32;
+    /// The operator label (string, if any)
+    label: uint32;
+    /// The parent operator
+    parent: uint32;
+    /// The path from the parent operator to this operator in the engine plan (string)
     parent_path: uint32;
     /// The source location (if any)
     source_location: parser.SymbolSpan;
@@ -162,80 +170,91 @@ struct PlanOperator {
     children_begin: uint32;
     /// The number of child operators
     children_count: uint32;
-    /// The begin of the cross edges from operators
+    /// The begin of the outgoing cross edges
     cross_edges_begin: uint32;
-    /// The number of cross edges
+    /// The number of outgoing cross edges
     cross_edge_count: uint32;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes
     attribute_count: uint32;
+    /// The begin of the slots in `operator_slots`
+    slots_begin: uint32;
+    /// The number of slots
+    slot_count: uint32;
+    /// The innermost fragment that contains the operator
+    fragment: uint32;
 
-    /// The execution status
-    execution_status: PlanExecutionStatus;
-    /// The execution statistics
-    execution_statistics: PlanExecutionStatistics;
+    /// The estimated output rows, NaN if the plan has no estimate
+    estimated_rows: double;
     /// The layout info
     layout_rect: PlanLayoutRect;
 }
 
-struct PlanPipelineEdge {
-    /// The edge id (ids are sorted in topologocial order)
-    edge_id: uint64;
-    /// The pipeline id
-    pipeline_id: uint32;
-    /// The target operator id
-    child_operator: uint32;
-    /// The source operator id
-    parent_operator: uint32;
-    /// Is the pipeline breaking at the target?
-    /// 0/1, Esbuild error on generated typescript when using boolean
-    parent_breaks_pipeline: uint8;
-}
-
-struct PlanAttribute {
-    /// The attribute id
-    attribute_id: uint32;
-    /// The name
-    name: uint32;
-    /// The string id of additional attributes as json
-    value_json: uint32;
-}
-
 struct PlanOperatorEdge {
-    /// The edge id
-    edge_id: uint64;
-    /// The child node
-    child_operator: uint32;
-    /// The parent node
-    parent_operator: uint32;
-    /// The number of incoming edges at the target operator
-    parent_operator_port_count: uint32;
-    /// The id of the port in the parent
-    parent_operator_port_index: uint32;
-    /// The pipeline id
-    pipeline_id: uint32;
-    /// The execution status
-    execution_status: PlanExecutionStatus;
-    /// The execution statistics
-    execution_statistics: PlanExecutionStatistics;
+    /// The child operator
+    child: uint32;
+    /// The parent operator
+    parent: uint32;
+    /// The index of the port in the parent
+    port_index: uint32;
+    /// The number of ports of the parent
+    port_count: uint32;
+    /// The slot of the child in the pipeline that carries the edge, its output is the flow over the edge
+    slot: uint32;
 }
 
 struct PlanOperatorCrossEdge {
-    /// The cross edge id
-    edge_id: uint64;
-    /// The source node
-    source_node: uint32;
-    /// The target node
-    target_node: uint32;
-    /// The pipeline id
-    pipeline_id: uint32;
+    /// The referenced operator
+    source: uint32;
+    /// The operator containing the reference
+    target: uint32;
+    /// The begin of the attributes, the first is the relationship `kind`
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
+}
+
+struct PlanFragment {
+    /// The fragment id of the engine (string), u32::MAX if the engine has none
+    engine_id: uint32;
+    /// The enclosing fragment
+    parent_fragment: uint32;
+    /// The root operator, u32::MAX if the fragment has no operators (yet)
+    root_operator: uint32;
+    /// The begin of the operators owned by the fragment in `fragment_operators`.
+    /// Operators of nested fragments belong to the nested fragment only, the contour encloses both.
+    operators_begin: uint32;
+    /// The number of operators owned by the fragment
+    operator_count: uint32;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes
     attribute_count: uint32;
-    /// The execution status
-    execution_status: PlanExecutionStatus;
-    /// The execution statistics
-    execution_statistics: PlanExecutionStatistics;
+    /// 1 if the renderer draws no contour for the fragment (0/1, esbuild fails on generated TS booleans)
+    hidden: uint8;
+}
+
+struct PlanPipeline {
+    /// The pipeline id of the engine (string), u32::MAX if the engine has none
+    engine_id: uint32;
+    /// The fragment that runs the pipeline
+    fragment: uint32;
+    /// The begin of the slots
+    slots_begin: uint32;
+    /// The number of slots
+    slot_count: uint32;
+    /// The begin of the attributes
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
+}
+
+struct PlanSlot {
+    /// The pipeline
+    pipeline: uint32;
+    /// The operator
+    operator: uint32;
+    /// The role of the operator in the pipeline
+    role: PlanSlotRole;
 }

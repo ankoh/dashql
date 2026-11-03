@@ -1,4 +1,4 @@
-import { buildCrossEdgePath, buildFragmentPath, buildPipelinePath, estimateRelativeDifference, hasOutputCardinalityProduced, truncatePlanLabel } from './plan_scene.js';
+import { buildCrossEdgePath, buildFragmentPath, buildPipelinePath, estimateRelativeDifference, truncatePlanLabel } from './plan_scene.js';
 
 function pathContainsPoint(path: string, x: number, y: number): boolean {
     const contours = path.split('M ').filter(Boolean).map(contour => {
@@ -33,19 +33,6 @@ describe('truncatePlanLabel', () => {
 
     it('renders no text when the budget is zero', () => {
         expect(truncatePlanLabel('orders', 0)).toEqual('');
-    });
-});
-
-describe('hasOutputCardinalityProduced', () => {
-    it('detects analyzed output rows without conflating them with estimates', () => {
-        expect(hasOutputCardinalityProduced({ cardinality: 1200 })).toEqual(false);
-        expect(hasOutputCardinalityProduced({ statistics: { 'output-rows': 42 } })).toEqual(true);
-        expect(hasOutputCardinalityProduced({ statistics: { outputRows: 21 } })).toEqual(true);
-        expect(hasOutputCardinalityProduced({ outputRows: 18 })).toEqual(true);
-    });
-
-    it('detects an analyzed output of zero', () => {
-        expect(hasOutputCardinalityProduced({ statistics: { 'output-rows': 0 } })).toEqual(true);
     });
 });
 

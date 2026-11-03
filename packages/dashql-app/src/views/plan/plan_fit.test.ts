@@ -1,22 +1,17 @@
+import * as dashql from '@ankoh/dashql-core';
 import { computePlanFitTransform, PLAN_FIT_MIN_SCALE, PLAN_FIT_PADDING } from './plan_fit.js';
 import type { PlanScene, PlanSceneOperator } from './plan_scene.js';
 
 function operator(id: number, x: number, y: number): PlanSceneOperator {
     return {
         id,
+        kind: dashql.buffers.view.PlanOperatorKind.OTHER,
         typeName: null,
         label: `operator ${id}`,
         displayLabel: `operator ${id}`,
         rect: { x, y, width: 80, height: 32 },
         ports: 0,
-        statistics: {
-            inputCardinalityEstimated: 0,
-            inputCardinalityConsumed: 0n,
-            outputCardinalityEstimated: 0,
-            outputCardinalityProduced: 0n,
-            hasOutputCardinalityProduced: false,
-            memoryBytes: 0n,
-        },
+        estimatedRows: Number.NaN,
         properties: {},
     };
 }
@@ -27,7 +22,7 @@ function scene(width: number, height: number): Pick<PlanScene, 'width' | 'height
         height,
         // The root sits at the top, off-center, with a child below
         operators: [operator(0, width / 4, 20), operator(1, width / 2, 100)],
-        edges: [{ id: 0n, childOperator: 1, parentOperator: 0, outputCardinalityEstimated: 0, outputCardinalityProduced: null, path: '' }],
+        edges: [{ id: 0, childOperator: 1, parentOperator: 0, slot: 0xFFFFFFFF, outputCardinalityEstimated: 0, path: '' }],
     };
 }
 

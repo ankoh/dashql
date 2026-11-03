@@ -151,7 +151,7 @@ impl<'a> PlanLayouter<'a> {
         let input = *layout_config.input();
         let mut nodes = vec![PlanLayoutNode::default(); view_model.operators.len()];
         for (i, op) in view_model.operators.iter().enumerate() {
-            nodes[i].parent = op.parent_operator_id;
+            nodes[i].parent = op.parent;
             nodes[i].children_begin = op.children_begin;
             nodes[i].children_count = op.children_count;
             nodes[i].width = compute_node_width(op, &input);

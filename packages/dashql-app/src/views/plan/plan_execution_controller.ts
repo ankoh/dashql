@@ -1,52 +1,70 @@
 import * as dashql from '@ankoh/dashql-core';
+import type { PlanExecutionState } from './plan_execution_state.js';
 
+const view = dashql.buffers.view;
+
+/// Updates the status markers of a mounted plan in place, without rendering the plan again
 export class PlanExecutionController {
-    private operatorSlots: Array<SVGGElement | null> = [];
+    private operatorElements: Array<SVGGElement | null> = [];
     private pipelinePaths: Array<SVGPathElement | null> = [];
     private statuses = new Uint8Array();
 
     public reset(operatorCount: number, pipelineCount: number) {
-        this.operatorSlots.length = operatorCount;
+        this.operatorElements.length = operatorCount;
         this.pipelinePaths.length = pipelineCount;
         this.statuses = new Uint8Array(operatorCount);
-        for (const slot of this.operatorSlots) {
-            if (slot != null) slot.dataset.status = `${dashql.buffers.view.PlanExecutionStatus.UNKNOWN}`;
+        for (const element of this.operatorElements) {
+            if (element != null) element.dataset.status = `${view.PlanExecutionStatus.UNKNOWN}`;
         }
         for (const path of this.pipelinePaths) {
             if (path != null) delete path.dataset.status;
         }
     }
 
-    public registerOperator(id: number, slot: SVGGElement | null) {
-        this.operatorSlots[id] = slot;
-        if (slot != null) slot.dataset.status = `${this.statuses[id] ?? dashql.buffers.view.PlanExecutionStatus.UNKNOWN}`;
+    public registerOperator(id: number, element: SVGGElement | null) {
+        this.operatorElements[id] = element;
+        if (element != null) element.dataset.status = `${this.statuses[id] ?? view.PlanExecutionStatus.UNKNOWN}`;
     }
 
     public registerPipeline(id: number, path: SVGPathElement | null) {
         this.pipelinePaths[id] = path;
     }
 
-    public applyChangeEvents(events: dashql.buffers.view.PlanChangeEvents) {
-        const operator = new dashql.buffers.view.UpdateOperatorEvent();
-        const pipeline = new dashql.buffers.view.UpdatePipelineEvent();
+    private setOperatorStatus(id: number, status: dashql.buffers.view.PlanExecutionStatus) {
+        if (id >= this.statuses.length || this.statuses[id] === status) return;
+        this.statuses[id] = status;
+        const element = this.operatorElements[id];
+        if (element != null) element.dataset.status = `${status}`;
+    }
+
+    private setPipelineStatus(id: number, status: dashql.buffers.view.PlanExecutionStatus) {
+        const path = this.pipelinePaths[id];
+        if (path != null) path.dataset.status = `${status}`;
+    }
+
+    /// Apply the output events of the core plan view model
+    public applyEvents(events: dashql.buffers.view.PlanEvents) {
+        const event = new view.PlanUpdateEvent();
         for (let i = 0; i < events.eventsLength(); ++i) {
-            switch (events.eventsType(i)) {
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent: {
-                    const update = events.events(i, operator) as dashql.buffers.view.UpdateOperatorEvent;
-                    const id = update.operatorId();
-                    if (id >= this.statuses.length || this.statuses[id] === update.executionStatus()) break;
-                    this.statuses[id] = update.executionStatus();
-                    const slot = this.operatorSlots[id];
-                    if (slot != null) slot.dataset.status = `${update.executionStatus()}`;
+            events.events(i, event);
+            switch (event.entity()) {
+                case view.PlanEntity.OPERATOR:
+                    this.setOperatorStatus(event.index(), event.status());
                     break;
-                }
-                case dashql.buffers.view.PlanChangeEvent.UpdatePipelineEvent: {
-                    const update = events.events(i, pipeline) as dashql.buffers.view.UpdatePipelineEvent;
-                    const path = this.pipelinePaths[update.pipelineId()];
-                    if (path != null) path.dataset.status = `${update.executionStatus()}`;
+                case view.PlanEntity.PIPELINE:
+                    this.setPipelineStatus(event.index(), event.status());
                     break;
-                }
             }
         }
+    }
+
+    /// Show the statuses of an execution state, after a reset
+    public applyState(state: PlanExecutionState) {
+        state.operators.forEach((operator, id) => {
+            if (operator != null) this.setOperatorStatus(id, operator.status);
+        });
+        state.pipelines.forEach((pipeline, id) => {
+            if (pipeline != null) this.setPipelineStatus(id, pipeline.status);
+        });
     }
 }

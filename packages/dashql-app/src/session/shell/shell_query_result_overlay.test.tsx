@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { PlanExecutionState } from '../../views/plan/plan_execution_state.js';
 import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,
@@ -15,10 +16,11 @@ import {
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
-    useHyperPlan: (planText: string | null) => ({
+    usePlanViewModel: (_engine: dashql.buffers.view.PlanEngine, planText: string | null) => ({
         plan: planText?.includes('executiontarget')
             ? { read: () => ({}) } as unknown as dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>
             : null,
+        execution: PlanExecutionState.EMPTY,
         rejected: planText != null && !planText.includes('executiontarget'),
     }),
     PlanView: () => <div data-testid="mock-plan-view">Query plan viewer</div>,
