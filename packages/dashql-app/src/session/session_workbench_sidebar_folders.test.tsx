@@ -91,7 +91,7 @@ describe('SessionWorkbenchSidebar folders', () => {
 
     /// The label of a row, the folder name, the session name or the script name
     function rowLabel(row: Element): string {
-        const button = row.querySelector(':scope > button:not([data-testid="session-scripts-toggle"])');
+        const button = row.querySelector(':scope > button');
         if (row.getAttribute('data-testid') === 'session-folder-row') return button?.getAttribute('title')?.split('/').pop() ?? '';
         return button?.textContent ?? '';
     }
@@ -170,12 +170,14 @@ describe('SessionWorkbenchSidebar folders', () => {
         const onOpenScript = vi.fn();
         render(ROOT_SESSION, onOpenScript);
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
-        // Only a session with scripts has a caret
-        expect(sessionRow('Root').querySelector('[data-testid="session-scripts-toggle"]')).toBeNull();
-        const toggle = sessionRow('Client').querySelector<HTMLButtonElement>('[data-testid="session-scripts-toggle"]')!;
+        // Only a session with scripts can be expanded
+        expect(sessionRow('Root').querySelector(':scope > button')?.hasAttribute('aria-expanded')).toBe(false);
+        const toggle = sessionRow('Client').querySelector<HTMLButtonElement>(':scope > button')!;
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
+        // A click on the name opens the session and lists its scripts
         act(() => toggle.click());
+        expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_SESSION }));
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '2:revenue', '0:Root']);
 
@@ -186,8 +188,15 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_SESSION }));
         expect(onOpenScript).toHaveBeenCalledWith(CLIENT_SESSION, 'revenue.sql');
 
+        // A click on the name of the open session hides and shows its scripts again, without a rename
+        render(CLIENT_SESSION, onOpenScript);
+        state.navigate.mockReset();
         act(() => toggle.click());
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+        act(() => toggle.click());
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '2:revenue', '0:Root']);
+        expect(state.navigate).not.toHaveBeenCalled();
+        expect(container.querySelector('input[aria-label="Session name"]')).toBeNull();
     });
 
     it('creates a session in a folder', async () => {

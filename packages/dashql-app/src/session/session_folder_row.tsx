@@ -29,8 +29,8 @@ export function sessionListRowPadding(depth: number): number {
     return 8 + depth * 16;
 }
 
-/// The width of the caret column of folder rows with its gap, session rows leave it empty so that their icons
-/// line up with the folder icons of their level and sit one level deeper than their folder
+/// The width of the caret column of folder and session rows with its gap, a session without scripts leaves it
+/// empty so that its icon still lines up with the icons of its level
 export const SESSION_LIST_CARET_COLUMN = 12 + 8;
 
 interface SessionFolderRowProps {
@@ -97,8 +97,8 @@ export const SessionFolderRow: React.FC<SessionFolderRowProps> = (props) => {
             {...rowListeners}
         >
             {props.renaming ? (
-                <div className={styles.folder_rename}>
-                    <span className={styles.folder_caret} aria-hidden="true"><Caret size={12} /></span>
+                <div className={styles.tree_rename}>
+                    <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
                     <FolderIcon size={14} aria-hidden="true" />
                     <NameInput
                         ref={renameInputRef}
@@ -113,12 +113,12 @@ export const SessionFolderRow: React.FC<SessionFolderRowProps> = (props) => {
             ) : (
                 <button
                     type="button"
-                    className={styles.folder_button}
+                    className={styles.tree_button}
                     aria-expanded={props.expanded}
                     title={props.folder.path.join('/')}
                     onClick={props.onToggle}
                 >
-                    <span className={styles.folder_caret} aria-hidden="true"><Caret size={12} /></span>
+                    <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
                     <FolderIcon size={14} aria-hidden="true" />
                     <span className={styles.session_name}>{props.folder.name}</span>
                 </button>

@@ -435,6 +435,19 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
         onOpenScript(fileName);
     };
     const Caret = expanded ? ChevronDownIcon : ChevronRightIcon;
+    const caret = scriptNames.length > 0
+        ? <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
+        : <span aria-hidden="true" />;
+    // A click opens the session and lists its scripts, a click on the open session shows or hides them like a folder.
+    // Renaming the session is in the row menu.
+    const clickName = (anchor: HTMLButtonElement) => {
+        if (!selected) {
+            onOpen(anchor);
+            if (!expanded && scriptNames.length > 0) onToggle();
+        } else if (scriptNames.length > 0) {
+            onToggle();
+        }
+    };
     return (
         <>
         <li
@@ -443,7 +456,6 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
                 styles.entry_surface,
                 styles.entry_interactive,
                 styles.session_row,
-                styles.session_row_caret,
                 {
                     [styles.entry_selected]: selected,
                     [styles.session_row_dragging]: isDragging,
@@ -461,20 +473,9 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             {...attributes}
             {...rowListeners}
         >
-            {scriptNames.length > 0 ? (
-                <button
-                    type="button"
-                    className={styles.session_caret}
-                    aria-expanded={expanded}
-                    aria-label={`${expanded ? 'Hide' : 'Show'} the scripts of ${item.label}`}
-                    data-testid="session-scripts-toggle"
-                    onClick={onToggle}
-                >
-                    <Caret size={12} />
-                </button>
-            ) : <span aria-hidden="true" />}
             {renaming ? (
-                <div className={styles.session_rename}>
+                <div className={styles.tree_rename}>
+                    {caret}
                     <StackIcon size={14} aria-hidden="true" />
                     <NameInput
                         ref={renameInputRef}
@@ -489,12 +490,13 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             ) : (
                 <button
                     type="button"
-                    className={styles.session_button}
+                    className={styles.tree_button}
                     aria-current={selected ? 'page' : undefined}
+                    aria-expanded={scriptNames.length > 0 ? expanded : undefined}
                     title={item.path}
-                    onClick={event => onOpen(event.currentTarget)}
-                    onDoubleClick={() => setRenaming(true)}
+                    onClick={event => clickName(event.currentTarget)}
                 >
+                    {caret}
                     <StackIcon size={14} aria-hidden="true" />
                     <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
                 </button>
