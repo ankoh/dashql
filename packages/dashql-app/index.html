@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-        <meta http-equiv="Content-Security-Policy" content="default-src 'unsafe-inline' 'wasm-unsafe-eval' 'self'; script-src 'unsafe-inline' 'wasm-unsafe-eval' 'self' https://static.cloudflareinsights.com; style-src 'unsafe-inline' 'self'; connect-src app: data: dashql-native: ws: wss: http: https:; worker-src blob: 'self'" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'wasm-unsafe-eval' 'self'; script-src 'wasm-unsafe-eval' 'self' https://static.cloudflareinsights.com; style-src 'unsafe-inline' 'self'; connect-src app: data: dashql-native: ws: wss: http: https:; worker-src blob: 'self'" />
 
         <link rel="apple-touch-icon" href="/static/favicons/dashql/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/static/favicons/dashql/apple-touch-icon.png" />
@@ -18,22 +18,6 @@
         <meta property="og:image" content="/static/favicons/dashql/sharing-dashql.png" />
 
         <title>DashQL</title>
-
-        <script>
-            // Drop the static DashQL branding before the first paint when the url requests another flavor.
-            // The module script brands the page with the flavor, but would only replace the DashQL favicons and title once it loaded.
-            (function () {
-                var flavor = new URLSearchParams(window.location.search).get('flavor');
-                if (flavor == null || flavor === 'dashql') {
-                    return;
-                }
-                document.documentElement.dataset.flavor = flavor;
-                document.title = '';
-                document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"], link[rel="mask-icon"]').forEach(function (link) {
-                    link.remove();
-                });
-            })();
-        </script>
     </head>
     <body>
         <div id="root"></div>

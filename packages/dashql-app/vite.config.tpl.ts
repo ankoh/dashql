@@ -136,9 +136,34 @@ export default vite.defineConfig(({ mode, command }) => {
         },
     };
 
+    // The Content-Security-Policy of the html entry pages forbids inline scripts, every script is a file. A build fails
+    // on an inline script, the browser would only block it at runtime. The dev server injects one, the React Refresh
+    // preamble of @vitejs/plugin-react, so the pages it serves allow them.
+    const inlineScripts = {
+        name: 'dashql-inline-scripts',
+        transformIndexHtml: {
+            order: 'pre' as const,
+            handler(html: string, ctx: vite.IndexHtmlTransformContext): string {
+                if (ctx.server != null) {
+                    return html.replace(/\bscript-src /g, "script-src 'unsafe-inline' ");
+                }
+                if (/\bscript-src [^;"]*'unsafe-inline'/.test(html)) {
+                    throw new Error(`${ctx.path}: script-src allows 'unsafe-inline'`);
+                }
+                for (const [, attributes, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
+                    if (!/\bsrc\s*=/.test(attributes) && body.trim() !== '') {
+                        throw new Error(`${ctx.path}: inline script, the Content-Security-Policy blocks it`);
+                    }
+                }
+                return html;
+            },
+        },
+    };
+
     return {
         plugins: [
             react(),
+            inlineScripts,
             ...(mode === 'pages' ? [precompressWasm] : []),
             serveCoreFromBazel,
             // In the Bazel sandbox, HTML entry files are symlinks to the execroot. Rolldown
