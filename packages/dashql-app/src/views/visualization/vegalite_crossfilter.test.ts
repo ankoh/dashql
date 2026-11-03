@@ -292,6 +292,47 @@ describe('VegaCrossFilterUpdater', () => {
         expect(signal).toHaveBeenNthCalledWith(2, 'active', false);
     });
 
+    it('runs a chart without a filter once', async () => {
+        const runAsync = vi.fn().mockResolvedValue(undefined);
+        const signal = vi.fn();
+        const view = {
+            data: vi.fn().mockReturnThis(),
+            signal: (...args: unknown[]) => {
+                signal(...args);
+                return view;
+            },
+            scale: vi.fn(() => ({ domain: () => [0, 1] })),
+            runAsync,
+        } as unknown as VegaCrossFilterView;
+        const domains = [{ scaleName: 'x', signalName: 'x_domain' }];
+        const updater = new VegaCrossFilterUpdater(view, 'source', [{ value: 1 }], 'mask', 'active', undefined, domains);
+
+        updater.update({ active: false, rows: [] });
+        await vi.waitFor(() => expect(signal).toHaveBeenCalledWith('x_domain', [0, 1]));
+        await Promise.resolve();
+        expect(runAsync).toHaveBeenCalledTimes(1);
+
+        // A filter runs the view again
+        updater.update({ active: true, rows: [{ [MASK_ROW_ID_FIELD]: 1 }] });
+        await vi.waitFor(() => expect(runAsync).toHaveBeenCalledTimes(2));
+        expect(signal).toHaveBeenLastCalledWith('active', true);
+    });
+
+    it('runs a chart that mounts with a filter twice', async () => {
+        const runAsync = vi.fn().mockResolvedValue(undefined);
+        const view = {
+            data: vi.fn().mockReturnThis(),
+            signal: vi.fn().mockReturnThis(),
+            scale: vi.fn(() => ({ domain: () => [0, 1] })),
+            runAsync,
+        } as unknown as VegaCrossFilterView;
+        const domains = [{ scaleName: 'x', signalName: 'x_domain' }];
+        const updater = new VegaCrossFilterUpdater(view, 'source', [{ value: 1 }], 'mask', 'active', undefined, domains);
+
+        updater.update({ active: true, rows: [{ [MASK_ROW_ID_FIELD]: 1 }] });
+        await vi.waitFor(() => expect(runAsync).toHaveBeenCalledTimes(2));
+    });
+
     it('drops queued work after disposal', async () => {
         let resolveRun: (() => void) | null = null;
         const run = new Promise<void>(resolve => {

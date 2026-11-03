@@ -268,6 +268,8 @@ export class VegaCrossFilterUpdater {
         try {
             while (this.view != null && this.pending != null) {
                 const view = this.view;
+                // Did the run of the scale domains show the source without a mask?
+                let unmaskedRun = false;
                 if (this.sourceRows != null) {
                     view.data(this.sourceDatasetName, this.sourceRows);
                     this.sourceRows = null;
@@ -284,6 +286,7 @@ export class VegaCrossFilterUpdater {
                         for (const domain of this.stableScaleDomains) {
                             view.signal(domain.signalName, [...view.scale(domain.scaleName).domain()]);
                         }
+                        unmaskedRun = true;
                     }
                 }
                 const mask = this.pending;
@@ -291,6 +294,11 @@ export class VegaCrossFilterUpdater {
                     continue;
                 }
                 this.pending = null;
+                // A chart without a filter already shows what a second run would show, the domain signals
+                // take effect with the next run. A second run doubles the work of every chart that mounts.
+                if (unmaskedRun && !mask.active && mask.rows.length === 0) {
+                    continue;
+                }
                 if (this.maskDatasetName != null && this.maskActiveSignalName != null) {
                     view
                         .data(this.maskDatasetName, mask.rows)
