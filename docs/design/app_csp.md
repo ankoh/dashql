@@ -30,7 +30,7 @@ that it loads as `<script>` or `import`, so the header only takes effect when th
 | `demos.html` | `'wasm-unsafe-eval' 'self'` + Cloudflare Insights | yes |
 | `oauth.html` | `'self'` + Cloudflare Insights | no |
 | `tests.html` | `'wasm-unsafe-eval' 'self'` | yes |
-| `tests-frame.html` | no policy | yes |
+| `tests-frame.html` | `'wasm-unsafe-eval' 'self'` | yes |
 | `hyperdb-capability.html` | no policy | |
 
 Every policy sets `default-src 'self'`. `connect-src`, `worker-src` and `frame-src` follow what each page
@@ -67,6 +67,9 @@ nothing, `script-src` overrides it there.
   at runtime. The Arrow builders (`vectorFromArray`, `tableFromArrays` of plain arrays, `makeBuilder`)
   compile their null check with `new Function`. App code assembles vectors from their buffers with
   `packages/dashql-app/src/utils/arrow_vectors.ts` instead.
+- **Test fixtures** build Arrow data with `vectorFromArray` and `tableFromArrays` of
+  `src/tests/arrow_fixtures.ts`, which take the arguments of the Arrow functions and evaluate nothing. They
+  rely on internals of the builders, which is fine for tests but not for app code.
 - **A test for eval-free code** runs it with `forbidEval` (`src/tests/forbid_eval.ts`), which makes
   `Function` throw like the policy does.
 
@@ -82,12 +85,12 @@ nothing, `script-src` overrides it there.
 
 ## Tests
 
+The tests run in `tests-frame.html`, an iframe of `tests.html` with the policy of the app pages (without the
+remote origins of `connect-src`). An iframe loaded from a URL does not inherit the policy of its parent, so
+the frame declares its own. Code under test that evaluates a string fails with an `EvalError`.
+
 The static server of the browser tests (`packages/dashql-app/test/browser_test_driver.mjs`) applies the
 `_headers` of the bundle, so the workers in the tests run under the worker policy of Pages.
-
-The test frame has no policy yet, so code under test can still evaluate strings there. About 50 test
-files build their Arrow fixtures with the builders. Once they use `arrow_vectors.ts`, the frame can take
-the policy of `tests.html`.
 
 ## Electron
 
