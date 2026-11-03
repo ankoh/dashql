@@ -254,8 +254,12 @@ and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native da
 - **Writes are verifiable:** `edit` prints the new text's hash and the analyzer's
   diagnostics.
 - **Connections:** the commands take the connections of the session and the embedded Hyper, which combines the
-  results of the other connections and the attachments. `scripts` marks it as `embedded Hyper` and lists the
-  attachments with their columns, `catalog` of the embedded Hyper lists the Parquet attachments as table parameters.
+  results of the other connections and the attachments. `scripts` marks it as `embedded Hyper` and lists it for
+  every session, the page allocates it when the app holds none yet. `scripts` lists the attachments with their
+  columns, `catalog` of the embedded Hyper lists the Parquet attachments as table parameters. `scripts` marks the
+  remote connections whose query results DashQL caches with `caches results` (`cachesResults` in `--json`): the
+  scripts on the embedded Hyper that read their scripts rerun on the cached results, so the guide asks for a cheap
+  remote script at the grain of the question and the post-processing on the embedded Hyper.
 
 ### Page side
 

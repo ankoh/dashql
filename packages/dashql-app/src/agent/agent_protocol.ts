@@ -21,6 +21,7 @@ export const AGENT_FEATURES: NonNullable<ClientSessionsParams['features']> = [
     'attachments',
     'embedded-hyper',
     'manual-scripts',
+    'result-caching',
 ];
 
 /// The path of the WebSocket endpoint

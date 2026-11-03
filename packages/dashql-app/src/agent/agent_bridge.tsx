@@ -13,6 +13,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { DASHQL_AGENT_PORT } from '../globals.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useConnectionRegistryStore } from '../connections/connection_registry.js';
+import { useEmbeddedConnection } from '../connections/embedded_connection.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useRouteContext } from '../app/router/router.js';
 import { AgentQuestionStore } from './agent_question_store.js';
@@ -104,6 +105,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     const readRegistry = useSessionScriptsRegistryReader();
     const modifySessionScripts = useSessionScriptsDispatch();
     const connectionStore = useConnectionRegistryStore();
+    const embeddedConnection = useEmbeddedConnection();
     const executeQuery = useQueryExecutor();
     const [status, setStatus] = React.useState(AgentConnectionStatus.Off);
     const supported = !blocksLoopbackWebSockets(globalThis.navigator?.userAgent ?? '', isDesktopHost());
@@ -124,6 +126,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         sessionScripts: sessionId => readRegistry().sessionScriptsMap.get(sessionId) ?? null,
         modifySessionScripts,
         connections: () => connectionStore.current,
+        embeddedConnection,
         executeQuery,
         logger,
         onScriptEdited: (sessionId, scriptKey) => {

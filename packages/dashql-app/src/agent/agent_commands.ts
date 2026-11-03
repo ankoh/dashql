@@ -6,7 +6,7 @@ import { stringifyError } from '../platform/logger/logger.js';
 import type { AgentCommandParams, AgentCommandResult } from './agent_protocol.js';
 import { AgentCommandError } from './agent_client.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '../connections/connection_state.js';
 import { isHyperWasmConnection } from '../connections/connection_label.js';
 import { findEmbeddedConnection } from '../connections/embedded_connection.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
@@ -43,6 +43,8 @@ export interface AgentCommandEnvironment {
     modifySessionScripts: (sessionId: string, action: SessionScriptsAction) => Promise<SessionScripts | null>;
     /// The connections of the app
     connections: () => ConnectionRegistry;
+    /// The connection to the embedded Hyper, allocated when the app holds none yet
+    embeddedConnection?: (instance: core.DashQL) => ConnectionState;
     executeQuery: QueryExecutor;
     logger: Logger;
     /// The agent edited a script
@@ -107,25 +109,31 @@ interface AgentConnection {
     embedded: boolean;
     readOnly: boolean | null;
     online: boolean;
+    /// Does DashQL cache the query results of the connection, so the embedded Hyper rereads them without a query?
+    cachesResults: boolean | null;
 }
 
 function describeConnection(env: AgentCommandEnvironment, connectionId: string): AgentConnection {
     const conn = env.connections().connections.get(connectionId);
-    if (conn == null) return { id: connectionId, connector: null, embedded: false, readOnly: null, online: false };
+    if (conn == null) return { id: connectionId, connector: null, embedded: false, readOnly: null, online: false, cachesResults: null };
+    const embedded = isHyperWasmConnection(conn);
     return {
         id: connectionId,
         connector: conn.connectorInfo.names.displayShort,
-        embedded: isHyperWasmConnection(conn),
+        embedded,
         readOnly: conn.connectorInfo.features.readOnly,
         online: conn.connectionHealth === ConnectionHealth.ONLINE,
+        // The embedded Hyper reads its own tables directly, its cache saves no remote query
+        cachesResults: !embedded && connectionCachesQueryResults(conn),
     };
 }
 
 /// The connections that the agent may use: the connections of the session and the embedded Hyper, which joins the
-/// attachments and the results of the other connections
+/// attachments and the results of the other connections. The app may hold no embedded Hyper yet, e.g. when every
+/// session runs on a remote connection, then it is allocated so the agent can move scripts onto it.
 function agentConnectionIds(env: AgentCommandEnvironment, state: SessionScripts): string[] {
     const ids = sessionConnectionIds(state);
-    const embedded = findEmbeddedConnection(env.connections().connections.values());
+    const embedded = findEmbeddedConnection(env.connections().connections.values()) ?? env.embeddedConnection?.(state.instance) ?? null;
     if (embedded != null && !ids.includes(embedded.connectionId)) ids.push(embedded.connectionId);
     return ids;
 }
@@ -150,7 +158,8 @@ function pickedScriptConnection(env: AgentCommandEnvironment, state: SessionScri
 function connectionLabel(conn: AgentConnection): string {
     if (conn.connector == null) return conn.id;
     const connector = conn.embedded ? 'embedded Hyper' : conn.connector;
-    return `${conn.id} (${connector}, ${conn.readOnly ? 'read-only' : 'read-write'}, ${conn.online ? 'online' : 'offline'})`;
+    const caching = conn.cachesResults ? ', caches results' : '';
+    return `${conn.id} (${connector}, ${conn.readOnly ? 'read-only' : 'read-write'}, ${conn.online ? 'online' : 'offline'}${caching})`;
 }
 
 /// The SHA-256 of a text as hex

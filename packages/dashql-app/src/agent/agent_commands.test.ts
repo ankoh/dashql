@@ -116,20 +116,42 @@ describe('agent commands', () => {
     it('marks read-only connections', async () => {
         useLake();
         const result = await run('scripts');
-        expect(result.text).toContain('Connections: db (embedded Hyper, read-write, online), lake (Trino, read-only, online)');
+        expect(result.text).toContain('Connections: db (embedded Hyper, read-write, online), lake (Trino, read-only, online, caches results)');
         expect(result.text).toContain('  events  1 line  on lake');
         expect((result.data as any).connections).toEqual([
-            { id: 'db', connector: 'Hyper', embedded: true, readOnly: false, online: true },
-            { id: 'lake', connector: 'Trino', embedded: false, readOnly: true, online: true },
+            { id: 'db', connector: 'Hyper', embedded: true, readOnly: false, online: true, cachesResults: false },
+            { id: 'lake', connector: 'Trino', embedded: false, readOnly: true, online: true, cachesResults: true },
         ]);
+    });
+
+    it('marks the connections whose results are cached by the choice of the user', async () => {
+        useLake();
+        connections.set('lake', { ...connections.get('lake'), cacheQueryResults: false });
+        const result = await run('scripts');
+        expect(result.text).toContain('lake (Trino, read-only, online)');
+        expect((result.data as any).connections[1]).toMatchObject({ id: 'lake', cachesResults: false });
     });
 
     it('offers the embedded Hyper to a session that does not use it', async () => {
         state = session([onLake(script(3, 'events.sql', 'select 3'))]);
         connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR } });
         const result = await run('scripts');
-        expect(result.text).toContain('Connections: lake (Trino, read-only, online), db (embedded Hyper, read-write, online)');
+        expect(result.text).toContain('Connections: lake (Trino, read-only, online, caches results), db (embedded Hyper, read-write, online)');
         expect((await run('catalog', { connection: 'db' })).data).toMatchObject({ connection: 'db' });
+    });
+
+    it('allocates the embedded Hyper for the agent when the app holds none', async () => {
+        state = session([onLake(script(3, 'events.sql', 'select 3'))]);
+        const db = connections.get('db');
+        connections.delete('db');
+        connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR } });
+        env.embeddedConnection = vi.fn(() => {
+            connections.set('db', db);
+            return db;
+        });
+        const result = await run('scripts');
+        expect(env.embeddedConnection).toHaveBeenCalledWith(state.instance);
+        expect(result.text).toContain('Connections: lake (Trino, read-only, online, caches results), db (embedded Hyper, read-write, online)');
     });
 
     it('lists the attachments of the session', async () => {

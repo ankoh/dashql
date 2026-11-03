@@ -28,8 +28,10 @@ pub const FEATURE_ATTACHMENTS: &str = "attachments";
 pub const FEATURE_EMBEDDED_HYPER: &str = "embedded-hyper";
 /// The page refuses to run scripts with a `@manual` tag unless forced
 pub const FEATURE_MANUAL_SCRIPTS: &str = "manual-scripts";
+/// The page marks the connections whose results the embedded Hyper reads from the query result cache
+pub const FEATURE_RESULT_CACHING: &str = "result-caching";
 /// The features of the page that the guide knows
-pub const PAGE_FEATURES: [&str; 8] = [
+pub const PAGE_FEATURES: [&str; 9] = [
     FEATURE_CONNECTIONS,
     FEATURE_EDIT,
     FEATURE_VIS,
@@ -38,6 +40,7 @@ pub const PAGE_FEATURES: [&str; 8] = [
     FEATURE_ATTACHMENTS,
     FEATURE_EMBEDDED_HYPER,
     FEATURE_MANUAL_SCRIPTS,
+    FEATURE_RESULT_CACHING,
 ];
 /// The features of every page from before pages announced features
 const BASELINE_FEATURES: [&str; 5] =
@@ -135,22 +138,38 @@ const COMMAND_NOTES: [Note; 7] = [
 ];
 
 /// How DashQL works: connections, the parameters of scripts and the attachments of the session
-const DASHQL_NOTES: [Note; 5] = [
+const DASHQL_NOTES: [Note; 7] = [
     Note {
         feature: FEATURE_EMBEDDED_HYPER,
         text: "Every script runs on one connection. The embedded Hyper runs inside DashQL, `scripts` marks it as
-  `embedded Hyper`. Every other connection is remote, also a Hyper server, and reads only its own tables. To
-  combine the data of several connections or attachments, put the script on the embedded Hyper with
-  `edit --connection <id>`.",
+  `embedded Hyper` and lists it for every session, also when no script runs on it. Every other connection is
+  remote, also a Hyper server, and reads only its own tables. `edit --connection <id>` puts a script on the
+  embedded Hyper.",
     },
     Note {
         feature: FEATURE_TABLE_PARAMETERS,
         text: "`:name` where a table goes, `select * from :orders_all where region = 'west'`, is a table parameter: it reads
-  the result of the script `orders_all` of the session, which must be a single `SELECT`. On the same connection its query is inlined, so
-  build on existing scripts this way instead of copying their SQL, and filter and aggregate in the reading script.
-  A script on the embedded Hyper also reads scripts of other connections: they run first on their connection and
-  the embedded Hyper scans their results, so filter and aggregate them on the remote side to keep them small. A
-  remote connection cannot read scripts of other connections.",
+  the result of the script `orders_all` of the session, which must be a single `SELECT`. On the same connection
+  its query is inlined, so build on existing scripts this way instead of copying their SQL, and filter and
+  aggregate in the reading script.",
+    },
+    Note {
+        feature: FEATURE_EMBEDDED_HYPER,
+        text: "Post-process the data of remote connections on the embedded Hyper: a script there reads a script of any
+  other connection as a table parameter, which runs first on its connection, and the embedded Hyper scans its
+  result. With `daily_sales` on a Trino connection, `select region, sum(total) from :daily_sales group by region`
+  on the embedded Hyper runs `daily_sales` on Trino and aggregates its result in DashQL. Keep such a remote script
+  cheap rather than minimal: filter and aggregate it to the grain that the question needs, e.g. daily totals per
+  region instead of a single number, below about 100k rows, and rank, pivot, join and slice it in scripts on the
+  embedded Hyper. A follow-up question is then often another script on the embedded Hyper over the same remote
+  script. The other way round does not work: a remote connection cannot read scripts of other connections.",
+    },
+    Note {
+        feature: FEATURE_RESULT_CACHING,
+        text: "`scripts` marks a connection with `caches results` when DashQL caches its query results. The scripts on the
+  embedded Hyper that read a script of such a connection rerun on the cached result without querying the
+  connection again, so follow-up questions and chart changes cost nothing remote. Without the mark, every run of
+  them runs the remote script again.",
     },
     Note {
         feature: FEATURE_ATTACHMENTS,
@@ -363,6 +382,9 @@ mod tests {
             assert!(text.contains("- Attachments are Parquet files of the session"));
             assert!(text.contains("`scripts` marks it as\n  `embedded Hyper`"));
             assert!(text.contains("`@param :min = 10`"));
+            assert!(text.contains("- Post-process the data of remote connections on the embedded Hyper"));
+            assert!(text.contains("Keep such a remote script\n  cheap rather than minimal"));
+            assert!(text.contains("`scripts` marks a connection with `caches results`"));
             assert!(!text.contains("older than this `dashql`"));
             assert!(text.contains("one statement per script"));
             assert!(text.contains("`create table if not exists`"));
@@ -387,6 +409,8 @@ mod tests {
         assert!(!text.contains("`run --force` runs"));
         assert!(!text.contains("`vis edit` checks the spec"));
         assert!(!text.contains("`:name` where a table goes"));
+        assert!(!text.contains("`caches results`"));
+        assert!(text.contains("Post-process the data of remote connections"));
         // The options of the binary hold for every page
         assert!(text.contains("- `--json` prints structured output."));
         // A page that announced no features has the baseline
@@ -396,6 +420,7 @@ mod tests {
         assert!(text.contains("`vis edit` checks the spec"));
         assert!(text.contains("`:name` where a table goes"));
         assert!(!text.contains("`embedded Hyper`"));
+        assert!(!text.contains("Post-process the data of remote connections"));
     }
 
     #[test]
