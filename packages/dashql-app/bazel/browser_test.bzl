@@ -17,7 +17,6 @@ def browser_test(name, browser, executable, runtime = None, executable_root = Fa
         args = ["$(rootpath {})".format(bundle)],
         data = [
             bundle,
-            ":tsc_typecheck",
             "test/browser_coverage.mjs",
             "//:node_modules/playwright-core",
         ] + browser_data,
