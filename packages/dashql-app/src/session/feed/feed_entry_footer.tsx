@@ -69,8 +69,8 @@ export interface FeedEntryTabs {
     selectTab: (tab: FeedEntryTab) => void;
 }
 
-/// Track the tabs of a feed entry result. A query with structured progress (Trino) shows its progress
-/// first, the log stays a secondary tab. A result that arrives switches to its table (or to its chart
+/// Track the tabs of a feed entry result. A query with structured progress (Trino) selects its progress
+/// tab, which sits right of the log. A result that arrives switches to its table (or to its chart
 /// when the script visualizes it), a result that goes away falls back to the progress or the log. The
 /// Details view passes the tab it was opened on as `initialTab`.
 export function useFeedEntryTabs(
@@ -115,8 +115,8 @@ export function useFeedEntryTabs(
     // Only surface the tabs that are actually usable
     const tabs = React.useMemo(() => {
         const tabs: FeedEntryTabProps[] = [];
-        if (hasProgress) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Progress]);
         if (hasLog) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.ExecutionLog]);
+        if (hasProgress) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Progress]);
         if (hasResult) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Table]);
         if (hasVisualization) tabs.push(FEED_ENTRY_TAB_PROPS[FeedEntryTab.Visualization]);
         return tabs;

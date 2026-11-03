@@ -182,7 +182,7 @@ describe('FeedEntryFooter', () => {
         expect(container.querySelector('[data-testid="download-chart-png"]')).toBeNull();
     });
 
-    it('shows the progress of a running query first and keeps the log as secondary tab', () => {
+    it('selects the progress of a running query and places it right of the log', () => {
         const running = {
             ...dependencies,
             useResultRowCount: () => ({ hasResult: false, totalRows: null }),
@@ -209,8 +209,8 @@ describe('FeedEntryFooter', () => {
         };
         act(() => root.render(<Footer />));
         const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-        expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Query progress', 'Execution log']);
-        expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+        expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Execution log', 'Query progress']);
+        expect(tabs[1].getAttribute('aria-selected')).toBe('true');
         expect(container.querySelector('[data-testid="query-progress-panel"]')?.textContent).toContain('Running');
     });
 });
