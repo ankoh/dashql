@@ -289,6 +289,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof DELETE_SCRIPT, string>
     | VariantKind<typeof RENAME_SCRIPT, { fileName: string, newFileName: string }>
     | VariantKind<typeof REORDER_SCRIPTS, string[]>
+    /// With a diff, the rewrite is staged to accept or reject, together with a diff that is already staged
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
     | VariantKind<typeof SET_SCRIPT_VIS_SPEC, { scriptKey: ScriptKey, spec: string }>
     | VariantKind<typeof SET_SESSION_INPUT, { name: string, literal: string, scriptKeys: ScriptKey[] }>
@@ -1111,9 +1112,15 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
             // Compute a staged diff against the prior text *before* we overwrite it (a genuine text
             // change is required — an unchanged rewrite produces no overlay). The prior script still
             // holds the old text here; diff it against a throwaway target seeded with the new text.
-            const priorText = scriptData.scriptSession.getText();
+            // A rewrite of a script with a staged diff restages it against the text before the staged
+            // diff, so that rejecting it reverts both. A rewrite back to that text drops the diff.
+            const currentText = scriptData.scriptSession.getText();
+            const priorText = withDiff ? scriptData.pendingDiff?.priorText ?? currentText : currentText;
             let pendingDiff: DashQLPendingDiff | null = null;
             if (withDiff && text !== priorText) {
+                if (priorText !== currentText) {
+                    replaceScriptSessionText(scriptData.scriptSession, priorText);
+                }
                 pendingDiff = computePendingDiff(state.instance, scriptData.scriptSession, text, priorText, logger);
             }
             // Rewrite the script text in-place

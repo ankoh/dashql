@@ -602,6 +602,32 @@ describe('V2 flat session script mutations', () => {
         expect(current.scripts[scriptKey].scriptSession.getText()).toBe(rewritten);
     });
 
+    it('restages a rewrite of a script with a staged diff against the text before it', () => {
+        let current = state(['1_alpha.sql']);
+        const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
+        const original = '/* @board width=4 height=2 */\nselect 2 as x';
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: original } });
+
+        const table = '/* @vis table\n   @board width=4 height=2 */\nselect 2 as x';
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: table, withDiff: true } });
+        expect(current.scripts[scriptKey].pendingDiff?.priorText).toBe(original);
+
+        // A second rewrite joins the staged diff, rejecting it reverts both
+        const moved = '/* @vis table\n   @board width=6 height=2 */\nselect 2 as x';
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: moved, withDiff: true } });
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe(moved);
+        expect(current.scripts[scriptKey].pendingDiff?.priorText).toBe(original);
+        current = reduce(current, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe(original);
+        expect(current.scripts[scriptKey].pendingDiff).toBeNull();
+
+        // A rewrite back to the text before the staged diff drops it
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: table, withDiff: true } });
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: original, withDiff: true } });
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe(original);
+        expect(current.scripts[scriptKey].pendingDiff).toBeNull();
+    });
+
     it('keeps a failed analysis on the script instead of throwing', () => {
         let current = state(['1_alpha.sql']);
         const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
