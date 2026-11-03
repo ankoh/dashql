@@ -18,7 +18,7 @@ describe('dashboard source persistence', () => {
         expect(rewriteVisBoard).toHaveBeenCalledWith(1, 2, 4, 5, 3);
         expect(modify).toHaveBeenCalledWith({
             type: SET_SCRIPT_TEXT,
-            value: { scriptKey: 7, text: 'rewritten sql' },
+            value: { scriptKey: 7, text: 'rewritten sql', withDiff: false },
         });
     });
 
@@ -34,7 +34,7 @@ describe('dashboard source persistence', () => {
         persistDashboardPlacement(script, { id: 7, section: 'scripts', row: 2, column: 4, width: 5, height: 1 }, modify);
 
         expect(rewriteVisBoard).toHaveBeenCalledWith(2, 2, 4, 5, 4);
-        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'rewritten sql' } });
+        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'rewritten sql', withDiff: false } });
     });
 
     it('writes the renderer of a collapsed card', () => {
@@ -48,13 +48,27 @@ describe('dashboard source persistence', () => {
 
         expect(setDashboardRenderer(script, 'table', '', modify)).toBe(true);
         expect(rewriteVisRenderer).toHaveBeenCalledWith(0, 'table', '');
-        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: '/* @vis table */\nselect 1' } });
+        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: '/* @vis table */\nselect 1', withDiff: true } });
 
         // A rewrite that fails leaves the script unchanged
         const failing = { ...script, scriptSession: { rewriteVisRenderer: () => { throw new Error('nope'); } } } as unknown as ScriptData;
         modify.mockReset();
         expect(setDashboardRenderer(failing, 'table', '', modify)).toBe(false);
         expect(modify).not.toHaveBeenCalled();
+    });
+
+    it('removes the renderer of a visualized card', () => {
+        const rewriteVisRenderer = vi.fn(() => '/* @board width=6 height=3 */\nselect 1');
+        const modify = vi.fn();
+        const script = {
+            scriptKey: 7,
+            scriptSession: { rewriteVisRenderer },
+            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 1 }, boardPosition: null },
+        } as unknown as ScriptData;
+
+        expect(setDashboardRenderer(script, null, '', modify)).toBe(true);
+        expect(rewriteVisRenderer).toHaveBeenCalledWith(1, null, '');
+        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: '/* @board width=6 height=3 */\nselect 1', withDiff: true } });
     });
 
     it('starts a Markdown template with the columns', () => {

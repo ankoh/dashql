@@ -114,6 +114,7 @@ export const DashboardIcon = createIcon({ 16: 'dashboard_16', 24: 'dashboard_24'
 export const DatabaseIcon = createIcon({ 16: 'database_16', 24: 'database' });
 export const DownloadIcon = createIcon({ 16: 'download_16', 24: 'download' });
 export const EyeIcon = createIcon({ 16: 'eye_16', 24: 'eye_24' });
+export const EyeClosedIcon = createIcon({ 16: 'eye_closed_16', 24: 'eye_closed_24' });
 export const FileBadgeIcon = createIcon({ 16: 'file_badge_16' });
 export const FileDirectoryFillIcon = createIcon({ 16: 'file_directory_fill_16', 24: 'folder_fill' });
 export const FileDirectoryIcon = createIcon({ 16: 'file_directory_16', 24: 'folder' });

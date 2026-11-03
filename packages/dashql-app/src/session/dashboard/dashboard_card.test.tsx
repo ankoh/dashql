@@ -47,8 +47,14 @@ describe('DashboardCard', () => {
                     shifted={false}
                     onVisualize={vi.fn()}
                     onOpenChart={vi.fn()}
+                    onRemoveVisualization={vi.fn()}
                     onOpenEditor={vi.fn()}
                     onOpenTable={vi.fn()}
+                    onAcceptDiff={vi.fn()}
+                    onRejectDiff={vi.fn()}
+                    runnable
+                    onRun={vi.fn()}
+                    onStop={vi.fn()}
                     dependencies={dependencies}
                 />
             </DndContext>,
@@ -60,15 +66,197 @@ describe('DashboardCard', () => {
         container.remove();
     });
 
-    it('switches between visualization content and query output', () => {
-        expect(container.querySelector('[data-testid="visualization"]')).not.toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-content-tab"]')!.click());
-        expect(container.querySelector('[data-testid="content"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="visualization"]')).toBeNull();
+    it('opens the editor and collapses the card from the header', () => {
+        const onOpenEditor = vi.fn();
+        const onRemoveVisualization = vi.fn();
+        act(() => root.render(
+            <DndContext>
+                <DashboardCard
+                    sessionId="session"
+                    script={script}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 2, height: 1 }}
+                    columnStep={100}
+                    rowStep={108}
+                    onResize={vi.fn()}
+                    onResizeCancel={vi.fn()}
+                    shifted={false}
+                    onVisualize={vi.fn()}
+                    onOpenChart={vi.fn()}
+                    onRemoveVisualization={onRemoveVisualization}
+                    onOpenEditor={onOpenEditor}
+                    onOpenTable={vi.fn()}
+                    onAcceptDiff={vi.fn()}
+                    onRejectDiff={vi.fn()}
+                    runnable
+                    onRun={vi.fn()}
+                    onStop={vi.fn()}
+                    dependencies={dependencies}
+                />
+            </DndContext>,
+        ));
 
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-output-tab"]')!.click());
+        // The card keeps its visualization, the editor opens in an overlay of the board
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-edit"]')!.click());
+        expect(onOpenEditor).toHaveBeenCalledWith(1);
         expect(container.querySelector('[data-testid="visualization"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="content"]')).toBeNull();
+
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-renderer-collapsed"]')!.click());
+        expect(onRemoveVisualization).toHaveBeenCalledWith(1);
+    });
+
+    it('switches the renderer and opens the chart builder of a chart', () => {
+        const onVisualize = vi.fn();
+        const onOpenChart = vi.fn();
+        const tableScript = {
+            ...script,
+            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } },
+        } as ScriptData;
+        const render = (card: ScriptData, queryState: unknown) => act(() => root.render(
+            <DndContext>
+                <DashboardCard
+                    sessionId="session"
+                    script={card}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
+                    columnStep={100}
+                    rowStep={108}
+                    onResize={vi.fn()}
+                    onResizeCancel={vi.fn()}
+                    shifted={false}
+                    onVisualize={onVisualize}
+                    onOpenChart={onOpenChart}
+                    onRemoveVisualization={vi.fn()}
+                    onOpenEditor={vi.fn()}
+                    onOpenTable={vi.fn()}
+                    onAcceptDiff={vi.fn()}
+                    onRejectDiff={vi.fn()}
+                    runnable
+                    onRun={vi.fn()}
+                    onStop={vi.fn()}
+                    dependencies={{ ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies}
+                />
+            </DndContext>,
+        ));
+        const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
+
+        // A table offers the chart and Markdown, the selected renderer does nothing
+        const result = { schema: { fields: [{ name: 'region' }, { name: 'revenue' }] } };
+        render(tableScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: result });
+        expect(button('dashboard-card-chart-builder')).toBeNull();
+        act(() => button('dashboard-card-renderer-table')!.click());
+        expect(onVisualize).not.toHaveBeenCalled();
+        act(() => button('dashboard-card-renderer-chart')!.click());
+        expect(onOpenChart).toHaveBeenCalledWith(1);
+        act(() => button('dashboard-card-renderer-markdown')!.click());
+        expect(onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}}');
+
+        // Markdown needs a result for its template
+        render(tableScript, null);
+        expect(button('dashboard-card-renderer-markdown')!.disabled).toBe(true);
+
+        // A chart switches to a table and opens its chart builder
+        onOpenChart.mockReset();
+        render(script, null);
+        act(() => button('dashboard-card-renderer-table')!.click());
+        expect(onVisualize).toHaveBeenCalledWith(1, 'table', '');
+        act(() => button('dashboard-card-chart-builder')!.click());
+        expect(onOpenChart).toHaveBeenCalledWith(1);
+    });
+
+    it('accepts or rejects a staged change instead of changing the card', () => {
+        const onAcceptDiff = vi.fn();
+        const onRejectDiff = vi.fn();
+        const onOpenEditor = vi.fn();
+        const staged = { ...script, pendingDiff: { priorText: 'select 1', diffBuffer: null } } as unknown as ScriptData;
+        act(() => root.render(
+            <DndContext>
+                <DashboardCard
+                    sessionId="session"
+                    script={staged}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
+                    columnStep={100}
+                    rowStep={108}
+                    onResize={vi.fn()}
+                    onResizeCancel={vi.fn()}
+                    shifted={false}
+                    onVisualize={vi.fn()}
+                    onOpenChart={vi.fn()}
+                    onRemoveVisualization={vi.fn()}
+                    onOpenEditor={onOpenEditor}
+                    onOpenTable={vi.fn()}
+                    onAcceptDiff={onAcceptDiff}
+                    onRejectDiff={onRejectDiff}
+                    runnable
+                    onRun={vi.fn()}
+                    onStop={vi.fn()}
+                    dependencies={dependencies}
+                />
+            </DndContext>,
+        ));
+        const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
+
+        // The card shows the staged visualization, its renderer waits for the change
+        expect(container.querySelector('[data-testid="visualization"]')).not.toBeNull();
+        expect(button('dashboard-card-renderer-table')).toBeNull();
+        expect(button('dashboard-card-renderer-collapsed')).toBeNull();
+        act(() => button('dashboard-card-accept')!.click());
+        expect(onAcceptDiff).toHaveBeenCalledWith(1);
+        act(() => button('dashboard-card-reject')!.click());
+        expect(onRejectDiff).toHaveBeenCalledWith(1);
+        act(() => button('dashboard-card-edit')!.click());
+        expect(onOpenEditor).toHaveBeenCalledWith(1);
+    });
+
+    it('runs a card without a result, refreshes one with a result and stops a running one', () => {
+        const onRun = vi.fn();
+        const onStop = vi.fn();
+        const render = (queryState: unknown, runnable: boolean) => act(() => root.render(
+            <DndContext>
+                <DashboardCard
+                    sessionId="session"
+                    script={script}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
+                    columnStep={100}
+                    rowStep={108}
+                    onResize={vi.fn()}
+                    onResizeCancel={vi.fn()}
+                    shifted={false}
+                    onVisualize={vi.fn()}
+                    onOpenChart={vi.fn()}
+                    onRemoveVisualization={vi.fn()}
+                    onOpenEditor={vi.fn()}
+                    onOpenTable={vi.fn()}
+                    onAcceptDiff={vi.fn()}
+                    onRejectDiff={vi.fn()}
+                    runnable={runnable}
+                    onRun={onRun}
+                    onStop={onStop}
+                    dependencies={{ ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies}
+                />
+            </DndContext>,
+        ));
+        const run = () => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-run"]')!;
+
+        // Without a result the card runs and may read cached results
+        render(null, true);
+        expect(run().dataset.runAction).toBe('run');
+        act(() => run().click());
+        expect(onRun).toHaveBeenLastCalledWith(1, false);
+
+        // With a result it refreshes without them
+        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, cacheDeleted: false }, true);
+        expect(run().dataset.runAction).toBe('refresh');
+        act(() => run().click());
+        expect(onRun).toHaveBeenLastCalledWith(1, true);
+        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, cacheDeleted: false }, false);
+        expect(run().disabled).toBe(true);
+
+        // A running card stops, also while the session holds the run
+        render({ queryId: 7, status: QueryExecutionStatus.RUNNING }, false);
+        expect(run().dataset.runAction).toBe('stop');
+        expect(run().disabled).toBe(false);
+        act(() => run().click());
+        expect(onStop).toHaveBeenCalledWith(1);
     });
 
     it('uses the query result view for table content and opens the full table from it', () => {
@@ -90,8 +278,14 @@ describe('DashboardCard', () => {
                     shifted={false}
                     onVisualize={vi.fn()}
                     onOpenChart={vi.fn()}
+                    onRemoveVisualization={vi.fn()}
                     onOpenEditor={vi.fn()}
                     onOpenTable={onOpenTable}
+                    onAcceptDiff={vi.fn()}
+                    onRejectDiff={vi.fn()}
+                    runnable
+                    onRun={vi.fn()}
+                    onStop={vi.fn()}
                     dependencies={dependencies}
                 />
             </DndContext>,
@@ -108,7 +302,7 @@ describe('DashboardCard', () => {
             ...script,
             annotations: { visualizeQuery: null, lastStatementIsQuery: true },
         } as unknown as ScriptData;
-        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
+        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onRemoveVisualization: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), onRun: vi.fn(), onStop: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
 
         function renderCollapsed(card: ScriptData, queryState: unknown) {
             const collapsedDependencies = { ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies;
@@ -123,6 +317,7 @@ describe('DashboardCard', () => {
                         onResize={vi.fn()}
                         onResizeCancel={vi.fn()}
                         shifted={false}
+                        runnable={false}
                         {...callbacks}
                         dependencies={collapsedDependencies}
                     />
@@ -135,19 +330,24 @@ describe('DashboardCard', () => {
             callbacks.onVisualize.mockReset();
             callbacks.onOpenChart.mockReset();
             callbacks.onOpenEditor.mockReset();
+            callbacks.onRemoveVisualization.mockReset();
         });
 
         it('collapses to its header with the renderers and an editor', () => {
             const result = { schema: { fields: [{ name: 'region' }, { name: 'revenue' }, { name: 'year' }] } };
             renderCollapsed(plainScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: result });
             expect(container.querySelector('[data-testid="output"]')).toBeNull();
-            expect(container.querySelector('[data-testid="dashboard-card-output-tab"]')).toBeNull();
+            // An offline card does not run
+            expect(button('dashboard-card-run').disabled).toBe(true);
+            // The collapsed segment is selected, selecting it again changes nothing
+            act(() => button('dashboard-card-renderer-collapsed').click());
+            expect(callbacks.onRemoveVisualization).not.toHaveBeenCalled();
 
-            act(() => button('dashboard-card-table').click());
+            act(() => button('dashboard-card-renderer-table').click());
             expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'table', '');
-            act(() => button('dashboard-card-markdown').click());
+            act(() => button('dashboard-card-renderer-markdown').click());
             expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}} · {{year}}');
-            act(() => button('dashboard-card-chart').click());
+            act(() => button('dashboard-card-renderer-chart').click());
             expect(callbacks.onOpenChart).toHaveBeenCalledWith(1);
             act(() => button('dashboard-card-edit').click());
             expect(callbacks.onOpenEditor).toHaveBeenCalledWith(1);
@@ -155,16 +355,16 @@ describe('DashboardCard', () => {
 
         it('needs a result for a Markdown template', () => {
             renderCollapsed(plainScript, null);
-            expect(button('dashboard-card-table').disabled).toBe(false);
-            expect(button('dashboard-card-markdown').disabled).toBe(true);
+            expect(button('dashboard-card-renderer-table').disabled).toBe(false);
+            expect(button('dashboard-card-renderer-markdown').disabled).toBe(true);
         });
 
         it('visualizes only a query', () => {
             const ddl = { ...plainScript, annotations: { visualizeQuery: null, lastStatementIsQuery: false } } as unknown as ScriptData;
             renderCollapsed(ddl, null);
-            expect(button('dashboard-card-table').disabled).toBe(true);
-            expect(button('dashboard-card-chart').disabled).toBe(true);
-            expect(button('dashboard-card-markdown').disabled).toBe(true);
+            expect(button('dashboard-card-renderer-table').disabled).toBe(true);
+            expect(button('dashboard-card-renderer-chart').disabled).toBe(true);
+            expect(button('dashboard-card-renderer-markdown').disabled).toBe(true);
             expect(button('dashboard-card-edit').disabled).toBe(false);
         });
     });

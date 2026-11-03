@@ -291,6 +291,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         <dependencies.Dashboard
                             sessionScripts={props.sessionScripts}
                             modifySessionScripts={props.modifySessionScripts}
+                            scriptConnections={scriptConnections}
                         />
                     )}
                     {dataflowActive && !overviewActive && (

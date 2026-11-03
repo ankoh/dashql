@@ -2,8 +2,9 @@ import * as React from 'react';
 
 import { useQueryState } from '../../connections/query_executor.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import { XIcon } from '../../ui/foundations/symbol_icon.js';
+import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
@@ -18,13 +19,17 @@ export type DashboardOverlayState = { scriptKey: number; kind: 'chart' | 'editor
 interface EditorProps {
     sessionId: string;
     script: ScriptData;
+    onAcceptDiff: (scriptKey: number) => void;
+    onRejectDiff: (scriptKey: number) => void;
     onClose: () => void;
 }
 
-/// The editor of a script in an overlay over the board
+/// The editor of a script in an overlay over the board. A staged rewrite shows as a diff in the editor, the header
+/// accepts or rejects it. The overlay expands to fill the window like the chart builder.
 export function DashboardEditorOverlay(props: EditorProps): React.ReactElement {
     const displayName = scriptDisplayName(props.script.fileName);
     const ignoreOutsideClick = React.useCallback(() => {}, []);
+    const [expanded, setExpanded] = React.useState(false);
     return (
         <Overlay
             centered
@@ -33,10 +38,43 @@ export function DashboardEditorOverlay(props: EditorProps): React.ReactElement {
             maxHeight={OverlaySize.L}
             onEscape={props.onClose}
             onClickOutside={ignoreOutsideClick}
+            expanded={expanded}
         >
             <section className={styles.editor_dialog} role="dialog" aria-modal="true" aria-label={`Edit ${displayName}`} data-testid="dashboard-editor-overlay">
                 <header className={styles.editor_dialog_header}>
                     <h2 className={styles.card_title}>{displayName}</h2>
+                    {props.script.pendingDiff != null && (
+                        <ButtonGroup aria-label="Accept or reject the change">
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Small}
+                                aria-label="Accept change"
+                                data-testid="dashboard-editor-accept"
+                                onClick={() => props.onAcceptDiff(props.script.scriptKey)}
+                            >
+                                <CheckIcon size={14} />
+                            </IconButton>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Small}
+                                aria-label="Reject change"
+                                data-testid="dashboard-editor-reject"
+                                onClick={() => props.onRejectDiff(props.script.scriptKey)}
+                            >
+                                <XIcon size={14} />
+                            </IconButton>
+                        </ButtonGroup>
+                    )}
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={expanded ? 'Restore size' : 'Expand'}
+                        aria-pressed={expanded}
+                        data-testid="dashboard-editor-expand"
+                        onClick={() => setExpanded(e => !e)}
+                    >
+                        {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
+                    </IconButton>
                     <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Close" onClick={props.onClose}>
                         <XIcon size={16} />
                     </IconButton>

@@ -2,7 +2,11 @@ import * as React from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter } from '@dnd-kit/core';
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { SET_SCRIPT_VIS_SPEC, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
+import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
+import { runSessionScript } from '../scripts/rerun_query.js';
+import { useSessionExecution } from '../scripts/session_execution_provider.js';
+import { ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
 import type { DashboardSpec } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { DashboardCard } from './dashboard_card.js';
@@ -51,6 +55,8 @@ function sharePlacements(next: DashboardPlacement[], previous: DashboardPlacemen
 interface Props {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
+    /// The connections that the scripts run on, a card refreshes while its connection is online
+    scriptConnections?: ReadonlyMap<string, ConnectionState>;
 }
 
 /// Every script of the session is a card, in the order of the session
@@ -176,7 +182,7 @@ export function Dashboard(props: Props): React.ReactElement {
         resizeBaselineRef.current = null;
     }, []);
 
-    // The renderers of a collapsed card. A Markdown template is a start, the editor opens to adjust it.
+    // The renderers of a card. A Markdown template is a start, the editor opens to adjust it.
     const scriptsRef = React.useRef(props.sessionScripts.scripts);
     scriptsRef.current = props.sessionScripts.scripts;
     const handleVisualize = React.useCallback((scriptKey: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => {
@@ -186,10 +192,44 @@ export function Dashboard(props: Props): React.ReactElement {
             setOverlay({ scriptKey, kind: 'editor' });
         }
     }, [props.modifySessionScripts, logger]);
+    const handleRemoveVisualization = React.useCallback((scriptKey: number) => {
+        const script = scriptsRef.current[scriptKey];
+        if (script != null) setDashboardRenderer(script, null, '', props.modifySessionScripts, logger);
+    }, [props.modifySessionScripts, logger]);
     const handleOpenChart = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'chart' }), []);
     const handleOpenEditor = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'editor' }), []);
     const handleOpenTable = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'table' }), []);
     const closeOverlay = React.useCallback(() => setOverlay(null), []);
+    // Run a card like a script in the feed. A run may read cached results, a refresh runs the script and the scripts it
+    // references without them.
+    const executeQuery = useQueryExecutor();
+    const cancelQuery = useCancelQuery();
+    const sessionExecution = useSessionExecution(props.sessionScripts.sessionId);
+    const sessionScriptsRef = React.useRef(props.sessionScripts);
+    sessionScriptsRef.current = props.sessionScripts;
+    const isOnline = (script: ScriptData) =>
+        props.scriptConnections?.get(script.connection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
+    const handleRun = React.useCallback((scriptKey: number, refresh: boolean) => {
+        const sessionScripts = sessionScriptsRef.current;
+        const script = sessionScripts.scripts[scriptKey];
+        if (script == null) return;
+        void runSessionScript(sessionScripts, script, executeQuery, props.modifySessionScripts, logger, { refresh });
+    }, [executeQuery, props.modifySessionScripts, logger]);
+    // Stop the run of the session, or the query of the card
+    const sessionBusy = sessionExecution.busy;
+    const stopSession = sessionExecution.stop;
+    const handleStop = React.useCallback((scriptKey: number) => {
+        const script = sessionScriptsRef.current.scripts[scriptKey];
+        if (sessionBusy) stopSession();
+        else if (script?.latestQueryId != null) cancelQuery(script.connection.connectionId, script.latestQueryId);
+    }, [sessionBusy, stopSession, cancelQuery]);
+    // Accept or reject a staged rewrite of a card, like in the feed
+    const handleAcceptDiff = React.useCallback((scriptKey: number) => {
+        props.modifySessionScripts({ type: ACCEPT_PENDING_DIFF, value: scriptKey });
+    }, [props.modifySessionScripts]);
+    const handleRejectDiff = React.useCallback((scriptKey: number) => {
+        props.modifySessionScripts({ type: REJECT_PENDING_DIFF, value: scriptKey });
+    }, [props.modifySessionScripts]);
     // The chart builder stages every edit of its spec as a diff of the script, like in the feed
     const handleSetVisSpec = React.useCallback((spec: string) => {
         if (overlay == null) return;
@@ -234,8 +274,14 @@ export function Dashboard(props: Props): React.ReactElement {
                             shifted={shifted}
                             onVisualize={handleVisualize}
                             onOpenChart={handleOpenChart}
+                            onRemoveVisualization={handleRemoveVisualization}
                             onOpenEditor={handleOpenEditor}
                             onOpenTable={handleOpenTable}
+                            onAcceptDiff={handleAcceptDiff}
+                            onRejectDiff={handleRejectDiff}
+                            runnable={!sessionExecution.runActive && isOnline(script)}
+                            onRun={handleRun}
+                            onStop={handleStop}
                         />
                     );
                 })}
@@ -276,7 +322,13 @@ export function Dashboard(props: Props): React.ReactElement {
                 />
             </div>
             {overlayScript != null && overlay?.kind === 'editor' && (
-                <DashboardEditorOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
+                <DashboardEditorOverlay
+                    sessionId={props.sessionScripts.sessionId}
+                    script={overlayScript}
+                    onAcceptDiff={handleAcceptDiff}
+                    onRejectDiff={handleRejectDiff}
+                    onClose={closeOverlay}
+                />
             )}
             {overlayScript != null && overlay?.kind === 'table' && (
                 <DashboardTableOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />

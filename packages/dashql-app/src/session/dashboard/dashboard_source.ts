@@ -6,7 +6,7 @@ import { DASHBOARD_DEFAULT_HEIGHT, type DashboardPlacement } from './dashboard_l
 
 const LOG_CTX = 'dashboard';
 
-/// The renderers that a collapsed card offers
+/// The renderers of a card
 export type DashboardRenderer = 'table' | 'vegalite' | 'markdown';
 
 /// The statement that a card shows: the visualized statement, the statement with the `@board` tag, or the last one
@@ -18,6 +18,7 @@ function cardStatementId(script: ScriptData): number | null {
 
 /// Write a placement into the `@board` tag of the statement that the card shows.
 /// A collapsed card shows one row, it keeps the height of its tag for the card it becomes with a renderer.
+/// A placement is not staged, but it joins a diff that the card already stages, rejecting the diff moves the card back.
 export function persistDashboardPlacement(
     script: ScriptData,
     placement: DashboardPlacement,
@@ -39,14 +40,17 @@ export function persistDashboardPlacement(
                 placement.width,
                 height,
             ),
+            withDiff: script.pendingDiff != null,
         },
     });
 }
 
-/// Give the card of a script a renderer, its `@vis` tag. Returns false if the tag could not be written.
+/// Give the card of a script a renderer, its `@vis` tag. Without a renderer, the tag is removed and the card collapses
+/// to its script, its `@board` tag keeps the placement. The rewrite is staged as a diff to accept or reject, like in
+/// the feed. Returns false if the tag could not be written.
 export function setDashboardRenderer(
     script: ScriptData,
-    renderer: DashboardRenderer,
+    renderer: DashboardRenderer | null,
     body: string,
     modifySessionScripts: ModifySessionScripts,
     logger?: LoggerLike,
@@ -60,7 +64,7 @@ export function setDashboardRenderer(
         logger?.warn('Failed to write the renderer of a dashboard card', { renderer, error: String(e) }, LOG_CTX);
         return false;
     }
-    modifySessionScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
+    modifySessionScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text, withDiff: true } });
     return true;
 }
 

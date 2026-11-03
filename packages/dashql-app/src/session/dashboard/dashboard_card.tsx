@@ -8,11 +8,11 @@ import { useQueryState } from '../../connections/query_executor.js';
 import type { ScriptData } from '../scripts/session_scripts.js';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus, queryIsDone } from '../../query/query_execution_state.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { GraphIcon, PencilIcon, SymbolIcon, TableIcon } from '../../ui/foundations/symbol_icon.js';
+import { CheckIcon, EyeClosedIcon, GraphIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon, SyncIcon, TableIcon, ToolsIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { dashboardCardHeight, type DashboardPlacement } from './dashboard_layout.js';
 import { markdownTemplate, type DashboardRenderer } from './dashboard_source.js';
 import * as styles from './dashboard.module.css';
@@ -43,24 +43,36 @@ interface Props {
     onResize: (scriptId: number, width: number, height: number, commit: boolean) => void;
     onResizeCancel: () => void;
     shifted: boolean;
-    /// Give a collapsed card a renderer, the chart opens the chart builder instead
+    /// Give a card a renderer, the chart opens the chart builder instead
     onVisualize: (scriptId: number, renderer: Exclude<DashboardRenderer, 'vegalite'>, body: string) => void;
     onOpenChart: (scriptId: number) => void;
+    /// Remove the renderer of a card, it collapses to its script
+    onRemoveVisualization: (scriptId: number) => void;
     onOpenEditor: (scriptId: number) => void;
     /// Open the full result table of a table card
     onOpenTable: (scriptId: number) => void;
+    /// Accept or reject the staged rewrite of the script
+    onAcceptDiff: (scriptId: number) => void;
+    onRejectDiff: (scriptId: number) => void;
+    /// Can the script run? Its connection is online and no other run holds the session.
+    runnable: boolean;
+    /// Run the script, a refresh runs it and the scripts it references without cached results
+    onRun: (scriptId: number, refresh: boolean) => void;
+    /// Stop the running query of the script
+    onStop: (scriptId: number) => void;
     dependencies?: DashboardCardDependencies;
 }
 
 /// Memoized, a resize of one card only renders the cards whose placement changed.
-/// A script without a visualization is a collapsed card: a header of one row that offers the renderers and an editor.
+/// A script without a visualization is a collapsed card: a header of one row with the renderers and an editor.
 export const DashboardCard = React.memo(function DashboardCard(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const query = dependencies.useQueryState(props.sessionId, props.script.latestQueryId);
     const visualizeQuery: ResolvedVisualizeQuery | null = props.script.annotations.visualizeQuery;
     const collapsed = visualizeQuery == null;
+    // A staged rewrite, e.g. of the renderer, shows on the card and waits to be accepted or rejected like in the feed
+    const staged = props.script.pendingDiff != null;
     const displayName = scriptDisplayName(props.script.fileName);
-    const [contentSelected, setContentSelected] = React.useState(false);
     const resizeStart = React.useRef<{ x: number; y: number; width: number; height: number; pointerId: number } | null>(null);
     const draggable = useDraggable({ id: props.script.scriptKey });
     const transform = draggable.transform == null ? undefined : CSS.Translate.toString(draggable.transform);
@@ -122,15 +134,37 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         ? query.resultTable?.schema.fields.map(field => field.name) ?? []
         : [];
     const template = markdownTemplate(resultColumns);
-    const visualizable = props.script.annotations.lastStatementIsQuery === true;
-    // The output shows the icon of its renderer, like the renderers of a collapsed card
-    const OutputIcon = visualizeQuery?.renderer === 'table' ? TableIcon : visualizeQuery?.renderer === 'markdown' ? MarkdownIcon : GraphIcon;
+    // A visualized card shows a query, the tag can be on a statement before the last one
+    const visualizable = visualizeQuery != null || props.script.annotations.lastStatementIsQuery === true;
     const notVisualizable = 'Only a query is visualized';
+    // One button runs the card: a card without a result runs and may read cached results, a card with a result
+    // refreshes without them, a running card stops
+    const running = query != null && !queryIsDone(query.status);
+    const hasResult = query?.status === QueryExecutionStatus.SUCCEEDED && query.cacheDeleted !== true;
+    const runAction = running
+        ? { label: `Stop ${displayName}`, description: 'Stop the query', icon: <SquareFillIcon size={10} />, onClick: () => props.onStop(props.script.scriptKey) }
+        : hasResult
+            ? { label: `Refresh ${displayName}`, description: 'Refresh, skips cached results', icon: <SyncIcon size={12} />, onClick: () => props.onRun(props.script.scriptKey, true) }
+            : { label: `Run ${displayName}`, description: 'Run, may use cached results', icon: <PaperAirplaneIcon size={12} />, onClick: () => props.onRun(props.script.scriptKey, false) };
+    const markdownDescription = template == null ? 'Run the script first' : 'Render every row as Markdown';
+
+    // The renderers of a card in the order of its segments, the last one collapses the card to its script. A chart
+    // opens the chart builder, the renderer changes with the first edit of the spec.
+    const renderers: (DashboardRenderer | null)[] = ['table', 'vegalite', 'markdown', null];
+    const currentRenderer = visualizeQuery?.renderer ?? null;
+    const switchRenderer = (index: number) => {
+        const renderer = renderers[index];
+        if (renderer === currentRenderer) return;
+        if (renderer == null) props.onRemoveVisualization(props.script.scriptKey);
+        else if (renderer === 'vegalite') props.onOpenChart(props.script.scriptKey);
+        else if (renderer === 'table') props.onVisualize(props.script.scriptKey, 'table', '');
+        else if (template != null) props.onVisualize(props.script.scriptKey, 'markdown', template);
+    };
 
     return (
         <article
             ref={draggable.setNodeRef}
-            className={`${styles.card} ${collapsed ? styles.card_collapsed : contentSelected ? styles.card_content : ''}`}
+            className={`${styles.card} ${collapsed ? styles.card_collapsed : ''}`}
             data-dashboard-card={props.script.scriptKey}
             style={{
                 gridColumn: `${props.placement.column + 1} / span ${props.placement.width}`,
@@ -153,42 +187,69 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 </button>
                 <h2 className={styles.card_title}>{displayName}</h2>
                 {props.shifted && <span className={styles.shifted_badge} title="Moved to avoid overlapping another dashboard card">Shifted</span>}
-                {collapsed ? (
+                {staged ? (
+                    <ButtonGroup className={styles.card_actions} aria-label={`Accept or reject the change of ${displayName}`}>
+                        <IconButton
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Default}
+                            aria-label="Accept change"
+                            description="Keep the change of the script"
+                            data-testid="dashboard-card-accept"
+                            onClick={() => props.onAcceptDiff(props.script.scriptKey)}
+                        >
+                            <CheckIcon size={12} />
+                        </IconButton>
+                        <IconButton
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Default}
+                            aria-label="Reject change"
+                            description="Restore the script"
+                            data-testid="dashboard-card-reject"
+                            onClick={() => props.onRejectDiff(props.script.scriptKey)}
+                        >
+                            <XIcon size={12} />
+                        </IconButton>
+                        <IconButton
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Default}
+                            aria-label={`Edit ${displayName}`}
+                            description="Show the change in the script"
+                            data-testid="dashboard-card-edit"
+                            onClick={() => props.onOpenEditor(props.script.scriptKey)}
+                        >
+                            <PencilIcon size={12} />
+                        </IconButton>
+                    </ButtonGroup>
+                ) : (
                     <>
-                        <ButtonGroup className={styles.card_renderers} aria-label={`Visualize or edit ${displayName}`}>
+                        <ButtonGroup className={styles.card_actions} aria-label={`Run ${displayName}`}>
                             <IconButton
                                 size={ButtonSize.Small}
                                 variant={ButtonVariant.Default}
-                                disabled={!visualizable}
-                                aria-label="Table"
-                                description={visualizable ? 'Show the result table' : notVisualizable}
-                                data-testid="dashboard-card-table"
-                                onClick={() => props.onVisualize(props.script.scriptKey, 'table', '')}
+                                aria-label={runAction.label}
+                                description={runAction.description}
+                                data-testid="dashboard-card-run"
+                                data-run-action={running ? 'stop' : hasResult ? 'refresh' : 'run'}
+                                disabled={!running && !props.runnable}
+                                onClick={runAction.onClick}
                             >
-                                <TableIcon size={12} />
+                                {runAction.icon}
                             </IconButton>
-                            <IconButton
-                                size={ButtonSize.Small}
-                                variant={ButtonVariant.Default}
-                                disabled={!visualizable}
-                                aria-label="Chart"
-                                description={visualizable ? 'Build a chart' : notVisualizable}
-                                data-testid="dashboard-card-chart"
-                                onClick={() => props.onOpenChart(props.script.scriptKey)}
-                            >
-                                <GraphIcon size={12} />
-                            </IconButton>
-                            <IconButton
-                                size={ButtonSize.Small}
-                                variant={ButtonVariant.Default}
-                                disabled={!visualizable || template == null}
-                                aria-label="Markdown"
-                                description={!visualizable ? notVisualizable : template == null ? 'Run the script first' : 'Render every row as Markdown'}
-                                data-testid="dashboard-card-markdown"
-                                onClick={() => template != null && props.onVisualize(props.script.scriptKey, 'markdown', template)}
-                            >
-                                <MarkdownIcon size={12} />
-                            </IconButton>
+                        </ButtonGroup>
+                        {/* The editors open in an overlay of the board, a small card has no room for them. The renderers follow at the right edge. */}
+                        <ButtonGroup className={styles.card_actions} aria-label={`Change ${displayName}`}>
+                            {currentRenderer === 'vegalite' && (
+                                <IconButton
+                                    size={ButtonSize.Small}
+                                    variant={ButtonVariant.Default}
+                                    aria-label="Chart builder"
+                                    description="Build the chart"
+                                    data-testid="dashboard-card-chart-builder"
+                                    onClick={() => props.onOpenChart(props.script.scriptKey)}
+                                >
+                                    <ToolsIcon size={12} />
+                                </IconButton>
+                            )}
                             <IconButton
                                 size={ButtonSize.Small}
                                 variant={ButtonVariant.Default}
@@ -200,37 +261,49 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 <PencilIcon size={12} />
                             </IconButton>
                         </ButtonGroup>
+                        <SegmentedControl
+                            aria-label={`Renderer of ${displayName}`}
+                            className={styles.card_segments}
+                            size={SegmentedControlSize.Tiny}
+                            onChange={switchRenderer}
+                        >
+                            <SegmentedControl.IconButton
+                                aria-label="Table"
+                                description={visualizable ? 'Show the result table' : notVisualizable}
+                                icon={<TableIcon size={12} />}
+                                data-testid="dashboard-card-renderer-table"
+                                disabled={!visualizable && currentRenderer !== 'table'}
+                                selected={currentRenderer === 'table'}
+                            />
+                            <SegmentedControl.IconButton
+                                aria-label="Chart"
+                                description={visualizable ? 'Build a chart' : notVisualizable}
+                                icon={<GraphIcon size={12} />}
+                                data-testid="dashboard-card-renderer-chart"
+                                disabled={!visualizable && currentRenderer !== 'vegalite'}
+                                selected={currentRenderer === 'vegalite'}
+                            />
+                            <SegmentedControl.IconButton
+                                aria-label="Markdown"
+                                description={visualizable ? markdownDescription : notVisualizable}
+                                icon={<MarkdownIcon size={12} />}
+                                data-testid="dashboard-card-renderer-markdown"
+                                disabled={(!visualizable || template == null) && currentRenderer !== 'markdown'}
+                                selected={currentRenderer === 'markdown'}
+                            />
+                            <SegmentedControl.IconButton
+                                aria-label="Collapsed"
+                                description="Show only the script, without a visualization"
+                                icon={<EyeClosedIcon size={12} />}
+                                data-testid="dashboard-card-renderer-collapsed"
+                                selected={currentRenderer == null}
+                            />
+                        </SegmentedControl>
                     </>
-                ) : (
-                    <SegmentedControl
-                        aria-label={`Card view for ${displayName}`}
-                        className={styles.card_segments}
-                        size={SegmentedControlSize.Tiny}
-                        onChange={index => setContentSelected(index === 1)}
-                    >
-                        <SegmentedControl.IconButton
-                            aria-label="Output"
-                            icon={<OutputIcon size={12} />}
-                            data-testid="dashboard-card-output-tab"
-                            selected={!contentSelected}
-                        />
-                        <SegmentedControl.IconButton
-                            aria-label="Edit"
-                            icon={<PencilIcon size={12} />}
-                            data-testid="dashboard-card-content-tab"
-                            selected={contentSelected}
-                        />
-                    </SegmentedControl>
                 )}
             </header>
             {!collapsed && <div className={styles.card_body}>
-                {contentSelected ? (
-                    <dependencies.ScriptEditor
-                        sessionId={props.sessionId}
-                        scriptKey={props.script.scriptKey}
-                        className={styles.card_editor}
-                    />
-                ) : visualizeQuery.renderer === 'table' ? (
+                {visualizeQuery.renderer === 'table' ? (
                     // A table shows the header of the result over the rows that fit, a chart only the chart
                     <dependencies.QueryResultPanel query={query} cellBackground="white" onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
                 ) : (
