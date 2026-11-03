@@ -130,8 +130,7 @@
     grid-template-columns: minmax(0, 1fr) max-content;
     align-items: center;
     min-width: 0;
-    min-height: 24px;
-    padding-right: 8px;
+    min-height: 28px;
 }
 
 .script_name {
@@ -202,7 +201,8 @@
 }
 
 /* The row menu button is lower than a small button, it would set the height of the rows */
-.entry_surface.session_row .session_menu_button {
+.entry_surface.session_row .session_menu_button,
+.entry_surface.script_row .session_menu_button {
     width: 28px;
     height: 22px;
 }
@@ -224,12 +224,6 @@
 
 .session_rename_input:focus {
     outline: none;
-}
-
-/* The menu button of a script row is lower than the one of a session row, like the row */
-.entry_surface.script_row .session_menu_button {
-    width: 28px;
-    height: 20px;
 }
 
 /* The rename input of a script replaces its name, next to the file icon */
