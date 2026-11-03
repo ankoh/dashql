@@ -8,6 +8,7 @@ import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChar
 import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 import {
     filterTableToVegaCrossFilterRows,
     injectVegaStableScaleDomains,
@@ -238,13 +239,13 @@ export function VegaLiteView(props: Props): React.ReactElement {
     }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, props.config, dependencies]);
 
     if (!spec) {
-        return <div className={styles.empty}>No visualization available</div>;
+        return <CardPlaceholder message="No visualization available" />;
     }
     if (!succeeded) {
-        return <div className={styles.empty}>Run the query to see the visualization</div>;
+        return <QueryStatusPlaceholder query={props.query} />;
     }
     if (!dataTable) {
-        return <div className={styles.empty}>Result is empty</div>;
+        return <CardPlaceholder message="Result is empty" />;
     }
 
     // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a

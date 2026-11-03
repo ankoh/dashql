@@ -28,8 +28,3 @@
 .row pre {
     overflow: auto;
 }
-
-.empty {
-    padding: 16px;
-    color: var(--text_color_secondary);
-}

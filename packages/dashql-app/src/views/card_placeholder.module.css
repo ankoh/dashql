@@ -1,0 +1,53 @@
+/* A card without a result: the logo of the flavor, faint, with the status below it */
+.root {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+}
+
+/* The logo keeps its aspect ratio within the box and stays a subtle detail */
+.logo {
+    flex: 0 1 auto;
+    width: 40%;
+    height: 32%;
+    max-width: 88px;
+    max-height: 88px;
+    min-height: 0;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 46%);
+    /* A logo in brand colors is drawn in the one color, the ink of the sidb wordmark is made for dark backdrops */
+    --brand_logo_ink: currentColor;
+    --brand_logo_accent: currentColor;
+    opacity: 0.07;
+    pointer-events: none;
+}
+
+/* A wordmark is wide and low, it gets a bit more weight to read as much as a square mark */
+.logo_wordmark {
+    /* The box is as high as the wordmark, the aspect ratio is set by the flavor */
+    height: auto;
+    max-width: 100px;
+    opacity: 0.1;
+}
+
+.message {
+    flex: 0 0 auto;
+    padding: 0 12px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 46%);
+}
+
+/* The hint before the first run, lighter and smaller than a status */
+.hint {
+    flex: 0 0 auto;
+    padding: 0 12px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 62%);
+}

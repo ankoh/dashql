@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { QueryExecutionState } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { QueryResultPanel, type QueryResultPanelDependencies } from './query_result_header.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -19,7 +19,7 @@ const dependencies = {
     },
 } as unknown as QueryResultPanelDependencies;
 const lastView = () => viewProps[viewProps.length - 1];
-const query = { queryId: 1 } as QueryExecutionState;
+const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: {} } as QueryExecutionState;
 
 describe('QueryResultPanel', () => {
     let container: HTMLDivElement;
@@ -62,5 +62,25 @@ describe('QueryResultPanel', () => {
         const onShowTable = vi.fn();
         act(() => root.render(<QueryResultPanel query={query} onShowTable={onShowTable} dependencies={dependencies} />));
         expect(lastView().onShowTable).toBe(onShowTable);
+    });
+
+    it('shows the logo with the status until the query has rows', () => {
+        const placeholder = () => container.querySelector('[data-testid="card-placeholder"]');
+        act(() => root.render(<QueryResultPanel query={null} dependencies={dependencies} />));
+        expect(placeholder()?.textContent).toBe('Run the query to see the result');
+        expect(placeholder()?.querySelector('svg use')).not.toBeNull();
+        // The hint is quieter than a status
+        const hintClass = placeholder()!.querySelector('span')!.className;
+        const running = { queryId: 2, status: QueryExecutionStatus.RUNNING, resultTable: null } as QueryExecutionState;
+        act(() => root.render(<QueryResultPanel query={running} dependencies={dependencies} />));
+        expect(placeholder()?.textContent).toBe('Running the query…');
+        expect(placeholder()!.querySelector('span')!.className).not.toBe(hintClass);
+        const failed = { ...running, status: QueryExecutionStatus.FAILED } as QueryExecutionState;
+        act(() => root.render(<QueryResultPanel query={failed} dependencies={dependencies} />));
+        expect(placeholder()?.textContent).toBe('The query failed');
+        expect(container.querySelector('[data-testid="query-result-view"]')).toBeNull();
+        act(() => root.render(<QueryResultPanel query={query} dependencies={dependencies} />));
+        expect(placeholder()).toBeNull();
+        expect(container.querySelector('[data-testid="query-result-view"]')).not.toBeNull();
     });
 });

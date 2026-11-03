@@ -1,13 +1,14 @@
 import * as React from 'react';
 import * as styles from './query_result_header.module.css';
 
-import type { QueryExecutionState } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { TabHeader } from '../../session/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { fittingRowCount } from './data_table.js';
+import { QueryStatusPlaceholder } from '../card_placeholder.js';
 
 export interface QueryResultHeaderDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
@@ -108,17 +109,20 @@ export function QueryResultPanel(props: PanelProps): React.ReactElement {
                 not lose the height of the header then */}
             {props.query != null && <QueryResultHeader query={props.query} maxRows={maxRows} onShowTable={props.onShowTable} dependencies={dependencies} />}
             <div ref={bodyRef} className={styles.panel_body}>
-                <dependencies.QueryResultView
-                    query={props.query}
-                    debugMode={false}
-                    maxRows={maxRows}
-                    columnHeader={TableColumnHeader.OnlyColumnName}
-                    cellBackground={props.cellBackground}
-                    onShowTable={props.onShowTable}
-                    fitHeight={false}
-                    fillHeight
-                    compact
-                />
+                {/* Before the first run and while a query has no rows yet, the body shows the logo with the status below it */}
+                {props.query == null || (props.query.resultTable == null && props.query.status !== QueryExecutionStatus.SUCCEEDED)
+                    ? <QueryStatusPlaceholder query={props.query} />
+                    : <dependencies.QueryResultView
+                        query={props.query}
+                        debugMode={false}
+                        maxRows={maxRows}
+                        columnHeader={TableColumnHeader.OnlyColumnName}
+                        cellBackground={props.cellBackground}
+                        onShowTable={props.onShowTable}
+                        fitHeight={false}
+                        fillHeight
+                        compact
+                    />}
             </div>
         </div>
     );

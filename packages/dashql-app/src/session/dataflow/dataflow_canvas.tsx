@@ -40,6 +40,7 @@ import {
 } from './dataflow_scene.js';
 import { createFlowScript, deleteFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
 import { useDataflowModule } from './dataflow_module.js';
+import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
 
 const FitIcon = SymbolIcon('graph_align');
@@ -868,7 +869,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                                 height={box.chart.height - 2 * CHART_BORDER}
                                 preview
                             />
-                            : <div className={styles.chart_placeholder}>Run the script to see the chart</div>}
+                            : <QueryStatusPlaceholder query={query ?? null} />}
                     </div>
                 </foreignObject>
             )}

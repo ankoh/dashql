@@ -6,6 +6,7 @@ import type { LoggerLike } from '../../platform/logger/logger.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import * as styles from './markdown_view.module.css';
+import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 
 type MarkdownNode = buffers.visualization.MarkdownNodeT;
 type MarkdownSpec = buffers.visualization.MarkdownSpecT;
@@ -127,17 +128,17 @@ export function MarkdownView(props: Props): React.ReactElement {
     }, [props.spec, table, logger]);
 
     if (props.spec == null) {
-        return <div className={styles.empty}>No visualization available</div>;
+        return <CardPlaceholder message="No visualization available" />;
     }
     if (!succeeded) {
-        return <div className={styles.empty}>Run the query to see the visualization</div>;
+        return <QueryStatusPlaceholder query={props.query} />;
     }
     if (renderedRows == null || renderedRows.length === 0) {
-        return <div className={styles.empty}>Result is empty</div>;
+        return <CardPlaceholder message="Result is empty" />;
     }
     const document = props.spec.document;
     if (document == null) {
-        return <div className={styles.empty}>No visualization available</div>;
+        return <CardPlaceholder message="No visualization available" />;
     }
 
     return (

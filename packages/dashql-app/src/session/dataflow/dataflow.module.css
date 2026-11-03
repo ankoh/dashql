@@ -179,15 +179,6 @@
     background: white;
 }
 
-.chart_placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    font-size: 0.8rem;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 46%);
-}
-
 /* The button that adds a script reading the box, shown on hover */
 .add {
     cursor: pointer;
