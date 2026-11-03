@@ -1306,6 +1306,15 @@ impl QueryProfile {
         Ok(())
     }
 
+    /// Load a Trino plan (EXPLAIN JSON fragments or a QueryInfo with stage plans) and compute the layout, throws
+    /// if the plan cannot be parsed. Resets the execution state.
+    #[wasm_bindgen(js_name = loadTrinoPlan)]
+    pub fn load_trino_plan(&mut self, plan: &[u8]) -> Result<(), JsError> {
+        self.inner.parse_trino_plan(plan).map_err(|status| js_error(Error::status(status)))?;
+        self.inner.compute_layout();
+        Ok(())
+    }
+
     pub fn reset(&mut self) {
         self.inner.reset();
     }

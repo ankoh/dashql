@@ -70,7 +70,7 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
         switch (resultTabs.selectedTab) {
             case FeedEntryTab.Progress: return props.query != null && (
                 <div className={styles.tab_body}>
-                    <QueryProgressPanel query={props.query} />
+                    <QueryProgressPanel query={props.query} showProfile />
                 </div>
             );
             case FeedEntryTab.ExecutionLog: return (

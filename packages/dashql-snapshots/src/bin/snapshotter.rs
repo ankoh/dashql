@@ -1,11 +1,11 @@
 //! Regenerates the snapshot files `snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
 //!
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
-//! dataflow, completion, formatter, hyper_profile, profile_progress, trino_progress, visualize, diff. An empty filter
+//! dataflow, completion, formatter, hyper_profile, profile_progress, trino_profile, visualize, diff. An empty filter
 //! updates all of them.
 //!
 //! The output keeps the format of the checked-in snapshot files (the emitter style of rapidyaml):
-//! - parser, formatter, diff, hyper_profile, profile_progress and trino_progress build new files from the inputs of the
+//! - parser, formatter, diff, hyper_profile, profile_progress and trino_profile build new files from the inputs of the
 //!   templates,
 //! - analyzer, completion, planner, dataflow and visualize write the templates back with the results appended,
 //! - comments of the templates are dropped,
@@ -26,7 +26,7 @@ use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
 use dashql_snapshots::encode::query_profile::{
-    encode_hyper_profile, encode_profile_progress, encode_trino_statement_progress,
+    encode_hyper_profile, encode_profile_progress, encode_trino_profile, encode_trino_statement_progress,
 };
 use dashql_snapshots::encode::visualize::encode_markdown_spec;
 use dashql_snapshots::encode::{analyzer, dataflow, diff, encode_location_text, parser, planner, Map};
@@ -552,6 +552,40 @@ fn generate_trino_progress_snapshots(dir: &Path, recordings: &Path) {
 }
 
 // ---------------------------------------------------------------------------
+// Trino profiles (the plan of a recording, its statement polls replayed on top)
+
+fn generate_trino_profile_snapshots(dir: &Path, recordings: &Path) {
+    for path in templates(dir) {
+        let Some(template) = read_template(&path, "trino-profile-snapshots") else { continue };
+        let out = output_path(&path);
+        println!("FILE {}", out.display());
+        let mut cases = Vec::new();
+        for test in template.get("trino-profile-snapshots").unwrap().children() {
+            let name = text(test, "name");
+            println!("  TEST {name}");
+            let recording_path = recordings.join(format!("{}.json", text(test, "recording")));
+            let encoded = fs::read_to_string(&recording_path)
+                .map_err(|e| format!("cannot read {}: {e}", recording_path.display()))
+                .and_then(|recording| encode_trino_profile(&recording, text(test, "source")));
+            let encoded = match encoded {
+                Ok(encoded) => encoded,
+                Err(e) => {
+                    println!("  ERROR {e}");
+                    continue;
+                }
+            };
+            let mut item = Map::new();
+            item.plain("name", name);
+            item.plain("recording", text(test, "recording"));
+            item.plain("source", text(test, "source"));
+            item.0.extend(encoded.0);
+            cases.push(item.into_node());
+        }
+        write_first_entry(&out, &snapshot_root("trino-profile-snapshots", cases));
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Profile progress (a Hyper plan, input events, the output events)
 
 fn generate_profile_progress_snapshots(dir: &Path) {
@@ -633,7 +667,7 @@ fn main() -> ExitCode {
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!("Usage: snapshotter --source_dir <dir> [--filter <category>]");
         println!(
-            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_profile, profile_progress, trino_progress, visualize, diff. Empty = all."
+            "Categories: parser, analyzer, planner, dataflow, completion, formatter, hyper_profile, profile_progress, trino_profile, visualize, diff. Empty = all."
         );
         return ExitCode::SUCCESS;
     }
@@ -675,9 +709,10 @@ fn main() -> ExitCode {
     if selected("profile_progress") {
         generate_profile_progress_snapshots(&snapshots.join("profiles").join("progress"));
     }
-    if selected("trino_progress") {
+    if selected("trino_profile") {
         let trino = snapshots.join("profiles").join("trino");
-        generate_trino_progress_snapshots(&trino.join("tests"), &trino.join("recordings"));
+        generate_trino_progress_snapshots(&trino.join("progress"), &trino.join("recordings"));
+        generate_trino_profile_snapshots(&trino.join("plans"), &trino.join("recordings"));
     }
     if selected("visualize") {
         generate_visualize_snapshots(&snapshots.join("visualize"));

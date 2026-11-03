@@ -33,6 +33,8 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     latestQueryState: string | null;
     /// When the latest result arrived, in milliseconds since epoch
     latestQueryReceivedAt: number;
+    /// Was the QueryInfo with the plans of the stages requested?
+    queryInfoRequested: boolean = false;
     /// The progress updates
     latestQueryProgress: QueryExecutionProgress | null;
     /// The metrics
@@ -62,6 +64,24 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     async cancel(): Promise<void> {
         const nextUri = this.latestQueryResult?.nextUri;
         if (nextUri != null) await this.apiClient.cancelQuery(this.endpoint, nextUri);
+    }
+
+    /// Request the QueryInfo once the stages exist, it carries the plans of the stages and arrives as progress.
+    /// The request does not hold up the query, a failed request leaves the stages without plan.
+    requestQueryInfo(progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): void {
+        const queryId = this.latestQueryResult?.id;
+        if (this.queryInfoRequested || this.latestQueryStats?.rootStage == null || !queryId) return;
+        this.queryInfoRequested = true;
+        this.apiClient.getQueryInfo(this.endpoint, queryId, abort).then(
+            info => {
+                const receivedAt = Date.now();
+                progress.resolve(this, {
+                    ...deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt),
+                    engineProgress: { kind: 'trino_query_info', info, receivedAt },
+                });
+            },
+            (e: unknown) => this.logger.warn("Failed to fetch the query plan", { "error": String(e) }, LOG_CTX),
+        );
     }
 
     /// Fetch the next query result
@@ -143,6 +163,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         if (this.latestQueryStats != null) {
             this.latestQueryProgress = deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt);
             progress.resolve(this, this.latestQueryProgress);
+            this.requestQueryInfo(progress, abort);
         }
         let pending = this.fetchNextQueryResult(abort);
         try {
@@ -171,6 +192,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     // Publish a new progress update
                     this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics, this.latestQueryReceivedAt);
                     progress.resolve(this, this.latestQueryProgress);
+                    this.requestQueryInfo(progress, abort);
 
                     // Produce a batch
                     batches.resolve(this, resultBatch);
@@ -180,6 +202,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     // Publish the progress update
                     this.latestQueryProgress = deriveProgress(result.stats ?? null, this.queryMetrics, this.latestQueryReceivedAt);
                     progress.resolve(this, this.latestQueryProgress);
+                    this.requestQueryInfo(progress, abort);
                 }
             }
             this.logger.debug("Reached end of query result stream", { "queryState": this.latestQueryState }, LOG_CTX);

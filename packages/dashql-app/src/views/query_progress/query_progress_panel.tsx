@@ -4,6 +4,7 @@ import * as styles from './query_progress_panel.module.css';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { TabHeader } from '../../session/tab_header.js';
+import { QueryProfileView } from '../query_profile/query_profile_view.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -99,6 +100,8 @@ interface QueryProgressPanelProps {
     query: QueryExecutionState;
     /// Cap the stage list at this many rows, then scroll
     maxStageRows?: number;
+    /// Show the profile of the query (the plan with its stages) once the plan is known
+    showProfile?: boolean;
 }
 
 /// The progress of a query: its phase, a progress bar, throughput and the stages with their progress
@@ -112,6 +115,8 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const work = workOf(queryState);
     const fraction = useMonotonicFraction(query.queryId, work);
     const stages = React.useMemo(() => profileProgress == null ? [] : listProgressStages(profileProgress), [profileProgress]);
+    const structure = profileProgress?.structure ?? null;
+    const hasOperators = React.useMemo(() => structure != null && structure.read().operatorsLength() > 0, [structure]);
 
     const rows = stat(queryState, view.ProfileStatsField.TUPLES_IN, s => s.tuplesIn) ?? progress?.rowsProcessed ?? null;
     const cpuUs = stat(queryState, view.ProfileStatsField.CPU_TIME, s => s.cpuTimeUs);
@@ -168,6 +173,11 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                             <span className={styles.stage_figure}>{stage.cpuTimeUs == null ? '' : formatElapsed(stage.cpuTimeUs / 1000)}</span>
                         </div>
                     ))}
+                </div>
+            )}
+            {props.showProfile && profileProgress != null && hasOperators && (
+                <div className={styles.profile} data-testid="query-progress-profile">
+                    <QueryProfileView plan={profileProgress.structure} execution={profileProgress.execution} />
                 </div>
             )}
         </div>

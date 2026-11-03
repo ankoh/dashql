@@ -149,3 +149,10 @@
 }
 .inspector_header[data-single-line="true"] { padding-bottom: 12px; }
 .inspector_header span { color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%); font-size: 0.8rem; }
+
+/* The contour of a fragment with execution state takes the color of its status */
+path.fragment[data-status="pending"] { fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 96%); stroke: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 60%); }
+path.fragment[data-status="running"] { fill: hsl(211, 100%, 95%); stroke: var(--status_color_in_progress); stroke-dasharray: none; }
+path.fragment[data-status="succeeded"] { fill: hsl(145, 55%, 95%); stroke: var(--status_color_success); stroke-dasharray: none; }
+path.fragment[data-status="failed"] { fill: hsl(0, 80%, 96%); stroke: var(--status_color_failed); stroke-dasharray: none; }
+path.fragment[data-status="skipped"] { fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 96%); stroke: var(--status_color_other); }

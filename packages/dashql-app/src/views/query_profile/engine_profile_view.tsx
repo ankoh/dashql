@@ -28,6 +28,8 @@ function loadPlan(viewModel: dashql.DashQLQueryProfile, engine: ProfileEngine, p
     switch (engine) {
         case dashql.buffers.profile.ProfileEngine.HYPER:
             return viewModel.loadHyperPlan(planText);
+        case dashql.buffers.profile.ProfileEngine.TRINO:
+            return viewModel.loadTrinoPlan(planText);
         default:
             throw new Error(`Plans of engine ${engine} are not supported`);
     }

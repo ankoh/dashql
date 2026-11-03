@@ -205,7 +205,7 @@ export interface TrinoApiClientInterface {
     /// Get a query result
     getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query info
-    getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryInfo>;
+    getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal): Promise<TrinoQueryInfo>;
     /// Cancel a query by its next URI
     cancelQuery(endpoint: TrinoApiEndpoint, nextUri: string): Promise<void>;
 }
@@ -324,13 +324,14 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Get a query info
-    async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryInfo> {
+    async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal): Promise<TrinoQueryInfo> {
         this.logger.debug("Getting query info", { "query": queryId }, LOG_CTX);
-        const url = new URL(`${endpoint.endpoint}/v1/query/${queryId}`);
+        const url = new URL(`${endpoint.endpoint}/v1/query/${encodeURIComponent(queryId)}`);
         const headers = await this.getHeaders(endpoint);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'GET',
-            headers
+            headers,
+            signal: abort,
         });
         if (rawResponse.status != 200) {
             throw new LoggableException(`Failed to fetch query info`, {

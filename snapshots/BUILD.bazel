@@ -19,7 +19,8 @@ snapshot_library(
         "//snapshots/profiles/hyper/tests:files",
         "//snapshots/profiles/progress:files",
         "//snapshots/profiles/trino/recordings:files",
-        "//snapshots/profiles/trino/tests:files",
+        "//snapshots/profiles/trino/plans:files",
+        "//snapshots/profiles/trino/progress:files",
         "//snapshots/visualize:files",
     ],
 )

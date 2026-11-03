@@ -1,0 +1,1579 @@
+trino-profile-snapshots:
+
+  - name: select_one
+    recording: select_one
+    source: explain
+    fragments:
+      - id: 0
+        engine-id: 0
+        root: 1
+        hidden: true
+        operators: [0,1]
+    operators:
+      - id: 1
+        engine-id: 5
+        type: Output
+        kind: output
+        estimated-rows: 1
+        position: [44.500000,32.000000]
+        children:
+          - id: 0
+            engine-id: 0
+            path: 'children[0]'
+            type: Values
+            kind: virtual-table
+            parent: 1
+            estimated-rows: 1
+            position: [44.500000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    updates:
+      - time: 33
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 236
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 236
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 363
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 1
+      - time: 363
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 1
+      - time: 368
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 120
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 1
+      - time: 403
+        entity: query
+        status: succeeded
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        memory-bytes: 120
+        spilled-bytes: 0
+        work-done: 1
+        work-total: 1
+      - time: 403
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 1
+        bytes-in: 0
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        work-done: 1
+        work-total: 1
+
+  - name: aggregate_lineitem_sf1_explain
+    recording: aggregate_lineitem_sf1
+    source: explain
+    fragments:
+      - id: 0
+        engine-id: 0
+        root: 9
+        hidden: true
+        operators: [8,9]
+      - id: 1
+        engine-id: 1
+        parent: 0
+        root: 7
+        operators: [5,6,7]
+      - id: 2
+        engine-id: 2
+        parent: 1
+        root: 4
+        operators: [2,3,4]
+      - id: 3
+        engine-id: 3
+        parent: 2
+        root: 1
+        operators: [0,1]
+    operators:
+      - id: 9
+        engine-id: 12
+        type: Output
+        kind: output
+        estimated-rows: 6
+        position: [74.250000,32.000000]
+        children:
+          - id: 8
+            engine-id: 146
+            path: 'children[0]'
+            type: RemoteMerge
+            kind: exchange
+            parent: 9
+            position: [74.250000,96.000000]
+            children:
+              - id: 7
+                engine-id: 191
+                path: fragment 1
+                type: LocalMerge
+                kind: sort
+                parent: 8
+                estimated-rows: 6
+                position: [74.250000,160.000000]
+                children:
+                  - id: 6
+                    engine-id: 147
+                    path: 'children[0]'
+                    type: PartialSort
+                    kind: sort
+                    parent: 7
+                    estimated-rows: 6
+                    position: [74.250000,224.000000]
+                    children:
+                      - id: 5
+                        engine-id: 145
+                        path: 'children[0]'
+                        type: RemoteSource
+                        kind: exchange
+                        parent: 6
+                        position: [74.250000,288.000000]
+                        children:
+                          - id: 4
+                            engine-id: 4
+                            path: fragment 2
+                            type: Aggregate
+                            kind: aggregate
+                            parent: 5
+                            estimated-rows: 6
+                            position: [74.250000,352.000000]
+                            children:
+                              - id: 3
+                                engine-id: 213
+                                path: 'children[0]'
+                                type: LocalExchange
+                                kind: exchange
+                                parent: 4
+                                estimated-rows: 6001215
+                                position: [74.250000,416.000000]
+                                children:
+                                  - id: 2
+                                    engine-id: 219
+                                    path: 'children[0]'
+                                    type: RemoteSource
+                                    kind: exchange
+                                    parent: 3
+                                    position: [74.250000,480.000000]
+                                    children:
+                                      - id: 1
+                                        engine-id: 217
+                                        path: fragment 3
+                                        type: Aggregate
+                                        kind: aggregate
+                                        parent: 2
+                                        estimated-rows: 6001215
+                                        position: [74.250000,544.000000]
+                                        children:
+                                          - id: 0
+                                            engine-id: 0
+                                            path: 'children[0]'
+                                            type: TableScan
+                                            kind: scan
+                                            label: lineitem
+                                            parent: 1
+                                            estimated-rows: 6001215
+                                            position: [74.250000,608.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 3
+        parent: 4
+        port-index: 0
+        port-count: 1
+      - child: 4
+        parent: 5
+        port-index: 0
+        port-count: 1
+      - child: 5
+        parent: 6
+        port-index: 0
+        port-count: 1
+      - child: 6
+        parent: 7
+        port-index: 0
+        port-count: 1
+      - child: 7
+        parent: 8
+        port-index: 0
+        port-count: 1
+      - child: 8
+        parent: 9
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    updates:
+      - time: 3
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 3
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1127
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 1219520
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 21
+      - time: 1127
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 1
+      - time: 1127
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1127
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1127
+        entity: fragment
+        index: 3
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 16
+      - time: 1853
+        entity: query
+        status: running
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 21
+      - time: 1853
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1853
+        entity: fragment
+        index: 3
+        status: pending
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        work-done: 16
+        work-total: 16
+      - time: 1858
+        entity: query
+        status: running
+        tuples-in: 6001279
+        bytes-in: 3012
+        cpu-time-us: 2503000
+        wall-time-us: 3184000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 18
+        work-total: 21
+      - time: 1858
+        entity: fragment
+        index: 1
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1858
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 64
+        bytes-in: 3012
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: query
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 3538
+        cpu-time-us: 2509000
+        wall-time-us: 3191000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 21
+        work-total: 21
+      - time: 1863
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 263
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        work-done: 1
+        work-total: 1
+      - time: 1863
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 263
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        bytes-in: 3012
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: fragment
+        index: 3
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        work-done: 16
+        work-total: 16
+
+  - name: aggregate_lineitem_sf1_query_info
+    recording: aggregate_lineitem_sf1
+    source: query-info
+    fragments:
+      - id: 0
+        engine-id: 0
+        root: 9
+        hidden: true
+        operators: [8,9]
+      - id: 1
+        engine-id: 1
+        parent: 0
+        root: 7
+        operators: [5,6,7]
+      - id: 2
+        engine-id: 2
+        parent: 1
+        root: 4
+        operators: [2,3,4]
+      - id: 3
+        engine-id: 3
+        parent: 2
+        root: 1
+        operators: [0,1]
+    operators:
+      - id: 9
+        engine-id: 12
+        type: Output
+        kind: output
+        position: [74.250000,32.000000]
+        children:
+          - id: 8
+            engine-id: 146
+            path: 'children[0]'
+            type: RemoteMerge
+            kind: exchange
+            parent: 9
+            position: [74.250000,96.000000]
+            children:
+              - id: 7
+                engine-id: 191
+                path: fragment 1
+                type: LocalMerge
+                kind: sort
+                parent: 8
+                position: [74.250000,160.000000]
+                children:
+                  - id: 6
+                    engine-id: 147
+                    path: 'children[0]'
+                    type: PartialSort
+                    kind: sort
+                    parent: 7
+                    position: [74.250000,224.000000]
+                    children:
+                      - id: 5
+                        engine-id: 145
+                        path: 'children[0]'
+                        type: RemoteSource
+                        kind: exchange
+                        parent: 6
+                        position: [74.250000,288.000000]
+                        children:
+                          - id: 4
+                            engine-id: 4
+                            path: fragment 2
+                            type: Aggregate
+                            kind: aggregate
+                            parent: 5
+                            position: [74.250000,352.000000]
+                            children:
+                              - id: 3
+                                engine-id: 213
+                                path: 'children[0]'
+                                type: LocalExchange
+                                kind: exchange
+                                parent: 4
+                                position: [74.250000,416.000000]
+                                children:
+                                  - id: 2
+                                    engine-id: 219
+                                    path: 'children[0]'
+                                    type: RemoteSource
+                                    kind: exchange
+                                    parent: 3
+                                    position: [74.250000,480.000000]
+                                    children:
+                                      - id: 1
+                                        engine-id: 217
+                                        path: fragment 3
+                                        type: Aggregate
+                                        kind: aggregate
+                                        parent: 2
+                                        position: [74.250000,544.000000]
+                                        children:
+                                          - id: 0
+                                            engine-id: 0
+                                            path: 'children[0]'
+                                            type: TableScan
+                                            kind: scan
+                                            label: lineitem
+                                            parent: 1
+                                            position: [74.250000,608.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 3
+        parent: 4
+        port-index: 0
+        port-count: 1
+      - child: 4
+        parent: 5
+        port-index: 0
+        port-count: 1
+      - child: 5
+        parent: 6
+        port-index: 0
+        port-count: 1
+      - child: 6
+        parent: 7
+        port-index: 0
+        port-count: 1
+      - child: 7
+        parent: 8
+        port-index: 0
+        port-count: 1
+      - child: 8
+        parent: 9
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    updates:
+      - time: 3
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 124
+        entity: fragment
+        index: 3
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1127
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 1219520
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 21
+      - time: 1127
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 1
+      - time: 1127
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1127
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1127
+        entity: fragment
+        index: 3
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 16
+      - time: 1853
+        entity: query
+        status: running
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 21
+      - time: 1853
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1853
+        entity: fragment
+        index: 3
+        status: pending
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        work-done: 16
+        work-total: 16
+      - time: 1858
+        entity: query
+        status: running
+        tuples-in: 6001279
+        bytes-in: 3012
+        cpu-time-us: 2503000
+        wall-time-us: 3184000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 18
+        work-total: 21
+      - time: 1858
+        entity: fragment
+        index: 1
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1858
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 64
+        bytes-in: 3012
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: query
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 3538
+        cpu-time-us: 2509000
+        wall-time-us: 3191000
+        memory-bytes: 2363456
+        spilled-bytes: 0
+        work-done: 21
+        work-total: 21
+      - time: 1863
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 263
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        work-done: 1
+        work-total: 1
+      - time: 1863
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 4
+        bytes-in: 263
+        cpu-time-us: 4000
+        wall-time-us: 5000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 64
+        bytes-in: 3012
+        cpu-time-us: 3000
+        wall-time-us: 4000
+        work-done: 2
+        work-total: 2
+      - time: 1863
+        entity: fragment
+        index: 3
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2500000
+        wall-time-us: 3180000
+        work-done: 16
+        work-total: 16
+
+  - name: tpch_q3_sf1
+    recording: tpch_q3_sf1
+    source: explain
+    fragments:
+      - id: 0
+        engine-id: 0
+        root: 18
+        hidden: true
+        operators: [15,16,17,18]
+      - id: 1
+        engine-id: 1
+        parent: 0
+        root: 14
+        operators: [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+      - id: 2
+        engine-id: 2
+        parent: 1
+        root: 0
+        operators: [0]
+    operators:
+      - id: 18
+        engine-id: 18
+        type: Output
+        kind: output
+        estimated-rows: 10
+        position: [126.625000,32.000000]
+        children:
+          - id: 17
+            engine-id: 477
+            path: 'children[0]'
+            type: TopN
+            kind: sort
+            parent: 18
+            estimated-rows: 10
+            position: [126.625000,96.000000]
+            children:
+              - id: 16
+                engine-id: 699
+                path: 'children[0]'
+                type: LocalExchange
+                kind: exchange
+                parent: 17
+                estimated-rows: 10
+                position: [126.625000,160.000000]
+                children:
+                  - id: 15
+                    engine-id: 551
+                    path: 'children[0]'
+                    type: RemoteSource
+                    kind: exchange
+                    parent: 16
+                    position: [126.625000,224.000000]
+                    children:
+                      - id: 14
+                        engine-id: 721
+                        path: fragment 1
+                        type: TopNPartial
+                        kind: sort
+                        parent: 15
+                        estimated-rows: 10
+                        position: [126.625000,288.000000]
+                        children:
+                          - id: 13
+                            engine-id: 722
+                            path: 'children[0]'
+                            type: LocalExchange
+                            kind: exchange
+                            parent: 14
+                            estimated-rows: 10
+                            position: [126.625000,352.000000]
+                            children:
+                              - id: 12
+                                engine-id: 719
+                                path: 'children[0]'
+                                type: TopNPartial
+                                kind: sort
+                                parent: 13
+                                estimated-rows: 10
+                                position: [126.625000,416.000000]
+                                children:
+                                  - id: 11
+                                    engine-id: 720
+                                    path: 'children[0]'
+                                    type: LocalExchange
+                                    kind: exchange
+                                    parent: 12
+                                    estimated-rows: 10
+                                    position: [126.625000,480.000000]
+                                    children:
+                                      - id: 10
+                                        engine-id: 476
+                                        path: 'children[0]'
+                                        type: TopNPartial
+                                        kind: sort
+                                        parent: 11
+                                        estimated-rows: 10
+                                        position: [126.625000,544.000000]
+                                        children:
+                                          - id: 9
+                                            engine-id: 9
+                                            path: 'children[0]'
+                                            type: Aggregate
+                                            kind: aggregate
+                                            parent: 10
+                                            estimated-rows: 470322.4490320056
+                                            position: [126.625000,608.000000]
+                                            children:
+                                              - id: 8
+                                                engine-id: 58
+                                                path: 'children[0]'
+                                                type: Project
+                                                kind: project
+                                                parent: 9
+                                                estimated-rows: 470322.4490320056
+                                                position: [126.625000,672.000000]
+                                                children:
+                                                  - id: 7
+                                                    engine-id: 452
+                                                    path: 'children[0]'
+                                                    type: InnerJoin
+                                                    kind: join
+                                                    parent: 8
+                                                    estimated-rows: 470322.4490320056
+                                                    position: [126.625000,736.000000]
+                                                    children:
+                                                      - id: 5
+                                                        engine-id: 627
+                                                        path: 'children[0]'
+                                                        type: ScanFilterProject
+                                                        kind: scan
+                                                        label: lineitem
+                                                        parent: 7
+                                                        estimated-rows: 6001215
+                                                        position: [53.000000,800.000000]
+                                                      - id: 6
+                                                        engine-id: 698
+                                                        path: 'children[1]'
+                                                        type: LocalExchange
+                                                        kind: exchange
+                                                        parent: 7
+                                                        estimated-rows: 218740.55835414297
+                                                        position: [200.250000,800.000000]
+                                                        children:
+                                                          - id: 4
+                                                            engine-id: 451
+                                                            path: 'children[0]'
+                                                            type: InnerJoin
+                                                            kind: join
+                                                            parent: 6
+                                                            estimated-rows: 218740.55835414297
+                                                            position: [200.250000,864.000000]
+                                                            children:
+                                                              - id: 2
+                                                                engine-id: 622
+                                                                path: 'children[0]'
+                                                                type: ScanFilter
+                                                                kind: scan
+                                                                label: orders
+                                                                parent: 4
+                                                                estimated-rows: 1500000
+                                                                position: [130.875000,928.000000]
+                                                              - id: 3
+                                                                engine-id: 697
+                                                                path: 'children[1]'
+                                                                type: LocalExchange
+                                                                kind: exchange
+                                                                parent: 4
+                                                                estimated-rows: 30000
+                                                                position: [269.625000,928.000000]
+                                                                children:
+                                                                  - id: 1
+                                                                    engine-id: 550
+                                                                    path: 'children[0]'
+                                                                    type: RemoteSource
+                                                                    kind: exchange
+                                                                    parent: 3
+                                                                    position: [269.625000,992.000000]
+                                                                    children:
+                                                                      - id: 0
+                                                                        engine-id: 236
+                                                                        path: fragment 2
+                                                                        type: ScanFilterProject
+                                                                        kind: scan
+                                                                        label: customer
+                                                                        parent: 1
+                                                                        estimated-rows: 150000
+                                                                        position: [269.625000,1056.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 4
+        port-index: 0
+        port-count: 2
+      - child: 3
+        parent: 4
+        port-index: 1
+        port-count: 2
+      - child: 4
+        parent: 6
+        port-index: 0
+        port-count: 1
+      - child: 5
+        parent: 7
+        port-index: 0
+        port-count: 2
+      - child: 6
+        parent: 7
+        port-index: 1
+        port-count: 2
+      - child: 7
+        parent: 8
+        port-index: 0
+        port-count: 1
+      - child: 8
+        parent: 9
+        port-index: 0
+        port-count: 1
+      - child: 9
+        parent: 10
+        port-index: 0
+        port-count: 1
+      - child: 10
+        parent: 11
+        port-index: 0
+        port-count: 1
+      - child: 11
+        parent: 12
+        port-index: 0
+        port-count: 1
+      - child: 12
+        parent: 13
+        port-index: 0
+        port-count: 1
+      - child: 13
+        parent: 14
+        port-index: 0
+        port-count: 1
+      - child: 14
+        parent: 15
+        port-index: 0
+        port-count: 1
+      - child: 15
+        parent: 16
+        port-index: 0
+        port-count: 1
+      - child: 16
+        parent: 17
+        port-index: 0
+        port-count: 1
+      - child: 17
+        parent: 18
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 218
+        entity: fragment
+        index: 2
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1222
+        entity: query
+        status: running
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        memory-bytes: 7792440
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 55
+      - time: 1222
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1222
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 37
+      - time: 1222
+        entity: fragment
+        index: 2
+        status: pending
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        work-done: 16
+        work-total: 16
+      - time: 2226
+        entity: query
+        status: running
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        memory-bytes: 8265272
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 55
+      - time: 2535
+        entity: query
+        status: running
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        memory-bytes: 13276224
+        spilled-bytes: 0
+        work-done: 16
+        work-total: 55
+      - time: 2535
+        entity: fragment
+        index: 1
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 37
+      - time: 2546
+        entity: query
+        status: succeeded
+        tuples-in: 7681357
+        bytes-in: 242026
+        cpu-time-us: 3982000
+        wall-time-us: 4258000
+        memory-bytes: 13276224
+        spilled-bytes: 0
+        work-done: 55
+        work-total: 55
+      - time: 2546
+        entity: fragment
+        index: 0
+        status: succeeded
+        tuples-in: 10
+        bytes-in: 330
+        cpu-time-us: 1000
+        wall-time-us: 1000
+        work-done: 2
+        work-total: 2
+      - time: 2546
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 7531357
+        bytes-in: 241696
+        cpu-time-us: 3850000
+        wall-time-us: 4120000
+        work-done: 37
+        work-total: 37
+      - time: 2546
+        entity: fragment
+        index: 2
+        status: succeeded
+        tuples-in: 150000
+        bytes-in: 0
+        cpu-time-us: 131000
+        wall-time-us: 137000
+        work-done: 16
+        work-total: 16
+
+  - name: cancelled_sf10
+    recording: cancelled_sf10
+    source: query-info
+    fragments:
+      - id: 0
+        engine-id: 0
+        root: 5
+        hidden: true
+        operators: [2,3,4,5]
+      - id: 1
+        engine-id: 1
+        parent: 0
+        root: 1
+        operators: [0,1]
+    operators:
+      - id: 5
+        engine-id: 9
+        type: Output
+        kind: output
+        position: [74.250000,32.000000]
+        children:
+          - id: 4
+            engine-id: 4
+            path: 'children[0]'
+            type: Aggregate
+            kind: aggregate
+            parent: 5
+            position: [74.250000,96.000000]
+            children:
+              - id: 3
+                engine-id: 140
+                path: 'children[0]'
+                type: LocalExchange
+                kind: exchange
+                parent: 4
+                position: [74.250000,160.000000]
+                children:
+                  - id: 2
+                    engine-id: 146
+                    path: 'children[0]'
+                    type: RemoteSource
+                    kind: exchange
+                    parent: 3
+                    position: [74.250000,224.000000]
+                    children:
+                      - id: 1
+                        engine-id: 144
+                        path: fragment 1
+                        type: Aggregate
+                        kind: aggregate
+                        parent: 2
+                        position: [74.250000,288.000000]
+                        children:
+                          - id: 0
+                            engine-id: 0
+                            path: 'children[0]'
+                            type: TableScan
+                            kind: scan
+                            label: lineitem
+                            parent: 1
+                            position: [74.250000,352.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 3
+        parent: 4
+        port-index: 0
+        port-count: 1
+      - child: 4
+        parent: 5
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 18
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 18
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 18
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 1020
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 3415104
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 18
+      - time: 1020
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1020
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 16
+      - time: 2023
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 3416384
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 18
+      - time: 3026
+        entity: query
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        memory-bytes: 3416384
+        spilled-bytes: 0
+        work-done: 6
+        work-total: 18
+      - time: 3026
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        work-done: 6
+        work-total: 16
+      - time: 4030
+        entity: query
+        status: running
+        tuples-in: 25501510
+        bytes-in: 0
+        cpu-time-us: 5080000
+        wall-time-us: 5280000
+        memory-bytes: 3418176
+        spilled-bytes: 0
+        work-done: 6
+        work-total: 18
+
+  - name: failed_cast
+    recording: failed_cast
+    source: query-info
+    fragments:
+      - id: 0
+        engine-id: 0
+        root: 1
+        hidden: true
+        operators: [0,1]
+    operators:
+      - id: 1
+        engine-id: 5
+        type: Output
+        kind: output
+        position: [44.500000,32.000000]
+        children:
+          - id: 0
+            engine-id: 16
+            path: 'children[0]'
+            type: ScanProject
+            kind: scan
+            label: nation
+            parent: 1
+            position: [44.500000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 17
+        entity: query
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 0
+        work-total: 0
+      - time: 17
+        entity: fragment
+        index: 0
+        status: running
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 33
+        entity: query
+        status: failed
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        memory-bytes: 0
+        spilled-bytes: 0
+        work-done: 3
+        work-total: 16
+      - time: 33
+        entity: fragment
+        index: 0
+        status: failed
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 2000
+        wall-time-us: 2000
+        work-done: 3
+        work-total: 16

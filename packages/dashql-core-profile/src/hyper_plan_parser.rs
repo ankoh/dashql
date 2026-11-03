@@ -1,7 +1,7 @@
-//! Reading Hyper plans into the view model.
+//! Reading Hyper plans into the query profile.
 
 use super::query_profile::{
-    Fragment, OperatorCrossEdge, OperatorEdge, OperatorReference, ParsedOperatorNode, PathComponent, QueryProfile,
+    Fragment, OperatorCrossEdge, OperatorReference, ParsedOperatorNode, PathComponent, QueryProfile,
 };
 use super::progress::{ProfileInputEvent, Stats};
 use dashql_buffers::parser::SymbolSpan;
@@ -271,6 +271,7 @@ fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> 
         source_operator_id: node.source_operator_id,
         child_operators: node.child_operators,
         source_location: node.source_location,
+        ..Default::default()
     }
 }
 
@@ -294,7 +295,6 @@ impl QueryProfile {
         let mut parsed_operators: Vec<ParsedOperatorNode> = Vec::new();
         let mut root_operators: Vec<usize> = Vec::new();
         let mut pending = vec![ParserDfsNode::new(&document, None, PathComponent::None)];
-        let mut child_edge_count = 0;
         while !pending.is_empty() {
             let current_index = pending.len() - 1;
 
@@ -307,7 +307,6 @@ impl QueryProfile {
                     // Then emit the node
                     let current = pending.pop().unwrap();
                     let op = parsed_operators.len();
-                    child_edge_count += current.child_operators.len();
                     parsed_operators.push(read_operator(current, ancestor_path));
                     match ancestor {
                         // Register as child operator in ancestor
@@ -395,7 +394,7 @@ impl QueryProfile {
         // Identify fragments introduced by federates
         self.identify_fragments();
         // Identify the operator edges
-        self.identify_operator_edges(child_edge_count);
+        self.identify_operator_edges();
         // Read pipelines if this plan format provides them. Legacy plans render without pipeline overlays.
         if let Some(pipelines) = document.get("pipelines").and_then(Value::as_array) {
             self.parse_hyper_pipelines(pipelines);
@@ -517,23 +516,6 @@ impl QueryProfile {
             }
         }
         self.fragments = fragments;
-    }
-
-    /// Identify the operator edges
-    fn identify_operator_edges(&mut self, child_edge_count: usize) {
-        let mut child_edges = Vec::with_capacity(child_edge_count);
-        for (parent_id, parent) in self.operators.iter().enumerate() {
-            for (port, child_id) in parent.children().enumerate() {
-                child_edges.push(OperatorEdge {
-                    parent_operator: parent_id as u32,
-                    child_operator: child_id as u32,
-                    parent_port_count: parent.children_count,
-                    parent_port_index: port,
-                    slot: None,
-                });
-            }
-        }
-        self.operator_edges = child_edges;
     }
 
     /// Read explicit Hyper pipelines.

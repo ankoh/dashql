@@ -3,8 +3,8 @@
 //! Engines report what they observe as input events (`ProfileInputEvent`): statistics of the query, of fragments,
 //! pipelines, slots (an operator in a pipeline) or operators, on whatever level the engine has. The model rolls
 //! them up (slot -> operator / pipeline -> fragment -> query, see `rollup`) and emits output events
-//! (`ProfileUpdate`, packed as `QueryProfileEvents`) for every entity whose effective state changed. Reported values win
-//! over rolled up values, and values that nobody reported stay unknown.
+//! (`ProfileUpdate`, packed as `QueryProfileEvents`) for every entity whose effective state changed. Reported values
+//! win over rolled up values, and values that nobody reported stay unknown.
 //!
 //! Counters are cumulative, so applying an event twice changes nothing and a dropped event is repaired by the
 //! next one. The input events have a JSON form (serde), a recorded event log replays an execution.

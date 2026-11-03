@@ -50,6 +50,10 @@ pub(super) struct ParsedOperatorNode {
     pub(super) operator_label: Option<String>,
     /// The operator id serialized by Hyper
     pub(super) source_operator_id: Option<u64>,
+    /// The operator id of an engine with string ids (Trino plan node ids), else the Hyper id is the engine id
+    pub(super) engine_id: Option<String>,
+    /// The innermost fragment, if the parser knows it while reading (Trino)
+    pub(super) fragment: Option<u32>,
     /// The child operators (indexes of parsed operators)
     pub(super) child_operators: Vec<usize>,
     /// The source location
@@ -179,7 +183,8 @@ impl OperatorNode {
         Self {
             operator_type: parsed.operator_type,
             operator_label: parsed.operator_label,
-            engine_id: parsed.source_operator_id.map(|id| id.to_string()),
+            engine_id: parsed.engine_id.or_else(|| parsed.source_operator_id.map(|id| id.to_string())),
+            fragment: parsed.fragment,
             source_operator_id: parsed.source_operator_id,
             attributes: parsed.attributes,
             estimated_rows: parsed.estimated_rows,
@@ -435,6 +440,23 @@ impl QueryProfile {
             let oid = self.place_operator(node);
             self.root_operators.push(oid as u32);
         }
+    }
+
+    /// Derive the operator edges (child to parent) from the flattened operators
+    pub(super) fn identify_operator_edges(&mut self) {
+        let mut child_edges = Vec::with_capacity(self.operators.len());
+        for (parent_id, parent) in self.operators.iter().enumerate() {
+            for (port, child_id) in parent.children().enumerate() {
+                child_edges.push(OperatorEdge {
+                    parent_operator: parent_id as u32,
+                    child_operator: child_id as u32,
+                    parent_port_count: parent.children_count,
+                    parent_port_index: port,
+                    slot: None,
+                });
+            }
+        }
+        self.operator_edges = child_edges;
     }
 
     /// Append a flattened operator and point its children at it

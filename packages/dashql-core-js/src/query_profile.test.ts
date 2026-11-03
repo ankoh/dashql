@@ -133,6 +133,22 @@ describe('Plan View Model', () => {
             expect([query.status(), query.stats()!.workDone(), query.stats()!.workTotal()]).toEqual([view.ProfileExecutionStatus.RUNNING, 3n, 10n]);
             expect(() => viewModel.applyTrinoStatementStats('{', 2000)).toThrow();
         });
+        it('loads a Trino plan and finds its stages in the statement stats', () => {
+            const profile = dql!.createQueryProfile(DEFAULT_LAYOUT_CONFIG);
+            const plan = profile.loadTrinoPlan(JSON.stringify({
+                '0': { id: '2', name: 'Output', children: [{ id: '1', name: 'RemoteSource', descriptor: { sourceFragmentIds: '[1]' }, children: [] }] },
+                '1': { id: '0', name: 'TableScan', descriptor: { table: 'tpch:tiny:nation' }, children: [] },
+            })).read();
+            expect(plan.engine()).toEqual(dashql.buffers.profile.ProfileEngine.TRINO);
+            expect(plan.operatorsLength()).toEqual(3);
+            expect(plan.fragmentsLength()).toEqual(2);
+            const version = plan.structureVersion();
+            const events = profile.applyTrinoStatementStats(JSON.stringify({
+                state: 'RUNNING', rootStage: { stageId: '0', state: 'RUNNING', subStages: [{ stageId: '1', state: 'FINISHED' }] },
+            }), 1).read();
+            expect(events.structureVersion()).toEqual(version);
+            expect(() => profile.loadTrinoPlan('{"operator":"scan"}')).toThrow();
+        });
         it('materializes operator cross edges', () => {
             const viewModel = dql!.createQueryProfile(DEFAULT_LAYOUT_CONFIG);
             const planPtr = viewModel.loadHyperPlan(`{

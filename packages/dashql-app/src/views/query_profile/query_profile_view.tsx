@@ -12,6 +12,7 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { computeProfileFitTransform } from './profile_fit.js';
+import { createProfileLayoutConfig } from './profile_layout_config.js';
 import { ProfileExecutionController } from './profile_execution_controller.js';
 import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
@@ -40,19 +41,19 @@ const STATUS_PATHS: Record<number, string> = {
     [dashql.buffers.profile.ProfileExecutionStatus.SKIPPED]: 'M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.333-2.167a.825.825 0 0 0-1.166-1.166l-5.5 5.5a.825.825 0 0 0 1.166 1.166Z',
 };
 
-export function createProfileLayoutConfig(showProgress: boolean): dashql.buffers.profile.ProfileLayoutConfigT {
-    const config = new dashql.buffers.profile.ProfileLayoutConfigT();
-    config.levelHeight = 72;
-    config.nodeHeight = 32;
-    config.nodeMarginHorizontal = 32;
-    config.nodePaddingLeft = 12;
-    config.nodePaddingRight = 12;
-    config.iconWidth = showProgress ? 14 : 0;
-    config.iconMarginRight = showProgress ? 8 : 0;
-    config.maxLabelChars = 20;
-    config.widthPerLabelChar = 8.5;
-    config.nodeMinWidth = 0;
-    return config;
+export { createProfileLayoutConfig };
+
+/// The status of a fragment as attribute value for the contour, undefined without execution state
+function fragmentStatus(execution: ProfileExecutionState, fragment: number): string | undefined {
+    const status = execution.fragments[fragment]?.status;
+    switch (status) {
+        case dashql.buffers.profile.ProfileExecutionStatus.PENDING: return 'pending';
+        case dashql.buffers.profile.ProfileExecutionStatus.RUNNING: return 'running';
+        case dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED: return 'succeeded';
+        case dashql.buffers.profile.ProfileExecutionStatus.FAILED: return 'failed';
+        case dashql.buffers.profile.ProfileExecutionStatus.SKIPPED: return 'skipped';
+        default: return undefined;
+    }
 }
 
 export interface QueryProfileViewProps {
@@ -407,9 +408,10 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                                     .join(', ')}`}
                             >
                                 <path
-                                    className={graphStyles.fragment}
+                                    className={`${graphStyles.fragment} ${styles.fragment}`}
                                     d={fragment.path}
                                     data-color={fragmentIndex % 6}
+                                    data-status={fragmentStatus(execution, fragment.id)}
                                 />
                             </g>
                         ))}

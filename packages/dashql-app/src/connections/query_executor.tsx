@@ -36,6 +36,7 @@ import { yieldToBrowser } from '../utils/yield_to_browser.js';
 import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import { QueryProgressModels, type EngineProgressPayload } from '../query/query_progress_model.js';
+import { createProfileLayoutConfig } from '../views/query_profile/profile_layout_config.js';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../runtime/core_provider.js';
 
 const LOG_CTX = 'query_executor';
@@ -139,7 +140,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     // The progress models of the running queries, they need the core. The core is requested with the first
     // structured progress, until it is ready the progress has no structure.
     const coreSetup = useDashQLCoreSetup() as DashQLSetupFn | null;
-    const progressModels = React.useRef(new QueryProgressModels());
+    const progressModels = React.useRef(new QueryProgressModels(createProfileLayoutConfig(false)));
     const progressCore = React.useRef<core.DashQL | null>(null);
     const progressCoreRequested = React.useRef(false);
     const applyEngineProgress = React.useCallback((queryId: number, payload: EngineProgressPayload) => {

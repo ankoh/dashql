@@ -17,6 +17,7 @@ import { peekFormat } from './format_peek.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../session/scripts/script_format.js';
 import { EngineProfileView } from '../query_profile/engine_profile_view.js';
+import { detectPlanEngine } from '../query_profile/plan_engine.js';
 
 const LOG_CTX = 'cell_detail_overlay';
 
@@ -336,7 +337,7 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                         )}
                         {selectedFormat === FormatMode.Plan && formats.plan != null && (
                             <EngineProfileView
-                                engine={dashql.buffers.profile.ProfileEngine.HYPER}
+                                engine={detectPlanEngine(formats.plan) ?? dashql.buffers.profile.ProfileEngine.HYPER}
                                 planText={formats.plan}
                                 className={styles.plan_container}
                                 fallback={<div className={styles.plan_error}>Could not render plan</div>}

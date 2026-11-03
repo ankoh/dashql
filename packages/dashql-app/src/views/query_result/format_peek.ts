@@ -1,8 +1,9 @@
+import { detectPlanEngine } from '../query_profile/plan_engine.js';
+
 export type FormatHint = 'array' | 'struct' | 'json' | 'sql' | 'plan' | null;
 
 /// Values can be megabytes large, only look at the first and last characters
 const PEEK_WINDOW = 4096;
-const PLAN_OPERATOR_KEY = '"operator"';
 const SQL_RE = /^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|WITH|EXPLAIN|COPY|SET|BEGIN|COMMIT|ROLLBACK)\b/i;
 
 export function peekFormat(value: string | null): FormatHint {
@@ -12,8 +13,8 @@ export function peekFormat(value: string | null): FormatHint {
     const first = head.length > 0 ? head[0] : null;
     const last = tail.length > 0 ? tail[tail.length - 1] : null;
     if ((first === '{' || first === '[') && (last === '}' || last === ']')) {
-        // Hyper plans start with the operator of the root, e.g. {"tree":{"operator":...}}
-        if (first === '{' && last === '}' && head.includes(PLAN_OPERATOR_KEY)) return 'plan';
+        // A plan of an engine (Hyper, Trino)
+        if (detectPlanEngine(value) != null) return 'plan';
         return 'json';
     }
     if (SQL_RE.test(head)) return 'sql';

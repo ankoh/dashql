@@ -115,3 +115,10 @@
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
+
+/* The profile of the query, the plan with its stages */
+.profile {
+    position: relative;
+    height: 360px;
+    border-top: 1px solid var(--border_color_primary);
+}

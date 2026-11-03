@@ -168,7 +168,8 @@ bazel run //snapshots/visualize:update
 bazel run //snapshots/diff:update
 bazel run //snapshots/profiles/hyper/tests:update
 bazel run //snapshots/profiles/progress:update
-bazel run //snapshots/profiles/trino/tests:update
+bazel run //snapshots/profiles/trino/progress:update
+bazel run //snapshots/profiles/trino/plans:update
 # All categories at once
 bazel run //snapshots:update
 ```

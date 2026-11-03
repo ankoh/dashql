@@ -2,6 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import type { DashQLShellCommand } from './api.js';
 import { QueryType, type QueryMetadata } from '../query/query_execution_state.js';
+import { detectPlanEngine } from '../views/query_profile/plan_engine.js';
 
 export const SHELL_AUTO_OVERLAY_ROW_LIMIT = 100;
 const TABLE_FRAME_WIDTH_PER_COLUMN = 3;
@@ -33,11 +34,15 @@ export function getPlanResultText(table: arrow.Table | null): string | null {
     if (table == null || table.numRows !== 1 || table.numCols !== 1) return null;
     const value = table.getChildAt(0)?.get(0);
     if (typeof value !== 'string') return null;
+    if (detectPlanEngine(value) == null) return null;
     try {
         const parsed = JSON.parse(value);
-        return parsed != null && typeof parsed === 'object' && !Array.isArray(parsed) && typeof parsed.operator === 'string'
-            ? value
-            : null;
+        if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+        // A Hyper plan has a root operator, a Trino plan maps fragment ids to plan nodes
+        const isHyperPlan = typeof parsed.operator === 'string';
+        const isTrinoPlan = Object.values(parsed).every(node =>
+            node != null && typeof node === 'object' && typeof (node as { name?: unknown }).name === 'string');
+        return isHyperPlan || isTrinoPlan ? value : null;
     } catch {
         return null;
     }

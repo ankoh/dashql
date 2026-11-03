@@ -62,6 +62,31 @@ describe('QueryProgressModels', () => {
         expect(models.apply(core, 1, { kind: 'trino_statement_stats', stats: { state: 7 }, receivedAt: 5 })).toBe(second);
         models.release(1);
     });
+
+    it('replaces the stages with the plan of the QueryInfo and keeps their state', () => {
+        const models = new QueryProgressModels();
+        models.apply(core, 2, { kind: 'trino_statement_stats', stats: poll('RUNNING', 4), receivedAt: 1 });
+        const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
+        const remote = (id: string, source: string) => ({ id, name: 'RemoteSource', descriptor: { sourceFragmentIds: `[${source}]` }, children: [] });
+        const info = { queryId: 'q', stages: { stages: [
+            stage('0', { id: '1', name: 'Output', children: [remote('2', '1')] }),
+            stage('1', { id: '3', name: 'Aggregate', children: [remote('4', '2')] }),
+            stage('2', { id: '5', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }),
+        ] } };
+        const progress = models.apply(core, 2, { kind: 'trino_query_info', info, receivedAt: 2 })!;
+        expect(progress.structure.read().operatorsLength()).toEqual(5);
+        // The stages are the fragments of the plan, with the state of the latest poll
+        const stages = listProgressStages(progress);
+        expect(stages.map(s => [s.label, s.depth])).toEqual([['0', 0], ['1', 1], ['2', 2]]);
+        expect(stages[1].work).toEqual({ done: 2, total: 8 });
+        expect(workOf(progress.execution.query)).toEqual({ done: 4, total: 20 });
+
+        // A broken plan leaves the stages without plan
+        const broken = models.apply(core, 2, { kind: 'trino_query_info', info: { stages: { stages: [{ stageId: 'q.0', plan: { jsonRepresentation: '{' } }] } }, receivedAt: 3 })!;
+        expect(broken.structure.read().operatorsLength()).toEqual(0);
+        expect(listProgressStages(broken)).toHaveLength(3);
+        models.release(2);
+    });
 });
 
 describe('query progress formatting', () => {

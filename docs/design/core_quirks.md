@@ -98,6 +98,10 @@ entry when you find another one. The headings name where the behavior lives.
 - **Rollups.** A fragment is its own work, without its child fragments (Trino stage statistics), the
   query sums all fragments. An operator in a sink slot only produces the output of its sink slots.
   Input events for entities that do not exist are dropped silently (`apply_event`).
+- **Trino plans** (`parse_trino_plan`). A fragment that several remote sources read hangs below the
+  first one only. The root fragment is hidden, its contour would enclose the whole plan. The stage
+  plans of QueryInfo carry no estimates, EXPLAIN plans do. A QueryInfo without stage plans (pruned)
+  is an empty profile, not an error.
 
 ## Script session (`packages/dashql-core-session/src/script_session.rs`)
 

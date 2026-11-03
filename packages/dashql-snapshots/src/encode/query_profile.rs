@@ -180,7 +180,7 @@ pub fn encode_hyper_profile(input: &str) -> Result<Map, String> {
     let mut out = encode_query_profile(&view_model.pack_buffer());
     let events = view_model.snapshot_events();
     if !events.is_empty() {
-        out.insert("events", encode_plan_events(&view_model.pack_events(&events)));
+        out.insert("events", encode_profile_events(&view_model.pack_events(&events)));
     }
     Ok(out)
 }
@@ -192,7 +192,7 @@ pub fn encode_profile_progress(plan: &str, events: &str) -> Result<Node, String>
     view_model.parse_hyper_plan(plan.as_bytes()).map_err(|e| format!("cannot parse plan: {e:?}"))?;
     let events: Vec<ProfileInputEvent> = serde_json::from_str(events).map_err(|e| format!("invalid events: {e}"))?;
     let updates = view_model.replay(&events);
-    Ok(encode_plan_events(&view_model.pack_events(&updates)))
+    Ok(encode_profile_events(&view_model.pack_events(&updates)))
 }
 
 /// Encode a Trino progress snapshot case: replay the `/v1/statement` responses of a recording
@@ -217,12 +217,42 @@ pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {
     if let Some((_, fragments)) = fragments {
         out.insert("fragments", fragments);
     }
-    out.insert("updates", encode_plan_events(&view_model.pack_events(&updates)));
+    out.insert("updates", encode_profile_events(&view_model.pack_events(&updates)));
+    Ok(out)
+}
+
+/// Encode a Trino profile snapshot case: parse the plan of a recording, from the EXPLAIN plan (`explain`) or the
+/// stage plans of the final QueryInfo (`query-info`), lay it out, and replay the statement polls on top. Returns
+/// the sections of `encode_query_profile` and `updates`.
+pub fn encode_trino_profile(recording: &str, source: &str) -> Result<Map, String> {
+    let recording: serde_json::Value = serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
+    let plan = match source {
+        "explain" => recording["explain"].clone(),
+        "query-info" => {
+            let infos = recording["queryInfos"].as_array().ok_or("recording without query infos")?;
+            infos.last().ok_or("recording without query infos")?["body"].clone()
+        }
+        _ => return Err(format!("unknown plan source {source}")),
+    };
+    let mut profile = QueryProfile::new();
+    let plan = serde_json::to_vec(&plan).expect("a JSON value always serializes");
+    profile.parse_trino_plan(&plan).map_err(|e| format!("cannot parse plan: {e:?}"))?;
+    profile.configure(&snapshot_config());
+    profile.compute_layout();
+    let mut updates = Vec::new();
+    for response in recording["statementResponses"].as_array().ok_or("recording without statement responses")? {
+        let Some(stats) = response["body"].get("stats") else { continue };
+        let time = response["elapsedMs"].as_u64().unwrap_or(0);
+        let stats = serde_json::to_vec(stats).expect("a JSON value always serializes");
+        updates.extend(profile.apply_trino_statement_stats(&stats, time).map_err(|e| e.to_string())?);
+    }
+    let mut out = encode_query_profile(&profile.pack_buffer());
+    out.insert("updates", encode_profile_events(&profile.pack_events(&updates)));
     Ok(out)
 }
 
 /// Encode packed `QueryProfileEvents`: one entry per update with its status and reported statistics
-pub fn encode_plan_events(buffer: &[u8]) -> Node {
+pub fn encode_profile_events(buffer: &[u8]) -> Node {
     let events = flatbuffers::root::<fb::QueryProfileEvents>(buffer).expect("valid plan events");
     let mut out = Vec::new();
     for event in events.events().unwrap() {

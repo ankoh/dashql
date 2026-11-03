@@ -1,0 +1,21 @@
+trino-profile-snapshots:
+  # The plan of a recording (EXPLAIN or the stage plans of the final QueryInfo) with the statement polls on top.
+  # The recordings are written by `bazel run //packages/trino-testing:trino_recorder`.
+  - name: select_one
+    recording: select_one
+    source: explain
+  - name: aggregate_lineitem_sf1_explain
+    recording: aggregate_lineitem_sf1
+    source: explain
+  - name: aggregate_lineitem_sf1_query_info
+    recording: aggregate_lineitem_sf1
+    source: query-info
+  - name: tpch_q3_sf1
+    recording: tpch_q3_sf1
+    source: explain
+  - name: cancelled_sf10
+    recording: cancelled_sf10
+    source: query-info
+  - name: failed_cast
+    recording: failed_cast
+    source: query-info

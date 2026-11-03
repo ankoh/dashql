@@ -52,7 +52,7 @@ describe('TrinoQueryResultStream', () => {
             new AsyncConsumerLambdas((_, update) => progress.push({
                 phase: update.phase,
                 kind: update.engineProgress?.kind,
-                state: (update.engineProgress?.stats as { state?: string } | undefined)?.state,
+                state: (update.engineProgress as { stats?: { state?: string } } | null | undefined)?.stats?.state,
             })),
         );
         expect(progress).toEqual([
@@ -60,6 +60,24 @@ describe('TrinoQueryResultStream', () => {
             { phase: 'RUNNING', kind: 'trino_statement_stats', state: 'RUNNING' },
             { phase: 'FINISHED', kind: 'trino_statement_stats', state: 'FINISHED' },
         ]);
+    });
+
+    it('requests the plans of the stages once the stages exist', async () => {
+        const running = { ...state('RUNNING'), rootStage: { stageId: '0' } } as TrinoQueryResult['stats'];
+        const { stream, apiClient } = resultStream(
+            { stats: state('QUEUED'), nextUri: 'https://example.com/next' },
+            [{ stats: running, nextUri: 'https://example.com/next2' }, { stats: running, nextUri: 'https://example.com/next3' }, { columns: COLUMNS, stats: state('FINISHED') }],
+        );
+        const info = { queryId: 'query-id', stages: { stages: [] } };
+        (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue(info);
+        const kinds: (string | undefined)[] = [];
+        await stream.produce(
+            new AsyncConsumerLambdas(),
+            new AsyncConsumerLambdas((_, update) => kinds.push(update.engineProgress?.kind)),
+        );
+        await vi.waitFor(() => expect(kinds).toContain('trino_query_info'));
+        expect(apiClient.getQueryInfo).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(apiClient.getQueryInfo).mock.calls[0][1]).toEqual('query-id');
     });
 
     it('exposes the schema from an already-finished zero-row response', async () => {

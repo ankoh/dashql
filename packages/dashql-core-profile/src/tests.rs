@@ -431,7 +431,8 @@ fn exposes_operator_statistics() {
     assert_eq!(state.stats.tuples_in, Some(10000));
     assert_eq!(state.stats.tuples_out, Some(1987));
     assert_eq!(state.stats.memory_bytes, Some(4294967297));
-    let fields = [fb::ProfileStatsField::TUPLES_IN, fb::ProfileStatsField::TUPLES_OUT, fb::ProfileStatsField::MEMORY_BYTES];
+    use fb::ProfileStatsField as F;
+    let fields = [F::TUPLES_IN, F::TUPLES_OUT, F::MEMORY_BYTES];
     assert_eq!(state.stats.reported(), fields.iter().fold(0, |bits, field| bits | field.0));
 
     let mut found_raw_statistics = false;

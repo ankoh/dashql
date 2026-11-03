@@ -14,6 +14,7 @@ import { QueryProfileView } from '../../views/query_profile/query_profile_view.j
 import { useQueryProfile } from '../../views/query_profile/engine_profile_view.js';
 import { TabHeader } from '../tab_header.js';
 import { getPlanResultText } from '../../shell/shell_result.js';
+import { detectPlanEngine } from '../../views/query_profile/plan_engine.js';
 import { classNames } from '../../utils/classnames.js';
 import * as styles from './shell_query_result_overlay.module.css';
 
@@ -59,7 +60,8 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
-    const { plan, execution } = dependencies.useQueryProfile(dashql.buffers.profile.ProfileEngine.HYPER, planText);
+    const planEngine = detectPlanEngine(planText) ?? dashql.buffers.profile.ProfileEngine.HYPER;
+    const { plan, execution } = dependencies.useQueryProfile(planEngine, planText);
     const hasPlan = plan != null;
     const [selectedTab, setSelectedTab] = React.useState<ResultTab>(ResultTab.Data);
     const selectedPlanQueryIdRef = React.useRef<number | null>(null);

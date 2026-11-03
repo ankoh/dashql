@@ -1233,6 +1233,12 @@ export class DashQLQueryProfile {
         this.ptr.assertNotNull().loadHyperPlan(this.ptr.api.encoder.encode(plan));
         return this.pack();
     }
+    /// Load a Trino plan: the fragments of `EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON)` or a QueryInfo with the plans
+    /// of its stages. Resets the execution state.
+    public loadTrinoPlan(plan: string): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
+        this.ptr.assertNotNull().loadTrinoPlan(this.ptr.api.encoder.encode(plan));
+        return this.pack();
+    }
     /// Start an empty model for a query of an engine, the structure appears with the progress
     public startQuery(engine: buffers.profile.ProfileEngine): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         this.ptr.assertNotNull().startQuery(engine);
