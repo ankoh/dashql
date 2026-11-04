@@ -262,6 +262,89 @@ describe('WebHyperDatabaseClient', () => {
             });
         });
 
+        it('surfaces an error nested in the status header when the body is empty', async () => {
+            mock.fetch = async () => ({
+                headers: new Headers({
+                    'x-hyperdb-status': JSON.stringify({
+                        queryId: 'q-err',
+                        completionStatus: 'RUNNING_OR_UNSPECIFIED',
+                        error: {
+                            error: '42P01',
+                            message: 'table "foo" does not exist',
+                            details: { customerHint: 'check the table name', errorSource: 'User' },
+                        },
+                    }),
+                }),
+                status: 400,
+                statusText: 'Bad Request',
+                json: async () => ({}),
+                text: async () => '',
+                arrayBuffer: async () => new ArrayBuffer(0),
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await expect(channel.executeQuery({ query: 'select * from foo' } as any)).rejects.toMatchObject({
+                message: 'table "foo" does not exist',
+                keyValues: { sqlstate: '42P01', source: 'User', hint: 'check the table name' },
+            });
+            expect(logger.buffer.at(logger.buffer.length - 1)?.keyValues).toMatchObject({
+                status: '400',
+                hyperdbStatusPresent: 'true',
+                hyperErrorRecognized: 'true',
+                hyperErrorOrigin: 'x-hyperdb-status',
+            });
+        });
+
+        it('unpacks a Hyper ErrorInfo from a google.rpc.Status in the status header', async () => {
+            mock.fetch = async () => ({
+                headers: new Headers({
+                    'x-hyperdb-status': JSON.stringify({
+                        queryId: 'q-err',
+                        status: {
+                            code: 3,
+                            message: 'INVALID_ARGUMENT',
+                            details: [{
+                                '@type': 'type.googleapis.com/salesforce.hyperdb.grpc.v1.ErrorInfo',
+                                primaryMessage: 'syntax error at or near "selec"',
+                                sqlstate: '42601',
+                                systemDetail: 'parser',
+                                position: { errorBeginCharacterOffset: '0', errorEndCharacterOffset: '5' },
+                            }],
+                        },
+                    }),
+                }),
+                status: 400,
+                statusText: 'Bad Request',
+                json: async () => ({}),
+                text: async () => '',
+                arrayBuffer: async () => new ArrayBuffer(0),
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await expect(channel.executeQuery({ query: 'selec 1' } as any)).rejects.toMatchObject({
+                message: 'syntax error at or near "selec"',
+                keyValues: { sqlstate: '42601', systemDetail: 'parser', position: '0..5' },
+            });
+        });
+
+        it('logs an unrecognized status header verbatim', async () => {
+            const rawStatus = JSON.stringify({ queryId: 'q-err', completionStatus: 'FINISHED' });
+            mock.fetch = async () => ({
+                headers: new Headers({ 'x-hyperdb-status': rawStatus }),
+                status: 400,
+                statusText: 'Bad Request',
+                json: async () => ({}),
+                text: async () => '',
+                arrayBuffer: async () => new ArrayBuffer(0),
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await expect(channel.executeQuery({ query: 'select 1' } as any)).rejects.toMatchObject({
+                message: 'HTTP 400',
+                keyValues: { hyperdbStatus: rawStatus, hyperErrorRecognized: 'false', hyperErrorOrigin: 'none' },
+            });
+        });
+
         it('reads a single-chunk result from the POST body', async () => {
             const arrowBytes = encodeIntTable('n', [1, 2, 3]);
             mock.setHandler(() => ({

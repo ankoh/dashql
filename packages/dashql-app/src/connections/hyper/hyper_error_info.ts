@@ -3,7 +3,7 @@ import * as wkt from "@bufbuild/protobuf/wkt";
 import * as pb from "../../proto.js";
 
 import { LoggableException } from "../../platform/logger/logger.js";
-import { QueryErrorResponse } from "./hyperdb_http_client.js";
+import type { QueryErrorResponse } from "./hyperdb_http_client.js";
 
 /// The gRPC "richer error model" trailer that carries the base64-encoded
 /// google.rpc.Status. This is the same name the wire uses, mirrored by the
@@ -182,6 +182,9 @@ export class HyperQueryError extends LoggableException {
     }
 }
 
+/// A five-character SQL state, the V3 error field holds one or a word like INTERNAL_ERROR
+const SQLSTATE_PATTERN = /^[0-9A-Z]{5}$/;
+
 /// Map the web HTTP v3 JSON error body into a HyperErrorInfo.
 export function fromHttpErrorResponse(response: QueryErrorResponse): HyperErrorInfo {
     const details = response.details;
@@ -193,8 +196,10 @@ export function fromHttpErrorResponse(response: QueryErrorResponse): HyperErrorI
         : undefined;
     return {
         primaryMessage: response.message || response.error,
+        sqlstate: SQLSTATE_PATTERN.test(response.error) ? response.error : undefined,
         customerHint: details?.customerHint || undefined,
         customerDetail: details?.customerDetail || undefined,
+        systemDetail: details?.systemDetail || undefined,
         position,
         errorSource: normalizeErrorSource(details?.errorSource),
     };

@@ -156,6 +156,7 @@ export interface QueryErrorResponse {
     details?: {
         customerHint?: string;
         customerDetail?: string;
+        systemDetail?: string;
         errorSource?: string;
         position?: {
             errorBeginCharacterOffset: string;
@@ -173,6 +174,91 @@ export class HyperHttpError extends LoggableException {
         this.httpStatus = httpStatus;
         this.errorResponse = errorResponse;
     }
+}
+
+/// The maximum length of a raw header value in the error diagnostics
+const MAX_DIAGNOSTIC_LENGTH = 2000;
+/// How deep to search nested objects for an error
+const MAX_ERROR_SEARCH_DEPTH = 3;
+
+function truncate(text: string, maxLength: number): string {
+    return text.length <= maxLength ? text : `${text.substring(0, maxLength)}...`;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+/// Read a Hyper ErrorInfo serialized as JSON, in camelCase or snake_case
+function readErrorInfo(raw: any, httpStatus: number): QueryErrorResponse | null {
+    const primaryMessage = nonEmptyString(raw.primaryMessage ?? raw.primary_message);
+    if (!primaryMessage) return null;
+    const position = raw.position;
+    const begin = position?.errorBeginCharacterOffset ?? position?.error_begin_character_offset;
+    const end = position?.errorEndCharacterOffset ?? position?.error_end_character_offset;
+    return {
+        error: nonEmptyString(raw.sqlstate) ?? `HTTP ${httpStatus}`,
+        message: primaryMessage,
+        details: {
+            customerHint: nonEmptyString(raw.customerHint ?? raw.customer_hint),
+            customerDetail: nonEmptyString(raw.customerDetail ?? raw.customer_detail),
+            systemDetail: nonEmptyString(raw.systemDetail ?? raw.system_detail),
+            errorSource: nonEmptyString(raw.errorSource ?? raw.error_source),
+            position: begin != null && end != null ? {
+                errorBeginCharacterOffset: String(begin),
+                errorEndCharacterOffset: String(end),
+            } : undefined,
+        },
+    };
+}
+
+/// Read an error from a JSON error body or the JSON status header.
+/// Recognizes the V3 error envelope, Salesforce error arrays, Hyper ErrorInfo objects,
+/// google.rpc.Status objects with packed details, and any of these nested in other objects.
+export function readErrorResponse(raw: unknown, httpStatus: number, depth: number = 0): QueryErrorResponse | null {
+    if (raw == null || typeof raw !== 'object' || depth > MAX_ERROR_SEARCH_DEPTH) return null;
+    if (Array.isArray(raw)) {
+        for (const entry of raw) {
+            const error = readErrorResponse(entry, httpStatus, depth + 1);
+            if (error) return error;
+        }
+        return null;
+    }
+    const obj = raw as Record<string, any>;
+
+    // Hyper ErrorInfo
+    const errorInfo = readErrorInfo(obj, httpStatus);
+    if (errorInfo) return errorInfo;
+
+    // google.rpc.Status, prefer a packed ErrorInfo over the terse message
+    if (Array.isArray(obj.details)) {
+        for (const detail of obj.details) {
+            if (detail && typeof detail === 'object') {
+                const info = readErrorInfo(detail, httpStatus);
+                if (info) return info;
+            }
+        }
+    }
+
+    // V3 error envelope or Salesforce error
+    const message = nonEmptyString(obj.message);
+    const error = nonEmptyString(obj.error);
+    const errorCode = nonEmptyString(obj.errorCode);
+    if (message || error || errorCode) {
+        return {
+            ...obj,
+            message: message ?? '',
+            error: error ?? errorCode ?? `HTTP ${httpStatus}`,
+            details: obj.details != null && typeof obj.details === 'object' && !Array.isArray(obj.details) ? obj.details : undefined,
+        } as QueryErrorResponse;
+    }
+
+    // An error nested in another object, e.g. the error of a query status
+    for (const value of Object.values(obj)) {
+        const nested = readErrorResponse(value, httpStatus, depth + 1);
+        if (nested) return nested;
+    }
+    return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +307,7 @@ export class HyperDatabaseHttpClient {
     private async throwIfError(response: HttpFetchResult): Promise<void> {
         if (response.status >= 400) {
             let errorBody: QueryErrorResponse | null = null;
+            let errorOrigin = 'none';
             let bodyType = 'unreadable';
             let bodyKeys = '';
             try {
@@ -230,29 +317,31 @@ export class HyperDatabaseHttpClient {
                     ? Object.keys(Array.isArray(body) ? (body[0] ?? {}) : body)
                         .filter(key => ['message', 'error', 'errorCode', 'details', 'detail'].includes(key)).join(',')
                     : '';
-                const firstError = Array.isArray(body) ? body[0] : body;
-                if (firstError && typeof firstError === 'object' &&
-                    ((typeof firstError.message === 'string' && firstError.message.trim()) ||
-                     (typeof firstError.error === 'string' && firstError.error.trim()) ||
-                     (typeof firstError.errorCode === 'string' && firstError.errorCode.trim()))) {
-                    errorBody = {
-                        ...firstError,
-                        message: typeof firstError.message === 'string' ? firstError.message : '',
-                        error: (typeof firstError.error === 'string' && firstError.error) ||
-                            (typeof firstError.errorCode === 'string' && firstError.errorCode) || `HTTP ${response.status}`,
-                    };
-                }
+                errorBody = readErrorResponse(body, response.status);
+                if (errorBody) errorOrigin = 'body';
             } catch {
                 // Response body may not be valid JSON
+            }
+            // The body may be empty and the error is only in the status header
+            const rawStatus = response.headers.get('x-hyperdb-status');
+            if (errorBody == null && rawStatus) {
+                try {
+                    errorBody = readErrorResponse(JSON.parse(rawStatus), response.status);
+                    if (errorBody) errorOrigin = 'x-hyperdb-status';
+                } catch {
+                    // Status header may not be valid JSON
+                }
             }
             const diagnostics = {
                 status: response.status.toString(),
                 statusText: response.statusText,
                 contentType: response.headers.get('content-type'),
-                hyperdbStatusPresent: response.headers.has('x-hyperdb-status').toString(),
+                hyperdbStatusPresent: (rawStatus != null).toString(),
+                hyperdbStatus: rawStatus != null ? truncate(rawStatus, MAX_DIAGNOSTIC_LENGTH) : null,
                 bodyType,
                 bodyKeys,
                 hyperErrorRecognized: (errorBody != null).toString(),
+                hyperErrorOrigin: errorOrigin,
             };
             this.logger.warn('Hyper HTTP error response', diagnostics, LOG_CTX);
             throw new HyperHttpError(response.status, errorBody, diagnostics);

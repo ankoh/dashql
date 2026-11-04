@@ -315,3 +315,9 @@ Uncaught exceptions: `500` with `{ error: "INTERNAL_ERROR", message: "..." }`.
 6. **`expirationTime`** — ISO 8601 string when present, absent/null when the query is still running.
 
 7. **Default workload** — If `x-hyperdb-workload` is omitted, the server uses `"query-service-http-v3-proxy"`.
+
+8. **Errors in the status header** — An error response can have an empty body and carry the error only in the
+   `x-hyperdb-status` header. The client reads the error from the body first, then from the header, and accepts the
+   error envelope above, a Hyper `ErrorInfo` (camelCase or snake_case), a `google.rpc.Status` with a packed
+   `ErrorInfo` in `details`, and any of these nested in the status object. An unrecognized header is logged verbatim
+   as `hyperdbStatus`.
