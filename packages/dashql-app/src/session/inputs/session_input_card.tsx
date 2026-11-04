@@ -46,9 +46,12 @@ const PLACEHOLDERS: Partial<Record<SessionInputControl, string>> = {
     [SessionInputControl.Integer]: '0',
 };
 
+/// How long a typed draft rests before it is written
+export const SESSION_INPUT_COMMIT_DELAY_MS = 600;
+
 /// The value of an input in a card: the name of the parameter, its type and a control that follows the type. The
-/// control owns its draft, Enter writes it as literal and runs the scripts that use the input, Escape restores the
-/// value.
+/// control owns its draft, a draft that rests for a moment is written as literal and runs the scripts that use the
+/// input. Enter and leaving the control write it at once, Escape restores the value.
 export function SessionInputCard(props: Props): React.ReactElement {
     const { input, onCommit, literalOf } = props;
     const value = input.value ?? '';
@@ -57,7 +60,11 @@ export function SessionInputCard(props: Props): React.ReactElement {
     if (control === SessionInputControl.Timestamp && value.length > 0 && toDateTimeLocal(value) == null) control = SessionInputControl.Text;
     const shown = control === SessionInputControl.Timestamp ? (toDateTimeLocal(value) ?? '') : value;
     const [draft, setDraft] = React.useState(shown);
-    React.useEffect(() => setDraft(shown), [shown]);
+    // The draft that waits to be written, a newer value of the input doesn't replace it
+    const pending = React.useRef<{ value: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+    React.useEffect(() => {
+        if (pending.current == null) setDraft(shown);
+    }, [shown]);
     const committed = control === SessionInputControl.Timestamp ? fromDateTimeLocal(draft) : draft;
     const dirty = draft !== shown;
     const result = React.useMemo(() => literalOf(input, committed), [literalOf, input, committed]);
@@ -72,19 +79,44 @@ export function SessionInputCard(props: Props): React.ReactElement {
         const literal = literalOf(input, next);
         if ('literal' in literal) onCommit(input.name, literal.literal);
     }, [input, literalOf, onCommit]);
+    const commitRef = React.useRef(commit);
+    commitRef.current = commit;
+    const cancelPending = React.useCallback(() => {
+        if (pending.current == null) return;
+        clearTimeout(pending.current.timer);
+        pending.current = null;
+    }, []);
+    const flushPending = React.useCallback(() => {
+        const next = pending.current;
+        if (next == null) return;
+        clearTimeout(next.timer);
+        pending.current = null;
+        commitRef.current(next.value);
+    }, []);
+    React.useEffect(() => cancelPending, [cancelPending]);
+    /// Take a typed draft and write it once it rests, a draft that equals the value writes nothing
+    const editDraft = (next: string) => {
+        setDraft(next);
+        cancelPending();
+        if (next === shown) return;
+        const value = control === SessionInputControl.Timestamp ? fromDateTimeLocal(next) : next;
+        pending.current = { value, timer: setTimeout(flushPending, SESSION_INPUT_COMMIT_DELAY_MS) };
+    };
     const onKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
+            cancelPending();
             commit(committed);
         } else if (event.key === 'Escape') {
             event.preventDefault();
+            cancelPending();
             setDraft(shown);
             event.currentTarget.blur();
         } else {
             return;
         }
         event.stopPropagation();
-    }, [commit, committed, shown]);
+    }, [cancelPending, commit, committed, shown]);
 
     const label = `Value of :${input.name}`;
     const typeTitle = input.type.cast
@@ -117,9 +149,10 @@ export function SessionInputCard(props: Props): React.ReactElement {
                         autoComplete="off"
                         onChange={event => {
                             const amount = event.currentTarget.value.replace(/\s+/g, '');
-                            setDraft(amount.length === 0 ? '' : `${amount} ${intervalUnit}`);
+                            editDraft(amount.length === 0 ? '' : `${amount} ${intervalUnit}`);
                         }}
                         onKeyDown={onKeyDown}
+                        onBlur={flushPending}
                     />
                     <select
                         className={classNames(styles.control, styles.control_unit)}
@@ -132,6 +165,7 @@ export function SessionInputCard(props: Props): React.ReactElement {
                                 return;
                             }
                             const next = `${interval.amount} ${unit}`;
+                            cancelPending();
                             setDraft(next);
                             commit(next);
                         }}
@@ -165,8 +199,9 @@ export function SessionInputCard(props: Props): React.ReactElement {
                     placeholder={PLACEHOLDERS[control] ?? 'value'}
                     spellCheck={false}
                     autoComplete="off"
-                    onChange={event => setDraft(event.currentTarget.value)}
+                    onChange={event => editDraft(event.currentTarget.value)}
                     onKeyDown={onKeyDown}
+                    onBlur={flushPending}
                 />
             )}
             <span className={styles.status} aria-hidden="true" />

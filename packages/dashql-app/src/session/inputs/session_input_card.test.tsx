@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { SessionInputCard } from './session_input_card.js';
+import { SESSION_INPUT_COMMIT_DELAY_MS, SessionInputCard } from './session_input_card.js';
 import type { SessionInput } from './session_inputs.js';
 
 function setInputValue(input: HTMLInputElement, value: string) {
@@ -82,5 +82,51 @@ describe('SessionInputCard', () => {
         act(() => setInputValue(amount(), '5'));
         act(() => { amount().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
         expect(onCommit).toHaveBeenLastCalledWith('span', "interval '5' minute");
+    });
+
+    describe('with a typed amount', () => {
+        beforeEach(() => vi.useFakeTimers());
+        afterEach(() => vi.useRealTimers());
+
+        it('writes it once it rests', () => {
+            render(intervalInput('3 day'));
+            act(() => setInputValue(amount(), '1'));
+            act(() => { vi.advanceTimersByTime(SESSION_INPUT_COMMIT_DELAY_MS / 2); });
+            act(() => setInputValue(amount(), '12'));
+            act(() => { vi.advanceTimersByTime(SESSION_INPUT_COMMIT_DELAY_MS - 1); });
+            expect(onCommit).not.toHaveBeenCalled();
+            act(() => { vi.advanceTimersByTime(1); });
+            expect(onCommit).toHaveBeenCalledTimes(1);
+            expect(onCommit).toHaveBeenLastCalledWith('span', "interval '12' day");
+        });
+
+        it('writes it when the control loses the focus', () => {
+            render(intervalInput('3 day'));
+            act(() => amount().focus());
+            act(() => setInputValue(amount(), '7'));
+            act(() => amount().blur());
+            expect(onCommit).toHaveBeenCalledTimes(1);
+            expect(onCommit).toHaveBeenLastCalledWith('span', "interval '7' day");
+            act(() => { vi.advanceTimersByTime(SESSION_INPUT_COMMIT_DELAY_MS); });
+            expect(onCommit).toHaveBeenCalledTimes(1);
+        });
+
+        it('drops it on Escape', () => {
+            render(intervalInput('3 day'));
+            act(() => amount().focus());
+            act(() => setInputValue(amount(), '7'));
+            act(() => { amount().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+            act(() => { vi.advanceTimersByTime(SESSION_INPUT_COMMIT_DELAY_MS); });
+            expect(onCommit).not.toHaveBeenCalled();
+            expect(amount().value).toBe('3');
+        });
+
+        it('writes nothing when it equals the value again', () => {
+            render(intervalInput('3 day'));
+            act(() => setInputValue(amount(), '4'));
+            act(() => setInputValue(amount(), '3'));
+            act(() => { vi.advanceTimersByTime(SESSION_INPUT_COMMIT_DELAY_MS); });
+            expect(onCommit).not.toHaveBeenCalled();
+        });
     });
 });

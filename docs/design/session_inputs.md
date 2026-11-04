@@ -11,8 +11,8 @@ select * from orders where amount > :min and ts > now() - :span;
 ```
 
 are the inputs `min` and `span`. The feed and the dashboard show the inputs as cards at their top, the dataflow draws
-every input as a box with edges to the statements that use it. A changed value and Enter run every script that the
-change affects.
+every input as a box with edges to the statements that use it. A changed value runs every script that the change
+affects.
 
 ## Inputs
 
@@ -102,7 +102,8 @@ session is free, with the inputs of every change since.
 `useSessionInputs` collects the inputs of a session when a script or its analysis changes. `SessionInputCard` shows an
 input: the name, the type and a control that follows the type, a number field, a boolean select, a date or a datetime
 field, a number field with a unit select for an interval, and text otherwise. The control shows the value without its
-SQL, `3` and `day` for `interval '3' day` and `EU` for `'EU'`. The control owns its draft: Enter writes it and runs,
+SQL, `3` and `day` for `interval '3' day` and `EU` for `'EU'`. The control owns its draft: a typed draft that rests
+for a moment (`SESSION_INPUT_COMMIT_DELAY_MS`) is written and runs, Enter and leaving the control write it at once,
 Escape restores the value, a changed unit or boolean writes it at once. The core makes the literal of a draft (`inputLiteral`, `SqlLiteral::from_value`): the type of the input says
 what the draft is, an input whose type is unknown reads a number, `true`, `false` or a string. A draft that the type
 doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not written.
