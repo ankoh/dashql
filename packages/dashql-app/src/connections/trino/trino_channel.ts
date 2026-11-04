@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as proto from "../../proto.js";
 
-import { Logger } from '../../platform/logger/logger.js';
+import { LoggableException, Logger } from '../../platform/logger/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../query/query_execution_state.js";
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryInfo, TrinoQueryResult, TrinoQueryStage, TrinoQueryStatistics } from "./trino_api_client.js";
@@ -144,7 +144,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     });
                     this.retryQueryInfoIfIncomplete(info);
                 },
-                (e: unknown) => this.logger.warn("Failed to fetch the query plan", { "error": String(e) }, LOG_CTX),
+                (e: unknown) => this.logger.warn("Failed to fetch the query plan", { "error": String(e), ...(e instanceof LoggableException ? e.keyValues : {}) }, LOG_CTX),
             );
         } else if (doneStages > this.queryInfoDoneStages) {
             this.queryInfoDoneStages = doneStages;
@@ -175,7 +175,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     return info;
                 },
                 (e: unknown) => {
-                    this.logger.debug("Failed to fetch the query statistics", { "error": String(e) }, LOG_CTX);
+                    this.logger.debug("Failed to fetch the query statistics", { "error": String(e), ...(e instanceof LoggableException ? e.keyValues : {}) }, LOG_CTX);
                     return null;
                 },
             )
