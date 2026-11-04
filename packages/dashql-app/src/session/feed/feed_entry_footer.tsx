@@ -14,6 +14,7 @@ import { hasQueryProgress, QueryProgressPanel } from '../../views/query_progress
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from '../../views/query_result/query_result_toolbar.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
+import { QueryResultActionMenu } from '../../views/query_result/query_result_action_menu.js';
 import { QueryResultHeader } from '../../views/query_result/query_result_header.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 
@@ -179,6 +180,7 @@ export interface FeedEntryFooterDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
     QueryResultToolbar: typeof QueryResultToolbar;
     QueryResultDownloadButton: typeof QueryResultDownloadButton;
+    QueryResultActionMenu: typeof QueryResultActionMenu;
     ChartDownloadButton: typeof ChartDownloadButton;
     QueryResultView: typeof QueryResultView;
 }
@@ -188,6 +190,7 @@ const DEFAULT_DEPENDENCIES: FeedEntryFooterDependencies = {
     useQueryResultRowCounts,
     QueryResultToolbar,
     QueryResultDownloadButton,
+    QueryResultActionMenu,
     ChartDownloadButton,
     QueryResultView,
 };

@@ -13,6 +13,7 @@ import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import * as styles from './query_result_details.module.css';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
+import { QueryResultActionMenu } from './query_result_action_menu.js';
 
 export interface QueryResultDetailsDependencies {
     QueryResultToolbar: typeof QueryResultToolbar;
@@ -23,6 +24,7 @@ export interface QueryResultDetailsDependencies {
     ];
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
     QueryResultDownloadButton: typeof QueryResultDownloadButton;
+    QueryResultActionMenu: typeof QueryResultActionMenu;
 }
 
 const DEFAULT_DEPENDENCIES: QueryResultDetailsDependencies = {
@@ -34,6 +36,7 @@ const DEFAULT_DEPENDENCIES: QueryResultDetailsDependencies = {
     },
     useQueryResultRowCounts,
     QueryResultDownloadButton,
+    QueryResultActionMenu,
 };
 
 interface Props {
@@ -55,6 +58,7 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
     const QueryResultToolbarComponent = dependencies.QueryResultToolbar;
     const QueryResultViewComponent = dependencies.QueryResultView;
     const QueryResultDownloadButtonComponent = dependencies.QueryResultDownloadButton;
+    const QueryResultActionMenuComponent = dependencies.QueryResultActionMenu;
     const tableComputation = computationState.tableComputations[query.queryId] ?? null;
     const hasCrossFilters = tableComputation != null
         && Object.keys(tableComputation.crossFilters.columnFilters).length > 0;
@@ -82,6 +86,7 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
                             <ClearFiltersIcon size={16} />
                         </IconButton>
                         <QueryResultDownloadButtonComponent query={query} />
+                        <QueryResultActionMenuComponent query={query} />
                         {actions}
                     </>
                 )}

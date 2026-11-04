@@ -24,6 +24,7 @@ import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const dependencies = {
     QueryResultToolbar: () => null,
+    QueryResultActionMenu: () => null,
     QueryResultView: () => <div data-testid="query-result-view" />,
     useComputationRegistry: () => [mockState.computationState, mockState.dispatch],
     useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),

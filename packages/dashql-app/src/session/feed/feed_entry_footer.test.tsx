@@ -29,6 +29,7 @@ const dependencies = {
     useResultRowCount: () => ({ hasResult: true, totalRows: 3 }),
     useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),
     QueryResultToolbar: () => null,
+    QueryResultActionMenu: () => null,
     QueryResultView: () => <div data-testid="feed-preview" />,
     QueryResultDownloadButton: props => <QueryResultDownloadButton {...props} dependencies={{
         useFileDownloader: () => ({ downloadBufferAsFile: download }),

@@ -13,6 +13,7 @@ const dependencies = {
     useQueryResultRowCounts: () => ({ totalRows: 1000, currentRows: 1000, matchingRows: null }),
     QueryResultToolbar: () => null,
     QueryResultDownloadButton: () => null,
+    QueryResultActionMenu: () => null,
     QueryResultView: (props: { maxRows?: number; onShowTable?: () => void }) => {
         viewProps.push(props);
         return <div data-testid="query-result-view" />;

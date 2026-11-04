@@ -7,6 +7,7 @@ import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
+import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { fittingRowCount } from './data_table.js';
 import { QueryStatusPlaceholder } from '../card_placeholder.js';
 
@@ -14,12 +15,14 @@ export interface QueryResultHeaderDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
     QueryResultToolbar: typeof QueryResultToolbar;
     QueryResultDownloadButton: typeof QueryResultDownloadButton;
+    QueryResultActionMenu: typeof QueryResultActionMenu;
 }
 
 const DEFAULT_HEADER_DEPENDENCIES: QueryResultHeaderDependencies = {
     useQueryResultRowCounts,
     QueryResultToolbar,
     QueryResultDownloadButton,
+    QueryResultActionMenu,
 };
 
 /// The row count of a result table: "3 rows", "2 of 3 rows" while searching, "6 of 1000 rows" for a
@@ -46,7 +49,7 @@ interface HeaderProps {
     dependencies?: QueryResultHeaderDependencies;
 }
 
-/// The header over a result table: the title, the row count, the search and the download.
+/// The header over a result table: the title, the row count, the search, the download and the actions.
 /// The feed entries, the dashboard cards and the dataflow boxes show the same header.
 export function QueryResultHeader(props: HeaderProps): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_HEADER_DEPENDENCIES;
@@ -63,6 +66,7 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
                 <>
                     <dependencies.QueryResultToolbar query={props.query} />
                     <dependencies.QueryResultDownloadButton query={props.query} />
+                    <dependencies.QueryResultActionMenu query={props.query} />
                 </>
             )}
         />
