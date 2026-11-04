@@ -1220,6 +1220,12 @@ pub fn quote_identifier(text: &str) -> String {
     dashql_core::utils::quote_identifier(text)
 }
 
+/// Quote a column name for a column reference in SQL text, also quotes keywords that are not unreserved, e.g. `"user"`
+#[wasm_bindgen(js_name = quoteColumnName)]
+pub fn quote_column_name(text: &str) -> String {
+    dashql_core::utils::quote_column_name(text)
+}
+
 /// Read packed `CatalogChanges`, changes without effect are skipped
 fn unpack_catalog_changes(changes: &[u8]) -> Result<Vec<CatalogChange>, JsError> {
     let changes = flatbuffers::root::<dashql_buffers::catalog::CatalogChanges>(changes)

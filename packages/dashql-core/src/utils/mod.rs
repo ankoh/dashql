@@ -71,3 +71,18 @@ pub fn quote_identifier(text: &str) -> String {
     out.push('"');
     out
 }
+
+/// Quote a column name for a column reference in SQL text, e.g. the projection of a query result. Quotes like
+/// `quote_identifier` and also quotes the keywords that are not unreserved: `select user` reads the current user and
+/// `select order` does not parse, the columns are `"user"` and `"order"`.
+pub fn quote_column_name(text: &str) -> String {
+    use dashql_parser::keywords::{Keyword, KeywordCategory};
+    let quoted = quote_identifier(text);
+    if quoted != text {
+        return quoted;
+    }
+    match Keyword::find(text.as_bytes()) {
+        Some(keyword) if keyword.category != KeywordCategory::SqlUnreserved => format!("\"{text}\""),
+        _ => quoted,
+    }
+}

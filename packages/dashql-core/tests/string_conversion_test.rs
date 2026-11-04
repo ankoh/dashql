@@ -40,3 +40,18 @@ fn empty_gets_quoted() {
 fn embedded_quotes_are_doubled() {
     assert_eq!(quote("a\"b"), "\"a\"\"b\"");
 }
+
+#[test]
+fn column_names_quote_keywords_that_are_not_unreserved() {
+    use dashql_core::utils::quote_column_name;
+    assert_eq!(quote_column_name("foo"), "foo");
+    assert_eq!(quote_column_name("name"), "name");
+    assert_eq!(quote_column_name("year"), "year");
+    assert_eq!(quote_column_name("user"), "\"user\"");
+    assert_eq!(quote_column_name("order"), "\"order\"");
+    assert_eq!(quote_column_name("null"), "\"null\"");
+    assert_eq!(quote_column_name("position"), "\"position\"");
+    assert_eq!(quote_column_name("left"), "\"left\"");
+    assert_eq!(quote_column_name("Order"), "\"Order\"");
+    assert_eq!(quote_column_name("?column?"), "\"?column?\"");
+}

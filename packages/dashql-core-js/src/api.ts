@@ -23,6 +23,7 @@ export type DashQLBindings = Pick<
     | 'collectSessionInputs'
     | 'inputLiteral'
     | 'quoteIdentifier'
+    | 'quoteColumnName'
     | 'processBatch'
     | 'appendCatalogChangesSql'
     | 'qualifyCatalogChanges'
@@ -389,6 +390,11 @@ export class DashQL {
     /// Quote an identifier if it would not read back unquoted, e.g. the name of a script reference `:"foo-2"`
     public quoteIdentifier(text: string): string {
         return this.bindings.quoteIdentifier(text);
+    }
+
+    /// Quote a column name for a column reference in SQL text, also quotes keywords that are not unreserved, e.g. `"user"`
+    public quoteColumnName(text: string): string {
+        return this.bindings.quoteColumnName(text);
     }
 
     public createQueryProfile(layoutConfig: buffers.profile.ProfileLayoutConfigT): DashQLQueryProfile {

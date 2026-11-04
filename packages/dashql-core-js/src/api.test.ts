@@ -167,6 +167,8 @@ describe('DashQL planner', () => {
             expect(invalid[1].errors).toEqual(['unknown script or attachment :nope']);
             expect(dql!.quoteIdentifier('foo-2')).toBe('"foo-2"');
             expect(dql!.quoteIdentifier('foo')).toBe('foo');
+            expect(dql!.quoteColumnName('user')).toBe('"user"');
+            expect(dql!.quoteColumnName('name')).toBe('name');
             for (const session of [foo, bar, baz]) session.destroy();
         } finally {
             local.destroy();
