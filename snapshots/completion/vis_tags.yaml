@@ -732,19 +732,19 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 10
+        - score: 14
           value: '"month"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"mo\""
           location-qualified: "\"mo\""
           objects: []
-        - score: 6
+        - score: 8
           value: '"monthdate"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"mo\""
           location-qualified: "\"mo\""
           objects: []
-        - score: 4
+        - score: 6
           value: '"yearmonth"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"mo\""
