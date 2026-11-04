@@ -820,6 +820,70 @@ fn projects_the_board_position_of_the_last_statement() {
 }
 
 #[test]
+fn projects_the_flow_position_of_the_script() {
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    let update = analyze(&mut session, "select 1;\n/* @vis table\n   @flow x=-16 y=240 width=400 height=96 */\nselect 2");
+    let position = update.script_annotations.as_ref().unwrap().flow_position.as_ref().unwrap();
+    assert_eq!(
+        (position.statement_id, position.x, position.y, position.width, position.height),
+        (1, Some(-16), Some(240), Some(400), Some(96))
+    );
+    // A box without a position is placed automatically
+    let update = analyze(&mut session, "/* @flow width=200 */\nselect 1");
+    let position = update.script_annotations.as_ref().unwrap().flow_position.as_ref().unwrap();
+    assert_eq!((position.statement_id, position.x, position.y, position.width, position.height), (0, None, None, Some(200), None));
+    let update = analyze(&mut session, "select 1");
+    assert!(update.script_annotations.as_ref().unwrap().flow_position.is_none());
+}
+
+#[test]
+fn sessions_rewrite_the_tags_of_their_script() {
+    use dashql_core::annotation::AnnotationTag;
+    use dashql_core::vis_rewrite::{VisFlow, VisRenderer};
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    analyze(&mut session, "select :min;\n-- @param Sales.\nselect 2");
+
+    let mut annotation = session.read_annotation(1, false).unwrap();
+    assert_eq!(annotation.tags.len(), 1);
+    annotation.tags.push(AnnotationTag::new("vis", vec!["table".to_string()]));
+    assert_eq!(
+        session.rewrite_annotation(1, &annotation, false).unwrap(),
+        "select :min;\n/**\n * @param Sales.\n * @vis table\n */\nselect 2"
+    );
+    assert_eq!(
+        session.rewrite_vis_renderer(1, Some(&VisRenderer::Table), false).unwrap(),
+        "select :min;\n/**\n * @param Sales.\n * @vis table\n */\nselect 2"
+    );
+    assert_eq!(
+        session.rewrite_vis_flow(Some(&VisFlow { position: Some((1, 2)), ..Default::default() }), false).unwrap(),
+        "select :min;\n/**\n * @param Sales.\n * @flow x=1 y=2\n */\nselect 2"
+    );
+    // The analysis puts the value at the first use of the input
+    assert_eq!(session.rewrite_param_tag("min", Some("3"), false).unwrap(), "/** @param :min = 3 */\nselect :min;\n-- @param Sales.\nselect 2");
+    // The rewrites return the text, the session keeps its own
+    assert_eq!(session.text(), "select :min;\n-- @param Sales.\nselect 2");
+    assert!(session.read_annotation(2, false).is_err());
+}
+
+#[test]
+fn sessions_take_allocated_entry_ids() {
+    let catalog = new_catalog();
+    let id = catalog.borrow().allocate_entry_id();
+    let inner = ScriptSession::with_entry_id(&catalog.borrow(), UTF8, id).unwrap();
+    assert_eq!(inner.catalog_entry_id(), id);
+    let mut session = Session { catalog: catalog.clone(), inner };
+    analyze(&mut session, "create table t (a int)");
+    session.load_into_catalog(CatalogLayer::SESSION).unwrap();
+    assert!(catalog.borrow().contains(id));
+    // An id in the catalog collides, an id the catalog did not allocate is invalid
+    assert!(ScriptSession::with_entry_id(&catalog.borrow(), UTF8, id).is_err());
+    let unallocated = catalog.borrow().allocate_entry_id() + 1000;
+    assert!(ScriptSession::with_entry_id(&catalog.borrow(), UTF8, unallocated).is_err());
+}
+
+#[test]
 fn projects_statement_descriptions_as_utf16() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);

@@ -51,6 +51,12 @@ formatter-snapshots:
           setup: |-
             create table t(a text, b text);
 
+  # Glob patterns, Hyper has no glob
+  - name: op_glob
+    input: select a glob b, a not similar to b from t
+    dialects:
+      hyper:
+
   # In lists and subqueries
   - name: op_in_lists
     input: select a in (1, 2), a not in (1, 2), a in (select b from u), exists (select 1) from t

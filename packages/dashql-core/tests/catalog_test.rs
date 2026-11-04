@@ -453,6 +453,35 @@ fn republishing_equal_declarations_keeps_the_version() {
 }
 
 #[test]
+fn republishing_equal_functions_keeps_the_version() {
+    let mut catalog = Catalog::new();
+    let mut script = analyze(&catalog, "create function f(x integer) returns integer; create aggregate g(x integer) returns integer");
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    let version = catalog.version();
+
+    // The same functions with other whitespace and casing
+    script.replace_text("create function F(x integer)\n    returns integer;\ncreate aggregate g(x integer) returns integer");
+    script.analyze(&catalog, true).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    assert_eq!(catalog.version(), version);
+
+    // Another parameter name or type, return type, parameter count or aggregate flag is a new declaration
+    for text in [
+        "create function f(y integer) returns integer; create aggregate g(x integer) returns integer",
+        "create function f(x text) returns integer; create aggregate g(x integer) returns integer",
+        "create function f(x text) returns text; create aggregate g(x integer) returns integer",
+        "create function f(x text, y text) returns text; create aggregate g(x integer) returns integer",
+        "create function f(x text, y text) returns text; create function g(x integer) returns integer",
+    ] {
+        script.replace_text(text);
+        script.analyze(&catalog, true).unwrap();
+        let before = catalog.version();
+        catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+        assert_eq!(catalog.version(), before + 1, "{text}");
+    }
+}
+
+#[test]
 fn published_scripts_do_not_retain_their_analysis() {
     let mut catalog = Catalog::new();
     let mut script = analyze(&catalog, "create table a (x integer); select x from a");

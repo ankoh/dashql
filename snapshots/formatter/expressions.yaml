@@ -82,10 +82,23 @@ formatter-snapshots:
 
   - name: expr_xor
     input: |-
-      select 5^3
+      select 5^3, a^2*2, (a*2)^2, -a^2 from t
     dialects:
       hyper:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select 5 ^ 3, a ^ 2 * 2, (a * 2) ^ 2, -a ^ 2 from t;
+          - mode: compact
+            expected: |-
+              select 5 ^ 3, a ^ 2 * 2, (a * 2) ^ 2, -a ^ 2 from t;
+          - mode: pretty
+            expected: |-
+              select 5 ^ 3, a ^ 2 * 2, (a * 2) ^ 2, -a ^ 2
+              from t;
+        validation:
+          setup: |-
+            create table t(a int);
 
   - name: expr_negate
     input: |-

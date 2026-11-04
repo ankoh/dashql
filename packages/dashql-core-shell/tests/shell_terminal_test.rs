@@ -812,6 +812,43 @@ fn lists_columns_after_short_table_alias() {
 }
 
 #[test]
+fn escapes_control_characters_of_completion_candidates() {
+    let catalog = catalog();
+    let _schema = load_schema(&catalog, "CREATE TABLE foo(\"tab\tcol\" BIGINT, \"bell\x07col\" BIGINT);");
+
+    let mut shell = shell(&catalog, 80);
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    let mut output = None;
+    for c in "select * from foo x where x.".chars() {
+        output = Some(consume(&mut shell, Key::Text, &c.to_string()));
+    }
+    let rendered = data(&output.unwrap());
+    // Tabs are 4 spaces, other control characters are hex escapes, in the overlay and in the hint at the cursor
+    assert!(rendered.contains("tab    col"), "{rendered}");
+    assert!(rendered.contains(&format!("{}\"bell\\x07col\"", vt100::FOREGROUND_BRIGHT_BLACK)), "{rendered}");
+    assert!(rendered.contains("bell\\x07col"), "{rendered}");
+    assert!(!rendered.contains('\x07'), "{rendered}");
+}
+
+#[test]
+fn tab_applies_a_single_candidate_without_an_overlay() {
+    let catalog = catalog();
+    let _schema = load_schema(&catalog, "CREATE TABLE foo(only_column BIGINT);");
+
+    let mut shell = shell(&catalog, 80);
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    for c in "select * from foo x where x.".chars() {
+        assert_eq!(consume(&mut shell, Key::Text, &c.to_string()).status, ShellStatus::Ok);
+    }
+    // Escape closes the overlay, Tab then completes the only candidate directly
+    assert_eq!(consume(&mut shell, Key::Escape, "").status, ShellStatus::Ok);
+    let output = consume(&mut shell, Key::Tab, "");
+    assert_eq!(output.status, ShellStatus::Ok);
+    assert_eq!(output.action, PromptInputAction::None);
+    assert_eq!(shell.move_prompt_right().text, "select * from foo x where x.only_column");
+}
+
+#[test]
 fn lists_columns_after_qualified_alias_before_later_prompt_lines() {
     let catalog = catalog();
     let _schema = load_schema(&catalog, "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);");

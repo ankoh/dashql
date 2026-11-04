@@ -212,3 +212,38 @@ fn completion_offers_attachments_after_the_colon_of_a_table() {
     let names = complete(&mut script, &catalog, "select s.re".len());
     assert_eq!(names.first().map(String::as_str), Some("region"));
 }
+
+#[test]
+fn table_parameters_compare_names_sources_and_columns() {
+    let catalog = Catalog::new();
+    let columns: [Arc<str>; 1] = [Arc::from("x")];
+    let attachment = [TableParameterAttachment { name: "file", columns: Some(&columns) }];
+    let base = session_with(&catalog, &[("foo", "select 1 as a")], &attachment);
+    // Another analysis of the same scripts is the same, also with other values
+    assert!(base.same_as(&session_with(&catalog, &[("foo", "select 2 as a")], &attachment)));
+    // Other columns, names, sources or counts differ
+    assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as b")], &attachment)));
+    assert!(!base.same_as(&session_with(&catalog, &[("bar", "select 1 as a")], &attachment)));
+    assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as a")], &[])));
+    let other_columns: [Arc<str>; 1] = [Arc::from("y")];
+    assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as a")], &[TableParameterAttachment { name: "file", columns: Some(&other_columns) }])));
+    assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as a")], &[TableParameterAttachment { name: "file", columns: None }])));
+    let swapped = session_with(&catalog, &[], &[TableParameterAttachment { name: "foo", columns: Some(&columns) }, attachment[0]]);
+    assert!(!base.same_as(&swapped));
+}
+
+#[test]
+fn table_parameters_know_their_sources() {
+    use dashql_core::catalog::TableLoc;
+    let catalog = Catalog::new();
+    let attachment = [TableParameterAttachment { name: "file", columns: None }];
+    let results = session_with(&catalog, &[("foo", "select 1 as a"), ("bar", "select 2 as b")], &attachment);
+    let loc = |index| TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID, index };
+    assert_eq!(results.source(loc(0)), Some(TableParameterSource::Script(0)));
+    assert_eq!(results.source(loc(1)), Some(TableParameterSource::Script(1)));
+    assert_eq!(results.source(loc(2)), Some(TableParameterSource::Attachment(0)));
+    assert_eq!(results.source(loc(3)), None);
+    // Tables of other entries are no table parameters
+    assert_eq!(results.source(TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID + 1, index: 0 }), None);
+    assert!(results.table(TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID + 1, index: 0 }).is_none());
+}

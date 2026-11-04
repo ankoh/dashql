@@ -270,7 +270,8 @@ fn add_json_candidates(candidates: &mut Candidates, context: &JsonContext, colum
     };
     match (&context.slot, path) {
         (JsonSlot::Value(k), _) if k == "field" => add_columns(candidates),
-        (JsonSlot::Element, [.., g, PathItem::Index]) if key(g, "groupby") => add_columns(candidates),
+        // The path ends at the key of the array, the array itself is the innermost container
+        (JsonSlot::Element, [.., g]) if key(g, "groupby") => add_columns(candidates),
         (JsonSlot::Key, []) => candidates.add_all(SPEC_KEYS, true),
         (JsonSlot::Value(k), []) if k == "mark" => candidates.add_all(MARK_TYPES, true),
         (JsonSlot::Key, [m]) if key(m, "mark") => candidates.add_all(MARK_KEYS, true),

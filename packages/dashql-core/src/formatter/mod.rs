@@ -129,7 +129,8 @@ fn get_operator_text(op: ExpressionOperator) -> &'static str {
         O::MODULUS => "%",
         O::AND => "and",
         O::OR => "or",
-        O::XOR => "#",
+        // The `^` of the grammar, the exponentiation of Hyper and PostgreSQL (`#` would be their bitwise xor)
+        O::XOR => "^",
         O::EQUAL => "=",
         O::NOT_EQUAL => "<>",
         O::LESS_THAN => "<",

@@ -764,3 +764,54 @@ fn statistics_describe_the_latest_analysis() {
     assert_eq!(timings.parser_last_elapsed, script.timings().parser_ns);
     assert_eq!(timings.analyzer_last_elapsed, script.timings().analyzer_ns);
 }
+
+#[test]
+fn annotations_read_and_rewrite_through_the_script() {
+    use dashql_core::annotation::AnnotationTag;
+    let text = "select 1;\n-- @param Sales.\n/* @vis table */\nselect 2";
+    let mut script = Script::new(&Catalog::new());
+    script.replace_text(text);
+    // Without a parse there is no annotation unless the script may parse itself
+    assert!(script.read_annotation(1, false).is_err());
+    let mut annotation = script.read_annotation(1, true).unwrap();
+    assert_eq!(annotation.tags.len(), 2);
+    assert!(script.read_annotation(0, false).unwrap().is_empty());
+    assert!(script.read_annotation(2, false).is_err());
+
+    annotation.tags[0] = AnnotationTag::with_text("param", "Revenue.");
+    assert_eq!(
+        script.rewrite_annotation(1, &annotation, false).unwrap(),
+        "select 1;\n/**\n * @param\n * Revenue.\n * @vis table\n */\nselect 2"
+    );
+    // The script keeps its text
+    assert_eq!(script.to_text(), text);
+    assert_eq!(script.rewrite_annotation(1, &Default::default(), false).unwrap(), "select 1;\nselect 2");
+}
+
+#[test]
+fn param_tags_go_to_the_first_use_of_the_input() {
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text("select 1;\nselect :min;\nselect :min + 1");
+    // Without an analysis the new tag goes to the last statement
+    assert_eq!(
+        script.rewrite_param_tag("min", Some("10"), true).unwrap(),
+        "select 1;\nselect :min;\n/** @param :min = 10 */\nselect :min + 1"
+    );
+    // The analysis knows the statement that uses the input first
+    script.analyze(&catalog, true).unwrap();
+    assert_eq!(
+        script.rewrite_param_tag("min", Some("10"), false).unwrap(),
+        "select 1;\n/** @param :min = 10 */\nselect :min;\nselect :min + 1"
+    );
+    // An analysis of an older parse is not used
+    script.replace_text("select :min;\nselect 2");
+    assert_eq!(script.rewrite_param_tag("min", Some("'a'"), true).unwrap(), "select :min;\n/** @param :min = 'a' */\nselect 2");
+    // Removing a value without a tag leaves the text
+    assert_eq!(script.rewrite_param_tag("min", None, false).unwrap(), "select :min;\nselect 2");
+    assert!(script.rewrite_param_tag("min", Some("1 +"), false).is_err());
+
+    let mut unparsed = Script::new(&catalog);
+    unparsed.replace_text("select :min");
+    assert_eq!(unparsed.rewrite_param_tag("min", Some("1"), false).unwrap_err().status, Some(StatusCode::SCRIPT_NOT_PARSED));
+}

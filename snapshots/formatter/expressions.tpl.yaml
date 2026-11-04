@@ -27,11 +27,13 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # `^` is the exponentiation, it binds tighter than `*`
   - name: expr_xor
-    input: select 5^3
+    input: select 5^3, a^2*2, (a*2)^2, -a^2 from t
     dialects:
       hyper:
-        skip: true
+        validation:
+          setup: create table t(a int);
 
   # Unary
 

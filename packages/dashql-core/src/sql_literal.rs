@@ -366,4 +366,47 @@ mod tests {
         assert_eq!(value("EU", None), Ok("'EU'".into()));
         assert_eq!(value("it's", None), Ok("'it''s'".into()));
     }
+
+    #[test]
+    fn makes_literals_of_booleans_times_and_arrays() {
+        let scalar = |kind| SqlType::scalar(kind);
+        let value = |v: &str, t: &SqlType| SqlLiteral::from_value(v, Some(t)).map(|l| l.to_hyper());
+        let boolean = scalar(SqlTypeKind::Bool);
+        assert_eq!(value("TRUE", &boolean), Ok("TRUE".into()));
+        let error = value("yes", &boolean).unwrap_err();
+        assert!(error.contains("needs true or false"), "{error}");
+        assert!(value("1", &boolean).is_err());
+
+        let time = |with_time_zone| scalar(SqlTypeKind::Time { precision: None, with_time_zone });
+        let timestamp = |with_time_zone| scalar(SqlTypeKind::Timestamp { precision: None, with_time_zone });
+        assert_eq!(value("10:00", &time(false)), Ok("time '10:00'".into()));
+        assert_eq!(value("10:00+01", &time(true)), Ok("timetz '10:00+01'".into()));
+        assert_eq!(value("2024-01-01 10:00", &timestamp(false)), Ok("timestamp '2024-01-01 10:00'".into()));
+        assert_eq!(value("2024-01-01 10:00 UTC", &timestamp(true)), Ok("timestamptz '2024-01-01 10:00 UTC'".into()));
+
+        // Arrays have no controls, their values are read like values without a type
+        let ints = SqlType { kind: SqlTypeKind::Int4, array_dimensions: 1 };
+        assert_eq!(value("10", &ints), Ok("10".into()));
+        assert_eq!(value("EU", &ints), Ok("'EU'".into()));
+        // A generic type reads a string
+        let json = scalar(SqlTypeKind::Generic { name: "json".into(), modifiers: vec![] });
+        assert_eq!(value("{}", &json), Ok("'{}'".into()));
+    }
+
+    #[test]
+    fn reads_typed_literals_of_any_type() {
+        assert_eq!(kind("numeric(10,2) '1.5'"), Some(SqlTypeKind::Numeric { precision: Some(10), scale: Some(2) }));
+        assert_eq!(kind("json '{}'"), Some(SqlTypeKind::Generic { name: "json".into(), modifiers: vec![] }));
+        assert_eq!(read("json '{}'").display_value(), "{}");
+        for text in ["date 1", "-true", "geography(4326) 'x'"] {
+            assert!(SqlLiteral::parse(text).is_err(), "{text}");
+        }
+    }
+
+    #[test]
+    fn literals_compare_by_their_hyper_text() {
+        assert_eq!(read("10"), read(" 10 "));
+        assert_ne!(read("10"), read("'10'"));
+        assert_eq!(format!("{:?}", read("'EU'")), "SqlLiteral('EU')");
+    }
 }

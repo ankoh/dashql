@@ -14,7 +14,6 @@ use dashql_core::script::Script;
 use dashql_core::utils::{ci_cmp, ci_find, ci_starts_with, quote_identifier};
 use dashql_buffers::completion::CandidateTag;
 use dashql_buffers::parser::ScannerTokenType;
-use dashql_buffers::status::StatusCode;
 use dashql_parser::symbol_kind::S_SEMICOLON;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
@@ -26,42 +25,9 @@ const TERMINAL_COMPLETION_ROWS: usize = 10;
 const TERMINAL_PROMPT_CAPACITY: usize = 256;
 const TERMINAL_QUERY_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// The default error message of a status code
-fn exception_message(status: StatusCode) -> &'static str {
-    match status {
-        StatusCode::CATALOG_NULL => "Catalog is null",
-        StatusCode::CATALOG_MISMATCH => "Catalog is not matching",
-        StatusCode::CATALOG_ID_OUT_OF_SYNC => "Catalog id is out of sync",
-        StatusCode::SCRIPT_NOT_PARSED => "Script is not parsed",
-        StatusCode::SCRIPT_NOT_ANALYZED => "Script is not analyzed",
-        StatusCode::SCRIPT_BUSY => "Script has an active asynchronous analysis job",
-        StatusCode::CATALOG_SCRIPT_NOT_ANALYZED => "Unanalyzed scripts cannot be added to the catalog",
-        StatusCode::CATALOG_SCRIPT_UNKNOWN => "Script is missing in catalog",
-        StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN => "Schema descriptor pool is not known",
-        StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL => "Schema descriptor field `tables` is null or empty",
-        StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_EMPTY => "Table name in schema descriptor is null or empty",
-        StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_COLLISION => "Schema descriptor contains a duplicate table name",
-        StatusCode::COMPLETION_MISSES_CURSOR => "Completion requires a script cursor",
-        StatusCode::COMPLETION_MISSES_SCANNER_TOKEN => "Completion requires a scanner token",
-        StatusCode::COMPLETION_STATE_INCOMPATIBLE => "Completion state is incompatible",
-        StatusCode::COMPLETION_STRATEGY_UNKNOWN => "Completion strategy is unknown",
-        StatusCode::COMPLETION_WITHOUT_CONTINUATION => "Completion has no continuation",
-        StatusCode::COMPLETION_CANDIDATE_INVALID => "Completion candidate is invalid",
-        StatusCode::COMPLETION_CATALOG_OBJECT_INVALID => "Completion catalog object is invalid",
-        StatusCode::COMPLETION_TEMPLATE_INVALID => "Completion template is invalid",
-        StatusCode::EXTERNAL_ID_COLLISION => "Collision on external identifier",
-        StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR => "Failed to parse JSON for ViewModel",
-        StatusCode::OK => "",
-        _ => "Unknown error",
-    }
-}
-
 /// The message of a core error, the default message of its status code if it has one
 fn error_message(error: Error) -> String {
-    match error.status {
-        Some(status) => exception_message(status).to_string(),
-        None => error.message,
-    }
+    error.what().to_string()
 }
 
 fn token_style(token_type: ScannerTokenType) -> &'static str {
@@ -1750,6 +1716,9 @@ impl ShellSession {
         if prefix.is_empty() && suffix.is_empty() {
             return Vec::new();
         }
+        // Names can hold control characters, the hint shows them escaped like the overlay
+        let prefix = escape_terminal_text(&prefix);
+        let suffix = escape_terminal_text(&suffix);
         overlay.hint_prefix_width = display_width(&prefix);
         overlay.hint_suffix_width = display_width(&suffix);
         overlay.hint_current_width = display_width(current);

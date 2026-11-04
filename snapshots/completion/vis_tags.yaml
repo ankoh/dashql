@@ -502,6 +502,534 @@ completion-snapshots:
           location-qualified: "\"q\""
           objects: []
 
+  - name: vis_vegalite_layer_mark_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"layer": [{"mark": "l"}]} */
+        select 1 as a
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"layer\":[{\"mark\":\"l\"}]}"
+    cursor:
+      search:
+        text: '"mark": "l'
+        index: 10
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 10
+          value: '"line"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"l\""
+          location-qualified: "\"l\""
+          objects: []
+        - score: 4
+          value: '"rule"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"l\""
+          location-qualified: "\"l\""
+          objects: []
+        - score: 3
+          value: '"circle"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"l\""
+          location-qualified: "\"l\""
+          objects: []
+
+  - name: vis_vegalite_mark_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"mark": {"op"}} */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 15'
+          text: "}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"op'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 6
+          value: '"opacity"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"op\""
+          location-qualified: "\"op\""
+          objects: []
+        - score: 2
+          value: '"fillOpacity"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"op\""
+          location-qualified: "\"op\""
+          objects: []
+        - score: 1
+          value: '"strokeOpacity"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"op\""
+          location-qualified: "\"op\""
+          objects: []
+
+  - name: vis_vegalite_mark_object_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"mark": {"type": "ar"}} */
+        select 1 as a
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"mark\":{\"type\":\"ar\"}}"
+    cursor:
+      search:
+        text: '"ar'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 9
+          value: '"area"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ar\""
+          location-qualified: "\"ar\""
+          objects: []
+        - score: 8
+          value: '"arc"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ar\""
+          location-qualified: "\"ar\""
+          objects: []
+        - score: 5
+          value: '"bar"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"ar\""
+          location-qualified: "\"ar\""
+          objects: []
+
+  - name: vis_vegalite_aggregate
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "aggregate": "su"}}} */
+        select 1 as a
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"encoding\":{\"y\":{\"field\":\"a\",\"aggregate\":\"su\"}}}"
+    cursor:
+      search:
+        text: '"su'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: '"sum"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"su\""
+          location-qualified: "\"su\""
+          objects: []
+
+  - name: vis_vegalite_time_unit
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"x": {"field": "a", "timeUnit": "mo"}}} */
+        select 1 as a
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"encoding\":{\"x\":{\"field\":\"a\",\"timeUnit\":\"mo\"}}}"
+    cursor:
+      search:
+        text: '"mo'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 10
+          value: '"month"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"mo\""
+          location-qualified: "\"mo\""
+          objects: []
+        - score: 6
+          value: '"monthdate"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"mo\""
+          location-qualified: "\"mo\""
+          objects: []
+        - score: 4
+          value: '"yearmonth"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"mo\""
+          location-qualified: "\"mo\""
+          objects: []
+
+  - name: vis_vegalite_scale_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "scale": {"ty"}}}} */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 49'
+          text: "}}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"ty'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: '"type"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ty\""
+          location-qualified: "\"ty\""
+          objects: []
+
+  - name: vis_vegalite_scale_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "scale": {"type": "lo"}}}} */
+        select 1 as a
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"encoding\":{\"y\":{\"field\":\"a\",\"scale\":{\"type\":\"lo\"}}}}"
+    cursor:
+      search:
+        text: '"lo'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: '"log"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"lo\""
+          location-qualified: "\"lo\""
+          objects: []
+        - score: 1
+          value: '"symlog"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"lo\""
+          location-qualified: "\"lo\""
+          objects: []
+
+  - name: vis_vegalite_axis_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"x": {"field": "a", "axis": {"ti"}}}} */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 48'
+          text: "}}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"ti'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 12
+          value: '"title"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ti\""
+          location-qualified: "\"ti\""
+          objects: []
+        - score: 11
+          value: '"ticks"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ti\""
+          location-qualified: "\"ti\""
+          objects: []
+        - score: 10
+          value: '"tickCount"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ti\""
+          location-qualified: "\"ti\""
+          objects: []
+
+  - name: vis_vegalite_legend_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"color": {"field": "a", "legend": {"or"}}}} */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 54'
+          text: "}}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"or'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 6
+          value: '"orient"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"or\""
+          location-qualified: "\"or\""
+          objects: []
+        - score: 2
+          value: '"format"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"or\""
+          location-qualified: "\"or\""
+          objects: []
+        - score: 1
+          value: '"formatType"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"or\""
+          location-qualified: "\"or\""
+          objects: []
+
+  - name: vis_vegalite_tooltip_array
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"tooltip": [{"field": "a", "ty"}]}} */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 46'
+          text: "}]}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"ty'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: '"type"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ty\""
+          location-qualified: "\"ty\""
+          objects: []
+        - score: 1
+          value: '"formatType"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"ty\""
+          location-qualified: "\"ty\""
+          objects: []
+
+  - name: vis_vegalite_groupby
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"transform": [{"aggregate": [], "groupby": ["re"]}]} */
+        select 1 as region, 2 as revenue
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 a..as revenue"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"transform\":[{\"aggregate\":[],\"groupby\":[\"re\"]}]}"
+    cursor:
+      search:
+        text: '"re"'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: '"region"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"re\""
+          location-qualified: "\"re\""
+          objects: []
+        - score: 3
+          value: '"revenue"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"re\""
+          location-qualified: "\"re\""
+          objects: []
+
   - name: vis_markdown_placeholder
     catalog:
       script:

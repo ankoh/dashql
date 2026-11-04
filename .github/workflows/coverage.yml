@@ -47,9 +47,9 @@ jobs:
               shell: bash
               run: |
                 bazel coverage --config=fastbuild \
-                    --instrumentation_filter="//packages/dashql-core(-session|-shell|-view)?[/:],//packages/dashql-parser[/:]" \
+                    --instrumentation_filter="//packages/dashql-core(-session|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:]" \
                     //packages/dashql-core/... //packages/dashql-core-session/... //packages/dashql-core-shell/... \
-                    //packages/dashql-core-profile/... //packages/dashql-parser/... //packages/dashql-snapshots/...
+                    //packages/dashql-core-profile/... //packages/dashql-dataflow/... //packages/dashql-parser/... //packages/dashql-snapshots/...
                 cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
                     /tmp/lcov_linux.dat
 

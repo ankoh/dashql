@@ -149,6 +149,149 @@ completion-snapshots:
         index: 2
     completions:
       limit: 3
+  # The specs in a layer are specs
+  - name: vis_vegalite_layer_mark_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"layer": [{"mark": "l"}]} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"mark": "l'
+        index: 10
+    completions:
+      limit: 3
+  # The properties of a mark definition
+  - name: vis_vegalite_mark_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"mark": {"op"}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"op'
+        index: 3
+    completions:
+      limit: 3
+  # The type in a mark definition
+  - name: vis_vegalite_mark_object_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"mark": {"type": "ar"}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"ar'
+        index: 3
+    completions:
+      limit: 3
+  # The aggregates of a field definition
+  - name: vis_vegalite_aggregate
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "aggregate": "su"}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"su'
+        index: 3
+    completions:
+      limit: 3
+  # The time units of a field definition
+  - name: vis_vegalite_time_unit
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"x": {"field": "a", "timeUnit": "mo"}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"mo'
+        index: 3
+    completions:
+      limit: 3
+  # The properties of a scale
+  - name: vis_vegalite_scale_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "scale": {"ty"}}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"ty'
+        index: 3
+    completions:
+      limit: 3
+  # The scale types
+  - name: vis_vegalite_scale_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "scale": {"type": "lo"}}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"lo'
+        index: 3
+    completions:
+      limit: 3
+  # The properties of an axis
+  - name: vis_vegalite_axis_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"x": {"field": "a", "axis": {"ti"}}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"ti'
+        index: 3
+    completions:
+      limit: 3
+  # The properties of a legend
+  - name: vis_vegalite_legend_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"color": {"field": "a", "legend": {"or"}}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"or'
+        index: 3
+    completions:
+      limit: 3
+  # The field definitions in an array of a channel
+  - name: vis_vegalite_tooltip_array
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"tooltip": [{"field": "a", "ty"}]}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"ty'
+        index: 3
+    completions:
+      limit: 3
+  # The elements of a groupby are columns
+  - name: vis_vegalite_groupby
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"transform": [{"aggregate": [], "groupby": ["re"]}]} */
+        select 1 as region, 2 as revenue
+    cursor:
+      search:
+        text: '"re"'
+        index: 3
+    completions:
+      limit: 3
   # The columns in a Markdown placeholder
   - name: vis_markdown_placeholder
     catalog:

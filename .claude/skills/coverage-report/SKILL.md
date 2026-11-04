@@ -5,7 +5,7 @@ description: Run coverage for the Rust core and the TypeScript app and update th
 
 # Update the Coverage Reports
 
-Run LLVM source-based coverage for the test targets of the Rust core (dashql-core, dashql-parser, dashql-snapshots) and regenerate `docs/reports/dashql_core_coverage_report.md`.
+Run LLVM source-based coverage for the test targets of the Rust core (dashql-core and its -session, -shell and -profile siblings, dashql-dataflow, dashql-parser, dashql-snapshots) and regenerate `docs/reports/dashql_core_coverage_report.md`.
 Then run the V8 coverage of the app's browser tests and regenerate `docs/reports/dashql_app_coverage_report.md`.
 
 ## Steps
@@ -14,12 +14,12 @@ Then run the V8 coverage of the app's browser tests and regenerate `docs/reports
 
 ```bash
 bazel coverage --config=fastbuild \
-    --instrumentation_filter="//packages/dashql-core(-session|-shell|-view)?[/:],//packages/dashql-parser[/:]" \
+    --instrumentation_filter="//packages/dashql-core(-session|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:]" \
     //packages/dashql-core/... //packages/dashql-core-session/... //packages/dashql-core-shell/... \
-    //packages/dashql-core-profile/... //packages/dashql-parser/... //packages/dashql-snapshots/...
+    //packages/dashql-core-profile/... //packages/dashql-dataflow/... //packages/dashql-parser/... //packages/dashql-snapshots/...
 ```
 
-2. Extract per-file coverage from the lcov report at `$(bazel info output_path)/_coverage/_coverage_report.dat`. Parse each `SF:` record for files matching `packages/dashql-core/src/`, `packages/dashql-core-session/src/`, `packages/dashql-core-shell/src/`, `packages/dashql-core-profile/src/` and `packages/dashql-parser/src/` and extract `LH:` (lines hit) and `LF:` (lines found) values.
+2. Extract per-file coverage from the lcov report at `$(bazel info output_path)/_coverage/_coverage_report.dat`. Parse each `SF:` record for files matching `packages/dashql-core/src/`, `packages/dashql-core-session/src/`, `packages/dashql-core-shell/src/`, `packages/dashql-core-profile/src/`, `packages/dashql-dataflow/src/` and `packages/dashql-parser/src/` and extract `LH:` (lines hit) and `LF:` (lines found) values.
 
 3. Rewrite `docs/reports/dashql_core_coverage_report.md` with:
    - Today's date
