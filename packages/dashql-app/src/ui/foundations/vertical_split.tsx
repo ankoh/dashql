@@ -3,7 +3,7 @@ import * as React from 'react';
 import { classNames } from '../../utils/classnames.js';
 import * as styles from './vertical_split.module.css';
 
-const SPLIT_GAP_SIZE = 12;
+const DEFAULT_SEPARATOR_SIZE = 12;
 const KEYBOARD_STEP = 0.05;
 const MIN_RATIO = 0;
 const MAX_RATIO = 1;
@@ -18,6 +18,9 @@ export interface VerticalSplitProps {
     separatorLabel?: string;
     secondCollapsed?: boolean;
     collapsedSecondSize?: number;
+    /// The height of the separator row in pixels
+    separatorSize?: number;
+    separatorClassName?: string;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -29,6 +32,7 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
     const minFirstSize = props.minFirstSize ?? 120;
     const minSecondSize = props.minSecondSize ?? 120;
     const collapsedSecondSize = props.collapsedSecondSize ?? 40;
+    const separatorSize = props.separatorSize ?? DEFAULT_SEPARATOR_SIZE;
     const [ratio, setRatio] = React.useState(defaultRatio);
     const [ratioBounds, setRatioBounds] = React.useState<[number, number]>([defaultRatio, defaultRatio]);
     const [isDragging, setIsDragging] = React.useState(false);
@@ -38,23 +42,23 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
 
     const getRatioBounds = React.useCallback((): [number, number] => {
         const height = containerRef.current?.getBoundingClientRect().height ?? 0;
-        const availableHeight = Math.max(0, height - SPLIT_GAP_SIZE);
+        const availableHeight = Math.max(0, height - separatorSize);
         if (availableHeight === 0 || availableHeight < minFirstSize + minSecondSize) {
             return [defaultRatio, defaultRatio];
         }
         return [minFirstSize / availableHeight, 1 - minSecondSize / availableHeight];
-    }, [defaultRatio, minFirstSize, minSecondSize]);
+    }, [defaultRatio, minFirstSize, minSecondSize, separatorSize]);
 
     const resizeToPointer = React.useCallback((clientY: number) => {
         const container = containerRef.current;
         if (container == null) return;
         const rect = container.getBoundingClientRect();
-        const availableHeight = rect.height - SPLIT_GAP_SIZE;
+        const availableHeight = rect.height - separatorSize;
         if (availableHeight <= 0) return;
         const [minimum, maximum] = getRatioBounds();
-        const nextRatio = (clientY - rect.top - SPLIT_GAP_SIZE / 2) / availableHeight;
+        const nextRatio = (clientY - rect.top - separatorSize / 2) / availableHeight;
         setRatio(clamp(nextRatio, minimum, maximum));
-    }, [getRatioBounds]);
+    }, [getRatioBounds, separatorSize]);
 
     React.useLayoutEffect(() => {
         const container = containerRef.current;
@@ -141,8 +145,8 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
 
     const ratioPercent = Math.round(ratio * 100);
     const gridTemplateRows = props.secondCollapsed
-        ? `minmax(0, 1fr) ${SPLIT_GAP_SIZE}px ${collapsedSecondSize}px`
-        : `minmax(${minFirstSize}px, ${ratio}fr) ${SPLIT_GAP_SIZE}px minmax(${minSecondSize}px, ${1 - ratio}fr)`;
+        ? `minmax(0, 1fr) ${separatorSize}px ${collapsedSecondSize}px`
+        : `minmax(${minFirstSize}px, ${ratio}fr) ${separatorSize}px minmax(${minSecondSize}px, ${1 - ratio}fr)`;
     return (
         <div
             ref={containerRef}
@@ -156,8 +160,9 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
                 <div className={styles.collapsed_separator} aria-hidden="true" />
             ) : (
                 <div
-                    className={styles.separator}
+                    className={classNames(styles.separator, props.separatorClassName)}
                     role="separator"
+                    data-electron-drag-region="false"
                     tabIndex={0}
                     aria-label={props.separatorLabel ?? 'Resize panels'}
                     aria-orientation="horizontal"

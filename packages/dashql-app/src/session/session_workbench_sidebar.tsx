@@ -69,6 +69,7 @@ import { ConnectionSettingsOverlay } from '../connections/connection_settings_ov
 import { renderSessionName } from './session_name.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
 import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
+import { VerticalSplit } from '../ui/foundations/vertical_split.js';
 import { displayPath } from '../storage/session_locator.js';
 import { StorageBackendType } from '../storage/storage_backend.js';
 import { SessionStorageOverlay } from './persistence/session_storage_overlay.js';
@@ -154,6 +155,11 @@ const KEEP_ROWS_IN_PLACE: SortingStrategy = () => null;
 
 /// A dragged row only moves up and down
 const VERTICAL_DRAG: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+
+/// The slim bar between the sessions and the connections
+const SECTION_SEPARATOR_SIZE = 7;
+/// The header and about two rows stay visible in a section
+const SECTION_MIN_SIZE = 96;
 
 /// The drop target is the row under the pointer, the keyboard picks the closest row
 const SESSION_LIST_COLLISIONS: CollisionDetection = args => {
@@ -1097,194 +1103,206 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
 
     return (
         <nav className={styles.workbench} aria-label="Session workbench" data-electron-drag-region>
-            <section className={styles.section} aria-labelledby="workbench-sessions-heading">
-                <header className={styles.section_header}>
-                    <div className={styles.section_title}>
-                        <h2 id="workbench-sessions-heading" className={styles.section_heading}>Sessions</h2>
-                        <span
-                            className={styles.section_count}
-                            data-testid="session-count"
-                            aria-label={`${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
-                        >
-                            {sessionCount}
-                        </span>
-                    </div>
-                    <div className={styles.section_actions}>
-                        {storageReader.sessionFolders != null && (
-                            <>
+            <VerticalSplit
+                className={styles.section_split}
+                separatorClassName={styles.section_separator}
+                separatorSize={SECTION_SEPARATOR_SIZE}
+                defaultRatio={0.42}
+                minFirstSize={SECTION_MIN_SIZE}
+                minSecondSize={SECTION_MIN_SIZE}
+                separatorLabel="Resize sessions and connections"
+                first={(
+                    <section className={styles.section} aria-labelledby="workbench-sessions-heading">
+                        <header className={styles.section_header}>
+                            <div className={styles.section_title}>
+                                <h2 id="workbench-sessions-heading" className={styles.section_heading}>Sessions</h2>
+                                <span
+                                    className={styles.section_count}
+                                    data-testid="session-count"
+                                    aria-label={`${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
+                                >
+                                    {sessionCount}
+                                </span>
+                            </div>
+                            <div className={styles.section_actions}>
+                                {storageReader.sessionFolders != null && (
+                                    <>
+                                        <IconButton
+                                            ref={folderButtonRef}
+                                            size={ButtonSize.Small}
+                                            variant={ButtonVariant.Invisible}
+                                            aria-label="Open session folder"
+                                            onClick={openSessionFolder}
+                                        >
+                                            <UploadIcon size={14} />
+                                        </IconButton>
+                                        {platform === PlatformType.WEB && (
+                                            <input
+                                                ref={folderInputRef}
+                                                className={styles.folder_input}
+                                                type="file"
+                                                multiple
+                                                {...({ webkitdirectory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                onChange={openBrowserSessionFolder}
+                                            />
+                                        )}
+                                    </>
+                                )}
+                                {storageReader.sessionFolders != null && (
+                                    <IconButton
+                                        data-testid="create-folder"
+                                        size={ButtonSize.Small}
+                                        variant={ButtonVariant.Invisible}
+                                        aria-label="Create folder"
+                                        onClick={() => createFolder([])}
+                                    ><FileDirectoryPlusIcon size={14} /></IconButton>
+                                )}
                                 <IconButton
-                                    ref={folderButtonRef}
+                                    ref={createButtonRef}
+                                    data-testid="create-session"
                                     size={ButtonSize.Small}
                                     variant={ButtonVariant.Invisible}
-                                    aria-label="Open session folder"
-                                    onClick={openSessionFolder}
-                                >
-                                    <UploadIcon size={14} />
-                                </IconButton>
-                                {platform === PlatformType.WEB && (
-                                    <input
-                                        ref={folderInputRef}
-                                        className={styles.folder_input}
-                                        type="file"
-                                        multiple
-                                        {...({ webkitdirectory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
-                                        tabIndex={-1}
-                                        aria-hidden="true"
-                                        onChange={openBrowserSessionFolder}
-                                    />
-                                )}
-                            </>
-                        )}
-                        {storageReader.sessionFolders != null && (
-                            <IconButton
-                                data-testid="create-folder"
-                                size={ButtonSize.Small}
-                                variant={ButtonVariant.Invisible}
-                                aria-label="Create folder"
-                                onClick={() => createFolder([])}
-                            ><FileDirectoryPlusIcon size={14} /></IconButton>
-                        )}
-                        <IconButton
-                            ref={createButtonRef}
-                            data-testid="create-session"
-                            size={ButtonSize.Small}
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Create session"
-                            onClick={() => createNewSession()}
-                        ><StackPlusIcon size={14} /></IconButton>
-                    </div>
-                </header>
-                <div className={styles.scroll_shadow_container}>
-                    <DndContext
-                        sensors={dndSensors}
-                        collisionDetection={SESSION_LIST_COLLISIONS}
-                        modifiers={[VERTICAL_DRAG]}
-                        onDragMove={showDrop}
-                        onDragEnd={dropRow}
-                        onDragCancel={endDrag}
-                    >
-                        <SortableContext items={rows.map(row => row.id)} strategy={KEEP_ROWS_IN_PLACE}>
-                            <ul ref={sessionListRef} className={styles.session_list} aria-label="Sessions" data-electron-drag-region="false">
-                                {rows.map(row => row.kind === 'folder' ? (
-                                    <SessionFolderRow
-                                        key={row.id}
-                                        rowId={row.id}
-                                        folder={row.folder}
-                                        depth={row.depth}
-                                        expanded={row.expanded}
-                                        renaming={renamingFolder === folderPathKey(row.folder.path)}
-                                        onToggle={() => toggleFolder(row.folder)}
-                                        onStartRename={() => setRenamingFolder(folderPathKey(row.folder.path))}
-                                        onRename={name => renameFolder(row.folder, name)}
-                                        onCancelRename={() => setRenamingFolder(null)}
-                                        onNewSession={() => createNewSession(row.folder.path)}
-                                        onMoveToTopLevel={row.depth === 0 ? null : () => changeSessionTree('move the folder', folders => folders.moveFolder(row.folder.path, []))}
-                                        onDelete={() => deleteFolder(row.folder)}
-                                        dropTarget={drop?.targetId === row.id}
-                                    />
-                                ) : (
-                                    <SessionRow
-                                        key={row.id}
-                                        item={row.item}
-                                        depth={row.depth}
-                                        // An open connection overview replaces the session
-                                        selected={props.openOverviewId == null && row.item.sessionId === props.sessionScripts.sessionId}
-                                        onOpen={() => openSession(row.item)}
-                                        onDuplicate={() => { void duplicateSession(row.item); }}
-                                        onDelete={() => { void deleteSession(row.item); }}
-                                        dropPosition={drop?.targetId === row.id && drop.position !== 'into' ? drop.position : null}
-                                        expanded={expandedSessions.has(row.item.sessionId)}
-                                        onToggle={() => toggleSession(row.item.sessionId)}
-                                        onOpenScript={fileName => openScript(row.item, fileName)}
-                                        dependencies={dependencies}
-                                    />
-                                ))}
-                                {invalidItems.map(item => (
-                                    <InvalidSessionRow
-                                        key={item.sessionId}
-                                        item={item}
-                                        onDelete={() => { void deleteInvalidSession(item.sessionId); }}
-                                    />
-                                ))}
-                                {storageReader.sessionFolders != null && (
-                                    <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} />
-                                )}
-                            </ul>
-                        </SortableContext>
-                    </DndContext>
-                    <VerticalScrollShadows
-                        getScrollElement={getSessionScrollElement}
-                        refreshKey={`${rows.length}:${invalidItems.length}`}
-                    />
-                </div>
-            </section>
-
-            <section className={classNames(styles.section, styles.database_section)} aria-labelledby="workbench-databases-heading">
-                <header className={styles.section_header}>
-                    <div className={styles.section_title}>
-                        <h2 id="workbench-databases-heading" className={styles.section_heading}>Connections</h2>
-                        <span
-                            className={styles.section_count}
-                            data-testid="connection-count"
-                            aria-label={`${connectionCount} ${connectionCount === 1 ? 'connection' : 'connections'}`}
-                        >
-                            {connectionCount}
-                        </span>
-                    </div>
-                    <AnchoredOverlay
-                        open={createConnectionOpen}
-                        onOpen={() => setCreateConnectionOpen(true)}
-                        onClose={() => setCreateConnectionOpen(false)}
-                        anchorRef={createConnectionButtonRef}
-                        returnFocusRef={createConnectionButtonRef}
-                        side={AnchorSide.OutsideBottom}
-                        align={AnchorAlignment.End}
-                        renderAnchor={anchorProps => <IconButton
-                            {...anchorProps}
-                            ref={createConnectionButtonRef}
-                            size={ButtonSize.Small}
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Create connection"
-                        ><PlusIcon size={14} /></IconButton>}
-                    >
-                        <div className={actionMenuStyles.menu} role="dialog" aria-label="Choose connection connector">
-                            <ActionList.List aria-label="Connection connector">
-                                {ATTACHABLE_CONNECTORS.map(connector => (
-                                    <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
-                                        <ActionList.Leading>
-                                            <svg width="16px" height="16px" aria-hidden="true">
-                                                <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
-                                            </svg>
-                                        </ActionList.Leading>
-                                        <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>
-                                    </ActionList.ListItem>
-                                ))}
-                            </ActionList.List>
+                                    aria-label="Create session"
+                                    onClick={() => createNewSession()}
+                                ><StackPlusIcon size={14} /></IconButton>
+                            </div>
+                        </header>
+                        <div className={styles.scroll_shadow_container}>
+                            <DndContext
+                                sensors={dndSensors}
+                                collisionDetection={SESSION_LIST_COLLISIONS}
+                                modifiers={[VERTICAL_DRAG]}
+                                onDragMove={showDrop}
+                                onDragEnd={dropRow}
+                                onDragCancel={endDrag}
+                            >
+                                <SortableContext items={rows.map(row => row.id)} strategy={KEEP_ROWS_IN_PLACE}>
+                                    <ul ref={sessionListRef} className={styles.session_list} aria-label="Sessions" data-electron-drag-region="false">
+                                        {rows.map(row => row.kind === 'folder' ? (
+                                            <SessionFolderRow
+                                                key={row.id}
+                                                rowId={row.id}
+                                                folder={row.folder}
+                                                depth={row.depth}
+                                                expanded={row.expanded}
+                                                renaming={renamingFolder === folderPathKey(row.folder.path)}
+                                                onToggle={() => toggleFolder(row.folder)}
+                                                onStartRename={() => setRenamingFolder(folderPathKey(row.folder.path))}
+                                                onRename={name => renameFolder(row.folder, name)}
+                                                onCancelRename={() => setRenamingFolder(null)}
+                                                onNewSession={() => createNewSession(row.folder.path)}
+                                                onMoveToTopLevel={row.depth === 0 ? null : () => changeSessionTree('move the folder', folders => folders.moveFolder(row.folder.path, []))}
+                                                onDelete={() => deleteFolder(row.folder)}
+                                                dropTarget={drop?.targetId === row.id}
+                                            />
+                                        ) : (
+                                            <SessionRow
+                                                key={row.id}
+                                                item={row.item}
+                                                depth={row.depth}
+                                                // An open connection overview replaces the session
+                                                selected={props.openOverviewId == null && row.item.sessionId === props.sessionScripts.sessionId}
+                                                onOpen={() => openSession(row.item)}
+                                                onDuplicate={() => { void duplicateSession(row.item); }}
+                                                onDelete={() => { void deleteSession(row.item); }}
+                                                dropPosition={drop?.targetId === row.id && drop.position !== 'into' ? drop.position : null}
+                                                expanded={expandedSessions.has(row.item.sessionId)}
+                                                onToggle={() => toggleSession(row.item.sessionId)}
+                                                onOpenScript={fileName => openScript(row.item, fileName)}
+                                                dependencies={dependencies}
+                                            />
+                                        ))}
+                                        {invalidItems.map(item => (
+                                            <InvalidSessionRow
+                                                key={item.sessionId}
+                                                item={item}
+                                                onDelete={() => { void deleteInvalidSession(item.sessionId); }}
+                                            />
+                                        ))}
+                                        {storageReader.sessionFolders != null && (
+                                            <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} />
+                                        )}
+                                    </ul>
+                                </SortableContext>
+                            </DndContext>
+                            <VerticalScrollShadows
+                                getScrollElement={getSessionScrollElement}
+                                refreshKey={`${rows.length}:${invalidItems.length}`}
+                            />
                         </div>
-                    </AnchoredOverlay>
-                </header>
-                <div className={styles.database_body} data-electron-drag-region="false">
-                    {connectionRows.length > 0 && <ConnectionTree
-                        databases={connectionRows}
-                        describeUsage={describeUsage}
-                        onRename={renameConnection}
-                        onDelete={deleteConnection}
-                        onDetach={detachConnection}
-                        mergeCandidateCount={mergeCandidateCount}
-                        onMerge={mergeDuplicates}
-                        initiallyExpanded={initiallyExpanded}
-                        sessionConnectionIds={sessionConnectionIds}
-                        labelOf={labelOf}
-                        attention={connectionAttention?.active === true}
-                        onOpenOverview={openOverview}
-                        openOverviewId={props.openOverviewId ?? null}
-                        onOpenSettings={(connectionId, anchor) => {
-                            connectionSettingsAnchorRef.current = anchor;
-                            setConnectionOverlayDatabaseId(connectionId);
-                        }}
-                    />}
-                </div>
-            </section>
+                    </section>
+                )}
+                second={(
+                    <section className={styles.section} aria-labelledby="workbench-databases-heading">
+                        <header className={styles.section_header}>
+                            <div className={styles.section_title}>
+                                <h2 id="workbench-databases-heading" className={styles.section_heading}>Connections</h2>
+                                <span
+                                    className={styles.section_count}
+                                    data-testid="connection-count"
+                                    aria-label={`${connectionCount} ${connectionCount === 1 ? 'connection' : 'connections'}`}
+                                >
+                                    {connectionCount}
+                                </span>
+                            </div>
+                            <AnchoredOverlay
+                                open={createConnectionOpen}
+                                onOpen={() => setCreateConnectionOpen(true)}
+                                onClose={() => setCreateConnectionOpen(false)}
+                                anchorRef={createConnectionButtonRef}
+                                returnFocusRef={createConnectionButtonRef}
+                                side={AnchorSide.OutsideBottom}
+                                align={AnchorAlignment.End}
+                                renderAnchor={anchorProps => <IconButton
+                                    {...anchorProps}
+                                    ref={createConnectionButtonRef}
+                                    size={ButtonSize.Small}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="Create connection"
+                                ><PlusIcon size={14} /></IconButton>}
+                            >
+                                <div className={actionMenuStyles.menu} role="dialog" aria-label="Choose connection connector">
+                                    <ActionList.List aria-label="Connection connector">
+                                        {ATTACHABLE_CONNECTORS.map(connector => (
+                                            <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
+                                                <ActionList.Leading>
+                                                    <svg width="16px" height="16px" aria-hidden="true">
+                                                        <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
+                                                    </svg>
+                                                </ActionList.Leading>
+                                                <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>
+                                            </ActionList.ListItem>
+                                        ))}
+                                    </ActionList.List>
+                                </div>
+                            </AnchoredOverlay>
+                        </header>
+                        <div className={styles.database_body} data-electron-drag-region="false">
+                            {connectionRows.length > 0 && <ConnectionTree
+                                databases={connectionRows}
+                                describeUsage={describeUsage}
+                                onRename={renameConnection}
+                                onDelete={deleteConnection}
+                                onDetach={detachConnection}
+                                mergeCandidateCount={mergeCandidateCount}
+                                onMerge={mergeDuplicates}
+                                initiallyExpanded={initiallyExpanded}
+                                sessionConnectionIds={sessionConnectionIds}
+                                labelOf={labelOf}
+                                attention={connectionAttention?.active === true}
+                                onOpenOverview={openOverview}
+                                openOverviewId={props.openOverviewId ?? null}
+                                onOpenSettings={(connectionId, anchor) => {
+                                    connectionSettingsAnchorRef.current = anchor;
+                                    setConnectionOverlayDatabaseId(connectionId);
+                                }}
+                            />}
+                        </div>
+                    </section>
+                )}
+            />
             <dependencies.ConnectionSettingsOverlay
                 connectionId={connectionOverlayDatabaseId}
                 isOpen={connectionOverlayDatabaseId != null}

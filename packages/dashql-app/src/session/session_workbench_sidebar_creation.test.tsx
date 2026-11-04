@@ -132,6 +132,8 @@ describe('SessionWorkbenchSidebar session creation', () => {
 
     beforeEach(() => {
         container = document.createElement('div');
+        // The sections split the height of the sidebar, the virtualized connection rows need room
+        container.style.height = '800px';
         document.body.appendChild(container);
         root = createRoot(container);
         state.navigate.mockReset();
