@@ -441,6 +441,43 @@ export class StorageWriter {
         this.deletedSessions.delete(sessionId);
     }
 
+    /// Is a session held, e.g. after one of its scripts changed outside the app?
+    /// Its writes stay pending until the session resumes.
+    public isSessionPaused(sessionId: string): boolean {
+        return this.paused || this.pausedSessions.has(sessionId);
+    }
+
+    /// Write the pending tasks of a session right away and wait until they are persisted.
+    ///
+    /// Resolves true when every pending write of the session reached the storage. A held writer or
+    /// session keeps its writes pending and resolves false. Unlike flush(), a held session is never
+    /// forced, its writes would overwrite the external change. A failed write stays pending as well,
+    /// unless a newer write of its key replaced it, and the next flush writes it again.
+    public async flushSession(sessionId: string): Promise<boolean> {
+        if (this.isSessionPaused(sessionId)) return false;
+        const failed = new Map<StorageWriteKey, AsyncStorageWriteTask>();
+        for (const key of this.getPendingKeysForSession(sessionId)) {
+            const task = this.pendingTasks.get(key);
+            if (task == null) continue;
+            const resolve = task.resolveLatestTask;
+            task.resolveLatestTask = result => {
+                if (result.status === 'failed') failed.set(key, task);
+                resolve(result);
+            };
+            clearTimeout(task.timer);
+            void this.processTask(key);
+        }
+        await this.settle();
+        for (const [key, task] of failed) {
+            if (this.pendingTasks.has(key)) continue;
+            task.resolveLatestTask = () => { };
+            task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
+            this.pendingTasks.set(key, task);
+        }
+        // A write that would overwrite an external change pauses the session and stays pending
+        return failed.size === 0 && !this.isSessionPaused(sessionId);
+    }
+
     /// Wait for writes that have already started without flushing pending debounced work.
     public async settle(): Promise<void> {
         while (this.inFlight.size > 0) {

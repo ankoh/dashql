@@ -268,7 +268,7 @@ export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
 export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
 export const SET_PENDING_CONNECTION = Symbol('SET_PENDING_CONNECTION');
-export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
+export const REPLACE_CONNECTION = Symbol('REPLACE_CONNECTION');
 export const DETACH_CONNECTION = Symbol('DETACH_CONNECTION');
 export const SET_SESSION_ATTACHMENTS = Symbol('SET_SESSION_ATTACHMENTS');
 export const SET_ATTACHMENT_COLUMNS = Symbol('SET_ATTACHMENT_COLUMNS');
@@ -298,7 +298,8 @@ export type SessionScriptsAction =
     | VariantKind<typeof RENAME_SESSION, string | null>
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
     | VariantKind<typeof SET_PENDING_CONNECTION, ScriptConnection>
-    | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
+    /// The scripts and the pending connection of the session on one connection move to another
+    | VariantKind<typeof REPLACE_CONNECTION, { from: string, into: ConnectionState }>
     | VariantKind<typeof DETACH_CONNECTION, { from: string, into: ScriptConnection }>
     /// The data files of the session as the storage lists them
     | VariantKind<typeof SET_SESSION_ATTACHMENTS, DataFile[]>
@@ -1062,7 +1063,7 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
             return reduceSessionScripts({ ...state, pendingConnection: null }, { type: SET_PENDING_CONNECTION, value: into }, storage, logger);
         }
 
-        case MERGE_CONNECTION: {
+        case REPLACE_CONNECTION: {
             const { from, into } = action.value;
             const target = scriptConnectionOf(into);
             const scripts: ScriptDataMap = { ...state.scripts };
@@ -1074,8 +1075,8 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
                     scripts[scriptKey] = scriptData;
                     moved += 1;
                 } catch (e: any) {
-                    // The script stays on the merged connection, the registry then refuses to delete it
-                    logger.warn("Failed to move script to the merged connection", { fileName: prev.fileName, error: stringifyError(e) }, LOG_CTX);
+                    // The script stays on the replaced connection, it is not removed then
+                    logger.warn("Failed to move script to the replacing connection", { fileName: prev.fileName, error: stringifyError(e) }, LOG_CTX);
                 }
             }
             const movesPending = state.pendingConnection?.connectionId === from;
@@ -1092,7 +1093,7 @@ function reduceScripts(state: SessionScripts, action: SessionScriptsAction, stor
                 scripts,
             };
             // The references of the session file follow. The script list is written as well, it replaces
-            // a pending list that still names the merged connection.
+            // a pending list that still names the replaced connection.
             void storage.write(
                 groupSessionConnectionCopyWrites(state.sessionId, from),
                 { type: PATCH_SESSION_CONNECTION, value: [state.sessionId, { connectionId: into.connectionId, params: into.params }, [from]] },

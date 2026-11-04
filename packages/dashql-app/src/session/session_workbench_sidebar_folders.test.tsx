@@ -39,7 +39,7 @@ const storageReader = {
     getSessionOrder: () => state.backend!.getSessionOrder(),
     getSessionTree: () => state.backend!.getSessionTree(),
 };
-const storageWriter = { write: vi.fn(), deleteSession: vi.fn(), backend: {}, cancelPendingWritesForSession: vi.fn() };
+const storageWriter = { write: vi.fn(), deleteSession: vi.fn(), backend: {}, cancelPendingWritesForSession: vi.fn(), isSessionPaused: () => false };
 
 const dependencies = {
     useRouterNavigate: () => state.navigate,
@@ -55,6 +55,7 @@ const dependencies = {
     useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
+    useReplaceConnection: () => async () => ({ removed: false }),
     useDetachConnection: () => vi.fn(),
     useDeleteConnection: () => vi.fn(),
     useStorageReader: () => storageReader,

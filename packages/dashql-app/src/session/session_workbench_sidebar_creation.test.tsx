@@ -67,6 +67,7 @@ const storageWriter = {
     deleteSession: state.deleteSession,
     backend: {},
     cancelPendingWritesForSession: vi.fn(),
+    isSessionPaused: () => false,
 };
 
 const dependencies = {
@@ -92,6 +93,7 @@ const dependencies = {
     useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
+    useReplaceConnection: () => async () => ({ removed: false }),
     useDetachConnection: () => state.detachConnection,
     useDeleteConnection: () => state.deleteConnection,
     useStorageReader: () => storageReader,
@@ -157,6 +159,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } },
             params: { hyper: { protocol: 'WASM' } },
+            queriesActiveOrdered: [],
             ...EMPTY_CATALOG,
         } as unknown as ConnectionState;
         state.allocateConnection.mockReset().mockReturnValue(state.local);

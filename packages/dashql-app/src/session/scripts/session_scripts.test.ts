@@ -14,7 +14,7 @@ import {
     CREATE_SCRIPT,
     DELETE_SCRIPT,
     DETACH_CONNECTION,
-    MERGE_CONNECTION,
+    REPLACE_CONNECTION,
     newScriptConnection,
     type ScriptConnection,
     SET_PENDING_CONNECTION,
@@ -648,7 +648,7 @@ describe('V2 flat session script mutations', () => {
         const target = { ...connection(), params: { hyper: { protocol: 'WASM' } }, details: { type: HYPER_CONNECTOR, value: { proto: {} } } } as unknown as ConnectionState;
         const writer = new RecordingWriter(logger, new SessionTestBackend());
         const merged = reduce(reduce(next, { type: SET_PENDING_CONNECTION, value: { ...main, params: target.params } }),
-            { type: MERGE_CONNECTION, value: { from: main.connectionId, into: target } }, writer);
+            { type: REPLACE_CONNECTION, value: { from: main.connectionId, into: target } }, writer);
         // The pending connection and the scripts move to the target
         expect(merged.pendingConnection?.connectionId).toBe(target.connectionId);
         expect(merged.scripts[alphaKey].connection.connectionId).toBe(target.connectionId);
@@ -672,7 +672,7 @@ describe('V2 flat session script mutations', () => {
             }],
         });
         // A connection that the session doesn't use changes nothing
-        expect(reduce(merged, { type: MERGE_CONNECTION, value: { from: crypto.randomUUID(), into: target } })).toBe(merged);
+        expect(reduce(merged, { type: REPLACE_CONNECTION, value: { from: crypto.randomUUID(), into: target } })).toBe(merged);
     });
 
     it('deletes the focused script, moves focus, and persists deletion', () => {

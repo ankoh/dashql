@@ -1,0 +1,56 @@
+.picker {
+    display: flex;
+    flex-direction: column;
+    width: 280px;
+    max-width: 90vw;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px 8px 12px;
+    border-bottom: 1px solid var(--border_color_primary);
+}
+
+.title {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.subtitle {
+    font-size: 0.75rem;
+    color: var(--base_color_neutral_5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Long connection lists scroll, the header and the buttons stay */
+.list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.connector_icon {
+    flex-shrink: 0;
+}
+
+.footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px 10px 12px;
+    border-top: 1px solid var(--border_color_primary);
+}
+
+.note {
+    font-size: 0.75rem;
+    color: var(--base_color_neutral_5);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}

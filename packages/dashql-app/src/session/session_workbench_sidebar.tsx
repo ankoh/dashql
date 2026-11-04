@@ -116,9 +116,11 @@ import { RENAME_SESSION } from './scripts/session_scripts.js';
 import { NameInput } from '../ui/foundations/name_input.js';
 import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
 import { useMergeConnections } from './session_connection_merge.js';
+import { useReplaceConnection } from './session_connection_replace.js';
 import { useDetachConnection } from './session_connection_detach.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../connections/connection_merge.js';
+import { connectionReplaceBlocker, connectionReplaceCandidates } from '../connections/connection_replace.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../connections/connection_label.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { SessionURLShareOverlay } from './persistence/session_url_share_overlay.js';
@@ -204,6 +206,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useConnectionAllocator: typeof useConnectionAllocator;
     useSessionCreation: typeof useSessionCreation;
     useMergeConnections: typeof useMergeConnections;
+    useReplaceConnection: typeof useReplaceConnection;
     useDetachConnection: typeof useDetachConnection;
     useDeleteConnection: typeof useDeleteConnection;
     useSessionScriptsDeletion: typeof useSessionScriptsDeletion;
@@ -236,6 +239,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useConnectionAllocator,
     useSessionCreation,
     useMergeConnections,
+    useReplaceConnection,
     useDetachConnection,
     useDeleteConnection,
     useSessionScriptsDeletion,
@@ -668,6 +672,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const resolveEmbeddedConnection = dependencies.useEmbeddedConnection();
     const resolveNewSessionConnection = dependencies.useNewSessionConnection();
     const mergeConnections = dependencies.useMergeConnections();
+    const replaceConnection = dependencies.useReplaceConnection();
     const detachConnectionFromSessions = dependencies.useDetachConnection();
     const [, modifyCurrentSession] = dependencies.useSessionScripts(props.sessionScripts.sessionId);
     const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
@@ -989,6 +994,26 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         });
     }, [databaseRegistry, labelOf, logger, mergeConnections, references]);
 
+    /// What keeps a connection from being replaced, the picker offers every other listed connection
+    const replaceBlocker = React.useCallback(
+        (connectionId: string) => connectionReplaceBlocker(databaseRegistry, references, connectionId, sessionId => storageWriter.isSessionPaused(sessionId)),
+        [databaseRegistry, references, scriptsRegistry, storageWriter],
+    );
+    const replaceCandidates = React.useCallback(
+        (connectionId: string) => connectionReplaceCandidates(databaseRegistry, references, connectionId),
+        [databaseRegistry, references, scriptsRegistry],
+    );
+    /// Replace a connection with another one in every session, the connection is removed afterwards
+    const replaceWith = React.useCallback((connectionId: string, targetId: string) => {
+        replaceConnection(connectionId, targetId)
+            .then(({ removed }) => {
+                if (!removed) logger.warn('the replaced connection is still in use', { connectionId, target: targetId }, 'session_workbench');
+            })
+            .catch(error => {
+                logger.warn('failed to replace the connection', { connectionId, target: targetId, error: String(error) }, 'session_workbench');
+            });
+    }, [logger, replaceConnection]);
+
     const closeConnectionOverlay = React.useCallback(() => {
         setConnectionOverlayDatabaseId(null);
         if (route.sessionSetupStatus === SessionSetupStatus.CONFIGURING && route.sessionId != null) {
@@ -1288,6 +1313,9 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                 onDetach={detachConnection}
                                 mergeCandidateCount={mergeCandidateCount}
                                 onMerge={mergeDuplicates}
+                                replaceBlocker={replaceBlocker}
+                                replaceCandidates={replaceCandidates}
+                                onReplace={replaceWith}
                                 initiallyExpanded={initiallyExpanded}
                                 sessionConnectionIds={sessionConnectionIds}
                                 labelOf={labelOf}

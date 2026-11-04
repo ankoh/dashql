@@ -23,6 +23,7 @@ import {
     REPLACE_SESSION_SCRIPTS,
     WRITE_SESSION_SCRIPTS,
     storageWriteChainKey,
+    type StorageWriteTaskVariant,
 } from './storage_writer.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
 import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
@@ -351,6 +352,63 @@ describe('storage writer outcomes', () => {
             type: WRITE_CONNECTION_ENTRY, value: { id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } } as any },
         });
         expect(backend.connections).toEqual([{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } }, createdAt: '2026-01-01T00:00:00.000Z' }]);
+    });
+});
+
+describe('storage writer session flush', () => {
+    const patch = (sessionId: string, endpoint: string): StorageWriteTaskVariant => ({
+        type: PATCH_SESSION_CONNECTION,
+        value: [sessionId, { connectionId: TEST_CONNECTION_ID, params: { trino: { endpoint } } as any }],
+    });
+
+    it('writes the pending tasks of a session right away and leaves the other sessions pending', async () => {
+        const backend = new SessionTestBackend();
+        const writer = new StorageWriter(new TestLogger(), backend);
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveSessionManifest('other', testSession());
+        const written = writer.write(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID), patch(TEST_SESSION_ID, 'flushed'), 10_000);
+        void writer.write(groupSessionConnectionCopyWrites('other', TEST_CONNECTION_ID), patch('other', 'pending'), 10_000);
+
+        await expect(writer.flushSession(TEST_SESSION_ID)).resolves.toBe(true);
+        await expect(written).resolves.toBe(true);
+        expect((await backend.loadSession(TEST_SESSION_ID)).connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: { trino: { endpoint: 'flushed' } } }]);
+        expect(writer.getPendingKeysForSession('other')).toHaveLength(1);
+        // A session without pending writes is written
+        await expect(writer.flushSession(TEST_SESSION_ID)).resolves.toBe(true);
+        writer.cancelPendingWritesForSession('other');
+    });
+
+    it('never forces the writes of a held session', async () => {
+        const backend = new SessionTestBackend();
+        const writer = new StorageWriter(new TestLogger(), backend);
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        void writer.write(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID), patch(TEST_SESSION_ID, 'held'), 10_000);
+        writer.pauseSession(TEST_SESSION_ID);
+        expect(writer.isSessionPaused(TEST_SESSION_ID)).toBe(true);
+
+        await expect(writer.flushSession(TEST_SESSION_ID)).resolves.toBe(false);
+        expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toHaveLength(1);
+        expect((await backend.loadSession(TEST_SESSION_ID)).connections).toEqual(testSession().connections);
+
+        writer.resumeSession(TEST_SESSION_ID);
+        expect(writer.isSessionPaused(TEST_SESSION_ID)).toBe(false);
+        await expect(writer.flushSession(TEST_SESSION_ID)).resolves.toBe(true);
+    });
+
+    it('keeps a failed write pending for the next flush', async () => {
+        const backend = new SessionTestBackend();
+        const writer = new StorageWriter(new TestLogger(), backend);
+        const key = groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID);
+        // The session file is missing, the patch fails
+        const failed = writer.write(key, patch(TEST_SESSION_ID, 'retried'), 10_000);
+        await expect(writer.flushSession(TEST_SESSION_ID)).resolves.toBe(false);
+        await expect(failed).resolves.toBe(false);
+        expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([key]);
+
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await expect(writer.flushSession(TEST_SESSION_ID)).resolves.toBe(true);
+        expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([]);
+        expect((await backend.loadSession(TEST_SESSION_ID)).connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: { trino: { endpoint: 'retried' } } }]);
     });
 });
 

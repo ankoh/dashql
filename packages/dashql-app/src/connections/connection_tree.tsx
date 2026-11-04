@@ -42,6 +42,8 @@ import {
 } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { ConnectionURLShareOverlay } from './connection_url_share_overlay.js';
+import type { ConnectionReplaceCandidates } from './connection_replace.js';
+import { ConnectionReplacePicker } from './connection_replace_picker.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 
@@ -49,6 +51,7 @@ const MoreIcon = SymbolIcon('kebab_horizontal');
 const ColumnsIcon = SymbolIcon('columns_16');
 const SettingsIcon = SymbolIcon('settings_16');
 const MergeIcon = SymbolIcon('git_merge_16');
+const ReplaceIcon = SymbolIcon('arrow_right_16');
 
 export interface CatalogNode {
     key: string;
@@ -349,6 +352,9 @@ interface ConnectionTreeRowProps {
     onDetach?: (connectionId: string) => void;
     mergeCandidateCount?: (connectionId: string) => number;
     onMerge?: (connectionId: string) => void;
+    replaceBlocker?: (connectionId: string) => string | null;
+    replaceCandidates?: (connectionId: string) => ConnectionReplaceCandidates;
+    onReplace?: (connectionId: string, targetId: string) => void;
     labelOf: (database: ConnectionState) => ConnectionLabelParts;
     attention: boolean;
     /// Open the overview of a connection
@@ -475,6 +481,12 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                             : () => props.onDetach!(row.database.connectionId)}
                         onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
                         mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
+                        onReplace={props.onReplace == null || props.replaceCandidates == null
+                            ? undefined
+                            : targetId => props.onReplace!(connectionId, targetId)}
+                        replaceBlocker={props.replaceBlocker == null ? undefined : () => props.replaceBlocker!(connectionId)}
+                        replaceCandidates={props.replaceCandidates == null ? undefined : () => props.replaceCandidates!(connectionId)}
+                        labelOf={props.labelOf}
                         sessionCount={usage?.blockingSessionCount}
                         scriptCount={usage?.scriptCountHere}
                     />
@@ -552,6 +564,12 @@ interface ConnectionTreeProps {
     mergeCandidateCount?: (connectionId: string) => number;
     /// Merge other connections into a connection
     onMerge?: (connectionId: string) => void;
+    /// What keeps a connection from being replaced, null if it can be replaced
+    replaceBlocker?: (connectionId: string) => string | null;
+    /// The connections that can replace a connection
+    replaceCandidates?: (connectionId: string) => ConnectionReplaceCandidates;
+    /// Replace a connection with another one in every session
+    onReplace?: (connectionId: string, targetId: string) => void;
     /// Is a connection expanded initially?
     initiallyExpanded?: (database: ConnectionState, databaseCount: number) => boolean;
     /// The connections of the current session, they are grouped apart from the other connections and the unused ones
@@ -604,6 +622,9 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onDetach,
     mergeCandidateCount,
     onMerge,
+    replaceBlocker,
+    replaceCandidates,
+    onReplace,
     initiallyExpanded = isConnectionInitiallyExpanded,
     sessionConnectionIds,
     labelOf = defaultConnectionLabelOf,
@@ -713,6 +734,9 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         onDetach,
         mergeCandidateCount,
         onMerge,
+        replaceBlocker,
+        replaceCandidates,
+        onReplace,
         labelOf,
         attention,
         onOpenOverview,
@@ -720,7 +744,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         onRename,
         renamingId,
         setRenamingId,
-    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onDetach, onMerge, onOpenOverview, onOpenSettings, onRename, openOverviewId, renamingId, rows, toggle]);
+    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onDetach, onMerge, onOpenOverview, onOpenSettings, onRename, onReplace, openOverviewId, renamingId, replaceBlocker, replaceCandidates, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -772,6 +796,14 @@ interface ConnectionRowMenuProps {
     onMerge?: () => void;
     /// The number of connections that can be merged into the connection
     mergeCandidateCount?: number;
+    /// Replace the connection with another one in every session
+    onReplace?: (targetId: string) => void;
+    /// What keeps the connection from being replaced, null if it can be replaced. Read while the menu is open
+    replaceBlocker?: () => string | null;
+    /// The connections that can replace the connection, read when the picker opens
+    replaceCandidates?: () => ConnectionReplaceCandidates;
+    /// Label a connection of the replace picker
+    labelOf?: (database: ConnectionState) => ConnectionLabelParts;
     /// The number of sessions that keep the connection from being deleted
     sessionCount?: number;
     /// The number of scripts of the current session on the connection
@@ -789,9 +821,16 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, contextMenu, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onDetach, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, sessionCount = 0, scriptCount = 0, contextMenu, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     useRowContextMenuOpener(contextMenu, () => setOpen(true));
+    // The menu turns into the picker of the connection that replaces this one
+    const [replacing, setReplacing] = React.useState<ConnectionReplaceCandidates | null>(null);
+    const close = React.useCallback(() => {
+        setOpen(false);
+        setReplacing(null);
+    }, []);
+    const replaceBlocker = open && onReplace != null ? readReplaceBlocker?.() ?? null : null;
     const [shareOpen, setShareOpen] = React.useState(false);
     // The embedded Hyper is local to the app, a link to it would open an empty session on the embedded Hyper of the recipient
     const canShare = !isHyperWasmConnection(database);
@@ -804,7 +843,9 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
         <AnchoredOverlay
             open={open}
             onOpen={() => setOpen(true)}
-            onClose={() => setOpen(false)}
+            onClose={close}
+            // The picker is taller than the actions, the overlay is placed again when it shows
+            positionRevision={replacing == null ? 0 : 1}
             anchorRef={triggerRef}
             returnFocusRef={triggerRef}
             side={AnchorSide.OutsideRight}
@@ -828,7 +869,18 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                 </IconButton>
             )}
         >
-            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${label}`}>
+            {replacing != null && onReplace != null ? (
+                <ConnectionReplacePicker
+                    source={database}
+                    candidates={replacing}
+                    labelOf={labelOf}
+                    onCancel={() => setReplacing(null)}
+                    onConfirm={targetId => {
+                        close();
+                        onReplace(targetId);
+                    }}
+                />
+            ) : <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${label}`}>
                 <ActionList.List aria-label={`Actions for ${label}`}>
                     {/* The list takes elements only, the fragment wraps the optional item */}
                     <>{onRename && (
@@ -891,6 +943,27 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
+                    <>{onReplace && replaceCandidates && (
+                        <ActionList.ListItem
+                            data-testid="connection-menu-item"
+                            data-action="replace"
+                            disabled={replaceBlocker != null}
+                            title={replaceBlocker ?? undefined}
+                            onClick={(event) => {
+                                // The menu stays open, it shows the picker
+                                event.stopPropagation();
+                                setReplacing(replaceCandidates());
+                            }}
+                        >
+                            <ActionList.Leading><ReplaceIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>
+                                <ActionList.ItemTextTitle>Replace with</ActionList.ItemTextTitle>
+                                {replaceBlocker != null
+                                    ? <ActionList.ItemTextDescription>{replaceBlocker}</ActionList.ItemTextDescription>
+                                    : <></>}
+                            </ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     <>{onDetach && (
                         <ActionList.ListItem
                             data-testid="connection-menu-item"
@@ -933,7 +1006,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         </ActionList.ListItem>
                     )}</>
                 </ActionList.List>
-            </div>
+            </div>}
         </AnchoredOverlay>
     );
 };
