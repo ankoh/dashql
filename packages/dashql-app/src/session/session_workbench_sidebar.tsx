@@ -1178,7 +1178,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         onRename={name => renameFolder(row.folder, name)}
                                         onCancelRename={() => setRenamingFolder(null)}
                                         onNewSession={() => createNewSession(row.folder.path)}
-                                        onNewFolder={() => createFolder(row.folder.path)}
                                         onMoveToTopLevel={row.depth === 0 ? null : () => changeSessionTree('move the folder', folders => folders.moveFolder(row.folder.path, []))}
                                         onDelete={() => deleteFolder(row.folder)}
                                         dropTarget={drop?.targetId === row.id}

@@ -55,8 +55,6 @@ interface SessionFolderRowProps {
     onCancelRename: () => void;
     /// Create a session in the folder
     onNewSession: () => void;
-    /// Create a subfolder
-    onNewFolder: () => void;
     /// Move the folder to the root, null for a folder of the root
     onMoveToTopLevel: (() => void) | null;
     /// Delete the folder, its sessions move to the parent
@@ -174,10 +172,6 @@ const SessionFolderMenu: React.FC<SessionFolderRowProps & { contextMenu: RowCont
                     <ActionList.ListItem data-testid="session-folder-menu-item" data-action="new-session" onClick={run(props.onNewSession)}>
                         <ActionList.Leading><PlusIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>New session</ActionList.ItemText>
-                    </ActionList.ListItem>
-                    <ActionList.ListItem data-testid="session-folder-menu-item" data-action="new-folder" onClick={run(props.onNewFolder)}>
-                        <ActionList.Leading><FileDirectoryFillIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>New folder</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem data-testid="session-folder-menu-item" data-action="rename" onClick={run(props.onStartRename)}>
                         <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
