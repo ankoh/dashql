@@ -64,11 +64,6 @@ export interface RecordedPayload {
     payload: EngineProgressPayload;
 }
 
-/// The duration of a recording in milliseconds
-export function recordingDuration(recording: ProfileRecording): number {
-    return recording.payloads.reduce((duration, p) => Math.max(duration, p.elapsedMs), 0);
-}
-
 /// Replay a recording up to a point in time, returns null if nothing happened until then
 export function replayRecording(
     core: dashql.DashQL,
