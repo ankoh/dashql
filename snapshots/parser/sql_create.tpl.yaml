@@ -55,3 +55,7 @@ parser-snapshots:
   - name: create_table_as_qualified_target
     input: |
       create table analytics.results as select 1
+  # Parse CREATE TABLE with constraints on existing indexes
+  - name: create_table_constraints_using_index
+    input: |
+      create table foo (a integer, b integer, primary key using index foo_pkey, unique using index foo_b_key)

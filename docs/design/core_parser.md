@@ -295,7 +295,7 @@ When the scanner matches an unquoted identifier, it:
 Some tokens require 1-token lookahead to resolve LALR(1) conflicts.
 The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scanner.rs`):
 
-- `NOT` → `NOT_LA` when followed by `BETWEEN`, `IN`, `LIKE`, `ILIKE`, `SIMILAR`
+- `NOT` → `NOT_LA` when followed by `BETWEEN`, `IN`, `LIKE`, `ILIKE`, `GLOB`, `SIMILAR`
 - `NULLS` → `NULLS_LA` when followed by `FIRST` or `LAST`
 - `WITH` → `WITH_LA` when followed by `TIME` or `ORDINALITY`
 

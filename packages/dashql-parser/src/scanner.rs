@@ -136,7 +136,7 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
     let next = lexer.lex(out);
     lookahead.push_back(next);
     match (current.kind, next.kind) {
-        (S_NOT, S_BETWEEN | S_IN_P | S_LIKE | S_ILIKE | S_SIMILAR) => Symbol::new(S_NOT_LA, current.location),
+        (S_NOT, S_BETWEEN | S_IN_P | S_LIKE | S_ILIKE | S_GLOB | S_SIMILAR) => Symbol::new(S_NOT_LA, current.location),
         (S_NULLS_P, S_FIRST_P | S_LAST_P) => Symbol::new(S_NULLS_LA, current.location),
         (S_WITH, S_TIME | S_ORDINALITY) => Symbol::new(S_WITH_LA, current.location),
         (S_DOT, S_STAR) => Symbol::new(S_DOT_STAR_LA, current.location),
@@ -802,6 +802,7 @@ mod tests {
     #[test]
     fn applies_the_lookahead_filter() {
         assert_eq!(kinds("not in"), vec![S_NOT_LA, S_IN_P, S_YYEOF]);
+        assert_eq!(kinds("not glob"), vec![S_NOT_LA, S_GLOB, S_YYEOF]);
         assert_eq!(kinds("not foo"), vec![S_NOT, S_IDENT, S_YYEOF]);
         assert_eq!(kinds("a.*"), vec![S_IDENT, S_DOT_STAR_LA, S_STAR, S_YYEOF]);
     }

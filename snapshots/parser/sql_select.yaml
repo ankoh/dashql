@@ -7962,6 +7962,131 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: select_not_glob
+    input: |-
+      select a glob 'x*', a not glob 'y*', a not glob any (select b);
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 32
+          description:
+            text: "select a g..select b);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a g..(select b)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a glob 'x*..(select b)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a glob 'x*'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a glob 'x*'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: GLOB
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a glob 'x*'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x*'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not glob 'y*'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a not glob 'y*'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_GLOB
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a not glob 'y*'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'y*'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not glob..(select b)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_SUBQUERY_EXPRESSION
+                        text: "a not glob..(select b)"
+                        children:
+                          - key: SQL_SUBQUERY_ARG0
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - key: SQL_SUBQUERY_ARG1
+                            type: OBJECT_SQL_SELECT_EXPRESSION
+                            text: "a not glob..(select b)"
+                            children:
+                              - key: SQL_SELECT_EXPRESSION_STATEMENT
+                                type: OBJECT_SQL_SELECT
+                                text: "(select b)"
+                                children:
+                                  - key: SQL_SELECT_TARGETS
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: OBJECT_SQL_RESULT_TARGET
+                                        text: "b"
+                                        children:
+                                          - key: SQL_RESULT_TARGET_VALUE
+                                            type: OBJECT_SQL_COLUMN_REF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                          - key: SQL_SUBQUERY_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_GLOB
+                          - key: SQL_SUBQUERY_QUANTIFIER
+                            type: ENUM_SQL_SUBQUERY_QUANTIFIER
+                            value: ANY
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
   - name: select_default
     input: |-
       select somefunc(default);

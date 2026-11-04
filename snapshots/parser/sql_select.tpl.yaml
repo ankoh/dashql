@@ -487,6 +487,10 @@ parser-snapshots:
   - name: select_subquery_4
     input: |
       select a like some (foo('bar'));
+  # Parse GLOB and NOT GLOB, as operators and on subqueries
+  - name: select_not_glob
+    input: |
+      select a glob 'x*', a not glob 'y*', a not glob any (select b);
   # Parse DEFAULT in function argument
   - name: select_default
     input: |

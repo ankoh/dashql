@@ -347,7 +347,7 @@ sql_table_constraint_elem:
   | PRIMARY KEY sql_existing_index sql_opt_definition sql_table_constraint_attr_list {
       ctx.list(
           &[
-              attr(Key::SQL_TABLE_CONSTRAINT_TYPE, enum_node(@$, TableConstraint::UNIQUE)),
+              attr(Key::SQL_TABLE_CONSTRAINT_TYPE, enum_node(@$, TableConstraint::PRIMARY_KEY)),
               attr(Key::SQL_TABLE_CONSTRAINT_INDEX, $3),
               attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.array(@4, $4)),
               attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.array(@5, $5)),

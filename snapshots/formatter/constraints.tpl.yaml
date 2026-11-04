@@ -42,6 +42,12 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # Constraints on an existing index (PostgreSQL `ALTER TABLE` syntax, accepted in table definitions)
+  - name: table_constraint_using_index
+    input: create table t (a int, b int, primary key using index t_pkey, constraint b_unique unique using index t_b_key)
+    dialects:
+      hyper:
+
 
   # Temporary tables
   - name: create_temp_table

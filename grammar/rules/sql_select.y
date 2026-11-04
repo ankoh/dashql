@@ -1608,6 +1608,7 @@ sql_a_expr:
   | NOT sql_a_expr                          { expr1(ctx, @$, enum_node(@1, ExprFunc::NOT), $2) }
   | NOT_LA sql_a_expr   %prec NOT           { expr1(ctx, @$, enum_node(@1, ExprFunc::NOT), $2) }
   | sql_a_expr GLOB sql_a_expr  %prec GLOB  { expr2(ctx, @$, enum_node(@2, ExprFunc::GLOB), $1, $3) }
+  | sql_a_expr NOT_LA GLOB sql_a_expr  %prec NOT_LA  { expr2(ctx, @$, enum_node(loc(&[@2, @3]), ExprFunc::NOT_GLOB), $1, $4) }
   | sql_a_expr LIKE sql_a_expr                                              { expr2(ctx, @$, enum_node(@2, ExprFunc::LIKE), $1, $3) }
   | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr            %prec LIKE      { expr3(ctx, @$, enum_node(@2, ExprFunc::LIKE), $1, $3, $5) }
   | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA    { expr2(ctx, @$, enum_node(loc(&[@2, @3]), ExprFunc::NOT_LIKE), $1, $4) }

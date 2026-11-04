@@ -53,7 +53,7 @@ formatter-snapshots:
 
   # Glob patterns, Hyper has no glob
   - name: op_glob
-    input: select a glob b, a not similar to b from t
+    input: select a glob b, a not glob b, a not glob any (c), a not similar to b from t
     dialects:
       hyper:
 

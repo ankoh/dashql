@@ -119,19 +119,19 @@ formatter-snapshots:
 
   - name: op_glob
     input: |-
-      select a glob b, a not similar to b from t
+      select a glob b, a not glob b, a not glob any (c), a not similar to b from t
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              select a glob b, a not similar to b from t;
+              select a glob b, a not glob b, a not glob any (c), a not similar to b from t;
           - mode: compact
             expected: |-
-              select a glob b, a not similar to b from t;
+              select a glob b, a not glob b, a not glob any (c), a not similar to b from t;
           - mode: pretty
             expected: |-
-              select a glob b, a not similar to b
+              select a glob b, a not glob b, a not glob any (c), a not similar to b
               from t;
 
   - name: op_in_lists

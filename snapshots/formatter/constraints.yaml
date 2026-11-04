@@ -137,6 +137,22 @@ formatter-snapshots:
             expected: |-
               create table t (a integer, unique (a) deferrable);
 
+  - name: table_constraint_using_index
+    input: |-
+      create table t (a int, b int, primary key using index t_pkey, constraint b_unique unique using index t_b_key)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t (a integer, b integer, primary key using index t_pkey, constraint b_unique unique using index t_b_key);
+          - mode: compact
+            expected: |-
+              create table t (a integer, b integer, primary key using index t_pkey, constraint b_unique unique using index t_b_key);
+          - mode: pretty
+            expected: |-
+              create table t (a integer, b integer, primary key using index t_pkey, constraint b_unique unique using index t_b_key);
+
   - name: create_temp_table
     input: |-
       create temp table t (a int)

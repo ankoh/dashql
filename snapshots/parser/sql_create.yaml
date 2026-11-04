@@ -790,3 +790,80 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_table_constraints_using_index
+    input: |-
+      create table foo (a integer, b integer, primary key using index foo_pkey, unique using index foo_b_key)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 18
+          description:
+            text: "create tab..foo_b_key)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..foo_b_key)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a integer..foo_b_key)"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a integer"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "b integer"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..x foo_pkey"
+                    children:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: PRIMARY_KEY
+                      - key: SQL_TABLE_CONSTRAINT_INDEX
+                        type: NAME
+                        text: "foo_pkey"
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "unique usi.. foo_b_key"
+                    children:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: UNIQUE
+                      - key: SQL_TABLE_CONSTRAINT_INDEX
+                        type: NAME
+                        text: "foo_b_key"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

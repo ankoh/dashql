@@ -16,6 +16,7 @@ New tests since the previous report:
 - `analyzer/vis_tags.rs` 93% → 98%: Vega-Lite tags without a spec or with a spec that is no object, unknown fields of many columns and of set operations, `as` arrays, `@flow` without args, negative board columns; the unused `vis_renderer_tag` was removed.
 - `script_references.rs` 95% → 99%: parentheses around queries, in quotes and comments (`inside_parentheses`).
 - `completion_vis.rs` 87% → 91%: completion snapshots of nested layer specs, mark definitions, aggregates, time units, scales, axes, legends, tooltip arrays and `groupby`.
+- Parser: `PRIMARY KEY USING INDEX` builds a `PRIMARY_KEY` constraint (it built `UNIQUE`), and `a NOT GLOB b` parses to `NOT_GLOB` (the scanner makes `NOT_LA` before `GLOB`).
 - `sql_literal.rs` 93% → 99%, `table_parameters.rs` 89% → 99%, `catalog/entry.rs` 88% → 93% (republished function declarations).
 
 ## Per-file coverage
@@ -129,7 +130,7 @@ New tests since the previous report:
 
 | File | Uncovered | Notes |
 |---|---|---|
-| dashql-core/src/formatter/mod.rs | 185 | Mostly unreachable `format_unimplemented` fallbacks; `O::NOT_GLOB` cannot be parsed (no `NOT GLOB` rule) |
+| dashql-core/src/formatter/mod.rs | 185 | Mostly unreachable `format_unimplemented` fallbacks |
 | dashql-core-session/src/script_session.rs | 47 | Rare selection, diagnostic and cursor-context branches (`AliasDot`, non-boundary cursors) |
 | dashql-core-shell/src/session.rs | 35 | Overlay scrolling past the window, failed completion applications |
 | dashql-core/src/completion.rs | 35 | Dot candidates of the same object, cursor positions at the begin of a dot, unresolved derived columns |
@@ -144,9 +145,7 @@ New tests since the previous report:
 
 ## Known issues
 
-- `PRIMARY KEY USING INDEX` builds a `UNIQUE` constraint (`TableConstraint::UNIQUE` in `sql_table_constraint_elem`, `grammar/rules/sql_create.y`), so it formats as `unique using index`. The fix changes the parse tree (see `docs/design/core_parser.md`).
 - `^` is the exponentiation of Hyper and PostgreSQL, but its parse tree operator is `XOR` (`ExpressionOperator::XOR`, `BinaryExpressionFunction::XOR`). The formatter prints it as `^` again; the name is wrong in the FlatBuffers schema.
-- `a NOT GLOB b` does not parse: the scanner makes no `NOT_LA` before `GLOB`, so `ExpressionOperator::NOT_GLOB` is never produced.
 - Constant `AND`/`OR` gets `BinaryExpressionFunction::UNKNOWN` (`binary_function` in `dashql-core/src/analyzer/constants.rs`); `BinaryExpressionFunction` has no such value, so a fix changes the FlatBuffers schema (`proto/fb/dashql/algebra_expressions.fbs`).
 - Completion inside `LATERAL (...)` resolves to the outer table reference (`OBJECT_SQL_TABLEREF`, strategy `DEFAULT`), so sibling visibility cannot be tested there.
 - Comments between statements are not stable on a second formatting pass: the trailing comment of a statement moves behind the blank line, to the next statement.
@@ -156,5 +155,4 @@ New tests since the previous report:
 ## Suggested actions
 
 1. Remove unreachable `format_unimplemented` fallbacks or turn them into `unreachable!`, so formatter coverage reflects reachable code.
-2. Decide the parse tree fix of `PRIMARY KEY USING INDEX`, and whether `NOT GLOB` should parse.
-3. Add error-recovery inputs for `parser/mod.rs`, `driver.rs` and `value.rs`.
+2. Add error-recovery inputs for `parser/mod.rs`, `driver.rs` and `value.rs`.
