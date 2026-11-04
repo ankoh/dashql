@@ -34,8 +34,8 @@ export interface ProfileSceneEdge {
     parentOperator: number;
     /// The slot of the child that carries the edge (U32_MAX if none), its output is the flow over the edge
     slot: number;
-    /// The estimated rows over the edge, 0 if the plan has no estimate
-    outputCardinalityEstimated: number;
+    /// The estimated rows over the edge, null if the plan has no estimate
+    outputCardinalityEstimated: number | null;
     path: string;
 }
 
@@ -463,7 +463,7 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
             childOperator: child.id,
             parentOperator: parent.id,
             slot: edge.slot(),
-            outputCardinalityEstimated: Number.isNaN(child.estimatedRows) ? 0 : child.estimatedRows,
+            outputCardinalityEstimated: Number.isNaN(child.estimatedRows) ? null : child.estimatedRows,
             path,
         });
     }

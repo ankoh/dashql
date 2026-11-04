@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
-import { color as parseColor, interpolateBrBG, interpolatePuOr, interpolateRdBu, interpolateRdPu, select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
+import { color as parseColor, interpolateBrBG, interpolateOrRd, interpolatePuOr, interpolateRdBu, interpolateRdPu, select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '@ankoh/dashql-core';
 import { JsonView } from '../../ui/json/json_view.js';
@@ -14,7 +14,7 @@ import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { computeProfileFitTransform, ProfileFitBounds } from './profile_fit.js';
 import { createProfileLayoutConfig, PROFILE_OPERATOR_ANNOTATION_WIDTH } from './profile_layout_config.js';
 import { ProfileExecutionController } from './profile_execution_controller.js';
-import { ProfileExecutionState, type ProfileEntityState } from '../../query/profile_execution_state.js';
+import { isStatReported, ProfileExecutionState, type ProfileEntityState } from '../../query/profile_execution_state.js';
 import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../query_progress/query_progress_model.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileNavigationDirection } from './profile_navigation.js';
@@ -60,15 +60,22 @@ const OPERATOR_ANNOTATION_PADDING = 8;
 const ESTIMATE_APPROXIMATE_ROW_THRESHOLD = 100;
 const EDGE_BADGE_BORDER = 'hsl(210, 13%, 74%)';
 const EDGE_HIGHLIGHT_COLOR = 'hsl(211, 100%, 45%)';
-/// What the annotation slot of the operators shows: the status icon, nothing, the row count or the estimate.
-/// The status only exists with progress.
-type ProfileAnnotationMode = 'status' | 'plain' | 'rows' | 'estimates';
+/// What the annotation slot of the operators shows: the status icon, nothing, the actual rows, the estimated rows of
+/// the planner, the accuracy of the estimate, the CPU share or the memory of the operator. Every mode shows one kind of
+/// value only, an operator without that value (no actual rows yet, no estimate, no statistics) shows nothing. The status
+/// only exists with progress. Rows, estimates and accuracy annotate the edge to the parent, CPU and memory the operator.
+type ProfileAnnotationMode = 'status' | 'plain' | 'rows' | 'estimates' | 'accuracy' | 'cpu' | 'memory';
 const PROFILE_ANNOTATION_MODES: readonly { mode: ProfileAnnotationMode; label: string }[] = [
     { mode: 'status', label: 'Status' },
     { mode: 'plain', label: 'Plain' },
     { mode: 'rows', label: 'Rows' },
     { mode: 'estimates', label: 'Estimates' },
+    { mode: 'accuracy', label: 'Accuracy' },
+    { mode: 'cpu', label: 'CPU' },
+    { mode: 'memory', label: 'Memory' },
 ];
+/// The border of the memory annotation of an operator that spilled to disk
+const SPILLED_BADGE_BORDER = 'hsl(28, 92%, 48%)';
 /// The status icons of an operator in a 16x16 box, the status of the operator picks one (see the controller).
 /// The icons look like the status indicators of the app: a dot while pending, a spinner or the progress while
 /// running, a check, a cross. The check, the cross and the slash are cut out of their circles, they need the
@@ -205,10 +212,13 @@ export const PROFILE_EDGE_COLOR_SCHEME_PU_OR: ProfileEdgeColorScheme = interpola
 export const PROFILE_EDGE_COLOR_SCHEME_BR_BG: ProfileEdgeColorScheme = interpolateBrBG;
 export const PROFILE_EDGE_COLOR_SCHEME_RD_BU: ProfileEdgeColorScheme = value => interpolateRdBu(1 - value);
 export const PROFILE_EDGE_COLOR_SCHEME_RD_PU: ProfileEdgeColorScheme = interpolateRdPu;
+export const PROFILE_COST_COLOR_SCHEME_OR_RD: ProfileEdgeColorScheme = interpolateOrRd;
 
 export interface ProfileEdgeRenderingConfig {
     colorScheme?: ProfileEdgeColorScheme;
     rowColorScheme?: ProfileEdgeColorScheme;
+    /// The scale of the CPU and memory annotations, from none to the most of all operators
+    costColorScheme?: ProfileEdgeColorScheme;
 }
 
 interface ProfileEdgeBadge {
@@ -218,12 +228,16 @@ interface ProfileEdgeBadge {
     text: string;
     background: string;
     foreground: string;
+    /// The border, the default border if null
+    border: string | null;
     description: string;
 }
 
-interface RenderedProfileEdge {
-    edge: ProfileSceneEdge;
-    badge: ProfileEdgeBadge | null;
+/// An annotation in the slot of an operator: the badge of the edge to its parent or of the operator itself
+interface ProfileAnnotation {
+    operator: number;
+    edge: ProfileSceneEdge | null;
+    badge: ProfileEdgeBadge;
 }
 
 function contrastingTextColor(background: string): string {
@@ -255,6 +269,27 @@ export function formatEstimateSymbol(difference: number, absoluteDifference = Nu
     return '<<';
 }
 
+/// The CPU share of an operator in the annotation, e.g. `38%`, `<1%`
+export function formatCpuShare(share: number): string {
+    if (share === 0) return '0%';
+    if (share < 0.01) return '<1%';
+    return `${Math.round(share * 100)}%`;
+}
+
+/// The bytes of an operator in the annotation, at most 4 characters, e.g. `980B`, `12K`, `1.2M`, `340G`
+export function formatShortBytes(bytes: number): string {
+    if (bytes < 1000) return `${Math.round(bytes)}B`;
+    const units = ['K', 'M', 'G', 'T', 'P'];
+    let value = bytes / 1000;
+    let unit = 0;
+    // Round first, 999.6K is 1.0M
+    while (Number(value.toPrecision(2)) >= 1000 && unit < units.length - 1) {
+        value /= 1000;
+        unit += 1;
+    }
+    return `${Number(value.toPrecision(2))}${units[unit]}`;
+}
+
 const ROW_COUNT_FORMAT = new Intl.NumberFormat('en-US');
 
 function formatRowCount(value: number): string {
@@ -282,15 +317,14 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
     const [selection, setSelection] = React.useState<{ operator: ProfileSceneOperator; anchor: SVGGElement } | null>(null);
     const [inspectorOpen, setInspectorOpen] = React.useState(false);
-    const annotationModes = showProgress ? PROFILE_ANNOTATION_MODES : PROFILE_ANNOTATION_MODES.filter(m => m.mode !== 'status');
-    const [selectedAnnotationMode, setAnnotationMode] = React.useState<ProfileAnnotationMode>(showProgress ? 'status' : 'rows');
-    const annotationMode = !showProgress && selectedAnnotationMode === 'status' ? 'rows' : selectedAnnotationMode;
+    const [selectedAnnotationMode, setAnnotationMode] = React.useState<ProfileAnnotationMode | null>(null);
     /// The fragments are light grey, unless the colors tell them apart
     const [fragmentColors, setFragmentColors] = React.useState(false);
     const operatorRefs = React.useRef(new Map<number, SVGGElement>());
     const [positionRevision, setPositionRevision] = React.useState(0);
     const edgeColorScheme = edgeRendering?.colorScheme ?? PROFILE_EDGE_COLOR_SCHEME_RD_BU;
     const rowColorScheme = edgeRendering?.rowColorScheme ?? PROFILE_EDGE_COLOR_SCHEME_RD_PU;
+    const costColorScheme = edgeRendering?.costColorScheme ?? PROFILE_COST_COLOR_SCHEME_OR_RD;
     const edgeDifferenceColor = React.useCallback(
         (difference: number) => edgeColorScheme(difference < 0
             ? Math.max(0, (difference + 1) / 2)
@@ -305,59 +339,144 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         () => Array.from({ length: 11 }, (_, index) => rowColorScheme(index / 10)).join(', '),
         [rowColorScheme],
     );
-    const renderedEdges: RenderedProfileEdge[] = React.useMemo(() => {
-        const actualRows = scene.edges.map(edge => {
-            const rows = execution.edgeRows(edge.slot, edge.childOperator);
-            return rows == null ? null : Number(rows);
-        });
-        const rowValues = scene.edges.map((edge, edgeIndex) => actualRows[edgeIndex] ?? edge.outputCardinalityEstimated);
-        const maxRowValue = rowValues.reduce((maximum, value) => Math.max(maximum, value), 0);
-        return scene.edges.map((edge, edgeIndex) => {
-            const child = scene.operators[edge.childOperator];
-            const parent = scene.operators[edge.parentOperator];
-            const actual = actualRows[edgeIndex];
-            const difference = actual == null ? null : estimateRelativeDifference(edge.outputCardinalityEstimated, actual);
-            const rowValue = rowValues[edgeIndex];
-            const rowScaleValue = maxRowValue === 0 ? 0 : Math.log1p(rowValue) / Math.log1p(maxRowValue);
-            const badgeText = annotationMode === 'rows' ? formatCompactCount(rowValue)
-                : annotationMode === 'estimates' && difference != null && actual != null
-                    ? formatEstimateSymbol(difference, Math.abs(actual - edge.outputCardinalityEstimated))
-                    : null;
-            const background = annotationMode === 'rows' ? rowColorScheme(rowScaleValue)
-                : annotationMode === 'estimates' && difference != null ? edgeDifferenceColor(difference)
-                    : null;
-            const description = annotationMode === 'rows'
-                ? `${actual == null ? 'Estimated' : 'Actual'} rows ${formatRowCount(rowValue)}`
-                : difference == null ? null
-                    : `Actual rows ${actual}, estimated rows ${edge.outputCardinalityEstimated}, difference ${formatRelativeDifference(difference)}`;
-            if (badgeText == null || background == null || description == null || child == null || parent == null) {
-                return { edge, badge: null };
-            }
-            const width = Math.min(
+    const costLegendGradient = React.useMemo(
+        () => Array.from({ length: 11 }, (_, index) => costColorScheme(index / 10)).join(', '),
+        [costColorScheme],
+    );
+    const actualRows = React.useMemo(() => scene.edges.map(edge => {
+        const rows = execution.edgeRows(edge.slot, edge.childOperator);
+        return rows == null ? null : Number(rows);
+    }), [scene, execution]);
+    // A mode is offered only if some operator has its value, a plan without estimates has no Estimates and no Accuracy
+    const annotationModes = React.useMemo(() => {
+        const field = dashql.buffers.profile.ProfileStatsField;
+        const hasActual = actualRows.some(rows => rows != null);
+        const hasEstimate = scene.edges.some(edge => edge.outputCardinalityEstimated != null);
+        const hasBoth = scene.edges.some((edge, index) => edge.outputCardinalityEstimated != null && actualRows[index] != null);
+        const reports = (stat: dashql.buffers.profile.ProfileStatsField) =>
+            scene.operators.some(operator => {
+                const state = execution.operators[operator.id];
+                return state != null && isStatReported(state.stats, stat);
+            });
+        const available: Record<ProfileAnnotationMode, boolean> = {
+            status: showProgress,
+            plain: true,
+            rows: hasActual,
+            estimates: hasEstimate,
+            accuracy: hasBoth,
+            cpu: reports(field.CPU_TIME),
+            memory: reports(field.MEMORY_BYTES),
+        };
+        return PROFILE_ANNOTATION_MODES.filter(({ mode }) => available[mode]);
+    }, [scene, execution, actualRows, showProgress]);
+    // Without a choice, or if the chosen mode is gone, the view shows the status with progress, else the actual rows,
+    // else the estimates
+    const offered = (mode: ProfileAnnotationMode) => annotationModes.some(m => m.mode === mode);
+    const annotationMode: ProfileAnnotationMode = selectedAnnotationMode != null && offered(selectedAnnotationMode)
+        ? selectedAnnotationMode
+        : (['status', 'rows', 'estimates'] as const).find(offered) ?? 'plain';
+    const annotations: ProfileAnnotation[] = React.useMemo(() => {
+        const field = dashql.buffers.profile.ProfileStatsField;
+        const badge = (operator: ProfileSceneOperator, text: string, background: string, description: string, border: string | null = null): ProfileEdgeBadge => ({
+            ...placeOperatorAnnotation(operator, scene.layoutConfig.input!),
+            width: Math.min(
                 PROFILE_OPERATOR_ANNOTATION_WIDTH,
-                Math.max(OPERATOR_ANNOTATION_MIN_WIDTH, badgeText.length * OPERATOR_ANNOTATION_CHAR_WIDTH + OPERATOR_ANNOTATION_PADDING),
-            );
-            return {
-                edge,
-                badge: {
-                    ...placeOperatorAnnotation(child, scene.layoutConfig.input!),
-                    width,
-                    text: badgeText,
-                    background,
-                    foreground: contrastingTextColor(background),
-                    description,
-                },
-            };
+                Math.max(OPERATOR_ANNOTATION_MIN_WIDTH, text.length * OPERATOR_ANNOTATION_CHAR_WIDTH + OPERATOR_ANNOTATION_PADDING),
+            ),
+            text,
+            background,
+            foreground: contrastingTextColor(background),
+            border,
+            description,
         });
-    }, [scene, execution, annotationMode, rowColorScheme, edgeDifferenceColor]);
+        switch (annotationMode) {
+            case 'rows':
+            case 'estimates':
+            case 'accuracy':
+                break;
+            case 'cpu': {
+                // The share of the CPU time of all operators, colored relative to the operator with the most
+                const cpu = scene.operators.map(operator => stat(execution.operators[operator.id], field.CPU_TIME, s => s.cpuTimeUs));
+                const total = cpu.reduce<number>((sum, value) => sum + (value ?? 0), 0);
+                const max = cpu.reduce<number>((maximum, value) => Math.max(maximum, value ?? 0), 0);
+                return scene.operators.flatMap((operator, index) => {
+                    const value = cpu[index];
+                    if (value == null) return [];
+                    const share = total === 0 ? 0 : value / total;
+                    return [{
+                        operator: operator.id,
+                        edge: null,
+                        badge: badge(
+                            operator,
+                            formatCpuShare(share),
+                            costColorScheme(max === 0 ? 0 : value / max),
+                            `CPU ${formatElapsed(value / 1000)}, ${formatCpuShare(share)} of the CPU time of all operators`,
+                        ),
+                    }];
+                });
+            }
+            case 'memory': {
+                const memory = scene.operators.map(operator => stat(execution.operators[operator.id], field.MEMORY_BYTES, s => s.memoryBytes));
+                const max = memory.reduce<number>((maximum, value) => Math.max(maximum, value ?? 0), 0);
+                return scene.operators.flatMap((operator, index) => {
+                    const value = memory[index];
+                    if (value == null) return [];
+                    const spilledBytes = stat(execution.operators[operator.id], field.SPILLED_BYTES, s => s.spilledBytes) ?? 0;
+                    return [{
+                        operator: operator.id,
+                        edge: null,
+                        badge: badge(
+                            operator,
+                            formatShortBytes(value),
+                            costColorScheme(max === 0 ? 0 : value / max),
+                            `Memory ${formatCompactBytes(value)}${spilledBytes > 0 ? `, spilled ${formatCompactBytes(spilledBytes)} to disk` : ''}`,
+                            spilledBytes > 0 ? SPILLED_BADGE_BORDER : null,
+                        ),
+                    }];
+                });
+            }
+            default:
+                return [];
+        }
+        // Actual and estimated rows share one color scale, the same color is the same row count in both modes
+        const maxRowValue = scene.edges.reduce(
+            (maximum, edge, edgeIndex) => Math.max(maximum, actualRows[edgeIndex] ?? 0, edge.outputCardinalityEstimated ?? 0),
+            0,
+        );
+        const rowScale = (rows: number) => maxRowValue === 0 ? 0 : Math.log1p(rows) / Math.log1p(maxRowValue);
+        return scene.edges.flatMap((edge, edgeIndex) => {
+            const child = scene.operators[edge.childOperator];
+            if (child == null || scene.operators[edge.parentOperator] == null) return [];
+            const actual = actualRows[edgeIndex];
+            const estimated = edge.outputCardinalityEstimated;
+            let annotation: ProfileEdgeBadge | null = null;
+            if (annotationMode === 'rows' && actual != null) {
+                annotation = badge(child, formatCompactCount(actual), rowColorScheme(rowScale(actual)), `Actual rows ${formatRowCount(actual)}`);
+            } else if (annotationMode === 'estimates' && estimated != null) {
+                annotation = badge(child, formatCompactCount(estimated), rowColorScheme(rowScale(estimated)), `Estimated rows ${formatRowCount(Math.round(estimated))}`);
+            } else if (annotationMode === 'accuracy' && actual != null && estimated != null) {
+                const difference = estimateRelativeDifference(estimated, actual);
+                annotation = badge(
+                    child,
+                    formatEstimateSymbol(difference, Math.abs(actual - estimated)),
+                    edgeDifferenceColor(difference),
+                    `Actual rows ${formatRowCount(actual)}, estimated rows ${formatRowCount(Math.round(estimated))}, difference ${formatRelativeDifference(difference)}`,
+                );
+            }
+            return annotation == null ? [] : [{ operator: child.id, edge, badge: annotation }];
+        });
+    }, [scene, execution, actualRows, annotationMode, rowColorScheme, costColorScheme, edgeDifferenceColor]);
+    /// Did an operator spill to disk? The memory legend explains the border then.
+    const spilled = React.useMemo(
+        () => annotationMode === 'memory' && annotations.some(annotation => annotation.badge.border != null),
+        [annotationMode, annotations],
+    );
     /// The width of what the annotation slot of an operator shows, the label is centered in the rest of the operator
     const annotationWidths = React.useMemo(() => {
         const widths = new Map<number, number>();
-        for (const rendered of renderedEdges) {
-            if (rendered.badge != null) widths.set(rendered.edge.childOperator, rendered.badge.width);
-        }
+        for (const annotation of annotations) widths.set(annotation.operator, annotation.badge.width);
         return widths;
-    }, [renderedEdges]);
+    }, [annotations]);
     const highlightedEdges = React.useMemo(() => {
         const operatorId = selection?.operator.id;
         return operatorId == null
@@ -548,7 +667,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
     const anchorRef = React.useMemo(() => ({ current: selection?.anchor ?? null }), [selection?.anchor]);
     // The legend goes where a plan leaves space: top left above a top-down plan, bottom left above the
     // annotation controls below a left-to-right plan
-    const legend = annotationMode === 'rows' ? (
+    const legend = annotationMode === 'rows' || annotationMode === 'estimates' ? (
         <div
             className={styles.edge_legend}
             role="img"
@@ -564,11 +683,30 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                 />
             </div>
         </div>
-    ) : annotationMode === 'estimates' ? (
+    ) : annotationMode === 'cpu' || annotationMode === 'memory' ? (
         <div
             className={styles.edge_legend}
             role="img"
-            data-testid="plan-estimates-legend"
+            data-testid={`plan-${annotationMode}-legend`}
+            aria-label={annotationMode === 'cpu'
+                ? 'Badges show the share of the CPU time of all operators, the color goes from none on the left to the operator with the most CPU time on the right'
+                : `Badges show the memory of an operator, the color goes from none on the left to the operator with the most memory on the right${spilled ? ', an orange border marks an operator that spilled to disk' : ''}`}
+        >
+            <div className={styles.edge_legend_scale}>
+                <span>{annotationMode === 'cpu' ? 'Less CPU' : 'Less memory'}</span>
+                <span>{annotationMode === 'cpu' ? 'More CPU' : 'More memory'}</span>
+                <i
+                    aria-hidden="true"
+                    style={{ backgroundImage: `linear-gradient(to right, ${costLegendGradient})` }}
+                />
+                {spilled && <span className={styles.edge_legend_note} style={{ borderColor: SPILLED_BADGE_BORDER }}>Spilled to disk</span>}
+            </div>
+        </div>
+    ) : annotationMode === 'accuracy' ? (
+        <div
+            className={styles.edge_legend}
+            role="img"
+            data-testid="plan-accuracy-legend"
             aria-label="Badge color compares actual rows with estimates: red on the left means underestimated, the center means matched, and blue on the right means overestimated; differences are capped at 200 percent"
         >
             <div className={styles.edge_legend_scale}>
@@ -648,13 +786,13 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                         ))}
                     </g>
                     <g aria-hidden="true">
-                        {renderedEdges.map(rendered => (
+                        {scene.edges.map(edge => (
                             <path
-                                key={rendered.edge.id.toString()}
+                                key={edge.id.toString()}
                                 className={graphStyles.edge}
-                                d={rendered.edge.path}
+                                d={edge.path}
                                 style={{ strokeWidth: EDGE_WIDTH }}
-                                data-plan-edge-id={rendered.edge.id.toString()}
+                                data-plan-edge-id={edge.id.toString()}
                             />
                         ))}
                     </g>
@@ -710,30 +848,37 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                             />
                         ))}
                     </g>
-                    {/* The row annotations sit in the annotation slots of the operators, above their frames */}
+                    {/* The annotations sit in the annotation slots of the operators, above their frames */}
                     <g className={graphStyles.edgeBadgeLayer}>
-                        {(annotationMode === 'rows' || annotationMode === 'estimates') && renderedEdges.flatMap(rendered => rendered.badge == null ? [] : [(
-                            <g
-                                key={rendered.edge.id.toString()}
-                                className={graphStyles.edgeBadge}
-                                transform={`translate(${rendered.badge.x}, ${rendered.badge.y})`}
-                                role="img"
-                                aria-label={rendered.badge.description}
-                                data-plan-edge-badge-id={rendered.edge.id.toString()}
-                                data-highlighted={highlightedEdgeSet.has(rendered.edge) || undefined}
-                            >
-                                <rect
-                                    x={0}
-                                    y={-OPERATOR_ANNOTATION_HEIGHT / 2}
-                                    width={rendered.badge.width}
-                                    height={OPERATOR_ANNOTATION_HEIGHT}
-                                    rx={OPERATOR_ANNOTATION_HEIGHT / 2}
-                                    fill={highlightedEdgeSet.has(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : rendered.badge.background}
-                                    stroke={highlightedEdgeSet.has(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : EDGE_BADGE_BORDER}
-                                />
-                                <text x={rendered.badge.width / 2} fill={highlightedEdgeSet.has(rendered.edge) ? '#ffffff' : rendered.badge.foreground}>{rendered.badge.text}</text>
-                            </g>
-                        )])}
+                        {annotations.map(({ operator, edge, badge }) => {
+                            // An edge annotation is highlighted with its edge, an operator annotation with its operator
+                            const highlighted = edge != null ? highlightedEdgeSet.has(edge) : selection?.operator.id === operator;
+                            return (
+                                <g
+                                    key={edge != null ? `edge-${edge.id}` : `operator-${operator}`}
+                                    className={graphStyles.edgeBadge}
+                                    transform={`translate(${badge.x}, ${badge.y})`}
+                                    role="img"
+                                    aria-label={badge.description}
+                                    data-plan-edge-badge-id={edge?.id.toString()}
+                                    data-plan-operator-badge-id={edge == null ? operator.toString() : undefined}
+                                    data-spilled={badge.border != null || undefined}
+                                    data-highlighted={highlighted || undefined}
+                                >
+                                    <rect
+                                        x={0}
+                                        y={-OPERATOR_ANNOTATION_HEIGHT / 2}
+                                        width={badge.width}
+                                        height={OPERATOR_ANNOTATION_HEIGHT}
+                                        rx={OPERATOR_ANNOTATION_HEIGHT / 2}
+                                        fill={highlighted ? EDGE_HIGHLIGHT_COLOR : badge.background}
+                                        stroke={highlighted ? EDGE_HIGHLIGHT_COLOR : badge.border ?? EDGE_BADGE_BORDER}
+                                        strokeWidth={badge.border != null ? 1.5 : undefined}
+                                    />
+                                    <text x={badge.width / 2} fill={highlighted ? '#ffffff' : badge.foreground}>{badge.text}</text>
+                                </g>
+                            );
+                        })}
                     </g>
                 </g>
             </svg>

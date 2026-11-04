@@ -163,6 +163,16 @@
     border-radius: 2px;
 }
 
+/* A note below the scale, its border looks like the border of the badges it explains */
+.edge_legend_note {
+    grid-column: 1 / 3;
+    justify-self: start;
+    margin-top: 4px;
+    padding: 0 6px;
+    border: 1.5px solid;
+    border-radius: 8px;
+}
+
 .edge_legend_matched {
     grid-column: 1 / 3;
     position: relative;

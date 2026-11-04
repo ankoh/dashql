@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { estimateRelativeDifference, type ProfileScene, type ProfileSceneOperator } from './profile_scene.js';
-import { formatEstimateSymbol, formatFragmentMetrics, placeOperatorAnnotation, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
+import { formatCpuShare, formatEstimateSymbol, formatFragmentMetrics, formatShortBytes, placeOperatorAnnotation, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
 import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -24,6 +24,29 @@ function executionOf(rows: Array<number | null>): ProfileExecutionState {
     const operators = rows.map(value => value == null ? undefined : {
         status: view.ProfileExecutionStatus.SUCCEEDED,
         stats: new view.ProfileStatsT(view.ProfileStatsField.TUPLES_OUT, 0n, 0n, 0n, BigInt(value)),
+    });
+    return new ProfileExecutionState(null, [], [], [], operators);
+}
+
+/// The execution state with the CPU time, memory and spilled bytes of the operators, null if not reported
+function executionWithCosts(costs: Array<{ cpuUs?: number; memory?: number; spilled?: number } | null>): ProfileExecutionState {
+    const view = dashql.buffers.profile;
+    const operators = costs.map(cost => {
+        if (cost == null) return undefined;
+        const stats = new view.ProfileStatsT();
+        if (cost.cpuUs != null) {
+            stats.reported |= view.ProfileStatsField.CPU_TIME;
+            stats.cpuTimeUs = BigInt(cost.cpuUs);
+        }
+        if (cost.memory != null) {
+            stats.reported |= view.ProfileStatsField.MEMORY_BYTES;
+            stats.memoryBytes = BigInt(cost.memory);
+        }
+        if (cost.spilled != null) {
+            stats.reported |= view.ProfileStatsField.SPILLED_BYTES;
+            stats.spilledBytes = BigInt(cost.spilled);
+        }
+        return { status: view.ProfileExecutionStatus.SUCCEEDED, stats };
     });
     return new ProfileExecutionState(null, [], [], [], operators);
 }
@@ -132,6 +155,19 @@ describe('placeOperatorAnnotation', () => {
     });
 });
 
+describe('formatCpuShare', () => {
+    it('rounds to whole percent and marks a share below 1%', () => {
+        expect([0, 0.004, 0.01, 0.384, 1].map(formatCpuShare)).toEqual(['0%', '<1%', '1%', '38%', '100%']);
+    });
+});
+
+describe('formatShortBytes', () => {
+    it('keeps the bytes to at most 4 characters', () => {
+        expect([0, 999, 1234, 123_456, 999_600, 12_000_000, 3.4e11].map(formatShortBytes))
+            .toEqual(['0B', '999B', '1.2K', '120K', '1M', '12M', '340G']);
+    });
+});
+
 describe('formatEstimateSymbol', () => {
     it('maps estimate-relative differences to seven ordered bands', () => {
         expect([-1, -0.5, -0.25, -0.05, 0, 0.05, 0.25, 0.5, 2].map(value => formatEstimateSymbol(value)))
@@ -194,22 +230,34 @@ describe('QueryProfileView keyboard navigation', () => {
         act(() => root.render(<QueryProfileView plan={plan} execution={executionOf(actualRows)} edgeRendering={edgeRendering} dependencies={freshScene} />));
     }
 
-    function annotationButton(mode: 'plain' | 'rows' | 'estimates'): HTMLButtonElement {
+    function annotationButton(mode: 'plain' | 'rows' | 'estimates' | 'accuracy' | 'cpu' | 'memory'): HTMLButtonElement {
         return container.querySelector<HTMLButtonElement>(`[data-testid="plan-annotation-${mode}"]`)!;
     }
 
-    function selectAnnotation(mode: 'plain' | 'rows' | 'estimates') {
+    function annotationLabels(): string[] {
+        return [...container.querySelectorAll('[data-testid^="plan-annotation-"]')].map(button => button.textContent ?? '');
+    }
+
+    function selectAnnotation(mode: 'plain' | 'rows' | 'estimates' | 'accuracy' | 'cpu' | 'memory') {
         const button = annotationButton(mode);
         act(() => button.click());
         return button;
+    }
+
+    function operatorBadge(id: number): SVGGElement | null {
+        return container.querySelector<SVGGElement>(`[data-plan-operator-badge-id="${id}"]`);
+    }
+
+    function renderCosts(costs: Parameters<typeof executionWithCosts>[0]) {
+        act(() => root.render(<QueryProfileView plan={plan} execution={executionWithCosts(costs)} dependencies={dependencies} />));
     }
 
     function rowsLegend(): HTMLElement | null {
         return container.querySelector<HTMLElement>('[data-testid="plan-rows-legend"]');
     }
 
-    function estimatesLegend(): HTMLElement | null {
-        return container.querySelector<HTMLElement>('[data-testid="plan-estimates-legend"]');
+    function accuracyLegend(): HTMLElement | null {
+        return container.querySelector<HTMLElement>('[data-testid="plan-accuracy-legend"]');
     }
 
     function inspector(): HTMLElement | null {
@@ -228,11 +276,40 @@ describe('QueryProfileView keyboard navigation', () => {
         expect(viewport.getBoundingClientRect().height).toBeCloseTo(240);
     });
 
-    it('renders estimated rows in Rows mode when actual rows are unavailable', () => {
+    it('starts with the estimated rows of a plan without actual rows', () => {
         expect(badge(10)?.textContent).toEqual('10');
-        expect(badge(10)?.getAttribute('aria-label')).toBeTruthy();
-        expect(annotationButton('rows').getAttribute('aria-current')).toEqual('true');
+        expect(badge(10)?.getAttribute('aria-label')).toEqual('Estimated rows 10');
+        expect(annotationButton('estimates').getAttribute('aria-current')).toEqual('true');
         expect(rowsLegend()).not.toBeNull();
+    });
+
+    it('offers no Rows and no Accuracy before actual rows arrive', () => {
+        expect(annotationLabels()).toEqual(['Plain', 'Estimates']);
+    });
+
+    it('offers no Estimates and no Accuracy without estimates', () => {
+        scene.edges[0].outputCardinalityEstimated = null;
+        scene.edges[1].outputCardinalityEstimated = null;
+        actualRows[0] = 50;
+        renderPlan();
+        expect(annotationLabels()).toEqual(['Plain', 'Rows']);
+        expect(annotationButton('rows').getAttribute('aria-current')).toEqual('true');
+    });
+
+    it('offers CPU and Memory only if an operator reports them', () => {
+        renderCosts([{ cpuUs: 10 }, null, null]);
+        expect(annotationLabels()).toEqual(['Plain', 'Estimates', 'CPU']);
+        renderCosts([{ memory: 10 }, null, null]);
+        expect(annotationLabels()).toEqual(['Plain', 'Estimates', 'Memory']);
+    });
+
+    it('falls back to the default mode when the chosen one has no data anymore', () => {
+        renderCosts([{ cpuUs: 10 }, null, null]);
+        selectAnnotation('cpu');
+        expect(operatorBadge(0)).not.toBeNull();
+        renderCosts([null, null, null]);
+        expect(annotationButton('estimates').getAttribute('aria-current')).toEqual('true');
+        expect(badge(10)?.textContent).toEqual('10');
     });
 
     it('renders actual rows in Rows mode when available', () => {
@@ -248,7 +325,7 @@ describe('QueryProfileView keyboard navigation', () => {
         expect(rowsLegend()).not.toBeNull();
     });
 
-    it('switches between Plain, Rows, and Estimates annotations', () => {
+    it('switches between Plain, Rows, Estimates and Accuracy annotations', () => {
         actualRows[0] = 100;
         renderPlan();
         expect(badge(10)).not.toBeNull();
@@ -257,31 +334,65 @@ describe('QueryProfileView keyboard navigation', () => {
         const plain = selectAnnotation('plain');
 
         expect(badge(10)).toBeNull();
-        expect(estimatesLegend()).toBeNull();
+        expect(accuracyLegend()).toBeNull();
         expect(rowsLegend()).toBeNull();
         expect(plain.getAttribute('aria-current')).toEqual('true');
 
-        selectAnnotation('estimates');
+        selectAnnotation('accuracy');
         expect(badge(10)).not.toBeNull();
-        expect(estimatesLegend()).not.toBeNull();
+        expect(accuracyLegend()).not.toBeNull();
         expect(rowsLegend()).toBeNull();
         expect(badge(10)?.textContent).toEqual(expectedEstimateSymbol(10, 100));
         expect(badge(10)?.getAttribute('aria-label')).toBeTruthy();
 
+        selectAnnotation('estimates');
+        expect(badge(10)?.textContent).toEqual('10');
+        expect(rowsLegend()).not.toBeNull();
+        expect(accuracyLegend()).toBeNull();
+
         selectAnnotation('rows');
         expect(badge(10)?.textContent).toEqual('100');
         expect(rowsLegend()).not.toBeNull();
-        expect(estimatesLegend()).toBeNull();
+        expect(accuracyLegend()).toBeNull();
     });
 
-    it('uses estimated rows per badge when actual rows are missing', () => {
+    it('shows the actual rows only in Rows mode and the estimates only in Estimates mode', () => {
         scene.edges[0].outputCardinalityEstimated = 100;
         scene.edges[1].outputCardinalityEstimated = 1;
         actualRows[0] = 50;
         renderPlan();
 
+        expect(annotationButton('rows').getAttribute('aria-current')).toEqual('true');
         expect(badge(10)?.textContent).toEqual('50');
+        expect(badge(11)).toBeNull();
+
+        selectAnnotation('estimates');
+        expect(badge(10)?.textContent).toEqual('100');
         expect(badge(11)?.textContent).toEqual('1');
+    });
+
+    it('shows no estimate of an edge without one', () => {
+        scene.edges[0].outputCardinalityEstimated = null;
+        actualRows[0] = 50;
+        renderPlan();
+        expect(badge(10)?.textContent).toEqual('50');
+
+        selectAnnotation('estimates');
+        expect(badge(10)).toBeNull();
+        expect(badge(11)?.textContent).toEqual('10');
+        // No edge has both, there is nothing to compare
+        expect(annotationButton('accuracy')).toBeNull();
+    });
+
+    it('colors actual and estimated rows on one scale', () => {
+        scene.edges[0].outputCardinalityEstimated = 100;
+        actualRows[0] = 1;
+        renderPlan();
+        const fill = () => badge(10)?.querySelector('rect')?.getAttribute('fill');
+        const actualFill = fill();
+        selectAnnotation('estimates');
+        expect(fill()).not.toEqual(actualFill);
+        expect(fill()).toEqual('rgb(73, 0, 106)');
     });
 
     it('uses the sequential RdPu scale for row counts', () => {
@@ -299,7 +410,7 @@ describe('QueryProfileView keyboard navigation', () => {
         scene.edges[1].outputCardinalityEstimated = 0;
         actualRows[1] = 200;
         renderPlan();
-        selectAnnotation('estimates');
+        selectAnnotation('accuracy');
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(5, 48, 97)');
         expect(badge(10)?.querySelector('rect')?.getAttribute('stroke')).toEqual('hsl(210, 13%, 74%)');
@@ -315,17 +426,59 @@ describe('QueryProfileView keyboard navigation', () => {
         expect(badge(10)?.querySelector('text')?.getAttribute('fill')).toEqual('#000000');
     });
 
+    it('shows the CPU share of every operator that reports CPU time, the root too', () => {
+        renderCosts([{ cpuUs: 100_000 }, { cpuUs: 300_000 }, null]);
+        selectAnnotation('cpu');
+
+        expect(badge(10)).toBeNull();
+        expect(operatorBadge(0)?.textContent).toEqual('25%');
+        expect(operatorBadge(1)?.textContent).toEqual('75%');
+        expect(operatorBadge(2)).toBeNull();
+        expect(operatorBadge(0)?.getAttribute('aria-label')).toEqual('CPU 100 ms, 25% of the CPU time of all operators');
+        // The operator with the most CPU time gets the end of the scale
+        expect(operatorBadge(1)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(127, 0, 0)');
+        expect(container.querySelector('[data-testid="plan-cpu-legend"]')).not.toBeNull();
+    });
+
+    it('shows the memory of every operator and marks the ones that spilled', () => {
+        renderCosts([{ memory: 0 }, { memory: 12_000_000, spilled: 4_000_000 }, { cpuUs: 10 }]);
+        selectAnnotation('memory');
+
+        expect(operatorBadge(0)?.textContent).toEqual('0B');
+        expect(operatorBadge(1)?.textContent).toEqual('12M');
+        expect(operatorBadge(2)).toBeNull();
+        expect(operatorBadge(0)?.getAttribute('data-spilled')).toBeNull();
+        expect(operatorBadge(1)?.getAttribute('data-spilled')).toEqual('true');
+        expect(operatorBadge(1)?.getAttribute('aria-label')).toEqual('Memory 12 MB, spilled 4 MB to disk');
+        expect(container.querySelector('[data-testid="plan-memory-legend"]')?.textContent).toContain('Spilled to disk');
+    });
+
+    it('leaves out the spill note of the memory legend without spilled operators', () => {
+        renderCosts([{ memory: 1000, spilled: 0 }, null, null]);
+        selectAnnotation('memory');
+        expect(operatorBadge(0)?.textContent).toEqual('1K');
+        expect(container.querySelector('[data-testid="plan-memory-legend"]')?.textContent).not.toContain('Spilled');
+    });
+
+    it('highlights the operator annotation of the selected operator', () => {
+        renderCosts([{ cpuUs: 1 }, { cpuUs: 1 }, null]);
+        selectAnnotation('cpu');
+        act(() => operator(0).dispatchEvent(new MouseEvent('click', { bubbles: true })));
+        expect(operatorBadge(0)?.getAttribute('data-highlighted')).toEqual('true');
+        expect(operatorBadge(1)?.getAttribute('data-highlighted')).toBeNull();
+    });
+
     it('supports a custom edge color interpolator', () => {
         scene.edges[0].outputCardinalityEstimated = 100;
         actualRows[0] = 0;
         scene.edges[1].outputCardinalityEstimated = 0;
         actualRows[1] = 100;
         renderPlan({ colorScheme: value => value < 0.5 ? '#000000' : '#ffffff' });
-        selectAnnotation('estimates');
+        selectAnnotation('accuracy');
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('#000000');
         expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('#ffffff');
-        const gradient = estimatesLegend()?.querySelector<HTMLElement>('[data-testid="plan-legend-gradient"]')?.style.backgroundImage;
+        const gradient = accuracyLegend()?.querySelector<HTMLElement>('[data-testid="plan-legend-gradient"]')?.style.backgroundImage;
         expect(gradient).toContain('rgb(0, 0, 0)');
         expect(gradient).toContain('rgb(255, 255, 255)');
     });
@@ -554,7 +707,7 @@ describe('QueryProfileView fragment progress', () => {
         expect(container.querySelector('[aria-label^="Fragment 1, containing operators"]')).not.toBeNull();
     });
 
-    it('shows the status of the operators first and replaces it with the row counts in Rows mode', () => {
+    it('shows the status of the operators first and replaces it with the row counts', () => {
         const execution = new ProfileExecutionState(null, [fragment(view.ProfileExecutionStatus.RUNNING, 4, 8)], [], [], []);
         act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
         const status = () => container.querySelector('[data-plan-operator-id="0"] [data-status]');
@@ -562,14 +715,15 @@ describe('QueryProfileView fragment progress', () => {
         const button = (mode: string) => container.querySelector<HTMLButtonElement>(`[data-testid="plan-annotation-${mode}"]`)!;
         // The label is centered right of the annotation, the operator spans 0..100 with 12 pixels of padding
         const labelX = () => container.querySelector('[data-plan-operator-id="0"] text')?.getAttribute('x');
+        // Without actual rows and statistics of the operators, only the estimates are there besides the status
         expect([...container.querySelectorAll('[data-testid^="plan-annotation-"]')].map(b => b.textContent))
-            .toEqual(['Status', 'Plain', 'Rows', 'Estimates']);
+            .toEqual(['Status', 'Plain', 'Estimates']);
         expect(button('status').getAttribute('aria-current')).toEqual('true');
         expect(status()).not.toBeNull();
         expect(rows()).toBeNull();
         expect(labelX()).toEqual(`${(12 + 14 + 88) / 2}`);
 
-        act(() => button('rows').click());
+        act(() => button('estimates').click());
         expect(status()).toBeNull();
         expect(rows()?.textContent).toEqual('10');
         expect(labelX()).toEqual(`${(12 + 20 + 88) / 2}`);
@@ -583,7 +737,7 @@ describe('QueryProfileView fragment progress', () => {
     it('offers no status without the progress mode', () => {
         act(() => root.render(<QueryProfileView plan={plan} dependencies={fragmentDependencies} />));
         expect(container.querySelector('[data-testid="plan-annotation-status"]')).toBeNull();
-        expect(container.querySelector<HTMLButtonElement>('[data-testid="plan-annotation-rows"]')?.getAttribute('aria-current')).toEqual('true');
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="plan-annotation-estimates"]')?.getAttribute('aria-current')).toEqual('true');
     });
 
     it('keeps the color of every fragment whatever its status, grey until colored', () => {

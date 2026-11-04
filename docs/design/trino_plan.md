@@ -93,10 +93,19 @@ different widths. The layout config comes from the app (`configure`).
 The app reads the FlatBuffer into a `ProfileScene`:
 
 - An operator is drawn at its layout width, which reserves an annotation slot left of the label. The annotation
-  control picks what the slot shows: Status (the status icon, only with progress, the default then), Plain (nothing),
-  Rows (the row count of the edge to the parent, as a pill colored by the row count) or Estimates (the estimate
-  symbol). The label or symbol is centered in the rest of the operator right of what the slot shows, in all of the
-  operator in Plain. The gaps between the operators only hold edges and contours.
+  control picks what the slot shows: Status (the status icon, only with progress), Plain (nothing), Rows (the actual
+  rows of the edge to the parent), Estimates (the estimated rows of the planner), Accuracy (the estimate symbol, how
+  far the estimate is off the actual rows), CPU (the share of the CPU time of all operators) or Memory (the memory of
+  the operator, an orange border if it spilled to disk). Every mode shows one kind of value, an operator without it
+  (no actual rows yet, no estimate, no statistics) shows nothing. Rows and Estimates are pills on one color scale of
+  the row count. CPU and Memory annotate every operator, the root too, colored relative to the operator with the
+  most. They come from the operator summaries of the QueryInfo, so an operator shows them once its stage is done.
+  Hyper reports no CPU time per operator.
+- A mode is offered only if some operator has its value: a plan without estimates has no Estimates and no Accuracy,
+  a plan that did not run no Rows. The view starts in Status with progress, else in Rows, else in Estimates, and goes
+  back there when the chosen mode loses its data.
+- The label or symbol is centered in the rest of the operator right of what the slot shows, in all of the operator in
+  Plain. The gaps between the operators only hold edges and contours.
 - An edge is an SVG path from the child to the parent (`buildEdgePathBetweenRectangles`).
 - A fragment contour encloses only the operators of the fragment, a nested fragment draws its own. `buildFragmentPath`
   pads every operator rectangle by 8px and adds a corridor (down, across, down) for every edge inside the
