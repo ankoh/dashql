@@ -20,13 +20,21 @@ pub struct RecordedQuery {
 }
 
 impl RecordedQuery {
-    /// The options to run the query with
-    pub fn options(&self, query_info_params: &str) -> QueryOptions {
+    /// The options to run the query with, QueryInfo is not sampled
+    pub fn options(&self) -> QueryOptions {
         QueryOptions {
             session: self.session.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+            cancel_after: self.cancel_after_ms.map(Duration::from_millis),
+            ..Default::default()
+        }
+    }
+
+    /// The options to run the query with, QueryInfo sampled every 500 ms with the query parameters
+    pub fn sampled_options(&self, query_info_params: &str) -> QueryOptions {
+        QueryOptions {
             query_info_interval: Some(Duration::from_millis(500)),
             query_info_params: query_info_params.to_string(),
-            cancel_after: self.cancel_after_ms.map(Duration::from_millis),
+            ..self.options()
         }
     }
 }

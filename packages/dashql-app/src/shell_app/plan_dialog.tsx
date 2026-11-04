@@ -7,6 +7,7 @@ import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
+import { rotateProfileLayoutOrientation } from '../views/query_profile/profile_layout_config.js';
 import { ProfileExecutionState } from '../query/profile_execution_state.js';
 import { CodeMirror } from '../session/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
@@ -139,7 +140,7 @@ function PlanDialog(props: PlanDialogProps) {
     const [expanded, setExpanded] = React.useState(false);
     const onRawChangeRef = React.useRef<(text: string) => void>(() => {});
     const rawTextIsValidRef = React.useRef(false);
-    const layoutConfig = React.useMemo(() => props.dependencies.createProfileLayoutConfig(false), [props.dependencies]);
+    const layoutConfig = React.useMemo(() => props.dependencies.createProfileLayoutConfig(), [props.dependencies]);
 
     const validate = React.useCallback((text: string): boolean => {
         setPlan(null);
@@ -163,6 +164,14 @@ function PlanDialog(props: PlanDialogProps) {
             return false;
         }
     }, [layoutConfig, props.core]);
+
+    // The view model keeps the orientation, the next plans of the editor are laid out with it as well
+    const rotate = React.useCallback(() => {
+        const viewModel = viewModelRef.current;
+        if (viewModel == null || plan == null) return;
+        const orientation = rotateProfileLayoutOrientation(viewModel.layout.orientation);
+        setPlan(viewModel.relayout(props.dependencies.createProfileLayoutConfig(orientation)));
+    }, [plan, props.dependencies]);
 
     const validationTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const cancelValidation = React.useCallback(() => {
@@ -323,7 +332,7 @@ function PlanDialog(props: PlanDialogProps) {
                     )}
                     {mode === PlanMode.Viewer && plan != null && (
                         <div className={styles.viewer}>
-                            <ProfileViewComponent plan={plan} execution={execution} autoFocus />
+                            <ProfileViewComponent plan={plan} execution={execution} onRotate={rotate} autoFocus />
                         </div>
                     )}
                 </div>

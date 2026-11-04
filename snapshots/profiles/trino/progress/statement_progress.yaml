@@ -7,7 +7,7 @@ trino-progress-snapshots:
         engine-id: 0
         operators: []
     updates:
-      - time: 33
+      - time: 36
         entity: query
         status: pending
         tuples-in: 0
@@ -18,7 +18,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 236
+      - time: 269
         entity: query
         status: running
         tuples-in: 0
@@ -29,7 +29,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 236
+      - time: 269
         entity: fragment
         index: 0
         status: running
@@ -39,7 +39,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 363
+      - time: 399
         entity: query
         status: running
         tuples-in: 0
@@ -50,7 +50,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 1
-      - time: 363
+      - time: 399
         entity: fragment
         index: 0
         status: running
@@ -60,7 +60,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 1
-      - time: 368
+      - time: 406
         entity: query
         status: running
         tuples-in: 0
@@ -71,24 +71,24 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 1
-      - time: 403
+      - time: 439
         entity: query
         status: succeeded
         tuples-in: 0
         bytes-in: 0
-        cpu-time-us: 4000
+        cpu-time-us: 5000
         wall-time-us: 5000
         memory-bytes: 120
         spilled-bytes: 0
         work-done: 1
         work-total: 1
-      - time: 403
+      - time: 439
         entity: fragment
         index: 0
         status: succeeded
         tuples-in: 1
         bytes-in: 0
-        cpu-time-us: 4000
+        cpu-time-us: 5000
         wall-time-us: 5000
         work-done: 1
         work-total: 1
@@ -123,7 +123,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 124
+      - time: 128
         entity: query
         status: running
         tuples-in: 0
@@ -134,7 +134,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 124
+      - time: 128
         entity: fragment
         index: 0
         status: running
@@ -144,7 +144,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 124
+      - time: 128
         entity: fragment
         index: 1
         status: running
@@ -154,7 +154,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 124
+      - time: 128
         entity: fragment
         index: 2
         status: running
@@ -164,7 +164,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 124
+      - time: 128
         entity: fragment
         index: 3
         status: running
@@ -174,18 +174,18 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 1127
+      - time: 1133
         entity: query
         status: running
         tuples-in: 0
         bytes-in: 0
         cpu-time-us: 0
         wall-time-us: 0
-        memory-bytes: 1219520
+        memory-bytes: 1221312
         spilled-bytes: 0
         work-done: 0
         work-total: 21
-      - time: 1127
+      - time: 1133
         entity: fragment
         index: 0
         status: running
@@ -195,7 +195,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 1
-      - time: 1127
+      - time: 1133
         entity: fragment
         index: 1
         status: running
@@ -205,7 +205,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 2
-      - time: 1127
+      - time: 1133
         entity: fragment
         index: 2
         status: running
@@ -215,7 +215,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 2
-      - time: 1127
+      - time: 1133
         entity: fragment
         index: 3
         status: running
@@ -225,60 +225,59 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 16
-      - time: 1853
-        entity: query
-        status: running
-        tuples-in: 6001215
-        bytes-in: 0
-        cpu-time-us: 2500000
-        wall-time-us: 3180000
-        memory-bytes: 2363456
-        spilled-bytes: 0
-        work-done: 16
-        work-total: 21
-      - time: 1853
-        entity: fragment
-        index: 3
-        status: running
-        tuples-in: 6001215
-        bytes-in: 0
-        cpu-time-us: 2500000
-        wall-time-us: 3180000
-        work-done: 16
-        work-total: 16
-      - time: 1858
+      - time: 1831
         entity: query
         status: running
         tuples-in: 6001279
         bytes-in: 3012
-        cpu-time-us: 2503000
-        wall-time-us: 3184000
-        memory-bytes: 2363456
+        cpu-time-us: 2453000
+        wall-time-us: 3144000
+        memory-bytes: 3499456
         spilled-bytes: 0
         work-done: 18
         work-total: 21
-      - time: 1858
+      - time: 1831
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 2
+      - time: 1831
         entity: fragment
         index: 2
-        status: running
+        status: succeeded
         tuples-in: 64
         bytes-in: 3012
         cpu-time-us: 3000
         wall-time-us: 4000
         work-done: 2
         work-total: 2
-      - time: 1863
+      - time: 1831
+        entity: fragment
+        index: 3
+        status: succeeded
+        tuples-in: 6001215
+        bytes-in: 0
+        cpu-time-us: 2450000
+        wall-time-us: 3140000
+        work-done: 16
+        work-total: 16
+      - time: 1865
         entity: query
         status: succeeded
         tuples-in: 6001215
         bytes-in: 3538
-        cpu-time-us: 2509000
-        wall-time-us: 3191000
-        memory-bytes: 2363456
+        cpu-time-us: 2458000
+        wall-time-us: 3149000
+        memory-bytes: 3499456
         spilled-bytes: 0
         work-done: 21
         work-total: 21
-      - time: 1863
+      - time: 1865
         entity: fragment
         index: 0
         status: succeeded
@@ -288,36 +287,16 @@ trino-progress-snapshots:
         wall-time-us: 2000
         work-done: 1
         work-total: 1
-      - time: 1863
+      - time: 1865
         entity: fragment
         index: 1
         status: succeeded
         tuples-in: 4
         bytes-in: 263
-        cpu-time-us: 4000
-        wall-time-us: 5000
-        work-done: 2
-        work-total: 2
-      - time: 1863
-        entity: fragment
-        index: 2
-        status: succeeded
-        tuples-in: 64
-        bytes-in: 3012
         cpu-time-us: 3000
-        wall-time-us: 4000
+        wall-time-us: 3000
         work-done: 2
         work-total: 2
-      - time: 1863
-        entity: fragment
-        index: 3
-        status: succeeded
-        tuples-in: 6001215
-        bytes-in: 0
-        cpu-time-us: 2500000
-        wall-time-us: 3180000
-        work-done: 16
-        work-total: 16
 
   - name: tpch_q3_sf1
     recording: tpch_q3_sf1
@@ -345,7 +324,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 218
+      - time: 211
         entity: query
         status: running
         tuples-in: 0
@@ -356,7 +335,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 218
+      - time: 211
         entity: fragment
         index: 0
         status: running
@@ -366,7 +345,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 218
+      - time: 211
         entity: fragment
         index: 1
         status: running
@@ -376,7 +355,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 218
+      - time: 211
         entity: fragment
         index: 2
         status: running
@@ -386,18 +365,18 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 1222
+      - time: 1215
         entity: query
         status: running
         tuples-in: 150000
         bytes-in: 0
-        cpu-time-us: 131000
-        wall-time-us: 137000
-        memory-bytes: 7792440
+        cpu-time-us: 166000
+        wall-time-us: 172000
+        memory-bytes: 6880648
         spilled-bytes: 0
         work-done: 16
         work-total: 55
-      - time: 1222
+      - time: 1215
         entity: fragment
         index: 0
         status: running
@@ -407,7 +386,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 2
-      - time: 1222
+      - time: 1215
         entity: fragment
         index: 1
         status: running
@@ -417,50 +396,60 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 37
-      - time: 1222
+      - time: 1215
         entity: fragment
         index: 2
-        status: running
+        status: succeeded
         tuples-in: 150000
         bytes-in: 0
-        cpu-time-us: 131000
-        wall-time-us: 137000
+        cpu-time-us: 166000
+        wall-time-us: 172000
         work-done: 16
         work-total: 16
-      - time: 2226
+      - time: 2251
         entity: query
         status: running
         tuples-in: 150000
         bytes-in: 0
-        cpu-time-us: 131000
-        wall-time-us: 137000
-        memory-bytes: 8265272
+        cpu-time-us: 166000
+        wall-time-us: 172000
+        memory-bytes: 11019728
         spilled-bytes: 0
         work-done: 16
         work-total: 55
-      - time: 2535
+      - time: 2747
         entity: query
         status: running
         tuples-in: 150000
         bytes-in: 0
-        cpu-time-us: 131000
-        wall-time-us: 137000
-        memory-bytes: 13276224
+        cpu-time-us: 166000
+        wall-time-us: 172000
+        memory-bytes: 12935904
         spilled-bytes: 0
         work-done: 16
         work-total: 55
-      - time: 2546
+      - time: 2747
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 0
+        bytes-in: 0
+        cpu-time-us: 0
+        wall-time-us: 0
+        work-done: 0
+        work-total: 37
+      - time: 2758
         entity: query
         status: succeeded
         tuples-in: 7681357
         bytes-in: 242026
-        cpu-time-us: 3982000
-        wall-time-us: 4258000
-        memory-bytes: 13276224
+        cpu-time-us: 4337000
+        wall-time-us: 4653000
+        memory-bytes: 12935904
         spilled-bytes: 0
         work-done: 55
         work-total: 55
-      - time: 2546
+      - time: 2758
         entity: fragment
         index: 0
         status: succeeded
@@ -470,26 +459,16 @@ trino-progress-snapshots:
         wall-time-us: 1000
         work-done: 2
         work-total: 2
-      - time: 2546
+      - time: 2758
         entity: fragment
         index: 1
         status: succeeded
         tuples-in: 7531357
         bytes-in: 241696
-        cpu-time-us: 3850000
-        wall-time-us: 4120000
+        cpu-time-us: 4170000
+        wall-time-us: 4480000
         work-done: 37
         work-total: 37
-      - time: 2546
-        entity: fragment
-        index: 2
-        status: succeeded
-        tuples-in: 150000
-        bytes-in: 0
-        cpu-time-us: 131000
-        wall-time-us: 137000
-        work-done: 16
-        work-total: 16
 
   - name: cancelled_sf10
     recording: cancelled_sf10
@@ -513,7 +492,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 18
+      - time: 19
         entity: query
         status: running
         tuples-in: 0
@@ -524,7 +503,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 0
-      - time: 18
+      - time: 19
         entity: fragment
         index: 0
         status: running
@@ -534,7 +513,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 18
+      - time: 19
         entity: fragment
         index: 1
         status: running
@@ -544,7 +523,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 1020
+      - time: 1021
         entity: query
         status: running
         tuples-in: 0
@@ -555,7 +534,7 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 18
-      - time: 1020
+      - time: 1021
         entity: fragment
         index: 0
         status: running
@@ -565,7 +544,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 2
-      - time: 1020
+      - time: 1021
         entity: fragment
         index: 1
         status: running
@@ -575,7 +554,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 16
-      - time: 2023
+      - time: 2025
         entity: query
         status: running
         tuples-in: 0
@@ -586,38 +565,38 @@ trino-progress-snapshots:
         spilled-bytes: 0
         work-done: 0
         work-total: 18
-      - time: 3026
+      - time: 3028
         entity: query
         status: running
-        tuples-in: 25501510
+        tuples-in: 0
         bytes-in: 0
-        cpu-time-us: 5080000
-        wall-time-us: 5280000
-        memory-bytes: 3416384
+        cpu-time-us: 0
+        wall-time-us: 0
+        memory-bytes: 3418176
         spilled-bytes: 0
-        work-done: 6
+        work-done: 0
         work-total: 18
-      - time: 3026
-        entity: fragment
-        index: 1
-        status: running
-        tuples-in: 25501510
-        bytes-in: 0
-        cpu-time-us: 5080000
-        wall-time-us: 5280000
-        work-done: 6
-        work-total: 16
-      - time: 4030
+      - time: 4032
         entity: query
         status: running
-        tuples-in: 25501510
+        tuples-in: 24732544
         bytes-in: 0
-        cpu-time-us: 5080000
-        wall-time-us: 5280000
+        cpu-time-us: 5250000
+        wall-time-us: 5430000
         memory-bytes: 3418176
         spilled-bytes: 0
         work-done: 6
         work-total: 18
+      - time: 4032
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 24732544
+        bytes-in: 0
+        cpu-time-us: 5250000
+        wall-time-us: 5430000
+        work-done: 6
+        work-total: 16
 
   - name: failed_cast
     recording: failed_cast
@@ -658,7 +637,7 @@ trino-progress-snapshots:
         wall-time-us: 0
         work-done: 0
         work-total: 0
-      - time: 33
+      - time: 36
         entity: query
         status: failed
         tuples-in: 0
@@ -667,9 +646,9 @@ trino-progress-snapshots:
         wall-time-us: 2000
         memory-bytes: 0
         spilled-bytes: 0
-        work-done: 3
+        work-done: 2
         work-total: 16
-      - time: 33
+      - time: 36
         entity: fragment
         index: 0
         status: failed
@@ -677,5 +656,5 @@ trino-progress-snapshots:
         bytes-in: 0
         cpu-time-us: 2000
         wall-time-us: 2000
-        work-done: 3
+        work-done: 2
         work-total: 16

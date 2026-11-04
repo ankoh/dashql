@@ -228,5 +228,31 @@ describe('Plan View Model', () => {
             }
             expect(properties.statistics).toEqual({ 'output-rows': 0 });
         });
+        it('lays out a loaded plan again with the other orientation', () => {
+            const plan = `{
+                "operator":"executiontarget","cardinality":10,
+                "input":{
+                    "operator":"join","cardinality":10,
+                    "left":{"operator":"tablescan","cardinality":10,"debugName":{"classification":"nonsensitive","value":"orders"}},
+                    "right":{"operator":"tablescan","cardinality":5,"debugName":{"classification":"nonsensitive","value":"region"}}
+                }
+            }`;
+            const { LEFT_TO_RIGHT } = dashql.buffers.profile.ProfileLayoutOrientation;
+            const leftToRight = Object.assign(new dashql.buffers.profile.ProfileLayoutConfigT(), DEFAULT_LAYOUT_CONFIG, { orientation: LEFT_TO_RIGHT });
+            const rects = (ptr: dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>) => {
+                const profile = ptr.read();
+                return Array.from({ length: profile.operatorsLength() }, (_, i) => profile.operators(i)!.layoutRect()!.unpack());
+            };
+
+            const viewModel = dql!.createQueryProfile(DEFAULT_LAYOUT_CONFIG);
+            const topDown = rects(viewModel.loadHyperPlan(plan));
+            const rotated = viewModel.relayout(leftToRight);
+            expect(rotated.read().layoutConfig()!.input()!.orientation()).toEqual(LEFT_TO_RIGHT);
+            expect(rects(rotated)).not.toEqual(topDown);
+
+            // The rotated plan is laid out like a plan loaded with the other orientation
+            const fresh = dql!.createQueryProfile(leftToRight);
+            expect(rects(rotated)).toEqual(rects(fresh.loadHyperPlan(plan)));
+        });
     });
 });

@@ -21,6 +21,20 @@ pub fn snapshot_config() -> fb::ProfileLayoutConfig {
     config
 }
 
+/// The layout config of a snapshot case with an optional `layout` (`top-down` by default, or `left-to-right`)
+pub fn snapshot_config_with_layout(layout: Option<&str>) -> Result<fb::ProfileLayoutConfig, String> {
+    let mut config = snapshot_config();
+    match layout {
+        None | Some("top-down") => {}
+        Some("left-to-right") => {
+            config.set_node_margin_vertical(12.0);
+            config.set_orientation(fb::ProfileLayoutOrientation::LEFT_TO_RIGHT);
+        }
+        Some(other) => return Err(format!("unknown layout {other}")),
+    }
+    Ok(config)
+}
+
 /// Format a double with six decimals (`%f`)
 fn to_string(v: f64) -> String {
     format!("{v:.6}")
@@ -223,8 +237,9 @@ pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {
 
 /// Encode a Trino profile snapshot case: parse the plan of a recording, from the EXPLAIN plan (`explain`) or the
 /// stage plans of the final QueryInfo (`query-info`), lay it out, and replay the statement polls and QueryInfo
-/// samples on top, in the order they arrived. Returns the sections of `encode_query_profile` and `updates`.
-pub fn encode_trino_profile(recording: &str, source: &str) -> Result<Map, String> {
+/// samples on top, in the order they arrived. The plan grows top-down unless `layout` is `left-to-right`.
+/// Returns the sections of `encode_query_profile` and `updates`.
+pub fn encode_trino_profile(recording: &str, source: &str, layout: Option<&str>) -> Result<Map, String> {
     let recording: serde_json::Value = serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
     let plan = match source {
         "explain" => recording["explain"].clone(),
@@ -237,7 +252,7 @@ pub fn encode_trino_profile(recording: &str, source: &str) -> Result<Map, String
     let mut profile = QueryProfile::new();
     let plan = serde_json::to_vec(&plan).expect("a JSON value always serializes");
     profile.parse_trino_plan(&plan).map_err(|e| format!("cannot parse plan: {e:?}"))?;
-    profile.configure(&snapshot_config());
+    profile.configure(&snapshot_config_with_layout(layout)?);
     profile.compute_layout();
     // Replay the statement polls and the QueryInfo samples in the order they arrived
     let mut payloads: Vec<(u64, bool, Vec<u8>)> = Vec::new();

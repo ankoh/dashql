@@ -7,7 +7,7 @@
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use trino_testing::queries::RECORDED_QUERIES;
-use trino_testing::{QueryOptions, QueryRun, TrinoClient, TrinoServer};
+use trino_testing::{is_final_query_info, QueryOptions, QueryRun, TrinoClient, TrinoServer};
 
 /// Collects the outcome of the checks
 #[derive(Default)]
@@ -195,12 +195,42 @@ fn check_query_info(checks: &mut Checks, run: &QueryRun, explain: &Value) {
     });
     let final_operators = stages(info).iter().map(|s| operator_summaries(s).len()).sum::<usize>();
     checks.check("finished stages report their operator summaries", final_operators > 0, String::new);
+
+    // A stage whose tasks are done waits for the query in PENDING, it finishes with the query. It reports its
+    // operator summaries while the query still runs, and they are the ones it ends with. Right after the stage
+    // turned PENDING the final task infos may still be missing, the summaries are empty then. The app fetches
+    // QueryInfo when the statement stats show such a stage, and again while one has no summaries.
+    let output_rows = |stage: &Value| operator_summaries(stage).iter().filter_map(|o| o["outputPositions"].as_u64()).sum::<u64>();
+    let final_rows: BTreeMap<&str, u64> = stages(info).iter().map(|s| (str_of(s, "stageId"), output_rows(s))).collect();
+    let early: Vec<(&str, u64)> = run
+        .query_infos
+        .iter()
+        .filter(|i| str_of(&i.body, "state") == "RUNNING")
+        .flat_map(|i| stages(&i.body))
+        .filter(|s| matches!(str_of(s, "state"), "PENDING" | "FINISHED"))
+        .map(|s| (str_of(s, "stageId"), output_rows(s)))
+        .collect();
+    checks.check("the tasks of a stage are done before the query", !early.is_empty(), String::new);
+    let reported: Vec<&(&str, u64)> = early.iter().filter(|(_, rows)| *rows > 0).collect();
+    let complete = !reported.is_empty() && reported.iter().all(|(id, rows)| final_rows.get(id) == Some(rows));
+    checks.check("a pending stage reports its final operator summaries while the query runs", complete, || {
+        format!("{early:?} vs {final_rows:?}")
+    });
+
+    // The QueryInfo becomes final shortly after the last statement response
+    let last_response = run.statement_responses.last().map(|r| r.elapsed_ms).unwrap_or(0);
+    let first_final = run.query_infos.iter().find(|i| is_final_query_info(&i.body)).map(|i| i.elapsed_ms);
+    let in_time = first_final.is_some_and(|t| t <= last_response + 3000);
+    checks.check("the QueryInfo is final within 3 s of the last statement response", in_time, || {
+        format!("last response at {last_response} ms, final QueryInfo at {first_final:?} ms")
+    });
 }
 
 /// Run a recorded query, with its distributed plan if it is recorded
 fn run(client: &TrinoClient, name: &str) -> (QueryRun, Value) {
     let query = RECORDED_QUERIES.iter().find(|q| q.name == name).expect("a recorded query");
-    let run = client.run_query(query.sql, &query.options("")).unwrap_or_else(|e| panic!("{name}: {e}"));
+    let options = QueryOptions { query_info_on_stage_finish: true, ..query.sampled_options("") };
+    let run = client.run_query(query.sql, &options).unwrap_or_else(|e| panic!("{name}: {e}"));
     let explain = match query.explain {
         true => client.explain_distributed(query.sql).expect("EXPLAIN"),
         false => Value::Null,
@@ -225,18 +255,38 @@ fn check_failures(checks: &mut Checks, client: &TrinoClient) {
     checks.check("a failing query ends FAILED", last_state == Some("FAILED"), || format!("{last_state:?}"));
 }
 
-/// QueryInfo can be pruned: it drops the stage plans and keeps the stats
+/// QueryInfo can be pruned: it drops the stage plans and every stage but the output stage
 fn check_pruned_query_info(checks: &mut Checks, client: &TrinoClient) {
     let sql = "SELECT count(*) FROM tpch.tiny.lineitem";
     let finished = client.run_query(sql, &QueryOptions::default()).expect("a query");
-    let path = format!("/v1/query/{}?pruned=true", finished.query_id);
-    let info = client.get_json(&path).expect("pruned QueryInfo");
+    let full = client.get_json(&format!("/v1/query/{}", finished.query_id)).expect("QueryInfo");
+    let info = client.get_json(&format!("/v1/query/{}?pruned=true", finished.query_id)).expect("pruned QueryInfo");
     let pruned = info.get("pruned");
     checks.check("pruned=true prunes QueryInfo", pruned == Some(&Value::Bool(true)), || format!("{pruned:?}"));
-    let stages = stages(&info);
-    checks.check("pruned QueryInfo drops the stage plans", stages.iter().all(|s| stage_plan(s).is_none()), String::new);
-    let with_operators = stages.iter().any(|s| !operator_summaries(s).is_empty());
-    checks.check("pruned QueryInfo keeps the operator summaries", with_operators, String::new);
+    let pruned_stages = stages(&info);
+    let all_plans_dropped = pruned_stages.iter().all(|s| stage_plan(s).is_none());
+    checks.check("pruned QueryInfo drops the stage plans", all_plans_dropped, String::new);
+    let ids: Vec<&str> = pruned_stages.iter().map(|s| str_of(s, "stageId")).collect();
+    let output = info.pointer("/stages/outputStageId").and_then(Value::as_str);
+    let only_output = stages(&full).len() > 1 && output.is_some_and(|o| ids == [o]);
+    checks.check("pruned QueryInfo of a finished query keeps only the output stage", only_output, || {
+        format!("{ids:?} of {} stages", stages(&full).len())
+    });
+
+    // While the query runs, the statement stats show the stage tree, the pruned QueryInfo the output stage
+    let query = RECORDED_QUERIES.iter().find(|q| q.name == "tpch_q3_sf1").expect("a recorded query");
+    let running = client.run_query(query.sql, &query.sampled_options("pruned=true")).expect("a query");
+    let live: Vec<usize> = running
+        .query_infos
+        .iter()
+        .filter(|i| str_of(&i.body, "state") == "RUNNING" && i.body.get("pruned") == Some(&Value::Bool(true)))
+        .map(|i| stages(&i.body).len())
+        .collect();
+    let stage_tree = running.stats().filter_map(|s| s.get("rootStage")).map(|r| stage_tree_ids(r).len()).max();
+    let only_output = !live.is_empty() && live.iter().all(|n| *n == 1) && stage_tree.unwrap_or(0) > 1;
+    checks.check("pruned QueryInfo of a running query keeps only the output stage", only_output, || {
+        format!("stages per sample {live:?}, stage tree of {stage_tree:?}")
+    });
 }
 
 fn main() {

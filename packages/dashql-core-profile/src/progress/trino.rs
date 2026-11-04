@@ -27,13 +27,13 @@ fn query_status(state: &str) -> Option<Status> {
     }
 }
 
-/// The status of a Trino stage state (`StageState`). A stage is `PENDING` after `RUNNING`: its tasks are done,
-/// the stage is not, it still runs.
+/// The status of a Trino stage state (`StageState`). A stage is `PENDING` after `RUNNING`: its tasks are done and
+/// it waits for the query to finish, its work is done.
 fn stage_status(state: &str) -> Option<Status> {
     match state {
         "PLANNED" | "SCHEDULING" => Some(Status::Pending),
-        "SCHEDULED" | "RUNNING" | "PENDING" => Some(Status::Running),
-        "FINISHED" => Some(Status::Succeeded),
+        "SCHEDULED" | "RUNNING" => Some(Status::Running),
+        "PENDING" | "FINISHED" => Some(Status::Succeeded),
         "FAILED" | "ABORTED" => Some(Status::Failed),
         "CANCELED" => Some(Status::Skipped),
         _ => None,
@@ -180,8 +180,9 @@ fn slot_stats(operators: &[&Value]) -> Stats {
 }
 
 /// The input events of a QueryInfo (`/v1/query/{id}`, pruned or not): the pipelines of the stages and the
-/// statistics of their slots from the operator summaries. Trino reports operator summaries of finished stages
-/// only (and of every stage for EXPLAIN ANALYZE). Operators that are not in the plan are skipped.
+/// statistics of their slots from the operator summaries. Trino reports the operator summaries of a stage once its
+/// tasks are done (the stage is `PENDING` until the query finishes, then `FINISHED`), and of every stage for
+/// EXPLAIN ANALYZE. A pruned QueryInfo keeps the output stage only. Operators that are not in the plan are skipped.
 pub(crate) fn trino_query_info_events(model: &QueryProfile, info: &Value, time: u64) -> Vec<ProfileInputEvent> {
     let mut events = Vec::new();
     let fragments: HashMap<&str, u32> = model

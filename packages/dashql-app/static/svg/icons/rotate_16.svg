@@ -1,0 +1,7 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="rotate_16" viewBox="0 0 16 16">
+        <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M11.89 4.11A5.5 5.5 0 1 1 7.2 2.56" />
+        <path fill="currentColor" d="M6.75 0.25L10.25 2.5L6.75 4.75Z" />
+    </symbol>
+    <use xlink:href="#rotate_16" />
+</svg>

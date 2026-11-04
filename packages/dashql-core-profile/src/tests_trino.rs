@@ -41,11 +41,11 @@ fn stitches_fragments_into_one_tree() {
     assert_eq!(operators.len(), 7);
     assert_eq!(profile.operator_edges().unwrap().len(), 6);
 
-    // The fragments nest along the remote sources, the root fragment draws no contour
+    // The fragments nest along the remote sources, every fragment draws a contour around its own operators
     let fragments = profile.fragments().unwrap();
     let described: Vec<(&str, u32, u8)> =
         fragments.iter().map(|f| (string(&profile, f.engine_id()), f.parent_fragment(), f.hidden())).collect();
-    assert_eq!(described, vec![("0", u32::MAX, 1), ("1", 0, 0), ("2", 1, 0), ("3", 1, 0)]);
+    assert_eq!(described, vec![("0", u32::MAX, 0), ("1", 0, 0), ("2", 1, 0), ("3", 1, 0)]);
     for (f, fragment) in fragments.iter().enumerate() {
         let root = operators.get(fragment.root_operator() as usize);
         assert_eq!(root.fragment(), f as u32);
@@ -58,10 +58,47 @@ fn stitches_fragments_into_one_tree() {
     assert_eq!(described, (fb::ProfileOperatorKind::SCAN, "customer", 150000.0));
     assert_eq!(by_engine_id("7").kind(), fb::ProfileOperatorKind::JOIN);
     assert!(by_engine_id("7").estimated_rows().is_nan());
-    assert_eq!(by_engine_id("8").kind(), fb::ProfileOperatorKind::EXCHANGE);
+    assert_eq!(by_engine_id("8").kind(), fb::ProfileOperatorKind::REMOTE_EXCHANGE);
     assert_eq!(by_engine_id("3").kind(), fb::ProfileOperatorKind::VIRTUAL_TABLE);
     // The remote source reads both fragments
     assert_eq!(by_engine_id("6").children_count(), 2);
+}
+
+#[test]
+fn maps_the_node_names_of_the_plan_printer_to_kinds() {
+    use fb::ProfileOperatorKind as K;
+    let names = [
+        ("FilterProject", "{}", K::FILTER),
+        ("IndexSource", "{}", K::SCAN),
+        ("Offset", "{}", K::LIMIT),
+        ("PatternRecognition", "{}", K::WINDOW),
+        ("SpatialInnerJoin", "{}", K::JOIN),
+        ("InnerIndexJoin", "{}", K::JOIN),
+        ("SpatialLeftJoin", "{}", K::LEFT_OUTER_JOIN),
+        ("SourceOuterIndexJoin", "{}", K::LEFT_OUTER_JOIN),
+        ("FullJoin", "{}", K::FULL_OUTER_JOIN),
+        ("Intersect", r#"{"isDistinct": "true"}"#, K::INTERSECT),
+        ("Except", r#"{"isDistinct": ""}"#, K::EXCEPT_ALL),
+        ("TableCommit", "{}", K::INSERT),
+        ("LocalExchange", "{}", K::EXCHANGE),
+        ("LocalExchange", r#"{"partitioning": "SINGLE"}"#, K::GATHER_EXCHANGE),
+        ("LocalExchange", r#"{"partitioning": "ROUND_ROBIN"}"#, K::REPARTITION_EXCHANGE),
+        ("LocalExchange", r#"{"partitioning": "BROADCAST"}"#, K::BROADCAST_EXCHANGE),
+        ("RemoteMerge", "{}", K::REMOTE_EXCHANGE),
+        ("GroupId", "{}", K::OTHER),
+    ];
+    let node = |(i, (name, descriptor, _)): (usize, &(&str, &str, K))| {
+        format!(r#"{{"id": "{i}", "name": "{name}", "descriptor": {descriptor}}}"#)
+    };
+    let children: Vec<String> = names.iter().enumerate().map(node).collect();
+    let plan = format!(r#"{{"0": {{"id": "root", "name": "Union", "children": [{}]}}}}"#, children.join(","));
+    let buffer = parse(&plan).unwrap();
+    let profile = root(&buffer);
+    let operators = profile.operators().unwrap();
+    for (i, (name, descriptor, kind)) in names.into_iter().enumerate() {
+        let op = operators.iter().find(|op| string(&profile, op.engine_id()) == i.to_string()).unwrap();
+        assert_eq!((name, descriptor, op.kind()), (name, descriptor, kind));
+    }
 }
 
 #[test]

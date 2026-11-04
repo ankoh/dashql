@@ -35,7 +35,7 @@ A `RemoteSource` or `RemoteMerge` node reads the output of the fragments in `des
 - A fragment is read once. A second reference to the same fragment is ignored, so a fragment read by two
   nodes hangs below the first one only.
 - Every fragment becomes a `Fragment` with its fragment id as engine id and the reading fragment as
-  `parent_fragment`. The root fragment is `hidden`, its contour would enclose the whole plan.
+  `parent_fragment`. The root fragment is a stage like the others and draws a contour.
 
 Per node the reader keeps:
 
@@ -47,6 +47,10 @@ Per node the reader keeps:
 | `operator_label` | `descriptor.table`, last `:` component (`lineitem`) |
 | `estimated_rows` | `estimates[0].outputRowCount`                       |
 | `attributes`     | every other member, serialized as JSON              |
+
+An exchange gets its kind from where it sends rows. A `RemoteSource` or `RemoteMerge` is a remote exchange. A
+`LocalExchange` gathers (`partitioning` `SINGLE`, `COORDINATOR_ONLY`), broadcasts (`BROADCAST`), stays a plain
+exchange (`UNKNOWN`, no partitioning), or else repartitions (`HASH`, `ROUND_ROBIN`, a connector partitioning).
 
 Fragment ids and plan node ids are the engine ids, so the stage progress of a running query
 (`progress/trino.rs`) finds its fragments and operators.
@@ -66,9 +70,10 @@ indexes (`identify_operator_edges`).
 The layout is Walker's tree layout with the linear-time fix of Buchheim, Jünger and Leipert, for nodes of
 different widths. The layout config comes from the app (`configure`).
 
-- Node width: `node_padding_left + icon_width + icon_margin_right + label_chars * width_per_label_char +
-  node_padding_right`, at least `node_min_width`. The label is the operator label or else the type, capped at
-  `max_label_chars`.
+- Node width: `node_padding_left + icon_width + icon_margin_right + content + node_padding_right`, at least
+  `node_min_width`. The content is `label_chars * width_per_label_char` for the operator label or else the type,
+  capped at `max_label_chars`. An operator without a label of its own and with a kind other than `OTHER` shows the
+  symbol of its kind, its content is `symbol_width` if that is set.
 - Separation of two neighbors, center to center: `left.width / 2 + node_margin_horizontal + right.width / 2`.
 - `first_walk`, bottom-up: a leaf sits right of its left sibling, an inner node is centered over its first and
   last child. `apportion` walks the facing contours of neighboring subtrees level by level and moves the right
@@ -87,15 +92,20 @@ different widths. The layout config comes from the app (`configure`).
 
 The app reads the FlatBuffer into a `ProfileScene`:
 
-- The display width of an operator comes from `getProfileOperatorDisplayWidth` and can differ from the layout
-  width.
+- An operator is drawn at its layout width, which reserves an annotation slot left of the label. The annotation
+  control picks what the slot shows: Status (the status icon, only with progress, the default then), Plain (nothing),
+  Rows (the row count of the edge to the parent, as a pill colored by the row count) or Estimates (the estimate
+  symbol). The label or symbol is centered in the rest of the operator right of what the slot shows, in all of the
+  operator in Plain. The gaps between the operators only hold edges and contours.
 - An edge is an SVG path from the child to the parent (`buildEdgePathBetweenRectangles`).
-- A fragment contour encloses the operators of the fragment and of all nested fragments. `buildFragmentPath`
-  pads every operator rectangle by 12px and adds a corridor (down, across, down) for every edge inside the
-  set. `traceFragmentRectangles` fills a grid built from the rectangle bounds, collects the boundary segments
-  of the filled cells, and chains them into closed paths with rounded corners.
-- The progress badge of a stage sits at the top right corner of the contour around its root operator.
-  Hidden fragments get no contour.
+- A fragment contour encloses only the operators of the fragment, a nested fragment draws its own. `buildFragmentPath`
+  pads every operator rectangle by 8px and adds a corridor (down, across, down) for every edge inside the
+  set. An operator directly below its parent (or directly right of it in a left-to-right plan) instead fills the
+  gap as wide as the narrower padded operator, so the two share one straight envelope.
+  `traceFragmentRectangles` fills a grid built from the rectangle bounds, collects the boundary segments of the
+  filled cells, and chains them into closed paths with rounded corners. Hidden fragments get no contour.
+- The metrics of a stage (processed rows and bytes, CPU time, and the splits until it succeeded) are only part of the
+  accessible label of its contour for now, they have no card on the plan.
 
 ## Tests
 

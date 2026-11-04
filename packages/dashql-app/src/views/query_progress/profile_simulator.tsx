@@ -4,7 +4,7 @@ import * as styles from './profile_simulator.module.css';
 
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { readProfileRecording, recordingDuration, replayRecording, type ProfileRecording } from '../../query/query_progress_model.js';
-import { createProfileLayoutConfig } from '../query_profile/profile_layout_config.js';
+import { createProgressLayoutConfig } from '../query_profile/profile_layout_config.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { XIcon } from '../../ui/foundations/symbol_icon.js';
 import { ProfileProgressDetails } from './query_progress_panel.js';
@@ -29,7 +29,7 @@ export function ProfileSimulator(props: ProfileSimulatorProps) {
     const [error, setError] = React.useState<string | null>(null);
     const [time, setTime] = React.useState(0);
     const [playing, setPlaying] = React.useState(false);
-    const layout = React.useMemo(() => createProfileLayoutConfig(true), []);
+    const layout = React.useMemo(() => createProgressLayoutConfig(), []);
 
     React.useEffect(() => {
         let cancelled = false;

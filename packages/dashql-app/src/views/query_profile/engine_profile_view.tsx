@@ -4,6 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 import { createProfileLayoutConfig, QueryProfileView } from './query_profile_view.js';
+import { rotateProfileLayoutOrientation } from './profile_layout_config.js';
 
 type ProfileEngine = dashql.buffers.profile.ProfileEngine;
 
@@ -21,6 +22,8 @@ export interface QueryProfileState {
     execution: ProfileExecutionState;
     /// The plan text is no plan of the engine
     rejected: boolean;
+    /// Lay out the plan again with the other orientation, absent without plan
+    rotate?: () => void;
 }
 
 /// Load the plan text of an engine into a core query profile
@@ -37,7 +40,7 @@ function loadPlan(viewModel: dashql.DashQLQueryProfile, engine: ProfileEngine, p
 
 export function useQueryProfile(engine: ProfileEngine, planText: string | null): QueryProfileState {
     const coreSetup = useDashQLCoreSetup();
-    const layoutConfig = React.useMemo(() => createProfileLayoutConfig(false), []);
+    const layoutConfig = React.useMemo(() => createProfileLayoutConfig(), []);
     const viewModelRef = React.useRef<dashql.DashQLQueryProfile | null>(null);
     const [state, setState] = React.useState<QueryProfileState>({ plan: null, execution: ProfileExecutionState.EMPTY, rejected: false });
 
@@ -74,12 +77,20 @@ export function useQueryProfile(engine: ProfileEngine, planText: string | null):
         viewModelRef.current = null;
     }, []);
 
-    return state;
+    // The view model keeps the orientation, the next plans are laid out with it as well
+    const rotate = React.useCallback(() => {
+        const viewModel = viewModelRef.current;
+        if (viewModel == null) return;
+        const plan = viewModel.relayout(createProfileLayoutConfig(rotateProfileLayoutOrientation(viewModel.layout.orientation)));
+        setState(current => current.plan == null ? current : { ...current, plan });
+    }, []);
+
+    return React.useMemo(() => state.plan == null ? state : { ...state, rotate }, [state, rotate]);
 }
 
 export function EngineProfileView(props: EngineProfileViewProps) {
-    const { plan, execution, rejected } = useQueryProfile(props.engine, props.planText);
+    const { plan, execution, rejected, rotate } = useQueryProfile(props.engine, props.planText);
 
     if (rejected) return props.fallback ?? null;
-    return <div className={props.className}>{plan != null && <QueryProfileView plan={plan} execution={execution} />}</div>;
+    return <div className={props.className}>{plan != null && <QueryProfileView plan={plan} execution={execution} onRotate={rotate} />}</div>;
 }

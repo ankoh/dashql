@@ -198,15 +198,29 @@ export interface TrinoQueryInfo {
     query: string;
     /// The failure info
     failureInfo?: TrinoQueryFailureInfo;
+    /// Did Trino collect the final infos of all tasks?
+    finalQueryInfo?: boolean;
+    /// The stages, a flat list
+    stages?: { stages?: TrinoStageInfo[] };
 };
+
+/// A stage of a QueryInfo, the progress model reads the rest
+export interface TrinoStageInfo {
+    /// The stage id, `<queryId>.<fragmentId>`
+    stageId: string;
+    /// The stage state
+    state: string;
+    /// The statistics, with the operator summaries once the tasks of the stage are done
+    stageStats?: { operatorSummaries?: object[] };
+}
 
 export interface TrinoApiClientInterface {
     /// Run a query
     runQuery(endpoint: TrinoApiEndpoint, defaults: TrinoSessionDefaults, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query result
     getQueryResult(endpoint: TrinoApiEndpoint, nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
-    /// Get a query info, a pruned query info leaves out the plans of the stages and keeps their statistics
-    getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal, pruned?: boolean): Promise<TrinoQueryInfo>;
+    /// Get the QueryInfo of a query: the stages with their plans and statistics
+    getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal): Promise<TrinoQueryInfo>;
     /// Cancel a query by its next URI
     cancelQuery(endpoint: TrinoApiEndpoint, nextUri: string): Promise<void>;
 }
@@ -331,10 +345,9 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Get a query info
-    async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal, pruned = false): Promise<TrinoQueryInfo> {
+    async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string, abort?: AbortSignal): Promise<TrinoQueryInfo> {
         this.logger.debug("Getting query info", { "query": queryId }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/query/${encodeURIComponent(queryId)}`);
-        if (pruned) url.searchParams.set("pruned", "true");
         const headers = await this.getHeaders(endpoint);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'GET',

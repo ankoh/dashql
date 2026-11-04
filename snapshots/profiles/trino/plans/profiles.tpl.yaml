@@ -13,6 +13,11 @@ trino-profile-snapshots:
   - name: tpch_q3_sf1
     recording: tpch_q3_sf1
     source: explain
+  # The same plan growing left-to-right, the layout of the query progress
+  - name: tpch_q3_sf1_left_to_right
+    recording: tpch_q3_sf1
+    source: explain
+    layout: left-to-right
   - name: cancelled_sf10
     recording: cancelled_sf10
     source: query-info

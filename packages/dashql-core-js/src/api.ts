@@ -1209,7 +1209,16 @@ export class DashQLQueryProfile {
             this.layout.maxLabelChars,
             this.layout.widthPerLabelChar,
             this.layout.nodeMinWidth,
+            this.layout.nodeMarginVertical,
+            this.layout.orientation,
+            this.layout.symbolWidth,
         );
+    }
+    /// Lay out the loaded plan again with another layout config, e.g. the other orientation. Keeps the execution state.
+    public relayout(config: buffers.profile.ProfileLayoutConfigT): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
+        this.reconfigure(config);
+        this.ptr.assertNotNull().computeLayout();
+        return this.pack();
     }
     /// Pack the query profile as FlatBuffer
     public pack(): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {

@@ -11,11 +11,11 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { computeProfileFitTransform } from './profile_fit.js';
-import { createProfileLayoutConfig } from './profile_layout_config.js';
+import { computeProfileFitTransform, ProfileFitBounds } from './profile_fit.js';
+import { createProfileLayoutConfig, PROFILE_OPERATOR_ANNOTATION_WIDTH } from './profile_layout_config.js';
 import { ProfileExecutionController } from './profile_execution_controller.js';
-import { ProfileExecutionState } from '../../query/profile_execution_state.js';
-import { formatCompactCount, workOf } from '../query_progress/query_progress_model.js';
+import { ProfileExecutionState, type ProfileEntityState } from '../../query/profile_execution_state.js';
+import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../query_progress/query_progress_model.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileNavigationDirection } from './profile_navigation.js';
 import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderProfileOperatorSymbol } from './profile_operator_symbol.js';
@@ -24,38 +24,143 @@ import * as styles from './query_profile_view.module.css';
 import * as graphStyles from '../../ui/graph/graph.module.css';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 
-const FitIcon = SymbolIcon('graph_align');
+/** The default zoom limits of the plan, a fit of a large plan lowers the minimum */
+const PROFILE_MIN_ZOOM = 0.1;
+const PROFILE_MAX_ZOOM = 4;
+const FitIcon = SymbolIcon('focus_center_16');
+const RotateIcon = SymbolIcon('rotate_16');
+const PaintbrushIcon = SymbolIcon('paintbrush_16');
+
+/**
+ * Measure the drawn plan in scene coordinates. Operators drawn as symbols are narrower than their layout, and the
+ * fragment contours and badges reach beyond it, so the layout bounds are only the fallback when nothing is drawn.
+ * The bounding box of the scene group excludes its own zoom transform.
+ */
+function measurePlanBounds(group: SVGGElement | null, scene: Pick<ProfileScene, 'width' | 'height'>): ProfileFitBounds {
+    try {
+        const box = group?.getBBox();
+        if (box != null && box.width > 0 && box.height > 0) {
+            return { left: box.x, top: box.y, width: box.width, height: box.height };
+        }
+    } catch {
+        // getBBox throws for a group that is not rendered
+    }
+    return { left: 0, top: 0, width: scene.width, height: scene.height };
+}
 
 const EDGE_WIDTH = 2;
-const EDGE_BADGE_MIN_WIDTH = 25;
-const EDGE_BADGE_HEIGHT = 15;
+/// The size of the status icon in the annotation slot of an operator
+const STATUS_ICON_SIZE = 14;
+/// The row annotation of an edge is a pill in the annotation slot of its child operator, whose output flows over it
+const OPERATOR_ANNOTATION_MIN_WIDTH = 20;
+const OPERATOR_ANNOTATION_HEIGHT = 16;
+/// The width of a character of the annotation (9px monospace) and the padding of the pill
+const OPERATOR_ANNOTATION_CHAR_WIDTH = 5.5;
+const OPERATOR_ANNOTATION_PADDING = 8;
 const ESTIMATE_APPROXIMATE_ROW_THRESHOLD = 100;
 const EDGE_BADGE_BORDER = 'hsl(210, 13%, 74%)';
 const EDGE_HIGHLIGHT_COLOR = 'hsl(211, 100%, 45%)';
-type ProfileAnnotationMode = 'plain' | 'rows' | 'estimates';
-const STATUS_PATHS: Record<number, string> = {
-    [dashql.buffers.profile.ProfileExecutionStatus.UNKNOWN]: 'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
-    [dashql.buffers.profile.ProfileExecutionStatus.PENDING]: 'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
-    [dashql.buffers.profile.ProfileExecutionStatus.RUNNING]: 'M8 1a7 7 0 1 0 7 7h-2a5 5 0 1 1-5-5V1Z',
-    [dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED]: 'M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16Zm3.78-9.72a.75.75 0 0 0-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l4.5-4.5Z',
-    [dashql.buffers.profile.ProfileExecutionStatus.FAILED]: 'M2.343 13.657A8 8 0 1 1 13.657 2.343 8 8 0 0 1 2.343 13.657ZM6.03 4.97a.75.75 0 0 0-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 1 0 1.06 1.06L8 9.06l1.97 1.97a.75.75 0 1 0 1.06-1.06L9.06 8l1.97-1.97a.75.75 0 1 0-1.06-1.06L8 6.94 6.03 4.97Z',
-    [dashql.buffers.profile.ProfileExecutionStatus.SKIPPED]: 'M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.333-2.167a.825.825 0 0 0-1.166-1.166l-5.5 5.5a.825.825 0 0 0 1.166 1.166Z',
-};
+/// What the annotation slot of the operators shows: the status icon, nothing, the row count or the estimate.
+/// The status only exists with progress.
+type ProfileAnnotationMode = 'status' | 'plain' | 'rows' | 'estimates';
+const PROFILE_ANNOTATION_MODES: readonly { mode: ProfileAnnotationMode; label: string }[] = [
+    { mode: 'status', label: 'Status' },
+    { mode: 'plain', label: 'Plain' },
+    { mode: 'rows', label: 'Rows' },
+    { mode: 'estimates', label: 'Estimates' },
+];
+/// The status icons of an operator in a 16x16 box, the status of the operator picks one (see the controller).
+/// The icons look like the status indicators of the app: a dot while pending, a spinner or the progress while
+/// running, a check, a cross. The check, the cross and the slash are cut out of their circles, they need the
+/// even-odd rule.
+function StatusIcons(props: { progress: number | null }) {
+    const status = dashql.buffers.profile.ProfileExecutionStatus;
+    return (
+        <>
+            <g data-status-icon={status.UNKNOWN}><circle cx={8} cy={8} r={3.5} /></g>
+            <g data-status-icon={status.PENDING}><circle cx={8} cy={8} r={3.5} /></g>
+            <g data-status-icon={status.RUNNING}>
+                <circle className={styles.status_track} cx={8} cy={8} r={6.5} />
+                <circle cx={8} cy={8} r={3.5} />
+                {props.progress == null
+                    ? <circle className={styles.status_spinner} cx={8} cy={8} r={6.5} strokeDasharray="12 88" pathLength={100} />
+                    : (
+                        // The completed share of the work, clockwise from the top
+                        <circle
+                            className={styles.status_progress}
+                            cx={8}
+                            cy={8}
+                            r={6.5}
+                            pathLength={100}
+                            strokeDasharray={`${props.progress} 100`}
+                            transform="rotate(-90 8 8)"
+                            data-testid="operator-progress"
+                        />
+                    )}
+            </g>
+            <g data-status-icon={status.SUCCEEDED}>
+                <path fillRule="evenodd" d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16Zm3.78-9.72a.75.75 0 0 0-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l4.5-4.5Z" />
+            </g>
+            <g data-status-icon={status.FAILED}>
+                <path fillRule="evenodd" d="M2.343 13.657A8 8 0 1 1 13.657 2.343 8 8 0 0 1 2.343 13.657ZM6.03 4.97a.75.75 0 0 0-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 1 0 1.06 1.06L8 9.06l1.97 1.97a.75.75 0 1 0 1.06-1.06L9.06 8l1.97-1.97a.75.75 0 1 0-1.06-1.06L8 6.94 6.03 4.97Z" />
+            </g>
+            <g data-status-icon={status.SKIPPED}>
+                <path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.333-2.167a.825.825 0 0 0-1.166-1.166l-5.5 5.5a.825.825 0 0 0 1.166 1.166Z" />
+            </g>
+        </>
+    );
+}
 
 export { createProfileLayoutConfig };
 
-/// The progress of a fragment on its contour: the completed share of its work while it runs, and its work as
-/// badge text until it succeeded. Null without known work.
-function fragmentProgress(execution: ProfileExecutionState, fragment: number): { percent: number | null; text: string | null } | null {
+/// The progress of a fragment on its contour: the completed share of its work while it runs. Null without known work.
+function fragmentProgress(execution: ProfileExecutionState, fragment: number): { percent: number | null } | null {
     const state = execution.fragments[fragment];
     const work = workOf(state);
     if (state == null || work == null) return null;
     const running = state.status === dashql.buffers.profile.ProfileExecutionStatus.RUNNING;
+    return { percent: running ? Math.round((work.done / work.total) * 100) : null };
+}
+
+/// The metrics of a fragment next to its contour, e.g. `7.53M rows · 242 kB · 4.17 s CPU · 12/37 splits`: the
+/// processed rows and bytes and the CPU time as far as reported, and the splits until the fragment succeeded.
+/// A metric that is still 0 says nothing yet and is left out, Trino reports no bytes for some connectors at all. The
+/// rows of a succeeded fragment stay, it read none. Null without any metric.
+export function formatFragmentMetrics(state: ProfileEntityState | null | undefined): { text: string; description: string } | null {
+    if (state == null) return null;
+    const field = dashql.buffers.profile.ProfileStatsField;
     const succeeded = state.status === dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED;
-    return {
-        percent: running ? Math.round((work.done / work.total) * 100) : null,
-        text: succeeded ? null : `${formatCompactCount(work.done)}/${formatCompactCount(work.total)}`,
-    };
+    const text: string[] = [];
+    const description: string[] = [];
+    const rows = stat(state, field.TUPLES_IN, s => s.tuplesIn);
+    if (rows != null && (rows > 0 || succeeded)) {
+        text.push(`${formatCompactCount(rows)} rows`);
+        description.push(`${rows} rows`);
+    }
+    const bytes = stat(state, field.BYTES_IN, s => s.bytesIn);
+    if (bytes != null && bytes > 0) {
+        text.push(formatCompactBytes(bytes));
+        description.push(formatCompactBytes(bytes));
+    }
+    const cpu = stat(state, field.CPU_TIME, s => s.cpuTimeUs);
+    if (cpu != null && cpu > 0) {
+        text.push(`${formatElapsed(cpu / 1000)} CPU`);
+        description.push(`${formatElapsed(cpu / 1000)} CPU time`);
+    }
+    const work = workOf(state);
+    if (work != null && !succeeded) {
+        text.push(`${formatCompactCount(work.done)}/${formatCompactCount(work.total)} splits`);
+        description.push(`${work.done} of ${work.total} splits`);
+    }
+    return text.length === 0 ? null : { text: text.join(' · '), description: description.join(', ') };
+}
+
+/// The progress of an operator: the completed share of the work of its fragment while it runs, null without
+/// completed work. Trino completes the splits of a stage that reads other stages only at its end, the operator
+/// spins until then.
+function operatorProgress(execution: ProfileExecutionState, fragment: number): number | null {
+    const percent = fragmentProgress(execution, fragment)?.percent ?? null;
+    return percent == null || percent === 0 ? null : percent;
 }
 
 /// The status of a fragment as attribute value for the contour, undefined without execution state
@@ -79,7 +184,11 @@ export interface QueryProfileViewProps {
     showProgress?: boolean;
     controllerRef?: React.RefObject<ProfileExecutionController | null>;
     autoFocus?: boolean;
+    /// Fill the height of the container instead of picking a height of its own
+    fill?: boolean;
     edgeRendering?: ProfileEdgeRenderingConfig;
+    /// Lay out the plan again with the other orientation, the view shows a rotate button with it
+    onRotate?: () => void;
     dependencies?: QueryProfileViewDependencies;
 }
 
@@ -152,7 +261,16 @@ function formatRowCount(value: number): string {
     return ROW_COUNT_FORMAT.format(value);
 }
 
-export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY, showProgress = false, controllerRef, autoFocus = false, edgeRendering, dependencies = DEFAULT_DEPENDENCIES }: QueryProfileViewProps) {
+/// The left end of the annotation slot of an operator, vertically centered. The slot follows the left padding of the
+/// operator, in place of the status icon.
+export function placeOperatorAnnotation(
+    operator: Pick<ProfileSceneOperator, 'rect'>,
+    input: Pick<dashql.buffers.profile.ProfileLayoutConfigT, 'nodePaddingLeft'>,
+): { x: number; y: number } {
+    return { x: operator.rect.x - operator.rect.width / 2 + input.nodePaddingLeft, y: operator.rect.y };
+}
+
+export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY, showProgress = false, controllerRef, autoFocus = false, fill = false, edgeRendering, onRotate, dependencies = DEFAULT_DEPENDENCIES }: QueryProfileViewProps) {
     const scene = React.useMemo(() => dependencies.materializeProfileScene(plan), [dependencies, plan]);
     const ownController = React.useRef<ProfileExecutionController | null>(null);
     ownController.current ??= new ProfileExecutionController();
@@ -164,7 +282,11 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
     const [selection, setSelection] = React.useState<{ operator: ProfileSceneOperator; anchor: SVGGElement } | null>(null);
     const [inspectorOpen, setInspectorOpen] = React.useState(false);
-    const [annotationMode, setAnnotationMode] = React.useState<ProfileAnnotationMode>('rows');
+    const annotationModes = showProgress ? PROFILE_ANNOTATION_MODES : PROFILE_ANNOTATION_MODES.filter(m => m.mode !== 'status');
+    const [selectedAnnotationMode, setAnnotationMode] = React.useState<ProfileAnnotationMode>(showProgress ? 'status' : 'rows');
+    const annotationMode = !showProgress && selectedAnnotationMode === 'status' ? 'rows' : selectedAnnotationMode;
+    /// The fragments are light grey, unless the colors tell them apart
+    const [fragmentColors, setFragmentColors] = React.useState(false);
     const operatorRefs = React.useRef(new Map<number, SVGGElement>());
     const [positionRevision, setPositionRevision] = React.useState(0);
     const edgeColorScheme = edgeRendering?.colorScheme ?? PROFILE_EDGE_COLOR_SCHEME_RD_BU;
@@ -197,7 +319,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
             const difference = actual == null ? null : estimateRelativeDifference(edge.outputCardinalityEstimated, actual);
             const rowValue = rowValues[edgeIndex];
             const rowScaleValue = maxRowValue === 0 ? 0 : Math.log1p(rowValue) / Math.log1p(maxRowValue);
-            const badgeText = annotationMode === 'rows' ? formatRowCount(rowValue)
+            const badgeText = annotationMode === 'rows' ? formatCompactCount(rowValue)
                 : annotationMode === 'estimates' && difference != null && actual != null
                     ? formatEstimateSymbol(difference, Math.abs(actual - edge.outputCardinalityEstimated))
                     : null;
@@ -205,15 +327,21 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                 : annotationMode === 'estimates' && difference != null ? edgeDifferenceColor(difference)
                     : null;
             const description = annotationMode === 'rows'
-                ? `${actual == null ? 'Estimated' : 'Actual'} rows ${rowValue}`
+                ? `${actual == null ? 'Estimated' : 'Actual'} rows ${formatRowCount(rowValue)}`
                 : difference == null ? null
                     : `Actual rows ${actual}, estimated rows ${edge.outputCardinalityEstimated}, difference ${formatRelativeDifference(difference)}`;
+            if (badgeText == null || background == null || description == null || child == null || parent == null) {
+                return { edge, badge: null };
+            }
+            const width = Math.min(
+                PROFILE_OPERATOR_ANNOTATION_WIDTH,
+                Math.max(OPERATOR_ANNOTATION_MIN_WIDTH, badgeText.length * OPERATOR_ANNOTATION_CHAR_WIDTH + OPERATOR_ANNOTATION_PADDING),
+            );
             return {
                 edge,
-                badge: badgeText == null || background == null || description == null || child == null || parent == null ? null : {
-                    x: (child.rect.x + parent.rect.x) / 2,
-                    y: (child.rect.y + parent.rect.y) / 2,
-                    width: Math.max(EDGE_BADGE_MIN_WIDTH, badgeText.length * 5.5 + 10),
+                badge: {
+                    ...placeOperatorAnnotation(child, scene.layoutConfig.input!),
+                    width,
                     text: badgeText,
                     background,
                     foreground: contrastingTextColor(background),
@@ -222,6 +350,14 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
             };
         });
     }, [scene, execution, annotationMode, rowColorScheme, edgeDifferenceColor]);
+    /// The width of what the annotation slot of an operator shows, the label is centered in the rest of the operator
+    const annotationWidths = React.useMemo(() => {
+        const widths = new Map<number, number>();
+        for (const rendered of renderedEdges) {
+            if (rendered.badge != null) widths.set(rendered.edge.childOperator, rendered.badge.width);
+        }
+        return widths;
+    }, [renderedEdges]);
     const highlightedEdges = React.useMemo(() => {
         const operatorId = selection?.operator.id;
         return operatorId == null
@@ -278,8 +414,12 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         const viewport = viewportRef.current;
         const svg = svgRef.current;
         const behavior = zoomRef.current;
-        if (viewport == null || svg == null || behavior == null || scene.width <= 0 || scene.height <= 0) return;
-        const { x, y, scale } = computeProfileFitTransform(scene, viewport.clientWidth, viewport.clientHeight);
+        if (viewport == null || svg == null || behavior == null) return;
+        const bounds = measurePlanBounds(sceneRef.current, scene);
+        if (bounds.width <= 0 || bounds.height <= 0) return;
+        const { x, y, scale } = computeProfileFitTransform(bounds, viewport.clientWidth, viewport.clientHeight);
+        // A large plan fits below the default zoom limit, allow zooming out as far as the fit
+        behavior.scaleExtent([Math.min(PROFILE_MIN_ZOOM, scale), PROFILE_MAX_ZOOM]);
         const target = zoomIdentity.translate(x, y).scale(scale);
         const targetSelection = animate ? select(svg).transition().duration(160) : select(svg);
         targetSelection.call(behavior.transform as any, target);
@@ -309,7 +449,9 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         const viewport = viewportRef.current;
         if (svg == null || viewport == null) return;
         const behavior = zoom<SVGSVGElement, unknown>()
-            .scaleExtent([0.1, 4])
+            // The default extent reads the relative SVG width, which throws while the SVG is not laid out yet
+            .extent((): [[number, number], [number, number]] => [[0, 0], [viewport.clientWidth, viewport.clientHeight]])
+            .scaleExtent([PROFILE_MIN_ZOOM, PROFILE_MAX_ZOOM])
             .clickDistance(4)
             .filter(event => !event.button && !(event.target instanceof Element && event.target.closest('button')))
             .on('zoom', event => {
@@ -337,6 +479,14 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         if (svg != null && behavior != null) select(svg).transition().duration(120).call(behavior.scaleBy, factor);
     }, []);
 
+    // The rotated plan has other operator positions, the selection and the inspector are dropped.
+    // The new scene fits itself into the viewport.
+    const rotate = React.useMemo(() => onRotate == null ? null : () => {
+        setInspectorOpen(false);
+        setSelection(null);
+        onRotate();
+    }, [onRotate]);
+
 
     const onKeyDown = React.useCallback((event: React.KeyboardEvent) => {
         if (event.key === 'Escape' && inspectorOpen) {
@@ -362,7 +512,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
             const current = targetOperatorId == null
                 ? selection?.operator ?? null
                 : scene.operators.find(operator => operator.id === targetOperatorId) ?? null;
-            const next = findProfileOperatorInDirection(scene.operators, scene.edges, current, direction);
+            const next = findProfileOperatorInDirection(scene.operators, scene.edges, current, direction, scene.leftToRight);
             const anchor = next == null ? null : operatorRefs.current.get(next.id) ?? null;
             if (next != null && anchor != null) {
                 setSelection({ operator: next, anchor });
@@ -372,10 +522,11 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         } else if (event.key === '+' || event.key === '=') zoomBy(1.25);
         else if (event.key === '-') zoomBy(0.8);
         else if (event.key === 'f') fit(true);
+        else if (event.key === 'r' && rotate != null) rotate();
         else return;
         event.preventDefault();
         event.stopPropagation();
-    }, [fit, inspectorOpen, scene.operators, selection?.operator, zoomBy]);
+    }, [fit, inspectorOpen, rotate, scene.operators, selection?.operator, zoomBy]);
 
     // Stable operator callbacks so that the memoized operator nodes only re-render when their own props change
     const selectionRef = React.useRef(selection);
@@ -395,10 +546,48 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
     }, []);
 
     const anchorRef = React.useMemo(() => ({ current: selection?.anchor ?? null }), [selection?.anchor]);
+    // The legend goes where a plan leaves space: top left above a top-down plan, bottom left above the
+    // annotation controls below a left-to-right plan
+    const legend = annotationMode === 'rows' ? (
+        <div
+            className={styles.edge_legend}
+            role="img"
+            data-testid="plan-rows-legend"
+            aria-label="Badge color encodes row count from fewer rows on the left to more rows on the right"
+        >
+            <div className={styles.edge_legend_scale}>
+                <span>Fewer rows</span>
+                <span>More rows</span>
+                <i
+                    aria-hidden="true"
+                    style={{ backgroundImage: `linear-gradient(to right, ${rowLegendGradient})` }}
+                />
+            </div>
+        </div>
+    ) : annotationMode === 'estimates' ? (
+        <div
+            className={styles.edge_legend}
+            role="img"
+            data-testid="plan-estimates-legend"
+            aria-label="Badge color compares actual rows with estimates: red on the left means underestimated, the center means matched, and blue on the right means overestimated; differences are capped at 200 percent"
+        >
+            <div className={styles.edge_legend_scale}>
+                <span>Underestimated</span>
+                <span>Overestimated</span>
+                <i
+                    aria-hidden="true"
+                    data-testid="plan-legend-gradient"
+                    style={{ backgroundImage: `linear-gradient(to right, ${estimateLegendGradient})` }}
+                />
+                <span className={styles.edge_legend_matched}>Matched</span>
+            </div>
+        </div>
+    ) : null;
     return (
         <div
             ref={viewportRef}
             className={styles.viewport}
+            data-fill={fill || undefined}
             role="region"
             aria-label={`Query execution plan with ${scene.operators.length} operators`}
             tabIndex={0}
@@ -415,13 +604,15 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                     <g>
                         {scene.fragments.map((fragment, fragmentIndex) => {
                             const progress = showProgress ? fragmentProgress(execution, fragment.id) : null;
+                            // The metrics of a fragment are only read out, they have no card on the contour for now
+                            const metrics = showProgress ? formatFragmentMetrics(execution.fragments[fragment.id]) : null;
                             return (
                                 <g
                                     key={fragment.id}
                                     className={graphStyles.fragment_colors}
-                                    data-color={fragmentIndex % 6}
+                                    data-color={fragmentColors ? fragmentIndex % 6 : 'neutral'}
                                     role="img"
-                                    aria-label={`Fragment ${fragment.id + 1}${progress?.text == null ? '' : `, ${progress.text} splits`}, containing operators: ${fragment.operatorIds
+                                    aria-label={`Fragment ${fragment.id + 1}${metrics == null ? '' : `, ${metrics.description}`}, containing operators: ${fragment.operatorIds
                                         .map(operatorId => scene.operators[operatorId]?.label)
                                         .filter((label): label is string => label != null)
                                         .join(', ')}`}
@@ -496,56 +687,17 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                             />
                         ))}
                     </g>
-                    <g className={graphStyles.edgeBadgeLayer}>
-                        {annotationMode !== 'plain' && renderedEdges.flatMap(rendered => rendered.badge == null ? [] : [(
-                            <g
-                                key={rendered.edge.id.toString()}
-                                className={graphStyles.edgeBadge}
-                                transform={`translate(${rendered.badge.x}, ${rendered.badge.y})`}
-                                role="img"
-                                aria-label={rendered.badge.description}
-                                data-plan-edge-badge-id={rendered.edge.id.toString()}
-                                data-highlighted={highlightedEdgeSet.has(rendered.edge) || undefined}
-                            >
-                                <rect
-                                    x={-rendered.badge.width / 2}
-                                    y={-EDGE_BADGE_HEIGHT / 2}
-                                    width={rendered.badge.width}
-                                    height={EDGE_BADGE_HEIGHT}
-                                    rx={EDGE_BADGE_HEIGHT / 2}
-                                    fill={highlightedEdgeSet.has(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : rendered.badge.background}
-                                    stroke={highlightedEdgeSet.has(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : EDGE_BADGE_BORDER}
-                                />
-                                <text fill={highlightedEdgeSet.has(rendered.edge) ? '#ffffff' : rendered.badge.foreground}>{rendered.badge.text}</text>
-                            </g>
-                        )])}
-                    </g>
-                    <g aria-hidden="true">
-                        {showProgress && scene.fragments.map((fragment, fragmentIndex) => {
-                            const text = fragmentProgress(execution, fragment.id)?.text;
-                            if (text == null || fragment.corner == null) return null;
-                            const width = text.length * 5.5 + 10;
-                            return (
-                                <g
-                                    key={fragment.id}
-                                    className={`${graphStyles.fragment_colors} ${styles.fragment_badge}`}
-                                    data-color={fragmentIndex % 6}
-                                    transform={`translate(${fragment.corner.x}, ${fragment.corner.y})`}
-                                    data-status={fragmentStatus(execution, fragment.id)}
-                                >
-                                    <rect x={-width / 2} y={-EDGE_BADGE_HEIGHT / 2} width={width} height={EDGE_BADGE_HEIGHT} rx={EDGE_BADGE_HEIGHT / 2} />
-                                    <text>{text}</text>
-                                </g>
-                            );
-                        })}
-                    </g>
                     <g>
                         {scene.operators.map(operator => (
                             <ProfileOperatorNode
                                 key={operator.id}
                                 operator={operator}
                                 scene={scene}
-                                showProgress={showProgress}
+                                showStatus={showProgress && annotationMode === 'status'}
+                                annotationWidth={showProgress && annotationMode === 'status'
+                                    ? STATUS_ICON_SIZE
+                                    : annotationWidths.get(operator.id) ?? 0}
+                                progress={showProgress ? operatorProgress(execution, operator.fragment) : null}
                                 selected={selection?.operator.id === operator.id}
                                 highlightedOutputPort={highlightedOutputPortOperatorIds.has(operator.id)}
                                 highlightedInputPort={highlightedInputPortOperatorIds.has(operator.id)}
@@ -558,55 +710,71 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                             />
                         ))}
                     </g>
+                    {/* The row annotations sit in the annotation slots of the operators, above their frames */}
+                    <g className={graphStyles.edgeBadgeLayer}>
+                        {(annotationMode === 'rows' || annotationMode === 'estimates') && renderedEdges.flatMap(rendered => rendered.badge == null ? [] : [(
+                            <g
+                                key={rendered.edge.id.toString()}
+                                className={graphStyles.edgeBadge}
+                                transform={`translate(${rendered.badge.x}, ${rendered.badge.y})`}
+                                role="img"
+                                aria-label={rendered.badge.description}
+                                data-plan-edge-badge-id={rendered.edge.id.toString()}
+                                data-highlighted={highlightedEdgeSet.has(rendered.edge) || undefined}
+                            >
+                                <rect
+                                    x={0}
+                                    y={-OPERATOR_ANNOTATION_HEIGHT / 2}
+                                    width={rendered.badge.width}
+                                    height={OPERATOR_ANNOTATION_HEIGHT}
+                                    rx={OPERATOR_ANNOTATION_HEIGHT / 2}
+                                    fill={highlightedEdgeSet.has(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : rendered.badge.background}
+                                    stroke={highlightedEdgeSet.has(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : EDGE_BADGE_BORDER}
+                                />
+                                <text x={rendered.badge.width / 2} fill={highlightedEdgeSet.has(rendered.edge) ? '#ffffff' : rendered.badge.foreground}>{rendered.badge.text}</text>
+                            </g>
+                        )])}
+                    </g>
                 </g>
             </svg>
             <div className={styles.metric_controls}>
-                <SegmentedControl
-                    aria-label="Plan annotations"
-                    size={SegmentedControlSize.Tiny}
-                    onChange={index => setAnnotationMode(index === 0 ? 'plain' : index === 1 ? 'rows' : 'estimates')}
-                >
-                    <SegmentedControl.Button data-testid="plan-annotation-plain" selected={annotationMode === 'plain'}>Plain</SegmentedControl.Button>
-                    <SegmentedControl.Button data-testid="plan-annotation-rows" selected={annotationMode === 'rows'}>Rows</SegmentedControl.Button>
-                    <SegmentedControl.Button data-testid="plan-annotation-estimates" selected={annotationMode === 'estimates'}>Estimates</SegmentedControl.Button>
-                </SegmentedControl>
+                {scene.leftToRight && legend}
+                <div className={styles.view_controls}>
+                    <SegmentedControl
+                        aria-label="Plan annotations"
+                        size={SegmentedControlSize.Tiny}
+                        onChange={index => setAnnotationMode(annotationModes[index].mode)}
+                    >
+                        {annotationModes.map(({ mode, label }) => (
+                            <SegmentedControl.Button key={mode} data-testid={`plan-annotation-${mode}`} selected={annotationMode === mode}>{label}</SegmentedControl.Button>
+                        ))}
+                    </SegmentedControl>
+                    <ButtonGroup className={styles.view_buttons} aria-label="Plan view controls">
+                        {rotate != null && (
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Tiny}
+                                aria-label={scene.leftToRight ? 'Rotate plan to top-down' : 'Rotate plan to left-to-right'}
+                                data-testid="plan-rotate"
+                                onClick={rotate}
+                            >
+                                <RotateIcon size={12} />
+                            </IconButton>
+                        )}
+                        <IconButton
+                            variant={ButtonVariant.Default}
+                            size={ButtonSize.Tiny}
+                            aria-label="Color the fragments"
+                            aria-pressed={fragmentColors}
+                            data-testid="plan-fragment-colors"
+                            onClick={() => setFragmentColors(value => !value)}
+                        >
+                            <PaintbrushIcon size={12} />
+                        </IconButton>
+                    </ButtonGroup>
+                </div>
             </div>
-            {annotationMode === 'rows' && (
-                <div
-                    className={styles.edge_legend}
-                    role="img"
-                    data-testid="plan-rows-legend"
-                    aria-label="Badge color encodes row count from fewer rows on the left to more rows on the right"
-                >
-                    <div className={styles.edge_legend_scale}>
-                        <span>Fewer rows</span>
-                        <span>More rows</span>
-                        <i
-                            aria-hidden="true"
-                            style={{ backgroundImage: `linear-gradient(to right, ${rowLegendGradient})` }}
-                        />
-                    </div>
-                </div>
-            )}
-            {annotationMode === 'estimates' && (
-                <div
-                    className={styles.edge_legend}
-                    role="img"
-                    data-testid="plan-estimates-legend"
-                    aria-label="Badge color compares actual rows with estimates: red on the left means underestimated, the center means matched, and blue on the right means overestimated; differences are capped at 200 percent"
-                >
-                    <div className={styles.edge_legend_scale}>
-                        <span>Underestimated</span>
-                        <span>Overestimated</span>
-                        <i
-                            aria-hidden="true"
-                            data-testid="plan-legend-gradient"
-                            style={{ backgroundImage: `linear-gradient(to right, ${estimateLegendGradient})` }}
-                        />
-                        <span className={styles.edge_legend_matched}>Matched</span>
-                    </div>
-                </div>
-            )}
+            {!scene.leftToRight && legend}
             <ButtonGroup className={styles.controls} aria-label="Plan zoom controls">
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom in" onClick={() => zoomBy(1.25)}><ZoomInIcon size={12} /></IconButton>
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom out" onClick={() => zoomBy(0.8)}><ZoomOutIcon size={12} /></IconButton>
@@ -617,7 +785,8 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                 anchorRef={anchorRef}
                 open={selection != null && inspectorOpen}
                 onClose={() => setInspectorOpen(false)}
-                side={AnchorSide.OutsideRight}
+                // A left-to-right plan continues right of an operator, the inspector goes above it instead
+                side={scene.leftToRight ? AnchorSide.OutsideTop : AnchorSide.OutsideRight}
                 align={AnchorAlignment.Center}
                 anchorOffset={8}
                 width={OverlaySize.L}
@@ -651,7 +820,12 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
 const ProfileOperatorNode = React.memo(function ProfileOperatorNode(props: {
     operator: ProfileSceneOperator;
     scene: ProfileScene;
-    showProgress: boolean;
+    /// Show the status icon in the annotation slot?
+    showStatus: boolean;
+    /// The width of what the annotation slot shows, 0 if it is empty
+    annotationWidth: number;
+    /// The completed share of the work of the fragment of the operator in percent while it runs, null if unknown
+    progress: number | null;
     selected: boolean;
     highlightedOutputPort: boolean;
     highlightedInputPort: boolean;
@@ -667,7 +841,8 @@ const ProfileOperatorNode = React.memo(function ProfileOperatorNode(props: {
     const x = operator.rect.x - operator.rect.width / 2;
     const y = operator.rect.y - operator.rect.height / 2;
     const input = scene.layoutConfig.input!;
-    const regionStart = input.nodePaddingLeft + input.iconWidth + input.iconMarginRight;
+    // The label fills the rest of the operator right of the annotation, or all of it without an annotation
+    const regionStart = input.nodePaddingLeft + (props.annotationWidth > 0 ? props.annotationWidth + input.iconMarginRight : 0);
     const regionEnd = operator.rect.width - input.nodePaddingRight;
     const renderSymbol = shouldRenderProfileOperatorSymbol(operator.kind, operator.typeName, operator.label);
     const symbolName = renderSymbol ? getProfileOperatorSymbol(operator.kind) : null;
@@ -703,25 +878,30 @@ const ProfileOperatorNode = React.memo(function ProfileOperatorNode(props: {
                 ry={6}
                 data-plan-operator-frame
             />
-            {props.showProgress && (
+            {props.showStatus && (
                 <g
                     ref={slot => props.controller.registerOperator(operator.id, slot)}
                     className={styles.status}
-                    transform={`translate(${input.nodePaddingLeft}, ${(input.nodeHeight - input.iconWidth) / 2})`}
+                    transform={`translate(${input.nodePaddingLeft}, ${(input.nodeHeight - STATUS_ICON_SIZE) / 2})`}
                     aria-hidden="true"
                 >
-                    {Object.entries(STATUS_PATHS).map(([status, path]) => <path key={status} data-status-icon={status} d={path} transform={`scale(${input.iconWidth / 16})`} />)}
+                    <g transform={`scale(${STATUS_ICON_SIZE / 16})`}>
+                        <StatusIcons progress={props.progress} />
+                    </g>
                 </g>
             )}
             {OperatorSymbol != null
                 ? <g className={styles.operator_symbol} transform={`translate(${(regionStart + regionEnd - PROFILE_OPERATOR_SYMBOL_SIZE) / 2}, ${(input.nodeHeight - PROFILE_OPERATOR_SYMBOL_SIZE) / 2})`} aria-hidden="true"><OperatorSymbol size={PROFILE_OPERATOR_SYMBOL_SIZE} /></g>
                 // The label is truncated to maxLabelChars and the core sizes the operator for it, no clipping needed
                 : <text x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.displayLabel}</text>}
-            {(operator.ports & PROFILE_OPERATOR_PORT_OUTPUT) !== 0 && (
-                <GraphPort x={operator.rect.width / 2} y={0} side="top" highlighted={props.highlightedOutputPort} data-plan-port="output" />
+            {/* The output faces the parent: above, or left if the plan grows left-to-right */}
+            {(operator.ports & PROFILE_OPERATOR_PORT_OUTPUT) !== 0 && (scene.leftToRight
+                ? <GraphPort x={0} y={operator.rect.height / 2} side="left" highlighted={props.highlightedOutputPort} data-plan-port="output" />
+                : <GraphPort x={operator.rect.width / 2} y={0} side="top" highlighted={props.highlightedOutputPort} data-plan-port="output" />
             )}
-            {(operator.ports & PROFILE_OPERATOR_PORT_INPUT) !== 0 && (
-                <GraphPort x={operator.rect.width / 2} y={operator.rect.height} side="bottom" highlighted={props.highlightedInputPort} data-plan-port="input" />
+            {(operator.ports & PROFILE_OPERATOR_PORT_INPUT) !== 0 && (scene.leftToRight
+                ? <GraphPort x={operator.rect.width} y={operator.rect.height / 2} side="right" highlighted={props.highlightedInputPort} data-plan-port="input" />
+                : <GraphPort x={operator.rect.width / 2} y={operator.rect.height} side="bottom" highlighted={props.highlightedInputPort} data-plan-port="input" />
             )}
         </g>
     );

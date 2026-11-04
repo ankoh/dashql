@@ -21,6 +21,11 @@ mkdir -p "${OUT_DIR}"
   --gen-mutable \
   --gen-object-api
 
+# Imports: a struct nested in another struct imports the enums of the nested struct relative to the root instead of
+# the file, e.g. '../dashql/buffers/profile/x.js' instead of '../../../dashql/buffers/profile/x.js'. All files are
+# in dashql/buffers/<name>/, an import of '../dashql/' is always one of these.
+find "${OUT_DIR}/dashql/buffers" -mindepth 2 -name '*.ts' -exec sed -i "s#from '\.\./dashql/#from '../../../dashql/#" {} +
+
 # Index files: flatc is buggy for namespaces with depth > 1 (see flatbuffers#7898).
 # Generate dashql/buffers/<name>.ts that re-export from ./<name>/*.js
 TS_OUT_PROTO_BASE="${OUT_DIR}/dashql/buffers"

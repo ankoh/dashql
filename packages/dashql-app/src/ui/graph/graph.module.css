@@ -61,13 +61,16 @@
 .fragment_colors[data-color="3"] { --fragment_fill: hsl(32, 80%, 96%); --fragment_stroke: hsl(32, 75%, 38%); }
 .fragment_colors[data-color="4"] { --fragment_fill: hsl(180, 50%, 96%); --fragment_stroke: hsl(180, 60%, 31%); }
 .fragment_colors[data-color="5"] { --fragment_fill: hsl(340, 65%, 97%); --fragment_stroke: hsl(340, 55%, 43%); }
+/* Fragments that are not told apart by color */
+.fragment_colors[data-color="neutral"] { --fragment_fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98.5%); --fragment_stroke: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 80%); }
 
 .fragment {
     pointer-events: none;
     fill: var(--fragment_fill, hsl(211, 100%, 97%));
-    fill-opacity: 0.55;
+    fill-opacity: 0.4;
     stroke: var(--fragment_stroke, hsl(211, 70%, 42%));
-    stroke-width: 1.5px;
+    stroke-opacity: 0.6;
+    stroke-width: 1px;
     stroke-dasharray: 6 4;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;

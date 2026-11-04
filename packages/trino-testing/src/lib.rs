@@ -171,8 +171,8 @@ pub struct QueryRun {
     pub query_id: String,
     /// The `/v1/statement` responses: the POST, then every `nextUri` GET
     pub statement_responses: Vec<TimedResponse>,
-    /// The `/v1/query/{id}` responses sampled while the query ran (with `query_info_params`), and the
-    /// full ones after it reached a final state
+    /// The `/v1/query/{id}` responses while the query ran (sampled with `query_info_params`, or full ones when
+    /// stages finished), and the full ones after it reached a final state, by time
     pub query_infos: Vec<TimedResponse>,
 }
 
@@ -200,8 +200,35 @@ pub struct QueryOptions {
     pub query_info_interval: Option<Duration>,
     /// Query parameters of the sampled `/v1/query/{id}` requests, e.g. `pruned=true`
     pub query_info_params: String,
+    /// Fetch the full `/v1/query/{id}` whenever a statement response shows a stage whose tasks are done since the
+    /// last response, like the app does for the operator summaries of those stages
+    pub query_info_on_stage_finish: bool,
     /// Cancel the query after this long
     pub cancel_after: Option<Duration>,
+}
+
+/// The ids of the stages whose tasks are done, in the stage tree of the statement stats: `PENDING` (the stage
+/// waits for the query) or `FINISHED` (with the query)
+pub fn finished_stages(root: &Value) -> Vec<String> {
+    let mut finished = Vec::new();
+    let mut todo = vec![root];
+    while let Some(stage) = todo.pop() {
+        if matches!(stage.get("state").and_then(Value::as_str), Some("PENDING" | "FINISHED")) {
+            finished.extend(stage.get("stageId").and_then(Value::as_str).map(str::to_string));
+        }
+        todo.extend(stage.get("subStages").and_then(Value::as_array).into_iter().flatten());
+    }
+    finished
+}
+
+/// Is a QueryInfo final? A finished query is final once Trino collected the final infos of its tasks
+/// (`finalQueryInfo`), a failed query may never be.
+pub fn is_final_query_info(info: &Value) -> bool {
+    match info.get("state").and_then(Value::as_str) {
+        Some("FINISHED") => info.get("finalQueryInfo").and_then(Value::as_bool).unwrap_or(false),
+        Some("FAILED") => true,
+        _ => false,
+    }
 }
 
 /// A client of the Trino REST API
@@ -287,6 +314,8 @@ impl TrinoClient {
         });
 
         let mut result = Ok(());
+        let mut finished_stage_count = 0;
+        let mut stage_finish_infos = Vec::new();
         while let Some(uri) = next_uri.take() {
             if options.cancel_after.is_some_and(|t| started.elapsed() >= t) {
                 result = self
@@ -300,7 +329,14 @@ impl TrinoClient {
             match self.send_json(self.http.get(&uri)) {
                 Ok(body) => {
                     next_uri = body.get("nextUri").and_then(Value::as_str).map(str::to_string);
+                    let finished = body.pointer("/stats/rootStage").map(finished_stages).unwrap_or_default();
                     run.statement_responses.push(TimedResponse { elapsed_ms: elapsed_ms(), body });
+                    if options.query_info_on_stage_finish && finished.len() > finished_stage_count {
+                        finished_stage_count = finished.len();
+                        if let Ok(info) = self.get_json(&format!("/v1/query/{}", run.query_id)) {
+                            stage_finish_infos.push(TimedResponse { elapsed_ms: elapsed_ms(), body: info });
+                        }
+                    }
                 }
                 Err(e) => result = Err(e),
             }
@@ -309,15 +345,18 @@ impl TrinoClient {
         if let Some(sampler) = sampler {
             run.query_infos = sampler.join().map_err(|_| io::Error::other("QueryInfo sampler panicked"))?;
         }
+        run.query_infos.extend(stage_finish_infos);
+        run.query_infos.sort_by_key(|i| i.elapsed_ms);
         result?;
 
         // The final QueryInfo, once the query reached a final state. Never pruned, it carries the plans.
-        if options.query_info_interval.is_some() {
+        let has_final = run.query_infos.last().is_some_and(|i| is_final_query_info(&i.body));
+        if (options.query_info_interval.is_some() || options.query_info_on_stage_finish) && !has_final {
             let final_path = format!("/v1/query/{}", run.query_id);
             let deadline = Instant::now() + Duration::from_secs(30);
             loop {
                 let info = self.get_json(&final_path)?;
-                let done = matches!(info.get("state").and_then(Value::as_str), Some("FINISHED" | "FAILED"));
+                let done = is_final_query_info(&info);
                 run.query_infos.push(TimedResponse { elapsed_ms: elapsed_ms(), body: info });
                 if done || Instant::now() >= deadline {
                     break;

@@ -2,7 +2,8 @@
 //! - snapshots/profiles/hyper/tests/*.yaml: the structure of Hyper plans (and the state of analyzed plans)
 //! - snapshots/profiles/progress/*.yaml: a Hyper plan, input events, and the output events of the rollups
 //! - snapshots/profiles/trino/progress/*.yaml: recorded Trino statement polls through the Trino adapter
-//! - snapshots/profiles/trino/plans/*.yaml: recorded Trino plans, with the statement polls on top
+//! - snapshots/profiles/trino/plans/*.yaml: recorded Trino plans, with the statement polls on top, laid out top-down or
+//!   left-to-right (`layout`)
 //!
 //! The query profile is encoded with `dashql_snapshots::encode::query_profile`.
 
@@ -78,7 +79,8 @@ fn main() {
         Trial::test(case.trial_name(), move || {
             let recording = read_recording(&recordings, &case.node)?;
             let source = case.node["source"].as_str().ok_or("case without source")?;
-            let produced = encode_trino_profile(&recording, source)?.into_yaml();
+            let layout = case.node["layout"].as_str();
+            let produced = encode_trino_profile(&recording, source, layout)?.into_yaml();
             compare_sections(&case.node, &produced, &[&STRUCTURE[..], &["updates"]].concat())
         })
     }));

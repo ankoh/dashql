@@ -10,6 +10,11 @@
 //!   https://www.researchgate.net/publication/30508504_Improving_Walker%27s_Algorithm_to_Run_in_Linear_Time
 //!   This is an updated version that fixes quadratic runtime in the original paper.
 //!
+//! A plan grows top-down or left-to-right (`ProfileLayoutOrientation`). Walker places the siblings along one axis and
+//! the levels along the other one, a left-to-right plan swaps the axes after the walks. Its levels become columns that
+//! are as wide as their widest node with left-aligned nodes, and a node shares its row with its first child instead of being centered above
+//! its children. Nothing is placed above the root then, the plan grows to the right and downwards.
+//!
 //! The floating point operations keep their order, since reordering them changes the last bits of positions.
 //! Minimum and maximum keep the first argument unless the second one is strictly smaller or larger, which differs
 //! from `f64::min` and `f64::max` for NaN and signed zeros, see `cpp_min` and `cpp_max`.
@@ -37,16 +42,29 @@ fn cpp_max(a: f64, b: f64) -> f64 {
 
 /// Compute the rendered width of an operator node
 fn compute_node_width(op: &OperatorNode, layout_config: &fb::ProfileLayoutConfig) -> f64 {
-    let label = op.operator_label.as_deref().or(op.operator_type.as_deref()).unwrap_or("");
-    let label_chars = label.chars().count().min(layout_config.max_label_chars() as usize);
+    let content_width = if shows_symbol(op) && layout_config.symbol_width() > 0.0 {
+        layout_config.symbol_width()
+    } else {
+        let label = op.operator_label.as_deref().or(op.operator_type.as_deref()).unwrap_or("");
+        let label_chars = label.chars().count().min(layout_config.max_label_chars() as usize);
+        label_chars as f64 * layout_config.width_per_label_char()
+    };
     cpp_max(
         layout_config.node_padding_left()
             + layout_config.icon_width()
             + layout_config.icon_margin_right()
-            + (label_chars as f64 * layout_config.width_per_label_char())
+            + content_width
             + layout_config.node_padding_right(),
         layout_config.node_min_width(),
     )
+}
+
+/// Does an operator show the symbol of its kind instead of its type name?
+/// An operator with a label of its own (a table, a CTE) shows the label, and the kind `OTHER` has no symbol.
+fn shows_symbol(op: &OperatorNode) -> bool {
+    op.operator_type.is_some()
+        && (op.operator_label.is_none() || op.operator_label == op.operator_type)
+        && op.kind != fb::ProfileOperatorKind::OTHER
 }
 
 /// A node for the layouter
@@ -81,6 +99,8 @@ struct ProfileLayoutNode {
     x: f64,
     /// Walker - The current node's y-coordinate
     y: f64,
+    /// The depth of the node below its root
+    level: usize,
     /// Buchheim - The current node's shifting.
     /// Buchheim memoizes the node shifting to shift non-current subtrees in a single pass.
     /// This is needed to make the central positioning of parents above the children non-quadratic.
@@ -163,9 +183,33 @@ impl<'a> ProfileLayouter<'a> {
         Self { nodes, root_operators: &view_model.root_operators, layout_config: input }
     }
 
+    /// Does the plan grow from left to right?
+    /// Walker then places siblings along the y-axis, and the levels become columns along the x-axis.
+    fn is_left_to_right(&self) -> bool {
+        self.layout_config.orientation() == fb::ProfileLayoutOrientation::LEFT_TO_RIGHT
+    }
+
+    /// The extent of a node along the axis of its siblings
+    fn breadth(&self, node: usize) -> f64 {
+        if self.is_left_to_right() {
+            self.layout_config.node_height()
+        } else {
+            self.nodes[node].width
+        }
+    }
+
+    /// The margin between siblings
+    fn sibling_margin(&self) -> f64 {
+        if self.is_left_to_right() {
+            self.layout_config.node_margin_vertical()
+        } else {
+            self.layout_config.node_margin_horizontal()
+        }
+    }
+
     /// Compute the required center-to-center distance between two nodes
     fn separation(&self, left: usize, right: usize) -> f64 {
-        self.nodes[left].width / 2.0 + self.layout_config.node_margin_horizontal() + self.nodes[right].width / 2.0
+        self.breadth(left) / 2.0 + self.sibling_margin() + self.breadth(right) / 2.0
     }
 
     /// Perform the first walk over the tree
@@ -184,9 +228,14 @@ impl<'a> ProfileLayouter<'a> {
 
             // Execute the shifts at a node
             self.execute_shifts(node);
-            // Compute the mid-point
+            // Compute the mid-point.
+            // A left-to-right plan aligns a node with its first child instead, the plan then grows only downwards.
             let n = &self.nodes[node];
-            let midpoint = (self.nodes[n.left_most_child()].prelim + self.nodes[n.right_most_child()].prelim) / 2.0;
+            let midpoint = if self.is_left_to_right() {
+                self.nodes[n.left_most_child()].prelim
+            } else {
+                (self.nodes[n.left_most_child()].prelim + self.nodes[n.right_most_child()].prelim) / 2.0
+            };
 
             // Is there a left sibling?
             if let Some(left_sibling) = left_sibling {
@@ -210,6 +259,7 @@ impl<'a> ProfileLayouter<'a> {
     fn second_walk(&mut self, node: usize, m: f64, level: usize) {
         self.nodes[node].x = self.nodes[node].prelim + m;
         self.nodes[node].y = level as f64 * self.layout_config.level_height();
+        self.nodes[node].level = level;
         let modifier = self.nodes[node].modifier;
         for child in self.nodes[node].children() {
             self.second_walk(child, m + modifier, level + 1);
@@ -335,14 +385,14 @@ impl<'a> ProfileLayouter<'a> {
 
     /// Enforce the spacing invariant among all nodes on each level
     fn resolve_level_overlaps(&mut self, root: usize) {
-        let margin = self.layout_config.node_margin_horizontal();
+        let margin = self.sibling_margin();
         let mut level: Vec<(usize, f64)> = vec![(root, 0.0)];
         while !level.is_empty() {
             let mut next_level = Vec::new();
             let mut right_edge: Option<f64> = None;
             for (node, inherited_shift) in level {
                 let mut shift = inherited_shift + self.nodes[node].layout_shift;
-                let left_edge = self.nodes[node].x + shift - self.nodes[node].width / 2.0;
+                let left_edge = self.nodes[node].x + shift - self.breadth(node) / 2.0;
                 if let Some(right_edge) = right_edge {
                     let correction = right_edge + margin - left_edge;
                     if correction > 0.0 {
@@ -350,7 +400,7 @@ impl<'a> ProfileLayouter<'a> {
                         shift += correction;
                     }
                 }
-                right_edge = Some(self.nodes[node].x + shift + self.nodes[node].width / 2.0);
+                right_edge = Some(self.nodes[node].x + shift + self.breadth(node) / 2.0);
                 next_level.extend(self.nodes[node].children().map(|child| (child, shift)));
             }
             level = next_level;
@@ -366,7 +416,7 @@ impl<'a> ProfileLayouter<'a> {
 
     /// Compute the plan layout
     fn compute(&mut self) {
-        let margin = self.layout_config.node_margin_horizontal();
+        let margin = self.sibling_margin();
         let mut packed_right = 0.0;
         let mut has_packed_root = false;
         for &root in self.root_operators {
@@ -383,9 +433,10 @@ impl<'a> ProfileLayouter<'a> {
             let mut right = f64::MIN;
             let mut pending = vec![root];
             while let Some(node) = pending.pop() {
+                let breadth = self.breadth(node);
                 let n = &self.nodes[node];
-                left = cpp_min(left, n.x - n.width / 2.0);
-                right = cpp_max(right, n.x + n.width / 2.0);
+                left = cpp_min(left, n.x - breadth / 2.0);
+                right = cpp_max(right, n.x + breadth / 2.0);
                 pending.extend(n.children());
             }
             if has_packed_root {
@@ -424,7 +475,29 @@ impl QueryProfile {
         // Compute the plan layout
         let mut layouter = ProfileLayouter::new(self, &self.layout_config);
         layouter.compute();
-        let nodes = layouter.nodes;
+        let mut nodes = layouter.nodes;
+
+        // A left-to-right plan turns the levels into columns. Walker placed the siblings along x, they move to y.
+        // A column is as wide as its widest node, the columns are separated by the horizontal margin.
+        // The nodes of a column are left-aligned, the edges of all inputs of an operator then turn at the same x.
+        let left_to_right = input.orientation() == fb::ProfileLayoutOrientation::LEFT_TO_RIGHT;
+        if left_to_right {
+            let levels = nodes.iter().map(|node| node.level + 1).max().unwrap_or(0);
+            let mut column_widths = vec![0.0; levels];
+            for node in &nodes {
+                column_widths[node.level] = cpp_max(column_widths[node.level], node.width);
+            }
+            let mut column_lefts = Vec::with_capacity(levels);
+            let mut column_left = 0.0;
+            for width in column_widths {
+                column_lefts.push(column_left);
+                column_left += width + input.node_margin_horizontal();
+            }
+            for node in &mut nodes {
+                node.y = node.x;
+                node.x = column_lefts[node.level] + node.width / 2.0;
+            }
+        }
 
         // Compute total width and x- and y-shifts to make each point positive
         let mut x_max = f64::MIN;
@@ -432,7 +505,8 @@ impl QueryProfile {
         let mut y_max = f64::MIN;
         let mut y_min = f64::MAX;
         let node_height = input.node_height();
-        let level_height = input.level_height();
+        // The vertical room of a node: a level in a top-down plan, the node itself in a left-to-right plan
+        let level_height = if left_to_right { node_height } else { input.level_height() };
         for node in &nodes {
             x_max = cpp_max(x_max, node.x + node.width / 2.0);
             x_min = cpp_min(x_min, node.x - node.width / 2.0);

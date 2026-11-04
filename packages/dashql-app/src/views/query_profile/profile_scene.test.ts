@@ -62,6 +62,17 @@ describe('buildCrossEdgePath', () => {
         )).toEqual('M 40 144 C 40 120, 200 224, 200 176');
     });
 
+    it('connects the side ports of a left-to-right plan', () => {
+        // From the left side of the source to the right side of the target
+        expect(buildCrossEdgePath(
+            { x: 400, y: 60, width: 60, height: 32 },
+            { x: 100, y: 16, width: 80, height: 32 },
+            24,
+            48,
+            true,
+        )).toEqual('M 370 60 C 255 60, 255 16, 140 16');
+    });
+
     it('keeps vertical tension when the lead endpoints align', () => {
         expect(buildCrossEdgePath(
             { x: 40, y: 224, width: 60, height: 32 },
@@ -131,6 +142,61 @@ describe('buildFragmentPath', () => {
         expect(pathContainsPoint(path, 40, 160)).toEqual(true);
         expect(pathContainsPoint(path, 160, 160)).toEqual(true);
         expect(pathContainsPoint(path, 35, 100)).toEqual(false);
+    });
+
+    it('routes the connecting edges of a left-to-right plan through the gap between the columns', () => {
+        // The parent at the left, its input right of it and lower
+        const path = buildFragmentPath(
+            [0, 1],
+            [
+                { rect: { x: 40, y: 16, width: 40, height: 20 } },
+                { rect: { x: 160, y: 60, width: 40, height: 20 } },
+            ],
+            [{ childOperator: 1, parentOperator: 0 }],
+            10,
+            10,
+            true,
+        );
+        // Left from the child, up in the middle of the gap, left into the parent
+        expect(pathContainsPoint(path, 120, 60)).toEqual(true);
+        expect(pathContainsPoint(path, 100, 40)).toEqual(true);
+        expect(pathContainsPoint(path, 80, 16)).toEqual(true);
+        expect(pathContainsPoint(path, 60, 60)).toEqual(false);
+        expect(pathContainsPoint(path, 140, 16)).toEqual(false);
+    });
+
+    it('fills the gap between an operator and the parent directly above it', () => {
+        const path = buildFragmentPath(
+            [0, 1],
+            [
+                { rect: { x: 100, y: 40, width: 60, height: 20 } },
+                { rect: { x: 100, y: 100, width: 40, height: 20 } },
+            ],
+            [{ childOperator: 1, parentOperator: 0 }],
+            10,
+        );
+        // The gap is as wide as the padded child, not only the corridor along the edge
+        expect(pathContainsPoint(path, 72, 70)).toEqual(true);
+        expect(pathContainsPoint(path, 128, 70)).toEqual(true);
+        expect(pathContainsPoint(path, 65, 70)).toEqual(false);
+        expect(path.split('M ').filter(Boolean).length).toEqual(1);
+    });
+
+    it('fills the gap between an operator and the parent directly left of it in a left-to-right plan', () => {
+        const path = buildFragmentPath(
+            [0, 1],
+            [
+                { rect: { x: 40, y: 40, width: 40, height: 30 } },
+                { rect: { x: 120, y: 40, width: 40, height: 20 } },
+            ],
+            [{ childOperator: 1, parentOperator: 0 }],
+            10,
+            10,
+            true,
+        );
+        expect(pathContainsPoint(path, 80, 22)).toEqual(true);
+        expect(pathContainsPoint(path, 80, 58)).toEqual(true);
+        expect(pathContainsPoint(path, 80, 15)).toEqual(false);
     });
 
     it('returns an empty path for empty membership', () => {

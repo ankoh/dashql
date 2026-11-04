@@ -137,7 +137,7 @@ Trino. The regular tests read the checked-in recordings instead.
 # Check the assumptions of the query progress model against Trino
 bazel test //packages/trino-testing:trino_assumptions_test
 
-# Refresh snapshots/profiles/trino/recordings/ (statement polls, QueryInfo samples, EXPLAIN plans)
+# Refresh snapshots/profiles/trino/recordings/ (statement polls, the QueryInfos the app fetches, EXPLAIN plans)
 bazel run //packages/trino-testing:trino_recorder
 
 # Serve Trino for the app at http://127.0.0.1:8080 (tpch catalog, behind a CORS proxy), Enter stops it

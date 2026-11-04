@@ -4,7 +4,7 @@ import * as proto from "../../proto.js";
 import { Logger } from '../../platform/logger/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../query/query_execution_state.js";
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
-import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryResult, TrinoQueryStatistics } from "./trino_api_client.js";
+import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryInfo, TrinoQueryResult, TrinoQueryStage, TrinoQueryStatistics } from "./trino_api_client.js";
 import { ChannelError, RawProxyError } from '../../platform/channel_common.js';
 import { AsyncValue } from '../../utils/async_value.js';
 import { AsyncConsumer } from '../../utils/async_consumer.js';
@@ -12,10 +12,38 @@ import { translateAnyRowsToArrowBatch } from './arrow_conversion.js';
 import type { TrinoSessionDefaults } from './trino_catalogs.js';
 
 const LOG_CTX = 'trino_channel';
-/// Sample the statistics of the stages this often, Trino refreshes them about every 3 seconds
-const QUERY_INFO_SAMPLE_INTERVAL_MS = 3000;
-/// Wait this long for the last sample of the statistics of a finished query
-const QUERY_INFO_FINAL_SAMPLE_TIMEOUT_MS = 3000;
+/// Fetch QueryInfo again after this long while a stage whose tasks are done has no operator summaries yet
+const QUERY_INFO_RETRY_MS = 1000;
+/// Wait this long for the final QueryInfo of a finished query
+const QUERY_INFO_FINAL_TIMEOUT_MS = 3000;
+/// Fetch the QueryInfo of a finished query this often until it is final
+const QUERY_INFO_FINAL_RETRY_MS = 200;
+
+/// Are the tasks of a stage done? A stage waits for the query in PENDING and finishes with it.
+function isStageDone(state: string | undefined): boolean {
+    return state === 'PENDING' || state === 'FINISHED';
+}
+
+/// The stages of the statement stats whose tasks are done
+function countDoneStages(stage: TrinoQueryStage | null | undefined): number {
+    if (stage == null) return 0;
+    let count = isStageDone(stage.state) ? 1 : 0;
+    for (const child of stage.subStages ?? []) count += countDoneStages(child);
+    return count;
+}
+
+/// Does a QueryInfo have a stage whose tasks are done but that reports no operator summaries yet? Right after a
+/// stage turned PENDING, Trino may still wait for the final infos of its tasks.
+function lacksOperatorSummaries(info: TrinoQueryInfo): boolean {
+    return (info.stages?.stages ?? []).some(stage =>
+        isStageDone(stage.state) && (stage.stageStats?.operatorSummaries?.length ?? 0) === 0);
+}
+
+/// Is a QueryInfo final? A finished query is once Trino collected the final infos of its tasks, a failed one may
+/// never be.
+function isFinalQueryInfo(info: TrinoQueryInfo): boolean {
+    return info.state === 'FAILED' || (info.state === 'FINISHED' && info.finalQueryInfo === true);
+}
 
 export interface TrinoQueryExecutionProgress extends QueryExecutionProgress { }
 
@@ -42,10 +70,14 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     queryInfoRequested: boolean = false;
     /// The request of the QueryInfo with the plans
     queryInfoPlan: Promise<void> | null = null;
-    /// The pending sample of the pruned QueryInfo
-    queryInfoSample: Promise<void> | null = null;
-    /// The timer of the samples
-    queryInfoTimer: ReturnType<typeof setInterval> | null = null;
+    /// The pending request of a QueryInfo for the operator summaries
+    queryInfoStats: Promise<TrinoQueryInfo | null> | null = null;
+    /// Fetch QueryInfo again once the pending request is done?
+    queryInfoStale: boolean = false;
+    /// The stages with done tasks that the requested QueryInfos cover
+    queryInfoDoneStages: number = 0;
+    /// The timer of the next QueryInfo while a stage with done tasks has no operator summaries
+    queryInfoRetry: ReturnType<typeof setTimeout> | null = null;
     /// Is the profile shown?
     profileDetail: boolean = false;
     /// The consumer of the progress while the stream produces
@@ -83,74 +115,124 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         if (nextUri != null) await this.apiClient.cancelQuery(this.endpoint, nextUri);
     }
 
-    /// Is the profile of the query shown? The plan and the samples of its statistics are fetched only then.
+    /// Is the profile of the query shown? The plan and the operator summaries are fetched only then.
     setProfileDetail(wanted: boolean): void {
         this.profileDetail = wanted;
-        if (!wanted && this.queryInfoTimer != null) {
-            clearInterval(this.queryInfoTimer);
-            this.queryInfoTimer = null;
-        }
+        if (!wanted) this.clearQueryInfoRetry();
         this.requestProfile();
     }
 
-    /// Request the QueryInfo with the plans of the stages once the stages exist and the profile is shown, then
-    /// sample the statistics of the stages while the query runs. The plan arrives as progress, the requests do not
-    /// hold up the query, a failed request leaves the stages without plan.
+    /// Request the QueryInfo with the plans of the stages once the stages exist and the profile is shown. Trino
+    /// reports the operator summaries of a stage (the rows of the plan) once its tasks are done, so QueryInfo is
+    /// fetched again whenever the statement stats show more such stages. The requests do not hold up the query,
+    /// a failed request leaves the stages without plan or rows. Pruned QueryInfo is no use here: it keeps only the
+    /// output stage.
     requestProfile(): void {
         const progress = this.progressConsumer;
         const abort = this.produceAbort ?? undefined;
         const queryId = this.latestQueryResult?.id;
         if (!this.profileDetail || progress == null || this.latestQueryStats?.rootStage == null || !queryId) return;
+        const doneStages = countDoneStages(this.latestQueryStats.rootStage);
         if (!this.queryInfoRequested) {
             this.queryInfoRequested = true;
+            this.queryInfoDoneStages = doneStages;
             this.queryInfoPlan = this.apiClient.getQueryInfo(this.endpoint, queryId, abort).then(
                 info => {
                     progress.resolve(this, {
                         ...deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt),
                         engineProgress: { kind: 'trino_query_info', info, receivedAt: Date.now() },
                     });
+                    this.retryQueryInfoIfIncomplete(info);
                 },
                 (e: unknown) => this.logger.warn("Failed to fetch the query plan", { "error": String(e) }, LOG_CTX),
             );
+        } else if (doneStages > this.queryInfoDoneStages) {
+            this.queryInfoDoneStages = doneStages;
+            void this.fetchQueryInfoStats();
         }
-        this.queryInfoTimer ??= setInterval(() => void this.sampleQueryInfo(), QUERY_INFO_SAMPLE_INTERVAL_MS);
     }
 
-    /// Sample the pruned QueryInfo: the operator summaries of the stages, without plans. One sample at a time.
-    sampleQueryInfo(): Promise<void> {
+    /// Fetch QueryInfo for the operator summaries, after the plans. One request at a time, a request while one is
+    /// pending fetches once more after it.
+    fetchQueryInfoStats(): Promise<TrinoQueryInfo | null> {
+        if (this.queryInfoStats != null) {
+            this.queryInfoStale = true;
+            return this.queryInfoStats;
+        }
         const progress = this.progressConsumer;
         const queryId = this.latestQueryResult?.id;
-        if (progress == null || !queryId) return Promise.resolve();
-        this.queryInfoSample ??= this.apiClient.getQueryInfo(this.endpoint, queryId, this.produceAbort ?? undefined, true).then(
-            info => {
-                progress.resolve(this, {
-                    ...deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt),
-                    engineProgress: { kind: 'trino_query_info_stats', info, receivedAt: Date.now() },
-                });
-            },
-            (e: unknown) => this.logger.debug("Failed to sample the query statistics", { "error": String(e) }, LOG_CTX),
-        ).finally(() => {
-            this.queryInfoSample = null;
+        const abort = this.produceAbort ?? undefined;
+        if (progress == null || !queryId) return Promise.resolve(null);
+        this.clearQueryInfoRetry();
+        const request = (this.queryInfoPlan ?? Promise.resolve())
+            .then(() => this.apiClient.getQueryInfo(this.endpoint, queryId, abort))
+            .then(
+                info => {
+                    progress.resolve(this, {
+                        ...deriveProgress(this.latestQueryStats, this.queryMetrics, this.latestQueryReceivedAt),
+                        engineProgress: { kind: 'trino_query_info_stats', info, receivedAt: Date.now() },
+                    });
+                    return info;
+                },
+                (e: unknown) => {
+                    this.logger.debug("Failed to fetch the query statistics", { "error": String(e) }, LOG_CTX);
+                    return null;
+                },
+            )
+            .finally(() => {
+                this.queryInfoStats = null;
+            });
+        this.queryInfoStats = request;
+        void request.then(info => {
+            if (this.queryInfoStale) {
+                this.queryInfoStale = false;
+                void this.fetchQueryInfoStats();
+            } else if (info != null) {
+                this.retryQueryInfoIfIncomplete(info);
+            }
         });
-        return this.queryInfoSample;
+        return request;
     }
 
-    /// Stop sampling. After a query that finished, take a last sample: the operator summaries are complete now.
-    /// The query waits for it, but not longer than a bound.
+    /// Fetch QueryInfo again later while a stage with done tasks reports no operator summaries and the query runs
+    retryQueryInfoIfIncomplete(info: TrinoQueryInfo): void {
+        if (this.progressConsumer == null || !this.profileDetail || !lacksOperatorSummaries(info)) return;
+        this.queryInfoRetry ??= setTimeout(() => {
+            this.queryInfoRetry = null;
+            void this.fetchQueryInfoStats();
+        }, QUERY_INFO_RETRY_MS);
+    }
+
+    /// Clear the timer of the next QueryInfo
+    clearQueryInfoRetry(): void {
+        if (this.queryInfoRetry != null) clearTimeout(this.queryInfoRetry);
+        this.queryInfoRetry = null;
+    }
+
+    /// Fetch the QueryInfo of a finished query until it is final: then the operator summaries of all stages are
+    /// complete. The query waits for it, but not longer than a bound.
     async finishQueryInfo(finished: boolean): Promise<void> {
-        if (this.queryInfoTimer != null) clearInterval(this.queryInfoTimer);
-        this.queryInfoTimer = null;
+        this.clearQueryInfoRetry();
         if (finished && this.profileDetail && this.queryInfoRequested) {
-            const pending = this.queryInfoPlan ?? Promise.resolve();
-            const last = pending.then(() => this.sampleQueryInfo());
+            const deadline = Date.now() + QUERY_INFO_FINAL_TIMEOUT_MS;
             let timer: ReturnType<typeof setTimeout> | null = null;
-            const bound = new Promise<void>(resolve => { timer = setTimeout(resolve, QUERY_INFO_FINAL_SAMPLE_TIMEOUT_MS); });
-            await Promise.race([last, bound]);
+            const bound = new Promise<void>(resolve => { timer = setTimeout(resolve, QUERY_INFO_FINAL_TIMEOUT_MS); });
+            const final = (async () => {
+                // A pending request may predate the end of the query
+                await this.queryInfoStats;
+                while (true) {
+                    const info = await this.fetchQueryInfoStats();
+                    if (info == null || isFinalQueryInfo(info) || Date.now() + QUERY_INFO_FINAL_RETRY_MS >= deadline) break;
+                    await new Promise(resolve => setTimeout(resolve, QUERY_INFO_FINAL_RETRY_MS));
+                }
+            })();
+            await Promise.race([final, bound]);
             if (timer != null) clearTimeout(timer);
         }
         // Progress after the end of the stream is dropped
         this.progressConsumer = null;
         this.produceAbort = null;
+        this.clearQueryInfoRetry();
     }
 
     /// Fetch the next query result

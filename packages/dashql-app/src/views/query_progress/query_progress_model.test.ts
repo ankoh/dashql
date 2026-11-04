@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import { QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '../../query/query_progress_model.js';
+import { QueryProgressFollower, QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '../../query/query_progress_model.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -8,6 +8,7 @@ import {
     monotonicFraction,
     workOf,
 } from './query_progress_model.js';
+import { createProfileLayoutConfig } from '../query_profile/profile_layout_config.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -102,7 +103,7 @@ describe('QueryProgressModels', () => {
         models.release(2);
     });
 
-    it('applies the operator summaries of pruned samples to the plan', () => {
+    it('applies the operator summaries of a later QueryInfo to the plan', () => {
         const models = new QueryProgressModels();
         const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
         const info = { queryId: 'q', stages: { stages: [
@@ -112,7 +113,7 @@ describe('QueryProgressModels', () => {
         expect(loaded.structure.read().pipelinesLength()).toEqual(0);
         const summary = (operatorId: number, planNodeId: string, rows: number) =>
             ({ pipelineId: 0, operatorId, planNodeId, inputPositions: rows, outputPositions: rows });
-        const sample = { stages: { stages: [{ stageId: 'q.0', state: 'FINISHED', stageStats: {
+        const sample = { stages: { stages: [{ stageId: 'q.0', state: 'PENDING', stageStats: {
             operatorSummaries: [summary(0, '2', 25), summary(1, '1', 25)],
         } }] } };
         const progress = models.apply(core, 3, { kind: 'trino_query_info_stats', info: sample, receivedAt: 2 })!;
@@ -122,6 +123,38 @@ describe('QueryProgressModels', () => {
         const edge = structure.operatorEdges(0)!;
         expect(progress.execution.edgeRows(edge.slot(), edge.child())).toEqual(25n);
         models.release(3);
+    });
+});
+
+describe('QueryProgressFollower', () => {
+    it('follows the recording of a query with the other orientation', () => {
+        const { LEFT_TO_RIGHT, TOP_DOWN } = dashql.buffers.profile.ProfileLayoutOrientation;
+        const models = new QueryProgressModels(createProfileLayoutConfig(LEFT_TO_RIGHT));
+        const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
+        const info = { queryId: 'q', stages: { stages: [
+            stage('0', { id: '1', name: 'Output', children: [{ id: '2', name: 'InnerJoin', children: [
+                { id: '3', name: 'TableScan', children: [] },
+                { id: '4', name: 'TableScan', children: [] },
+            ] }] }),
+        ] } };
+        models.apply(core, 4, { kind: 'trino_statement_stats', stats: poll('RUNNING', 4), receivedAt: 1 });
+        const loaded = models.apply(core, 4, { kind: 'trino_query_info', info, receivedAt: 2 })!;
+        const orientation = (progress: QueryProfileProgress) => progress.structure.read().layoutConfig()!.input()!.orientation();
+        expect(orientation(loaded)).toEqual(LEFT_TO_RIGHT);
+
+        const follower = new QueryProgressFollower(core, createProfileLayoutConfig(TOP_DOWN));
+        const rotated = follower.follow(loaded)!;
+        expect(orientation(rotated)).toEqual(TOP_DOWN);
+        expect(rotated.structure.read().operatorsLength()).toEqual(4);
+        expect(workOf(rotated.execution.query)).toEqual({ done: 4, total: 20 });
+
+        // A later payload of the query reaches the rotated plan as well
+        const later = models.apply(core, 4, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 3 })!;
+        const followed = follower.follow(later)!;
+        expect(orientation(followed)).toEqual(TOP_DOWN);
+        expect(workOf(followed.execution.query)).toEqual({ done: 8, total: 20 });
+        follower.destroy();
+        models.release(4);
     });
 });
 

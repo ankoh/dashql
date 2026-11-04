@@ -70,4 +70,28 @@ describe('findProfileOperatorInDirection', () => {
         expect(findProfileOperatorInDirection(operators, edges, null, 'down')?.id).toEqual(0);
         expect(findProfileOperatorInDirection(operators, edges, null, 'up')?.id).toEqual(3);
     });
+
+    describe('in a left-to-right plan', () => {
+        // The root at the top left, its inputs in the column right of it, the first one in the row of the root
+        const leftToRight = [
+            operator(0, 40, 16),
+            operator(1, 160, 16),
+            operator(2, 160, 60),
+            operator(3, 280, 16),
+        ];
+
+        it('navigates right to the first input and left to the parent', () => {
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[0], 'right', true)?.id).toEqual(1);
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[1], 'right', true)?.id).toEqual(3);
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[3], 'left', true)?.id).toEqual(1);
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[0], 'left', true)).toBeNull();
+        });
+
+        it('navigates up and down through the operators of a column', () => {
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[1], 'down', true)?.id).toEqual(2);
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[2], 'up', true)?.id).toEqual(1);
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[1], 'up', true)).toBeNull();
+            expect(findProfileOperatorInDirection(leftToRight, edges, leftToRight[3], 'down', true)).toBeNull();
+        });
+    });
 });

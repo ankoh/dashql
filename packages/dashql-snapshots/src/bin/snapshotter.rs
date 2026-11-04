@@ -566,7 +566,10 @@ fn generate_trino_profile_snapshots(dir: &Path, recordings: &Path) {
             let recording_path = recordings.join(format!("{}.json", text(test, "recording")));
             let encoded = fs::read_to_string(&recording_path)
                 .map_err(|e| format!("cannot read {}: {e}", recording_path.display()))
-                .and_then(|recording| encode_trino_profile(&recording, text(test, "source")));
+                .and_then(|recording| {
+                    let layout = test.has("layout").then(|| text(test, "layout"));
+                    encode_trino_profile(&recording, text(test, "source"), layout)
+                });
             let encoded = match encoded {
                 Ok(encoded) => encoded,
                 Err(e) => {
@@ -578,6 +581,9 @@ fn generate_trino_profile_snapshots(dir: &Path, recordings: &Path) {
             item.plain("name", name);
             item.plain("recording", text(test, "recording"));
             item.plain("source", text(test, "source"));
+            if test.has("layout") {
+                item.plain("layout", text(test, "layout"));
+            }
             item.0.extend(encoded.0);
             cases.push(item.into_node());
         }

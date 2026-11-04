@@ -99,7 +99,7 @@ entry when you find another one. The headings name where the behavior lives.
   query sums all fragments. An operator in a sink slot only produces the output of its sink slots.
   Input events for entities that do not exist are dropped silently (`apply_event`).
 - **Trino plans** (`parse_trino_plan`). A fragment that several remote sources read hangs below the
-  first one only. The root fragment is hidden, its contour would enclose the whole plan. The stage
+  first one only. The root fragment is a stage like the others and draws a contour. The stage
   plans of QueryInfo carry no estimates, EXPLAIN plans do. A QueryInfo without stage plans (pruned)
   is an empty profile, not an error.
 - **Trino operator summaries** (`trino_query_info_events`). The Trino operators of one plan node in
@@ -107,8 +107,9 @@ entry when you find another one. The headings name where the behavior lives.
   first slot of a pipeline is its source, the last its sink. Pipelines are registered as
   `<fragment>.<pipeline>` when their summaries first appear, which is when their stage finished.
   Summaries of plan nodes the plan does not know are skipped. Data sizes count in powers of 1024.
-- **Trino stage states** (`stage_status`). `PENDING` is running: Trino enters it after `RUNNING`, when
-  the tasks of a stage are done but the stage is not, often with every split completed.
+- **Trino stage states** (`stage_status`). `PENDING` is succeeded: Trino enters it after `RUNNING`, when
+  the tasks of a stage are done, and stays there until the query finishes. The splits of a stage that
+  reads other stages may still count as not completed.
 
 ## Script session (`packages/dashql-core-session/src/script_session.rs`)
 

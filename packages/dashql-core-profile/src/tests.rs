@@ -541,6 +541,23 @@ fn variable_width_nodes_do_not_overlap() {
 }
 
 #[test]
+fn symbol_width_sizes_operators_without_a_label_of_their_own() {
+    let plan = r#"{"operator":"map","input":{"operator":"futureoperator","input":{"operator":"tablescan","debugName":{"value":"lineitem"}}}}"#;
+    let widths = |config: &fb::ProfileLayoutConfig| {
+        let buffer = pack_plan_with(plan, config);
+        let plan = root(&buffer);
+        // The operators are stored post-order: tablescan, futureoperator, map
+        plan.operators().unwrap().iter().map(|op| op.layout_rect().width()).collect::<Vec<_>>()
+    };
+    // Without a symbol width, every operator is sized for its label or type name
+    assert_eq!(widths(&default_config()), vec![8.0 + 8.0 * 8.5 + 8.0, 8.0 + 14.0 * 8.5 + 8.0, 8.0 + 3.0 * 8.5 + 8.0]);
+    // The map shows its symbol, the table scan its table, the unknown operator its type name
+    let mut config = default_config();
+    config.set_symbol_width(18.0);
+    assert_eq!(widths(&config), vec![8.0 + 8.0 * 8.5 + 8.0, 8.0 + 14.0 * 8.5 + 8.0, 8.0 + 18.0 + 8.0]);
+}
+
+#[test]
 fn unary_child_remains_centered_across_uneven_sibling_contours() {
     let buffer = pack_plan(
         r#"{
@@ -593,6 +610,115 @@ fn independent_roots_are_packed_without_overlap() {
     assert_eq!(plan.root_operators().unwrap().len(), 2);
     expect_same_level_nodes_do_not_overlap(&plan, margin);
     expect_bounds_contain_nodes(&plan);
+}
+
+fn left_to_right_config() -> fb::ProfileLayoutConfig {
+    let mut config = make_layout_config(4.0);
+    config.set_node_margin_vertical(2.0);
+    config.set_orientation(fb::ProfileLayoutOrientation::LEFT_TO_RIGHT);
+    config
+}
+
+/// A join of a deep and a shallow input, below a union with a third input
+const LEFT_TO_RIGHT_PLAN: &str = r#"{
+    "operator":"unionall",
+    "input":[
+        {"operator":"join","input":[
+            {"operator":"map","input":{"operator":"map","input":{"operator":"tablescan","debugName":{"value":"a_very_long_table"}}}},
+            {"operator":"tablescan","debugName":{"value":"x"}}
+        ]},
+        {"operator":"map","input":{"operator":"tablescan","debugName":{"value":"medium_table"}}},
+        {"operator":"tablescan","debugName":{"value":"y"}}
+    ]
+}"#;
+
+#[test]
+fn left_to_right_plans_grow_right_and_down_from_the_root() {
+    let buffer = pack_plan_with(LEFT_TO_RIGHT_PLAN, &left_to_right_config());
+    let plan = root(&buffer);
+    let operators = plan.operators().unwrap();
+    let root_rect = *operators.get(plan.root_operators().unwrap().get(0) as usize).layout_rect();
+    for op in operators {
+        let rect = op.layout_rect();
+        // Nothing is above or left of the root
+        assert!(rect.y() >= root_rect.y() - 0.001);
+        assert!(rect.x() - rect.width() / 2.0 >= root_rect.x() - root_rect.width() / 2.0 - 0.001);
+        // An operator shares its row with its first input, its inputs are in the column right of it
+        if op.children_count() > 0 {
+            let first = operators.get(op.children_begin() as usize).layout_rect();
+            assert!((first.y() - rect.y()).abs() <= 0.001);
+            for i in 0..op.children_count() {
+                let child = operators.get((op.children_begin() + i) as usize).layout_rect();
+                assert!(child.x() - child.width() / 2.0 >= rect.x() + rect.width() / 2.0 + 4.0 - 0.001);
+            }
+        }
+    }
+    // The root sits at the top left corner of the bounds
+    assert!((root_rect.y() - root_rect.height() / 2.0).abs() <= 0.001);
+    assert!((root_rect.x() - root_rect.width() / 2.0).abs() <= 0.001);
+}
+
+#[test]
+fn left_to_right_siblings_do_not_overlap() {
+    let buffer = pack_plan_with(LEFT_TO_RIGHT_PLAN, &left_to_right_config());
+    let plan = root(&buffer);
+    let operators = plan.operators().unwrap();
+    let bounds = plan.layout_rect().unwrap();
+    for i in 0..operators.len() {
+        let a = *operators.get(i).layout_rect();
+        assert!(a.y() - a.height() / 2.0 >= bounds.y() - 0.001);
+        assert!(a.y() + a.height() / 2.0 <= bounds.y() + bounds.height() + 0.001);
+        assert!(a.x() + a.width() / 2.0 <= bounds.x() + bounds.width() + 0.001);
+        for j in i + 1..operators.len() {
+            let b = *operators.get(j).layout_rect();
+            // Operators of a column share their left edge
+            if (a.x() - a.width() / 2.0 - (b.x() - b.width() / 2.0)).abs() > 0.001 {
+                continue;
+            }
+            let (upper, lower) = if a.y() > b.y() { (b, a) } else { (a, b) };
+            assert!(lower.y() - lower.height() / 2.0 >= upper.y() + upper.height() / 2.0 + 2.0 - 0.001, "operators {i} and {j}");
+        }
+    }
+}
+
+#[test]
+fn left_to_right_plans_are_one_row_per_leaf() {
+    let buffer = pack_plan_with(LEFT_TO_RIGHT_PLAN, &left_to_right_config());
+    let plan = root(&buffer);
+    // Four leaves of height 8 with a margin of 2 between them
+    let bounds = plan.layout_rect().unwrap();
+    assert!((bounds.height() - (4.0 * 8.0 + 3.0 * 2.0)).abs() <= 0.001, "height {}", bounds.height());
+    // Five levels, as wide as their widest node, with a margin of 4 between them
+    let mut columns: Vec<(f64, f64)> = Vec::new();
+    for op in plan.operators().unwrap() {
+        let rect = op.layout_rect();
+        let left = rect.x() - rect.width() / 2.0;
+        match columns.iter_mut().find(|(x, _)| (x - left).abs() <= 0.001) {
+            Some(column) => column.1 = column.1.max(rect.width()),
+            None => columns.push((left, rect.width())),
+        }
+    }
+    assert_eq!(columns.len(), 5);
+    let width: f64 = columns.iter().map(|(_, width)| width).sum::<f64>() + 4.0 * 4.0;
+    assert!((bounds.width() - width).abs() <= 0.001, "width {} != {width}", bounds.width());
+}
+
+#[test]
+fn left_to_right_roots_are_stacked() {
+    let margin = 2.0;
+    let buffer = pack_plan_with(
+        r#"[
+        {"operator":"map","input":{"operator":"tablescan","debugName":{"value":"first_table"}}},
+        {"operator":"tablescan","debugName":{"value":"second_table_is_wider"}}
+    ]"#,
+        &left_to_right_config(),
+    );
+    let plan = root(&buffer);
+    let roots = plan.root_operators().unwrap();
+    let operators = plan.operators().unwrap();
+    let (first, second) = (operators.get(roots.get(0) as usize).layout_rect(), operators.get(roots.get(1) as usize).layout_rect());
+    assert!((first.x() - first.width() / 2.0 - (second.x() - second.width() / 2.0)).abs() <= 0.001);
+    assert!(second.y() - second.height() / 2.0 >= first.y() + first.height() / 2.0 + margin - 0.001);
 }
 
 fn tpch_config() -> fb::ProfileLayoutConfig {

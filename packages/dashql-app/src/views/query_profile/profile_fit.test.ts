@@ -1,56 +1,40 @@
-import * as dashql from '@ankoh/dashql-core';
-import { computeProfileFitTransform, PROFILE_FIT_MIN_SCALE, PROFILE_FIT_PADDING } from './profile_fit.js';
-import type { ProfileScene, ProfileSceneOperator } from './profile_scene.js';
-
-function operator(id: number, x: number, y: number): ProfileSceneOperator {
-    return {
-        id,
-        kind: dashql.buffers.profile.ProfileOperatorKind.OTHER,
-        typeName: null,
-        label: `operator ${id}`,
-        displayLabel: `operator ${id}`,
-        rect: { x, y, width: 80, height: 32 },
-        ports: 0,
-        estimatedRows: Number.NaN,
-        fragment: 0xFFFFFFFF,
-        properties: {},
-    };
-}
-
-function scene(width: number, height: number): Pick<ProfileScene, 'width' | 'height' | 'operators' | 'edges'> {
-    return {
-        width,
-        height,
-        // The root sits at the top, off-center, with a child below
-        operators: [operator(0, width / 4, 20), operator(1, width / 2, 100)],
-        edges: [{ id: 0, childOperator: 1, parentOperator: 0, slot: 0xFFFFFFFF, outputCardinalityEstimated: 0, path: '' }],
-    };
-}
+import { computeProfileFitTransform, PROFILE_FIT_PADDING, PROFILE_FIT_PADDING_BOTTOM } from './profile_fit.js';
 
 describe('computeProfileFitTransform', () => {
-    it('centers a plan that fits', () => {
-        const fit = computeProfileFitTransform(scene(400, 200), 800, 600);
-        expect(fit).toEqual({ x: 200, y: 200, scale: 1 });
+    const availableHeight = 600 - PROFILE_FIT_PADDING - PROFILE_FIT_PADDING_BOTTOM;
+
+    it('centers a plan that fits without enlarging it', () => {
+        const fit = computeProfileFitTransform({ left: 0, top: 0, width: 400, height: 200 }, 800, 600);
+        expect(fit.scale).toEqual(1);
+        expect(fit.x).toBeCloseTo(200);
+        expect(fit.y).toBeCloseTo(PROFILE_FIT_PADDING + (availableHeight - 200) / 2);
     });
 
-    it('shrinks a plan down to the minimum scale to fit', () => {
-        const fit = computeProfileFitTransform(scene(1000, 400), 600, 600);
+    it('centers the drawn bounds of a plan that does not start at the origin', () => {
+        const fit = computeProfileFitTransform({ left: -100, top: 50, width: 400, height: 200 }, 800, 600);
+        expect(fit.scale).toEqual(1);
+        // The center of the bounds lands in the center of the space left by the paddings
+        expect(fit.x + 100 * fit.scale).toBeCloseTo(800 / 2);
+        expect(fit.y + 150 * fit.scale).toBeCloseTo(PROFILE_FIT_PADDING + availableHeight / 2);
+    });
+
+    it('shrinks a wide plan to fit the width', () => {
+        const fit = computeProfileFitTransform({ left: 0, top: 0, width: 1000, height: 400 }, 600, 600);
         expect(fit.scale).toBeCloseTo((600 - PROFILE_FIT_PADDING * 2) / 1000);
         expect(fit.x).toBeCloseTo(PROFILE_FIT_PADDING);
     });
 
-    it('does not shrink below the minimum scale and places the root at the top center', () => {
-        const fit = computeProfileFitTransform(scene(4000, 6000), 800, 600);
-        expect(fit.scale).toEqual(PROFILE_FIT_MIN_SCALE);
-        // The root is at x=1000, y=20 with height 32 -> top at y=4
-        expect(fit.x + 1000 * fit.scale).toBeCloseTo(400);
-        expect(fit.y + 4 * fit.scale).toBeCloseTo(PROFILE_FIT_PADDING);
+    it('shrinks a tall plan to fit the height', () => {
+        const fit = computeProfileFitTransform({ left: 0, top: 0, width: 600, height: 6000 }, 800, 600);
+        expect(fit.scale).toBeCloseTo(availableHeight / 6000);
+        expect(fit.x).toBeCloseTo((800 - 600 * fit.scale) / 2);
+        expect(fit.y).toBeCloseTo(PROFILE_FIT_PADDING);
     });
 
-    it('centers the scene if only the height overflows at the minimum scale', () => {
-        const fit = computeProfileFitTransform(scene(600, 6000), 800, 600);
-        expect(fit.scale).toEqual(PROFILE_FIT_MIN_SCALE);
-        expect(fit.x).toBeCloseTo((800 - 600 * PROFILE_FIT_MIN_SCALE) / 2);
-        expect(fit.y + 4 * fit.scale).toBeCloseTo(PROFILE_FIT_PADDING);
+    it('shrinks a large plan as far as needed to show it as a whole', () => {
+        const fit = computeProfileFitTransform({ left: 20, top: 10, width: 40000, height: 20000 }, 800, 600);
+        expect(fit.scale).toBeCloseTo((800 - PROFILE_FIT_PADDING * 2) / 40000);
+        expect(fit.x + 20 * fit.scale).toBeCloseTo(PROFILE_FIT_PADDING);
+        expect(fit.y + (10 + 20000) * fit.scale).toBeLessThanOrEqual(600 - PROFILE_FIT_PADDING_BOTTOM + 1e-9);
     });
 });

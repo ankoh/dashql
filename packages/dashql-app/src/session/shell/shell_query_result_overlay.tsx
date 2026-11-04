@@ -61,7 +61,7 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
     const planEngine = detectPlanEngine(planText) ?? dashql.buffers.profile.ProfileEngine.HYPER;
-    const { plan, execution } = dependencies.useQueryProfile(planEngine, planText);
+    const { plan, execution, rotate } = dependencies.useQueryProfile(planEngine, planText);
     const hasPlan = plan != null;
     const [selectedTab, setSelectedTab] = React.useState<ResultTab>(ResultTab.Data);
     const selectedPlanQueryIdRef = React.useRef<number | null>(null);
@@ -139,10 +139,10 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
         [ResultTab.Plan]: () => (
             <div className={styles.plan_tab}>
                 <TabHeader title="Query Plan" actions={planActions} />
-                <div className={styles.plan_body}>{plan != null && <ProfileViewComponent plan={plan} execution={execution} />}</div>
+                <div className={styles.plan_body}>{plan != null && <ProfileViewComponent plan={plan} execution={execution} onRotate={rotate} />}</div>
             </div>
         ),
-    }), [closeButton, planActions, plan, execution, ProfileViewComponent, query, ResultDetails]);
+    }), [closeButton, planActions, plan, execution, rotate, ProfileViewComponent, query, ResultDetails]);
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: dialogRef as React.RefObject<HTMLElement>,

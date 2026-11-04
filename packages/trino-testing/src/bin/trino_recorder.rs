@@ -1,18 +1,30 @@
 //! Records the Trino API responses of the queries in `queries.rs` into `snapshots/profiles/trino/recordings/`.
 //!
 //! `bazel run //packages/trino-testing:trino_recorder` starts a Trino server, runs every query and writes one
-//! JSON file per query: the `/v1/statement` responses, the pruned `/v1/query/{id}` samples, the full final
-//! QueryInfo and the distributed plan.
+//! JSON file per query: the `/v1/statement` responses, the `/v1/query/{id}` responses that the app fetches (one
+//! whenever a stage finished, the final one), and the distributed plan. The task infos of the stages are left
+//! out, the progress model does not read them.
 //! The recordings drive the regular tests of the progress model without a server.
 
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use trino_testing::queries::RECORDED_QUERIES;
-use trino_testing::{TimedResponse, TrinoServer};
+use trino_testing::{QueryOptions, TimedResponse, TrinoServer};
 
 /// Serialize timed responses
 fn timed(responses: &[TimedResponse]) -> Value {
     Value::Array(responses.iter().map(|r| json!({ "elapsedMs": r.elapsed_ms, "body": r.body })).collect())
+}
+
+/// A QueryInfo without the task infos of its stages
+fn without_tasks(mut info: Value) -> Value {
+    let stages = info.pointer_mut("/stages/stages").and_then(Value::as_array_mut).into_iter().flatten();
+    for stage in stages {
+        if let Some(stage) = stage.as_object_mut() {
+            stage.remove("tasks");
+        }
+    }
+    info
 }
 
 fn main() {
@@ -27,8 +39,11 @@ fn main() {
     println!("Trino {version} at {}", server.endpoint);
 
     for query in RECORDED_QUERIES {
-        let run = client.run_query(query.sql, &query.options("pruned=true"));
-        let run = run.unwrap_or_else(|e| panic!("{}: {e}", query.name));
+        let options = QueryOptions { query_info_on_stage_finish: true, ..query.options() };
+        let mut run = client.run_query(query.sql, &options).unwrap_or_else(|e| panic!("{}: {e}", query.name));
+        for info in &mut run.query_infos {
+            info.body = without_tasks(std::mem::take(&mut info.body));
+        }
         match (run.error(), query.fails) {
             (Some(error), false) => panic!("{}: query failed: {}", query.name, error.get("message").unwrap_or(error)),
             (None, true) => panic!("{}: query was expected to fail", query.name),

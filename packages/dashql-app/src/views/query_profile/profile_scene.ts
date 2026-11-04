@@ -1,7 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import { U32_MAX } from './numeric_limits.js';
-import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../../ui/graph/graph_edges.js';
-import { getProfileOperatorDisplayWidth } from './profile_operator_symbol.js';
+import { buildEdgePathBetweenRectangles, PathBuilder, selectHorizontalEdgeType, selectVerticalEdgeType } from '../../ui/graph/graph_edges.js';
 
 export interface ProfileSceneRect {
     x: number;
@@ -59,14 +58,13 @@ export interface ProfileSceneFragment {
     id: number;
     operatorIds: readonly number[];
     path: string;
-    /// The top right corner of the contour around the root operator, where the progress badge sits.
-    /// Null if the fragment has no root operator.
-    corner: { x: number; y: number } | null;
 }
 
 export interface ProfileScene {
     width: number;
     height: number;
+    /// Does the plan grow left-to-right? The root is then at the top left and the inputs of an operator are right of it.
+    leftToRight: boolean;
     layoutConfig: dashql.buffers.profile.DerivedProfileLayoutConfigT;
     operators: readonly ProfileSceneOperator[];
     edges: readonly ProfileSceneEdge[];
@@ -111,7 +109,18 @@ export function buildCrossEdgePath(
     target: ProfileSceneRect,
     minHandleLength = 24,
     minInputHandleLength = 48,
+    leftToRight = false,
 ): string {
+    if (leftToRight) {
+        // The output of the source is on its left side, the input of the target on its right side
+        const sourceX = source.x - source.width / 2;
+        const sourceY = source.y;
+        const targetX = target.x + target.width / 2;
+        const targetY = target.y;
+        const sourceHandleLength = Math.max(minHandleLength, Math.abs(sourceX - targetX) / 2);
+        const targetHandleLength = Math.max(minInputHandleLength, sourceHandleLength);
+        return `M ${sourceX} ${sourceY} C ${sourceX - sourceHandleLength} ${sourceY}, ${targetX + targetHandleLength} ${targetY}, ${targetX} ${targetY}`;
+    }
     const sourceX = source.x;
     const sourceY = source.y - source.height / 2;
     const targetX = target.x;
@@ -229,8 +238,48 @@ function appendFragmentCorridor(
     from: ProfileSceneRect,
     to: ProfileSceneRect,
     width: number,
+    padding: number,
+    leftToRight: boolean,
 ): void {
+    // An operator directly below or next to its parent shares the envelope with it: the gap between the two is
+    // filled as wide as the narrower of the padded operators instead of a corridor along the edge.
+    if (leftToRight ? Math.abs(from.y - to.y) < 0.5 : Math.abs(from.x - to.x) < 0.5) {
+        const left = Math.max(from.x - from.width / 2, to.x - to.width / 2) - padding;
+        const right = Math.min(from.x + from.width / 2, to.x + to.width / 2) + padding;
+        const top = Math.max(from.y - from.height / 2, to.y - to.height / 2) - padding;
+        const bottom = Math.min(from.y + from.height / 2, to.y + to.height / 2) + padding;
+        rectangles.push(leftToRight
+            ? { x: Math.min(from.x, to.x), y: top, width: Math.abs(to.x - from.x), height: bottom - top }
+            : { x: left, y: Math.min(from.y, to.y), width: right - left, height: Math.abs(to.y - from.y) });
+        return;
+    }
     const halfWidth = width / 2;
+    if (leftToRight) {
+        // Along the edge: from the left side of the child to the middle of the gap, then up, then to the parent
+        const direction = Math.sign(to.x - from.x) || -1;
+        const fromX = from.x + direction * from.width / 2;
+        const toX = to.x - direction * to.width / 2;
+        const midX = (fromX + toX) / 2;
+        rectangles.push({
+            x: Math.min(fromX, midX) - halfWidth,
+            y: from.y - halfWidth,
+            width: Math.abs(midX - fromX) + width,
+            height: width,
+        });
+        rectangles.push({
+            x: midX - halfWidth,
+            y: Math.min(from.y, to.y) - halfWidth,
+            width,
+            height: Math.abs(to.y - from.y) + width,
+        });
+        rectangles.push({
+            x: Math.min(midX, toX) - halfWidth,
+            y: to.y - halfWidth,
+            width: Math.abs(toX - midX) + width,
+            height: width,
+        });
+        return;
+    }
     const direction = Math.sign(to.y - from.y) || 1;
     const fromY = from.y + direction * from.height / 2;
     const toY = to.y - direction * to.height / 2;
@@ -325,7 +374,7 @@ function traceFragmentRectangles(rectangles: readonly ProfileSceneRect[]): strin
 }
 
 /// The padding of a fragment contour around its operators
-const FRAGMENT_PADDING = 12;
+const FRAGMENT_PADDING = 8;
 
 export function buildFragmentPath(
     operatorIds: readonly number[],
@@ -333,6 +382,7 @@ export function buildFragmentPath(
     edges: readonly Pick<ProfileSceneEdge, 'childOperator' | 'parentOperator'>[] = [],
     padding = FRAGMENT_PADDING,
     corridorWidth = padding * 2,
+    leftToRight = false,
 ): string {
     const rectangles: ProfileSceneRect[] = [];
     const memberIds = new Set(operatorIds);
@@ -346,7 +396,7 @@ export function buildFragmentPath(
         const child = operators[edge.childOperator];
         const parent = operators[edge.parentOperator];
         if (child == null || parent == null) continue;
-        appendFragmentCorridor(rectangles, child.rect, parent.rect, corridorWidth);
+        appendFragmentCorridor(rectangles, child.rect, parent.rect, corridorWidth, padding, leftToRight);
     }
     return traceFragmentRectangles(rectangles);
 }
@@ -366,6 +416,8 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
     const vm = viewModel.read();
     const layoutConfig = vm.layoutConfig()!.unpack();
     const input = layoutConfig.input!;
+    const leftToRight = input.orientation === dashql.buffers.profile.ProfileLayoutOrientation.LEFT_TO_RIGHT;
+    const selectEdgeType = leftToRight ? selectHorizontalEdgeType : selectVerticalEdgeType;
     const operators: ProfileSceneOperator[] = new Array(vm.operatorsLength());
     const tmpOperator = new dashql.buffers.profile.ProfileOperator();
     for (let i = 0; i < vm.operatorsLength(); ++i) {
@@ -373,23 +425,18 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
         const layout = op.layoutRect()!;
         const typeName = readString(vm, op.typeName());
         const label = readString(vm, op.label()) ?? typeName ?? 'operator';
-        const width = getProfileOperatorDisplayWidth(
-            op.kind(),
-            typeName,
-            label,
-            layout.width(),
-            input.nodePaddingLeft,
-            input.iconWidth,
-            input.iconMarginRight,
-            input.nodePaddingRight,
-        );
         operators[i] = {
             id: i,
             kind: op.kind(),
             typeName,
             label,
             displayLabel: truncateProfileLabel(label, input.maxLabelChars),
-            rect: { x: layout.x(), y: layout.y(), width, height: layout.height() },
+            rect: {
+                x: layout.x(),
+                y: layout.y(),
+                width: layout.width(),
+                height: layout.height(),
+            },
             ports: 0,
             estimatedRows: op.estimatedRows(),
             fragment: op.fragment(),
@@ -405,7 +452,7 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
         const parent = operators[edge.parent()];
         child.ports |= PROFILE_OPERATOR_PORT_OUTPUT;
         parent.ports |= PROFILE_OPERATOR_PORT_INPUT;
-        const edgeType = selectVerticalEdgeType(child.rect.x, child.rect.y, parent.rect.x, parent.rect.y);
+        const edgeType = selectEdgeType(child.rect.x, child.rect.y, parent.rect.x, parent.rect.y);
         const path = buildEdgePathBetweenRectangles(
             new PathBuilder(), edgeType,
             child.rect.x, child.rect.y, parent.rect.x, parent.rect.y,
@@ -437,41 +484,22 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
             targetOperator: target.id,
             kind: typeof properties.kind === 'string' ? properties.kind : 'reference',
             properties,
-            path: buildCrossEdgePath(source.rect, target.rect),
+            path: buildCrossEdgePath(source.rect, target.rect, undefined, undefined, leftToRight),
         });
     }
 
-    // A fragment owns the operators that are not in a nested fragment, its contour encloses the nested ones too.
-    // Parents come before their children.
-    const fragmentCount = vm.fragmentsLength();
+    // A fragment owns the operators that are not in a nested fragment, its contour encloses only those.
+    // A nested fragment draws a contour of its own next to the one of its parent.
     const tmpFragment = new dashql.buffers.profile.ProfileFragment();
-    const enclosed: number[][] = [];
-    const parents: number[] = [];
-    const hidden: boolean[] = [];
-    const roots: number[] = [];
-    for (let i = 0; i < fragmentCount; ++i) {
-        const fragment = vm.fragments(i, tmpFragment)!;
-        enclosed.push(readIndexRange(j => vm.fragmentOperators(j), fragment.operatorsBegin(), fragment.operatorCount()));
-        parents.push(fragment.parentFragment());
-        hidden.push(fragment.hidden() !== 0);
-        roots.push(fragment.rootOperator());
-    }
-    for (let i = fragmentCount - 1; i >= 0; --i) {
-        const parent = parents[i];
-        if (parent !== U32_MAX && parent < i) enclosed[parent].push(...enclosed[i]);
-    }
     const fragments: ProfileSceneFragment[] = [];
-    for (let i = 0; i < fragmentCount; ++i) {
-        if (hidden[i]) continue;
-        const root = operators[roots[i]];
+    for (let i = 0; i < vm.fragmentsLength(); ++i) {
+        const fragment = vm.fragments(i, tmpFragment)!;
+        if (fragment.hidden() !== 0) continue;
+        const operatorIds = readIndexRange(j => vm.fragmentOperators(j), fragment.operatorsBegin(), fragment.operatorCount());
         fragments.push({
             id: i,
-            operatorIds: enclosed[i],
-            path: buildFragmentPath(enclosed[i], operators, edges, FRAGMENT_PADDING),
-            corner: root == null ? null : {
-                x: root.rect.x + root.rect.width / 2 + FRAGMENT_PADDING,
-                y: root.rect.y - root.rect.height / 2 - FRAGMENT_PADDING,
-            },
+            operatorIds,
+            path: buildFragmentPath(operatorIds, operators, edges, FRAGMENT_PADDING, undefined, leftToRight),
         });
     }
 
@@ -492,6 +520,7 @@ export function materializeProfileScene(viewModel: dashql.FlatBufferPtr<dashql.b
     return {
         width: bounds?.width() ?? 0,
         height: bounds?.height() ?? 0,
+        leftToRight,
         layoutConfig,
         operators,
         edges,

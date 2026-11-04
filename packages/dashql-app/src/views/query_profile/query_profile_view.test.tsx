@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { estimateRelativeDifference, type ProfileScene, type ProfileSceneOperator } from './profile_scene.js';
-import { formatEstimateSymbol, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
+import { formatEstimateSymbol, formatFragmentMetrics, placeOperatorAnnotation, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
 import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -70,6 +70,7 @@ const operators: ProfileSceneOperator[] = [
 const scene: ProfileScene = {
     width: 0,
     height: 0,
+    leftToRight: false,
     layoutConfig: {
         input: {
             levelHeight: 64,
@@ -121,6 +122,15 @@ const scene: ProfileScene = {
 const dependencies: QueryProfileViewDependencies = {
     materializeProfileScene: () => scene,
 };
+
+describe('placeOperatorAnnotation', () => {
+    // The operator spans 40..160 x 34..66
+    const rect = { x: 100, y: 50, width: 120, height: 32 };
+
+    it('starts the annotation after the left padding of the operator, vertically centered', () => {
+        expect(placeOperatorAnnotation({ rect }, { nodePaddingLeft: 12 })).toEqual({ x: 52, y: 50 });
+    });
+});
 
 describe('formatEstimateSymbol', () => {
     it('maps estimate-relative differences to seven ordered bands', () => {
@@ -210,6 +220,14 @@ describe('QueryProfileView keyboard navigation', () => {
         return formatEstimateSymbol(estimateRelativeDifference(estimated, actual), Math.abs(actual - estimated));
     }
 
+    it('fills the height of a container of fixed height', () => {
+        container.style.height = '240px';
+        act(() => root.render(<QueryProfileView plan={plan} execution={executionOf(actualRows)} dependencies={dependencies} fill />));
+        const viewport = container.querySelector<HTMLElement>('[role="region"]')!;
+        expect(viewport.getAttribute('data-fill')).toEqual('true');
+        expect(viewport.getBoundingClientRect().height).toBeCloseTo(240);
+    });
+
     it('renders estimated rows in Rows mode when actual rows are unavailable', () => {
         expect(badge(10)?.textContent).toEqual('10');
         expect(badge(10)?.getAttribute('aria-label')).toBeTruthy();
@@ -222,7 +240,8 @@ describe('QueryProfileView keyboard navigation', () => {
         actualRows[1] = 1;
         renderPlan();
 
-        expect(badge(10)?.getAttribute('transform')).toEqual('translate(100, 40)');
+        // The row count of the edge sits in the annotation slot of its child
+        expect(badge(10)?.getAttribute('transform')).toEqual('translate(2, 40)');
         expect(badge(10)?.textContent).toEqual('100');
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).not.toBeNull();
         expect(badge(10)?.getAttribute('data-highlighted')).toBeNull();
@@ -376,6 +395,25 @@ describe('QueryProfileView keyboard navigation', () => {
         expect(document.activeElement).toBe(container.querySelector('[role="region"]'));
     });
 
+    it('shows the rotate button only when the plan can be rotated', () => {
+        expect(container.querySelector('[data-testid="plan-rotate"]')).toBeNull();
+
+        const onRotate = vi.fn();
+        act(() => root.render(<QueryProfileView plan={plan} execution={executionOf(actualRows)} onRotate={onRotate} dependencies={dependencies} />));
+        const node = container.querySelector('[data-plan-operator-id="1"]')!;
+        act(() => node.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 })));
+        expect(inspector()).not.toBeNull();
+
+        const button = container.querySelector<HTMLButtonElement>('[data-testid="plan-rotate"]')!;
+        expect(button.getAttribute('aria-label')).toEqual('Rotate plan to left-to-right');
+        act(() => button.click());
+        expect(onRotate).toHaveBeenCalledTimes(1);
+        expect(inspector()).toBeNull();
+
+        key(container.querySelector<HTMLElement>('[role="region"]')!, 'r');
+        expect(onRotate).toHaveBeenCalledTimes(2);
+    });
+
     it('toggles the selected operator properties with Enter', () => {
         const viewport = container.querySelector<HTMLElement>('[role="region"]')!;
         key(viewport, 'ArrowRight');
@@ -444,8 +482,8 @@ describe('QueryProfileView fragment progress', () => {
     const progressScene: ProfileScene = {
         ...scene,
         fragments: [
-            { id: 0, operatorIds: [0, 1], path: 'M 0 0 L 200 0 L 200 80 L 0 80 Z', corner: { x: 200, y: 0 } },
-            { id: 1, operatorIds: [2], path: 'M 240 0 L 320 0 L 320 80 L 240 80 Z', corner: { x: 320, y: 0 } },
+            { id: 0, operatorIds: [0, 1], path: 'M 0 0 L 200 0 L 200 80 L 0 80 Z' },
+            { id: 1, operatorIds: [2], path: 'M 240 0 L 320 0 L 320 80 L 240 80 Z' },
         ],
     };
     const fragmentDependencies: QueryProfileViewDependencies = { ...dependencies, materializeProfileScene: () => progressScene };
@@ -472,7 +510,17 @@ describe('QueryProfileView fragment progress', () => {
         container.remove();
     });
 
-    it('runs the progress of a running fragment along its contour and shows its work at the corner', () => {
+    /// The state of a fragment with processed rows and bytes, CPU time and work
+    function fragmentWithMetrics(status: dashql.buffers.profile.ProfileExecutionStatus, rows: number, bytes: number, cpuUs: number, done: number, total: number) {
+        const state = fragment(status, done, total);
+        state.stats.reported |= view.ProfileStatsField.TUPLES_IN | view.ProfileStatsField.BYTES_IN | view.ProfileStatsField.CPU_TIME;
+        state.stats.tuplesIn = BigInt(rows);
+        state.stats.bytesIn = BigInt(bytes);
+        state.stats.cpuTimeUs = BigInt(cpuUs);
+        return state;
+    }
+
+    it('runs the progress of a running fragment along its contour', () => {
         const execution = new ProfileExecutionState(null, [
             fragment(view.ProfileExecutionStatus.RUNNING, 4, 8),
             fragment(view.ProfileExecutionStatus.SUCCEEDED, 8, 8),
@@ -481,27 +529,86 @@ describe('QueryProfileView fragment progress', () => {
         const progress = [...container.querySelectorAll('[data-testid="fragment-progress"]')];
         expect(progress.map(path => [path.getAttribute('d'), path.getAttribute('stroke-dasharray')]))
             .toEqual([['M 0 0 L 200 0 L 200 80 L 0 80 Z', '50 100']]);
-        // A succeeded fragment needs no badge, its contour says it
-        expect([...container.querySelectorAll('text')].map(text => text.textContent)).toContain('4/8');
-        expect([...container.querySelectorAll('text')].map(text => text.textContent)).not.toContain('8/8');
-        expect(container.querySelector('[aria-label^="Fragment 1, 4/8 splits"]')).not.toBeNull();
     });
 
-    it('keeps the color of every fragment whatever its status', () => {
+    it('reads out the metrics of every fragment without a card on its contour', () => {
+        const execution = new ProfileExecutionState(null, [
+            fragmentWithMetrics(view.ProfileExecutionStatus.RUNNING, 7531357, 241696, 4170000, 12, 37),
+            fragmentWithMetrics(view.ProfileExecutionStatus.SUCCEEDED, 150000, 0, 166000, 16, 16),
+        ], [], [], []);
+        act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
+        expect(container.querySelector('[data-testid="fragment-metrics"]')).toBeNull();
+        // 0 bytes are left out, Trino reports no bytes for some connectors
+        expect(container.querySelector('[aria-label^="Fragment 1, 7531357 rows, 242 kB, 4.17 s CPU time, 12 of 37 splits,"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label^="Fragment 2, 150000 rows, 166 ms CPU time,"]')).not.toBeNull();
+    });
+
+    it('leaves out the metrics that are still 0, except the rows of a succeeded fragment', () => {
+        expect(formatFragmentMetrics(fragmentWithMetrics(view.ProfileExecutionStatus.RUNNING, 0, 0, 0, 0, 37))?.text).toEqual('0/37 splits');
+        expect(formatFragmentMetrics(fragmentWithMetrics(view.ProfileExecutionStatus.SUCCEEDED, 0, 0, 0, 2, 2))?.text).toEqual('0 rows');
+    });
+
+    it('reads out no metrics of a fragment without reported statistics', () => {
+        const execution = new ProfileExecutionState(null, [{ status: view.ProfileExecutionStatus.PENDING, stats: new view.ProfileStatsT() }], [], [], []);
+        act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
+        expect(container.querySelector('[aria-label^="Fragment 1, containing operators"]')).not.toBeNull();
+    });
+
+    it('shows the status of the operators first and replaces it with the row counts in Rows mode', () => {
+        const execution = new ProfileExecutionState(null, [fragment(view.ProfileExecutionStatus.RUNNING, 4, 8)], [], [], []);
+        act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
+        const status = () => container.querySelector('[data-plan-operator-id="0"] [data-status]');
+        const rows = () => container.querySelector('[data-plan-edge-badge-id="10"]');
+        const button = (mode: string) => container.querySelector<HTMLButtonElement>(`[data-testid="plan-annotation-${mode}"]`)!;
+        // The label is centered right of the annotation, the operator spans 0..100 with 12 pixels of padding
+        const labelX = () => container.querySelector('[data-plan-operator-id="0"] text')?.getAttribute('x');
+        expect([...container.querySelectorAll('[data-testid^="plan-annotation-"]')].map(b => b.textContent))
+            .toEqual(['Status', 'Plain', 'Rows', 'Estimates']);
+        expect(button('status').getAttribute('aria-current')).toEqual('true');
+        expect(status()).not.toBeNull();
+        expect(rows()).toBeNull();
+        expect(labelX()).toEqual(`${(12 + 14 + 88) / 2}`);
+
+        act(() => button('rows').click());
+        expect(status()).toBeNull();
+        expect(rows()?.textContent).toEqual('10');
+        expect(labelX()).toEqual(`${(12 + 20 + 88) / 2}`);
+
+        act(() => button('plain').click());
+        expect(status()).toBeNull();
+        expect(rows()).toBeNull();
+        expect(labelX()).toEqual('50');
+    });
+
+    it('offers no status without the progress mode', () => {
+        act(() => root.render(<QueryProfileView plan={plan} dependencies={fragmentDependencies} />));
+        expect(container.querySelector('[data-testid="plan-annotation-status"]')).toBeNull();
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="plan-annotation-rows"]')?.getAttribute('aria-current')).toEqual('true');
+    });
+
+    it('keeps the color of every fragment whatever its status, grey until colored', () => {
         const execution = new ProfileExecutionState(null, [
             fragment(view.ProfileExecutionStatus.SUCCEEDED, 8, 8),
             fragment(view.ProfileExecutionStatus.SUCCEEDED, 8, 8),
         ], [], [], []);
         act(() => root.render(<QueryProfileView plan={plan} execution={execution} showProgress dependencies={fragmentDependencies} />));
         const contours = [...container.querySelectorAll('[aria-label^="Fragment"]')];
-        expect(contours.map(contour => contour.getAttribute('data-color'))).toEqual(['0', '1']);
+        expect(contours.map(contour => contour.getAttribute('data-color'))).toEqual(['neutral', 'neutral']);
         expect(contours.map(contour => contour.querySelector('path')?.getAttribute('data-status'))).toEqual(['succeeded', 'succeeded']);
+
+        // The paint button tells the fragments apart by color, and turns them grey again
+        const toggle = container.querySelector<HTMLButtonElement>('[data-testid="plan-fragment-colors"]')!;
+        expect(toggle.getAttribute('aria-pressed')).toEqual('false');
+        act(() => toggle.click());
+        expect(toggle.getAttribute('aria-pressed')).toEqual('true');
+        expect(contours.map(contour => contour.getAttribute('data-color'))).toEqual(['0', '1']);
+        act(() => toggle.click());
+        expect(contours.map(contour => contour.getAttribute('data-color'))).toEqual(['neutral', 'neutral']);
     });
 
     it('shows no progress without the progress mode', () => {
         const execution = new ProfileExecutionState(null, [fragment(view.ProfileExecutionStatus.RUNNING, 4, 8)], [], [], []);
         act(() => root.render(<QueryProfileView plan={plan} execution={execution} dependencies={fragmentDependencies} />));
         expect(container.querySelector('[data-testid="fragment-progress"]')).toBeNull();
-        expect([...container.querySelectorAll('text')].map(text => text.textContent)).not.toContain('4/8');
     });
 });

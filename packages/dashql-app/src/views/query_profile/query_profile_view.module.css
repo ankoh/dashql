@@ -7,6 +7,9 @@
     touch-action: none;
 }
 
+/* A viewport in a container of fixed height, the fit centers the plan in what is visible */
+.viewport[data-fill="true"] { height: 100%; }
+
 .viewport:focus-visible {
     outline: 2px solid hsl(211, 100%, 45%);
     outline-offset: 2px;
@@ -53,13 +56,38 @@
 }
 .operator:focus { outline: none; }
 
-.status path { display: none; }
-.status[data-status="0"] path[data-status-icon="0"],
-.status[data-status="1"] path[data-status-icon="1"],
-.status[data-status="2"] path[data-status-icon="2"],
-.status[data-status="3"] path[data-status-icon="3"],
-.status[data-status="4"] path[data-status-icon="4"],
-.status[data-status="5"] path[data-status-icon="5"] { display: block; }
+/* The status icon of an operator, like the status indicators of the app. The controller sets the status, CSS
+   shows its icon. */
+.status [data-status-icon] { display: none; fill: currentColor; }
+.status[data-status="0"] [data-status-icon="0"],
+.status[data-status="1"] [data-status-icon="1"],
+.status[data-status="2"] [data-status-icon="2"],
+.status[data-status="3"] [data-status-icon="3"],
+.status[data-status="4"] [data-status-icon="4"],
+.status[data-status="5"] [data-status-icon="5"] { display: inline; }
+.status { color: var(--status_color_other); }
+.status[data-status="2"] { color: var(--status_color_in_progress); }
+.status[data-status="3"] { color: var(--status_color_success); }
+.status[data-status="4"] { color: var(--status_color_failed); }
+.status [data-status-icon="0"],
+.status [data-status-icon="1"] { opacity: 0.5; }
+.status_track,
+.status_spinner,
+.status_progress {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2px;
+}
+.status_track { opacity: 0.35; }
+.status_spinner {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: status_rotate 1s linear infinite;
+}
+.status_progress { transition: stroke-dasharray 300ms ease-out; }
+@keyframes status_rotate {
+    100% { transform: rotate(1turn); }
+}
 
 .controls {
     position: absolute;
@@ -74,10 +102,10 @@
     left: 8px;
     z-index: 2;
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
     max-width: calc(100% - 96px);
-    flex-wrap: wrap;
 }
 
 .edge_legend {
@@ -92,6 +120,28 @@
     font-size: 10px;
     line-height: 12px;
     white-space: nowrap;
+}
+
+/* Below a left-to-right plan, the legend sits in the bottom left above the annotation controls */
+/* The annotations and the buttons that change the look of the plan, side by side */
+.view_controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* As tall as the tiny segmented control next to them */
+.view_buttons button {
+    width: 24px;
+    height: 24px;
+}
+.view_buttons button[aria-pressed="true"] {
+    background-color: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 88%);
+}
+
+.metric_controls > .edge_legend {
+    position: static;
+    max-width: none;
 }
 
 .edge_legend_scale {
@@ -152,11 +202,11 @@
 
 /* A fragment keeps its color, its status changes the contour: dashed while pending, faint while running with the
    progress running along it, solid once succeeded. A failed fragment is red. */
-path.fragment[data-status="pending"] { fill-opacity: 0.35; }
-path.fragment[data-status="running"] { stroke-opacity: 0.35; stroke-dasharray: none; }
+path.fragment[data-status="pending"] { fill-opacity: 0.25; }
+path.fragment[data-status="running"] { stroke-opacity: 0.25; stroke-dasharray: none; }
 path.fragment[data-status="succeeded"] { stroke-dasharray: none; }
-path.fragment[data-status="failed"] { stroke: var(--status_color_failed); stroke-dasharray: none; }
-path.fragment[data-status="skipped"] { fill-opacity: 0.35; stroke-opacity: 0.5; }
+path.fragment[data-status="failed"] { stroke: var(--status_color_failed); stroke-opacity: 1; stroke-dasharray: none; }
+path.fragment[data-status="skipped"] { fill-opacity: 0.25; stroke-opacity: 0.3; }
 
 /* The progress of a running fragment along its contour. The dashes are relative to the path length, a non-scaling
    stroke would dash in screen units. */
@@ -169,25 +219,7 @@ path.fragment[data-status="skipped"] { fill-opacity: 0.35; stroke-opacity: 0.5; 
     transition: stroke-dasharray 300ms ease-out;
 }
 
-/* The completed and known work of a fragment at the top right corner of its contour */
-.fragment_badge {
-    pointer-events: none;
-}
-.fragment_badge rect {
-    fill: var(--graph_node_background, white);
-    stroke: var(--fragment_stroke);
-    stroke-width: 1px;
-}
-.fragment_badge[data-status="failed"] rect { stroke: var(--status_color_failed); }
-.fragment_badge text {
-    font-family: var(--font_family_mono);
-    font-size: 9px;
-    font-weight: 600;
-    text-anchor: middle;
-    dominant-baseline: central;
-    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 30%);
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .fragment_progress { transition: none; }
+    .fragment_progress, .status_progress { transition: none; }
+    .status_spinner { animation: none; }
 }

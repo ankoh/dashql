@@ -6,10 +6,13 @@ import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_exe
 import { TabHeader } from '../../session/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
 import { useQueryProfileDetail } from '../../connections/query_executor.js';
-import type { QueryProfileProgress } from '../../query/query_progress_model.js';
+import { QueryProgressFollower, type QueryProfileProgress } from '../../query/query_progress_model.js';
+import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '../query_profile/profile_layout_config.js';
+import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
+import { DownloadIcon, ScreenFullIcon } from '../../ui/foundations/symbol_icon.js';
+import { QueryProfileOverlay } from './query_profile_overlay.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -118,14 +121,50 @@ function DownloadRecordingButton(props: { queryId: number; progress: QueryProfil
     );
 }
 
+/// The progress of a query with its plan laid out in the other orientation, while rotated. The progress model of
+/// the query keeps its layout, a follower of the panel applies the recorded payloads again. Without core, e.g.
+/// while it loads, the progress stays as it is.
+function useRotatedProgress(progress: QueryProfileProgress, rotated: boolean): QueryProfileProgress {
+    const coreSetup = useDashQLCoreSetup() as DashQLSetupFn | null;
+    const [core, setCore] = React.useState<dashql.DashQL | null>(null);
+    React.useEffect(() => {
+        if (!rotated || core != null || coreSetup == null) return;
+        let cancelled = false;
+        coreSetup('query_progress').then(
+            instance => { if (!cancelled) setCore(instance); },
+            () => { /* The plan stays in its orientation */ },
+        );
+        return () => { cancelled = true; };
+    }, [rotated, core, coreSetup]);
+
+    const follower = React.useRef<QueryProgressFollower | null>(null);
+    React.useEffect(() => () => {
+        follower.current?.destroy();
+        follower.current = null;
+    }, []);
+    return React.useMemo(() => {
+        if (!rotated || core == null) {
+            follower.current?.destroy();
+            follower.current = null;
+            return progress;
+        }
+        const orientation = progress.structure.read().layoutConfig()?.input()?.orientation()
+            ?? dashql.buffers.profile.ProfileLayoutOrientation.LEFT_TO_RIGHT;
+        follower.current ??= new QueryProgressFollower(core, createProfileLayoutConfig(rotateProfileLayoutOrientation(orientation)));
+        return follower.current.follow(progress) ?? progress;
+    }, [core, progress, rotated]);
+}
+
 /// The profile of a query with the progress of its stages on their contours, once the plan is known
-export function ProfileProgressDetails(props: { progress: QueryProfileProgress; height?: number }) {
-    const { progress } = props;
+export function ProfileProgressDetails(props: { progress: QueryProfileProgress; height?: number | string }) {
+    const [rotated, setRotated] = React.useState(false);
+    const progress = useRotatedProgress(props.progress, rotated);
+    const rotate = React.useCallback(() => setRotated(value => !value), []);
     const hasOperators = React.useMemo(() => progress.structure.read().operatorsLength() > 0, [progress.structure]);
     if (!hasOperators) return null;
     return (
         <div className={styles.profile} style={props.height == null ? undefined : { height: props.height }} data-testid="query-progress-profile">
-            <QueryProfileView plan={progress.structure} execution={progress.execution} showProgress />
+            <QueryProfileView plan={progress.structure} execution={progress.execution} onRotate={rotate} showProgress fill />
         </div>
     );
 }
@@ -154,14 +193,31 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const phaseLabel = phase != null ? formatPhase(phase) : QueryExecutionStatus[query.status] != null
         ? formatPhase(QueryExecutionStatus[query.status]) : null;
     const seconds = elapsedMs / 1000;
+    const [profileOpen, setProfileOpen] = React.useState(false);
+    const showsProfile = props.showProfile === true && profileProgress != null;
+    const hasOperators = React.useMemo(() => (structure?.read().operatorsLength() ?? 0) > 0, [structure]);
 
     return (
         <div className={styles.container} data-testid="query-progress-panel">
             <TabHeader
                 title="Progress"
                 detail={phaseLabel}
-                actions={props.showProfile && profileProgress != null
-                    ? <DownloadRecordingButton queryId={query.queryId} progress={profileProgress} />
+                actions={showsProfile
+                    ? (
+                        <>
+                            <DownloadRecordingButton queryId={query.queryId} progress={profileProgress} />
+                            {hasOperators && <IconButton
+                                variant={ButtonVariant.Invisible}
+                                size={ButtonSize.Small}
+                                aria-label="Open the query plan"
+                                description="Open the plan with the progress of its stages in a large card"
+                                data-testid="open-query-profile"
+                                onClick={() => setProfileOpen(true)}
+                            >
+                                <ScreenFullIcon size={16} />
+                            </IconButton>}
+                        </>
+                    )
                     : undefined}
             />
             <div className={styles.strip}>
@@ -180,7 +236,13 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                     <Figure label="Spilled" value={spilled == null || spilled === 0 ? null : formatCompactBytes(spilled)} />
                 </div>
             </div>
-            {props.showProfile && profileProgress != null && <ProfileProgressDetails progress={profileProgress} height={props.profileHeight} />}
+            {showsProfile && <ProfileProgressDetails progress={profileProgress} height={props.profileHeight} />}
+            {/* The card follows the progress of the query while it runs */}
+            {showsProfile && profileOpen && (
+                <QueryProfileOverlay onClose={() => setProfileOpen(false)}>
+                    <ProfileProgressDetails progress={profileProgress} height="100%" />
+                </QueryProfileOverlay>
+            )}
         </div>
     );
 }

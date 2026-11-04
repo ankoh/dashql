@@ -7,7 +7,7 @@ export type EngineProgressPayload =
     | { kind: 'trino_statement_stats'; stats: object; receivedAt: number }
     /// The QueryInfo of a Trino query (`/v1/query/{id}`) with the plans of its stages
     | { kind: 'trino_query_info'; info: object; receivedAt: number }
-    /// A pruned QueryInfo (`/v1/query/{id}?pruned=true`): the operator summaries of the stages, without plans
+    /// A later QueryInfo of a Trino query: the operator summaries of the stages whose tasks are done
     | { kind: 'trino_query_info_stats'; info: object; receivedAt: number }
     /// The status of a Hyper query (web HTTP API): the progress and the processed rows of the whole query
     | { kind: 'hyper_query_status'; status: HyperQueryStatus; receivedAt: number };
@@ -90,6 +90,52 @@ export function replayRecording(
     }
 }
 
+/// A progress model that follows the recording of the progress of a query with a layout of its own, e.g. the
+/// other orientation of the plan. The progress model of the query keeps its layout, the follower applies the
+/// recorded payloads again, the ones that are recorded later as they come.
+export class QueryProgressFollower {
+    private model: QueryProgressModel | null = null;
+    private source: (() => ProfileRecording) | null = null;
+    private applied = 0;
+    private progress: QueryProfileProgress | null = null;
+
+    public constructor(private core: dashql.DashQL, private layout: dashql.buffers.profile.ProfileLayoutConfigT) {}
+
+    /// Follow the progress of a query, null before its first payload
+    public follow(progress: QueryProfileProgress): QueryProfileProgress | null {
+        const payloads = progress.recording().payloads;
+        // The progress of another query or another replay starts over
+        if (progress.recording !== this.source || payloads.length < this.applied) {
+            this.reset();
+            this.source = progress.recording;
+        }
+        if (payloads.length === 0) return null;
+        this.model ??= new QueryProgressModel(this.core, engineOf(payloads[0].payload), this.layout);
+        for (let i = this.applied; i < payloads.length; ++i) {
+            try {
+                this.progress = this.model.apply(payloads[i].payload);
+            } catch (e) {
+                // A malformed payload is skipped, like by the progress model of the query
+                console.warn(e);
+            }
+        }
+        this.applied = payloads.length;
+        return this.progress;
+    }
+
+    private reset() {
+        this.model?.destroy();
+        this.model = null;
+        this.applied = 0;
+        this.progress = null;
+    }
+
+    public destroy() {
+        this.reset();
+        this.source = null;
+    }
+}
+
 /// Read a recording: a profile recording of the app, or a recording of the Trino test harness
 /// (snapshots/profiles/trino/recordings/, written by //packages/trino-testing:trino_recorder)
 export function readProfileRecording(text: string): ProfileRecording {
@@ -105,8 +151,9 @@ interface TrinoHarnessRecording {
     queryInfos: { elapsedMs: number; body: { stages?: { stages?: { stageStats?: object }[] } } }[];
 }
 
-/// Convert a recording of the Trino test harness. Its last QueryInfo carries the plans, the app requests them when
-/// the stages appear, so the plans move there, without the operator summaries that only the end knows.
+/// Convert a recording of the Trino test harness. Its QueryInfos are the ones the app fetches when the tasks of
+/// stages are done and when the query finished. The last one carries the plans, the app requests them when the
+/// stages appear, so the plans move there, without the operator summaries that arrive with the later QueryInfos.
 function convertTrinoHarnessRecording(recording: TrinoHarnessRecording): ProfileRecording {
     const payloads: RecordedPayload[] = [];
     for (const response of recording.statementResponses) {

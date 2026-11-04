@@ -5,7 +5,7 @@ import { createQueryResponseStreamMetrics } from '../../query/query_execution_st
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ChannelError } from '../../platform/channel_common.js';
 import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
-import type { TrinoApiClientInterface, TrinoQueryResult } from './trino_api_client.js';
+import type { TrinoApiClientInterface, TrinoQueryResult, TrinoQueryStage } from './trino_api_client.js';
 import { TrinoApiEndpoint } from './trino_api_client.js';
 import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
 import { TrinoChannel, TrinoQueryResultStream } from './trino_channel.js';
@@ -15,6 +15,7 @@ import * as buf from '@bufbuild/protobuf';
 
 const COLUMNS = [{ name: 'customer_id', type: 'bigint' }];
 const state = (name: string) => ({ state: name }) as TrinoQueryResult['stats'];
+const trinoStage = (stageId: string, state: string, subStages: TrinoQueryStage[] = []) => ({ stageId, state, subStages }) as TrinoQueryStage;
 
 /// A result stream starting at the first result, the API client returns the next results in order
 function resultStream(first: Partial<TrinoQueryResult>, next: Partial<TrinoQueryResult>[] = []) {
@@ -69,7 +70,7 @@ describe('TrinoQueryResultStream', () => {
             { stats: state('QUEUED'), nextUri: 'https://example.com/next' },
             [{ stats: running, nextUri: 'https://example.com/next2' }, { stats: running, nextUri: 'https://example.com/next3' }, { columns: COLUMNS, stats: state('FINISHED') }],
         );
-        const info = { queryId: 'query-id', stages: { stages: [] } };
+        const info = { queryId: 'query-id', state: 'FINISHED', finalQueryInfo: true, stages: { stages: [] } };
         (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue(info);
         stream.setProfileDetail(true);
         const kinds: (string | undefined)[] = [];
@@ -77,11 +78,94 @@ describe('TrinoQueryResultStream', () => {
             new AsyncConsumerLambdas(),
             new AsyncConsumerLambdas((_, update) => kinds.push(update.engineProgress?.kind)),
         );
-        // The plans once, and a last pruned sample of the statistics of the finished query before the stream ends
+        // The plans once, and the final QueryInfo of the finished query before the stream ends
         expect(kinds).toContain('trino_query_info');
         expect(kinds[kinds.length - 1]).toEqual('trino_query_info_stats');
         const calls = vi.mocked(apiClient.getQueryInfo).mock.calls;
-        expect(calls.map(call => [call[1], call[3] ?? false])).toEqual([['query-id', false], ['query-id', true]]);
+        expect(calls.map(call => call.length > 3 ? 'pruned' : call[1])).toEqual(['query-id', 'query-id']);
+    });
+
+    it('fetches QueryInfo again when the tasks of more stages are done', async () => {
+        const stages = (...states: string[]) => ({
+            ...state('RUNNING'),
+            rootStage: trinoStage('0', states[0], states.slice(1).map((s, i) => trinoStage(`${i + 1}`, s))),
+        }) as TrinoQueryResult['stats'];
+        const { stream, apiClient } = resultStream(
+            { stats: stages('RUNNING', 'RUNNING', 'RUNNING'), nextUri: 'https://example.com/1' },
+            [
+                { stats: stages('RUNNING', 'RUNNING', 'PENDING'), nextUri: 'https://example.com/2' },
+                { stats: stages('RUNNING', 'RUNNING', 'PENDING'), nextUri: 'https://example.com/3' },
+                { stats: stages('RUNNING', 'PENDING', 'PENDING'), nextUri: 'https://example.com/4' },
+                { columns: COLUMNS, stats: state('FINISHED') },
+            ],
+        );
+        const final = { queryId: 'query-id', state: 'FINISHED', finalQueryInfo: true, stages: { stages: [] } };
+        (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = vi.fn().mockResolvedValue(final);
+        stream.setProfileDetail(true);
+        const kinds: (string | undefined)[] = [];
+        await stream.produce(
+            new AsyncConsumerLambdas(),
+            new AsyncConsumerLambdas((_, update) => kinds.push(update.engineProgress?.kind)),
+        );
+        // The plans, one QueryInfo per stage whose tasks are done (one while the first is pending), the final one
+        expect(kinds.filter(kind => kind === 'trino_query_info')).toHaveLength(1);
+        expect(kinds.filter(kind => kind === 'trino_query_info_stats').length).toBeGreaterThanOrEqual(2);
+        expect(vi.mocked(apiClient.getQueryInfo).mock.calls.length).toEqual(1 + kinds.filter(kind => kind === 'trino_query_info_stats').length);
+    });
+
+    it('fetches QueryInfo again while a stage whose tasks are done has no operator summaries', async () => {
+        vi.useFakeTimers();
+        try {
+            const running = { ...state('RUNNING'), rootStage: trinoStage('0', 'PENDING') } as TrinoQueryResult['stats'];
+            const { stream, apiClient } = resultStream({ stats: running, nextUri: 'https://example.com/next' });
+            let resolveNext: (result: TrinoQueryResult) => void = () => {};
+            vi.mocked(apiClient.getQueryResult).mockReturnValueOnce(new Promise(resolve => { resolveNext = resolve; }));
+            const stage = (summaries: object[]) => ({ stageId: 'query-id.0', state: 'PENDING', stageStats: { operatorSummaries: summaries } });
+            const getQueryInfo = vi.fn()
+                .mockResolvedValueOnce({ queryId: 'query-id', state: 'RUNNING', stages: { stages: [stage([])] } })
+                .mockResolvedValueOnce({ queryId: 'query-id', state: 'RUNNING', stages: { stages: [stage([{ operatorId: 0 }])] } })
+                .mockResolvedValue({ queryId: 'query-id', state: 'FINISHED', finalQueryInfo: true, stages: { stages: [] } });
+            (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = getQueryInfo;
+            stream.setProfileDetail(true);
+            const produced = stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas());
+            await vi.advanceTimersByTimeAsync(0);
+            expect(getQueryInfo).toHaveBeenCalledTimes(1);
+            // The plans lack the summaries of the pending stage, one retry brings them, then no more retries
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(getQueryInfo).toHaveBeenCalledTimes(2);
+            await vi.advanceTimersByTimeAsync(5000);
+            expect(getQueryInfo).toHaveBeenCalledTimes(2);
+            resolveNext({ id: 'query-id', columns: COLUMNS, stats: state('FINISHED') } as TrinoQueryResult);
+            await vi.advanceTimersByTimeAsync(0);
+            await produced;
+            expect(getQueryInfo).toHaveBeenCalledTimes(3);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('fetches the QueryInfo of a finished query until it is final', async () => {
+        vi.useFakeTimers();
+        try {
+            const running = { ...state('RUNNING'), rootStage: { stageId: '0' } } as TrinoQueryResult['stats'];
+            const { stream, apiClient } = resultStream(
+                { stats: running, nextUri: 'https://example.com/next' },
+                [{ columns: COLUMNS, stats: state('FINISHED') }],
+            );
+            const getQueryInfo = vi.fn()
+                .mockResolvedValueOnce({ queryId: 'query-id', state: 'RUNNING' })
+                .mockResolvedValueOnce({ queryId: 'query-id', state: 'FINISHED', finalQueryInfo: false })
+                .mockResolvedValue({ queryId: 'query-id', state: 'FINISHED', finalQueryInfo: true });
+            (apiClient as unknown as { getQueryInfo: ReturnType<typeof vi.fn> }).getQueryInfo = getQueryInfo;
+            stream.setProfileDetail(true);
+            const produced = stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas());
+            await vi.advanceTimersByTimeAsync(1000);
+            await produced;
+            // The plans, a QueryInfo that is not final yet, the final one
+            expect(getQueryInfo).toHaveBeenCalledTimes(3);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('fetches no plans while nobody shows the profile', async () => {
@@ -98,7 +182,7 @@ describe('TrinoQueryResultStream', () => {
         expect(apiClient.getQueryInfo).not.toHaveBeenCalled();
     });
 
-    it('stops sampling the statistics when the query fails', async () => {
+    it('fetches no more QueryInfo when the query fails', async () => {
         vi.useFakeTimers();
         try {
             const running = { ...state('RUNNING'), rootStage: { stageId: '0' } } as TrinoQueryResult['stats'];
@@ -108,7 +192,7 @@ describe('TrinoQueryResultStream', () => {
             vi.mocked(apiClient.getQueryResult).mockRejectedValueOnce(new Error('connection lost'));
             await expect(stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas())).rejects.toThrow('connection lost');
             await vi.advanceTimersByTimeAsync(10_000);
-            // The plans only, no samples after the failure
+            // The plans only, nothing after the failure
             expect(apiClient.getQueryInfo).toHaveBeenCalledTimes(1);
         } finally {
             vi.useRealTimers();

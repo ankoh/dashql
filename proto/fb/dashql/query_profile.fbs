@@ -44,7 +44,16 @@ enum ProfileOperatorKind: uint8 {
     ITERATION,
     ITERATION_INCREMENT,
     INSERT,
+    /// An exchange of an unknown distribution
     EXCHANGE,
+    /// An exchange that gathers all rows in one consumer
+    GATHER_EXCHANGE,
+    /// An exchange that partitions the rows among its consumers (hash, round robin)
+    REPARTITION_EXCHANGE,
+    /// An exchange that sends every row to every consumer
+    BROADCAST_EXCHANGE,
+    /// The consumer of an exchange between stages over the network
+    REMOTE_EXCHANGE,
 }
 
 /// The role of an operator in a pipeline
@@ -102,6 +111,15 @@ table QueryProfile {
     operator_slots: [uint32];
 }
 
+/// The direction in which a plan grows from its root
+enum ProfileLayoutOrientation: uint8 {
+    /// The root at the top, the inputs of an operator in the level below it
+    TOP_DOWN = 0,
+    /// The root at the top left, the inputs of an operator in the column right of it.
+    /// An operator shares its row with its first input, the other inputs follow below.
+    LEFT_TO_RIGHT = 1,
+}
+
 struct ProfileLayoutConfig {
     /// The height of a level
     level_height: double;
@@ -123,6 +141,13 @@ struct ProfileLayoutConfig {
     width_per_label_char: double;
     /// The minimum node width
     node_min_width: double;
+    /// The vertical margin between the siblings of a left-to-right layout
+    node_margin_vertical: double;
+    /// The direction in which the plan grows
+    orientation: ProfileLayoutOrientation;
+    /// The width of the symbol of an operator without a label of its own, which shows the symbol of its kind instead
+    /// of its type name. 0 sizes such an operator for its type name.
+    symbol_width: double;
 }
 
 struct DerivedProfileLayoutConfig {
@@ -223,7 +248,7 @@ struct ProfileFragment {
     /// The root operator, u32::MAX if the fragment has no operators (yet)
     root_operator: uint32;
     /// The begin of the operators owned by the fragment in `fragment_operators`.
-    /// Operators of nested fragments belong to the nested fragment only, the contour encloses both.
+    /// Operators of nested fragments belong to the nested fragment only, so does its contour.
     operators_begin: uint32;
     /// The number of operators owned by the fragment
     operator_count: uint32;

@@ -8,36 +8,69 @@
 //! A `RemoteSource` (or `RemoteMerge`) node reads the output of the fragments in `sourceFragmentIds`. The parser
 //! hangs the roots of those fragments below it, so the plan is one tree and the fragments nest.
 
-use super::query_profile::{Fragment, ParsedOperatorNode, PathComponent, QueryProfile};
+use super::query_profile::{Fragment, OperatorNode, ParsedOperatorNode, PathComponent, QueryProfile};
 use dashql_buffers::profile as fb;
 use dashql_buffers::status::StatusCode;
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-/// The engine-neutral kind of a Trino plan node
-fn trino_operator_kind(name: &str) -> fb::ProfileOperatorKind {
+/// The engine-neutral kind of a Trino plan node.
+///
+/// The names are the ones of Trino's `PlanPrinter`. It merges a filter and a projection into one node
+/// (`FilterProject`, `ScanFilterProject`, ...), and names joins by their type (`LeftJoin`, `SpatialInnerJoin`,
+/// `SourceOuterIndexJoin`). `Intersect` and `Except` keep all duplicates unless the descriptor says `isDistinct`,
+/// which Trino prints as `"true"` or `""`.
+///
+/// A `LocalExchange` is classified by the `partitioning` of its descriptor: `SINGLE` and `COORDINATOR_ONLY` gather,
+/// `BROADCAST` broadcasts, `UNKNOWN` (passthrough, arbitrary) stays a plain exchange, and every other function (`HASH`,
+/// `ROUND_ROBIN`, a connector partitioning) repartitions. A `RemoteSource` or `RemoteMerge` reads other stages over
+/// the network.
+fn trino_operator_kind(op: &OperatorNode) -> fb::ProfileOperatorKind {
     use fb::ProfileOperatorKind as K;
+    let Some(name) = op.operator_type.as_deref() else {
+        return K::OTHER;
+    };
+    let descriptor = |key: &str| {
+        let (_, json) = op.attributes.iter().find(|(attribute, _)| attribute == "descriptor")?;
+        serde_json::from_str::<Value>(json).ok()?.get(key).cloned()
+    };
+    let distinct = || match descriptor("isDistinct") {
+        Some(Value::String(s)) => s == "true",
+        Some(Value::Bool(b)) => b,
+        _ => true,
+    };
+    let local_exchange = || match descriptor("partitioning").as_ref().and_then(Value::as_str) {
+        None | Some("UNKNOWN") => K::EXCHANGE,
+        Some("SINGLE" | "COORDINATOR_ONLY") => K::GATHER_EXCHANGE,
+        Some("BROADCAST") => K::BROADCAST_EXCHANGE,
+        Some(_) => K::REPARTITION_EXCHANGE,
+    };
     match name {
         "Output" => K::OUTPUT,
-        "TableScan" | "ScanFilter" | "ScanProject" | "ScanFilterProject" => K::SCAN,
+        "TableScan" | "ScanFilter" | "ScanProject" | "ScanFilterProject" | "IndexSource" => K::SCAN,
         "Values" => K::VIRTUAL_TABLE,
         "TableFunction" | "TableFunctionProcessor" => K::TABLE_FUNCTION,
-        "Filter" => K::FILTER,
+        "Filter" | "FilterProject" => K::FILTER,
         "Project" => K::PROJECT,
         "Aggregate" | "MarkDistinct" => K::AGGREGATE,
-        "Window" | "TopNRanking" | "RowNumber" => K::WINDOW,
+        "Window" | "TopNRanking" | "RowNumber" | "PatternRecognition" => K::WINDOW,
         "Sort" | "PartialSort" | "TopN" | "TopNPartial" | "LocalMerge" => K::SORT,
-        "Limit" | "LimitPartial" | "DistinctLimit" | "DistinctLimitPartial" => K::LIMIT,
-        "InnerJoin" | "CrossJoin" | "SpatialJoin" | "IndexJoin" => K::JOIN,
-        "LeftJoin" => K::LEFT_OUTER_JOIN,
+        "Limit" | "LimitPartial" | "DistinctLimit" | "DistinctLimitPartial" | "Offset" => K::LIMIT,
+        "InnerJoin" | "CrossJoin" | "SpatialInnerJoin" | "InnerIndexJoin" => K::JOIN,
+        "LeftJoin" | "SpatialLeftJoin" | "SourceOuterIndexJoin" => K::LEFT_OUTER_JOIN,
         "RightJoin" => K::RIGHT_OUTER_JOIN,
         "FullJoin" => K::FULL_OUTER_JOIN,
         "SemiJoin" => K::LEFT_SEMI_JOIN,
         "Union" => K::UNION_ALL,
-        "Intersect" => K::INTERSECT,
-        "Except" => K::EXCEPT,
-        "TableWriter" | "TableWriterPartial" | "TableFinish" | "MergeWriter" | "TableExecute" => K::INSERT,
-        "LocalExchange" | "RemoteSource" | "RemoteMerge" | "RemoteExchange" | "Exchange" => K::EXCHANGE,
+        "Intersect" if distinct() => K::INTERSECT,
+        "Intersect" => K::INTERSECT_ALL,
+        "Except" if distinct() => K::EXCEPT,
+        "Except" => K::EXCEPT_ALL,
+        "TableWriter" | "TableWriterPartial" | "TableCommit" | "TableFinish" | "MergeWriter" | "TableExecute" => {
+            K::INSERT
+        }
+        "LocalExchange" => local_exchange(),
+        "RemoteSource" | "RemoteMerge" | "RemoteExchange" => K::REMOTE_EXCHANGE,
         _ => K::OTHER,
     }
 }
@@ -127,8 +160,6 @@ impl TrinoPlanReader<'_> {
         self.fragments.push(Fragment {
             engine_id: Some(fragment_id.to_string()),
             parent_fragment: parent,
-            // The root fragment encloses the whole plan, its contour shows nothing
-            hidden: parent.is_none(),
             ..Default::default()
         });
         Some(self.read_node(root, fragment, Vec::new()))
@@ -210,7 +241,7 @@ impl QueryProfile {
 
         // The operators of the fragments; the root of a fragment has no parent in the same fragment
         for (op_id, op) in self.operators.iter_mut().enumerate() {
-            op.kind = op.operator_type.as_deref().map(trino_operator_kind).unwrap_or_default();
+            op.kind = trino_operator_kind(op);
             if let Some(fragment) = op.fragment {
                 self.fragments[fragment as usize].operators.push(op_id as u32);
             }

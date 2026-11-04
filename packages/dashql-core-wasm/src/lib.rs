@@ -1282,6 +1282,9 @@ impl QueryProfile {
         max_label_chars: u32,
         width_per_label_char: f64,
         node_min_width: f64,
+        node_margin_vertical: f64,
+        orientation: u8,
+        symbol_width: f64,
     ) {
         let config = dashql_buffers::profile::ProfileLayoutConfig::new(
             level_height,
@@ -1294,8 +1297,17 @@ impl QueryProfile {
             max_label_chars,
             width_per_label_char,
             node_min_width,
+            node_margin_vertical,
+            dashql_buffers::profile::ProfileLayoutOrientation(orientation),
+            symbol_width,
         );
         self.inner.configure(&config);
+    }
+
+    /// Lay out the loaded plan again with the configured layout, e.g. after configuring the other orientation
+    #[wasm_bindgen(js_name = computeLayout)]
+    pub fn compute_layout(&mut self) {
+        self.inner.compute_layout();
     }
 
     /// Load a Hyper plan and compute the layout, throws if the plan cannot be parsed
