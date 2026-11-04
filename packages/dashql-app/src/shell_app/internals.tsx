@@ -7,11 +7,13 @@ import { OverlaySize } from '../ui/foundations/overlay.js';
 import { VerticalTabs, VerticalTabVariant } from '../ui/foundations/vertical_tabs.js';
 import { LogViewer } from '../ui/logs/log_viewer.js';
 import { ShellQueryViewer } from './shell_query_history.js';
+import { HttpRequestViewer } from '../ui/http/http_request_viewer.js';
 import * as styles from './shell_navbar.module.css';
 
 enum TabKey {
     LogViewer = 0,
     QueryViewer = 1,
+    HttpRequests = 2,
 }
 
 interface ShellInternalsViewerProps {
@@ -43,11 +45,20 @@ export const ShellInternalsViewer: React.FC<ShellInternalsViewerProps> = props =
                     description: 'View query execution history',
                     disabled: false,
                 },
+                [TabKey.HttpRequests]: {
+                    tabId: TabKey.HttpRequests,
+                    icon: `${icons}#globe_24`,
+                    labelShort: 'Requests',
+                    ariaLabel: 'HTTP requests',
+                    description: 'View the outgoing HTTP requests',
+                    disabled: false,
+                },
             }}
-            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer]}
+            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer, TabKey.HttpRequests]}
             tabRenderers={{
                 [TabKey.LogViewer]: () => <LogViewer onClose={props.onClose} />,
                 [TabKey.QueryViewer]: () => <ShellQueryViewer onClose={props.onClose} />,
+                [TabKey.HttpRequests]: () => <HttpRequestViewer onClose={props.onClose} />,
             }}
         />
     );

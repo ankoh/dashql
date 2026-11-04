@@ -8,6 +8,7 @@ import { StorageWriterView } from '../../session/persistence/storage_writer_view
 import { LogViewer } from '../../ui/logs/log_viewer.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { QueryViewer } from '../../connections/query_viewer.js';
+import { HttpRequestViewer } from '../../ui/http/http_request_viewer.js';
 import { QueryCacheView } from '../../session/persistence/query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
 import { StorageBrowserView } from './storage_browser_view.js';
@@ -25,6 +26,7 @@ enum TabKey {
     StorageWriter = 3,
     QueryCache = 4,
     StorageBrowser = 6,
+    HttpRequests = 8,
 }
 
 /// The groups of the tabs, separated by bars in the tab bar
@@ -35,7 +37,7 @@ const TAB_GROUP_SETTINGS = 'Settings';
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
-    const tabKeys = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings];
+    const tabKeys = [TabKey.LogViewer, TabKey.HttpRequests, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings];
 
     return (
         <VerticalTabs
@@ -50,6 +52,15 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     labelShort: 'Logs',
                     ariaLabel: 'Application logs',
                     description: 'View application logs',
+                    disabled: false,
+                },
+                [TabKey.HttpRequests]: {
+                    tabId: TabKey.HttpRequests,
+                    group: TAB_GROUP_CONNECTIONS,
+                    icon: `${icons}#globe_24`,
+                    labelShort: 'Requests',
+                    ariaLabel: 'HTTP requests',
+                    description: 'View the outgoing HTTP requests',
                     disabled: false,
                 },
                 [TabKey.QueryViewer]: {
@@ -102,6 +113,9 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
             tabRenderers={{
                 [TabKey.LogViewer]: _props => (
                     <LogViewer onClose={props.onClose} />
+                ),
+                [TabKey.HttpRequests]: _props => (
+                    <HttpRequestViewer onClose={props.onClose} />
                 ),
                 [TabKey.QueryViewer]: _props => (
                     <QueryViewer onClose={props.onClose} />
