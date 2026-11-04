@@ -74,8 +74,9 @@ const AGGREGATES: &[&str] = &[
 /// The time units
 const TIME_UNITS: &[&str] = &[
     "year", "quarter", "month", "week", "day", "date", "hours", "minutes", "seconds", "milliseconds",
-    "dayofyear", "yearquarter", "yearmonth", "yearmonthdate", "yearmonthdatehours", "monthdate",
-    "hoursminutes", "hoursminutesseconds", "minutesseconds",
+    "dayofyear", "yearquarter", "yearmonth", "yearweek", "yearmonthdate", "yearmonthdatehours",
+    "yearmonthdatehoursminutes", "yearmonthdatehoursminutesseconds", "monthdate", "hoursminutes",
+    "hoursminutesseconds", "minutesseconds",
 ];
 /// The properties of a scale
 const SCALE_KEYS: &[&str] = &[

@@ -36,6 +36,7 @@ import {
     getChannel,
     getLayer,
     getMarkType,
+    getTimeUnit,
     isBuilderEditable,
     isCountChannel,
     isCustomChannel,
@@ -50,6 +51,7 @@ import {
     setLayer,
     setMarkType,
     setTopLevel,
+    withTimeUnit,
     type ChartSpec,
     type FieldType,
 } from './chart_spec_paths.js';
@@ -67,7 +69,7 @@ const MARKS: { mark: string; icon: Icon }[] = [...PRIMARY_MARKS, ...SECONDARY_MA
 const MARK_ICONS = new Map(MARKS.map(({ mark, icon }) => [mark, icon]));
 const TYPE_OPTIONS: ChartSelectOption[] = FIELD_TYPES.map(type => ({ value: type, label: FIELD_TYPE_SHORT[type], description: type }));
 const AGGREGATE_OPTIONS: ChartSelectOption[] = [{ value: NONE_OPTION, label: 'none' }, ...AGGREGATES.map(a => ({ value: a, label: a }))];
-const TIME_UNIT_OPTIONS: ChartSelectOption[] = [{ value: NONE_OPTION, label: 'none' }, ...TIME_UNITS.map(u => ({ value: u, label: u }))];
+const TIME_UNIT_OPTIONS: ChartSelectOption[] = [{ value: NONE_OPTION, label: 'none' }, ...TIME_UNITS.map(({ unit, description }) => ({ value: unit, label: unit, description }))];
 const SORT_OPTIONS: ChartSelectOption[] = [{ value: NONE_OPTION, label: 'none' }, ...SORTS.map(s => ({ value: s, label: s }))];
 const STACK_OPTIONS: ChartSelectOption[] = [
     { value: NONE_OPTION, label: 'default' },
@@ -472,6 +474,7 @@ function ChannelOptions(props: ChannelOptionsProps) {
     const optionValue = (value: unknown) => typeof value === 'string' ? value : NONE_OPTION;
     const sort = typeof def.sort === 'string' ? def.sort : null;
     const stack = def.stack === null ? 'null' : typeof def.stack === 'string' ? def.stack : NONE_OPTION;
+    const timeUnit = getTimeUnit(def.timeUnit);
     return (
         <div className={styles.channel_options} data-testid={`chart-channel-${channel}-options`}>
             {!props.count && (
@@ -503,11 +506,31 @@ function ChannelOptions(props: ChannelOptionsProps) {
                     <span className={styles.option_label}>Time unit</span>
                     <ChartSelect
                         aria-label={`Time unit of ${channel}`}
+                        data-testid={`chart-channel-${channel}-time-unit`}
                         className={styles.select_block}
-                        value={optionValue(def.timeUnit)}
+                        value={timeUnit.unit ?? NONE_OPTION}
                         placeholder="none"
                         options={TIME_UNIT_OPTIONS}
-                        onChange={value => patch({ timeUnit: value === NONE_OPTION ? undefined : value })}
+                        onChange={value => patch({ timeUnit: withTimeUnit(def.timeUnit, value === NONE_OPTION ? null : value, timeUnit.step) })}
+                    />
+                </div>
+            )}
+            {props.type === 'temporal' && timeUnit.unit != null && (
+                <div className={styles.option_row}>
+                    <span className={styles.option_label}>Step</span>
+                    <SpecTextInput
+                        aria-label={`Time unit step of ${channel}`}
+                        data-testid={`chart-channel-${channel}-time-step`}
+                        inputMode="numeric"
+                        placeholder="1"
+                        value={timeUnit.step != null && timeUnit.step > 1 ? String(timeUnit.step) : ''}
+                        onCommit={text => {
+                            // An empty text is no step, other text that is no whole number is ignored
+                            const trimmed = text.trim();
+                            if (trimmed.length > 0 && !/^\d+$/.test(trimmed)) return;
+                            const step = trimmed.length === 0 ? null : Number.parseInt(trimmed, 10);
+                            patch({ timeUnit: withTimeUnit(def.timeUnit, timeUnit.unit, step) });
+                        }}
                     />
                 </div>
             )}
@@ -643,6 +666,7 @@ interface SpecTextInputProps {
     'data-testid'?: string;
     value: string;
     placeholder?: string;
+    inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
     /// Every edit of the text, the caller ignores text that is no valid value
     onCommit: (text: string) => void;
 }
@@ -661,6 +685,7 @@ function SpecTextInput(props: SpecTextInputProps) {
             aria-label={props['aria-label']}
             data-testid={props['data-testid']}
             placeholder={props.placeholder}
+            inputMode={props.inputMode}
             value={text}
             onChange={event => {
                 setText(event.target.value);

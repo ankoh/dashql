@@ -9,6 +9,7 @@ import {
     encodedFields,
     getLayer,
     getMarkType,
+    getTimeUnit,
     inlineSharedEncoding,
     isBuilderEditable,
     layerCount,
@@ -22,6 +23,8 @@ import {
     setLayer,
     setMarkType,
     setTopLevel,
+    TIME_UNITS,
+    withTimeUnit,
 } from './chart_spec_paths.js';
 
 describe('chart spec paths', () => {
@@ -232,6 +235,31 @@ describe('chart spec paths', () => {
         expect(channelSummary({ field: 'revenue', aggregate: 'sum' })).toBe('sum(revenue)');
         expect(channelSummary({ field: 'ts', timeUnit: 'month' })).toBe('month(ts)');
         expect(channelSummary({ field: 'v', bin: true })).toBe('bin(v)');
+        expect(channelSummary({ field: 'ts', timeUnit: { unit: 'minutes', step: 15 } })).toBe('15 minutes(ts)');
+        expect(channelSummary({ field: 'ts', timeUnit: { unit: 'hours', utc: true } })).toBe('hours(ts)');
         expect(channelSummary({ value: 3 })).toBeNull();
+    });
+
+    it('reads and writes time units with steps', () => {
+        expect(getTimeUnit('yearmonthdatehours')).toEqual({ unit: 'yearmonthdatehours', step: null });
+        expect(getTimeUnit({ unit: 'minutes', step: 15 })).toEqual({ unit: 'minutes', step: 15 });
+        expect(getTimeUnit(undefined)).toEqual({ unit: null, step: null });
+        // A step makes an object, no step a string
+        expect(withTimeUnit(undefined, 'minutes', 15)).toEqual({ unit: 'minutes', step: 15 });
+        expect(withTimeUnit({ unit: 'minutes', step: 15 }, 'minutes', null)).toBe('minutes');
+        expect(withTimeUnit({ unit: 'minutes', step: 15 }, 'hours', 1)).toBe('hours');
+        expect(withTimeUnit({ unit: 'minutes', step: 15 }, 'hours', 6)).toEqual({ unit: 'hours', step: 6 });
+        // Other parameters stay, no unit is no time unit
+        expect(withTimeUnit({ unit: 'hours', utc: true }, 'yearmonthdatehours', null)).toEqual({ unit: 'yearmonthdatehours', utc: true });
+        expect(withTimeUnit({ unit: 'hours', step: 6, utc: true }, null, 6)).toBeUndefined();
+    });
+
+    it('offers time units that Vega-Lite compiles', () => {
+        for (const { unit } of TIME_UNITS) {
+            for (const timeUnit of [unit, { unit, step: 2 }]) {
+                const spec = { data: { values: [{ ts: '2026-11-04T12:34:56' }] }, mark: 'bar', encoding: { x: { field: 'ts', type: 'temporal', timeUnit } } };
+                expect(() => compile(spec as TopLevelSpec)).not.toThrow();
+            }
+        }
     });
 });

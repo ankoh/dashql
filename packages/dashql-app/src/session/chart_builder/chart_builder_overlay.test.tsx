@@ -162,6 +162,32 @@ describe('ChartBuilderOverlay', () => {
         expect((byTestId('chart-title') as HTMLInputElement).value).toBe('Revenue');
     });
 
+    it('picks a time unit with a step for a temporal field', () => {
+        const onChange = vi.fn();
+        render({ onChange, visualizeQuery: vegaLite({ mark: 'bar', encoding: { x: { field: 'ts', type: 'temporal' } } }) });
+        act(() => (document.querySelector('[aria-label="Show the options of x"]') as HTMLButtonElement).click());
+        expect(byTestId('chart-channel-x-time-step')).toBeNull();
+
+        pick('chart-channel-x-time-unit', 'yearmonthdatehours');
+        expect(JSON.parse(onChange.mock.lastCall![0]).encoding.x).toEqual({ field: 'ts', type: 'temporal', timeUnit: 'yearmonthdatehours' });
+
+        const step = byTestId('chart-channel-x-time-step') as HTMLInputElement;
+        const setStep = (value: string) => {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(step, value);
+            step.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        act(() => setStep('6'));
+        expect(JSON.parse(onChange.mock.lastCall![0]).encoding.x.timeUnit).toEqual({ unit: 'yearmonthdatehours', step: 6 });
+        // A new unit keeps the step, text that is no number is ignored
+        pick('chart-channel-x-time-unit', 'minutes');
+        expect(JSON.parse(onChange.mock.lastCall![0]).encoding.x.timeUnit).toEqual({ unit: 'minutes', step: 6 });
+        const calls = onChange.mock.calls.length;
+        act(() => setStep('6x'));
+        expect(onChange.mock.calls.length).toBe(calls);
+        act(() => setStep(''));
+        expect(JSON.parse(onChange.mock.lastCall![0]).encoding.x.timeUnit).toBe('minutes');
+    });
+
     it('adds and removes layers', () => {
         const onChange = vi.fn();
         render({ onChange, visualizeQuery: vegaLite({ mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' } } }) });

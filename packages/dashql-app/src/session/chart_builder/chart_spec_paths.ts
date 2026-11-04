@@ -24,7 +24,31 @@ export type FieldType = typeof FIELD_TYPES[number];
 export const FIELD_TYPE_SHORT: Record<FieldType, string> = { quantitative: 'Q', nominal: 'N', ordinal: 'O', temporal: 'T' };
 
 export const AGGREGATES = ['count', 'sum', 'mean', 'median', 'min', 'max', 'distinct'] as const;
-export const TIME_UNITS = ['year', 'quarter', 'month', 'yearmonth', 'yearmonthdate', 'date', 'day', 'hours', 'minutes'] as const;
+/// The time units of the builder. The units that start with the year cut the time into consecutive periods, one mark
+/// per period. The others pick a part of the time, the periods of all years fall into the same mark.
+export const TIME_UNITS: readonly { unit: string; description: string }[] = [
+    { unit: 'year', description: 'one per year' },
+    { unit: 'yearquarter', description: 'one per quarter' },
+    { unit: 'yearmonth', description: 'one per month' },
+    { unit: 'yearweek', description: 'one per week' },
+    { unit: 'yearmonthdate', description: 'one per day' },
+    { unit: 'yearmonthdatehours', description: 'one per hour' },
+    { unit: 'yearmonthdatehoursminutes', description: 'one per minute' },
+    { unit: 'yearmonthdatehoursminutesseconds', description: 'one per second' },
+    { unit: 'quarter', description: 'quarter of the year' },
+    { unit: 'month', description: 'month of the year' },
+    { unit: 'week', description: 'week of the year' },
+    { unit: 'dayofyear', description: 'day of the year' },
+    { unit: 'monthdate', description: 'month and day of the year' },
+    { unit: 'date', description: 'day of the month' },
+    { unit: 'day', description: 'day of the week' },
+    { unit: 'hours', description: 'hour of the day' },
+    { unit: 'hoursminutes', description: 'time of the day, by minute' },
+    { unit: 'hoursminutesseconds', description: 'time of the day, by second' },
+    { unit: 'minutes', description: 'minute of the hour' },
+    { unit: 'minutesseconds', description: 'minute and second of the hour' },
+    { unit: 'seconds', description: 'second of the minute' },
+];
 export const SORTS = ['ascending', 'descending'] as const;
 
 /// The keys of a channel that the builder edits. Clearing a field removes these and keeps the others.
@@ -328,13 +352,35 @@ export function encodedFields(spec: ChartSpec): string[] {
     return [...fields];
 }
 
-/// A short label of a channel, e.g. `sum(revenue)` or `month(created)`
+/// The unit and the step of a time unit, a string or an object like `{ unit: 'minutes', step: 15 }`
+export function getTimeUnit(timeUnit: unknown): { unit: string | null; step: number | null } {
+    if (typeof timeUnit === 'string') return { unit: timeUnit, step: null };
+    if (!isObject(timeUnit)) return { unit: null, step: null };
+    return {
+        unit: typeof timeUnit.unit === 'string' ? timeUnit.unit : null,
+        step: typeof timeUnit.step === 'number' ? timeUnit.step : null,
+    };
+}
+
+/// The time unit with a new unit and step. Without a unit there is no time unit. A step of 1 or less is no step,
+/// and a unit without a step or other parameters (e.g. `utc`) is a plain string.
+export function withTimeUnit(timeUnit: unknown, unit: string | null, step: number | null): unknown {
+    if (unit == null) return undefined;
+    const params: Record<string, unknown> = isObject(timeUnit) ? { ...timeUnit } : {};
+    delete params.unit;
+    delete params.step;
+    if (step != null && step > 1) params.step = step;
+    return Object.keys(params).length === 0 ? unit : { unit, ...params };
+}
+
+/// A short label of a channel, e.g. `sum(revenue)`, `month(created)` or `15 minutes(created)`
 export function channelSummary(def: unknown): string | null {
     if (!isObject(def)) return null;
     if (isCountChannel(def)) return 'count()';
     if (typeof def.field !== 'string') return null;
+    const timeUnit = getTimeUnit(def.timeUnit);
     const wrap = typeof def.aggregate === 'string' ? def.aggregate
-        : typeof def.timeUnit === 'string' ? def.timeUnit
+        : timeUnit.unit != null ? (timeUnit.step != null && timeUnit.step > 1 ? `${timeUnit.step} ${timeUnit.unit}` : timeUnit.unit)
         : def.bin === true || isObject(def.bin) ? 'bin'
         : null;
     return wrap == null ? def.field : `${wrap}(${def.field})`;
