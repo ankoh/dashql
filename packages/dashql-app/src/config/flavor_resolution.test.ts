@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { applyFlavorToDocument, resolveFlavor, selectFlavor, withFlavorParameter } from './flavor_resolution.js';
+import { applyFlavorToDocument, getRequestedFlavor, resolveFlavor, selectFlavor, withFlavorParameter } from './flavor_resolution.js';
 import { applyFlavorSettings, DASHQL_FLAVOR, SIDB_FLAVOR } from './flavors.js';
 
 describe('App flavor resolution', () => {
@@ -32,6 +32,37 @@ describe('App flavor resolution', () => {
             .toBe('https://dashql.app/sessions/a?data=x&flavor=sidb#h');
         expect(withFlavorParameter(new URL('https://dashql.app/?flavor=sidb'), SIDB_FLAVOR)).toBeNull();
         expect(withFlavorParameter(new URL('https://dashql.app/sessions/a'), DASHQL_FLAVOR)).toBeNull();
+    });
+});
+
+describe('the flavor of the page url', () => {
+    const initialUrl = window.location.href;
+    afterEach(() => {
+        window.history.replaceState(window.history.state, '', initialUrl);
+        vi.restoreAllMocks();
+    });
+
+    function withSearch(search: string) {
+        const url = new URL(initialUrl);
+        url.search = search;
+        window.history.replaceState(window.history.state, '', url.href);
+    }
+
+    it('is null without the query parameter', () => {
+        withSearch('?data=x');
+        expect(getRequestedFlavor()).toBeNull();
+    });
+
+    it('is the requested flavor', () => {
+        withSearch('?flavor=sidb');
+        expect(getRequestedFlavor()).toBe(SIDB_FLAVOR);
+    });
+
+    it('is the default flavor with a warning for an unknown one', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => { });
+        withSearch('?flavor=unknown');
+        expect(getRequestedFlavor()).toBe(DASHQL_FLAVOR);
+        expect(warn).toHaveBeenCalledWith('unknown app flavor: unknown');
     });
 });
 

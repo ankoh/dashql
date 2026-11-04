@@ -30,6 +30,17 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(await backend.listSessions()).toEqual([{ path: TEST_SESSION_ID, storageType: 'opfs' }]);
     });
 
+    it('loads the manifest of a session', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        expect(await backend.loadSession(TEST_SESSION_ID)).toEqual(testSession());
+    });
+
+    it('rejects a session manifest without a session id', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        files.set(`sessions/${TEST_SESSION_ID}/dashql-session.json`, JSON.stringify({ ...testSession(), sessionId: '' }));
+        await expect(backend.loadSession(TEST_SESSION_ID)).rejects.toThrow(`Session ${TEST_SESSION_ID} is missing required sessionId field`);
+    });
+
     it('rejects nested and draft entries instead of importing V1 data', async () => {
         dirs.add('sessions');
         dirs.add(`sessions/${TEST_SESSION_ID}`);

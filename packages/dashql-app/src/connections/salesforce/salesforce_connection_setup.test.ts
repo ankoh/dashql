@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { setupSalesforceConnection } from './salesforce_connection_setup.js';
+import { createSalesforceSetup, setupSalesforceConnection } from './salesforce_connection_setup.js';
 import type { SalesforceApiClientInterface } from './salesforce_api_client.js';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { PlatformType } from '../../platform/platform_type.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { SETUP_FAILED, SF_CHANNEL_READY } from './salesforce_connection_state.js';
+import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from './salesforce_connection_state.js';
+import { RESET_CONNECTION } from '../connection_state.js';
 import { ConnectorType } from '../connector_info.js';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -105,5 +106,32 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB
         expect(channel.dataCloudToken).toBe(dataCloudToken);
         expect(params.login).toBe('');
         expect(dispatch).toHaveBeenLastCalledWith({ type: SF_CHANNEL_READY, value: channel });
+    });
+});
+
+describe('createSalesforceSetup', () => {
+    const params = { instanceUrl: 'https://example.my.salesforce.com', appConsumerKey: 'key' } as connection.SalesforceConnectionParams;
+    const create = (config: object) => createSalesforceSetup(null, {} as SalesforceApiClientInterface, PlatformType.WEB, {} as never, config as never, false, new TestLogger())!;
+
+    it('resets the connection', async () => {
+        const dispatch = vi.fn();
+        await create({}).reset(dispatch);
+        expect(dispatch).toHaveBeenCalledWith({ type: RESET_CONNECTION, value: null });
+    });
+
+    it('sets up the connection with the config of the connector', async () => {
+        const dispatch = vi.fn();
+        await expect(create({}).setup(dispatch, ConnectorType.SALESFORCE_DATA_CLOUD, params, new AbortController().signal))
+            .rejects.toThrow('missing oauth redirect url');
+        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([SETUP_STARTED, SETUP_FAILED]);
+    });
+
+    it('cancels an aborted setup', async () => {
+        const dispatch = vi.fn();
+        const abort = new AbortController();
+        abort.abort();
+        await expect(create({ auth: { oauthRedirect: 'https://dashql.app/oauth.html' } }).setup(dispatch, ConnectorType.SIDB, params, abort.signal))
+            .rejects.toThrow();
+        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([SETUP_STARTED, SETUP_CANCELLED]);
     });
 });

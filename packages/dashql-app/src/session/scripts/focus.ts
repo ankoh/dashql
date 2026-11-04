@@ -113,7 +113,7 @@ export function deriveFocusFromEditorUpdate(
         );
     }
     for (const referenceId of context.relatedColumnReferenceIds) {
-        let focusType = isTable ? FocusType.COLUMN_REF_OF_TARGET_TABLE : FocusType.COLUMN_REF_OF_TARGET_TABLE;
+        let focusType = isTable ? FocusType.COLUMN_REF_OF_TARGET_TABLE : FocusType.COLUMN_REF_OF_TARGET_COLUMN;
         if (!isTable && referenceId === context.referenceId) focusType = FocusType.COLUMN_REF_UNDER_CURSOR;
         focus.scriptColumnRefs.set(dashql.ExternalObjectID.create(scriptKey, referenceId), focusType);
     }

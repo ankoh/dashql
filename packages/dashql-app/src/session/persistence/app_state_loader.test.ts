@@ -250,6 +250,21 @@ describe('V2 app state loader', () => {
         expect(result.sessionScripts.size).toBe(0);
         expect(result.invalidSessions.get(TEST_SESSION_ID)).toMatchObject({ sessionId: TEST_SESSION_ID, error: 'session_not_restored' });
     });
+
+    it('surfaces a session whose connection fails to restore as invalid and restores the next one', async () => {
+        const second = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+        vi.mocked(backend.listSessions).mockResolvedValue([{ path: TEST_SESSION_ID }, { path: second }]);
+        vi.mocked(backend.loadSession).mockImplementation(async id => ({ ...testSession(), sessionId: id }));
+        vi.mocked(core.createCatalog).mockImplementationOnce(() => { throw new Error('no catalog'); });
+        const logger = new TestLogger();
+        const result = await restoreAppState(core, backend, logger, () => {});
+        expect(result.invalidSessions.get(TEST_SESSION_ID)).toMatchObject({ sessionId: TEST_SESSION_ID, error: 'session_not_restored' });
+        expect([...result.sessionScripts.keys()]).toEqual([second]);
+        const warnings = [...Array(logger.buffer.length).keys()].map(i => logger.buffer.at(i)!)
+            .filter(record => record.message === 'Failed to restore session');
+        expect(warnings.map(record => record.keyValues.sessionId)).toEqual([TEST_SESSION_ID]);
+        expect(warnings[0].keyValues.error).toContain('no catalog');
+    });
 });
 
 describe('real-core startup catalog restoration', () => {

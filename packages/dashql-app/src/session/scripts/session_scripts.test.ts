@@ -713,6 +713,45 @@ describe('V2 flat session script mutations', () => {
         ] })).toBe(true);
     });
 
+    it('replaces the text of a stored script that stays on its connection', () => {
+        const current = state(['1_alpha.sql', '2_beta.sql']);
+        const main = mainConnection(current);
+        const alphaKey = current.scriptRefs['1_alpha.sql'].scriptId;
+        const alpha = current.scripts[alphaKey];
+        current.scripts[alphaKey] = { ...alpha, analysisOutdated: false, completion: {} as never, pendingDiff: {} as never };
+        const unknownId = 'dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb';
+        const next = replaceSessionScriptsFromStorage(current, { scripts: [
+            { name: '1_alpha.sql', sql: 'SELECT changed', connection: main, unresolvedConnectionId: unknownId },
+        ] }, logger);
+        expect(next.scriptOrder).toEqual(['1_alpha.sql']);
+        expect(next.scriptRefs['2_beta.sql']).toBeUndefined();
+        const replaced = next.scripts[alphaKey];
+        // The script keeps its session and drops what belonged to the old text
+        expect(replaced.scriptSession).toBe(alpha.scriptSession);
+        expect(replaced.scriptSession.getText()).toBe('SELECT changed');
+        expect(replaced.completion).toBeNull();
+        expect(replaced.pendingDiff).toBeNull();
+        expect(replaced.analysisOutdated).toBe(true);
+        expect(replaced.unresolvedConnectionId).toBe(unknownId);
+    });
+
+    it('keeps the analysis of scripts that storage did not change', () => {
+        const current = state(['1_alpha.sql', '2_beta.sql']);
+        const main = mainConnection(current);
+        for (const key in current.scripts) {
+            current.scripts[key] = { ...current.scripts[key], analysisOutdated: false };
+        }
+        const next = replaceSessionScriptsFromStorage(current, { scripts: [
+            { name: '1_alpha.sql', sql: 'SELECT 1', connection: main },
+            { name: '2_beta.sql', sql: 'SELECT 2', connection: main },
+            // A duplicate entry of storage is ignored
+            { name: '1_alpha.sql', sql: 'SELECT other', connection: main },
+        ] }, logger);
+        expect(next.scriptOrder).toEqual(['1_alpha.sql', '2_beta.sql']);
+        expect(Object.values(next.scripts).map(script => script.analysisOutdated)).toEqual([false, false]);
+        expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].scriptSession.getText()).toBe('SELECT 1');
+    });
+
     it('keeps a script usable when it can not move to another connection', () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const scriptKey = current.scriptRefs['2_beta.sql'].scriptId;

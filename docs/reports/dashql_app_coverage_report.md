@@ -16,12 +16,19 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 79.0% (50,730 / 64,237 lines) in 572 files**, up from 76.1% (46,091 / 60,569 lines in 544 files) on
-2026-11-02. The app grew by 28 files in between, so the percentage mixes new tests and new code. The new tests cover
-the Hyper links of the app (`useHyperLinks`), the Trino and Hyper connection settings, the download of the shell Wasm,
-the session import transactions, the logging and pickers of the shell files, the pending diff of the editor, the
-restored connections, the mocked query results, the file download, the synthetic stock feed and `useLiveQuery`. These
-files are now at 99% to 100%; `shell/api.ts` is at 90.5% and `compute/arrow_formatter.ts` at 92.9%.
+**Overall: 81.5% (52,332 / 64,238 lines) in 572 files**, up from 79.0% (50,730 / 64,237) earlier on the same day
+and 76.1% (46,091 / 60,569 lines in 544 files) on 2026-11-02. The app grew by 28 files between 2026-11-02 and
+2026-11-04, so that part of the increase mixes new tests and new code. The tests of 2026-11-04 cover:
+- the Hyper links of the app (`useHyperLinks`), the Trino and Hyper connection settings, the download of the shell Wasm,
+  the session import transactions, the logging and pickers of the shell files, the pending diff of the editor, the
+  restored connections, the mocked query results, the file download, the synthetic stock feed and `useLiveQuery`;
+- the most frequent value and histogram cells of the data table, rendered with real column aggregates;
+- `LogViewer`, `StorageWriterView` and `HttpRequestViewer`, `replaceShell` of the browser shell, the focus store of the
+  data table, the drag events of the web listener, the flavor of the page url, the connection params label, the editor
+  focus, the input types of the session, the dataflow module hook, a failed session restore and the Salesforce setup.
+
+These files are now at 98% to 100%, except `shell/browser_shell.ts` (90.4%), `shell/api.ts` (90.5%) and
+`compute/arrow_formatter.ts` (92.9%).
 
 ## Gaps in logic (`.ts`)
 
@@ -29,39 +36,35 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/connections/salesforce/salesforce_connection_setup.ts:223-234` | createSalesforceSetup | 12 |
-| `src/session/dataflow/dataflow_module.ts:31-42` | useDataflowModule | 12 |
-| `src/session/persistence/app_state_loader.ts:698-711` | restoreAppState | 12 |
-| `src/session/scripts/session_scripts.ts:1430-1441` | replaceSessionScriptsFromStorage | 12 |
-| `src/shell/browser_shell.ts:372-383` | replaceShell | 12 |
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
 | `src/platform/hyperdb/hyperdb_provider_web.ts:148-158` | setupWebHyperDB | 11 |
-| `src/views/query_result/data_table_focus.ts:19-32` | setFocus | 11 |
 | `src/views/query_result/use_cross_filters.ts:15-27` | scalarFiltersEqual | 11 |
-| `src/config/flavor_resolution.ts:28-39` | getRequestedFlavor | 10 |
-| `src/connections/connection_label.ts:71-81` | connectionParamsLabel | 10 |
-| `src/platform/events/web_event_listener.ts:55-64` | processDragOverEvent | 10 |
-| `src/session/inputs/session_inputs.ts:90-99` | readSessionInputType | 10 |
-| `src/session/scripts/focus.ts:96-105` | deriveFocusFromEditorUpdate | 10 |
-| `src/storage/opfs_storage_backend.ts:134-147` | loadSession | 10 |
+| `src/session/persistence/app_state_loader.ts:526-536` | mergeRestoredSessionIntoScripts | 10 |
+| `src/session/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
+| `src/session/scripts/session_scripts.ts:534-543` | reduceScripts | 10 |
+| `src/session/scripts/session_scripts.ts:544-553` | reduceScripts | 10 |
+| `src/session/editor/dashql_completion_hint.ts:215-226` | computeCompletionHintDecorations | 9 |
+| `src/session/editor/dashql_completion_listener.ts:54-64` | handleMousedownEvent | 9 |
+| `src/session/inputs/session_inputs.ts:108-116` | collectSessionInputs | 9 |
+| `src/session/persistence/app_state_loader.ts:514-524` | mergeRestoredSessionIntoConnections | 9 |
+| `src/session/scripts/script_reference_reports.ts:4-12` | sameReport | 9 |
 
 ## Gaps in components (`.tsx`)
 
 | Location | Function | Uncovered lines |
 |---|---|---|
 | `src/session/persistence/session_import_provider.tsx:89-394` | SessionImportProvider | 268 |
-| `src/views/query_result/mostfrequent_cell.tsx:43-357` | MostFrequentCellImpl | 262 |
-| `src/views/query_result/histogram_cell.tsx:32-348` | HistogramCellImpl | 259 |
 | `src/agent/agent_bridge.tsx:100-377` | AgentBridgeProvider | 252 |
 | `src/app/internals/app_settings_view.tsx:50-325` | AppSettings | 238 |
 | `src/session/dashboard/dashboard.tsx:90-347` | Dashboard | 228 |
 | `src/app/internals/storage_browser_view.tsx:264-494` | StorageBrowserView | 195 |
-| `src/ui/logs/log_viewer.tsx:87-341` | LogViewer | 195 |
-| `src/session/persistence/storage_writer_view.tsx:97-290` | StorageWriterView | 165 |
 | `src/session/persistence/native_session_sync_react.tsx:131-333` | NativeSessionSync | 158 |
-| `src/ui/http/http_request_viewer.tsx:162-339` | HttpRequestViewer | 155 |
 | `src/session/shell/session_shell_page.tsx:51-216` | SessionShellPage | 151 |
 | `src/views/query_result/cell_detail_overlay.tsx:221-388` | CellDetailOverlayInner | 146 |
+| `src/views/query_result/data_table_cell_header_plots.tsx:40-196` | HeaderPlotsCellImpl | 126 |
+| `src/views/visualization/column_aggregation_bar.tsx:30-182` | ColumnAggregationBar | 126 |
+| `src/session/trace_log_viewer.tsx:33-210` | TraceLogViewer | 122 |
+| `src/session/persistence/query_cache_view.tsx:73-216` | QueryCacheView | 118 |
 
 ## Files that no test loads
 
@@ -91,13 +94,23 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
   secret (or the OAuth fields).
 - A concealed text field showed `*` for every character and passed the shown text back on input, so typing into the Trino
   secret stored `*b` for `ab`. Concealed fields are now password inputs with the real value.
+- The brush of `HistogramCell` converted pixels to bins without the outer padding of the band scale: brushing bars 1 and 2
+  of 4 filtered bins 2 and 3. A controlled selection was drawn shifted by the same padding.
+- The hover of `HistogramCell` took the paddings as fractions of the bandwidth instead of the step, so the pointer near the
+  right edge of a higher bin focused the next bin. With a brush at the left edge, the hover measured against the box of
+  the brush handles and picked the wrong bin.
+- `MostFrequentCell` labeled the axis of a column without rows `NaN%`. Such a column still shows "all distinct".
+- `LogViewer` threw `RangeError: Invalid index specified: 0` without rows, e.g. for a trace without records: it scrolled
+  to the last row of an empty list.
+- `deriveFocusFromEditorUpdate` marked the column references of a focused column as references of the target table.
 
 ## Suggested next tests
 
-1. `computeColumnAggregates` and `setupWebHyperDB` with the Hyper test pool.
-2. `replaceShell` of the browser shell and `replaceSessionScriptsFromStorage` of the session scripts.
-3. Render tests of `MostFrequentCellImpl` and `HistogramCellImpl` with column aggregates like the data table tests.
-4. Render tests of `LogViewer` and `StorageWriterView` with a test logger and storage writer.
+1. Render tests of `AppSettings`, `StorageBrowserView` and `QueryCacheView` with a test storage backend.
+2. `scalarFiltersEqual` through `useCrossFilters` with a repeated selection, and `computeColumnAggregates` with the
+   compute worker.
+3. `collectSessionInputs` and `deriveFocusFromCompletionCandidates` of a session with core Wasm scripts.
+4. `setupWebHyperDB` once a test can fail the engine after it started; it needs the browser Hyper engine.
 
 ## Flaky tests
 

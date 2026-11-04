@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import { describe, expect, it } from 'vitest';
 
-import { affectedScriptIndices, sessionInputControl, SessionInputControl, type SessionInputType } from './session_inputs.js';
+import { affectedScriptIndices, readSessionInputType, sessionInputControl, SessionInputControl, type SessionInputType } from './session_inputs.js';
 
 const Kind = core.buffers.analyzer.SqlTypeKind;
 const EdgeKind = core.buffers.execution.DataflowEdgeKind;
@@ -56,5 +56,34 @@ describe('session inputs', () => {
             ],
         } as unknown as core.buffers.execution.SessionDataflowT;
         expect(affectedScriptIndices(dataflow, ['min'])).toEqual([2]);
+    });
+});
+
+describe('the type of a session input', () => {
+    const Source = core.buffers.execution.SessionInputTypeSource;
+
+    it('reads the type of a cast', () => {
+        const sqlType = Object.assign(new core.buffers.analyzer.SqlTypeT(), { kind: Kind.TIMESTAMP, sql: 'timestamp with time zone', arrayDimensions: 1, withTimeZone: true });
+        expect(readSessionInputType(sqlType, Source.CAST)).toEqual({
+            kind: Kind.TIMESTAMP,
+            sql: 'timestamp with time zone',
+            arrayDimensions: 1,
+            withTimeZone: true,
+            cast: true,
+            known: true,
+        });
+    });
+
+    it('knows the type of a literal but not of an input without one', () => {
+        const sqlType = Object.assign(new core.buffers.analyzer.SqlTypeT(), { kind: Kind.INT4, sql: 'integer' });
+        expect(readSessionInputType(sqlType, Source.LITERAL)).toMatchObject({ kind: Kind.INT4, cast: false, known: true });
+        expect(readSessionInputType(null, Source.NONE)).toEqual({
+            kind: Kind.TEXT,
+            sql: 'text',
+            arrayDimensions: 0,
+            withTimeZone: false,
+            cast: false,
+            known: false,
+        });
     });
 });

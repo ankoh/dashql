@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../logger/test_logger.js';
-import { APP_EVENT_POST_MESSAGE_KIND, DROP_EVENT, SETUP_SESSION, type PlatformDragDropEventVariant, type SetupEventVariant } from './event.js';
+import { APP_EVENT_POST_MESSAGE_KIND, DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, SETUP_SESSION, type PlatformDragDropEventVariant, type SetupEventVariant } from './event.js';
 import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 
@@ -49,6 +49,77 @@ describe('WebPlatformEventListener drag and drop', () => {
         });
         window.dispatchEvent(event);
         expect(handler).not.toHaveBeenCalled();
+    });
+});
+
+describe('WebPlatformEventListener dragging', () => {
+    let listener: WebPlatformEventListener | null = null;
+    afterEach(() => {
+        listener?.dispose();
+        listener = null;
+        vi.useRealTimers();
+    });
+
+    async function listen(): Promise<PlatformDragDropEventVariant[]> {
+        listener = new WebPlatformEventListener(new TestLogger());
+        const events: PlatformDragDropEventVariant[] = [];
+        listener.subscribeDragDropEvents('test', event => events.push(event));
+        await listener.setup();
+        return events;
+    }
+
+    function drag(type: string): Event {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'pageX', { value: 10 });
+        Object.defineProperty(event, 'pageY', { value: 20 });
+        window.dispatchEvent(event);
+        return event;
+    }
+
+    it('stops a drag when no drag over event follows within 100 ms', async () => {
+        const events = await listen();
+        vi.useFakeTimers();
+        const over = drag('dragover');
+        expect(over.defaultPrevented).toBe(true);
+        expect(events).toEqual([{ type: DRAG_EVENT, value: { pageX: 10, pageY: 20 } }]);
+
+        // Another drag over event restarts the timeout
+        vi.advanceTimersByTime(60);
+        drag('dragover');
+        vi.advanceTimersByTime(60);
+        expect(events.map(event => event.type)).toEqual([DRAG_EVENT, DRAG_EVENT]);
+        vi.advanceTimersByTime(40);
+        expect(events.map(event => event.type)).toEqual([DRAG_EVENT, DRAG_EVENT, DRAG_STOP_EVENT]);
+        vi.advanceTimersByTime(1000);
+        expect(events.length).toBe(3);
+    });
+
+    it('stops a drag once at its end', async () => {
+        const events = await listen();
+        vi.useFakeTimers();
+        drag('dragover');
+        expect(drag('dragend').defaultPrevented).toBe(true);
+        vi.advanceTimersByTime(1000);
+        expect(events.map(event => event.type)).toEqual([DRAG_EVENT, DRAG_STOP_EVENT]);
+    });
+
+    it('stops a drag that drops no file', async () => {
+        const events = await listen();
+        vi.useFakeTimers();
+        drag('dragover');
+        drag('drop');
+        vi.advanceTimersByTime(1000);
+        expect(events.map(event => event.type)).toEqual([DRAG_EVENT, DRAG_STOP_EVENT]);
+    });
+
+    it('drops the pending drag timeout when disposed', async () => {
+        const events = await listen();
+        vi.useFakeTimers();
+        drag('dragover');
+        listener!.dispose();
+        listener = null;
+        vi.advanceTimersByTime(1000);
+        expect(events.map(event => event.type)).toEqual([DRAG_EVENT]);
     });
 });
 
