@@ -74,7 +74,8 @@ function buildEntries(statsMap: StorageWriteStatisticsMap, sessionId: string): S
     const entries: StorageWriterEntry[] = [...statsMap.entries()]
         .filter(([key]) => storageWriteKeyBelongsToSession(key, sessionId))
         .map(([key, stats]) => ({ key, label: storageWriteKeyWithinSession(key, sessionId), stats }));
-    // Sort by last write descending (most recent first), entries with no write go last
+    // Sort by last write ascending, the list scrolls to its end where the most recent write is.
+    // Entries with no write come first.
     entries.sort((a, b) => {
         const at = a.stats.lastWrite?.getTime() ?? -1;
         const bt = b.stats.lastWrite?.getTime() ?? -1;

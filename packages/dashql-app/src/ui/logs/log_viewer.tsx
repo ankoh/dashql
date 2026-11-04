@@ -194,11 +194,13 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         if (listApi && followTail.current && !isInspectingRecord) {
             const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
 
-            // Scroll to last row
-            listApi.scrollToRow({
-                index: Math.max(rowCount, 1) - 1,
-                align: 'end',
-            });
+            // Scroll to last row, an empty list has none
+            if (rowCount > 0) {
+                listApi.scrollToRow({
+                    index: rowCount - 1,
+                    align: 'end',
+                });
+            }
         }
     }, [logVersion, containerHeight, filteredLogs, filteredLogsVersion, props.traceId, logger, listApi, isInspectingRecord]);
 
