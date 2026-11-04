@@ -24,7 +24,9 @@ mkdir -p "${OUT_DIR}"
 # Imports: a struct nested in another struct imports the enums of the nested struct relative to the root instead of
 # the file, e.g. '../dashql/buffers/profile/x.js' instead of '../../../dashql/buffers/profile/x.js'. All files are
 # in dashql/buffers/<name>/, an import of '../dashql/' is always one of these.
-find "${OUT_DIR}/dashql/buffers" -mindepth 2 -name '*.ts' -exec sed -i "s#from '\.\./dashql/#from '../../../dashql/#" {} +
+# The backup suffix is attached to -i so that both GNU and BSD (macOS) sed accept it.
+find "${OUT_DIR}/dashql/buffers" -mindepth 2 -name '*.ts' -exec sed -i.bak "s#from '\.\./dashql/#from '../../../dashql/#" {} +
+find "${OUT_DIR}/dashql/buffers" -mindepth 2 -name '*.ts.bak' -delete
 
 # Index files: flatc is buggy for namespaces with depth > 1 (see flatbuffers#7898).
 # Generate dashql/buffers/<name>.ts that re-export from ./<name>/*.js
