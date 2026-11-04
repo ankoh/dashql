@@ -223,6 +223,11 @@ export class SessionTestRegistry extends SessionTestBackend implements SessionRe
         }));
     }
     async deleteSessionFiles(id: string): Promise<void> { await super.deleteSession(id); }
+    /// Delete the files and the registry entry, like the OPFS backend
+    override async deleteSession(id: string): Promise<void> {
+        await this.deleteSessionFiles(id);
+        await this.removeSessionEntry(id);
+    }
 
     private mapFolder(path: string[], map: (folder: SessionTreeFolder) => SessionTreeFolder): SessionTreeFolder {
         const visit = (folder: SessionTreeFolder, rest: string[]): SessionTreeFolder => rest.length === 0

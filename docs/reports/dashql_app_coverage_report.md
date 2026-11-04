@@ -1,6 +1,6 @@
 # DashQL App Coverage Report
 
-Date: 2026-11-02
+Date: 2026-11-04
 
 Coverage of the TypeScript sources of `packages/dashql-app/src` in the Chromium browser tests (tests and `src/tests/`
 excluded). The coverage workflow uploads it to Coveralls together with the Rust core, which shows the uncovered lines
@@ -16,12 +16,12 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 76.1% (46,091 / 60,569 lines) in 544 files**, up from 69.1% before the tests of the Trino and
-Salesforce connection reducers, channel and API client, the Trino Arrow conversion and types, the log buffer, the graph
-edges, more Arrow value formats, the column aggregation and data search tasks, the completion focus, list and keys, the
-diff decorations, the router navigation, the cross filters, the query result search, the column resize, layout and ordering
-of the data table, the plan pipelines, the quoted tokens of the editor, the app event messages, the native gRPC clients, the reducer cases of the computation, query and connection states, the session
-restore, the OPFS and native session storage and the formatting helpers.
+**Overall: 79.0% (50,730 / 64,237 lines) in 572 files**, up from 76.1% (46,091 / 60,569 lines in 544 files) on
+2026-11-02. The app grew by 28 files in between, so the percentage mixes new tests and new code. The new tests cover
+the Hyper links of the app (`useHyperLinks`), the Trino and Hyper connection settings, the download of the shell Wasm,
+the session import transactions, the logging and pickers of the shell files, the pending diff of the editor, the
+restored connections, the mocked query results, the file download, the synthetic stock feed and `useLiveQuery`. These
+files are now at 99% to 100%; `shell/api.ts` is at 90.5% and `compute/arrow_formatter.ts` at 92.9%.
 
 ## Gaps in logic (`.ts`)
 
@@ -29,54 +29,46 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/app/hyper_links.ts:41-75` | useHyperLinks | 33 |
-| `src/connections/query_execution_mock.ts:47-69` | produce | 20 |
-| `src/demos/stock_analysis/synthetic_feed.ts:142-161` | start | 19 |
-| `src/shell/api.ts:104-121` | fetchShellWasm | 18 |
-| `src/shell/shell_files.ts:239-253` | logDetails | 15 |
-| `src/compute/arrow_formatter.ts:553-570` | ensureBatchIsLoaded | 14 |
-| `src/connections/query_execution_mock.ts:12-26` | QueryExecutionResponseStreamMock | 14 |
-| `src/demos/shared/use_live_query.ts:91-104` | useLiveQuery | 13 |
 | `src/connections/salesforce/salesforce_connection_setup.ts:223-234` | createSalesforceSetup | 12 |
+| `src/session/dataflow/dataflow_module.ts:31-42` | useDataflowModule | 12 |
 | `src/session/persistence/app_state_loader.ts:698-711` | restoreAppState | 12 |
-| `src/session/scripts/session_scripts.ts:1422-1433` | replaceSessionScriptsFromStorage | 12 |
+| `src/session/scripts/session_scripts.ts:1430-1441` | replaceSessionScriptsFromStorage | 12 |
 | `src/shell/browser_shell.ts:372-383` | replaceShell | 12 |
-| `src/views/plan/plan_scene.ts:494-505` | materializePlanScene | 12 |
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
-| `src/connections/connection_import.ts:29-41` | decodeConnectionFromProto | 11 |
-| `src/platform/file/web_file_downloader.ts:4-19` | downloadBufferAsFile | 11 |
 | `src/platform/hyperdb/hyperdb_provider_web.ts:148-158` | setupWebHyperDB | 11 |
-| `src/session/editor/dashql_diff_hint.ts:17-31` | rejectPendingDiff | 11 |
-| `src/storage/session_import_transaction.ts:112-123` | registerNativeSession | 11 |
-| `src/storage/session_import_transaction.ts:160-171` | rollbackPortableReplacement | 11 |
+| `src/views/query_result/data_table_focus.ts:19-32` | setFocus | 11 |
+| `src/views/query_result/use_cross_filters.ts:15-27` | scalarFiltersEqual | 11 |
+| `src/config/flavor_resolution.ts:28-39` | getRequestedFlavor | 10 |
+| `src/connections/connection_label.ts:71-81` | connectionParamsLabel | 10 |
+| `src/platform/events/web_event_listener.ts:55-64` | processDragOverEvent | 10 |
+| `src/session/inputs/session_inputs.ts:90-99` | readSessionInputType | 10 |
+| `src/session/scripts/focus.ts:96-105` | deriveFocusFromEditorUpdate | 10 |
+| `src/storage/opfs_storage_backend.ts:134-147` | loadSession | 10 |
 
 ## Gaps in components (`.tsx`)
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/connections/trino_connection_settings.tsx:70-542` | TrinoConnectorSettings | 430 |
 | `src/session/persistence/session_import_provider.tsx:89-394` | SessionImportProvider | 268 |
 | `src/views/query_result/mostfrequent_cell.tsx:43-357` | MostFrequentCellImpl | 262 |
 | `src/views/query_result/histogram_cell.tsx:32-348` | HistogramCellImpl | 259 |
-| `src/agent/agent_bridge.tsx:99-374` | AgentBridgeProvider | 250 |
+| `src/agent/agent_bridge.tsx:100-377` | AgentBridgeProvider | 252 |
 | `src/app/internals/app_settings_view.tsx:50-325` | AppSettings | 238 |
-| `src/connections/hyper_connection_settings.tsx:99-365` | HyperConnectorSettings | 236 |
+| `src/session/dashboard/dashboard.tsx:90-347` | Dashboard | 228 |
 | `src/app/internals/storage_browser_view.tsx:264-494` | StorageBrowserView | 195 |
 | `src/ui/logs/log_viewer.tsx:87-341` | LogViewer | 195 |
 | `src/session/persistence/storage_writer_view.tsx:97-290` | StorageWriterView | 165 |
-| `src/session/dashboard/dashboard.tsx:76-260` | Dashboard | 163 |
 | `src/session/persistence/native_session_sync_react.tsx:131-333` | NativeSessionSync | 158 |
+| `src/ui/http/http_request_viewer.tsx:162-339` | HttpRequestViewer | 155 |
 | `src/session/shell/session_shell_page.tsx:51-216` | SessionShellPage | 151 |
-| `src/views/query_result/cell_detail_overlay.tsx:220-386` | CellDetailOverlayInner | 145 |
-| `src/session/persistence/session_url_share_overlay.tsx:40-194` | SessionURLShareOverlay | 138 |
+| `src/views/query_result/cell_detail_overlay.tsx:221-388` | CellDetailOverlayInner | 146 |
 
 ## Files that no test loads
 
-Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_app/shell_page.tsx` (294), the demos
-(`demos/`, 564), `shell/filesystem_dialog.tsx` (152), `shell/filesystem_mount_dialog.tsx` (118),
-`app/loading/shared_session_import.tsx` (142), `app/loading/app_setup.ts` (131), `app/app.tsx` (122),
-`connections/salesforce/salesforce_connection_setup_mock.tsx` (103), `connections/health_check.ts` (44),
-`connections/connection_setup.ts` (22) and 20 smaller files.
+Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_app/shell_page.tsx` (294), the demo pages
+(`demos/`, 564), `shell/filesystem_dialog.tsx` (152), `app/loading/shared_session_import.tsx` (142),
+`app/loading/app_setup.ts` (131), `app/app.tsx` (122), `shell/filesystem_mount_dialog.tsx` (118),
+`connections/salesforce/salesforce_connection_setup_mock.tsx` (103) and 22 smaller files.
 
 ## Bugs found by the new tests
 
@@ -90,13 +82,22 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
   got two turns instead of being direct.
 - `formatNanoseconds` divided by a million for seconds, 2 s of the script statistics showed as `2000.0 s`.
 - The cache signature of Trino connections sorted the schemas of the connection params in place.
+- The mocked query results of the Hyper and Salesforce mocks built their batches with the global `length` of the window
+  instead of 1000 rows: every batch was empty.
+- The Int64 fallback of `ArrowTextColumnFormatter` passed timestamps beyond the range of dates to
+  `Intl.DateTimeFormat`, which threw `RangeError: Invalid time value`, and `getValue` of a single cell had no fallback at
+  all. Such values now render as their epoch milliseconds.
+- Clicking the selected auth type of the Trino settings again replaced the auth params and dropped the saved username and
+  secret (or the OAuth fields).
+- A concealed text field showed `*` for every character and passed the shown text back on input, so typing into the Trino
+  secret stored `*b` for `ab`. Concealed fields are now password inputs with the real value.
 
 ## Suggested next tests
 
-1. `useHyperLinks`: render it with the connection and session registries like the session workbench tests.
-2. `fetchShellWasm` of the shell API and `start` of the synthetic stock feed of the demos.
-3. `logDetails` and the remaining file mounts of the shell files.
-4. Render tests of `TrinoConnectorSettings` and `HyperConnectorSettings` like the Salesforce settings tests.
+1. `computeColumnAggregates` and `setupWebHyperDB` with the Hyper test pool.
+2. `replaceShell` of the browser shell and `replaceSessionScriptsFromStorage` of the session scripts.
+3. Render tests of `MostFrequentCellImpl` and `HistogramCellImpl` with column aggregates like the data table tests.
+4. Render tests of `LogViewer` and `StorageWriterView` with a test logger and storage writer.
 
 ## Flaky tests
 

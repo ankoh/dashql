@@ -304,6 +304,33 @@ export interface ArrowValueFormatter {
     valueClassName: string;
 }
 
+/// Format an epoch-millisecond count as a date, or as the plain count beyond the range of dates
+function formatEpochMilliseconds(format: Intl.DateTimeFormat, value: number | bigint): string {
+    const date = new Date(Number(value));
+    return Number.isNaN(date.getTime()) ? value.toString() : format.format(date);
+}
+
+/// Did Arrow JS refuse to read an Int64 value beyond the safe integers as a number?
+function isUnsafeIntegerConversion(error: unknown): boolean {
+    return error instanceof TypeError && String(error).includes('not safe to convert');
+}
+
+/// Read the raw Int64 value of a row, for values that Arrow JS refuses to convert
+function readRawInt64(column: arrow.Vector, row: number): bigint | null {
+    for (const chunk of column.data) {
+        if (row >= chunk.length) {
+            row -= chunk.length;
+            continue;
+        }
+        const i = chunk.offset + row;
+        const isValid = chunk.nullCount === 0 ||
+            (chunk.nullBitmap != null && (chunk.nullBitmap[i >> 3] & (1 << (i & 7))) !== 0);
+        if (!isValid) return null;
+        return new DataView(chunk.values.buffer, chunk.values.byteOffset).getBigInt64(i * 8, true);
+    }
+    return null;
+}
+
 /// Build a value formatter for an Arrow field. This is the single source of truth for how each
 /// Arrow type renders as text — `ArrowTextColumnFormatter` uses it per column, and callers that
 /// need to format an individual cell reuse it directly instead of hand-rolling per-type
@@ -379,7 +406,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
             // second per-unit conversion here would double-scale it (e.g. microsecond `now()`
             // rendered as 1970). Just interpret the value as milliseconds.
             const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
-            formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v))));
+            formatter = (v: number | bigint) => (v == null ? null : formatEpochMilliseconds(fmt, v));
             break;
         }
         case arrow.Type.DateMillisecond:
@@ -392,7 +419,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
                 month: 'short',
                 year: 'numeric',
             });
-            formatter = (v: number) => (v == null ? null : fmt.format(v));
+            formatter = (v: number | bigint) => (v == null ? null : formatEpochMilliseconds(fmt, v));
             break;
         }
         case arrow.Type.Duration:
@@ -550,7 +577,7 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 pushFormatted(value);
             }
         } catch (e) {
-            if (!(e instanceof TypeError) || !String(e).includes('not safe to convert')) {
+            if (!isUnsafeIntegerConversion(e)) {
                 throw e;
             }
             // Arrow JS throws for Int64 values exceeding MAX_SAFE_INTEGER.
@@ -558,14 +585,8 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
             values.length = 0;
             valueLengthSum = 0;
             valueLengthMax = 0;
-            for (const chunk of column.data) {
-                const dv = new DataView(chunk.values.buffer);
-                const base = chunk.values.byteOffset;
-                for (let i = chunk.offset; i < chunk.offset + chunk.length; i++) {
-                    const isValid = chunk.nullCount === 0 ||
-                        (chunk.nullBitmap !== null && (chunk.nullBitmap[i >> 3] & (1 << (i & 7))) !== 0);
-                    pushFormatted(isValid ? dv.getBigInt64(base + i * 8, true) : null);
-                }
+            for (let row = 0; row < column.length; ++row) {
+                pushFormatted(readRawInt64(column, row));
             }
         }
 
@@ -596,7 +617,14 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
             return values[row];
         }
 
-        const raw = this.batches[batch].getChildAt(this.columnId)!.get(row);
+        const column = this.batches[batch].getChildAt(this.columnId)!;
+        let raw: unknown;
+        try {
+            raw = column.get(row);
+        } catch (e) {
+            if (!isUnsafeIntegerConversion(e)) throw e;
+            raw = readRawInt64(column, row);
+        }
         const text = raw == null ? null : (this.formatter(raw) || '');
         values[row] = text;
         this.loadedBatchValueCount[batch]++;

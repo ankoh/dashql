@@ -8,7 +8,7 @@ import { createTrinoSetup, TrinoSetupApi } from './trino_connection_setup.js';
 import { usePlatformType } from '../../platform/platform_type.js';
 
 const API_CTX = React.createContext<TrinoApiClientInterface | null>(null);
-const SETUP_CTX = React.createContext<TrinoSetupApi | null>(null);
+export const SETUP_CTX = React.createContext<TrinoSetupApi | null>(null);
 
 interface Props {
     children: React.ReactElement;

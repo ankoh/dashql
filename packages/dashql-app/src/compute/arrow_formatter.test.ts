@@ -199,3 +199,49 @@ describe('isArrowStructuredType', () => {
         expect(isArrowStructuredType(new arrow.Utf8())).toBe(false);
     });
 });
+
+describe('ArrowTextColumnFormatter of values beyond the safe integers', () => {
+    /// A batch of one Timestamp(ms) column, Arrow JS refuses to read values beyond 2^53 as numbers
+    function timestampBatch(values: (bigint | null)[]) {
+        const type = new arrow.TimestampMillisecond();
+        const data = new BigInt64Array(values.map(value => value ?? 0n));
+        const nullBitmap = new Uint8Array(Math.ceil(values.length / 8));
+        values.forEach((value, i) => { if (value != null) nullBitmap[i >> 3] |= 1 << (i & 7); });
+        const nullCount = values.filter(value => value == null).length;
+        const column = arrow.makeData({ type, length: values.length, nullCount, nullBitmap, data });
+        const schema = new arrow.Schema([new arrow.Field('ts', type, true)]);
+        const batch = new arrow.RecordBatch(schema, arrow.makeData({
+            type: new arrow.Struct(schema.fields), length: values.length, nullCount: 0, children: [column],
+        }));
+        return { schema, batch };
+    }
+
+    it('reads the raw values when Arrow cannot convert them', () => {
+        const huge = 2n ** 60n;
+        const { schema, batch } = timestampBatch([0n, null, huge]);
+        const formatter = new ArrowTextColumnFormatter(new TestLogger(), 0, schema, [batch]);
+        const values = formatter.ensureBatchIsLoaded(0);
+        expect(values.length).toBe(3);
+        expect(values[0]).toEqual(new Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(0)));
+        expect(values[1]).toBeNull();
+        expect(values[2]).toBe(huge.toString());
+        expect(formatter.formattedRowCount).toBe(3);
+        expect(formatter.getLayoutInfo().valueMaxWidth).toBe(Math.max(values[0]!.length, huge.toString().length));
+        // A loaded batch is not formatted again
+        expect(formatter.ensureBatchIsLoaded(0)).toBe(values);
+    });
+
+    it('reads single raw values when Arrow cannot convert them', () => {
+        const huge = 2n ** 60n;
+        const { schema, batch } = timestampBatch([null, huge, 1000n]);
+        const formatter = new ArrowTextColumnFormatter(new TestLogger(), 0, schema, [batch]);
+        expect(formatter.getValue(0, 1)).toBe(huge.toString());
+        expect(formatter.getValue(0, 0)).toBeNull();
+        expect(formatter.getValue(0, 2)).toEqual(new Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(1000)));
+    });
+
+    it('renders dates beyond the range of dates as their epoch milliseconds', () => {
+        const format = makeArrowValueFormatter(field('d', new arrow.DateMillisecond())).format;
+        expect(format(9e15)).toBe('9000000000000000');
+    });
+});

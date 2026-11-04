@@ -95,12 +95,12 @@ interface QueryExecutionRuntime {
 /// Show the profile of a running query, returns the function that stops showing it
 export type WatchQueryProfile = (queryId: number) => () => void;
 /// The React context to resolve the active query executor
-interface QueryExecutorContextValue {
+export interface QueryExecutorContextValue {
     execute: QueryExecutor;
     cancel: CancelQuery;
     watchProfile: WatchQueryProfile;
 }
-const EXECUTOR_CTX = React.createContext<QueryExecutorContextValue | null>(null);
+export const EXECUTOR_CTX = React.createContext<QueryExecutorContextValue | null>(null);
 /// The hook to resolve the query executor
 export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!.execute;
 export const useCancelQuery = () => React.useContext(EXECUTOR_CTX)!.cancel;

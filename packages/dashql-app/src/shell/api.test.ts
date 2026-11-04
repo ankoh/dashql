@@ -839,3 +839,85 @@ describe('DashQL shell Wasm', () => {
         expect(rejection).toMatchObject({ status: DashQLShellStatus.STALE_EFFECT });
     });
 });
+
+describe('DashQL shell Wasm download', () => {
+    const cache = globalThis as typeof globalThis & { __dashqlShellModuleCache?: unknown };
+    let savedCache: unknown;
+
+    beforeEach(() => {
+        savedCache = cache.__dashqlShellModuleCache;
+        delete cache.__dashqlShellModuleCache;
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        cache.__dashqlShellModuleCache = savedCache;
+    });
+
+    /// A response that streams the bytes in two chunks
+    function streamedResponse(bytes: Uint8Array, headers: Record<string, string>): Response {
+        const half = Math.floor(bytes.length / 2);
+        const body = new ReadableStream<Uint8Array>({
+            start(controller) {
+                controller.enqueue(bytes.slice(0, half));
+                controller.enqueue(bytes.slice(half));
+                controller.close();
+            },
+        });
+        return new Response(body, { headers: { 'content-type': 'application/wasm', ...headers } });
+    }
+
+    it('reports the progress of the download to every waiting shell', async () => {
+        const bytes = await DASHQL_SHELL_PRECOMPILED;
+        const fetch = vi.fn().mockResolvedValue(streamedResponse(bytes, { 'content-length': bytes.length.toString() }));
+        vi.stubGlobal('fetch', fetch);
+        const first: { bytesLoaded: number; bytesTotal: number }[] = [];
+        const second: { bytesLoaded: number; bytesTotal: number }[] = [];
+        const environment = { executeQuery: async () => new Uint8Array() };
+        const shells = await Promise.all([
+            DashQLShell.create({ environment, wasmUrl: '/static/shell.wasm', onProgress: p => first.push(p) }),
+            DashQLShell.create({ environment, wasmUrl: '/static/other.wasm', onProgress: p => second.push(p) }),
+        ]);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fetch).toHaveBeenCalledWith('/static/shell.wasm');
+        expect(first[0]).toEqual({ bytesLoaded: 0, bytesTotal: bytes.length });
+        expect(first[first.length - 1]).toEqual({ bytesLoaded: bytes.length, bytesTotal: bytes.length });
+        expect(first.length).toBe(3);
+        expect(second[second.length - 1]).toEqual(first[first.length - 1]);
+        // A shell created later shares the module
+        const later: unknown[] = [];
+        shells.push(await DashQLShell.create({ environment, onProgress: p => later.push(p) }));
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(later).toEqual([first[first.length - 1]]);
+        for (const shell of shells) shell.destroy();
+    });
+
+    it('does not know the total of an encoded download', async () => {
+        const bytes = await DASHQL_SHELL_PRECOMPILED;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamedResponse(bytes, { 'content-length': '10', 'content-encoding': 'br' })));
+        const progress: { bytesLoaded: number; bytesTotal: number }[] = [];
+        const shell = await DashQLShell.create({
+            environment: { executeQuery: async () => new Uint8Array() },
+            wasmUrl: new URL('/static/shell.wasm', location.href),
+            onProgress: p => progress.push(p),
+        });
+        expect(progress.every(p => p.bytesTotal === 0)).toBe(true);
+        expect(progress[progress.length - 1]?.bytesLoaded).toBe(bytes.length);
+        shell.destroy();
+    });
+
+    it('forgets a failed download so that the next shell retries it', async () => {
+        const bytes = await DASHQL_SHELL_PRECOMPILED;
+        const fetch = vi.fn()
+            .mockResolvedValueOnce(new Response(null, { status: 404, statusText: 'Not Found' }))
+            .mockResolvedValueOnce(streamedResponse(bytes, {}));
+        vi.stubGlobal('fetch', fetch);
+        const environment = { executeQuery: async () => new Uint8Array() };
+        await expect(DashQLShell.create({ environment, wasmUrl: '/missing.wasm' }))
+            .rejects.toThrow('failed to fetch shell Wasm: 404 Not Found');
+        expect(cache.__dashqlShellModuleCache).toBeUndefined();
+        const shell = await DashQLShell.create({ environment, wasmUrl: '/static/shell.wasm' });
+        expect(fetch).toHaveBeenCalledTimes(2);
+        shell.destroy();
+    });
+});

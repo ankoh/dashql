@@ -8,7 +8,9 @@ import { StorageBackendType } from './storage_backend.js';
 import { SessionTestRegistry, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from './session_test_backend.js';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import {
+    findSessionImportConflict,
     prepareNativeSessionImport,
+    registerNativeSession,
     replaceSessionWithNativeFolder,
     replaceSessionWithPortableBundle,
     writePortableSessionFresh,
@@ -266,5 +268,124 @@ describe('CompositeStorageBackend V2 flat routing', () => {
             location: { type: StorageBackendType.OPFS },
         }, { randomUUID: () => '99999999-8888-4777-8666-555555555555' })).resolves.toBe(OTHER_SESSION_ID);
         expect((await backend.loadSession(OTHER_SESSION_ID)).name).toBe('Replaced');
+    });
+});
+
+describe('session import transactions', () => {
+    const STAGING_ID = '99999999-8888-4777-8666-555555555555';
+    let registry: Registry;
+    let backend: CompositeStorageBackend;
+
+    beforeEach(async () => {
+        resetFsStore();
+        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
+        registry = new Registry();
+        backend = new CompositeStorageBackend(registry, new TestLogger());
+        await backend.initialize();
+    });
+
+    afterEach(() => {
+        delete globalThis.dashqlElectron;
+        vi.restoreAllMocks();
+    });
+
+    /// A native session folder that is ready for import
+    async function nativeFolder(dir: string, sessionId = TEST_SESSION_ID) {
+        const native = new NativeStorageBackend(dir);
+        await native.initialize();
+        await native.saveSessionManifest(sessionId, { ...testSession({ sessionId }), storageType: StorageBackendType.Native, nativePath: dir });
+        await native.saveScript(sessionId, '02_native.sql', 'SELECT 2');
+        return await prepareNativeSessionImport(backend, dir);
+    }
+
+    it('registers a native folder under its own UUID', async () => {
+        const prepared = await nativeFolder('/tmp/import', OTHER_SESSION_ID);
+        expect(await findSessionImportConflict(backend, OTHER_SESSION_ID)).toBeNull();
+        await expect(registerNativeSession(backend, prepared)).resolves.toBe(OTHER_SESSION_ID);
+        expect(registry.manifest).toEqual([{ path: OTHER_SESSION_ID, storageType: StorageBackendType.Native, nativePath: '/tmp/import' }]);
+        expect(await backend.loadScripts(OTHER_SESSION_ID)).toEqual([{ name: '02_native.sql', sql: 'SELECT 2' }]);
+        expect(await findSessionImportConflict(backend, OTHER_SESSION_ID)).not.toBeNull();
+        await expect(registerNativeSession(backend, prepared)).rejects.toThrow('is already registered');
+    });
+
+    it('rejects a fresh portable write over a registered session', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        const source = { session: testSession(), catalogs: [], scripts: [] };
+        await expect(writePortableSessionFresh(backend, source)).rejects.toThrow('is already registered');
+    });
+
+    it('deletes a fresh portable write that does not verify', async () => {
+        const source = { session: testSession({ sessionId: OTHER_SESSION_ID }), catalogs: [], scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }] };
+        vi.spyOn(backend, 'readPortableSessionBundle').mockResolvedValue({ ...source, scripts: [] });
+        const deleted = vi.spyOn(backend, 'deletePortableSession');
+        await expect(writePortableSessionFresh(backend, source)).rejects.toThrow(`verification failed for ${OTHER_SESSION_ID}`);
+        expect(deleted).toHaveBeenCalledWith(OTHER_SESSION_ID);
+        expect(registry.manifest).toEqual([]);
+    });
+
+    it('keeps the import error when the cleanup of a fresh write fails too', async () => {
+        const source = { session: testSession({ sessionId: OTHER_SESSION_ID }), catalogs: [], scripts: [] };
+        vi.spyOn(backend, 'writePortableSessionBundle').mockRejectedValue(new Error('disk full'));
+        vi.spyOn(backend, 'deletePortableSession').mockRejectedValue(new Error('locked'));
+        await expect(writePortableSessionFresh(backend, source)).rejects.toThrow('disk full');
+    });
+
+    it('checks the replacement before touching the registered session', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        const conflict = { sessionId: TEST_SESSION_ID, location: { type: StorageBackendType.OPFS } } as const;
+        const source = { session: testSession(), catalogs: [], scripts: [] };
+        await expect(replaceSessionWithPortableBundle(backend, { ...source, session: testSession({ sessionId: OTHER_SESSION_ID }) }, conflict))
+            .rejects.toThrow('does not match replacement');
+        await backend.saveSessionManifest(OTHER_SESSION_ID, testSession({ sessionId: OTHER_SESSION_ID }));
+        await expect(replaceSessionWithPortableBundle(backend, source, conflict, { randomUUID: () => OTHER_SESSION_ID }))
+            .rejects.toThrow(`Staging session ${OTHER_SESSION_ID} is already registered`);
+
+        const unregistered = { sessionId: STAGING_ID, location: { type: StorageBackendType.OPFS } } as const;
+        await expect(replaceSessionWithPortableBundle(backend, { ...source, session: testSession({ sessionId: STAGING_ID }) }, unregistered))
+            .rejects.toThrow('is no longer registered');
+    });
+
+    it('restores the old session when the replacement fails after the target changed', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession({ name: 'Old' }));
+        await backend.saveScript(TEST_SESSION_ID, '01_old.sql', 'SELECT 0');
+        const write = backend.writePortableSessionBundle.bind(backend);
+        let targetWrites = 0;
+        vi.spyOn(backend, 'writePortableSessionBundle').mockImplementation(async (bundle, sessionId, fresh) => {
+            // Fail the first write of the new bundle into the target, not the restore of the old one
+            if (sessionId === TEST_SESSION_ID && targetWrites++ === 0) throw new Error('quota exceeded');
+            return await write(bundle, sessionId, fresh);
+        });
+        const source = { session: testSession({ name: 'New' }), catalogs: [], scripts: [{ name: '01_new.sql', sql: 'SELECT 1' }] };
+        await expect(replaceSessionWithPortableBundle(backend, source, {
+            sessionId: TEST_SESSION_ID,
+            location: { type: StorageBackendType.OPFS },
+        }, { randomUUID: () => STAGING_ID })).rejects.toThrow('quota exceeded');
+
+        expect((await backend.loadSession(TEST_SESSION_ID)).name).toBe('Old');
+        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '01_old.sql', sql: 'SELECT 0' }]);
+        expect(registry.manifest).toEqual([{ path: TEST_SESSION_ID, storageType: StorageBackendType.OPFS }]);
+        expect(await findSessionImportConflict(backend, STAGING_ID)).toBeNull();
+        expect(registry.scripts.has(STAGING_ID)).toBe(false);
+    });
+
+    it('reports a failing staging cleanup of a successful replacement', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        vi.spyOn(backend, 'deletePortableSession').mockRejectedValue(new Error('locked'));
+        const source = { session: testSession({ name: 'New' }), catalogs: [], scripts: [] };
+        await expect(replaceSessionWithPortableBundle(backend, source, {
+            sessionId: TEST_SESSION_ID,
+            location: { type: StorageBackendType.OPFS },
+        }, { randomUUID: () => STAGING_ID })).rejects.toThrow('locked');
+    });
+
+    it('restores the manifest entry when the replacement by a native folder fails', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveScript(TEST_SESSION_ID, '01_query.sql', 'SELECT 1');
+        const prepared = await nativeFolder('/tmp/selected');
+        vi.spyOn(backend, 'deletePortableSessionFiles').mockRejectedValue(new Error('locked'));
+        const conflict = { sessionId: TEST_SESSION_ID, location: { type: StorageBackendType.OPFS } } as const;
+        await expect(replaceSessionWithNativeFolder(backend, prepared, conflict)).rejects.toThrow('locked');
+        expect(registry.manifest).toEqual([{ path: TEST_SESSION_ID, storageType: StorageBackendType.OPFS }]);
+        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
     });
 });

@@ -365,7 +365,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                                     const newAuthType = index === 0
                                         ? "AUTH_BASIC"
                                         : "AUTH_OAUTH";
-                                    setAuthType(newAuthType);
+                                    // The control also reports a click on the selected type, which must keep the credentials
+                                    if (newAuthType !== authType) {
+                                        setAuthType(newAuthType);
+                                    }
                                 }}
                             >
                                 <SegmentedControl.Button

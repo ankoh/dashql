@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { seededRandom, SyntheticFeed, SYNTHETIC_SYMBOLS } from './synthetic_feed.js';
+import type { Tick, TickFeedStatus } from './tick_feed.js';
 
 describe('SyntheticFeed', () => {
     it('generates the same ticks for the same seed', () => {
@@ -41,5 +42,64 @@ describe('SyntheticFeed', () => {
             expect(value).toBeGreaterThanOrEqual(0);
             expect(value).toBeLessThan(1);
         }
+    });
+});
+
+describe('SyntheticFeed delivery', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('backfills the history at a tenth of the rate and then emits live ticks', () => {
+        vi.useFakeTimers();
+        const feed = new SyntheticFeed({ seed: 1, ticksPerSecond: 100, emitIntervalMs: 50, backfillMs: 10_000 });
+        const deliveries: Tick[][] = [];
+        const statuses: TickFeedStatus[] = [];
+        const startedAt = Date.now();
+        feed.start(ticks => deliveries.push(ticks), status => statuses.push(status));
+        expect(statuses).toEqual([{ state: 'live' }]);
+        expect(deliveries.length).toBe(1);
+        expect(deliveries[0].length).toBe(100);
+        expect(deliveries[0][0].ts).toBeGreaterThan(startedAt - 10_000);
+        expect(deliveries[0][deliveries[0].length - 1]!.ts).toBe(startedAt);
+
+        // 100 ticks per second are 5 ticks every 50 ms
+        vi.advanceTimersByTime(50);
+        expect(deliveries.length).toBe(2);
+        expect(deliveries[1].length).toBe(5);
+        expect(deliveries[1][deliveries[1].length - 1]!.ts).toBe(startedAt + 50);
+        vi.advanceTimersByTime(950);
+        expect(deliveries.slice(1).reduce((n, ticks) => n + ticks.length, 0)).toBe(100);
+
+        feed.stop();
+        vi.advanceTimersByTime(1000);
+        expect(deliveries.length).toBe(21);
+    });
+
+    it('carries fractional ticks over to later intervals', () => {
+        vi.useFakeTimers();
+        const feed = new SyntheticFeed({ seed: 1, ticksPerSecond: 10, emitIntervalMs: 50, backfillMs: 0 });
+        const deliveries: Tick[][] = [];
+        feed.start(ticks => deliveries.push(ticks), () => { });
+        // Half a tick per interval, every second interval emits one
+        vi.advanceTimersByTime(50);
+        expect(deliveries).toEqual([]);
+        vi.advanceTimersByTime(50);
+        expect(deliveries.map(ticks => ticks.length)).toEqual([1]);
+        vi.advanceTimersByTime(900);
+        expect(deliveries.map(ticks => ticks.length)).toEqual(Array(10).fill(1));
+        feed.stop();
+    });
+
+    it('does not backfill again when restarted', () => {
+        vi.useFakeTimers();
+        const feed = new SyntheticFeed({ seed: 1, ticksPerSecond: 100, backfillMs: 1000 });
+        const deliveries: Tick[][] = [];
+        feed.start(ticks => deliveries.push(ticks), () => { });
+        expect(deliveries.length).toBe(1);
+        feed.start(ticks => deliveries.push(ticks), () => { });
+        expect(deliveries.length).toBe(1);
+        feed.stop();
+        feed.stop();
     });
 });

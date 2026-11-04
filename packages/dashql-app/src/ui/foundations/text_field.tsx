@@ -85,7 +85,6 @@ export function TextField(props: {
         validationStatus = TextInputValidationStatus.Error;
     }
     const hasValidationMessage = props.validation?.type === VALIDATION_WARNING || props.validation?.type === VALIDATION_ERROR;
-    const value = props.concealed ? "*".repeat(props.value.length) : props.value;
     return (
         <div className={classNames(styles.text_field, props.className)} style={props.style}>
             {props.name && <div className={styles.text_field_name}>{props.name}</div>}
@@ -99,7 +98,9 @@ export function TextField(props: {
                 placeholder={props.placeholder}
                 leadingVisual={props.leadingVisual}
                 trailingAction={<CopyToClipboardAction value={props.value} logContext={props.logContext} ariaLabel={`Copy ${props.name}`} />}
-                value={value}
+                // A concealed field is a password input with the real value, so typing edits the value and not its mask
+                type={props.concealed ? 'password' : undefined}
+                value={props.value}
                 onChange={props.onChange}
                 disabled={props.disabled}
                 readOnly={props.readOnly}

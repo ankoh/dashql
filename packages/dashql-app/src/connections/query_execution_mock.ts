@@ -49,9 +49,10 @@ export class QueryExecutionResponseStreamMock implements QueryExecutionResponseS
             await sleep(400);
             abort?.throwIfAborted();
 
-            const columnA = Int32Array.from({ length: 1000 }, () => Number((Math.random() * 1000).toFixed(0)));
-            const columnB = Int32Array.from({ length: 1000 }, () => Number((Math.random() * 1000).toFixed(0)));
-            const columnC = Int32Array.from({ length: 1000 }, () => Number((Math.random() * 1000).toFixed(0)));
+            const length = 1000;
+            const columnA = Int32Array.from({ length }, () => Number((Math.random() * 1000).toFixed(0)));
+            const columnB = Int32Array.from({ length }, () => Number((Math.random() * 1000).toFixed(0)));
+            const columnC = Int32Array.from({ length }, () => Number((Math.random() * 1000).toFixed(0)));
 
             const vecA = arrow.makeData({ type: new arrow.Int32(), data: columnA });
             const vecB = arrow.makeData({ type: new arrow.Int32(), data: columnB });
