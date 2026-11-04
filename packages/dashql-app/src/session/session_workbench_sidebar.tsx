@@ -62,7 +62,7 @@ import {
     createConnectionStateFromParams,
     createAttachedConnectionParamsForConnector,
 } from '../connections/connection_params.js';
-import { useEmbeddedConnection, useNewSessionConnection } from '../connections/embedded_connection.js';
+import { useNewSessionConnection } from '../connections/embedded_connection.js';
 import { ATTACHABLE_CONNECTORS } from '../connections/attached_connection.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { ConnectionSettingsOverlay } from '../connections/connection_settings_overlay.js';
@@ -83,7 +83,7 @@ import {
 } from './persistence/app_state_loader.js';
 import { useSessionImport } from './persistence/session_import_provider.js';
 import { describeSessionValidationError } from '../storage/session_validation.js';
-import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
+import { scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
 import { scriptDisplayName } from './scripts/script_types.js';
 import { renameScript } from './scripts/script_rename.js';
 import {
@@ -219,7 +219,6 @@ export interface SessionWorkbenchSidebarDependencies {
     useLogger: typeof useLogger;
     useInvalidSessions: typeof useInvalidSessions;
     useSessionConnections: typeof useSessionConnections;
-    useEmbeddedConnection: typeof useEmbeddedConnection;
     useNewSessionConnection: typeof useNewSessionConnection;
     createConnectionStateFromParams: typeof createConnectionStateFromParams;
     ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
@@ -252,7 +251,6 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useLogger,
     useInvalidSessions,
     useSessionConnections,
-    useEmbeddedConnection,
     useNewSessionConnection,
     createConnectionStateFromParams,
     ConnectionSettingsOverlay,
@@ -669,7 +667,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const references = dependencies.useConnectionReferences();
     const allocateConnection = dependencies.useConnectionAllocator();
     const createSession = dependencies.useSessionCreation();
-    const resolveEmbeddedConnection = dependencies.useEmbeddedConnection();
     const resolveNewSessionConnection = dependencies.useNewSessionConnection();
     const mergeConnections = dependencies.useMergeConnections();
     const replaceConnection = dependencies.useReplaceConnection();
@@ -811,7 +808,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                 ? sessionIds.length
                 : sessionIds.filter(sessionId => scriptsOf(sessionId) > 0).length,
             usedHere: sessionConnectionRows.some(database => database.connectionId === connectionId),
-            scriptCountHere: scriptsOf(props.sessionScripts.sessionId),
         };
     }, [databaseRegistry, props.sessionScripts.sessionId, sessionConnectionRows, references, scriptsRegistry]);
     const initiallyExpanded = React.useCallback((database: ConnectionState, _count: number) => (
@@ -969,13 +965,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                 logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'session_workbench');
             });
     }, [databaseRegistry, describeUsage, detachConnectionFromSessions, labelOf, logger, props.sessionScripts.instance, shutDownAndDeleteConnection]);
-
-    /// Detach a connection that no script of the current session uses, its new scripts use the embedded Hyper again
-    const detachConnection = React.useCallback((connectionId: string) => {
-        const embedded = resolveEmbeddedConnection(props.sessionScripts.instance);
-        if (embedded.connectionId === connectionId) return;
-        void modifyCurrentSession({ type: DETACH_CONNECTION, value: { from: connectionId, into: scriptConnectionOf(embedded) } });
-    }, [modifyCurrentSession, props.sessionScripts.instance, resolveEmbeddedConnection]);
 
     /// The number of duplicates of a connection
     const mergeCandidateCount = React.useCallback(
@@ -1310,7 +1299,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                 describeUsage={describeUsage}
                                 onRename={renameConnection}
                                 onDelete={deleteConnection}
-                                onDetach={detachConnection}
                                 mergeCandidateCount={mergeCandidateCount}
                                 onMerge={mergeDuplicates}
                                 replaceBlocker={replaceBlocker}

@@ -70,7 +70,6 @@ const dependencies = {
     useDashQLCoreSetup: () => vi.fn(),
     usePlatformType: () => 0,
     useLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn() }),
-    useEmbeddedConnection: () => vi.fn(),
     useNewSessionConnection: () => vi.fn(),
     createConnectionStateFromParams: vi.fn(),
 } as unknown as SessionWorkbenchSidebarDependencies;

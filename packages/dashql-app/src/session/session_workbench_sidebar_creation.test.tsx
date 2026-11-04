@@ -8,7 +8,7 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import { connectionLabelParts } from '../connections/connection_label.js';
 import { SessionSetupStatus } from '../app/loading/session_setup_status.js';
 import { SELECT_SESSION } from '../app/router/router.js';
-import { DETACH_CONNECTION, SET_PENDING_CONNECTION } from './scripts/session_scripts.js';
+import { SET_PENDING_CONNECTION } from './scripts/session_scripts.js';
 import { SessionWorkbenchSidebar, type SessionWorkbenchSidebarDependencies } from './session_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -23,7 +23,6 @@ const state = {
     createConnectionStateFromParams: vi.fn(),
     deleteSession: vi.fn(),
     allocateConnection: vi.fn(),
-    resolveEmbeddedConnection: vi.fn(),
     resolveNewSessionConnection: vi.fn(),
     detachConnection: vi.fn<() => Promise<void>>(),
     deleteConnection: vi.fn<() => Promise<void>>(),
@@ -113,7 +112,6 @@ const dependencies = {
     useDashQLCoreSetup: () => vi.fn(),
     usePlatformType: () => 0,
     useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
-    useEmbeddedConnection: () => state.resolveEmbeddedConnection,
     useNewSessionConnection: () => state.resolveNewSessionConnection,
     createConnectionStateFromParams: (...args: unknown[]) => state.createConnectionStateFromParams(...args),
 } as unknown as SessionWorkbenchSidebarDependencies;
@@ -163,7 +161,6 @@ describe('SessionWorkbenchSidebar session creation', () => {
             ...EMPTY_CATALOG,
         } as unknown as ConnectionState;
         state.allocateConnection.mockReset().mockReturnValue(state.local);
-        state.resolveEmbeddedConnection.mockReset().mockReturnValue(state.local);
         state.resolveNewSessionConnection.mockReset().mockReturnValue(state.local);
         state.detachConnection.mockReset().mockResolvedValue();
         state.deleteConnection.mockReset().mockResolvedValue();
@@ -569,30 +566,6 @@ describe('SessionWorkbenchSidebar session creation', () => {
         });
         return document.querySelector(`[data-testid="connection-menu-item"][data-action="${action}"]`);
     }
-
-    it('detaches a connection that only the new scripts of the session use', () => {
-        const server = attachServer({ '1_alpha.sql': 'local-database' });
-        const detach = menuItem(server.connectionId, 'detach')!;
-        expect(detach.disabled).toBe(false);
-        act(() => detach.click());
-        expect(state.modifySessionScripts).toHaveBeenCalledWith({
-            type: DETACH_CONNECTION,
-            value: { from: server.connectionId, into: expect.objectContaining({ connectionId: state.local!.connectionId }) },
-        });
-    });
-
-    it('keeps a connection attached while scripts of the session use it', () => {
-        const server = attachServer({ '1_alpha.sql': 'hyper-server' });
-        const detach = menuItem(server.connectionId, 'detach')!;
-        expect(detach.disabled).toBe(true);
-        act(() => detach.click());
-        expect(state.modifySessionScripts).not.toHaveBeenCalled();
-    });
-
-    it('does not offer to detach the embedded connection', () => {
-        attachServer({ '1_alpha.sql': 'local-database' });
-        expect(menuItem(state.local!.connectionId, 'detach')).toBeNull();
-    });
 
     it('deletes a connection that sessions only create new scripts on', async () => {
         const server = attachServer();
