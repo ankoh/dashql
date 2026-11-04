@@ -14,6 +14,7 @@ import * as styles from './query_result_details.module.css';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
+import { formatResultDetail } from './query_result_header.js';
 
 export interface QueryResultDetailsDependencies {
     QueryResultToolbar: typeof QueryResultToolbar;
@@ -69,9 +70,9 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
         <div className={classNames(styles.root, { [styles.root_fit_height]: fitHeight })}>
             <TabHeader
                 title="Query Results"
-                detail={searchRows.matchingRows == null
+                detail={formatResultDetail(searchRows.matchingRows == null
                     ? formatRowCountDetail(searchRows.totalRows)
-                    : `${searchRows.matchingRows} of ${searchRows.currentRows ?? searchRows.totalRows ?? 0} rows`}
+                    : `${searchRows.matchingRows} of ${searchRows.currentRows ?? searchRows.totalRows ?? 0} rows`, query.resultTable)}
                 actions={(
                     <>
                         <QueryResultToolbarComponent query={query} />

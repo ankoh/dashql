@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { QueryResultPanel, type QueryResultPanelDependencies } from './query_result_header.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -20,7 +21,7 @@ const dependencies = {
     },
 } as unknown as QueryResultPanelDependencies;
 const lastView = () => viewProps[viewProps.length - 1];
-const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: {} } as QueryExecutionState;
+const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: tableFromArrays({ value: [1, 2, 3] }) } as QueryExecutionState;
 
 describe('QueryResultPanel', () => {
     let container: HTMLDivElement;

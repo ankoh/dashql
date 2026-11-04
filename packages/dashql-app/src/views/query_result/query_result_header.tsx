@@ -1,3 +1,4 @@
+import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './query_result_header.module.css';
 
@@ -10,6 +11,7 @@ import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { fittingRowCount } from './data_table.js';
 import { QueryStatusPlaceholder } from '../card_placeholder.js';
+import { formatBytes } from '../../utils/format.js';
 
 export interface QueryResultHeaderDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
@@ -40,6 +42,38 @@ export function formatResultRowCount(counts: ReturnType<typeof useQueryResultRow
         : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`;
 }
 
+/// The bytes of a result table, weakly keyed by the table so a size never outlives it.
+const resultTableBytes = new WeakMap<arrow.Table, number>();
+
+/// The bytes the buffers of a result table hold in memory. Sums the buffer sizes of every column of every batch without
+/// reading a row, and adds every dictionary once since the batches of a column share it.
+export function getResultTableBytes(table: arrow.Table): number {
+    const cached = resultTableBytes.get(table);
+    if (cached !== undefined) return cached;
+    const dictionaries = new Set<arrow.Vector>();
+    const collectDictionaries = (data: arrow.Data) => {
+        if (data.dictionary != null) dictionaries.add(data.dictionary);
+        for (const child of data.children) collectDictionaries(child);
+    };
+    let bytes = 0;
+    for (const batch of table.batches) {
+        bytes += batch.data.byteLength;
+        collectDictionaries(batch.data);
+    }
+    for (const dictionary of dictionaries) {
+        for (const data of dictionary.data) bytes += data.byteLength;
+    }
+    resultTableBytes.set(table, bytes);
+    return bytes;
+}
+
+/// The detail of a result header: the row count followed by the size of the result table, "3 rows, 1.2 kB".
+/// Null while the row count is unknown, only the row count while the result table is not there yet.
+export function formatResultDetail(rowCount: string | null, resultTable: arrow.Table | null): string | null {
+    if (rowCount == null || resultTable == null) return rowCount;
+    return `${rowCount}, ${formatBytes(getResultTableBytes(resultTable))}`;
+}
+
 interface HeaderProps {
     query: QueryExecutionState;
     /// The rows the table below shows at most, a preview of more rows counts as "6 of 1000 rows"
@@ -59,7 +93,7 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
     return (
         <TabHeader
             title="Query Results"
-            detail={formatResultRowCount(counts, maxRows)}
+            detail={formatResultDetail(formatResultRowCount(counts, maxRows), props.query.resultTable)}
             onClick={props.onShowTable}
             detailIsLink={displayedRows != null && displayedRows > maxRows}
             actions={(
