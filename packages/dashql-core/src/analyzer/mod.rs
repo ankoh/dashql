@@ -20,7 +20,7 @@ mod vis_tags;
 
 pub use sql_types::{SqlType, SqlTypeKind};
 pub use types::*;
-pub use vis_tags::{has_vis_tags, statement_output_columns, vis_renderer_tag};
+pub use vis_tags::{has_vis_tags, statement_output_columns};
 
 use crate::catalog::*;
 use crate::error::Result;

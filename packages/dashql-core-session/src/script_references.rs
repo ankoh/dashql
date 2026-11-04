@@ -912,3 +912,33 @@ pub(crate) fn splice_statement(
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The text from the offset of the query inside the parentheses that enclose all of it
+    fn inside(text: &str) -> &str {
+        let span = TextSpan { offset: 0, length: text.len() as u32 };
+        &text[inside_parentheses(text.as_bytes(), span) as usize..]
+    }
+
+    #[test]
+    fn skips_the_parentheses_that_enclose_all_of_a_query() {
+        assert_eq!(inside("select 1"), "select 1");
+        assert_eq!(inside("  (select 1) "), "select 1) ");
+        assert_eq!(inside("(( select 1 ))"), "select 1 ))");
+        // The first parenthesis closes before the end
+        assert_eq!(inside("(select 1) union (select 2)"), "(select 1) union (select 2)");
+        assert_eq!(inside("()"), ")");
+    }
+
+    #[test]
+    fn parentheses_in_quotes_and_comments_do_not_count() {
+        assert_eq!(inside("(select ')' as a)"), "select ')' as a)");
+        assert_eq!(inside(r#"(select 1 as ")")"#), r#"select 1 as ")")"#);
+        assert_eq!(inside("(select 1 -- )\n)"), "select 1 -- )\n)");
+        assert_eq!(inside("(select /* ) */ 1)"), "select /* ) */ 1)");
+        assert_eq!(inside("(select 1 /* ) */) union (select 2)"), "(select 1 /* ) */) union (select 2)");
+    }
+}

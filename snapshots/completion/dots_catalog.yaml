@@ -240,3 +240,72 @@ completion-snapshots:
               id: "256.65536"
               candidate-tags: [DOT_RESOLUTION_SCHEMA]
       text: "."
+
+  - name: dots_catalog_schema_and_database_share_a_name
+    catalog:
+      script:
+        input: create table x.foo(a int); create table x.foo.bar(b int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+          - catalog-id: "257.65537.4294967297"
+            name: bar
+            text: "create tab..bar(b int)"
+            columns:
+              - catalog-id: "257.65537.4294967297.0"
+                name: b
+                text: "b int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: x.foo
+            columns: [a]
+          - statement-id: 1
+            type: create
+            name: x.foo.bar
+            columns: [b]
+        errors: []
+    editor:
+      input: select * from x.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "x."
+    cursor:
+      search:
+        text: x.
+        index: 2
+    completions:
+      limit: 3
+      strategy: TABLE_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 24
+          value: foo
+          name-tags: [SCHEMA_NAME,TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_SCHEMA,DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "x."
+          objects:
+            - score: 4
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: x.foo
+              qualified-idx: 1
+              prefer-qualified: 0
+            - score: 4
+              type: schema
+              id: "257.65537"
+              candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+      text: "."

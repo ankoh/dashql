@@ -68,3 +68,17 @@ completion-snapshots:
         index: 12
     completions:
       limit: 3
+
+  # A schema of the default database and a database with a table and a schema of the same name merge into one candidate
+  - name: dots_catalog_schema_and_database_share_a_name
+    catalog:
+      script:
+        input: create table x.foo(a int); create table x.foo.bar(b int);
+    editor:
+      input: select * from x.
+    cursor:
+      search:
+        text: x.
+        index: 2
+    completions:
+      limit: 3

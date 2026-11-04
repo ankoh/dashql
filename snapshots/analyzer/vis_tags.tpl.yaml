@@ -228,3 +228,42 @@ analyzer-snapshots:
         /* @vis markdown {{b}} */
         select 2 as b;
         select 3 as c;
+
+  # A Vega-Lite tag needs a spec, and the spec is an object
+  - name: vis_tag_vegalite_without_spec
+    script:
+      input: |
+        /* @vis vegalite */
+        select 1 as a;
+        /* @vis vegalite [{"mark": "bar"}] */
+        select 2 as b;
+
+  # The message of an unknown field lists the first columns by name, then how many it left out
+  - name: vis_tag_unknown_field_of_many_columns
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k"}}} */
+        select 1 as a1, 2 as a2, 3 as a3, 4 as a4, 5 as a5, 6 as a6, 7 as a7, 8 as a8, 9 as a9, 10 as a10;
+
+  # A set operation has the columns of its left input, a transform with several `as` names defines all of them
+  - name: vis_tag_fields_of_a_set_operation
+    script:
+      input: |
+        /* @vis vegalite
+           {
+             "transform": [{"fold": ["a", "b"], "as": ["key", "value"]}],
+             "mark": "bar",
+             "encoding": {"x": {"field": "key"}, "y": {"field": "value"}, "color": {"field": "c"}}
+           }
+        */
+        select 1 as a, 2 as b union all select 3, 4;
+
+  # A flow tag without args places nothing, a negative board column is removed
+  - name: vis_tag_flow_and_board_without_values
+    script:
+      input: |
+        /* @flow */
+        select 1;
+        /* @vis table
+           @board column=-2 width=3 */
+        select 2 as b;

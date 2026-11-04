@@ -383,14 +383,6 @@ pub(super) fn statement_tags<'p>(
         .filter(move |(_, name)| names.contains(name))
 }
 
-/// The `@vis` tags among the description comments of a statement
-fn statement_vis_tags<'p>(
-    parsed: &'p dashql_parser::parser::ParsedScript,
-    description: &dashql_parser::parser::StatementDescription,
-) -> impl Iterator<Item = &'p CommentBlock> {
-    statement_tags(parsed, description, VIS_FAMILY).filter(|(_, name)| *name == VIS_TAG).map(|(b, _)| b)
-}
-
 /// The kind of a `@vis` tag, the first word of its content
 fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &CommentBlock) -> &'p str {
     let script = parsed.scanned.text.as_str();
@@ -426,14 +418,6 @@ pub fn statement_output_columns(analyzed: &AnalyzedScript, statement_id: usize) 
         }
     }
     columns
-}
-
-/// The first renderer tag (`vegalite`, `markdown` or `table`) of a statement, the one that wins
-pub fn vis_renderer_tag(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> Option<CommentBlock> {
-    let descriptions = parsed.associate_descriptions();
-    statement_vis_tags(parsed, descriptions.get(statement_id)?)
-        .find(|block| matches!(tag_kind(parsed, block), "vegalite" | "markdown" | "table"))
-        .copied()
 }
 
 /// Build the visualization specs of the statements with `@vis` tags

@@ -1522,6 +1522,8 @@ impl<'c, 'a> Completion<'c, 'a> {
                     let existing = &mut self.candidates[c];
                     existing.target_location = replace_text_at;
                     existing.target_location_qualified = name_path_text_loc;
+                    // A name can be several things, e.g. a table and a schema
+                    existing.coarse_name_tags |= dot_candidate.name_tags;
                     existing.candidate_tags |= dot_candidate.candidate_tags;
                     c
                 }

@@ -1194,3 +1194,301 @@ analyzer-snapshots:
             width: 6
             height: 6
           markdown: "{{b}}"
+
+  - name: vis_tag_vegalite_without_spec
+    script:
+      input: |
+        /* @vis vegalite */
+        select 1 as a;
+        /* @vis vegalite [{"mark": "bar"}] */
+        select 2 as b;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis vegalite needs a Vega-Lite spec as JSON object'
+          text: "vegalite"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: the Vega-Lite spec must be a JSON object
+          text: "["
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+        - scope-id: 1
+          columns:
+            - name: b
+              expression: 1
+          text: "select 2 as b"
+
+  - name: vis_tag_unknown_field_of_many_columns
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k"}}} */
+        select 1 as a1, 2 as a2, 3 as a3, 4 as a4, 5 as a5, 6 as a6, 7 as a7, 8 as a8, 9 as a9, 10 as a10;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown field "k", the statement has the columns a1, a10, a2, a3, a4, a5, a6, a7 and 2 more'
+          text: "\"k\""
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "3"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "4"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "5"
+        - expression-idx: 5
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "6"
+        - expression-idx: 6
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "7"
+        - expression-idx: 7
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "8"
+        - expression-idx: 8
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "9"
+        - expression-idx: 9
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "10"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+        - expression: 2
+          text: "3"
+        - expression: 3
+          text: "4"
+        - expression: 4
+          text: "5"
+        - expression: 5
+          text: "6"
+        - expression: 6
+          text: "7"
+        - expression: 7
+          text: "8"
+        - expression: 8
+          text: "9"
+        - expression: 9
+          text: "10"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a1
+              expression: 0
+            - name: a2
+              expression: 1
+            - name: a3
+              expression: 2
+            - name: a4
+              expression: 3
+            - name: a5
+              expression: 4
+            - name: a6
+              expression: 5
+            - name: a7
+              expression: 6
+            - name: a8
+              expression: 7
+            - name: a9
+              expression: 8
+            - name: a10
+              expression: 9
+          text: "select 1 a.. 10 as a10"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 a.. 10 as a10"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"k\"}}}"
+
+  - name: vis_tag_fields_of_a_set_operation
+    script:
+      input: |
+        /* @vis vegalite
+           {
+             "transform": [{"fold": ["a", "b"], "as": ["key", "value"]}],
+             "mark": "bar",
+             "encoding": {"x": {"field": "key"}, "y": {"field": "value"}, "color": {"field": "c"}}
+           }
+        */
+        select 1 as a, 2 as b union all select 3, 4;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown field "c", the statement has the columns a, b'
+          text: "\"c\""
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "3"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "4"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+        - expression: 2
+          text: "3"
+        - expression: 3
+          text: "4"
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          columns:
+            - name: a
+              expression: 0
+            - name: b
+              expression: 1
+          text: "select 1 a.. a, 2 as b"
+        - scope-id: 1
+          parent: 2
+          columns:
+            - name: '?'
+              expression: 2
+            - name: '?'
+              expression: 3
+          text: "select 3, 4"
+        - scope-id: 2
+          columns:
+            - name: a
+              expression: 0
+            - name: b
+              expression: 1
+          text: "select 1 a..elect 3, 4"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 a..elect 3, 4"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"transform\":[{\"fold\":[\"a\",\"b\"],\"as\":[\"key\",\"value\"]}],\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"key\"},\"y\":{\"field\":\"value\"},\"color\":{\"field\":\"c\"}}}"
+
+  - name: vis_tag_flow_and_board_without_values
+    script:
+      input: |
+        /* @flow */
+        select 1;
+        /* @vis table
+           @board column=-2 width=3 */
+        select 2 as b;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@flow needs x and y, a width or a height'
+          text: "flow"
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard column must be non-negative and was removed
+          text: "column=-2"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: '?'
+              expression: 0
+          text: "select 1"
+        - scope-id: 1
+          columns:
+            - name: b
+              expression: 1
+          text: "select 2 as b"
+      visualizations:
+        - statement-id: 1
+          source: "select 2 as b"
+          renderer: table
+          dashboard:
+            width: 3
+            height: 6
+      board:
+        statement-id: 1
+        width: 3
+        height: 6

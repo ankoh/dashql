@@ -512,3 +512,24 @@ where rnk_processed_rows < 10
     let cursor = main_script.move_cursor(&catalog, cursor_offset + 1);
     assert!(Script::complete_at_cursor(&cursor, DEFAULT_LIMIT).is_ok());
 }
+
+#[test]
+fn completes_columns_of_derived_tables_after_a_recovered_dot() {
+    let mut catalog = Catalog::new();
+    let _schema = load_schema(&mut catalog, "CREATE TABLE t(a int, b int);");
+
+    for text in [
+        "with c as (select a as k, b from t) select * from t join c x on x.",
+        "select * from t join (select a as k, b from t) x on x.",
+    ] {
+        let mut script = analyze(&catalog, text);
+        let cursor = script.move_cursor(&catalog, text.len());
+        // The parser recovered `x.` without a column ref node
+        assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::AliasDot), "{text}");
+
+        let completion = Script::complete_at_cursor(&cursor, 50).unwrap();
+        let k = find_candidate(&completion, "k").unwrap_or_else(|| panic!("k: {text}"));
+        assert!(has_tag(k, CandidateTag::DOT_RESOLUTION_COLUMN), "{text}");
+        assert!(find_candidate(&completion, "b").is_some(), "{text}");
+    }
+}

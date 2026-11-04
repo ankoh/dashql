@@ -5,9 +5,8 @@
 //! their statements. ortho-router builds a grid of the lines through the boxes grown by a margin and the stubs of
 //! the ports, searches the shortest route with few bends through it, and spreads routes that share a channel apart.
 
-use crate::layout::{DataflowBoxGeometry, DataflowEdgeRoute, DataflowLayoutConfig, DataflowLayoutEdge};
+use crate::layout::DataflowLayoutConfig;
 use crate::ortho_router::{Connector, Options, Point, Port, Rect, Router, Side};
-use std::collections::BTreeSet;
 
 /// What a bend costs, as a length
 const ROUTE_BEND_PENALTY: f64 = 40.0;
@@ -41,26 +40,6 @@ pub fn route_edges(boxes: &[RouteBox], edges: &[RouteRequestEdge], config: &Data
         .into_iter()
         .map(|route| route.routed.then(|| route.points.iter().map(|p| (p.x as f64, p.y as f64)).collect()))
         .collect()
-}
-
-/// Route the edges between statements of laid out boxes like the canvas does for moved boxes
-pub fn route_dataflow_edges(geometry: &[DataflowBoxGeometry], edges: &[DataflowLayoutEdge], config: &DataflowLayoutConfig) -> Vec<DataflowEdgeRoute> {
-    let boxes: Vec<RouteBox> = geometry.iter().map(|g| RouteBox { x: g.x, y: g.y, width: g.width, height: g.height }).collect();
-    let unique: Vec<(u32, u32, u32, u32)> = edges
-        .iter()
-        .filter(|e| e.from_box != e.to_box)
-        .map(|e| (e.from_box, e.from_statement, e.to_box, e.to_statement))
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    let requests: Vec<RouteRequestEdge> = unique
-        .iter()
-        .map(|&(from, fs, to, ts)| {
-            let (f, t) = (&geometry[from as usize], &geometry[to as usize]);
-            RouteRequestEdge { from: (f.x + f.width, f.y + f.port(fs, config)), to: (t.x, t.y + t.port(ts, config)) }
-        })
-        .collect();
-    route_edges(&boxes, &requests, config).into_iter().zip(unique).map(|(points, edge)| (edge, points.unwrap_or_default())).collect()
 }
 
 #[cfg(test)]
