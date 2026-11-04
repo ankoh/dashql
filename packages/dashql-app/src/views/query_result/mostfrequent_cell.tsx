@@ -191,8 +191,9 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
         queueFilter(Number(frequentValueIds[row]));
     }, [barWidth, frequentValueIds, frequentValueStrings.length, queueFilter, xOffsets, xScale]);
 
-    const percentageLeft = frequentValuePercentages[0];
-    const percentageRight = frequentValuePercentages[frequentValuePercentages.length - 1];
+    // A column without rows has no frequent values
+    const percentageLeft = frequentValuePercentages[0] ?? 0;
+    const percentageRight = frequentValuePercentages[frequentValuePercentages.length - 1] ?? 0;
     const labelLeft = `${Math.round(percentageLeft * 100 * 100) / 100}%`;
     const labelRight = `${Math.round(percentageRight * 100 * 100) / 100}%`;
 

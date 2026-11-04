@@ -95,9 +95,11 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
             props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
             return;
         }
+        // Bin i starts at binOffset + i * step, after the outer padding of the band scale
         const step = histXScale.step();
-        const fractionalBinStart = pixelSelection[0] / step;
-        const fractionalBinEnd = pixelSelection[1] / step;
+        const binOffset = histXScale.paddingOuter() * step;
+        const fractionalBinStart = (pixelSelection[0] - binOffset) / step;
+        const fractionalBinEnd = (pixelSelection[1] - binOffset) / step;
         const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
     }, [props.tableAggregation, props.columnAggregate, props.onFilter, props.columnIndex, histXScale]);
@@ -111,7 +113,8 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
             return null;
         }
         const step = histXScale.step();
-        return [props.selection[0] * step, props.selection[1] * step];
+        const binOffset = histXScale.paddingOuter() * step;
+        return [binOffset + props.selection[0] * step, binOffset + props.selection[1] * step];
     }, [histXScale, props.selection]);
 
     const { brushContainer, clearBrush } = useHistogramBrush({
@@ -169,13 +172,13 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
 
     // Listen for pointer events
     const onPointerOverBin = React.useCallback((elem: React.MouseEvent<SVGGElement>) => {
-        const paddingInner = histXScale.paddingInner() * histXScale.bandwidth();
-        const paddingOuter = histXScale.paddingOuter() * histXScale.bandwidth();
-        const boundingBox = elem.currentTarget.getBoundingClientRect();
-        const relativeX = elem.clientX - boundingBox.left;
-        const innerX = Math.max(relativeX, paddingOuter) - paddingOuter;
-        const binWidth = histXScale.bandwidth() + paddingInner;
-        const bin = Math.min(Math.floor(innerX / binWidth), binCount - 1);
+        // Bin i starts at binOffset + i * step, after the outer padding of the band scale
+        const step = histXScale.step();
+        const binOffset = histXScale.paddingOuter() * step;
+        // The position in the plot, the bounding box of the brush grows with the handles of a selection
+        const [relativeX] = d3.pointer(elem.nativeEvent, elem.currentTarget);
+        const innerX = Math.max(relativeX, binOffset) - binOffset;
+        const bin = Math.min(Math.floor(innerX / step), binCount - 1);
 
         setFocusedBin(bin);
     }, [histXScale, binCount]);
