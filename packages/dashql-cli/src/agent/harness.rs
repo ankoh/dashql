@@ -595,7 +595,18 @@ mod tests {
     fn passes_the_prompt_as_one_argument() {
         assert_eq!(
             build_harness_args(&harness("codex"), "say \"hi\"; rm -rf /", None, &HarnessPicks::default()),
-            ["codex", "exec", "--json", "--skip-git-repo-check", "--", "say \"hi\"; rm -rf /"]
+            [
+                "codex",
+                "exec",
+                "--json",
+                "--skip-git-repo-check",
+                "--sandbox",
+                "workspace-write",
+                "-c",
+                "sandbox_workspace_write.network_access=true",
+                "--",
+                "say \"hi\"; rm -rf /"
+            ]
         );
         // A prompt that looks like an option stays the prompt
         assert_eq!(
@@ -608,7 +619,20 @@ mod tests {
     fn resumes_a_harness_session() {
         assert_eq!(
             build_harness_args(&harness("codex"), "next", Some("t-1"), &HarnessPicks::default()),
-            ["codex", "exec", "--json", "--skip-git-repo-check", "resume", "t-1", "--", "next"]
+            [
+                "codex",
+                "exec",
+                "--json",
+                "--skip-git-repo-check",
+                "--sandbox",
+                "workspace-write",
+                "-c",
+                "sandbox_workspace_write.network_access=true",
+                "resume",
+                "t-1",
+                "--",
+                "next"
+            ]
         );
         assert_eq!(
             build_harness_args(&harness("claude"), "next", Some("c-1"), &HarnessPicks::default()),
@@ -647,6 +671,10 @@ mod tests {
                 "exec",
                 "--json",
                 "--skip-git-repo-check",
+                "--sandbox",
+                "workspace-write",
+                "-c",
+                "sandbox_workspace_write.network_access=true",
                 "-m",
                 "opus",
                 "-c",

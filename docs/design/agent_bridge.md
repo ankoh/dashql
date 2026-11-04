@@ -113,7 +113,8 @@ from web apps, and Ollama's menu bar app with its localhost API.
   [managed MCP policy](https://code.claude.com/docs/en/managed-mcp.md) can restrict
   servers the same way. Skills and the agent's own shell are not affected.
 - Harness sandboxes may block network access from the agent's shell, which would
-  block the CLI's connection to the agent server.
+  block the CLI's connection to the agent server. Codex does by default; its built-in template turns network access
+  on, which admin-managed Codex settings may reject.
 
 ### App pieces the bridge builds on
 
@@ -316,7 +317,8 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
    ```sh
    claude -p --output-format stream-json --verbose --allowedTools "Bash(dashql agent:*)" "Edit(./input/*)" \
        --disallowedTools "Bash(dashql agent serve:*)" [--model <m>] [--effort <e>] [--resume <id>] -- "<prompt>"
-   codex exec --json --skip-git-repo-check [-m <m>] [-c model_reasoning_effort=<e>] [resume <id>] -- "<prompt>"
+   codex exec --json --skip-git-repo-check --sandbox workspace-write -c sandbox_workspace_write.network_access=true \
+       [-m <m>] [-c model_reasoning_effort=<e>] [resume <id>] -- "<prompt>"
    opencode run --format json [--model <m>] [--session <id>] -- "<prompt>"
    ```
 
@@ -324,6 +326,11 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
    models, and its efforts are `low` to `max`. Codex has the efforts `low`, `medium` and `high`; Codex and opencode
    name models by provider, so they list none and `config.json` adds them. The Codex flags are not yet run against a
    real Codex.
+
+   Codex sandboxes the shell of a run without network by default, so `dashql agent` could not reach the agent server
+   on 127.0.0.1 and reported it as not running. Codex cannot allow only loopback or only `dashql agent`, so Codex
+   runs get the workspace-write sandbox (writes only in the session folder) with network access, which is looser
+   than the tool limits of Claude Code.
 
    `--` ends the options: Claude Code's tool lists take every following argument, so without it the prompt
    is swallowed, and a prompt that starts with `-` would be read as an option.

@@ -133,9 +133,13 @@ fn default_harnesses() -> Value {
             "terminalCommand": ["claude", "--resume", "{harnessSession}"],
             "adapter": "claude",
         },
+        // Codex sandboxes the shell of a run without network, so `dashql agent` could not reach the agent server on
+        // 127.0.0.1. Codex cannot allow only loopback, so runs get the workspace-write sandbox with network access.
         "codex": {
             "command": [
-                "codex", "exec", "--json", "--skip-git-repo-check", "{model}", "{effort}", "{resume}", "--", "{prompt}",
+                "codex", "exec", "--json", "--skip-git-repo-check",
+                "--sandbox", "workspace-write", "-c", "sandbox_workspace_write.network_access=true",
+                "{model}", "{effort}", "{resume}", "--", "{prompt}",
             ],
             "resumeArgs": ["resume", "{harnessSession}"],
             "modelArgs": ["-m", "{model}"],
