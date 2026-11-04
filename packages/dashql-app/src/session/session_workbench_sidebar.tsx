@@ -113,6 +113,7 @@ import {
 } from '../storage/session_tree.js';
 import { RENAME_SESSION } from './scripts/session_scripts.js';
 import { NameInput } from '../ui/foundations/name_input.js';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
 import { useMergeConnections } from './session_connection_merge.js';
 import { useDetachConnection } from './session_connection_detach.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
@@ -258,11 +259,14 @@ interface SessionRowMenuProps {
     onRename: () => void;
     onDuplicate: () => void;
     onDelete: () => void;
+    /// The right click of the row opens the menu
+    contextMenu: RowContextMenu;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, dependencies }) => {
+const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, contextMenu, dependencies }) => {
     const [open, setOpen] = React.useState(false);
+    useRowContextMenuOpener(contextMenu, () => setOpen(true));
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
     const archiveExport = useAppFlavor().features.sessionArchiveExport;
@@ -420,6 +424,7 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             if (startsRowDrag(event)) handler(event);
         }]),
     ), [listeners]);
+    const contextMenu = useRowContextMenu();
     const scriptNames = item.scripts.scriptOrder ?? [];
     const openScript = (fileName: string) => {
         void modifySessionScripts({ type: SELECT_SCRIPT, value: fileName });
@@ -463,6 +468,7 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
             }}
             {...attributes}
             {...rowListeners}
+            onContextMenu={contextMenu.onContextMenu}
         >
             {renaming ? (
                 <div className={styles.tree_rename}>
@@ -492,7 +498,7 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
                     <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
                 </button>
             )}
-            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
+            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} contextMenu={contextMenu} dependencies={dependencies} />
         </li>
         {expanded && scriptNames.map(fileName => (
             <SessionScriptRow
@@ -532,12 +538,14 @@ const SessionScriptRow: React.FC<SessionScriptRowProps> = ({ fileName, depth, on
         if (name.trim() !== displayName) onRename(name);
     }, [displayName, onRename]);
     const cancelRename = React.useCallback(() => setRenaming(false), []);
+    const contextMenu = useRowContextMenu();
     return (
         <li
             className={classNames(styles.entry_surface, styles.entry_interactive, styles.script_row)}
             // The file icons of the scripts sit directly below the icon of their session
             style={{ paddingLeft: sessionListRowPadding(depth) + SESSION_LIST_CARET_COLUMN }}
             data-testid="session-script-row"
+            onContextMenu={contextMenu.onContextMenu}
         >
             {renaming ? (
                 <div className={styles.script_rename}>
@@ -564,13 +572,14 @@ const SessionScriptRow: React.FC<SessionScriptRowProps> = ({ fileName, depth, on
                     <span className={styles.script_name}>{displayName}</span>
                 </button>
             )}
-            <ScriptRowMenu name={displayName} onRename={() => setRenaming(true)} />
+            <ScriptRowMenu name={displayName} onRename={() => setRenaming(true)} contextMenu={contextMenu} />
         </li>
     );
 };
 
-const ScriptRowMenu: React.FC<{ name: string; onRename: () => void }> = ({ name, onRename }) => {
+const ScriptRowMenu: React.FC<{ name: string; onRename: () => void; contextMenu: RowContextMenu }> = ({ name, onRename, contextMenu }) => {
     const [open, setOpen] = React.useState(false);
+    useRowContextMenuOpener(contextMenu, () => setOpen(true));
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     return (
         <AnchoredOverlay

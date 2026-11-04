@@ -11,6 +11,7 @@ import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indic
 import { observeSize } from '../ui/foundations/size_observer.js';
 import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
 import { NameInput } from '../ui/foundations/name_input.js';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
@@ -390,6 +391,7 @@ export function connectionTreeRowHeight(index: number, props: Pick<ConnectionTre
 }
 
 const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => {
+    const contextMenu = useRowContextMenu();
     const row = props.rows[props.index];
     if (row == null) return <div style={props.style} />;
     if (row.type === 'connection-group') {
@@ -423,6 +425,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     props.index === 0 && styles.database_row_container_first,
                 )}
                 data-connection-id={row.database.connectionId}
+                onContextMenu={contextMenu.onContextMenu}
             >
                 <ConnectionTreeEntry
                     className={styles.database_row}
@@ -462,6 +465,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     <ConnectionRowMenu
                         database={row.database}
                         label={label}
+                        contextMenu={contextMenu}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onRename={startRename}
                         onDelete={props.onDelete == null || usage == null ? undefined : () => props.onDelete!(row.database.connectionId)}
@@ -772,6 +776,8 @@ interface ConnectionRowMenuProps {
     sessionCount?: number;
     /// The number of scripts of the current session on the connection
     scriptCount?: number;
+    /// The right click of the row that opens the menu
+    contextMenu?: RowContextMenu;
     dependencies?: ConnectionRefreshDependencies;
 }
 
@@ -783,8 +789,9 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, contextMenu, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
+    useRowContextMenuOpener(contextMenu, () => setOpen(true));
     const [shareOpen, setShareOpen] = React.useState(false);
     // The embedded Hyper is local to the app, a link to it would open an empty session on the embedded Hyper of the recipient
     const canShare = !isHyperWasmConnection(database);

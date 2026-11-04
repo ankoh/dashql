@@ -14,6 +14,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { useRowContextMenu } from '../../ui/foundations/row_context_menu.js';
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { ConnectorType } from '../../connections/connector_info.js';
@@ -276,6 +277,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const displayName = scriptDisplayName(props.scriptFileName);
     // Is the name being edited in the tag of the card?
     const [renaming, setRenaming] = React.useState(false);
+    // A right click on the action bar opens the script menu
+    const contextMenu = useRowContextMenu();
     const storage = React.useMemo<ScriptStorage>(() => ({
         fileName: props.scriptFileName,
         resolvePath: () => `${displayPath(props.sessionId, props.storageReader.getSessionLocation(props.sessionId))}/${STORAGE_SCRIPTS_FOLDER}/${props.scriptFileName}`,
@@ -298,7 +301,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
             data-testid="script-cell"
         >
             <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
-                <div className={styles.feed_entry_action_bar}>
+                <div className={styles.feed_entry_action_bar} onContextMenu={contextMenu.onContextMenu}>
                     <ExecuteConnectionGuard sessionId={props.sessionId} blocked={!queryActive && props.connectionHealth !== ConnectionHealth.ONLINE}>
                     <IconButton
                         className={needsConnection ? styles.feed_entry_execute_offline : props.isFocused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
@@ -414,6 +417,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         onAddBelow={() => props.onCreate(props.index + 1)}
                         storage={storage}
                         iconSize={14}
+                        contextMenu={contextMenu}
                     />
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
                     <IconButton

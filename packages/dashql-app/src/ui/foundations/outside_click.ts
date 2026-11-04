@@ -27,8 +27,9 @@ export function useOnOutsideClick(args: UseOnOutsideClickArgs) {
 
     const handler = React.useCallback<TouchOrMouseEventCallback>(
         event => {
-            // Don't call click handler if the mouse event was triggered by an auxiliary button (right click/wheel button/etc)
-            if (event instanceof MouseEvent && event.button > 0) {
+            // Don't call click handler if the mouse event was triggered by an auxiliary button (wheel button/etc).
+            // A right click closes the overlay like a native menu, the right click of a row may open the menu of another row.
+            if (event instanceof MouseEvent && event.button !== 0 && event.button !== 2) {
                 return STOP_PROPAGATION;
             }
             // Don't call handler if the click happened inside of the container

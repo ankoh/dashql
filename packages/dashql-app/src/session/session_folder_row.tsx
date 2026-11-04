@@ -17,6 +17,7 @@ import {
     TrashIcon,
 } from '../ui/foundations/symbol_icon.js';
 import { NameInput } from '../ui/foundations/name_input.js';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
 import { classNames } from '../utils/classnames.js';
 import type { SessionTreeFolder } from '../storage/session_tree.js';
 import * as actionMenuStyles from '../app/action_menu.module.css';
@@ -84,6 +85,7 @@ export const SessionFolderRow: React.FC<SessionFolderRowProps> = (props) => {
     ), [listeners]);
     const Caret = props.expanded ? ChevronDownIcon : ChevronRightIcon;
     const FolderIcon = props.expanded ? FileDirectoryOpenFillIcon : FileDirectoryFillIcon;
+    const contextMenu = useRowContextMenu();
     return (
         <li
             ref={rowRef}
@@ -95,6 +97,7 @@ export const SessionFolderRow: React.FC<SessionFolderRowProps> = (props) => {
             data-testid="session-folder-row"
             {...attributes}
             {...rowListeners}
+            onContextMenu={contextMenu.onContextMenu}
         >
             {props.renaming ? (
                 <div className={styles.tree_rename}>
@@ -123,13 +126,14 @@ export const SessionFolderRow: React.FC<SessionFolderRowProps> = (props) => {
                     <span className={styles.session_name}>{props.folder.name}</span>
                 </button>
             )}
-            <SessionFolderMenu {...props} />
+            <SessionFolderMenu {...props} contextMenu={contextMenu} />
         </li>
     );
 };
 
-const SessionFolderMenu: React.FC<SessionFolderRowProps> = (props) => {
+const SessionFolderMenu: React.FC<SessionFolderRowProps & { contextMenu: RowContextMenu }> = (props) => {
     const [open, setOpen] = React.useState(false);
+    useRowContextMenuOpener(props.contextMenu, () => setOpen(true));
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const run = (action: () => void) => (event: React.SyntheticEvent) => {
         event.stopPropagation();

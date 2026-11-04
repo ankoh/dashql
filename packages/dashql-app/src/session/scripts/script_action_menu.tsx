@@ -7,6 +7,7 @@ import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { type RowContextMenu, useRowContextMenuOpener } from '../../ui/foundations/row_context_menu.js';
 
 /// Where a script is stored
 export interface ScriptStorage {
@@ -32,6 +33,8 @@ interface Props {
     storage?: ScriptStorage;
     /// The size of the icon of the trigger, 16 by default
     iconSize?: number;
+    /// The right click of the row that opens the menu
+    contextMenu?: RowContextMenu;
 }
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -47,6 +50,7 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
     // The menu switches to the storage view in place
     const [view, setView] = React.useState<'actions' | 'storage'>('actions');
     const triggerRef = React.useRef<HTMLButtonElement>(null);
+    useRowContextMenuOpener(props.contextMenu, () => { setView('actions'); setOpen(true); });
     const run = React.useCallback((action: () => void) => {
         setOpen(false);
         action();
