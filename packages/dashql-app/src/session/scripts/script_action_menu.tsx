@@ -88,13 +88,13 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                     <>{props.onAddAbove != null && (
                         <ActionList.ListItem data-testid="script-menu-item" data-action="add-above" onClick={() => run(props.onAddAbove!)}>
                             <ActionList.Leading><AddIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>Add Script Above</ActionList.ItemText>
+                            <ActionList.ItemText>Add Above</ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
                     <>{props.onAddBelow != null && (
                         <ActionList.ListItem data-testid="script-menu-item" data-action="add-below" onClick={() => run(props.onAddBelow!)}>
                             <ActionList.Leading><AddIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>Add Script Below</ActionList.ItemText>
+                            <ActionList.ItemText>Add Below</ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
                     <ActionList.ListItem
