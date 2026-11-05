@@ -16,10 +16,20 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 85.3% (55,413 / 64,946 lines) in 575 files**, up from 81.7% (52,414 / 64,126 lines in 571 files) at the start
-of the day and 81.5% on 2026-11-04. The 820 new lines are mostly the tested components themselves, which the coverage
-did not count while no test loaded them, and the agent face demo. The tests of 2026-11-05 render the components with the
-largest gaps:
+**Overall: 87.1% (56,806 / 65,216 lines) in 578 files**, up from 85.3% (55,413 / 64,946 lines in 575 files) earlier the
+same day, 81.7% at the start of the day and 81.5% on 2026-11-04. The app sources changed between the two runs of the day,
+so not all of the difference comes from tests. The latest tests cover session import, the sync of native session folders,
+the query executor and the OAuth redirect page:
+- `SessionImportProvider` 0.3% → 97.8%: portable bundles and native folders, conflicts, connection questions, failures of
+  the writes and the restoration. It takes `reload` and the dependencies of its card as `dependencies`, so the paths that
+  reload the app can run in the test frame.
+- `NativeSessionSync` 14.7% → 98.2%: external changes, local edits while the question is open, connections and script
+  files that a session file brings along, attachments.
+- `QueryExecutorProvider` 53.6% → 93.0%: results, failures, cancellation, the query result cache, profiles.
+- `oauth_redirect.tsx` 0% → 100%: both flows, errors of the provider, states that cannot be trusted, callback urls. The
+  page moved out of its entry point, `oauth_redirect_main.tsx`, which is the file a test can't load.
+
+The earlier tests of 2026-11-05 render these components:
 - `AppSettings`, `StorageBrowserView` (on a mocked OPFS), `QueryCacheView`, `InternalsViewer` with the query history,
   and `AppSettingsSync`;
 - `Dashboard` (run, rename, delete, renderers, staged changes, keyboard and pointer resize, keyboard drag),
@@ -39,14 +49,12 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 |---|---|---|
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
 | `src/platform/hyperdb/hyperdb_provider_web.ts:148-158` | setupWebHyperDB | 11 |
-| `src/session/persistence/app_state_loader.ts:526-536` | mergeRestoredSessionIntoScripts | 10 |
 | `src/session/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
 | `src/session/scripts/session_scripts.ts:534-543` | reduceScripts | 10 |
 | `src/session/scripts/session_scripts.ts:544-553` | reduceScripts | 10 |
 | `src/session/editor/dashql_completion_hint.ts:215-226` | computeCompletionHintDecorations | 9 |
 | `src/session/editor/dashql_completion_listener.ts:54-64` | handleMousedownEvent | 9 |
 | `src/session/inputs/session_inputs.ts:108-116` | collectSessionInputs | 9 |
-| `src/session/persistence/app_state_loader.ts:514-524` | mergeRestoredSessionIntoConnections | 9 |
 | `src/session/scripts/focus.ts:160-168` | deriveFocusFromCompletionCandidates | 9 |
 | `src/session/scripts/session_scripts.ts:554-563` | reduceScripts | 9 |
 | `src/storage/composite_storage_backend.ts:522-536` | loadNativeSession | 9 |
@@ -57,14 +65,14 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/session/editor/dashql_processor.ts:328-335` | update | 8 |
 | `src/session/editor/dashql_script_references.ts:22-29` | referenceDiagnostics | 8 |
 | `src/session/editor/editor_focus.ts:8-15` | dashqlEditorOf | 8 |
+| `src/session/inputs/session_inputs.ts:186-193` | sessionInputLiteral | 8 |
+| `src/session/scripts/session_scripts.ts:518-525` | reduceScripts | 8 |
 
 ## Gaps in components (`.tsx`)
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/session/persistence/session_import_provider.tsx:89-394` | SessionImportProvider | 268 |
 | `src/agent/agent_bridge.tsx:100-377` | AgentBridgeProvider | 252 |
-| `src/session/persistence/native_session_sync_react.tsx:131-333` | NativeSessionSync | 158 |
 | `src/session/shell/session_shell_page.tsx:51-216` | SessionShellPage | 151 |
 | `src/connections/salesforce_connection_settings.tsx:341-477` | SalesforceConnectorSettings | 117 |
 | `src/session/scripts/script_editor.tsx:148-269` | updateEditor | 91 |
@@ -77,10 +85,12 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/app/app_setup_page.tsx:45-87` | AppSetupPage | 41 |
 | `src/session/persistence/session_storage_overlay.tsx:68-114` | SessionStorageViewer | 40 |
 | `src/shell_app/internals.tsx:24-65` | ShellInternalsViewer | 40 |
+| `src/session/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
+| `src/connections/connection_overview_page.tsx:28-63` | ConnectionOverviewPage | 32 |
 
 ## Files that no test loads
 
-Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_app/shell_page.tsx` (294), the demo pages
+Mostly entry points and pages: `shell_app/shell_page.tsx` (294 lines), the demo pages
 (`demos/`, 706 with the new agent face page), `shell/filesystem_dialog.tsx` (152),
 `app/loading/shared_session_import.tsx` (142), `app/loading/app_setup.ts` (134),
 `session/scripts/script_editor_dialog.tsx` (126), `app/app.tsx` (122), `shell/filesystem_mount_dialog.tsx` (118),
@@ -90,6 +100,9 @@ overlay.
 
 ## Bugs found by the new tests
 
+- `NativeSessionSync` recorded the attachment listing of a session before it read the session file. When that read failed,
+  the next check saw no difference and the changed attachments stayed unknown until they changed again. The listing is now
+  recorded once the change was handled.
 - `translateAnyRowsToArrowBatch` (Trino) dispatched on `type.typeId`, which is the type family (`Type.Int`,
   `Type.Date`, `Type.Time`) and never the flattened ids it matched (`Type.Int32`, `Type.DateDay`,
   `Type.TimeMillisecond`). Trino `date` and `time` columns became Utf8 data under a DateDay or TimeMillisecond field.
@@ -126,7 +139,7 @@ overlay.
 
 ## Suggested next tests
 
-1. `SessionImportProvider` and `SessionShellPage` with a test storage backend and the shell Wasm.
+1. `AgentBridgeProvider`, and `SessionShellPage` with a test storage backend and the shell Wasm.
 2. `ConnectionSettingsOverlay`, `SalesforceConnectorSettings` and `LoggerToast` as render tests.
 3. `script_entry_header.tsx` and `script_editor_dialog.tsx` of the feed, and `updateEditor` of `ScriptEditor`.
 4. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
@@ -135,6 +148,12 @@ overlay.
 
 ## Other findings
 
+- A local edit while `NativeSessionSync` asks about an external change leads to three questions when the user agrees: the
+  first, the warning about the pending edit, and the same warning again, because the edit moved the write generation and
+  the check starts over. Starting over is what keeps a stale decision from being applied, the third question is only
+  redundant. `native_session_sync.test.tsx` pins the three questions.
+- `styles/theme.test.ts` fails on a checkout with an old `bazel-bin`: its glob also finds the CSS files that `copy_to_bin`
+  left there for sources that moved. On 2026-11-05 that was all of its 1,123 violations, the sources have none.
 - The JSON schema of the saved app settings (`AppSettings` in `proto/json/dashql/app_manifest.json`) rejects unknown
   fields but lacks `experimental_wasm_backend`, `macWindowLayout`, `navRailWide`, `agentHarness`, `agentModel` and
   `agentEffort`. The app saves them anyway, nothing validates the settings when they are written.

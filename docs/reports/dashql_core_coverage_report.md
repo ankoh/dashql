@@ -147,6 +147,34 @@ Unreachable branches found on the way, kept for now:
 | dashql-parser/src/scanner.rs | 23 | `special_character` entries no operator run can be trimmed to (`,`, brackets, `;`), so unreachable |
 | dashql-core-session/src/planner.rs | 21 | Barriers the analyzer never triggers (table refs without a relation, incompatible view kinds), visualization errors |
 
+## Rust tools
+
+Line coverage of the unit tests of the command line tool and the native tools, not counted in the overall number above.
+The end-to-end tests of `dashql-cli` run the binary in a subprocess and add nothing here, so its number is a lower bound.
+
+| Package | Lines | Coverage |
+|---|---|---|
+| dashql-cli | 3,252/3,667 | 88.7% |
+| dashql-native-proxy | 526/1,455 | 36.2% |
+| dashql-pack | 149/727 | 20.5% |
+
+Largest gaps:
+
+| File | Uncovered | Coverage |
+|---|---|---|
+| dashql-pack/src/release.rs | 219 | 15.4% |
+| dashql-native-proxy/src/status.rs | 216 | 0.0% |
+| dashql-native-proxy/src/grpc_proxy.rs | 215 | 0.0% |
+| dashql-native-proxy/src/http_stream_manager.rs | 182 | 0.0% |
+| dashql-cli/src/agent/server.rs | 124 | 91.9% |
+| dashql-cli/src/main.rs | 110 | 0.0% |
+| dashql-pack/src/vacuum_command.rs | 89 | 11.9% |
+| dashql-native-proxy/src/grpc_proxy_globals.rs | 86 | 0.0% |
+| dashql-native-proxy/src/http_proxy.rs | 80 | 0.0% |
+| dashql-pack/src/publish_command.rs | 65 | 0.0% |
+
+`dashql-pack/src/vacuum_command.rs` deletes old releases, its retention rule has a test but the deletion has none.
+
 ## Known issues
 
 - `^` is the exponentiation of Hyper and PostgreSQL, but its parse tree operator is `XOR` (`ExpressionOperator::XOR`, `BinaryExpressionFunction::XOR`). The formatter prints it as `^` again; the name is wrong in the FlatBuffers schema.
@@ -162,4 +190,5 @@ Unreachable branches found on the way, kept for now:
 1. Remove unreachable `format_unimplemented` fallbacks or turn them into `unreachable!`, so formatter coverage reflects reachable code. Error-recovered parse trees reach some of them, check those first.
 2. Add error-recovery inputs for `parser/mod.rs`, `driver.rs` and `value.rs`.
 3. Decide on qualified generic type names in the grammar (see known issues).
-4. Remove the unreachable `Star` and `Index` name components of `read_cursor_name_path` and the `select distinct` branch without targets, or document why they stay.
+4. Test the deletion of `dashql-pack vacuum` and the proxies of `dashql-native-proxy` (`grpc_proxy.rs`, `http_stream_manager.rs`).
+5. Remove the unreachable `Star` and `Index` name components of `read_cursor_name_path` and the `select distinct` branch without targets, or document why they stay.
