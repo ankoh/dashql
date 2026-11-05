@@ -23,6 +23,7 @@ import { useSessionScriptsRegistrySetter } from '../scripts/session_scripts_regi
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useCancelQuery } from '../../connections/query_executor.js';
+import type { SessionImportCardDependencies } from './session_import_card.js';
 import { SessionImportConflictDialog } from './session_import_conflict_dialog.js';
 import { SessionConnectionImportDialog } from './session_connection_import_dialog.js';
 import { StorageBackendType, type ConnectionEntry } from '../../storage/storage_backend.js';
@@ -86,7 +87,20 @@ export function useSessionImport(): SessionImportContextValue {
     return value;
 }
 
-export function SessionImportProvider(props: React.PropsWithChildren) {
+/// What the provider needs from the page, tests replace it
+export interface SessionImportDependencies {
+    /// Reload the app, an import that changes registered sessions runs the restoration again
+    reload: () => void;
+    /// The dependencies of the card of the conflict dialog
+    card?: SessionImportCardDependencies;
+}
+
+const DEFAULT_DEPENDENCIES: SessionImportDependencies = {
+    reload: () => globalThis.location.reload(),
+};
+
+export function SessionImportProvider(props: React.PropsWithChildren<{ dependencies?: SessionImportDependencies }>) {
+    const { reload, card } = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const logger = useLogger();
     const setupCore = useDashQLCoreSetup();
     const [reader, writer] = useStorage();
@@ -233,7 +247,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
             bundle = resolved;
             const sessionId = bundle.session.sessionId;
             if (options.reloadAfterSuccess) {
-                await reloadThen(() => writePortableSessionFresh(backend, bundle, sessionId), writer);
+                await reloadThen(() => writePortableSessionFresh(backend, bundle, sessionId), writer, reload);
             } else {
                 await restoreFreshPortable(bundle, sessionId, false);
             }
@@ -251,7 +265,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
                     const sessionId = crypto.randomUUID();
                     const importedBundle = withFreshIdentity(bundle, sessionId);
                     if (options.reloadAfterSuccess) {
-                        await reloadThen(() => writePortableSessionFresh(backend, importedBundle, sessionId), writer);
+                        await reloadThen(() => writePortableSessionFresh(backend, importedBundle, sessionId), writer, reload);
                     } else {
                         await restoreFreshPortable(bundle, sessionId, true);
                     }
@@ -260,7 +274,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
                 await stopSessionWork(conflict.sessionId);
                 try {
                     const sessionId = await replaceSessionWithPortableBundle(backend, bundle, conflict);
-                    globalThis.location.reload();
+                    reload();
                     return sessionId;
                 } catch (error) {
                     writer.resume();
@@ -268,7 +282,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
                 }
             },
         );
-    }, [backend, requestConflictChoice, resolveConnections, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
+    }, [backend, reload, requestConflictChoice, resolveConnections, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
 
     const findPortableBundleConflict = React.useCallback(async (bundle: SessionBundle): Promise<{ displayLocation: string; isNative: boolean } | null> => {
         if (backend == null) throw new Error('Session imports require composite storage');
@@ -297,13 +311,13 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
         await stopSessionWork(conflict.sessionId);
         try {
             const sessionId = await replaceSessionWithPortableBundle(backend, bundle, conflict);
-            globalThis.location.reload();
+            reload();
             return sessionId;
         } catch (error) {
             writer.resume();
             throw error;
         }
-    }, [backend, resolveConnections, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
+    }, [backend, reload, resolveConnections, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
 
     const importNativeFolder = React.useCallback(async (
         dir: string,
@@ -327,7 +341,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
                 const sessionId = await registerNativeSession(backend, prepared);
                 if (refsChanged) await writeNativeConnectionRefs(backend, sessionId, prepared.bundle);
                 return sessionId;
-            }, writer);
+            }, writer, reload);
             return prepared.bundle.session.sessionId;
         }
         return await requestConflictChoice(
@@ -337,10 +351,10 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
             async choice => {
                 const resolution = await resolve();
                 if (resolution == null) return null;
-                return await runNativeConflict(choice, resolution.prepared, resolution.refsChanged, conflict, backend, writer, stopSessionWork);
+                return await runNativeConflict(choice, resolution.prepared, resolution.refsChanged, conflict, backend, writer, stopSessionWork, reload);
             },
         );
-    }, [backend, requestConflictChoice, resolveConnections, stopSessionWork, writer]);
+    }, [backend, reload, requestConflictChoice, resolveConnections, stopSessionWork, writer]);
 
     const handleChoice = React.useCallback(async (choice: ConflictChoice) => {
         const current = dialog;
@@ -378,8 +392,8 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
                 {props.children}
             </div>
             {/* The connections are asked after the conflict choice, the conflict dialog waits behind them */}
-            {connectionDialog == null && dialog?.presentation.mode === 'centered' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
-            {connectionDialog == null && dialog?.presentation.mode === 'anchored' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
+            {connectionDialog == null && dialog?.presentation.mode === 'centered' && renderConflictDialog(dialog, handleChoice, cancelDialog, card)}
+            {connectionDialog == null && dialog?.presentation.mode === 'anchored' && renderConflictDialog(dialog, handleChoice, cancelDialog, card)}
             {connectionDialog != null && (
                 <SessionConnectionImportDialog
                     sessionName={connectionDialog.sessionName}
@@ -402,12 +416,12 @@ function withFreshIdentity(bundle: SessionBundle, sessionId: string): SessionBun
     return { ...bundle, session };
 }
 
-async function reloadThen<T>(operation: () => Promise<T>, writer: ReturnType<typeof useStorage>[1]): Promise<T> {
+async function reloadThen<T>(operation: () => Promise<T>, writer: ReturnType<typeof useStorage>[1], reload: () => void): Promise<T> {
     writer.pause();
     try {
         await writer.flush();
         const result = await operation();
-        globalThis.location.reload();
+        reload();
         return result;
     } catch (error) {
         writer.resume();
@@ -433,17 +447,18 @@ async function runNativeConflict(
     backend: CompositeStorageBackend,
     writer: ReturnType<typeof useStorage>[1],
     stopSessionWork: (sessionId: string) => Promise<void>,
+    reload: () => void,
 ): Promise<string> {
     if (choice === 'create-new') {
         const sessionId = crypto.randomUUID();
         const bundle = withFreshIdentity(prepared.bundle, sessionId);
-        return await reloadThen(() => writePortableSessionFresh(backend, bundle, sessionId), writer);
+        return await reloadThen(() => writePortableSessionFresh(backend, bundle, sessionId), writer, reload);
     }
     await stopSessionWork(conflict.sessionId);
     try {
         const sessionId = await replaceSessionWithNativeFolder(backend, prepared, conflict);
         if (refsChanged) await writeNativeConnectionRefs(backend, sessionId, prepared.bundle);
-        globalThis.location.reload();
+        reload();
         return sessionId;
     } catch (error) {
         writer.resume();
@@ -455,6 +470,7 @@ function renderConflictDialog(
     dialog: ConflictDialogState,
     handleChoice: (choice: ConflictChoice) => Promise<void>,
     onCancel: () => void,
+    dependencies: SessionImportCardDependencies | undefined,
 ): React.ReactElement {
     const common = {
         sessionName: dialog.bundle.session.name?.trim()
@@ -469,6 +485,7 @@ function renderConflictDialog(
         onReplace: () => void handleChoice('replace'),
         onCreateNew: () => void handleChoice('create-new'),
         onCancel,
+        dependencies,
     };
     return dialog.presentation.mode === 'centered'
         ? <SessionImportConflictDialog mode="centered" {...common} />
