@@ -541,13 +541,13 @@ describe('Session feed composer', () => {
 
     it('greets an empty session with the hero composer', () => {
         render(session(), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-face"]')).not.toBeNull();
         expect(feedState.composerProps?.variant).toBe(SessionComposerVariant.Hero);
     });
 
     it('hides the greeting while the user writes a draft', () => {
         render(session(), vi.fn());
-        const title = () => container.querySelector('[data-testid="feed-landing-title"]')!.parentElement!;
+        const title = () => container.querySelector('[data-testid="feed-landing-face"]')!.parentElement!;
         expect(title().hasAttribute('data-hidden')).toBe(false);
         act(() => feedState.composerProps!.onDraftEmptyChange!(false));
         expect(title().hasAttribute('data-hidden')).toBe(true);
@@ -557,7 +557,7 @@ describe('Session feed composer', () => {
 
     it('docks the composer below the scripts of a session', () => {
         render(session(['1_alpha.sql']), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-face"]')).toBeNull();
         expect(feedState.composerProps?.variant).toBe(SessionComposerVariant.Docked);
     });
 
@@ -623,29 +623,29 @@ describe('Session feed composer', () => {
     it('shows the agent on top of the composer below the greeting', async () => {
         render(session(), vi.fn());
         expect(feedState.composerProps?.agent).toBeNull();
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-face"]')).not.toBeNull();
 
         feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), status: AgentConnectionStatus.Connecting };
         render(session(), vi.fn());
         expect(feedState.composerProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, turns: [] });
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-face"]')).not.toBeNull();
 
         feedState.agent = connectedAgent(() => Promise.resolve('turn'));
         render(session(), vi.fn());
         expect(feedState.agent.context).toHaveBeenCalledWith('session');
         await vi.waitFor(() => expect(feedState.composerProps?.agent).toMatchObject({ connected: true, context: { harness: 'claude' } }));
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-face"]')).not.toBeNull();
 
         feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), hasAccess: () => false };
         render(session(), vi.fn());
         expect(feedState.composerProps?.agent).toBeNull();
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-face"]')).not.toBeNull();
     });
 
     it('keeps the greeting hidden while the composer shows an agent turn', async () => {
         feedState.agent = connectedAgent(() => new Promise<string>(() => {}));
         render(withCatalog(session(), emptyCatalog), vi.fn());
-        const title = () => container.querySelector('[data-testid="feed-landing-title"]')!.parentElement!;
+        const title = () => container.querySelector('[data-testid="feed-landing-face"]')!.parentElement!;
         act(() => feedState.composerProps!.onDraftEmptyChange!(false));
         expect(title().hasAttribute('data-hidden')).toBe(true);
 

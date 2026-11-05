@@ -4,6 +4,7 @@ import * as styles from './session_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
+import { AgentFace } from '../../agent/agent_face.js';
 
 import { List } from 'react-window';
 import {
@@ -788,7 +789,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             />
             {landing && (
                 <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
-                    <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
+                    <AgentFace className={styles.feed_landing_face} data-testid="feed-landing-face" label="DashQL agent" paused={greetingHidden} />
                 </div>
             )}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}
