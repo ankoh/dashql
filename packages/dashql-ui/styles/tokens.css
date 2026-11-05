@@ -21,6 +21,11 @@
     --font_size_editor: 0.95rem;
     --font_size_title: 1rem;
 
+    /* The gutter left and right of the content of a page, like the scripts of the feed and the cards of the dashboard.
+       It grows with the page up to a limit, wide screens get more room around the content without narrowing its
+       tables and charts. The percentage resolves against the element that uses it. */
+    --page_gutter: clamp(16px, 4%, 48px);
+
     --font_family: 'Instrument Sans', sans-serif;
     --font_family_mono: 'JetBrains Mono', monospace;
 

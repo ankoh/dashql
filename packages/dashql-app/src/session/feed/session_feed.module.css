@@ -12,10 +12,8 @@
     /* The bar of the inputs, the feed, the docked composer */
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-columns: minmax(0, 1fr);
-    /* The gutter left and right of the scripts, the inputs and the composer. It grows with the stage up to a limit,
-       wide screens get more room around the cards without narrowing their tables and charts. */
-    --feed_inline_padding: clamp(16px, 4%, 48px);
-    --session_input_strip_inline_padding: var(--feed_inline_padding);
+    /* The scripts, the inputs and the composer keep the gutter of the page left and right */
+    --session_input_strip_inline_padding: var(--page_gutter);
 }
 
 /* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above center */
@@ -75,7 +73,7 @@
 
 /* Lines the composer up with the scripts of the feed, which stop before the scrollbar */
 .feed_composer_body {
-    padding: 12px calc(var(--feed_inline_padding) + var(--feed-scrollbar-inset, 0px)) 12px var(--feed_inline_padding);
+    padding: 12px calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 12px var(--page_gutter);
 }
 
 .feed_body_container[data-landing] .feed_composer_section {
@@ -263,7 +261,7 @@
     display: flex;
     width: 100%;
     box-sizing: border-box;
-    padding: 0 calc(var(--feed_inline_padding) + var(--feed-scrollbar-inset, 0px)) 0 var(--feed_inline_padding);
+    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
 }
 
 /* The spaces above and below the card keep it hovered, the add buttons in them stay visible.
@@ -291,7 +289,7 @@
     appearance: none;
     position: absolute;
     /* Lines up with the right border of the card, the card ends before the scrollbar inset */
-    right: calc(var(--feed_inline_padding) + var(--feed-scrollbar-inset, 0px));
+    right: calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px));
     z-index: 3;
     width: 22px;
     height: 22px;
@@ -346,7 +344,7 @@
     position: absolute;
     top: 12px;
     /* Inside the card, in the space left of its title */
-    left: calc(var(--feed_inline_padding) + 6px);
+    left: calc(var(--page_gutter) + 6px);
     z-index: 2;
     width: 16px;
     height: 16px;
