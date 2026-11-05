@@ -5,32 +5,23 @@ import * as styles from './oauth_redirect.module.css';
 
 import type { OAuthState, AppEventData } from './oauth_types.js';
 
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import { DASHQL_VERSION } from '../globals.js';
-import { FlavorLogo, FlavorProvider, useAppFlavor } from '../config/flavor_provider.js';
-import { GitHubTheme } from '../styles/github_theme.js';
+import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
 import { LogsOverlay } from '../ui/logs/logs_overlay.js';
 import { Logger, stringifyError } from '../platform/logger/logger.js';
-import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
 import { classNames } from '../utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
-import { decodeOAuthState, getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
-import { getRequestedFlavor } from '../config/flavor_resolution.js';
-
-import '@ankoh/dashql-ui/fonts/fonts.css';
-import '@ankoh/dashql-ui/styles/colors.css';
-import '@ankoh/dashql-ui/styles/tokens.css';
-import '../styles/globals.css';
-import '@ankoh/dashql-ui/styles/flavors/sidb.css';
+import { decodeOAuthState, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 
 const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;
@@ -411,10 +402,25 @@ const OAuthFailed: React.FC<OAuthFailedProps> = (props: OAuthFailedProps) => {
 }
 
 
-interface RedirectPageProps { }
+/// What the page needs from the location of the window, tests replace it
+export interface RedirectPageDependencies {
+    /// The url of the page
+    currentUrl: () => URL;
+    /// Leave the page for another url
+    replaceLocation: (url: string) => void;
+}
 
+const DEFAULT_DEPENDENCIES: RedirectPageDependencies = {
+    currentUrl: () => new URL(window.location.href),
+    replaceLocation: url => window.location.replace(url),
+};
 
-const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) => {
+interface RedirectPageProps {
+    dependencies?: RedirectPageDependencies;
+}
+
+export const RedirectPage: React.FC<RedirectPageProps> = (props: RedirectPageProps) => {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const [params, _setParams] = useSearchParams();
     const state = params.get("state") ?? "";
 
@@ -440,14 +446,15 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
     if (authState.type == RESULT_OK) {
         const callbackUrl = authState.value.callbackUrl;
         if (callbackUrl) {
-            if (!isAllowedOAuthCallbackUrl(callbackUrl, new URL(window.location.href))) {
+            const currentUrl = dependencies.currentUrl();
+            if (!isAllowedOAuthCallbackUrl(callbackUrl, currentUrl)) {
                 return <OAuthFailed error={new Error('OAuth callback URL is not allowed')} />;
             }
             const target = new URL(callbackUrl);
-            if (target.origin !== window.location.origin) {
+            if (target.origin !== currentUrl.origin) {
                 // Forward all query params (code, state, error, ...) to the target origin
-                target.search = window.location.search;
-                window.location.replace(target.toString());
+                target.search = currentUrl.search;
+                dependencies.replaceLocation(target.toString());
                 return <div />;
             }
         }
@@ -459,25 +466,3 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
         return <OAuthFailed error={authState.error} />
     }
 };
-
-// Resolve the flavor before the first render, the page would otherwise flip from DashQL to the flavor.
-// The query parameter wins over the flavor carried in the OAuth state.
-const flavor = getRequestedFlavor() ?? getOAuthStateFlavor(new URLSearchParams(window.location.search).get('state'));
-
-const element = document.getElementById('root');
-const root = createRoot(element!);
-root.render(
-    <React.StrictMode>
-        <BrowserRouter>
-            <FlavorProvider requested={flavor}>
-                <GitHubTheme>
-                    <LoggerProvider>
-                        <Routes>
-                            <Route path="*" element={<RedirectPage />} />
-                        </Routes>
-                    </LoggerProvider>
-                </GitHubTheme>
-            </FlavorProvider>
-        </BrowserRouter>
-    </React.StrictMode>,
-);
