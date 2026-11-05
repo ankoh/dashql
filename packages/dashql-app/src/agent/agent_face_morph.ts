@@ -30,11 +30,11 @@ const DASHQL_PIECE_LOWER: BrandShape = {
     map: (x, y) => dashqlPoint(x, y, 12.5),
 };
 
-/// The DashQL brand mark grows a little around the center of the viewBox, so that the face does not seem to lose
-/// mass when it melts into it. The two pieces cover about as much as the disk of the face.
-const DASHQL_SCALE = 1.06;
+/// The DashQL brand mark shrinks a little around the center of the viewBox, so that it does not tower over the disk
+/// of the face it melts from.
+const DASHQL_SCALE = 0.9;
 
-/// Map a point of a DashQL piece into the viewBox, the transform chain of the logo file and the growth
+/// Map a point of a DashQL piece into the viewBox, the transform chain of the logo file and the scale
 function dashqlPoint(x: number, y: number, dx: number): [number, number] {
     const [px, py] = dashqlFilePoint(x, y, dx);
     const c = VIEWBOX_SIZE / 2;

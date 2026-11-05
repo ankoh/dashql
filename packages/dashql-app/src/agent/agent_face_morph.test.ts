@@ -40,10 +40,10 @@ describe('Agent face morph', () => {
     it('places the brand mark pieces into the viewBox', () => {
         const [upper, lower] = DASHQL_BRAND.pieces.map(piece => outlineBounds(piece.logo));
         const expectBounds = (actual: number[], expected: number[]) => actual.forEach((v, i) => expect(v).toBeCloseTo(expected[i], 0));
-        // The brand mark grows by 6% around the center of the viewBox
-        const grown = (bounds: number[]) => bounds.map(v => 100 + (v - 100) * 1.06);
-        expectBounds(upper, grown([91.8, 25, 200, 125]));
-        expectBounds(lower, grown([1.8, 75, 110, 175]));
+        // The brand mark shrinks by 10% around the center of the viewBox
+        const scaled = (bounds: number[]) => bounds.map(v => 100 + (v - 100) * 0.9);
+        expectBounds(upper, scaled([91.8, 25, 200, 125]));
+        expectBounds(lower, scaled([1.8, 75, 110, 175]));
         const sidb = SIDB_BRAND.pieces.map(piece => outlineBounds(piece.logo));
         expect(Math.min(...sidb.map(b => b[0]))).toBeCloseTo(-2, 0);
         expect(Math.max(...sidb.map(b => b[2]))).toBeCloseTo(202, 0);

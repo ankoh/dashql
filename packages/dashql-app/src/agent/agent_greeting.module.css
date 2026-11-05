@@ -13,12 +13,14 @@
     visibility: hidden;
 }
 
-/* The caret follows the typed characters while they appear or disappear, slanted like the italic question */
+/* The caret follows the typed characters while they appear or disappear, slanted like the italic question.
+   It takes no width, the widest question would otherwise grow the cell past its sizer and move the face. */
 .caret {
     display: inline-block;
     width: 2px;
     height: 1em;
     margin-left: 2px;
+    margin-right: -4px;
     vertical-align: -0.12em;
     background-color: currentColor;
     transform: skewX(-10deg);
