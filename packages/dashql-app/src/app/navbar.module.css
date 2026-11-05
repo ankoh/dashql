@@ -1,5 +1,7 @@
 :root {
     --nav_bar_button_margin: 4px;
+    /* The dark stripe at the top of the window, global since expanded overlays keep clear of it */
+    --nav_bar_top_height: 32px;
     --nav_bar_height: 40px;
     --nav_bar_border: 1px solid var(--border_color_primary);
     --nav_tab_bg: transparent;
@@ -14,7 +16,6 @@
 
 .container {
     --nav_bar_width: 48px;
-    --nav_bar_top_height: 32px;
     position: relative;
     display: grid;
     grid-template-rows: var(--nav_bar_top_height) minmax(0, 1fr);
