@@ -164,7 +164,6 @@ export const NativeSessionSync: React.FC = () => {
             let sessionFile: SessionData | null = null;
             const attachments = attachmentListing(stamps.attachments);
             const previousAttachments = attachmentsRef.current.get(sessionId);
-            attachmentsRef.current.set(sessionId, attachments);
             if (previousAttachments !== undefined && previousAttachments !== attachments) {
                 sessionFile = await reader.backend.loadSession(sessionId);
                 // The scripts read the mirrored attachments, the mount looks them up again
@@ -175,6 +174,8 @@ export const NativeSessionSync: React.FC = () => {
                 // The session file lists the attachments, the write runs once the session resumes
                 void writer.write(groupSessionAttachmentListWrites(sessionId), { type: REFRESH_SESSION_ATTACHMENTS, value: sessionId });
             }
+            // A change is remembered once it was handled, a failed read is retried by the next check
+            attachmentsRef.current.set(sessionId, attachments);
             if (!checkedRef.current.has(sessionId)) {
                 // The restoration read the scripts moments ago, they are what the app shows
                 checkedRef.current.add(sessionId);
