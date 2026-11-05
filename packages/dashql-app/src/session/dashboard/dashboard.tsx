@@ -6,7 +6,8 @@ import { ConnectionHealth, type ConnectionState } from '../../connections/connec
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { runSessionScript } from '../scripts/rerun_query.js';
 import { useSessionExecution } from '../scripts/session_execution_provider.js';
-import { ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
+import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type SessionScripts } from '../scripts/session_scripts.js';
+import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import type { DashboardSpec } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { DashboardCard } from './dashboard_card.js';
@@ -57,6 +58,8 @@ interface Props {
     modifySessionScripts: ModifySessionScripts;
     /// The connections that the scripts run on, a card refreshes while its connection is online
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
+    /// The function that renames the references in the draft of the composer
+    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
 }
 
 /// Every script of the session is a card, in the order of the session
@@ -231,6 +234,18 @@ export function Dashboard(props: Props): React.ReactElement {
     const handleRejectDiff = React.useCallback((scriptKey: number) => {
         props.modifySessionScripts({ type: REJECT_PENDING_DIFF, value: scriptKey });
     }, [props.modifySessionScripts]);
+    // Rename and delete a card from its menu, like a script in the feed
+    const draftRenameRef = props.draftRenameRef;
+    const handleRename = React.useCallback((scriptKey: number, name: string) => {
+        const sessionScripts = sessionScriptsRef.current;
+        const script = sessionScripts.scripts[scriptKey];
+        if (script == null) return;
+        void renameScript(sessionScripts, props.modifySessionScripts, script.fileName, name, draftRenameRef?.current);
+    }, [props.modifySessionScripts, draftRenameRef]);
+    const handleDelete = React.useCallback((scriptKey: number) => {
+        const script = sessionScriptsRef.current.scripts[scriptKey];
+        if (script != null) props.modifySessionScripts({ type: DELETE_SCRIPT, value: script.fileName });
+    }, [props.modifySessionScripts]);
     // The chart builder stages every edit of its spec as a diff of the script, like in the feed
     const handleSetVisSpec = React.useCallback((spec: string) => {
         if (overlay == null) return;
@@ -283,6 +298,8 @@ export function Dashboard(props: Props): React.ReactElement {
                             runnable={!sessionExecution.runActive && isOnline(script)}
                             onRun={handleRun}
                             onStop={handleStop}
+                            onRename={handleRename}
+                            onDelete={handleDelete}
                         />
                     );
                 })}

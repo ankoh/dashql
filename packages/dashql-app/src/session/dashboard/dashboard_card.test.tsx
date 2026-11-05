@@ -105,6 +105,58 @@ describe('DashboardCard', () => {
         expect(onRemoveVisualization).toHaveBeenCalledWith(1);
     });
 
+    it('groups run, chart builder, edit and the menu, the menu renames and deletes the script', async () => {
+        const onRename = vi.fn();
+        const onDelete = vi.fn();
+        act(() => root.render(
+            <DndContext>
+                <DashboardCard
+                    sessionId="session"
+                    script={script}
+                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
+                    columnStep={100}
+                    rowStep={108}
+                    onResize={vi.fn()}
+                    onResizeCancel={vi.fn()}
+                    shifted={false}
+                    onVisualize={vi.fn()}
+                    onOpenChart={vi.fn()}
+                    onRemoveVisualization={vi.fn()}
+                    onOpenEditor={vi.fn()}
+                    onOpenTable={vi.fn()}
+                    onAcceptDiff={vi.fn()}
+                    onRejectDiff={vi.fn()}
+                    runnable
+                    onRun={vi.fn()}
+                    onStop={vi.fn()}
+                    onRename={onRename}
+                    onDelete={onDelete}
+                    dependencies={dependencies}
+                />
+            </DndContext>,
+        ));
+        const group = container.querySelector('[role="group"][aria-label="Actions of 1_sales"]')!;
+        expect([...group.querySelectorAll('button')].map(b => b.getAttribute('data-testid')))
+            .toEqual(['dashboard-card-run', 'dashboard-card-chart-builder', 'dashboard-card-edit', 'dashboard-card-more']);
+
+        const menuItem = (action: string) => document.querySelector<HTMLElement>(`[data-testid="dashboard-card-menu-item"][data-action="${action}"]`)!;
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-more"]')!.click());
+        act(() => menuItem('rename').click());
+        await act(() => new Promise(resolve => requestAnimationFrame(() => resolve(null))));
+        const input = container.querySelector<HTMLInputElement>('input[aria-label="Script name"]')!;
+        expect(document.activeElement).toBe(input);
+        act(() => {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'revenue');
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        });
+        expect(onRename).toHaveBeenCalledWith(1, 'revenue');
+        expect(container.querySelector('input[aria-label="Script name"]')).toBeNull();
+
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-more"]')!.click());
+        act(() => menuItem('delete').click());
+        expect(onDelete).toHaveBeenCalledWith(1);
+    });
+
     it('switches the renderer and opens the chart builder of a chart', () => {
         const onVisualize = vi.fn();
         const onOpenChart = vi.fn();

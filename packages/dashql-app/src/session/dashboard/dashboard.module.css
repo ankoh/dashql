@@ -156,6 +156,20 @@
     white-space: nowrap;
 }
 
+/* The title while the script is renamed */
+.card_title_input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 22px;
+    margin: 0;
+    padding: 0 4px;
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    font-family: var(--font_family_mono);
+    font-size: var(--font_size_small);
+    font-weight: 500;
+}
+
 .card_segments {
     flex: 0 0 auto;
 }

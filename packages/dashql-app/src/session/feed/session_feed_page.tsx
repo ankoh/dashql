@@ -310,6 +310,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             sessionScripts={props.sessionScripts}
                             modifySessionScripts={props.modifySessionScripts}
                             scriptConnections={scriptConnections}
+                            draftRenameRef={draftRenameRef}
                         />
                     )}
                     {dataflowActive && !overviewActive && (

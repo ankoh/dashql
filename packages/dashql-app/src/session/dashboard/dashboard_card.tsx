@@ -13,6 +13,11 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { CheckIcon, EyeClosedIcon, GraphIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon, SyncIcon, TableIcon, ToolsIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import * as ActionList from '../../ui/foundations/action_list.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
+import { NameInput } from '../../ui/foundations/name_input.js';
+import * as menuStyles from '../../app/action_menu.module.css';
 import { dashboardCardHeight, type DashboardPlacement } from './dashboard_layout.js';
 import { NEW_CHART_SPEC } from '../chart_builder/chart_spec_paths.js';
 import { markdownTemplate, type DashboardRenderer } from './dashboard_source.js';
@@ -20,6 +25,9 @@ import * as styles from './dashboard.module.css';
 
 const DragHandleIcon = SymbolIcon('drag_handle_16');
 const MarkdownIcon = SymbolIcon('mark_text_16');
+const MoreIcon = SymbolIcon('kebab_horizontal');
+const RenameIcon = SymbolIcon('pencil_16');
+const TrashIcon = SymbolIcon('trash_16');
 
 export interface DashboardCardDependencies {
     useQueryState: typeof useQueryState;
@@ -62,6 +70,10 @@ interface Props {
     onRun: (scriptId: number, refresh: boolean) => void;
     /// Stop the running query of the script
     onStop: (scriptId: number) => void;
+    /// Rename the script, the name is the new display name. The menu of the card offers it.
+    onRename?: (scriptId: number, name: string) => void;
+    /// Delete the script, the menu of the card offers it
+    onDelete?: (scriptId: number) => void;
     dependencies?: DashboardCardDependencies;
 }
 
@@ -77,6 +89,25 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     const displayName = scriptDisplayName(props.script.fileName);
     const resizeStart = React.useRef<{ x: number; y: number; width: number; height: number; pointerId: number } | null>(null);
     const draggable = useDraggable({ id: props.script.scriptKey });
+    // Is the name being edited in the title of the card? Rename in the menu of the card starts it
+    const [renaming, setRenaming] = React.useState(false);
+    const renameInputRef = React.useRef<HTMLInputElement>(null);
+    React.useEffect(() => {
+        if (!renaming) return;
+        // Focus after the frame, a closing menu returns the focus to its trigger first
+        const frame = requestAnimationFrame(() => {
+            renameInputRef.current?.focus();
+            renameInputRef.current?.select();
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [renaming]);
+    const onRename = props.onRename;
+    const scriptKey = props.script.scriptKey;
+    const commitRename = React.useCallback((name: string) => {
+        setRenaming(false);
+        if (name.trim() !== '' && name.trim() !== displayName) onRename?.(scriptKey, name.trim());
+    }, [onRename, scriptKey, displayName]);
+    const cancelRename = React.useCallback(() => setRenaming(false), []);
     const transform = draggable.transform == null ? undefined : CSS.Translate.toString(draggable.transform);
 
     const resizeFromPointer = React.useCallback((event: PointerEvent, commit: boolean) => {
@@ -187,7 +218,19 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 >
                     <DragHandleIcon />
                 </button>
-                <h2 className={styles.card_title}>{displayName}</h2>
+                {renaming ? (
+                    <NameInput
+                        ref={renameInputRef}
+                        className={styles.card_title_input}
+                        name={displayName}
+                        onCommit={commitRename}
+                        onCancel={cancelRename}
+                        ariaLabel="Script name"
+                        placeholder="Name this script"
+                    />
+                ) : (
+                    <h2 className={styles.card_title}>{displayName}</h2>
+                )}
                 {props.shifted && <span className={styles.shifted_badge} title="Moved to avoid overlapping another dashboard card">Shifted</span>}
                 {staged ? (
                     <>
@@ -229,7 +272,9 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                     </>
                 ) : (
                     <>
-                        <ButtonGroup className={styles.card_actions} aria-label={`Run ${displayName}`}>
+                        {/* The immediate actions, the editors open in an overlay of the board since a small card has no room
+                            for them. The renderers follow at the right edge. */}
+                        <ButtonGroup className={styles.card_actions} aria-label={`Actions of ${displayName}`}>
                             <IconButton
                                 size={ButtonSize.Small}
                                 variant={ButtonVariant.Default}
@@ -242,9 +287,6 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                             >
                                 {runAction.icon}
                             </IconButton>
-                        </ButtonGroup>
-                        {/* The editors open in an overlay of the board, a small card has no room for them. The renderers follow at the right edge. */}
-                        <ButtonGroup className={styles.card_actions} aria-label={`Change ${displayName}`}>
                             {currentRenderer === 'vegalite' && (
                                 <IconButton
                                     size={ButtonSize.Small}
@@ -267,6 +309,13 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                             >
                                 <PencilIcon size={12} />
                             </IconButton>
+                            {(props.onRename != null || props.onDelete != null) && (
+                                <DashboardCardMenu
+                                    scriptName={displayName}
+                                    onRename={props.onRename != null ? () => setRenaming(true) : undefined}
+                                    onDelete={props.onDelete != null ? () => props.onDelete!(props.script.scriptKey) : undefined}
+                                />
+                            )}
                         </ButtonGroup>
                         <SegmentedControl
                             aria-label={`Renderer of ${displayName}`}
@@ -337,3 +386,60 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         </article>
     );
 });
+
+/// The menu of a card with the actions that change the script itself
+function DashboardCardMenu(props: { scriptName: string; onRename?: () => void; onDelete?: () => void }): React.ReactElement {
+    const [open, setOpen] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const run = (action: () => void) => {
+        setOpen(false);
+        action();
+    };
+    return (
+        <AnchoredOverlay
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+            side={AnchorSide.OutsideBottom}
+            align={AnchorAlignment.End}
+            anchorOffset={4}
+            anchorRef={triggerRef}
+            returnFocusRef={triggerRef}
+            renderAnchor={anchorProps => (
+                <IconButton
+                    {...anchorProps}
+                    ref={triggerRef}
+                    size={ButtonSize.Small}
+                    variant={ButtonVariant.Default}
+                    aria-label={`More actions for ${props.scriptName}`}
+                    data-testid="dashboard-card-more"
+                >
+                    <MoreIcon size={12} />
+                </IconButton>
+            )}
+        >
+            <div className={menuStyles.menu} role="dialog" aria-label={`Actions for ${props.scriptName}`}>
+                <ActionList.List aria-label={`Actions for ${props.scriptName}`}>
+                    {/* The list takes elements only, the fragments wrap the optional items */}
+                    <>{props.onRename != null && (
+                        <ActionList.ListItem data-testid="dashboard-card-menu-item" data-action="rename" onClick={() => run(props.onRename!)}>
+                            <ActionList.Leading><RenameIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Rename</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
+                    <>{props.onDelete != null && (
+                        <ActionList.ListItem
+                            data-testid="dashboard-card-menu-item"
+                            data-action="delete"
+                            className={menuStyles.delete_action}
+                            onClick={() => run(props.onDelete!)}
+                        >
+                            <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Delete</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
+                </ActionList.List>
+            </div>
+        </AnchoredOverlay>
+    );
+}
