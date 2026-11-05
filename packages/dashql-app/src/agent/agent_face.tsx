@@ -52,7 +52,7 @@ export const DEFAULT_AGENT_FACE_TUNING: AgentFaceTuning = {
     faceHoldMs: 10000,
     logoHoldMs: 3000,
     glanceIntervalMs: 2400,
-    glanceAmplitude: 9,
+    glanceAmplitude: 15,
     blinkIntervalMs: 4500,
 };
 
@@ -69,8 +69,22 @@ export enum AgentFaceMode {
 /// The eyes, pills cut out of the face
 const EYE_Y = 90;
 const EYE_DX = 24;
-const EYE_WIDTH = 14;
-const EYE_HEIGHT = 26;
+const EYE_WIDTH = 17;
+const EYE_HEIGHT = 27;
+/// The happy eyes, arcs like ^ ^
+const HAPPY_EYE_WIDTH = 20;
+const HAPPY_EYE_HEIGHT = 10;
+const HAPPY_EYE_STROKE = 6;
+/// How long the eyes stay happy after the last input
+const HAPPY_HOLD_MS = 700;
+/// How far the eyes look up and down, relative to the glance to the sides
+const GAZE_VERTICAL = 1.1;
+/// The distance at which the eyes look halfway to a gaze target, in face widths, to the sides and up or down.
+/// The eyes react to closer targets up or down, a caret below the face draws them down clearly.
+const GAZE_SOFTNESS_X = 2;
+const GAZE_SOFTNESS_Y = 0.8;
+/// How long the eyes follow the pointer after it stopped
+const POINTER_IDLE_MS = 2500;
 /// The duration of a blink
 const BLINK_MS = 150;
 /// The share of the morph next to the brand mark over which the goo fades out
@@ -91,6 +105,19 @@ interface AgentFaceProps extends Omit<React.SVGProps<SVGSVGElement>, 'ref' | 'mo
     label?: string;
     /// Called when the face starts to morph into the brand mark, and when it is back
     onMorph?: (event: AgentFaceMorphEvent) => void;
+    /// What the eyes look at, they glance around on their own without
+    gaze?: AgentFaceGaze;
+    /// The time of the last input the face reacts to, on the clock of `performance.now()`, read every frame.
+    /// The eyes squint happily while the input goes on.
+    lastInput?: () => number | null;
+}
+
+/// What the eyes of the agent face look at
+export interface AgentFaceGaze {
+    /// Follow the mouse pointer while it moves
+    pointer?: boolean;
+    /// A point in client coordinates, read every frame, it wins over the pointer. Null when there is none.
+    target?: () => { x: number; y: number } | null;
 }
 
 /// The moments of the morph that `onMorph` reports
@@ -118,13 +145,19 @@ enum Phase {
 /// The frames write the path data through refs, React renders the face once.
 export function AgentFace(props: AgentFaceProps): React.ReactElement {
     const flavorBrand = useFlavorAgentFaceBrand();
-    const { brand = flavorBrand, tuning, mode = AgentFaceMode.Cycle, paused = false, label, onMorph, className, ...svgProps } = props;
+    const { brand = flavorBrand, tuning, mode = AgentFaceMode.Cycle, paused = false, label, onMorph, gaze, lastInput, className, ...svgProps } = props;
     const tuningRef = React.useRef<AgentFaceTuning>(DEFAULT_AGENT_FACE_TUNING);
     tuningRef.current = { ...DEFAULT_AGENT_FACE_TUNING, ...tuning };
     const modeRef = React.useRef(mode);
     modeRef.current = mode;
     const onMorphRef = React.useRef(onMorph);
     onMorphRef.current = onMorph;
+    const lastInputRef = React.useRef(lastInput);
+    lastInputRef.current = lastInput;
+    const happyEyeRefs = React.useRef<(SVGPathElement | null)[]>([]);
+    const gazeRef = React.useRef(gaze);
+    gazeRef.current = gaze;
+    const svgRef = React.useRef<SVGSVGElement | null>(null);
 
     const id = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
     const maskId = `agent-face-mask-${id}`;
@@ -143,6 +176,28 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
         const scratch = new Float64Array(2 * OUTLINE_POINTS);
         const morph: Spring = { value: modeRef.current === AgentFaceMode.Logo ? 1 : 0, velocity: 0 };
         const glance: Spring = { value: 0, velocity: 0 };
+        const lookY: Spring = { value: 0, velocity: 0 };
+        // The excitement about input, happy eyes
+        const happy: Spring = { value: 0, velocity: 0 };
+        // The last pointer position, the eyes follow it while it moves
+        let pointer: { x: number; y: number; time: number } | null = null;
+        const onPointerMove = (event: PointerEvent) => {
+            pointer = { x: event.clientX, y: event.clientY, time: performance.now() };
+        };
+        globalThis.addEventListener?.('pointermove', onPointerMove, { passive: true });
+        const gazePoint = (now: number): { x: number; y: number } | null => {
+            const gaze = gazeRef.current;
+            if (gaze == null) return null;
+            let target: { x: number; y: number } | null = null;
+            try {
+                target = gaze.target?.() ?? null;
+            } catch {
+                // A gaze target that cannot tell its position, e.g. of a detached editor, leaves the eyes to themselves
+            }
+            if (target != null) return target;
+            if (gaze.pointer && pointer != null && now - pointer.time < POINTER_IDLE_MS) return pointer;
+            return null;
+        };
         let eyesOpen = morph.value === 0 ? 1 : 0;
         let glanceTarget = 0;
         let phase = morph.value === 0 ? Phase.Face : Phase.Logo;
@@ -204,30 +259,58 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
             const eyesTarget = phase === Phase.Face ? 1 : 0;
             const eyesStep = dt * 1000 / EYES_CLOSE_MS;
             eyesOpen = eyesTarget > eyesOpen ? Math.min(eyesTarget, eyesOpen + eyesStep) : Math.max(eyesTarget, eyesOpen - eyesStep);
-            if (!reducedMotion && phase === Phase.Face) {
+            // A gaze target or the pointer draws the eyes, the face otherwise glances around on its own
+            let lookYTarget = 0;
+            const gaze = !reducedMotion && phase === Phase.Face ? gazePoint(now) : null;
+            if (gaze != null && svgRef.current != null) {
+                const rect = svgRef.current.getBoundingClientRect();
+                const dx = gaze.x - (rect.left + rect.width / 2);
+                const dy = gaze.y - (rect.top + (rect.height * EYE_Y) / VIEWBOX_SIZE);
+                glanceTarget = dx / Math.hypot(dx, Math.max(1, rect.width * GAZE_SOFTNESS_X));
+                lookYTarget = dy / Math.hypot(dy, Math.max(1, rect.width * GAZE_SOFTNESS_Y));
+                nextGlance = now + jitter(t.glanceIntervalMs);
+            } else if (!reducedMotion && phase === Phase.Face) {
                 if (now >= nextGlance) {
-                    const choices = [-1, -0.5, 0, 0, 0.5, 1].filter(c => c !== glanceTarget);
+                    const choices = [-1, -1, -0.6, 0, 0.6, 1, 1].filter(c => c !== glanceTarget);
                     glanceTarget = choices[Math.floor(Math.random() * choices.length)];
                     nextGlance = now + jitter(t.glanceIntervalMs);
                 }
-                if (now >= nextBlink + BLINK_MS) nextBlink = now + jitter(t.blinkIntervalMs);
-            } else if (phase !== Phase.Face) {
-                glanceTarget = 0;
             }
+            if (!reducedMotion && phase === Phase.Face && now >= nextBlink + BLINK_MS) nextBlink = now + jitter(t.blinkIntervalMs);
+            if (phase !== Phase.Face) glanceTarget = 0;
             stepSpring(glance, glanceTarget, 260, 26, dt);
+            stepSpring(lookY, lookYTarget, 260, 26, dt);
+            // The eyes squint happily while the input goes on
+            const input = lastInputRef.current?.() ?? null;
+            const happyTarget = phase === Phase.Face && input != null && now - input < HAPPY_HOLD_MS ? 1 : 0;
+            if (reducedMotion) {
+                happy.value = happyTarget;
+            } else {
+                stepSpring(happy, happyTarget, 320, 30, dt);
+            }
+
             const blinkT = (now - nextBlink) / BLINK_MS;
             const blink = blinkT > 0 && blinkT < 1 ? Math.abs(2 * blinkT - 1) : 1;
-            const openness = eyesOpen * blink;
+            const squint = Math.min(Math.max(happy.value, 0), 1);
+            const openness = eyesOpen * blink * (1 - squint);
             const eyeHeight = Math.max(0.001, EYE_HEIGHT * openness);
             const eyeWidth = EYE_WIDTH * (1 + 0.25 * (1 - openness));
             for (let i = 0; i < 2; ++i) {
                 const eye = eyeRefs.current[i];
                 if (eye == null) continue;
                 const cx = VIEWBOX_SIZE / 2 + (i === 0 ? -EYE_DX : EYE_DX) + glance.value * t.glanceAmplitude;
+                const cy = EYE_Y + lookY.value * t.glanceAmplitude * GAZE_VERTICAL;
                 eye.setAttribute('x', (cx - eyeWidth / 2).toFixed(2));
-                eye.setAttribute('y', (EYE_Y - eyeHeight / 2).toFixed(2));
+                eye.setAttribute('y', (cy - eyeHeight / 2).toFixed(2));
                 eye.setAttribute('width', eyeWidth.toFixed(2));
                 eye.setAttribute('height', eyeHeight.toFixed(2));
+                // The happy eyes, arcs like ^ ^
+                const arc = happyEyeRefs.current[i];
+                if (arc != null) {
+                    const w = HAPPY_EYE_WIDTH / 2, h = HAPPY_EYE_HEIGHT / 2;
+                    arc.setAttribute('d', `M${(cx - w).toFixed(2)} ${(cy + h).toFixed(2)}Q${cx.toFixed(2)} ${(cy - 2.2 * h).toFixed(2)} ${(cx + w).toFixed(2)} ${(cy + h).toFixed(2)}`);
+                    arc.setAttribute('opacity', (eyesOpen * squint).toFixed(3));
+                }
             }
 
             // Morph the shapes, the exact brand mark once the spring rests at it
@@ -275,6 +358,7 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
         render(performance.now());
         return () => {
             if (frame !== 0) cancelAnimationFrame(frame);
+            globalThis.removeEventListener?.('pointermove', onPointerMove);
         };
         // The tuning and the mode are read through refs, only a still face redraws when the mode changes
     }, [brand, paused, reducedMotion, gooId, reducedMotion ? mode : null]);
@@ -283,6 +367,7 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
     return (
         <svg
             {...svgProps}
+            ref={svgRef}
             className={className == null ? styles.root : `${styles.root} ${className}`}
             viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`}
             role="img"
@@ -295,6 +380,10 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
                         <rect key={i} ref={el => { eyeRefs.current[i] = el; }}
                             x={VIEWBOX_SIZE / 2 + (i === 0 ? -EYE_DX : EYE_DX) - EYE_WIDTH / 2} y={EYE_Y - EYE_HEIGHT / 2}
                             width={EYE_WIDTH} height={EYE_HEIGHT} rx={EYE_WIDTH / 2} fill="black" />
+                    ))}
+                    {[0, 1].map(i => (
+                        <path key={i} ref={el => { happyEyeRefs.current[i] = el; }} opacity={0} fill="none" stroke="black"
+                            strokeWidth={HAPPY_EYE_STROKE} strokeLinecap="round" strokeLinejoin="round" />
                     ))}
                     <g ref={cutoutsRef} opacity={0}>
                         {brand.cutouts.map((cutout, i) => (

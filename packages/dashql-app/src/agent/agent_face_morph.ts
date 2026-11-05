@@ -13,7 +13,7 @@ export const OUTLINE_POINTS = 200;
 
 /// The center and the radius of the face
 const FACE_CENTER = 100;
-const FACE_RADIUS = 78;
+const FACE_RADIUS = 70;
 /// The halves reach past the diagonal by this angle, so the joined halves show no seam
 const FACE_SEAM_OVERLAP = (3 * Math.PI) / 180;
 
@@ -30,8 +30,19 @@ const DASHQL_PIECE_LOWER: BrandShape = {
     map: (x, y) => dashqlPoint(x, y, 12.5),
 };
 
-/// Map a point of a DashQL piece into the viewBox, the transform chain of the logo file
+/// The DashQL brand mark grows a little around the center of the viewBox, so that the face does not seem to lose
+/// mass when it melts into it. The two pieces cover about as much as the disk of the face.
+const DASHQL_SCALE = 1.06;
+
+/// Map a point of a DashQL piece into the viewBox, the transform chain of the logo file and the growth
 function dashqlPoint(x: number, y: number, dx: number): [number, number] {
+    const [px, py] = dashqlFilePoint(x, y, dx);
+    const c = VIEWBOX_SIZE / 2;
+    return [c + (px - c) * DASHQL_SCALE, c + (py - c) * DASHQL_SCALE];
+}
+
+/// Map a point of a DashQL piece into the viewBox of the logo file
+function dashqlFilePoint(x: number, y: number, dx: number): [number, number] {
     // matrix(1.25,0,0,0.935,-61.401,253.25) ∘ translate(dx, 25)
     let px = 1.25 * (x + dx) - 61.401;
     let py = 0.935 * (y + 25) + 253.25;
@@ -368,8 +379,10 @@ export const DASHQL_BRAND: AgentFaceBrand = {
 /// The SIDB wordmark, `static/svg/logo/sidb.svg`, glyph outlines of Bricolage Grotesque ExtraBold.
 /// Every outer contour is a piece, the D is a stem and a bowl, the counters of the B are cut out.
 const SIDB_WORDMARK = { minX: 39, maxX: 2270, centerY: -330 };
-const SIDB_SCALE = (VIEWBOX_SIZE - 12) / (SIDB_WORDMARK.maxX - SIDB_WORDMARK.minX);
-const SIDB_DX = 6 - SIDB_WORDMARK.minX * SIDB_SCALE;
+/// The wordmark is wider than the viewBox, the face would otherwise seem to lose mass when it melts into the letters
+const SIDB_WIDTH = 204;
+const SIDB_SCALE = SIDB_WIDTH / (SIDB_WORDMARK.maxX - SIDB_WORDMARK.minX);
+const SIDB_DX = (VIEWBOX_SIZE - SIDB_WIDTH) / 2 - SIDB_WORDMARK.minX * SIDB_SCALE;
 const SIDB_DY = VIEWBOX_SIZE / 2 - SIDB_WORDMARK.centerY * SIDB_SCALE;
 const sidbPoint = (x: number, y: number): [number, number] => [SIDB_DX + x * SIDB_SCALE, SIDB_DY + y * SIDB_SCALE];
 const SIDB_S = 'M331,14Q267,14 215,2Q163,-10 125,-34.5Q87,-59 65,-97Q43,-135 39,-185L180,-232Q183,-190 204,-162Q225,-134 260.5,-120.5Q296,-107 340,-107Q382,-107 410.5,-117.5Q439,-128 453.5,-144.5Q468,-161 468,-180Q468,-202 449,-216.5Q430,-231 397,-241.5Q364,-252 320,-262Q270,-274 222,-288Q174,-302 135,-324.5Q96,-347 73.5,-382.5Q51,-418 51,-472Q51,-533 82,-578Q113,-623 173,-648.5Q233,-674 321,-674Q408,-674 469,-649Q530,-624 563,-579.5Q596,-535 599,-476L455,-435Q455,-464 445.5,-486Q436,-508 419,-522.5Q402,-537 377,-544.5Q352,-552 320,-552Q282,-552 255.5,-543Q229,-534 216,-519.5Q203,-505 203,-486Q203,-462 223.5,-446.5Q244,-431 279.5,-420.5Q315,-410 358,-400Q401,-391 447,-377.5Q493,-364 533,-342Q573,-320 597.5,-282.5Q622,-245 622,-188Q622,-127 589.5,-81.5Q557,-36 492,-11Q427,14 331,14Z';

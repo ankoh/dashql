@@ -42,12 +42,12 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 24px;
     padding: 32px 16px 24px 16px;
     transition: opacity 120ms ease-out;
 }
 
-/* Faded out while the user writes a draft, the growing composer would otherwise push the greeting up */
+/* Faded out while the composer shows agent turns, they grow the composer and would otherwise push the greeting up */
 .feed_landing_header[data-hidden] {
     visibility: hidden;
     opacity: 0;

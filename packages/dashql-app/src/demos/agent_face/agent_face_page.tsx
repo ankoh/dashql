@@ -59,6 +59,9 @@ const BRANDS = [
 /// The demo cycles faster than the app, to watch the morph without waiting
 const DEMO_TUNING: AgentFaceTuning = { ...DEFAULT_AGENT_FACE_TUNING, faceHoldMs: 4000, logoHoldMs: 2000 };
 
+/// The eyes follow the mouse pointer
+const FOLLOW_POINTER = { pointer: true };
+
 const MODES = [AgentFaceMode.Cycle, AgentFaceMode.Face, AgentFaceMode.Logo];
 const MODE_LABELS = ['Cycle', 'Face', 'Logo'];
 const SURFACES = ['light', 'dark'] as const;
@@ -76,6 +79,10 @@ function AgentFacePage(): React.ReactElement {
     const flavorBrand = useFlavorAgentFaceBrand();
     const [brand, setBrand] = React.useState(() => Math.max(0, BRANDS.findIndex(entry => entry.brand === flavorBrand)));
     const [mode, setMode] = React.useState(0);
+    const [followPointer, setFollowPointer] = React.useState(1);
+    // The face gets excited about every key typed into the try field
+    const lastInput = React.useRef<number | null>(null);
+    const readLastInput = React.useCallback(() => lastInput.current, []);
     const [surface, setSurface] = React.useState(0);
     const [ink, setInk] = React.useState(0);
     const [copied, setCopied] = React.useState(false);
@@ -87,7 +94,7 @@ function AgentFacePage(): React.ReactElement {
         setTimeout(() => setCopied(false), 1200);
     };
 
-    const faceProps = { brand: BRANDS[brand].brand, tuning, mode: MODES[mode], style: { color: INKS[ink].color } };
+    const faceProps = { brand: BRANDS[brand].brand, tuning, lastInput: readLastInput, gaze: followPointer === 1 ? FOLLOW_POINTER : undefined, mode: MODES[mode], style: { color: INKS[ink].color } };
     return (
         <div className={styles.root}>
             <div className={styles.header}>
@@ -103,6 +110,8 @@ function AgentFacePage(): React.ReactElement {
                         <AgentGreeting face={{ ...faceProps, className: styles.greeting_face, label: 'Agent face next to its question' }}
                             questionClassName={styles.greeting_text} questionElement="p" />
                     </div>
+                    <input id="agent-face-try" className={styles.try_input} placeholder="Type here, the face gets excited"
+                        aria-label="Type to excite the face" onKeyDown={() => { lastInput.current = performance.now(); }} />
                     <div className={styles.sizes}>
                         {SIZES.map(size => (
                             <div key={size} className={styles.size}>
@@ -119,6 +128,13 @@ function AgentFacePage(): React.ReactElement {
                             {BRANDS.map((entry, i) => (
                                 <SegmentedControl.Button key={entry.label} selected={brand === i}>{entry.label}</SegmentedControl.Button>
                             ))}
+                        </SegmentedControl>
+                    </div>
+                    <div className={styles.control_row}>
+                        <span className={styles.control_label}>Gaze</span>
+                        <SegmentedControl aria-label="What the eyes look at" size={SegmentedControlSize.Small} onChange={setFollowPointer}>
+                            <SegmentedControl.Button selected={followPointer === 0}>Around</SegmentedControl.Button>
+                            <SegmentedControl.Button selected={followPointer === 1}>Pointer</SegmentedControl.Button>
                         </SegmentedControl>
                     </div>
                     <div className={styles.control_row}>

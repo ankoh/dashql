@@ -5,6 +5,7 @@ import * as styles from './session_feed.module.css';
 import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
+import type { AgentFaceTuning } from '../../agent/agent_face.js';
 
 import { List } from 'react-window';
 import {
@@ -154,6 +155,9 @@ function feedRowKey(index: number, rowProps: ScriptFeedRowProps): React.Key {
 function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
+
+/// The face of the empty session wobbles more and faster than by default, it is the only thing moving on the page
+const LANDING_FACE_TUNING: Partial<AgentFaceTuning> = { wobble: 0.03, wobbleSpeed: 2 };
 
 export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
@@ -429,7 +433,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     }, []);
 
     const [composerView, setComposerView] = React.useState<EditorView | null>(null);
-    const [composerDraftEmpty, setComposerDraftEmpty] = React.useState(true);
     const composerSubmitRef = React.useRef<(() => void) | null>(null);
     // The mention button of a script references it in the question of the composer
     const composerTargetScriptRef = React.useRef<((name: string) => void) | null>(null);
@@ -732,9 +735,39 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // An empty session greets the user with the composer in place of the feed.
     // The composer stays at the same position in the tree so it keeps focus when the first script lands.
     const landing = entries.length === 0;
-    // The draft and the agent turns grow the composer, the greeting stays hidden while either is shown.
+    // The agent turns grow the composer, the greeting stays hidden while they are shown.
     // Sending clears the draft before the agent writes the first script, the turn keeps the greeting away.
-    const greetingHidden = !composerDraftEmpty || (composerAgent.agent?.turns.length ?? 0) > 0;
+    const greetingHidden = (composerAgent.agent?.turns.length ?? 0) > 0;
+    // While the user writes, the face watches the caret of the composer
+    const composerCaret = React.useCallback(() => {
+        const head = composerView?.state?.selection?.main.head;
+        if (composerView == null || head == null || !composerView.hasFocus) return null;
+        const coords = composerView.coordsAtPos(head);
+        return coords == null ? null : { x: coords.left, y: (coords.top + coords.bottom) / 2 };
+    }, [composerView]);
+    // The face gets excited about every keystroke in the composer, a ref keeps the feed from rendering per key
+    const lastComposerInput = React.useRef<number | null>(null);
+    React.useEffect(() => {
+        const dom = composerView?.contentDOM;
+        if (dom == null || typeof dom.addEventListener !== 'function') return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Enter') {
+                lastComposerInput.current = performance.now();
+            }
+        };
+        dom.addEventListener('keydown', onKeyDown);
+        return () => dom.removeEventListener('keydown', onKeyDown);
+    }, [composerView]);
+    const composerLastInput = React.useCallback(() => lastComposerInput.current, []);
+    const landingFace = React.useMemo(() => ({
+        className: styles.feed_landing_face,
+        'data-testid': 'feed-landing-face',
+        label: 'DashQL agent',
+        paused: greetingHidden,
+        tuning: LANDING_FACE_TUNING,
+        gaze: { pointer: true, target: composerCaret },
+        lastInput: composerLastInput,
+    }), [greetingHidden, composerCaret, composerLastInput]);
     return (
         <div
             className={styles.feed_body_container}
@@ -790,7 +823,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             {landing && (
                 <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
                     <AgentGreeting
-                        face={{ className: styles.feed_landing_face, 'data-testid': 'feed-landing-face', label: 'DashQL agent', paused: greetingHidden }}
+                        showFace={config?.settings?.agentFace !== false}
+                        face={landingFace}
                         questionClassName={styles.feed_landing_question}
                         questionTestId="feed-landing-question" />
                 </div>
@@ -844,7 +878,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         aiAvailable={composerAgent.available}
                         agent={composerAgent.agent}
                         onSend={handleComposerSend}
-                        onDraftEmptyChange={setComposerDraftEmpty}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
                         scriptNames={scriptNames}

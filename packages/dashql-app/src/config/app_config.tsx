@@ -34,6 +34,9 @@ export interface AppSettings {
     minLogLevel?: number;
     /// The id of the app flavor, the flavor query parameter of the url wins
     flavor?: string;
+    /// Show the animated agent face next to the question of an empty session, only the question without.
+    /// Shown unless disabled.
+    agentFace?: boolean;
     /// The sessions whose scripts agents may read, edit and run through the local agent server
     agentSessions?: string[];
     /// The port of the local agent server, the build's default if unset

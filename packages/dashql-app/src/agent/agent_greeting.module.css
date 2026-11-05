@@ -1,28 +1,32 @@
-/* The questions share one cell, the widest one sizes it, so the face does not move when they rotate */
+/* The questions share one cell, the widest one sizes it, so the face does not move while a question is typed */
 .question {
     display: grid;
     margin: 0;
 }
 
-.greeting {
+.sizer,
+.typed {
     grid-area: 1 / 1;
+}
+
+.sizer {
     visibility: hidden;
+}
+
+/* The caret follows the typed characters while they appear or disappear, slanted like the italic question */
+.caret {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -0.12em;
+    background-color: currentColor;
+    transform: skewX(-10deg);
     opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 400ms ease-out, transform 400ms ease-out, visibility 0s linear 400ms;
+    transition: opacity 300ms ease-out;
 }
 
-.greeting[data-active] {
-    visibility: visible;
-    opacity: 1;
-    transform: none;
-    transition: opacity 400ms ease-out, transform 400ms ease-out, visibility 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .greeting,
-    .greeting[data-active] {
-        transform: none;
-        transition: none;
-    }
+.caret[data-active] {
+    opacity: 0.7;
+    transition: none;
 }

@@ -40,11 +40,13 @@ describe('Agent face morph', () => {
     it('places the brand mark pieces into the viewBox', () => {
         const [upper, lower] = DASHQL_BRAND.pieces.map(piece => outlineBounds(piece.logo));
         const expectBounds = (actual: number[], expected: number[]) => actual.forEach((v, i) => expect(v).toBeCloseTo(expected[i], 0));
-        expectBounds(upper, [91.8, 25, 200, 125]);
-        expectBounds(lower, [1.8, 75, 110, 175]);
+        // The brand mark grows by 6% around the center of the viewBox
+        const grown = (bounds: number[]) => bounds.map(v => 100 + (v - 100) * 1.06);
+        expectBounds(upper, grown([91.8, 25, 200, 125]));
+        expectBounds(lower, grown([1.8, 75, 110, 175]));
         const sidb = SIDB_BRAND.pieces.map(piece => outlineBounds(piece.logo));
-        expect(Math.min(...sidb.map(b => b[0]))).toBeCloseTo(6, 0);
-        expect(Math.max(...sidb.map(b => b[2]))).toBeCloseTo(194, 0);
+        expect(Math.min(...sidb.map(b => b[0]))).toBeCloseTo(-2, 0);
+        expect(Math.max(...sidb.map(b => b[2]))).toBeCloseTo(202, 0);
     });
 
     it('resamples every outline to the same points with the same winding', () => {
