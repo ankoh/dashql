@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { act } from '@dashql/browser-test-act';
+import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
@@ -152,11 +152,11 @@ describe('MostFrequentCell', () => {
         const bounds = rect.getBoundingClientRect();
         return { clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 };
     }
-    /// Move the pointer, React renders the updates of continuous events in a later task
+    /// Move the pointer and wait until React rendered the update, it renders continuous events in a later task
     async function pointer(type: 'pointerover' | 'pointermove' | 'pointerout', at: { clientX: number; clientY: number }) {
         await act(async () => {
             pointerTarget().dispatchEvent(new PointerEvent(type, { bubbles: true, ...at }));
-            await nextFrame();
+            await flushContinuousUpdates();
         });
     }
     function click(target: Element, at: { clientX: number; clientY: number } = center(target)) {

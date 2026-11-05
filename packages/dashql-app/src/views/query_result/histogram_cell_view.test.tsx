@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as d3 from 'd3';
-import { act } from '@dashql/browser-test-act';
+import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
@@ -173,11 +173,11 @@ describe('HistogramCell', () => {
         const bounds = rect.getBoundingClientRect();
         return bounds.top + bounds.height / 2;
     }
-    /// Move the pointer, React renders the updates of continuous events in a later task
+    /// Move the pointer and wait until React rendered the update, it renders continuous events in a later task
     async function pointer(target: Element, type: 'pointerover' | 'pointermove' | 'pointerout', clientX: number) {
         await act(async () => {
             target.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX, clientY: centerY(overlay()) }));
-            await nextFrame();
+            await flushContinuousUpdates();
         });
     }
     async function hoverBin(bin: number) {
