@@ -49,12 +49,18 @@ bazel test //...
 # Update a snapshot category after intentional changes:
 bazel run //snapshots/analyzer:update
 bazel run //snapshots/completion:update
+bazel run //snapshots/dataflow:update
 bazel run //snapshots/diff:update
 bazel run //snapshots/formatter:update
 bazel run //snapshots/parser:update
 bazel run //snapshots/planner:update
 bazel run //snapshots/profiles/hyper/tests:update
+bazel run //snapshots/profiles/progress:update
+bazel run //snapshots/profiles/trino/plans:update
+bazel run //snapshots/profiles/trino/progress:update
 bazel run //snapshots/visualize:update
+# Or all categories at once:
+bazel run //snapshots:update
 
 # Upgrade the Rust crates declared in bazel/crates/*.MODULE.bazel
 bazel run //scripts:repin_crates -- full
