@@ -108,7 +108,7 @@ without breaks between its components. Cards, tables, editors, dialogs and menus
 - The editors use one CodeMirror theme whose colors are `var(--code_*)` and theme tokens
   (`src/session/editor/themes/xcode.ts`). They switch with the scheme without being reconfigured.
 - Vega draws on a canvas, which cannot resolve tokens. `resolveChartColors()` resolves them with a probe element, and
-  the charts embed again when `useColorScheme()` changes. Chart images resolve the light scheme on a white
+  the charts embed again when `useColorScheme()` or the flavor changes. Chart images resolve the light scheme on a white
   background in both schemes.
 - Colors that encode data, like the badges of the query profile, stay data colors.
 - The icons of connectors are their colored logos in the light scheme and their monochrome logos in the dark one,
