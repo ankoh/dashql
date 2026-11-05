@@ -29,7 +29,8 @@
     box-sizing: border-box;
     height: 100%;
     overflow: auto;
-    padding: 16px;
+    /* The cards start as far below the bar as the scripts of the feed */
+    padding: 32px 16px 16px 16px;
 }
 
 /* The sections of the board stacked, the scripts without a renderer above the visualizations */
