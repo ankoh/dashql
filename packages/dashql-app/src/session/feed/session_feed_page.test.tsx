@@ -16,8 +16,6 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const state = {
     feedProps: null as any,
-    dashboardsEnabled: false,
-    dataflowEnabled: false,
     mode: SessionViewMode.Session,
     setMode: vi.fn(),
     dashboardProps: null as any,
@@ -66,7 +64,6 @@ const dependencies = {
         return null;
     },
     useSessionViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
-    useAppConfig: () => ({ settings: { experimental_dashboards: state.dashboardsEnabled, experimental_dataflow: state.dataflowEnabled } }),
     SegmentedControl,
     useSessionExecution: () => state.execution,
 } as unknown as SessionFeedPageDependencies;
@@ -98,8 +95,6 @@ describe('SessionFeedPage', () => {
 
     beforeEach(() => {
         state.feedProps = null;
-        state.dashboardsEnabled = false;
-        state.dataflowEnabled = false;
         state.dataflowProps = null;
         state.mode = SessionViewMode.Session;
         state.setMode.mockReset();
@@ -227,7 +222,6 @@ describe('SessionFeedPage', () => {
         host.style.height = '600px';
         frameDocument.body.appendChild(host);
         const frameRoot = createRoot(host);
-        state.dashboardsEnabled = true;
         try {
             for (const width of [320, 375, 800, 1024, 1440]) {
                 frame.style.width = `${width}px`;
@@ -329,7 +323,6 @@ describe('SessionFeedPage', () => {
     });
 
     it('uses one header for the workbench toggle, view switcher, and session actions', () => {
-        state.dashboardsEnabled = true;
         const sessionScripts = scripts();
         const connection = { connectionId: 'database' } as any;
         act(() => root.render(
@@ -366,7 +359,6 @@ describe('SessionFeedPage', () => {
     });
 
     it('hides the session controls while a connection overview is open', () => {
-        state.dashboardsEnabled = true;
         act(() => root.render(
             <SessionFeedPage
                 sessionScripts={scripts()}
@@ -406,56 +398,7 @@ describe('SessionFeedPage', () => {
         expect(header.querySelector('[data-testid="export-session"]')).toBeNull();
     });
 
-    it('keeps the single action header when dashboards are disabled', () => {
-        act(() => root.render(
-            <SessionFeedPage
-                sessionScripts={scripts()}
-                modifySessionScripts={vi.fn()}
-                connection={null}
-                active
-                dependencies={dependencies}
-            />,
-        ));
-
-        expect(container.querySelectorAll('header')).toHaveLength(1);
-        expect(container.querySelector('header [data-testid="session-view-switch"]')).toBeNull();
-        expect(container.querySelector('header [data-testid="share-url"]')).not.toBeNull();
-    });
-
-    it('hides the Dashboard switch by default', () => {
-        act(() => root.render(
-            <SessionFeedPage
-                sessionScripts={scripts()}
-                modifySessionScripts={vi.fn()}
-                connection={null}
-                active
-                dependencies={dependencies}
-            />,
-        ));
-
-        expect(container.querySelector('[data-testid="session-view-switch"]')).toBeNull();
-        expect(container.querySelector('[data-testid="dashboard"]')).toBeNull();
-        expect(state.feedProps.active).toBe(true);
-    });
-
-    it('does not render a Dashboard requested while disabled', () => {
-        state.mode = SessionViewMode.Dashboard;
-        act(() => root.render(
-            <SessionFeedPage
-                sessionScripts={scripts()}
-                modifySessionScripts={vi.fn()}
-                connection={null}
-                active
-                dependencies={dependencies}
-            />,
-        ));
-
-        expect(container.querySelector('[data-testid="dashboard"]')).toBeNull();
-        expect(state.feedProps.active).toBe(true);
-    });
-
-    it('switches between Session and Dashboard from the content view bar when enabled', () => {
-        state.dashboardsEnabled = true;
+    it('switches between Session and Dashboard from the content view bar', () => {
         act(() => root.render(
             <SessionFeedPage
                 sessionScripts={scripts()}
@@ -473,7 +416,6 @@ describe('SessionFeedPage', () => {
     });
 
     it('renders the Dashboard beneath the view bar without activating the feed', () => {
-        state.dashboardsEnabled = true;
         state.mode = SessionViewMode.Dashboard;
         const sessionScripts = scripts();
         const modifySessionScripts = vi.fn();
@@ -496,9 +438,7 @@ describe('SessionFeedPage', () => {
         expect(state.setMode).toHaveBeenCalledWith(SessionViewMode.Session);
     });
 
-    it('offers the Dataflow view when enabled, after the Dashboard', () => {
-        state.dashboardsEnabled = true;
-        state.dataflowEnabled = true;
+    it('offers the Dataflow view after the Dashboard', () => {
         act(() => root.render(
             <SessionFeedPage sessionScripts={scripts()} modifySessionScripts={vi.fn()} connection={null} active dependencies={dependencies} />,
         ));
@@ -509,7 +449,6 @@ describe('SessionFeedPage', () => {
     });
 
     it('renders the Dataflow canvas and opens a script in the editor dialog', () => {
-        state.dataflowEnabled = true;
         state.mode = SessionViewMode.Dataflow;
         const sessionScripts = scripts();
         const modifySessionScripts = vi.fn();
@@ -522,8 +461,8 @@ describe('SessionFeedPage', () => {
         expect(state.dataflowProps).toMatchObject({ sessionScripts, modifySessionScripts });
         expect(state.feedProps.active).toBe(false);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="session-view-switch"] button');
-        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dataflow']);
-        expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
+        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
+        expect(buttons[2]?.getAttribute('aria-current')).toBe('true');
 
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
         act(() => state.dataflowProps.onInspect(1));
@@ -536,7 +475,6 @@ describe('SessionFeedPage', () => {
     });
 
     it('closes the dataflow editor dialog when another session is selected', () => {
-        state.dataflowEnabled = true;
         state.mode = SessionViewMode.Dataflow;
         const ScriptEditorDialog = vi.fn(() => <div data-testid="script-editor-dialog" />);
         const render = (sessionId: string) => act(() => root.render(<SessionFeedPage
@@ -553,7 +491,6 @@ describe('SessionFeedPage', () => {
     });
 
     it('closes the dataflow editor dialog when its script is gone', () => {
-        state.dataflowEnabled = true;
         state.mode = SessionViewMode.Dataflow;
         const ScriptEditorDialog = vi.fn(() => <div data-testid="script-editor-dialog" />);
         const render = (sessionScripts: any) => act(() => root.render(<SessionFeedPage

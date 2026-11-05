@@ -2,27 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import {
     SessionViewMode,
-    sessionViewModeEnabled,
     sessionViewModeFromSearch,
     sessionViewNavigation,
     sessionViewSearch,
 } from './session_view_mode.js';
 
 describe('session view URL state', () => {
-    const none = { dashboard: false, dataflow: false };
-    const all = { dashboard: true, dataflow: true };
-
-    it('reads Dashboard from the view query parameter only when enabled', () => {
-        expect(sessionViewModeFromSearch('?view=dashboard', none)).toBe(SessionViewMode.Session);
-        expect(sessionViewModeFromSearch('?view=dashboard', all)).toBe(SessionViewMode.Dashboard);
-        expect(sessionViewModeFromSearch('?view=session', all)).toBe(SessionViewMode.Session);
-    });
-
-    it('reads Dataflow from the view query parameter only when enabled', () => {
-        expect(sessionViewModeFromSearch('?view=dataflow', { dashboard: true, dataflow: false })).toBe(SessionViewMode.Session);
-        expect(sessionViewModeFromSearch('?view=dataflow', { dashboard: false, dataflow: true })).toBe(SessionViewMode.Dataflow);
-        expect(sessionViewModeEnabled(SessionViewMode.Dataflow, none)).toBe(false);
-        expect(sessionViewModeEnabled(SessionViewMode.Shell, none)).toBe(true);
+    it('reads the view from the view query parameter', () => {
+        expect(sessionViewModeFromSearch('?view=dashboard')).toBe(SessionViewMode.Dashboard);
+        expect(sessionViewModeFromSearch('?view=dataflow')).toBe(SessionViewMode.Dataflow);
+        expect(sessionViewModeFromSearch('?view=session')).toBe(SessionViewMode.Session);
+        expect(sessionViewModeFromSearch('')).toBe(SessionViewMode.Session);
     });
 
     it('replaces only the view parameter and preserves other query state', () => {

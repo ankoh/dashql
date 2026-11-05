@@ -69,6 +69,8 @@ describe('AppSettingsSync', () => {
             flavor: SIDB_FLAVOR.id,
             lastOpenedSessionId: 'retired',
             aiProvider: { apiKey: 'secret' },
+            experimental_dashboards: true,
+            experimental_dataflow: false,
         } as NonNullable<AppConfig['settings']>;
         await render();
         expect(ready).toBe(false);
@@ -78,6 +80,8 @@ describe('AppSettingsSync', () => {
         expect(config!.settings?.enableTableColumnPlots).toBe(true);
         expect(config!.settings).not.toHaveProperty('lastOpenedSessionId');
         expect(config!.settings).not.toHaveProperty('aiProvider');
+        expect(config!.settings).not.toHaveProperty('experimental_dashboards');
+        expect(config!.settings).not.toHaveProperty('experimental_dataflow');
         expect(flavor.id).toBe(SIDB_FLAVOR.id);
         expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(true);
     });

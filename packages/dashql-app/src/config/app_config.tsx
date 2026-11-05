@@ -12,9 +12,6 @@ const CONFIG_URL = new URL('../../static/config.json', import.meta.url);
 export interface AppSettings {
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;
-    experimental_dashboards?: boolean;
-    /// Show the dataflow view of sessions, a canvas of the scripts and the flow of data between their statements
-    experimental_dataflow?: boolean;
     experimental_file_attachments?: boolean;
     /// Run the embedded HyperDB on its experimental wasm backend, applied by a restart of the app.
     /// A hyperdb-wasm without the backend starts on the default backend.

@@ -25,8 +25,6 @@ type ToggleSettingKey =
     | 'tableDebugMode'
     | 'formattingDebugMode'
     | 'forceReLogin'
-    | 'experimental_dashboards'
-    | 'experimental_dataflow'
     | 'experimental_file_attachments';
 
 const LOG_LEVELS = [
@@ -259,8 +257,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                     {toggle('macWindowLayout', 'Mac Window Layout')}
                 </SettingsSection>
                 <SettingsSection title="Experimental">
-                    {toggle('experimental_dashboards', 'Dashboards')}
-                    {toggle('experimental_dataflow', 'Dataflows')}
                     {toggle('experimental_file_attachments', 'File Attachments')}
                     <div
                         id="app-setting-experimental-wasm-backend"

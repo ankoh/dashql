@@ -22,7 +22,6 @@ import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { SessionViewMode, useSessionViewMode } from '../session_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { useAppConfig } from '../../config/app_config.js';
 import { useSessionExecution } from '../scripts/session_execution_provider.js';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
@@ -40,6 +39,12 @@ const CloseIcon = SymbolIcon('x_16');
 const FeedViewIcon = SymbolIcon('rows_16');
 const DashboardViewIcon = SymbolIcon('dashboard_16');
 const DataflowViewIcon = SymbolIcon('workflow_16');
+/// The views of the switch, the session first
+const SESSION_VIEWS: [SessionViewMode, string, typeof FeedViewIcon][] = [
+    [SessionViewMode.Session, 'Feed', FeedViewIcon],
+    [SessionViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
+    [SessionViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
+];
 
 export interface SessionFeedPageDependencies {
     SessionFeed: typeof SessionFeed;
@@ -56,7 +61,6 @@ export interface SessionFeedPageDependencies {
     SessionFileSaveOverlay: typeof SessionFileSaveOverlay;
     SessionConnectionButtons: typeof SessionConnectionButtons;
     useSessionViewMode: typeof useSessionViewMode;
-    useAppConfig: typeof useAppConfig;
     SegmentedControl: typeof SegmentedControl;
     useSessionExecution: typeof useSessionExecution;
 }
@@ -76,7 +80,6 @@ const DEFAULT_DEPENDENCIES: SessionFeedPageDependencies = {
     SessionFileSaveOverlay,
     SessionConnectionButtons,
     useSessionViewMode,
-    useAppConfig,
     SegmentedControl,
     useSessionExecution,
 };
@@ -142,17 +145,8 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
         : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
         : run.phase === 'succeeded' ? `${progress} succeeded` : `${progress} completed`;
     const { mode, setMode } = dependencies.useSessionViewMode();
-    const settings = dependencies.useAppConfig()?.settings;
-    const dashboardsEnabled = settings?.experimental_dashboards === true;
-    const dataflowEnabled = settings?.experimental_dataflow === true;
-    const dashboardActive = dashboardsEnabled && mode === SessionViewMode.Dashboard;
-    const dataflowActive = dataflowEnabled && mode === SessionViewMode.Dataflow;
-    // The views of the switch, the session first
-    const views: [SessionViewMode, string, typeof FeedViewIcon][] = [
-        [SessionViewMode.Session, 'Feed', FeedViewIcon],
-        ...(dashboardsEnabled ? [[SessionViewMode.Dashboard, 'Dashboard', DashboardViewIcon] as [SessionViewMode, string, typeof FeedViewIcon]] : []),
-        ...(dataflowEnabled ? [[SessionViewMode.Dataflow, 'Dataflow', DataflowViewIcon] as [SessionViewMode, string, typeof FeedViewIcon]] : []),
-    ];
+    const dashboardActive = mode === SessionViewMode.Dashboard;
+    const dataflowActive = mode === SessionViewMode.Dataflow;
     const activeView = dashboardActive ? SessionViewMode.Dashboard : dataflowActive ? SessionViewMode.Dataflow : SessionViewMode.Session;
     const overviewActive = overviewConnectionId != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive;
@@ -183,7 +177,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                 </dependencies.IconButton>
                 {/* A connection overview is not part of the session, its controls are hidden */}
                 {!overviewActive && <>
-                    {views.length > 1 && <dependencies.SegmentedControl
+                    <dependencies.SegmentedControl
                         aria-label="Session view"
                         data-testid="session-view-switch"
                         size={SegmentedControlSize.Small}
@@ -191,10 +185,10 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             setOverviewConnectionId(null);
                             // The editor dialog belongs to the dataflow view
                             setDetails(null);
-                            setMode(views[selectedIndex]?.[0] ?? SessionViewMode.Session);
+                            setMode(SESSION_VIEWS[selectedIndex]?.[0] ?? SessionViewMode.Session);
                         }}
                     >
-                        {views.map(([view, label, Icon]) => (
+                        {SESSION_VIEWS.map(([view, label, Icon]) => (
                             <dependencies.SegmentedControl.IconButton
                                 key={view}
                                 className={styles.view_switch_button}
@@ -203,7 +197,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                 selected={activeView === view}
                             />
                         ))}
-                    </dependencies.SegmentedControl>}
+                    </dependencies.SegmentedControl>
                     <div className={styles.execution_controls}>
                         <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
                         <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}

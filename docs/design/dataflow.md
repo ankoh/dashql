@@ -101,8 +101,8 @@ share a channel spread `edge_gap` apart. The canvas uses it while a box is dragg
 
 ## The canvas
 
-The dataflow view is an experimental view of a session (`experimental_dataflow` in the app settings, `?view=dataflow`
-in the URL), next to the feed and the dashboard in the view switch. `src/session/dataflow/` holds it:
+The dataflow view is a view of a session (`?view=dataflow` in the URL), next to the feed and the dashboard in the view
+switch. `src/session/dataflow/` holds it:
 
 - `dataflow_graph.ts` derives the graph of a session with `deriveSessionDataflow`, memoized on the names,
   connections and analyses of the scripts. A script whose analysis is behind its text keeps its last statements and

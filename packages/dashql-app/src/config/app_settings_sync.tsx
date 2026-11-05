@@ -35,10 +35,19 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
         storageReader.backend.loadAppSettings().then(stored => {
             if (stored != null) {
                 logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
-                // Drop retired settings, the AI provider settings may hold credentials
-                const { lastOpenedSessionId: _lastOpenedSessionId, aiProvider: _aiProvider, ...settings } = stored as typeof stored & {
+                // Drop retired settings, the AI provider settings may hold credentials.
+                // The dashboards and the dataflow were experimental views and are always shown now.
+                const {
+                    lastOpenedSessionId: _lastOpenedSessionId,
+                    aiProvider: _aiProvider,
+                    experimental_dashboards: _experimentalDashboards,
+                    experimental_dataflow: _experimentalDataflow,
+                    ...settings
+                } = stored as typeof stored & {
                     lastOpenedSessionId?: string;
                     aiProvider?: unknown;
+                    experimental_dashboards?: boolean;
+                    experimental_dataflow?: boolean;
                 };
                 reconfigure(c => c == null ? null : {
                     ...c,
