@@ -8,6 +8,8 @@
     /* The card meets the window on the right and the bottom, the corners below the stripe and next to the nav rail round */
     border-radius: var(--border_radius) var(--border_radius) 0 var(--border_radius);
     overflow: hidden;
+    /* One background behind the panes and the stage, the dark page shows it through them */
+    background: var(--page_background);
 }
 
 @media only screen and (max-width: 799px) {
@@ -20,7 +22,7 @@
     .body_container {
         grid-row: 2;
         grid-column: 1;
-        background-color: var(--color_bg_subtle);
+        background-color: var(--color_bg_pane_subtle);
     }
 }
 
@@ -38,12 +40,12 @@
         margin: 0;
         display: flex;
         overflow: hidden;
-        background-color: var(--color_bg_subtle);
+        background-color: var(--color_bg_pane_subtle);
     }
     .body_container {
         grid-row: 2;
         grid-column: 2;
-        background-color: var(--color_bg);
+        background-color: var(--color_bg_pane_subtle);
     }
 }
 
@@ -65,7 +67,7 @@
     gap: 8px;
     padding: 0 8px;
     border-bottom: 1px solid var(--color_border);
-    background: var(--color_bg_card);
+    background: var(--color_bg_pane);
 }
 
 @media only screen and (min-width: 800px) {

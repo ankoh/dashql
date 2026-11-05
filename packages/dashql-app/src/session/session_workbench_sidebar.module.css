@@ -18,7 +18,7 @@
 .section_split .section_separator {
     min-height: 0;
     border-bottom: 1px solid var(--color_border);
-    background-color: var(--color_bg_subtle);
+    background-color: var(--color_bg_pane_subtle);
 }
 
 .section {
@@ -27,7 +27,7 @@
     height: 100%;
     min-width: 0;
     min-height: 0;
-    background: var(--color_bg_card);
+    background: var(--color_bg_pane);
     overflow: hidden;
 }
 
