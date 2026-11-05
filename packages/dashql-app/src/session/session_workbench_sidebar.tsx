@@ -953,11 +953,11 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         connectionDispatch(connectionId, { type: RENAME_CONNECTION, value: name });
     }, [connectionDispatch]);
 
-    /// Delete a connection that no script uses.
+    /// Delete a connection that no script uses, other than the embedded Hyper that sessions fall back to.
     /// The sessions whose new scripts default to the connection are detached from it first.
     const deleteConnection = React.useCallback((connectionId: string) => {
         const database = databaseRegistry.connections.get(connectionId);
-        if (database == null || describeUsage(connectionId).blockingSessionCount > 0) return;
+        if (database == null || isHyperWasmConnection(database) || describeUsage(connectionId).blockingSessionCount > 0) return;
         if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
         detachConnectionFromSessions(props.sessionScripts.instance, connectionId)
             .then(() => shutDownAndDeleteConnection(connectionId))

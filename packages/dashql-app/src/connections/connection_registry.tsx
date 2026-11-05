@@ -17,6 +17,7 @@ import { QUERY_PROGRESS_UPDATED, QUERY_RECEIVED_BATCH } from '../query/query_exe
 import { Dispatch } from '../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../utils/store.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
+import { isHyperWasmConnection } from './connection_label.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import type { Logger } from '../platform/logger/logger.js';
@@ -294,6 +295,11 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
             connectionId,
             sessions: sessionIds.join(','),
         }, LOG_CTX);
+        return reg;
+    }
+    // Sessions fall back to the embedded Hyper and the user can't attach one again, it is never deleted
+    if (action.type == DELETE_CONNECTION && isHyperWasmConnection(prev)) {
+        logger.warn('refusing to delete the connection to the embedded Hyper', { connectionId }, LOG_CTX);
         return reg;
     }
     if (action.type == SWITCH_CONNECTOR_TYPE && sessionIds.length > 1) {

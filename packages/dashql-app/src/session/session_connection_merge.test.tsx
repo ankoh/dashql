@@ -40,7 +40,7 @@ function connection(connectionId: string) {
         connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
         params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
-        details: { type: HYPER_CONNECTOR, value: { proto: {}, channel: { executeQuery: async () => stream, close: vi.fn() } } },
+        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_GRPC' } }, channel: { executeQuery: async () => stream, close: vi.fn() } } },
         catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
         catalogRelationScript: { catalog_entry_id: 1, destroy: vi.fn() },
         catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },

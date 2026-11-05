@@ -314,7 +314,7 @@ describe('shared connection persistence', () => {
         });
     }
 
-    async function render(sessionIds: string[]) {
+    async function render(sessionIds: string[], overrides: Partial<ConnectionState> = {}) {
         const backend = new SessionTestBackend();
         for (const sessionId of [TEST_SESSION_ID, OTHER_SESSION_ID]) {
             backend.sessions.set(sessionId, testSession({ sessionId, connections: [{ connectionId: TEST_CONNECTION_ID, params: trino('https://old') }] }));
@@ -326,6 +326,7 @@ describe('shared connection persistence', () => {
             connectionHealth: ConnectionHealth.NOT_STARTED,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             catalogChangesSql: '',
+            ...overrides,
         } as unknown as ConnectionState;
         const harness = {} as {
             registry: ConnectionRegistry;
@@ -402,6 +403,20 @@ describe('shared connection persistence', () => {
                 [MISSING_SESSION_ID, 'failed'],
             ]);
             expect(backend.sessions.has(MISSING_SESSION_ID)).toBe(false);
+        } finally {
+            unmount();
+        }
+    });
+
+    it('refuses to delete the embedded Hyper that no session uses', async () => {
+        const { harness, unmount } = await render([], {
+            params: { hyper: { protocol: 'WASM' } } as any,
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } as any,
+        });
+        try {
+            await dispatchAndSettle(harness, { type: DELETE_CONNECTION, value: null });
+            expect(harness.registry.connections.has(TEST_CONNECTION_ID)).toBe(true);
         } finally {
             unmount();
         }

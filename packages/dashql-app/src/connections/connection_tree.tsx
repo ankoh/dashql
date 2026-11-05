@@ -470,7 +470,8 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         contextMenu={contextMenu}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onRename={startRename}
-                        onDelete={props.onDelete == null || usage == null ? undefined : () => props.onDelete!(row.database.connectionId)}
+                        // Sessions fall back to the embedded Hyper, it is never deleted
+                        onDelete={props.onDelete == null || usage == null || isHyperWasmConnection(row.database) ? undefined : () => props.onDelete!(row.database.connectionId)}
                         onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
                         mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
                         onReplace={props.onReplace == null || props.replaceCandidates == null

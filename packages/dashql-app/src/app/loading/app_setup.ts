@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
 import { useConnectionAllocator, useConnectionRegistrySetter } from '../../connections/connection_registry.js';
-import { newSessionConnection } from '../../connections/embedded_connection.js';
+import { embeddedConnection, newSessionConnection } from '../../connections/embedded_connection.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
@@ -161,10 +161,16 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
 
             traced.info("Finishing setup", {}, LOG_CTX);
 
+            // Sessions fall back to the embedded Hyper and the user can't attach one, the app always holds it.
+            // The restored state lacks it when no session uses it, e.g. when every session runs on the Hyper of a link.
+            const connections = new Map(loaded.restoredConnections);
+            const embedded = embeddedConnection(connections.values(), allocateConnection, core);
+            connections.set(embedded.connectionId, embedded);
+
             if (await shouldFinishInitialNavigation(initialImport.current)) {
                 let sessionId = selectStartupSession(loaded.restoredSessionIds);
                 if (sessionId == null) {
-                    const database = newSessionConnection(loaded.restoredConnections, allocateConnection, core);
+                    const database = newSessionConnection(connections, allocateConnection, core);
                     sessionId = createSession(database).sessionId;
                 }
                 navigate({

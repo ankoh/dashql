@@ -578,6 +578,11 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(state.detachConnection.mock.invocationCallOrder[0]).toBeLessThan(state.deleteConnection.mock.invocationCallOrder[0]);
     });
 
+    it('offers no delete of the embedded Hyper that sessions fall back to', () => {
+        attachServer({ '1_alpha.sql': 'local-database' });
+        expect(menuItem(state.local!.connectionId, 'delete')).toBeNull();
+    });
+
     it('refuses to delete a connection that scripts use', () => {
         const server = attachServer({ '1_alpha.sql': 'hyper-server' });
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
