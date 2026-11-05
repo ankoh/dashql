@@ -27,7 +27,7 @@
 }
 
 .figure_label {
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 44%);
+    color: var(--color_fg_muted);
 }
 
 .figure_value {
@@ -41,13 +41,13 @@
     min-width: 48px;
     border-radius: 3px;
     overflow: hidden;
-    background: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 90%);
+    background: var(--color_bg_selected);
 }
 
 .bar_fill {
     height: 100%;
     border-radius: 3px;
-    background: var(--status_color_in_progress);
+    background: var(--color_attention_fg);
     transition: width 300ms ease-out;
 }
 
@@ -70,5 +70,5 @@
 .profile {
     position: relative;
     height: 360px;
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }

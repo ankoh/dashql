@@ -21,7 +21,7 @@ export const CenteredRectangleWaveSpinner: React.FC<RectangleWaveSpinnerProps> =
 
 export const RectangleWaveSpinner: React.FC<RectangleWaveSpinnerProps> = (props: RectangleWaveSpinnerProps) => {
     const s = {
-        backgroundColor: props.color || 'rgb(36, 41, 46)',
+        backgroundColor: props.color || 'var(--color_fg)',
     };
     return (
         <div className={classNames(props.className, styles.rw)}>

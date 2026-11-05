@@ -3,15 +3,6 @@
     /* The dark stripe at the top of the window, global since expanded overlays keep clear of it */
     --nav_bar_top_height: 32px;
     --nav_bar_height: 40px;
-    --nav_bar_border: 1px solid var(--border_color_primary);
-    --nav_tab_bg: transparent;
-    /* --nav_tab_bg_active: hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 36%, 40%); */
-    /* --nav_tab_bg_active: hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 44%, 30%); */
-    --nav_tab_bg_active: hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 44%, 40%);
-    --nav_tab_fg: white;
-    --nav_tab_fg_active: white;
-    --nav_tab_border: 1px solid black;
-    --nav_border_active: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 .container {
@@ -28,8 +19,10 @@
     --nav_bar_width: minmax(168px, max-content);
 }
 
-/* The dark stripe above the rail and the page card with the brand on the left and the overlays on the right */
+/* The dark stripe above the rail and the page card with the brand on the left and the overlays on the right.
+ * It is dark chrome in both color schemes, the tokens inside resolve dark. */
 .top_bar {
+    color-scheme: dark;
     grid-row: 1;
     grid-column: 1 / -1;
     /* Shares the columns of the container to place the brand relative to the page card, whatever the width of the rail */
@@ -72,8 +65,8 @@
 
 /* The light tint of the rail buttons, a darkening would vanish on the dark chrome */
 .top_bar .tab:hover {
-    background-color: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background-color: var(--color_bg_hover);
+    border: 1px solid var(--color_bg_hover) !important;
 }
 
 .top_bar .tab_button {
@@ -85,8 +78,10 @@
     font-size: var(--font_size_caption);
 }
 
-/* Stand-ins for the traffic lights in the browser, placed like trafficLightPosition in dashql-native */
+/* Stand-ins for the traffic lights in the browser, placed like trafficLightPosition in dashql-native.
+ * They sit on the dark chrome and take the status colors of the dark scheme. */
 .traffic_lights {
+    color-scheme: dark;
     position: absolute;
     top: 10px;
     left: 12px;
@@ -99,23 +94,25 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+    box-shadow: inset var(--shadow_small);
 }
 
 .traffic_light_close {
-    background: #ff5f57;
+    background: var(--color_danger_fg);
 }
 
 .traffic_light_minimize {
-    background: #febc2e;
+    background: var(--color_attention_fg);
 }
 
 .traffic_light_zoom {
-    background: #28c840;
+    background: var(--color_success_fg);
 }
 
+/* The compact navbar overlays the dark backdrop of the setup pages, dark chrome in both color schemes */
 .navbar_mac {
-    color: rgb(255, 255, 255);
+    color-scheme: dark;
+    color: var(--color_fg);
     line-height: 24px;
     text-align: center;
     align-items: center;
@@ -128,7 +125,8 @@
 }
 
 .navbar_default {
-    color: rgb(255, 255, 255);
+    color-scheme: dark;
+    color: var(--color_fg);
     line-height: 24px;
     text-align: center;
     align-items: center;
@@ -146,7 +144,7 @@
     gap: 12px;
     margin-left: 20px;
     padding-left: 4px;
-    color: white;
+    color: var(--color_fg);
     fill: currentColor;
     /* The brand name, like the brand of the shell and the banner of the oauth redirect */
     font-family: var(--font_family);
@@ -169,7 +167,7 @@
     grid-column: 3;
     display: grid;
     font-weight: 300;
-    color: var(--nav_tab_fg);
+    color: var(--color_fg);
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -180,7 +178,7 @@
 .tabs {
     grid-row: 1;
     grid-column: 2;
-    color: var(--nav_tab_fg);
+    color: var(--color_fg);
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -192,19 +190,22 @@
 
 .tab {
     position: relative;
-    color: var(--nav_tab_fg);
+    color: var(--color_fg);
     height: 28px;
     border-radius: var(--border_radius);
     border: 1px solid transparent !important;
 }
-.tab:hover,
+.tab:hover {
+    background-color: var(--color_bg_hover);
+    border: 1px solid var(--color_border) !important;
+}
 .tab.active {
-    background-color: var(--navbar_hover_background_color);
-    border: var(--nav_border_active) !important;
+    background-color: var(--chrome_bg_active);
+    border: 1px solid var(--color_border) !important;
 }
 
 .tab_button:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: 1px;
 }
 
@@ -217,7 +218,7 @@
     background: none;
 
     text-decoration: none;
-    color: var(--nav_tab_fg) !important;
+    color: var(--color_fg) !important;
     font-family: var(--font_family);
 
     width: 100%;
@@ -242,7 +243,7 @@
 .tab_button_count {
     font-weight: 400 !important;
     font-size: var(--font_size_small);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color_bg_selected);
     padding: 2px 6px;
     border-radius: var(--border_radius);
 }

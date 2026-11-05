@@ -20,8 +20,8 @@
 
 .cm-panel.cm-search {
     padding: 8px 42px 8px 8px;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
-    background-color: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%);
+    color: var(--color_fg);
+    background-color: var(--color_bg_subtle);
     font-family: var(--font_family);
     line-height: 34px;
 }
@@ -38,17 +38,17 @@
     height: 28px;
     padding: 0 8px;
     color: inherit;
-    background-color: #ffffff;
-    border: 1px solid var(--border_color_primary);
+    background-color: var(--color_bg_card);
+    border: 1px solid var(--color_border);
     border-radius: 6px;
     outline: none;
-    box-shadow: inset 0 1px 0 hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.2);
+    box-shadow: inset var(--shadow_small);
     font: inherit;
 }
 
 .cm-panel.cm-search .cm-textfield:focus-visible {
-    border-color: var(--focus_outline_color);
-    outline: 2px solid var(--focus_outline_color);
+    border-color: var(--color_focus);
+    outline: 2px solid var(--color_focus);
     outline-offset: -1px;
 }
 
@@ -59,9 +59,9 @@
     min-width: max-content;
     height: 28px;
     padding: 0 8px;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
-    background: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%);
-    border: 1px solid var(--border_color_primary);
+    color: var(--color_fg);
+    background: var(--color_bg_subtle);
+    border: 1px solid var(--color_border);
     border-radius: 6px;
     cursor: pointer;
     font: inherit;
@@ -71,17 +71,17 @@
 }
 
 .cm-panel.cm-search .cm-button:hover {
-    background-color: #f3f4f6;
-    border: 1px solid var(--border_color_primary);
+    background-color: var(--color_bg_hover);
+    border: 1px solid var(--color_border);
 }
 
 .cm-panel.cm-search .cm-button:active {
-    background-color: hsl(var(--neutral_hue), calc(23.5% * var(--neutral_tint)), 93.3%);
+    background-color: var(--color_bg_selected);
 }
 
 .cm-panel.cm-search .cm-button:focus-visible,
 .cm-panel.cm-search [name='close']:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: -1px;
 }
 
@@ -95,7 +95,7 @@
 }
 
 .cm-panel.cm-search input[type='checkbox'] {
-    accent-color: var(--focus_outline_color);
+    accent-color: var(--color_focus);
 }
 
 .cm-panel.cm-search [name='close'] {
@@ -106,7 +106,7 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    color: hsl(var(--neutral_hue), calc(9.8% * var(--neutral_tint)), 37.8%);
+    color: var(--color_fg_muted);
     background-color: transparent;
     border: 1px solid transparent;
     border-radius: 6px;
@@ -117,12 +117,12 @@
 }
 
 .cm-panel.cm-search [name='close']:hover {
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
-    border-color: var(--border_color_primary);
+    background-color: var(--color_bg_hover);
+    border-color: var(--color_border);
 }
 
 .cm-panel.cm-search [name='close']:active {
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.48);
+    background-color: var(--color_bg_selected);
 }
 
 @media (max-width: 640px) {
@@ -134,13 +134,13 @@
 .cm-tooltip-cursor-diagnostics {
     padding: 4px 8px;
     font-size: var(--font_size_body);
-    color: var(--dashql-text-color, #333);
+    color: var(--color_fg);
     white-space: pre-wrap;
     max-width: 400px;
 }
 
 .cm-completion-hint {
-    color: #888 !important;
+    color: var(--color_fg_subtle) !important;
     opacity: 0.5;
     font-style: italic;
     user-select: none;
@@ -149,7 +149,7 @@
     display: inline;
 }
 .cm-completion-hint:not(:empty) {
-    background-color: rgba(128, 128, 128, 0.07);
+    background-color: var(--color_bg_hover);
     border-radius: 2px;
     padding: 0 1px;
 }

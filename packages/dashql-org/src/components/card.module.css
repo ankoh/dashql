@@ -11,9 +11,9 @@
 /* A dark card that sits quietly on the backdrop, it redefines the card tokens. Its colors are the two colors of the
    backdrop gradient: the body is the darker --background_color_100, the header the lighter --background_color_80. */
 .dark {
-    --card_bg: color-mix(in srgb, var(--background_color_100) 75%, transparent);
-    --card_header_bg: color-mix(in srgb, var(--background_color_80) 70%, transparent);
-    --card_border: color-mix(in srgb, var(--background_color_80) 50%, var(--base_color_neutral_5));
+    --card_bg: color-mix(in srgb, var(--chrome_bg_100) 75%, transparent);
+    --card_header_bg: color-mix(in srgb, var(--chrome_bg_80) 70%, transparent);
+    --card_border: color-mix(in srgb, var(--chrome_bg_80) 50%, var(--base_color_neutral_5));
     --card_fg: white;
     --card_fg_muted: var(--base_color_neutral_2);
     --card_fg_subtle: var(--base_color_neutral_4);

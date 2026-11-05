@@ -5,18 +5,12 @@ import { StyleSpec } from 'style-mod';
 
 export interface CreateThemeOptions {
     /**
-     * Theme inheritance. Determines which styles CodeMirror will apply by default.
-     */
-    theme: Theme;
-    /**
      * Settings to customize the look of the editor, like background, gutter, selection and others.
      */
     settings: Settings;
     /** Syntax highlighting styles. */
     styles: TagStyle[];
 }
-
-type Theme = 'light' | 'dark';
 
 export interface Settings {
     /** Editor background color. */
@@ -45,7 +39,10 @@ export interface Settings {
     fontFamily?: string;
 }
 
-export const createTheme = ({ theme, settings = {}, styles = [] }: CreateThemeOptions): Extension => {
+/// Create a theme of the editors.
+/// The colors are CSS colors that may refer to the tokens of the theme of the app. CodeMirror's own base theme
+/// picks its light variant, the theme covers the parts it colors: panels, tooltips, matches and brackets.
+export const createTheme = ({ settings = {}, styles = [] }: CreateThemeOptions): Extension => {
     const themeOptions: Record<string, StyleSpec> = {
         '.cm-gutters': {},
     };
@@ -110,9 +107,35 @@ export const createTheme = ({ theme, settings = {}, styles = [] }: CreateThemeOp
             backgroundColor: settings.selectionMatch,
         };
     }
-    const themeExtension = EditorView.theme(themeOptions, {
-        dark: theme === 'dark',
-    });
+    themeOptions['.cm-panels'] = {
+        backgroundColor: 'var(--color_bg_subtle)',
+        color: 'var(--color_fg)',
+    };
+    themeOptions['.cm-panels.cm-panels-top'] = { borderBottom: '1px solid var(--color_border)' };
+    themeOptions['.cm-panels.cm-panels-bottom'] = { borderTop: '1px solid var(--color_border)' };
+    themeOptions['.cm-tooltip'] = {
+        backgroundColor: 'var(--color_bg_card)',
+        color: 'var(--color_fg)',
+        border: '1px solid var(--color_border)',
+    };
+    themeOptions['.cm-tooltip-autocomplete ul li[aria-selected]'] = {
+        backgroundColor: 'var(--color_accent_muted)',
+        color: 'var(--color_fg)',
+    };
+    themeOptions['.cm-searchMatch'] = {
+        backgroundColor: 'var(--color_attention_muted)',
+        outline: '1px solid var(--color_attention_fg)',
+    };
+    themeOptions['.cm-searchMatch.cm-searchMatch-selected'] = {
+        backgroundColor: 'var(--color_accent_muted)',
+    };
+    themeOptions['.cm-matchingBracket, &.cm-focused .cm-matchingBracket'] = {
+        backgroundColor: 'var(--color_bg_selected)',
+    };
+    themeOptions['.cm-nonmatchingBracket, &.cm-focused .cm-nonmatchingBracket'] = {
+        backgroundColor: 'var(--color_danger_muted)',
+    };
+    const themeExtension = EditorView.theme(themeOptions);
 
     const highlightStyle = HighlightStyle.define(styles);
     const extension = [themeExtension, syntaxHighlighting(highlightStyle)];

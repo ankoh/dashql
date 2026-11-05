@@ -29,7 +29,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 /* Pushes the scope and the time window to the end of the header of the activity */
@@ -39,22 +39,22 @@
 
 .section_detail {
     font-size: 12px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .section_empty {
     margin: 0;
     font-size: 12px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .panel {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
 .panel_header {
@@ -65,21 +65,21 @@
     height: 36px;
     /* The refresh button keeps the same distance to the right as to the top */
     padding: 0 4px 0 12px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .panel_title {
     margin: 0 auto 0 0;
     font-size: 12px;
     font-weight: 600;
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }
 
 .panel_empty {
     margin: 0;
     padding: 16px 12px;
     font-size: 12px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 /* Why the log cannot be read, with the message of the error below */
@@ -89,7 +89,7 @@
     gap: 8px;
     padding: 16px 12px;
     font-size: 12px;
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg_muted);
 }
 
 .panel_notice p {
@@ -97,7 +97,7 @@
 }
 
 .panel_notice_detail {
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
     font-family: var(--font_family_mono);
     overflow-wrap: anywhere;
 }
@@ -152,9 +152,9 @@
     gap: 4px;
     min-width: 0;
     padding: 6px 10px 6px 10px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
 .card_header {
@@ -173,7 +173,7 @@
     cursor: help;
     font-size: 12px;
     font-weight: 500;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .card_value {
@@ -182,13 +182,13 @@
     font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    color: var(--base_color_neutral_9);
+    color: var(--color_fg);
 }
 
 .card_aggregate {
     margin-right: 3px;
     font-weight: 400;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 /* Words like p95 are smaller so they weigh as much as a single symbol like ⌀ */

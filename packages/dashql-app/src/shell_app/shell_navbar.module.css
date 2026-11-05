@@ -4,7 +4,8 @@
     grid-template-rows: 100%;
     align-items: center;
     height: 40px;
-    color: white;
+    color-scheme: dark;
+    color: var(--color_fg);
 }
 
 .brand {
@@ -42,14 +43,8 @@
     display: block;
 }
 
-/* A faint outlined tag on the dark navbar, so the tagline reads as a label and not as part of the name */
-.brand_tagline {
-    --tag_outline_border_color: rgba(255, 255, 255, 0.1);
-    --tag_outline_color: rgba(255, 255, 255, 0.45);
-}
-
 .brand:focus-visible {
-    outline: 2px solid white;
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
@@ -69,7 +64,7 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     background: transparent;
-    color: white;
+    color: var(--color_fg);
     fill: currentColor;
     font-family: var(--font_family);
     font-size: var(--font_size_body);
@@ -78,12 +73,12 @@
 }
 
 .action_button:hover {
-    border-color: rgba(0, 0, 0, 0.2);
-    background: var(--navbar_hover_background_color);
+    border-color: var(--color_border);
+    background: var(--color_bg_hover);
 }
 
 .action_button:focus-visible {
-    outline: 2px solid white;
+    outline: 2px solid var(--color_focus);
     outline-offset: 1px;
 }
 
@@ -101,7 +96,7 @@
     justify-content: space-between;
     height: 40px;
     padding: 0 4px 0 16px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .version_title {
@@ -142,8 +137,8 @@
 }
 
 .version_link_button:hover {
-    border-color: var(--border_color_primary);
-    background: var(--bg_color_secondary);
+    border-color: var(--color_border);
+    background: var(--color_bg_hover);
 }
 
 .version_link_button:focus-visible {

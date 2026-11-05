@@ -32,6 +32,12 @@ The `BrowserWindow` uses `contextIsolation`, `sandbox` and `webSecurity`, withou
 (`src/main.ts`). New windows are denied and navigation away from the app is blocked. The window uses
 `titleBarStyle: "hiddenInset"`; the app styles its navbar for `PlatformType.DESKTOP`.
 
+The windows follow the color scheme of the app (`docs/design/app_theme.md`). The app calls
+`dashqlElectron.setColorScheme` with `light`, `dark` or `system` whenever the scheme of its settings changes,
+including on every start. The main process sets `nativeTheme.themeSource`, which Electron does not keep across
+restarts, and gives the windows the page background of the scheme, so that a window does not flash the other
+scheme while the app loads.
+
 ## Application Protocol
 
 The `app` scheme is registered before the app is ready with the `standard`, `secure` and `supportFetchAPI`

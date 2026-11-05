@@ -17,7 +17,7 @@ import {
 import { applyCompletion, computePatches } from './dashql_completion_patches.js';
 import { DashQLDecorationPlugin } from './dashql_decorations.js';
 import { deriveFocusFromEditorUpdate } from '../scripts/focus.js';
-import { xcodeLight } from './themes/xcode.js';
+import { xcodeTheme } from './themes/xcode.js';
 import { ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -288,13 +288,18 @@ describe('CodeMirror portable editor events', () => {
             derivedFocus: null,
             onUpdate: update => { emitted = update; },
         };
+        // The editor theme takes its colors from the code tokens of the app theme, the test page does not load it
+        const parent = document.createElement('div');
+        parent.style.setProperty('--code_variable_name', 'rgb(35, 87, 92)');
+        parent.style.setProperty('--code_type_name', 'rgb(82, 43, 178)');
+        document.body.appendChild(parent);
         const view = new EditorView({
             state: EditorState.create({
                 doc: text,
                 selection: EditorSelection.cursor(0),
-                extensions: [xcodeLight, DashQLProcessorPlugin, DashQLDecorationPlugin],
+                extensions: [xcodeTheme, DashQLProcessorPlugin, DashQLDecorationPlugin],
             }),
-            parent: document.body,
+            parent,
         });
         view.dispatch({ effects: DashQLUpdateEffect.of(processorState) });
         view.dispatch({ selection: EditorSelection.cursor(text.indexOf('identifier') + 1) });
@@ -316,6 +321,7 @@ describe('CodeMirror portable editor events', () => {
         expect(getComputedStyle(functionNode!.querySelector('span')!).color).toBe('rgb(35, 87, 92)');
         expect(getComputedStyle(relationNode!.querySelector('span')!).color).toBe('rgb(82, 43, 178)');
         view.destroy();
+        parent.remove();
         scriptSession.destroy();
         schemaSession.destroy();
         catalog.destroy();

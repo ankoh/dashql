@@ -27,18 +27,18 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 12px 8px 20px;
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
     font-size: 0.8rem;
 }
 
 .caching_label {
     font-weight: 600;
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }
 
 .caching_caption {
     margin-top: 2px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .footer {
@@ -48,16 +48,16 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 12px 8px 20px;
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
     font-size: 0.8rem;
 }
 
 .footer_notice {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .footer_error {
-    color: var(--base_color_red_6);
+    color: var(--color_danger_fg);
 }
 
 .footer_list {
@@ -77,7 +77,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
     font-weight: 600;
 }
 
@@ -85,7 +85,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: var(--base_color_orange_5);
+    background-color: var(--color_attention_fg);
 }
 
 .footer_hint {
@@ -96,5 +96,5 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--base_color_green_6);
+    color: var(--color_success_fg);
 }

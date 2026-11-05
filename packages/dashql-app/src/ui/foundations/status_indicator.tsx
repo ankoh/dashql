@@ -15,10 +15,10 @@ export enum IndicatorStatus {
 }
 
 // The status colors are theme tokens of @ankoh/dashql-ui/styles/tokens.css, flavors can override them
-export const STATUS_COLOR_IN_PROGRESS = 'var(--status_color_in_progress)';
-export const STATUS_COLOR_SUCCESS = 'var(--status_color_success)';
-export const STATUS_COLOR_FAILED = 'var(--status_color_failed)';
-export const STATUS_COLOR_OTHER = 'var(--status_color_other)';
+export const STATUS_COLOR_IN_PROGRESS = 'var(--color_attention_fg)';
+export const STATUS_COLOR_SUCCESS = 'var(--color_success_fg)';
+export const STATUS_COLOR_FAILED = 'var(--color_danger_fg)';
+export const STATUS_COLOR_OTHER = 'var(--color_neutral_fg)';
 
 function getIndicatorColor(status: IndicatorStatus): string {
     switch (status) {

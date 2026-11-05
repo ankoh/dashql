@@ -15,7 +15,7 @@
     grid-row: 2;
     grid-column: 1;
     font-size: 0.8rem;;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
     align-self: start;
     margin-top: 2px;
 }
@@ -64,8 +64,8 @@
     width: 15px;
     height: 24px;
 
-    border-bottom: 1px solid var(--border_color_primary);
-    border-left: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
+    border-left: 1px solid var(--color_border);
     border-bottom-left-radius: 6px;
 }
 
@@ -80,7 +80,7 @@
 .path_side_by_side {
     grid-row: 1;
     grid-column: 1;
-    color: hsl(var(--neutral_hue), calc(9.8% * var(--neutral_tint)), 37.8%);
+    color: var(--color_fg_muted);
     font-family: monospace;
     font-size: 12px;
 }
@@ -90,7 +90,7 @@
     grid-column: 1;
     width: 100% !important;
     margin-left: 0;
-    color: hsl(var(--neutral_hue), calc(9.8% * var(--neutral_tint)), 37.8%);
+    color: var(--color_fg_muted);
     font-family: monospace;
     font-size: 12px;
 }

@@ -3,7 +3,7 @@
 }
 
 .delete_action {
-    color: var(--base_color_red_6);
+    color: var(--color_danger_fg);
 }
 
 .storage {
@@ -16,7 +16,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 4px 4px 4px 12px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .storage_title {
@@ -36,7 +36,7 @@
 .storage_label {
     font-size: 0.8rem;
     font-weight: 500;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .storage_input {
@@ -44,7 +44,7 @@
     font-family: var(--font_family_mono);
     font-size: 0.8rem;
     padding: 4px 6px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: 4px;
 }
 

@@ -6,7 +6,7 @@
     min-width: 0;
     min-height: 280px;
     overflow: hidden;
-    background: #ffffff;
+    background: var(--color_bg_card);
 }
 
 /* Expanded, the overlay fills the window and the dialog fills the overlay */
@@ -22,13 +22,13 @@
     height: 44px;
     padding: 0 8px 0 12px;
     gap: 8px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .title {
     flex: 0 0 auto;
     margin: 0;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 30%);
+    color: var(--color_fg_muted);
     font-size: 0.9rem;
     font-weight: 600;
     line-height: 1;
@@ -46,7 +46,7 @@
     min-width: 0;
     max-width: 320px;
     gap: 5px;
-    color: #cf222e;
+    color: var(--color_danger_fg);
     font-size: var(--font_size_compact);
 }
 

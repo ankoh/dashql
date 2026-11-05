@@ -38,7 +38,7 @@ function createPromptExtensions(configurable: Extension[], callbacks: React.RefO
         return true;
     };
     return [
-        themes.xcode.xcodeLight,
+        themes.xcode,
         drawSelection(),
         history(),
         // The processor keeps running with any assistance, the editor updates of the script session are reported

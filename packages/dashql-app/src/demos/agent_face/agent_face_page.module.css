@@ -2,7 +2,7 @@
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: var(--base_color_neutral_0);
+    background-color: var(--color_bg);
 }
 
 .header {
@@ -15,13 +15,13 @@
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: var(--base_color_neutral_9);
+    color: var(--color_fg);
 }
 
 .subtitle {
     margin: 4px 0 0 0;
     font-size: var(--font_size_body);
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .layout {
@@ -47,14 +47,14 @@
     gap: 40px;
     min-height: 520px;
     padding: 48px 16px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
+/* The dark surface is dark in both schemes, the tokens of the stage and its contents resolve dark on it */
 .stage[data-surface="dark"] {
-    border-color: var(--base_color_neutral_8);
-    background-color: var(--base_color_neutral_9);
+    color-scheme: dark;
 }
 
 .stage_face {
@@ -80,27 +80,22 @@
 
 .greeting_text {
     margin: 0;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: 20px;
     font-weight: 400;
     font-style: italic;
     line-height: 1.3;
 }
 
-.stage[data-surface="dark"] .greeting_text {
-    margin: 0;
-    color: var(--base_color_neutral_2);
-}
-
 .try_input {
     width: min(360px, 100%);
     padding: 8px 12px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
     font-family: inherit;
     font-size: var(--font_size_body);
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }
 
 .sizes {
@@ -119,7 +114,7 @@
 .size_label {
     font-family: var(--font_family_mono);
     font-size: var(--font_size_caption);
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .controls {
@@ -138,7 +133,7 @@
 .control_label {
     width: 64px;
     font-size: var(--font_size_small);
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .group {
@@ -147,16 +142,16 @@
     gap: 6px;
     margin: 0;
     padding: 10px 12px 12px 12px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
 .group_title {
     padding: 0 4px;
     font-size: var(--font_size_small);
     font-weight: 600;
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }
 
 .knob {
@@ -165,12 +160,12 @@
     align-items: center;
     gap: 8px;
     font-size: var(--font_size_small);
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg);
 }
 
 .knob input {
     width: 100%;
-    accent-color: var(--base_color_blue_5);
+    accent-color: var(--color_accent_emphasis);
 }
 
 .knob_value {
@@ -178,17 +173,17 @@
     font-size: var(--font_size_caption);
     font-variant-numeric: tabular-nums;
     text-align: right;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .tuning {
     margin: 0;
     padding: 10px 12px;
     overflow-x: auto;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: var(--base_color_neutral_1);
+    background-color: var(--color_bg_subtle);
     font-family: var(--font_family_mono);
     font-size: var(--font_size_caption);
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }

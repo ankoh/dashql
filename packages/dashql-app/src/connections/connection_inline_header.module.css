@@ -11,7 +11,7 @@
     justify-content: space-between;
     gap: 16px;
     padding: 8px 8px 8px 20px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .connector_info {
@@ -48,7 +48,7 @@
     gap: 12px;
     height: 36px;
     padding: 0 8px 8px 20px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .status_left {
@@ -86,11 +86,11 @@
 .embedded_label {
     font-size: 0.75rem;
     font-weight: 500;
-    color: hsl(var(--neutral_hue), calc(10.6% * var(--neutral_tint)), 39%);
+    color: var(--color_fg_muted);
 }
 
 .status_error {
     font-size: 0.8rem;
     font-weight: 300;
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
 }

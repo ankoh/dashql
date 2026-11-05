@@ -10,7 +10,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 10px 12px 8px 12px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .title {
@@ -20,7 +20,7 @@
 
 .subtitle {
     font-size: 0.75rem;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -41,12 +41,12 @@
     flex-direction: column;
     gap: 8px;
     padding: 8px 12px 10px 12px;
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }
 
 .note {
     font-size: 0.75rem;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .actions {

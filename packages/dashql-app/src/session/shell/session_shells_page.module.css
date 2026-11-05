@@ -1,4 +1,4 @@
-/* The header and the shells share one dark card */
+/* The header and the shells share one dark card, on the dark backdrop of the app in both schemes */
 .page {
     display: flex;
     flex-direction: column;
@@ -9,7 +9,8 @@
     min-height: 0;
     overflow: hidden;
     border-radius: 12px;
-    background: var(--shell_background_color);
+    color-scheme: dark;
+    background: var(--color_bg_hover);
 }
 
 .header {
@@ -22,8 +23,8 @@
     min-width: 0;
     padding: 0 8px;
     /* Darker than the shells below, the rounded card clips the top corners */
-    background: rgba(0, 0, 0, 0.06);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+    background: color-mix(in srgb, var(--color_bg) 30%, transparent);
+    border-bottom: 1px solid var(--color_border_muted);
 }
 
 .trigger {
@@ -37,7 +38,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: #e6edf3;
+    color: var(--color_fg);
     font-family: var(--font_family);
     font-size: var(--font_size_body);
     cursor: pointer;
@@ -45,17 +46,17 @@
 
 .trigger:hover,
 .trigger[aria-expanded='true'] {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--color_bg_hover);
 }
 
 .trigger:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
 .trigger_icon {
     flex-shrink: 0;
-    color: white;
+    color: var(--color_fg);
 }
 
 .trigger_status {
@@ -75,15 +76,14 @@
     flex-shrink: 0;
     padding: 0 6px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(230, 237, 243, 0.7);
+    background: var(--color_bg_hover);
+    color: var(--color_fg_muted);
     font-size: var(--font_size_small);
     line-height: 18px;
 }
 
 /* The card paints the background, the shells inside of it stay transparent */
 .shells {
-    --shell_background_color: transparent;
     position: relative;
     flex: 1;
     min-height: 0;

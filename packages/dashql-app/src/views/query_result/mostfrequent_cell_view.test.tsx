@@ -187,7 +187,7 @@ describe('MostFrequentCell', () => {
         const column = await aggregate(ROWS, VALUES());
         await render({ column });
 
-        const fills = totalBars().map(bar => bar.getAttribute('fill'));
+        const fills = totalBars().map(bar => (bar as SVGElement).style.fill);
         expect(fills).toEqual([
             COLUMN_SUMMARY_COLORS.totalBar,
             COLUMN_SUMMARY_COLORS.totalBar,
@@ -209,20 +209,20 @@ describe('MostFrequentCell', () => {
         await hoverBar(0);
         expect(header()).toBe('4 rows (40%)');
         expect(axisLabels()).toEqual(['a']);
-        expect(totalBars()[0].getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
+        expect((totalBars()[0] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
         expect(cell().style.zIndex).toBe('100');
 
         await hoverBar(3);
         expect(header()).toBe('2 rows (20%)');
         expect(axisLabels()).toEqual(['c']);
-        expect(totalBars()[0].getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.totalBar);
-        expect(totalBars()[3].getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
+        expect((totalBars()[0] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBar);
+        expect((totalBars()[3] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
 
         // The null value is shown as the null symbol
         await hoverBar(2);
         expect(header()).toBe('2 rows (20%)');
         expect(axisLabels()).toEqual(['∅']);
-        expect(totalBars()[2].getAttribute('fill')).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarFocused);
+        expect((totalBars()[2] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarFocused);
 
         await pointer('pointerout', center(totalBars()[2]));
         expect(header()).toBe('Text');
@@ -336,7 +336,7 @@ describe('MostFrequentCell', () => {
         await render({ column, filtered });
 
         // The backgrounds fade while a filter is active
-        expect(totalBars().map(bar => bar.getAttribute('fill'))).toEqual([
+        expect(totalBars().map(bar => (bar as SVGElement).style.fill)).toEqual([
             COLUMN_SUMMARY_COLORS.totalBarWithFilter,
             COLUMN_SUMMARY_COLORS.totalBarWithFilter,
             COLUMN_SUMMARY_NULL_COLORS.totalBarWithFilter,
@@ -352,12 +352,12 @@ describe('MostFrequentCell', () => {
         // The fills grow from the bottom
         const [background, fill] = filteredBars(0);
         expect(fill.getBoundingClientRect().bottom).toBeCloseTo(background.getBoundingClientRect().bottom, 3);
-        expect(fill.getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.filteredBar);
+        expect((fill as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.filteredBar);
 
         // The description counts the selected rows
         await hoverBar(0);
         expect(header()).toBe('2 rows (66.67%)');
-        expect(filteredBars(0)[1].getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.filteredBarFocused);
+        expect((filteredBars(0)[1] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.filteredBarFocused);
         await hoverBar(1);
         expect(header()).toBe('0 rows (0%)');
         await hoverBar(3);
@@ -369,7 +369,7 @@ describe('MostFrequentCell', () => {
         const other = { type: Symbol('OTHER'), value: null } as unknown as WithFilterEpoch<ColumnAggregationVariant>;
         await render({ column, filtered: other });
 
-        expect(totalBars()[0].getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.totalBar);
+        expect((totalBars()[0] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBar);
         await hoverBar(0);
         expect(header()).toBe('4 rows (40%)');
     });

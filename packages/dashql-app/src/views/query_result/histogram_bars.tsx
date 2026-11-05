@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as d3 from 'd3';
+import { COLUMN_SUMMARY_BASELINE_COLOR } from './data_table_colors.js';
 
 export const NULL_SYMBOL = "∅";
 
@@ -42,7 +43,7 @@ function HistogramBarsImpl(props: HistogramBarsProps): React.ReactElement {
     const filteredBinCounts = props.filteredBinCounts;
     const totalBars = Array.from({ length: props.binCounts.length }, (_, bin) => {
         const geometry = getBarGeometry(bin, props.binCounts[bin], props.xScale, props.yScale, props.height);
-        return geometry == null ? null : <rect key={bin} {...geometry} fill={props.totalBarColor} />;
+        return geometry == null ? null : <rect key={bin} {...geometry} style={{ fill: props.totalBarColor }} />;
     });
     const focusedTotalGeometry = props.focusedBin == null
         ? null
@@ -51,7 +52,7 @@ function HistogramBarsImpl(props: HistogramBarsProps): React.ReactElement {
         ? null
         : Array.from({ length: filteredBinCounts.length }, (_, bin) => {
             const geometry = getBarGeometry(bin, filteredBinCounts[bin], props.xScale, props.yScale, props.height);
-            return geometry == null ? null : <rect key={`filtered-${bin}`} {...geometry} fill={props.filteredBarColor} />;
+            return geometry == null ? null : <rect key={`filtered-${bin}`} {...geometry} style={{ fill: props.filteredBarColor }} />;
         });
     const focusedFilteredGeometry = props.focusedBin == null || filteredBinCounts == null
         ? null
@@ -61,11 +62,11 @@ function HistogramBarsImpl(props: HistogramBarsProps): React.ReactElement {
         <>
             {totalBars}
             {focusedTotalGeometry != null && (
-                <rect key={`focused-${props.focusedBin}`} {...focusedTotalGeometry} fill={props.totalBarFocusedColor} />
+                <rect key={`focused-${props.focusedBin}`} {...focusedTotalGeometry} style={{ fill: props.totalBarFocusedColor }} />
             )}
             {filteredBars}
             {focusedFilteredGeometry != null && (
-                <rect key={`focused-filtered-${props.focusedBin}`} {...focusedFilteredGeometry} fill={props.filteredBarFocusedColor} />
+                <rect key={`focused-filtered-${props.focusedBin}`} {...focusedFilteredGeometry} style={{ fill: props.filteredBarFocusedColor }} />
             )}
         </>
     );
@@ -117,7 +118,7 @@ export function HistogramNullBar(props: HistogramNullBarProps): React.ReactEleme
                 y={nullY}
                 width={nullWidth}
                 height={nullHeight}
-                fill={props.focused ? props.totalBarFocusedColor : props.totalBarColor}
+                style={{ fill: props.focused ? props.totalBarFocusedColor : props.totalBarColor }}
             />
             {hasValidFilteredBar && (
                 <rect
@@ -125,14 +126,14 @@ export function HistogramNullBar(props: HistogramNullBarProps): React.ReactEleme
                     y={filteredNullY!}
                     width={nullWidth}
                     height={filteredNullHeight!}
-                    fill={props.focused ? props.filteredBarFocusedColor : props.filteredBarColor}
+                    style={{ fill: props.focused ? props.filteredBarFocusedColor : props.filteredBarColor }}
                 />
             )}
             <g transform={`translate(0, ${props.height})`}>
                 <line
                     x1={0} y1={1}
                     x2={props.xWidth} y2={1}
-                    stroke={'hsl(210deg 17.5% 84.31%)'}
+                    style={{ stroke: COLUMN_SUMMARY_BASELINE_COLOR }}
                 />
                 <rect
                     x={nullX}

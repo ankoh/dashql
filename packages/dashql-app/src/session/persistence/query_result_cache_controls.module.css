@@ -5,7 +5,7 @@
     align-items: center;
     height: 22px;
     font-size: var(--font_size_caption);
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 40%);
+    color: var(--color_fg_muted);
     white-space: nowrap;
 }
 
@@ -28,7 +28,7 @@
 }
 
 .cached_result_button:hover .cached_result_bean {
-    border-color: var(--border_color_primary);
+    border-color: var(--color_border);
 }
 
 /* The card chrome comes from the shared Overlay foundation */
@@ -46,5 +46,5 @@
 
 .cached_result_detail_time {
     font-size: var(--font_size_caption);
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 40%);
+    color: var(--color_fg_muted);
 }

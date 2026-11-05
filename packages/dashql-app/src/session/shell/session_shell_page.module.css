@@ -16,7 +16,8 @@
     padding: 12px;
     overflow: hidden;
     border-radius: 12px;
-    background: var(--shell_background_color);
+    /* The card of the shells page paints the background */
+    background: transparent;
 }
 
 .terminal_host {
@@ -53,7 +54,7 @@
     top: 12px;
     left: 12px;
     max-width: calc(100% - 24px);
-    color: #e6edf3;
+    color: var(--color_fg);
     font-family: var(--font_family_mono);
     font-size: 13px;
     line-height: 1.2;

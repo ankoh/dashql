@@ -19,7 +19,7 @@
 }
 
 .control .input:focus-within {
-    border-color: var(--border_color_primary);
+    border-color: var(--color_border);
     outline: none;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .error {
-    color: var(--fgColor-danger, #cf222e);
+    color: var(--color_danger_fg);
     font-weight: 700;
 }
 

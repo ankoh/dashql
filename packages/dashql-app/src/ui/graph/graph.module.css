@@ -2,7 +2,7 @@
 
 .edge {
     fill: none;
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    stroke: var(--color_fg_subtle);
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
@@ -14,7 +14,7 @@
 }
 
 .edgeBadge rect {
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    stroke: var(--color_fg_subtle);
     stroke-width: 1px;
 }
 
@@ -28,7 +28,7 @@
 
 .crossEdge {
     fill: none;
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    stroke: var(--color_fg_subtle);
     stroke-width: 1px;
     stroke-dasharray: 6 4;
     stroke-linecap: round;
@@ -43,7 +43,7 @@
 .edgeHighlight,
 .crossEdgeHighlight {
     fill: none;
-    stroke: hsl(211, 100%, 45%);
+    stroke: var(--color_accent_fg);
     stroke-linecap: round;
     stroke-linejoin: round;
 }
@@ -54,21 +54,22 @@
     vector-effect: non-scaling-stroke;
 }
 
-/* The colors of a fragment, set on an element around everything that draws the fragment */
-.fragment_colors { --fragment_fill: hsl(211, 100%, 97%); --fragment_stroke: hsl(211, 70%, 42%); }
-.fragment_colors[data-color="1"] { --fragment_fill: hsl(145, 55%, 96%); --fragment_stroke: hsl(145, 55%, 34%); }
-.fragment_colors[data-color="2"] { --fragment_fill: hsl(270, 55%, 97%); --fragment_stroke: hsl(270, 45%, 44%); }
-.fragment_colors[data-color="3"] { --fragment_fill: hsl(32, 80%, 96%); --fragment_stroke: hsl(32, 75%, 38%); }
-.fragment_colors[data-color="4"] { --fragment_fill: hsl(180, 50%, 96%); --fragment_stroke: hsl(180, 60%, 31%); }
-.fragment_colors[data-color="5"] { --fragment_fill: hsl(340, 65%, 97%); --fragment_stroke: hsl(340, 55%, 43%); }
+/* The colors of a fragment, set on an element around everything that draws the fragment.
+   A fragment takes a categorical chart color, its fill is a faint tint of it on the card surface. */
+.fragment_colors { --fragment_fill: color-mix(in srgb, var(--chart_color_1) 12%, var(--color_bg_card)); --fragment_stroke: var(--chart_color_1); }
+.fragment_colors[data-color="1"] { --fragment_fill: color-mix(in srgb, var(--chart_color_4) 12%, var(--color_bg_card)); --fragment_stroke: var(--chart_color_4); }
+.fragment_colors[data-color="2"] { --fragment_fill: color-mix(in srgb, var(--chart_color_3) 12%, var(--color_bg_card)); --fragment_stroke: var(--chart_color_3); }
+.fragment_colors[data-color="3"] { --fragment_fill: color-mix(in srgb, var(--chart_color_2) 12%, var(--color_bg_card)); --fragment_stroke: var(--chart_color_2); }
+.fragment_colors[data-color="4"] { --fragment_fill: color-mix(in srgb, var(--chart_color_7) 12%, var(--color_bg_card)); --fragment_stroke: var(--chart_color_7); }
+.fragment_colors[data-color="5"] { --fragment_fill: color-mix(in srgb, var(--chart_color_5) 12%, var(--color_bg_card)); --fragment_stroke: var(--chart_color_5); }
 /* Fragments that are not told apart by color */
-.fragment_colors[data-color="neutral"] { --fragment_fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98.5%); --fragment_stroke: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 80%); }
+.fragment_colors[data-color="neutral"] { --fragment_fill: var(--color_bg_subtle); --fragment_stroke: var(--color_border); }
 
 .fragment {
     pointer-events: none;
-    fill: var(--fragment_fill, hsl(211, 100%, 97%));
+    fill: var(--fragment_fill, color-mix(in srgb, var(--chart_color_1) 12%, var(--color_bg_card)));
     fill-opacity: 0.4;
-    stroke: var(--fragment_stroke, hsl(211, 70%, 42%));
+    stroke: var(--fragment_stroke, var(--chart_color_1));
     stroke-opacity: 0.6;
     stroke-width: 1px;
     stroke-dasharray: 6 4;
@@ -78,8 +79,8 @@
 
 /* A node frame, nodes set --graph_node_background and --graph_node_border_color */
 .node_frame {
-    fill: var(--graph_node_background, white);
-    stroke: var(--graph_node_border_color, hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%));
+    fill: var(--graph_node_background, var(--color_bg_card));
+    stroke: var(--graph_node_border_color, var(--color_border));
     stroke-width: 1px;
 }
 
@@ -88,18 +89,18 @@
 }
 .port_border {
     fill: none;
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    stroke: var(--color_fg_subtle);
     stroke-width: 1px;
 }
 .port_mask {
-    fill: var(--graph_node_background, white);
+    fill: var(--graph_node_background, var(--color_bg_card));
 }
 .port_dot {
-    fill: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    fill: var(--color_fg_subtle);
 }
 .port[data-highlighted="true"] .port_border {
-    stroke: hsl(211, 100%, 45%);
+    stroke: var(--color_accent_fg);
 }
 .port[data-highlighted="true"] .port_dot {
-    fill: hsl(211, 100%, 45%);
+    fill: var(--color_accent_fg);
 }

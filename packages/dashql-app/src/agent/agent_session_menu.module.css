@@ -6,6 +6,6 @@
 .notice {
     padding: 10px 12px 6px 12px;
     font-size: var(--font_size_small);
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
     overflow-wrap: anywhere;
 }

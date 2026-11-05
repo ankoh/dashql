@@ -18,6 +18,7 @@ import { useLocation } from 'react-router-dom';
 import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
 import { NavRail, useNavRailWide } from './nav_rail.js';
 import { useMacWindowLayout } from './mac_window_layout.js';
+import { useColorSchemeToggle } from '../config/color_scheme.js';
 
 const LOG_CTX = "navbar";
 
@@ -121,6 +122,28 @@ const VersionButton = (props: { iconSize?: number }) => {
     );
 };
 
+/// Switches between the light and the dark color scheme, the icon shows the scheme that a click switches to
+const ColorSchemeButton = () => {
+    const [scheme, toggle] = useColorSchemeToggle();
+    const label = scheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    return (
+        <div className={styles.tab}>
+            <NavBarButtonWithRef
+                className={styles.tab_button}
+                hover={HoverMode.Darken}
+                onClick={toggle}
+                aria-label={label}
+                title={label}
+                data-testid="color-scheme-toggle"
+            >
+                <svg width="14px" height="14px" aria-hidden="true">
+                    <use xlinkHref={`${symbols}#${scheme === 'dark' ? 'sun_16' : 'moon_16'}`} />
+                </svg>
+            </NavBarButtonWithRef>
+        </div>
+    );
+};
+
 /// The height of a wordmark in the navbar, a bit smaller than square logos to match the cap height of text
 const WORDMARK_HEIGHT = 16;
 
@@ -167,6 +190,7 @@ export const CompactNavBar = (props: { showInternals?: boolean }): React.ReactEl
             <BrandIdentity />
             <div className={styles.navbar_actions}>
                 {(props.showInternals ?? true) && <InternalsButton sessionId={route.sessionId} />}
+                <ColorSchemeButton />
                 <VersionButton />
             </div>
         </header>
@@ -204,6 +228,7 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
                 <div className={styles.top_bar_actions}>
                     <AgentButton />
                     <InternalsButton sessionId={route.sessionId} />
+                    <ColorSchemeButton />
                     <VersionButton iconSize={14} />
                 </div>
             </header>

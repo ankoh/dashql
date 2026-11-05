@@ -15,14 +15,14 @@
 }
 
 .muted {
-    background-color: var(--base_color_neutral_1);
-    border-color: var(--base_color_neutral_2);
-    color: var(--base_color_neutral_6);
+    background-color: var(--color_neutral_muted);
+    border-color: var(--color_border);
+    color: var(--color_fg_muted);
 }
 
-/* Surfaces with other colors, e.g. the dark navbar, override the variables */
+/* Dark surfaces like the navbar force a dark color-scheme, the tokens follow it */
 .outline {
     background-color: transparent;
-    border-color: var(--tag_outline_border_color, var(--base_color_neutral_2));
-    color: var(--tag_outline_color, var(--base_color_neutral_6));
+    border-color: var(--color_border);
+    color: var(--color_fg_muted);
 }

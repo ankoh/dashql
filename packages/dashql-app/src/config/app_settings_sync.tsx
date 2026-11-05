@@ -4,6 +4,7 @@ import { useAppConfig, useAppReconfigure } from './app_config.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useAppFlavorSelect } from './flavor_provider.js';
+import { applyColorSchemeToDocument } from './color_scheme.js';
 
 const LOG_CTX = 'app_settings_sync';
 
@@ -68,6 +69,12 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
     React.useLayoutEffect(() => {
         selectFlavor(flavorId);
     }, [flavorId, selectFlavor]);
+
+    // Apply the color scheme of the settings, the document follows the OS until they are hydrated
+    const colorScheme = config?.settings?.colorScheme ?? null;
+    React.useLayoutEffect(() => {
+        applyColorSchemeToDocument(colorScheme);
+    }, [colorScheme]);
 
     React.useEffect(() => {
         if (!hydrated) return;

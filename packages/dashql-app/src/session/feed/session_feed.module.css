@@ -1,13 +1,5 @@
 /* Collection styles */
 
-:root {
-    --session_feed_preview_background: transparent;
-    --session_feed_entry_headerbar_background: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 98%);
-    --session_feed_entry_footer_background: transparent;
-    --session_feed_script_accent: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 64%);
-    --session_feed_server_accent: hsl(267, 12%, 61%);
-}
-
 
 .feed_body_container {
     position: relative;
@@ -57,13 +49,13 @@
     width: 72px;
     height: 72px;
     flex-shrink: 0;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 /* The question of the agent, right of its face */
 .feed_landing_question {
     margin: 0;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: 20px;
     font-weight: 400;
     font-style: italic;
@@ -74,7 +66,7 @@
 /* The docked composer sits on the stage below the feed, a card like the scripts */
 .feed_composer_section {
     grid-row: 3;
-    border-top: 1px solid var(--log_border_color);
+    border-top: 1px solid var(--color_border);
 }
 
 /* Lines the composer up with the scripts of the feed, which stop before the scrollbar */
@@ -101,10 +93,10 @@
     gap: 6px;
     height: 32px;
     padding: 0 10px;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    color: var(--base_color_neutral_8);
-    background-color: white;
+    color: var(--color_fg);
+    background-color: var(--color_bg_card);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
     font-weight: 600;
@@ -112,14 +104,14 @@
 }
 
 .feed_data_chip:hover {
-    background-color: var(--base_color_neutral_0);
+    background-color: var(--color_bg_hover);
 }
 
 .feed_data_count {
     padding: 0 6px;
     border-radius: 999px;
-    background-color: var(--base_color_neutral_1);
-    color: var(--base_color_neutral_6);
+    background-color: var(--color_neutral_muted);
+    color: var(--color_fg_muted);
     font-weight: 500;
     line-height: 16px;
 }
@@ -128,9 +120,9 @@
     align-self: flex-start;
     max-width: 100%;
     box-sizing: border-box;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
 .feed_data_drawer {
@@ -156,9 +148,9 @@
     width: 320px;
     min-width: 320px;
     height: 56px;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
     padding: 8px 10px;
     display: flex;
     flex-direction: column;
@@ -178,7 +170,7 @@
     height: 28px;
     flex: 0 0 28px;
     position: relative;
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg_muted);
 }
 
 .feed_data_file_icon svg {
@@ -194,8 +186,8 @@
     overflow: hidden;
     padding: 1px 3px;
     border-radius: 2px;
-    color: white;
-    background: var(--base_color_neutral_7);
+    color: var(--color_fg_on_emphasis);
+    background: var(--color_neutral_emphasis);
     font-size: 7px;
     font-weight: 700;
     line-height: 1.1;
@@ -219,7 +211,7 @@
 }
 
 .feed_data_size {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: 11px;
 }
 
@@ -249,12 +241,12 @@
 .feed_data_empty,
 .feed_data_error {
     padding: 8px 10px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: var(--font_size_compact);
 }
 
 .feed_data_error {
-    color: var(--status_color_error, #cf222e);
+    color: var(--color_danger_fg);
 }
 
 /* A row of the feed, the card of a script and the space below it */
@@ -304,7 +296,7 @@
     padding: 0;
     border: 0;
     border-radius: 6px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     background: transparent;
     cursor: pointer;
     /* Hidden but clickable, a pointer on the button hovers its card and shows it */
@@ -328,15 +320,15 @@
 }
 
 .feed_entry_insert:hover {
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }
 
 .feed_entry_insert:active {
-    color: var(--base_color_neutral_9);
+    color: var(--color_fg);
 }
 
 .feed_entry_insert:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: 2px;
 }
 
@@ -357,7 +349,7 @@
     place-items: center;
     padding: 0;
     border: 0;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_subtle);
     background: transparent;
     cursor: grab;
     touch-action: none;
@@ -365,7 +357,7 @@
 
 .feed_entry_drag_handle:hover,
 .feed_entry_drag_handle:focus-visible {
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
 }
 
 .feed_entry_drag_handle:active {
@@ -373,14 +365,14 @@
 }
 
 .feed_entry_drag_handle:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: 2px;
 }
 
 .feed_entry_cell {
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
     width: 100%;
     overflow: hidden;
     display: grid;
@@ -393,8 +385,7 @@
 }
 
 .feed_entry_action_bar {
-    /* background-color: var(--session_feed_entry_headerbar_background); */ 
-    /* border-bottom: 1px solid var(--log_border_color); */
+    /* border-bottom: 1px solid var(--color_border); */
     border-radius: var(--border_radius) var(--border_radius) 0 0;
     display: flex;
     flex-direction: row;
@@ -402,11 +393,11 @@
     justify-content: space-between;
     padding: 0 4px 0 28px;
     gap: 6px;
-    color: var(--card_control_color);
+    color: var(--color_fg_muted);
 }
 
 .feed_entry_footer {
-    border-top: 1px solid var(--log_border_color);
+    border-top: 1px solid var(--color_border);
 }
 
 /* A wrapper of a header control that a narrow header may hide, see `data-entry-optional` */
@@ -420,7 +411,7 @@
     height: 16px;
     /* The separators keep apart the groups of buttons */
     margin: 0 2px;
-    background-color: var(--log_border_color);
+    background-color: var(--color_border);
 }
 
 .feed_entry_file_name {
@@ -443,10 +434,10 @@
     /* Keep the tag clear of the icon buttons that follow it */
     margin-right: 6px;
     padding: 0 8px;
-    border: 1px solid var(--base_color_neutral_2);
+    border: 1px solid var(--color_border);
     border-radius: 6px;
-    background-color: var(--base_color_neutral_0);
-    color: var(--base_color_neutral_6);
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg_muted);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
     font-weight: 500;
@@ -467,7 +458,7 @@ button.feed_entry_mention {
 .feed_entry_manual {
     flex-shrink: 0;
     margin-right: 6px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_subtle);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
     line-height: 20px;
@@ -475,29 +466,29 @@ button.feed_entry_mention {
 }
 
 .feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: color-mix(in srgb, var(--base_color_neutral_1) 50%, var(--base_color_neutral_0));
+    background-color: var(--color_bg_hover);
 }
 
 .feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: var(--base_color_neutral_2);
-    border-color: var(--base_color_neutral_3);
+    background-color: var(--color_bg_selected);
+    border-color: var(--color_fg_subtle);
 }
 
 .feed_entry_mention:focus-visible {
-    outline: 2px solid var(--base_color_neutral_3);
+    outline: 2px solid var(--color_focus);
     outline-offset: 1px;
 }
 
 /* Without an agent the tag can not mention the script, a double click still renames it */
 .feed_entry_mention[aria-disabled="true"] {
-    background-color: var(--base_color_neutral_0);
-    color: var(--base_color_neutral_4);
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg_subtle);
     cursor: default;
 }
 
 /* While editing, the tag keeps its single border, only a darker one */
 .feed_entry_mention[data-editing] {
-    border-color: var(--base_color_neutral_4);
+    border-color: var(--color_fg_subtle);
     cursor: text;
 }
 
@@ -515,22 +506,22 @@ button.feed_entry_mention {
 
 /* The run button of the focused card keeps the full text color, the one strong action in the muted header */
 .feed_entry_execute_focused {
-    color: var(--base_color);
+    color: var(--color_fg);
 }
 
 .feed_entry_execute_unfocused {
-    color: var(--base_color_neutral_4);
+    color: var(--color_fg_subtle);
 }
 
 /* The play button of a script whose connection is not connected, greyed like a disabled button */
 .feed_entry_execute_offline {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
 }
 
 .feed_entry_stats_bar {
     height: 24px;
     flex-shrink: 0;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
     overflow: hidden;
 }
@@ -542,7 +533,7 @@ button.feed_entry_mention {
     width: 100%;
     min-width: 0;
     cursor: text;
-    background-color:var(--session_feed_preview_background);
+    background-color: transparent;
 }
 
 .feed_editor_container {

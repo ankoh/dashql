@@ -33,15 +33,15 @@
 
 @keyframes connection_attention {
     35%, 55% {
-        background-color: hsl(212, 70%, 96%);
-        box-shadow: inset 0 0 0 1px hsl(212, 50%, 60%);
+        background-color: var(--color_accent_muted);
+        box-shadow: inset 0 0 0 1px var(--color_accent_fg);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .button[data-attention] {
         animation: none;
-        background-color: hsl(212, 85%, 94%);
-        box-shadow: inset 0 0 0 1px hsl(212, 65%, 45%);
+        background-color: var(--color_accent_muted);
+        box-shadow: inset 0 0 0 1px var(--color_accent_fg);
     }
 }

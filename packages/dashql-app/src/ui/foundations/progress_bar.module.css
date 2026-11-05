@@ -3,12 +3,12 @@
     height: 8px;
     overflow: hidden;
     border-radius: 999px;
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.6);
+    background-color: var(--color_neutral_muted);
 }
 
 .fill {
     height: 100%;
     border-radius: inherit;
-    background-color: #1f883d;
+    background-color: var(--color_success_emphasis);
     transition: width 120ms ease;
 }

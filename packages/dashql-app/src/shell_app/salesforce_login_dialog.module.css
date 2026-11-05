@@ -3,8 +3,8 @@
     height: min(600px, 80vh);
     max-height: min(600px, 80vh);
     overflow: hidden;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
-    background: white;
+    color: var(--color_fg);
+    background: var(--color_bg_card);
     border-radius: inherit;
     container-type: inline-size;
     container-name: connection-overlay;
@@ -25,19 +25,19 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     background: transparent;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+    color: var(--color_fg);
     cursor: pointer;
 }
 
 .history_button:hover,
 .history_button[aria-expanded='true'] {
-    border-color: var(--border_color_primary);
-    background: var(--bg_color_secondary);
+    border-color: var(--color_border);
+    background: var(--color_bg_hover);
 }
 
 .history_button:focus-visible,
 .history_overlay button:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: 1px;
 }
 
@@ -49,10 +49,10 @@
     width: min(400px, calc(100vw - 80px));
     max-height: min(400px, 60vh);
     overflow: hidden;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: 12px;
-    background: white;
-    box-shadow: 0 1px 3px hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.12), 0 8px 24px hsla(var(--neutral_hue), calc(11.4% * var(--neutral_tint)), 29.2%, 0.12);
+    background: var(--color_bg_card);
+    box-shadow: var(--shadow_large);
 }
 
 .history_header {
@@ -60,7 +60,7 @@
     align-items: center;
     min-height: 40px;
     padding: 0 16px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .history_header h2 {
@@ -98,15 +98,15 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     background: transparent;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+    color: var(--color_fg);
     text-align: left;
     cursor: pointer;
     flex: 1;
 }
 
 .history_select_button:hover {
-    border-color: var(--border_color_primary);
-    background: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
+    border-color: var(--color_border);
+    background: var(--color_bg_hover);
 }
 
 .history_delete_button {
@@ -121,13 +121,13 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     background: transparent;
-    color: #cf222e;
+    color: var(--color_danger_fg);
     cursor: pointer;
 }
 
 .history_delete_button:hover:not(:disabled) {
-    border-color: var(--border_color_primary);
-    background: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
+    border-color: var(--color_border);
+    background: var(--color_bg_hover);
 }
 
 .history_delete_button:disabled {
@@ -152,13 +152,13 @@
 .history_name {
     font-family: var(--font_family);
     font-size: 13px;
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
+    color: var(--color_fg);
 }
 
 .history_url {
     font-family: var(--font_family_mono);
     font-size: 12px;
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 45%);
+    color: var(--color_fg_muted);
 }
 
 .history_state,
@@ -169,11 +169,11 @@
 }
 
 .history_state {
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 45%);
+    color: var(--color_fg_muted);
 }
 
 .history_error {
-    color: #cf222e;
+    color: var(--color_danger_fg);
 }
 
 @media (max-width: 600px) {

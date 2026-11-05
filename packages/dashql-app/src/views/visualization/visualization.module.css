@@ -16,7 +16,7 @@
 }
 
 .error {
-    color: var(--text-danger, #c4302b);
+    color: var(--color_danger_fg);
     font-family: var(--font-mono, monospace);
     font-size: 12px;
     white-space: pre-wrap;

@@ -46,6 +46,8 @@ interface DashQLElectronBridge {
         close(loopbackId: number): Promise<void>;
     };
     openDirectory(title: string): Promise<string | null>;
+    /// Follow the color scheme of the app in the native window: its background while loading and its controls
+    setColorScheme?(scheme: 'light' | 'dark' | 'system'): Promise<void>;
     updates: {
         check(channel?: DashQLUpdateChannel): Promise<DashQLElectronUpdateStatus>;
         download(channel: DashQLUpdateChannel): Promise<void>;

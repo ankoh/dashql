@@ -1,9 +1,7 @@
 .root {
-    --data_table_bg: var(--card-background, #ffffff);
-
     width: 100%;
     flex: 0 0 auto;
-    background-color: var(--data_table_bg);
+    background-color: var(--color_bg_card);
     overflow: hidden;
 }
 
@@ -27,8 +25,8 @@
     display: flex;
     align-items: center;
     padding: 0 8px;
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     font-size: 0.9rem;
     font-weight: 500;
     white-space: nowrap;

@@ -54,7 +54,7 @@
     grid-column: 2;
     font-size: 0.8rem;
     font-weight: 500;
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
 }
 .download {
     grid-row: 1;

@@ -1,76 +1,31 @@
 import { tags as t } from '@lezer/highlight';
-import { xcodeDarkPalette as dark, xcodeLightPalette as light } from '@ankoh/dashql-ui/xcode';
-import { createTheme, CreateThemeOptions } from './theme.js';
+import { createTheme } from './theme.js';
 
-/// The colors live in @ankoh/dashql-ui, the code blocks of the website use them too
-
-export const defaultSettingsXcodeLight: CreateThemeOptions['settings'] = {
-    background: light.background,
-    foreground: light.foreground,
-    selection: light.selection,
-    selectionMatch: light.selectionMatch,
-    gutterBackground: light.gutterBackground,
-    gutterForeground: light.gutterForeground,
-    gutterBorder: 'transparent',
-    lineHighlight: light.lineHighlight,
-};
-
-export function xcodeLightInit(options?: Partial<CreateThemeOptions>) {
-    const { theme = 'light', settings = {}, styles = [] } = options || {};
-    return createTheme({
-        theme: theme,
-        settings: {
-            ...defaultSettingsXcodeLight,
-            ...settings,
-        },
-        styles: [
-            { tag: [t.comment, t.quote], color: light.comment },
-            { tag: [t.typeName, t.typeOperator], color: light.typeOperator },
-            { tag: [t.keyword], color: light.keyword, fontWeight: 'bold' },
-            { tag: [t.propertyName], color: light.propertyName },
-            { tag: [t.string, t.meta], color: light.string },
-            { tag: [t.name], color: light.name },
-            { tag: [t.typeName], color: light.typeName },
-            { tag: [t.variableName], color: light.variableName },
-            { tag: [t.definition(t.variableName)], color: light.variableDefinition },
-            { tag: [t.regexp, t.link], color: light.link },
-            ...styles,
-        ],
-    });
-}
-
-export const xcodeLight = xcodeLightInit();
-
-export const defaultSettingsXcodeDark: CreateThemeOptions['settings'] = {
-    background: dark.background,
-    foreground: dark.foreground,
-    caret: dark.caret,
-    selection: dark.selection,
-    selectionMatch: dark.selectionMatch,
-    lineHighlight: dark.lineHighlight,
-};
-
-export const xcodeDarkInit = (options?: Partial<CreateThemeOptions>) => {
-    const { theme = 'dark', settings = {}, styles = [] } = options || {};
-    return createTheme({
-        theme: theme,
-        settings: {
-            ...defaultSettingsXcodeDark,
-            ...settings,
-        },
-        styles: [
-            { tag: [t.comment, t.quote], color: dark.comment },
-            { tag: [t.keyword], color: dark.keyword, fontWeight: 'bold' },
-            { tag: [t.propertyName], color: dark.propertyName },
-            { tag: [t.string, t.meta], color: dark.string },
-            { tag: [t.typeName], color: dark.typeName },
-            { tag: [t.definition(t.variableName)], color: dark.variableDefinition },
-            { tag: [t.name], color: dark.name },
-            { tag: [t.variableName], color: dark.variableName },
-            { tag: [t.regexp, t.link], color: dark.link },
-            ...styles,
-        ],
-    });
-};
-
-export const xcodeDark = xcodeDarkInit();
+/// The Xcode theme of the editors, in the color scheme of the app.
+/// The colors are the --code_* tokens of @ankoh/dashql-ui/styles/tokens.css, which pick the light or the dark
+/// Xcode palette with light-dark(). The editors switch with the color scheme without being reconfigured.
+export const xcodeTheme = createTheme({
+    settings: {
+        background: 'var(--code_bg)',
+        foreground: 'var(--code_fg)',
+        caret: 'var(--code_caret)',
+        selection: 'var(--code_selection)',
+        selectionMatch: 'var(--code_selection_match)',
+        gutterBackground: 'var(--code_bg)',
+        gutterForeground: 'var(--code_gutter_fg)',
+        gutterBorder: 'transparent',
+        lineHighlight: 'var(--code_line_highlight)',
+    },
+    styles: [
+        { tag: [t.comment, t.quote], color: 'var(--code_comment)' },
+        { tag: [t.typeName, t.typeOperator], color: 'var(--code_type_operator)' },
+        { tag: [t.keyword], color: 'var(--code_keyword)', fontWeight: 'bold' },
+        { tag: [t.propertyName], color: 'var(--code_property_name)' },
+        { tag: [t.string, t.meta], color: 'var(--code_string)' },
+        { tag: [t.name], color: 'var(--code_name)' },
+        { tag: [t.typeName], color: 'var(--code_type_name)' },
+        { tag: [t.variableName], color: 'var(--code_variable_name)' },
+        { tag: [t.definition(t.variableName)], color: 'var(--code_variable_definition)' },
+        { tag: [t.regexp, t.link], color: 'var(--code_link)' },
+    ],
+});

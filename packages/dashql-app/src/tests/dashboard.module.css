@@ -8,8 +8,8 @@
     height: 100%;
     grid-template-rows: max-content minmax(0, 1fr);
     overflow: hidden;
-    background: var(--base_color_neutral_0);
-    color: var(--base_color_black);
+    background: var(--color_bg);
+    color: var(--color_fg);
     font-family: var(--font_family);
 }
 
@@ -20,8 +20,8 @@
     align-items: center;
     gap: 24px;
     padding: 0 28px;
-    border-bottom: 1px solid var(--border_color_primary);
-    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid var(--color_border);
+    background: var(--color_bg_card);
     box-shadow: var(--shadow_small);
 }
 
@@ -34,7 +34,7 @@
 
 .logo {
     flex: 0 0 auto;
-    color: var(--base_color_neutral_9);
+    color: var(--color_fg);
     fill: currentColor;
 }
 
@@ -55,17 +55,17 @@
 .badge {
     flex: 0 0 auto;
     padding: 3px 7px;
-    border: 1px solid var(--base_color_neutral_2);
+    border: 1px solid var(--color_border);
     border-radius: 999px;
-    background: var(--base_color_neutral_0);
-    color: var(--base_color_neutral_6);
+    background: var(--color_bg_subtle);
+    color: var(--color_fg_muted);
     font: var(--font_size_micro)/1.2 var(--font_family_mono);
 }
 
 .badge {
-    border-color: var(--base_color_yellow_2);
-    background: var(--base_color_yellow_0);
-    color: var(--base_color_yellow_7);
+    border-color: var(--color_attention_border);
+    background: var(--color_attention_muted);
+    color: var(--color_attention_fg);
 }
 
 .summary {
@@ -86,7 +86,7 @@
 }
 
 .metric span {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: var(--font_size_micro);
 }
 
@@ -114,9 +114,9 @@
     min-height: 0;
     grid-template-rows: auto minmax(0, 1fr) 12px;
     overflow: hidden;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background: var(--base_color_white);
+    background: var(--color_bg_card);
     box-shadow: var(--shadow_small);
 }
 
@@ -146,7 +146,7 @@
 }
 
 .details_expanded .panel_body {
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }
 
 .details_toggle {
@@ -166,7 +166,7 @@
 }
 
 .details_toggle:focus-visible {
-    outline: 2px solid var(--base_color_blue_5);
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
@@ -176,9 +176,9 @@
     justify-content: space-between;
     gap: 12px;
     padding: 0px 8px 0px 14px;
-    border-bottom: 1px solid var(--border_color_primary);
-    background: var(--base_color_neutral_0);
-    color: var(--base_color_neutral_7);
+    border-bottom: 1px solid var(--color_border);
+    background: var(--color_bg_subtle);
+    color: var(--color_fg_muted);
     font-size: var(--font_size_body);
     font-weight: 500;
     height: 44px;
@@ -202,7 +202,7 @@
 }
 
 .panel_count {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font: var(--font_size_micro)/1.2 var(--font_family_mono);
 }
 
@@ -216,19 +216,19 @@
 }
 
 .panel_bottom_inset {
-    border-top: 1px solid var(--base_color_neutral_1);
-    background: var(--base_color_white);
+    border-top: 1px solid var(--color_border_muted);
+    background: var(--color_bg_card);
 }
 
 .empty {
     padding: 40px 20px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: var(--font_size_body);
     text-align: center;
 }
 
 .file {
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .file:last-child {
@@ -250,7 +250,7 @@
 
 .file_select:focus-visible,
 .file_run_button:focus-visible {
-    outline: 2px solid var(--base_color_blue_5);
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
@@ -282,11 +282,11 @@
     height: 18px;
     align-items: center;
     justify-content: center;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .file_chevron_disabled {
-    color: var(--base_color_neutral_3);
+    color: var(--color_fg_subtle);
 }
 
 .file_run_button {
@@ -296,16 +296,16 @@
 .duration,
 .count,
 .meta {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font: var(--font_size_micro)/1.4 var(--font_family_mono);
 }
 
 .test_list {
     margin: 0;
     padding: 8px 16px 8px 20px;
-    background: var(--base_color_neutral_0);
+    background: var(--color_bg_subtle);
     list-style: none;
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }
 
 .test {
@@ -314,7 +314,7 @@
     align-items: start;
     gap: 8px;
     padding: 6px 0;
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
     font-size: var(--font_size_caption);
 }
 
@@ -324,7 +324,7 @@
 }
 
 .suite_path {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .status {
@@ -361,16 +361,16 @@
 .error {
     margin: 18px 0 0;
     padding: 14px;
-    border: 1px solid var(--base_color_red_2);
+    border: 1px solid var(--color_danger_border);
     border-radius: 6px;
-    background: var(--base_color_red_0);
-    color: var(--base_color_red_7);
+    background: var(--color_danger_muted);
+    color: var(--color_danger_fg);
     user-select: text;
 }
 
 .error_test {
     margin-bottom: 8px;
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg_muted);
     font: var(--font_size_caption)/1.4 var(--font_family_mono);
 }
 
@@ -383,8 +383,8 @@
     margin: 12px 0 0;
     padding-top: 12px;
     overflow: auto;
-    border-top: 1px solid var(--base_color_red_2);
-    color: var(--base_color_red_7);
+    border-top: 1px solid var(--color_danger_border);
+    color: var(--color_danger_fg);
     font: var(--font_size_caption)/1.55 var(--font_family_mono);
     white-space: pre-wrap;
 }
@@ -393,9 +393,9 @@
     width: calc(100% - 40px);
     height: 360px;
     margin: 0 20px 20px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: 6px;
-    background: white;
+    background: var(--color_bg_card);
 }
 
 .frame_idle {

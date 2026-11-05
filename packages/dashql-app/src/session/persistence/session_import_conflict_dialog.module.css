@@ -2,8 +2,8 @@
     width: 100%;
     overflow: hidden;
     border-radius: inherit;
-    background: white;
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
+    background: var(--color_bg_card);
+    color: var(--color_fg);
 }
 
 /* The dialog only takes focus as the focus trap's initial target; the overlay border already frames it */
@@ -16,8 +16,8 @@
     padding: 0 20px;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid var(--border_color_primary);
-    background: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
+    border-bottom: 1px solid var(--color_border);
+    background: var(--color_bg_subtle);
 }
 
 .header h2 {
@@ -50,7 +50,7 @@
 }
 
 .details dt {
-    color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 45%);
+    color: var(--color_fg_muted);
     font-size: 0.8rem;
     font-weight: 500;
 }
@@ -75,7 +75,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }
 
 .warning {
@@ -83,10 +83,10 @@
     align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    border: 1px solid hsl(39, 72%, 63%);
+    border: 1px solid var(--color_attention_border);
     border-radius: var(--border_radius);
-    background: hsl(43, 100%, 96%);
-    color: hsl(32, 72%, 25%);
+    background: var(--color_attention_muted);
+    color: var(--color_attention_fg);
     font-size: 0.85rem;
     line-height: 1.4;
 }

@@ -9,7 +9,7 @@
     flex: 1;
     min-height: 0;
     min-height: 100px;
-    background-color: white;
+    background-color: var(--color_bg_card);
     overflow: auto;
 }
 .section {
@@ -18,10 +18,10 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 .section:not(:first-child) {
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }
 @container connection-overlay (max-width: 640px) {
     .section_layout {
@@ -88,7 +88,7 @@
 }
 
 .engine_argument_token {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
     font-family: monospace;
     font-size: 12px;
 }

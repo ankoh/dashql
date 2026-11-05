@@ -40,7 +40,7 @@
     flex-direction: column;
     justify-content: space-between;
     width: 40px;
-    border-left: 1px solid var(--border_color_primary);
+    border-left: 1px solid var(--color_border);
     flex-shrink: 0;
 }
 
@@ -66,7 +66,7 @@
     align-items: center;
     height: 44px;
     padding: 0 8px 0px 12px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
     flex-shrink: 0;
     gap: 8px;
 }
@@ -84,33 +84,33 @@
 
 .header_title_label {
     font-weight: 500;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    color: var(--color_fg_muted);
 }
 .header_title_label:not(:first-child) {
     font-weight: 500;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    color: var(--color_fg_muted);
     margin-left: 8px;
 }
 
 .header_title_equal {
     font-weight: 400;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 55%);
+    color: var(--color_fg_subtle);
 }
 
 .header_title_index {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 30%);
+    color: var(--color_fg);
 }
 
 .header_title_dot {
     font-weight: 400;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 55%);
+    color: var(--color_fg_subtle);
 }
 
 .header_title_field {
     font-weight: 600;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 30%);
+    color: var(--color_fg);
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -146,7 +146,7 @@
 
 .plan_error {
     padding: 16px;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    color: var(--color_fg_muted);
     font-size: 0.9rem;
 }
 
@@ -164,11 +164,11 @@
 }
 
 .pretty_toggle_button[aria-pressed='false']:hover:not(:disabled) {
-    background-color: hsl(var(--neutral_hue), calc(15.4% * var(--neutral_tint)), 94.9%);
+    background-color: var(--color_bg_hover);
 }
 
 .pretty_toggle_button[aria-pressed='false']:active:not(:disabled) {
-    background-color: hsl(var(--neutral_hue), calc(17.9% * var(--neutral_tint)), 92.4%);
+    background-color: var(--color_bg_selected);
 }
 
 .codemirror_container :global(.cm-editor) {

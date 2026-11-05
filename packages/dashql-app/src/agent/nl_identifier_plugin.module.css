@@ -1,23 +1,24 @@
+/* The identifiers of the prompt in the syntax colors of the code theme, on a faint tint of the same color */
 .identifier_table {
-    color: #0f68a0;
-    background-color: color-mix(in srgb, #0f68a0 8%, transparent);
+    color: var(--code_variable_definition);
+    background-color: color-mix(in srgb, var(--code_variable_definition) 8%, transparent);
     border-radius: 3px;
 }
 
 .identifier_column {
-    color: #326d74;
-    background-color: color-mix(in srgb, #326d74 8%, transparent);
+    color: var(--code_variable_name);
+    background-color: color-mix(in srgb, var(--code_variable_name) 8%, transparent);
     border-radius: 3px;
 }
 
 .identifier_script {
-    color: #6f42c1;
-    background-color: color-mix(in srgb, #6f42c1 8%, transparent);
+    color: var(--code_type_name);
+    background-color: color-mix(in srgb, var(--code_type_name) 8%, transparent);
     border-radius: 3px;
 }
 
 .hint {
-    color: #888;
+    color: var(--color_fg_subtle);
     opacity: 0.7;
     font-style: italic;
     user-select: none;

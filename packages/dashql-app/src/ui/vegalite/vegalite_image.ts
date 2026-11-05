@@ -9,7 +9,7 @@ export const CHART_IMAGE_WIDTH = 800;
 export const CHART_IMAGE_HEIGHT = 500;
 export const CHART_IMAGE_SCALE = 2;
 
-/// The background of chart images, the colors of the app charts are made for a light background
+/// The background of chart images, the images take the light colors of the theme in both color schemes
 const CHART_IMAGE_BACKGROUND = '#ffffff';
 /// The margin of chart images in CSS pixels, the charts of the app have none and touch the edges of the image
 const CHART_IMAGE_PADDING = 16;
@@ -48,7 +48,7 @@ export async function renderVegaLitePng(spec: TopLevelSpec, rows: readonly objec
         height: options.height ?? CHART_IMAGE_HEIGHT,
         autosize: { type: 'fit', contains: 'padding' },
     } as TopLevelSpec;
-    const config = { ...createVegaLiteConfig(resolveChartColors()), background: CHART_IMAGE_BACKGROUND, padding: CHART_IMAGE_PADDING };
+    const config = { ...createVegaLiteConfig(resolveChartColors('light')), background: CHART_IMAGE_BACKGROUND, padding: CHART_IMAGE_PADDING };
     const compiled = vegaLite.compile(sizedSpec, { config }).spec;
     // The expression interpreter avoids the eval of Vega that CSP forbids, it needs the parsed ASTs
     const view = new vega.View(vega.parse(compiled, undefined, { ast: true }), {

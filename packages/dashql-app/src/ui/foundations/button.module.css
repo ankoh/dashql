@@ -1,6 +1,6 @@
 /*
     Styles from here: https://github.com/primer/react/blob/main/packages/react/src/Button/styles.ts
-    Colors from here: https://github.com/primer/react/blob/d2ab5e2a256bb4027eb1707c6fdc41b637363794/packages/react/src/legacy-theme/ts/color-schemes.ts
+    The colors are the tokens of the theme (dashql-ui/styles/tokens.css) in the roles of the Primer button colors.
  */
 
 /* --------------------------------------------------------------------- */
@@ -8,7 +8,7 @@
 .button {
     border-radius: 6px;
     border: 1px solid;
-    border-color: var(--border_color_primary);
+    border-color: var(--color_border);
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
@@ -37,9 +37,9 @@
     cursor: auto;
 }
 .button.inactive:not(.disabled) {
-    background-color: hsl(var(--neutral_hue), calc(23.5% * var(--neutral_tint)), 93.3%);
-    border-color: hsl(var(--neutral_hue), calc(23.5% * var(--neutral_tint)), 93.3%);
-    color: hsl(var(--neutral_hue), calc(9.8% * var(--neutral_tint)), 37.8%);
+    background-color: var(--color_bg_selected);
+    border-color: transparent;
+    color: var(--color_fg_muted);
 }
 .button.inactive:not(.disabled):focus-visible {
     box-shadow: none;
@@ -162,111 +162,117 @@
 /* --------------------------------------------------------------------- */
 
 .button_variant_default {
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
-    background-color: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+    color: var(--color_fg);
+    background-color: var(--color_bg_subtle);
+    box-shadow: var(--shadow_small);
 }
 .button_variant_default:hover:not(.disabled):not(.inactive) {
-    background-color: #f3f4f6;
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
+    background-color: var(--color_bg_hover);
+    border-color: var(--color_border);
 }
 .button_variant_default:active:not(.disabled):not(.inactive) {
-    background-color: hsla(220,14%,93%,1);
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
+    background-color: var(--color_bg_selected);
+    border-color: var(--color_border);
 }
 .button_variant_default.disabled {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
-    background-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 72.2%, 0.2);
+    color: var(--color_fg_subtle);
+    border-color: var(--color_border);
+    background-color: var(--color_bg_subtle);
 }
 .button_variant_default.disabled .button_counter {
     color: inherit;
 }
 .button_variant_default[aria-expanded=true] {
-    background-color: hsla(220,14%,93%,1);
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
+    background-color: var(--color_bg_selected);
+    border-color: var(--color_border);
 }
 .button_variant_default .leading_visual, .button_variant_default .trailing_visual, .button_variant_default .trailing_action {
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
 }
 .button_variant_default .button_counter {
-    background-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.08);
+    background-color: var(--color_bg_hover);
 }
 .button_variant_default.no_visuals .icon_button {
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
 }
 
 /* --------------------------------------------------------------------- */
 
 .button_variant_primary {
-    color: #ffffff;
-    background-color: var(--button_primary_bg);
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
-    box-shadow: 0 1px 0 hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.1);
+    color: var(--color_fg_on_emphasis);
+    background-color: var(--color_primary_emphasis);
+    border-color: transparent;
+    box-shadow: var(--shadow_small);
 }
 .button_variant_primary:hover:not(.disabled):not(.inactive) {
-    /* color: 'btn.primary.hoverText'; */
-    background-color: var(--button_primary_bg_hover);
+    background-color: var(--color_primary_emphasis_hover);
 }
 .button_variant_primary:focus-visible:not(.disabled) {
     outline: none;
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color_fg_on_emphasis) 20%, transparent);
 }
 .button_variant_primary:active:not(.disabled):not(.data-inactive) {
-    background-color: var(--button_primary_bg_active);
-    box-shadow: inset 0 1px 0 rgba(0,45,17,0.2);
+    background-color: var(--color_primary_emphasis_active);
+    box-shadow: inset var(--shadow_small);
 }
 .button_variant_primary.disabled {
-    color: rgba(255,255,255,0.8);
-    background-color: var(--button_primary_bg_disabled);
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
+    color: color-mix(in srgb, var(--color_fg_on_emphasis) 80%, transparent);
+    background-color: var(--color_primary_emphasis_disabled);
+    border-color: transparent;
 }
 .button_variant_primary.disabled .button_counter {
     color: inherit;
 }
 .button_variant_primary .button_counter {
-    background-color: rgba(0,45,17,0.2);
-    color: #ffffff;
+    background-color: var(--color_bg_selected);
+    color: var(--color_fg_on_emphasis);
 }
 .button_variant_primary[aria-expanded=true] {
-    background-color: var(--button_primary_bg_active);
-    box-shadow: inset 0 1px 0 rgba(0,45,17,0.2);
+    background-color: var(--color_primary_emphasis_active);
+    box-shadow: inset var(--shadow_small);
 }
 
 /* --------------------------------------------------------------------- */
 
+/* The danger button rests like the default one with a red label and turns red when hovered or pressed */
 .button_variant_danger {
-    color: #ffffff;
-    background-color: #cf222e;
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
-    box-shadow: 0 1px 0 hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.1);
+    color: var(--color_danger_fg);
+    background-color: var(--color_bg_subtle);
+    border-color: var(--color_border);
+    box-shadow: var(--shadow_small);
 }
 .button_variant_danger:hover:not(.disabled):not(.inactive) {
-    background-color: #a40e26;
+    color: var(--color_fg_on_emphasis);
+    background-color: var(--color_danger_emphasis);
+    border-color: var(--color_danger_emphasis);
 }
 .button_variant_danger:focus-visible:not(.disabled) {
     outline: none;
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2);
+    box-shadow: inset 0 0 0 2px var(--color_focus);
 }
 .button_variant_danger:active:not(.disabled):not(.inactive) {
-    background-color: hsla(356,72%,44%,1);
-    box-shadow: inset 0 1px 0 rgba(0,33,85,0.2);
+    color: var(--color_fg_on_emphasis);
+    background-color: var(--color_danger_emphasis);
+    border-color: var(--color_danger_emphasis);
+    box-shadow: inset var(--shadow_small);
 }
 .button_variant_danger.disabled {
-    color: rgba(255,255,255,0.8);
-    background-color: rgba(207,34,46,0.4);
-    border-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.15);
+    color: color-mix(in srgb, var(--color_danger_fg) 50%, transparent);
+    background-color: var(--color_bg_subtle);
+    border-color: var(--color_border);
 }
 .button_variant_danger.disabled .button_counter {
     color: inherit;
 }
 .button_variant_danger .button_counter {
-    background-color: rgba(207,34,46,0.1);
-    color: #ffffff;
+    background-color: var(--color_danger_muted);
+    color: inherit;
 }
 .button_variant_danger[aria-expanded=true] {
-    background-color: hsla(356,72%,44%,1);
-    box-shadow: inset 0 1px 0 rgba(76,0,20,0.2);
+    color: var(--color_fg_on_emphasis);
+    background-color: var(--color_danger_emphasis);
+    border-color: var(--color_danger_emphasis);
+    box-shadow: inset var(--shadow_small);
 }
 
 /* --------------------------------------------------------------------- */
@@ -279,14 +285,14 @@
 }
 
 .button_variant_invisible:hover:not(.disabled) {
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
-    border: 1px solid var(--border_color_primary);
+    background-color: var(--color_bg_hover);
+    border: 1px solid var(--color_border);
 }
 .button_variant_invisible:active:not(.disabled) {
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.48);
+    background-color: var(--color_bg_selected);
 }
 .button_variant_invisible.disabled {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
 }
 .button_variant_invisible .button_counter {
     color: inherit;
@@ -300,10 +306,10 @@
 .button_variant_invisible.no_visuals {
 }
 .button_variant_invisible.button_counter {
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+    color: var(--color_fg);
 }
 .button_variant_invisible.disabled.no_visuals {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
 }
 .button_variant_invisible.disabled.no_visuals .button_counter {
     color: inherit;

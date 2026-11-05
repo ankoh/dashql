@@ -1,6 +1,6 @@
 .dialog {
     overflow: hidden;
-    background: #ffffff;
+    background: var(--color_bg_card);
     outline: none;
 }
 
@@ -10,7 +10,7 @@
     justify-content: space-between;
     height: 48px;
     padding: 0 8px 0 16px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .header h2 {
@@ -20,7 +20,7 @@
 }
 
 .access_mode {
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
     font-family: var(--font_family_mono);
     font-size: 0.75rem;
     letter-spacing: 0.04em;

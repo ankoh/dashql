@@ -58,8 +58,11 @@ const OPERATOR_ANNOTATION_HEIGHT = 16;
 const OPERATOR_ANNOTATION_CHAR_WIDTH = 5.5;
 const OPERATOR_ANNOTATION_PADDING = 8;
 const ESTIMATE_APPROXIMATE_ROW_THRESHOLD = 100;
-const EDGE_BADGE_BORDER = 'hsl(210, 13%, 74%)';
-const EDGE_HIGHLIGHT_COLOR = 'hsl(211, 100%, 45%)';
+/// The colors of the badges and the highlighted edge, tokens of the theme.
+/// SVG attributes do not resolve var(), the badges set them as style properties.
+const EDGE_BADGE_BORDER = 'var(--color_border)';
+const EDGE_HIGHLIGHT_COLOR = 'var(--color_accent_emphasis)';
+const EDGE_HIGHLIGHT_TEXT_COLOR = 'var(--color_fg_on_emphasis)';
 /// What the annotation slot of the operators shows: the status icon, nothing, the actual rows, the estimated rows of
 /// the planner, the accuracy of the estimate, the CPU share or the memory of the operator. Every mode shows one kind of
 /// value only, an operator without that value (no actual rows yet, no estimate, no statistics) shows nothing. The status
@@ -75,7 +78,7 @@ const PROFILE_ANNOTATION_MODES: readonly { mode: ProfileAnnotationMode; label: s
     { mode: 'memory', label: 'Memory' },
 ];
 /// The border of the memory annotation of an operator that spilled to disk
-const SPILLED_BADGE_BORDER = 'hsl(28, 92%, 48%)';
+const SPILLED_BADGE_BORDER = 'var(--color_attention_fg)';
 /// The status icons of an operator in a 16x16 box, the status of the operator picks one (see the controller).
 /// The icons look like the status indicators of the app: a dot while pending, a spinner or the progress while
 /// running, a check, a cross. The check, the cross and the slash are cut out of their circles, they need the
@@ -871,11 +874,20 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                                         width={badge.width}
                                         height={OPERATOR_ANNOTATION_HEIGHT}
                                         rx={OPERATOR_ANNOTATION_HEIGHT / 2}
-                                        fill={highlighted ? EDGE_HIGHLIGHT_COLOR : badge.background}
-                                        stroke={highlighted ? EDGE_HIGHLIGHT_COLOR : badge.border ?? EDGE_BADGE_BORDER}
+                                        fill={badge.background}
                                         strokeWidth={badge.border != null ? 1.5 : undefined}
+                                        style={{
+                                            fill: highlighted ? EDGE_HIGHLIGHT_COLOR : undefined,
+                                            stroke: highlighted ? EDGE_HIGHLIGHT_COLOR : badge.border ?? EDGE_BADGE_BORDER,
+                                        }}
                                     />
-                                    <text x={badge.width / 2} fill={highlighted ? '#ffffff' : badge.foreground}>{badge.text}</text>
+                                    <text
+                                        x={badge.width / 2}
+                                        fill={badge.foreground}
+                                        style={highlighted ? { fill: EDGE_HIGHLIGHT_TEXT_COLOR } : undefined}
+                                    >
+                                        {badge.text}
+                                    </text>
                                 </g>
                             );
                         })}

@@ -56,10 +56,10 @@
     /* The cards, like the cards of the app */
     --card_bg: white;
     --card_header_bg: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
-    --card_border: var(--border_color_primary);
+    --card_border: var(--color_border);
     --card_radius: var(--border_radius);
     --card_shadow: var(--shadow_large);
-    --card_fg: var(--base_color);
+    --card_fg: var(--color_fg);
     --card_fg_muted: var(--base_color_neutral_6);
     --card_fg_subtle: var(--base_color_neutral_5);
     --card_link: var(--base_color_blue_5);

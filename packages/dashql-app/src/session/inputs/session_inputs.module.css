@@ -9,7 +9,7 @@
     padding: var(--session_input_strip_block_padding, 12px) var(--session_input_strip_inline_padding, 16px);
     /* The inputs sit on the stage like the scripts and the cards, the feed and the dashboard look alike */
     background-color: var(--session_input_strip_background, transparent);
-    border-bottom: var(--session_input_strip_border, 1px solid var(--log_border_color));
+    border-bottom: var(--session_input_strip_border, 1px solid var(--color_border));
 }
 
 .chips {
@@ -29,25 +29,25 @@
     height: 32px;
     max-width: 100%;
     padding: 0 4px 0 10px;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
 }
 
 .card:focus-within {
-    border-color: var(--focus_outline_color);
-    outline: 2px solid color-mix(in srgb, var(--focus_outline_color) 30%, transparent);
+    border-color: var(--color_focus);
+    outline: 2px solid color-mix(in srgb, var(--color_focus) 30%, transparent);
 }
 
 .card[data-dirty] {
-    border-color: var(--base_color_neutral_5);
+    border-color: var(--color_fg_subtle);
 }
 
 .card[data-invalid],
 .card[data-unset] {
-    border-color: var(--status_color_failed);
+    border-color: var(--color_danger_fg);
 }
 
 /* On the strip an input is an input group: the name as a muted prefix, then the field with the type as a suffix */
@@ -67,9 +67,9 @@
     display: flex;
     align-items: center;
     padding: 0 9px;
-    border-right: 1px solid var(--log_border_color);
-    background-color: var(--base_color_neutral_0);
-    color: var(--base_color_neutral_7);
+    border-right: 1px solid var(--color_border);
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg_muted);
 }
 
 .card:not(.card_block) .control {
@@ -95,7 +95,7 @@
     align-self: center;
     padding: 0 8px 0 2px;
     background-color: transparent;
-    color: var(--base_color_neutral_4);
+    color: var(--color_fg_subtle);
 }
 
 .card:not(.card_block) .type[data-inferred] {
@@ -120,7 +120,7 @@
     height: 100%;
     padding: 0 2px 0 3px;
     box-shadow: none;
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
 .name {
@@ -129,7 +129,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
     font-family: var(--font_family_mono);
     font-weight: 500;
 }
@@ -138,8 +138,8 @@
     flex-shrink: 0;
     padding: 0 6px;
     border-radius: 4px;
-    background-color: var(--base_color_neutral_1);
-    color: var(--base_color_neutral_6);
+    background-color: var(--color_neutral_muted);
+    color: var(--color_fg_muted);
     font-family: var(--font_family_mono);
     font-size: 0.68rem;
     line-height: 16px;
@@ -148,8 +148,8 @@
 
 .type[data-inferred] {
     background-color: transparent;
-    border: 1px dashed var(--base_color_neutral_3);
-    color: var(--base_color_neutral_5);
+    border: 1px dashed var(--color_border);
+    color: var(--color_fg_subtle);
 }
 
 .control {
@@ -162,8 +162,8 @@
     border: 1px solid transparent;
     border-radius: 5px;
     outline: none;
-    background-color: var(--base_color_neutral_0);
-    color: var(--base_color_neutral_9);
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg);
     font-family: var(--font_family_mono);
     font-size: var(--font_size_caption);
 }
@@ -173,8 +173,8 @@
 }
 
 .control:focus {
-    border-color: var(--base_color_neutral_3);
-    background-color: white;
+    border-color: var(--color_border);
+    background-color: var(--color_bg_card);
 }
 
 /* An interval is a number and a unit */
@@ -192,7 +192,7 @@
 }
 
 .control::placeholder {
-    color: var(--base_color_neutral_4);
+    color: var(--color_fg_subtle);
 }
 
 /* A run of the scripts that use the input */
@@ -206,7 +206,7 @@
 }
 
 .card[data-busy] .status {
-    background-color: var(--status_color_in_progress);
+    background-color: var(--color_attention_fg);
     animation: pulse 1s ease-in-out infinite;
 }
 

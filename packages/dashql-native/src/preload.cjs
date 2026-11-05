@@ -74,4 +74,5 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         return () => ipcRenderer.removeListener("dashql:deep-link", handler);
     },
     openDirectory: async (title) => await ipcRenderer.invoke("dashql:open-directory", title),
+    setColorScheme: async (scheme) => await ipcRenderer.invoke("dashql:set-color-scheme", scheme),
 });

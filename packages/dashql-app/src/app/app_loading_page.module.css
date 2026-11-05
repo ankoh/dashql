@@ -41,6 +41,6 @@
 .detail_error {
     margin-top: 12px;
     font-size: 0.85rem;
-    color: var(--base_color_red_5);
+    color: var(--color_danger_fg);
     overflow-wrap: anywhere;
 }

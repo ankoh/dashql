@@ -6,6 +6,7 @@ import { loadVega } from '../../ui/vegalite/vegalite_loader.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../../ui/vegalite/vegalite_theme.js';
 import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
+import { useColorScheme } from '../../config/color_scheme.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
@@ -138,6 +139,8 @@ export function VegaLiteView(props: Props): React.ReactElement {
     const crossFilterUpdaterRef = React.useRef<VegaCrossFilterUpdater | null>(null);
     const [error, setError] = React.useState<string | null>(null);
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    // The canvas does not follow the color scheme, the chart is embedded again with the colors of the new one
+    const colorScheme = useColorScheme();
     const [computationState] = dependencies.useComputationRegistry();
 
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
@@ -264,7 +267,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             finalizeView?.();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, props.config, dependencies]);
+    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, props.config, dependencies, colorScheme]);
 
     if (!spec) {
         return <CardPlaceholder message="No visualization available" />;

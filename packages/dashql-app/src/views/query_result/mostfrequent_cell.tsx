@@ -7,7 +7,7 @@ import { dataTypeToString } from '../../compute/arrow_formatter.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
-import { COLUMN_SUMMARY_COLORS, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
+import { COLUMN_SUMMARY_BASELINE_COLOR, COLUMN_SUMMARY_COLORS, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
 
@@ -219,7 +219,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                         <defs>
                             <pattern id={diagonalStripesId} patternUnits="userSpaceOnUse" width="4" height="4">
                                 <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{
-                                    stroke: "hsl(208.5deg 20.69% 50.76%)",
+                                    stroke: COLUMN_SUMMARY_COLORS.totalBar,
                                     strokeOpacity: 0.8,
                                     strokeWidth: 1
                                 }}
@@ -235,7 +235,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                                 y={0}
                                 width={width}
                                 height={height}
-                                fill={COLUMN_SUMMARY_COLORS.totalBarWithFilter}
+                                style={{ fill: COLUMN_SUMMARY_COLORS.totalBarWithFilter }}
                             />
                             {[...Array(frequentValueStrings.length)].map((_, i) => {
                                 const barX = Math.min(xScale(Number(xOffsets[i])) + xPadding, xUB);
@@ -264,7 +264,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                                             y={0}
                                             width={barWidth}
                                             height={height}
-                                            fill={getTotalBarColor(hasFilter, isFocused, isNull)}
+                                            style={{ fill: getTotalBarColor(hasFilter, isFocused, isNull) }}
                                         />
                                         {/* Filtered fill (from bottom) */}
                                         {hasFilter && fillHeight > 0 && (
@@ -273,7 +273,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                                                 y={height - fillHeight}
                                                 width={barWidth}
                                                 height={fillHeight}
-                                                fill={getFilteredBarColor(isFocused, isNull)}
+                                                style={{ fill: getFilteredBarColor(isFocused, isNull) }}
                                             />
                                         )}
                                     </g>
@@ -292,7 +292,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                                         x={barWidth + xPadding}
                                         height={height}
                                         width={moreButtonWidth - xPadding}
-                                        fill={getTotalBarColor(filteredCountByValueId != null, false)}
+                                        style={{ fill: getTotalBarColor(filteredCountByValueId != null, false) }}
                                     />
                                 </g>
                             )}
@@ -303,7 +303,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                                 width={width}
                                 height={height}
                                 rx={3} ry={3}
-                                stroke="hsl(210deg 17.5% 84.31%)"
+                                style={{ stroke: COLUMN_SUMMARY_BASELINE_COLOR }}
                                 strokeWidth={1}
                                 fill="transparent"
                             />

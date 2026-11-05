@@ -31,6 +31,8 @@ export interface AppSettings {
     minLogLevel?: number;
     /// The id of the app flavor, the flavor query parameter of the url wins
     flavor?: string;
+    /// The color scheme of the app, the one of the OS if unset
+    colorScheme?: 'light' | 'dark';
     /// Show the animated agent face next to the question of an empty session, only the question without.
     /// Shown unless disabled.
     agentFace?: boolean;

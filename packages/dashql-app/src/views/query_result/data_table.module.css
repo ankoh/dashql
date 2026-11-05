@@ -1,8 +1,6 @@
+/* The cells are on the card surface, a host can paint them with --data_table_bg. The header and the row numbers
+   are subtle. */
 .root {
-    --data_table_bg: white;
-    --data_table_bg_focus_primary: hsl(var(--neutral_hue), calc(20.6% * var(--neutral_tint)), 94.6%);
-    --data_table_bg_focus_secondary: hsl(var(--neutral_hue), calc(20.6% * var(--neutral_tint)), 97.6%);
-
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -52,11 +50,11 @@
 
 .sticky_column_container {
     /* Contains the sticky first column cells - uses CSS sticky */
-    background-color: white;
+    background-color: var(--color_bg_subtle);
 }
 
 .sticky_header_container {
-    background-color: var(--data_table_bg);
+    background-color: var(--color_bg_subtle);
 }
 
 .sticky_header_row {
@@ -65,9 +63,9 @@
 }
 
 .header_cell {
-    background-color: var(--data_table_bg);
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--color_bg_subtle);
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -80,7 +78,7 @@
 }
 
 .header_cell_clickable:hover {
-    background-color: hsl(var(--neutral_hue), calc(20% * var(--neutral_tint)), 96%);
+    background-image: linear-gradient(var(--color_bg_hover), var(--color_bg_hover));
 }
 
 .header_cell_rightmost {
@@ -94,7 +92,7 @@
 }
 
 .header_metadata_cell {
-    background-color: var(--data_table_bg);
+    background-color: var(--color_bg_subtle);
 }
 
 .header_cell_name {
@@ -108,9 +106,9 @@
 }
 
 .header_corner_cell {
-    background-color: white;
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--color_bg_subtle);
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -124,9 +122,9 @@
 }
 
 .plots_cell {
-    background-color: var(--data_table_bg);
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--data_table_bg, var(--color_bg_card));
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -142,20 +140,20 @@
 }
 
 .plots_empty_cell {
-    background-color: var(--data_table_bg);
+    background-color: var(--data_table_bg, var(--color_bg_card));
 }
 
 .plots_no_summary_cell {
-    background-color: var(--data_table_bg);
+    background-color: var(--data_table_bg, var(--color_bg_card));
     justify-content: center;
     gap: 8px;
-    color: rgb(180, 180, 180);
+    color: var(--color_fg_subtle);
 }
 
 .plots_no_summary_label {
     font-size: 14px;
     font-weight: 400;
-    color: rgb(150, 150, 150);
+    color: var(--color_fg_subtle);
     white-space: nowrap;
     vertical-align: middle;
 }
@@ -180,32 +178,32 @@
     justify-content: center;
     padding: 0;
     border: none;
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
-    background-color: white;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    background-color: var(--data_table_bg, var(--color_bg_card));
+    color: var(--color_fg_muted);
     cursor: pointer;
 }
 
 .plots_toggle:hover,
 .plots_toggle:focus-visible {
-    background-color: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
-    color: var(--base_color_black);
+    background-image: linear-gradient(var(--color_bg_hover), var(--color_bg_hover));
+    color: var(--color_fg);
     outline: none;
 }
 
 .plots_collapsed_cell {
     flex-shrink: 0;
-    background-color: var(--data_table_bg);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--data_table_bg, var(--color_bg_card));
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
 }
 
 .plots_corner_cell {
-    background-color: white;
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--color_bg_subtle);
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -219,9 +217,9 @@
 }
 
 .row_header_cell {
-    background-color: var(--data_table_bg);
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--color_bg_subtle);
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -237,9 +235,9 @@
 }
 
 .data_cell {
-    background-color: var(--data_table_bg);
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
+    background-color: var(--data_table_bg, var(--color_bg_card));
+    border-right: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
     border-left: 1px solid transparent;
     border-top: 1px solid transparent;
     box-sizing: border-box;
@@ -257,28 +255,29 @@
 }
 
 .data_cell_metadata {
-    background-color: var(--data_table_bg);
+    background-color: var(--data_table_bg, var(--color_bg_card));
 }
 
 .data_cell_null {
-    color: hsl(var(--neutral_hue), calc(14.7% * var(--neutral_tint)), 78.8%);
+    color: var(--color_fg_subtle);
 }
 
 .data_cell_rightmost {
     border-right: 1px solid transparent;
 }
 
+/* The focus and search overlays tint the background of the cell, a header cell stays subtle below them */
 .data_cell_focused_primary {
-    background-color: var(--data_table_bg_focus_primary);
+    background-image: linear-gradient(var(--color_bg_selected), var(--color_bg_selected));
 }
 
 .data_cell_focused_secondary {
-    background-color: var(--data_table_bg_focus_secondary);
+    background-image: linear-gradient(var(--color_bg_hover), var(--color_bg_hover));
 }
 
 .data_cell_search_match {
-    box-shadow: inset 0 0 0 2px hsl(211, 52%, 42%);
-    background-color: hsl(211, 42%, 89%);
+    box-shadow: inset 0 0 0 2px var(--color_accent_fg);
+    background-image: linear-gradient(var(--color_accent_muted), var(--color_accent_muted));
 }
 
 .data_cell_text {

@@ -9,17 +9,17 @@
 .text_field_caption {
     margin-top: 2px;
     font-size: 0.8rem;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
 }
 .text_field_input {
     margin-top: 6px;
 }
 .text_field_disabled {
-    background-color: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%) !important;
+    background-color: var(--color_bg_subtle) !important;
 }
 .text_field_validation_error {
     font-size: 12px;
-    color: rgb(207, 34, 46);
+    color: var(--color_danger_fg);
     margin-top: 4px;
     margin-left: 4px;
 
@@ -31,7 +31,7 @@
 }
 .text_field_validation_warning {
     font-size: 12px;
-    color: rgb(191, 135, 0);
+    color: var(--color_attention_fg);
     margin-top: 4px;
     margin-left: 4px;
 
@@ -59,7 +59,7 @@
 }
 .kv_field_caption {
     font-size: 12px;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
     margin-top: 1px;
 }
 .kv_field_input_key {
@@ -79,7 +79,7 @@
     height: 24px;
     content: '';
 
-    border-bottom: 1px solid var(--border_color_primary);
-    border-left: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
+    border-left: 1px solid var(--color_border);
     border-bottom-left-radius: 6px;
 }

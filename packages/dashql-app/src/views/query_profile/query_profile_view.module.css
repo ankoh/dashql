@@ -11,7 +11,7 @@
 .viewport[data-fill="true"] { height: 100%; }
 
 .viewport:focus-visible {
-    outline: 2px solid hsl(211, 100%, 45%);
+    outline: 2px solid var(--color_focus);
     outline-offset: 2px;
 }
 
@@ -26,16 +26,16 @@
 
 .pipeline {
     display: none;
-    fill: rgba(220, 220, 220, 0.5);
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    fill: var(--color_bg_hover);
+    stroke: var(--color_border);
     stroke-width: 1px;
 }
 
 .pipeline[data-status="2"], .pipeline[data-status="4"] { display: inline; }
 
 .operator {
-    --graph_node_border_color: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
-    --graph_node_background: white;
+    --graph_node_border_color: var(--color_border);
+    --graph_node_background: var(--color_bg_card);
     cursor: pointer;
 }
 .operator text {
@@ -45,14 +45,14 @@
     pointer-events: none;
 }
 .operator_symbol {
-    color: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 24%);
+    color: var(--color_fg);
     pointer-events: none;
 }
-.operator:hover { --graph_node_background: hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98%); }
+.operator:hover { --graph_node_background: var(--color_bg_subtle); }
 .operator[data-selected="true"],
 .operator:focus-visible {
-    --graph_node_background: hsl(211, 100%, 97%);
-    --graph_node_border_color: hsl(211, 100%, 45%);
+    --graph_node_background: var(--color_accent_muted);
+    --graph_node_border_color: var(--color_accent_fg);
 }
 .operator:focus { outline: none; }
 
@@ -65,10 +65,10 @@
 .status[data-status="3"] [data-status-icon="3"],
 .status[data-status="4"] [data-status-icon="4"],
 .status[data-status="5"] [data-status-icon="5"] { display: inline; }
-.status { color: var(--status_color_other); }
-.status[data-status="2"] { color: var(--status_color_in_progress); }
-.status[data-status="3"] { color: var(--status_color_success); }
-.status[data-status="4"] { color: var(--status_color_failed); }
+.status { color: var(--color_neutral_fg); }
+.status[data-status="2"] { color: var(--color_attention_fg); }
+.status[data-status="3"] { color: var(--color_success_fg); }
+.status[data-status="4"] { color: var(--color_danger_fg); }
 .status [data-status-icon="0"],
 .status [data-status-icon="1"] { opacity: 0.5; }
 .status_track,
@@ -116,7 +116,7 @@
     display: flex;
     align-items: center;
     max-width: calc(100% - 16px);
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 32%);
+    color: var(--color_fg_muted);
     font-size: 10px;
     line-height: 12px;
     white-space: nowrap;
@@ -136,7 +136,7 @@
     height: 24px;
 }
 .view_buttons button[aria-pressed="true"] {
-    background-color: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 88%);
+    background-color: var(--color_bg_selected);
 }
 
 .metric_controls > .edge_legend {
@@ -186,7 +186,7 @@
     bottom: 100%;
     width: 1px;
     height: 5px;
-    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 32%);
+    background: var(--color_fg_muted);
     content: "";
 }
 
@@ -205,17 +205,17 @@
     flex-direction: column;
     gap: 2px;
     padding: 12px 12px 4px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 .inspector_header[data-single-line="true"] { padding-bottom: 12px; }
-.inspector_header span { color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%); font-size: 0.8rem; }
+.inspector_header span { color: var(--color_fg_muted); font-size: 0.8rem; }
 
 /* A fragment keeps its color, its status changes the contour: dashed while pending, faint while running with the
    progress running along it, solid once succeeded. A failed fragment is red. */
 path.fragment[data-status="pending"] { fill-opacity: 0.25; }
 path.fragment[data-status="running"] { stroke-opacity: 0.25; stroke-dasharray: none; }
 path.fragment[data-status="succeeded"] { stroke-dasharray: none; }
-path.fragment[data-status="failed"] { stroke: var(--status_color_failed); stroke-opacity: 1; stroke-dasharray: none; }
+path.fragment[data-status="failed"] { stroke: var(--color_danger_fg); stroke-opacity: 1; stroke-dasharray: none; }
 path.fragment[data-status="skipped"] { fill-opacity: 0.25; stroke-opacity: 0.3; }
 
 /* The progress of a running fragment along its contour. The dashes are relative to the path length, a non-scaling

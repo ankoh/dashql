@@ -13,29 +13,31 @@
     opacity: 1;
 }
 
+/* The shadows are tinted with the dark chrome color, it stays dark in both color schemes */
 .top {
     top: 0;
-    background: radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.05), transparent) center top;
+    background: radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--chrome_bg_100) 5%, transparent), transparent) center top;
 }
 
 .bottom {
     bottom: 0;
-    background: radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.05), transparent) center bottom;
+    background: radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--chrome_bg_100) 5%, transparent), transparent) center bottom;
 }
 
 .prominent {
     z-index: 20;
     height: 24px;
-    -webkit-mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
-    mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+    /* Only the alpha of the mask counts, any opaque color does */
+    -webkit-mask-image: linear-gradient(to right, transparent, var(--color_fg) 24px, var(--color_fg) calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, transparent, var(--color_fg) 24px, var(--color_fg) calc(100% - 24px), transparent);
 }
 
 .prominent.top {
     background: linear-gradient(
         to bottom,
-        hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.1) 0,
-        hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.05) 32%,
-        hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.018) 62%,
+        color-mix(in srgb, var(--chrome_bg_100) 10%, transparent) 0,
+        color-mix(in srgb, var(--chrome_bg_100) 5%, transparent) 32%,
+        color-mix(in srgb, var(--chrome_bg_100) 1.8%, transparent) 62%,
         transparent 100%
     );
 }
@@ -43,9 +45,9 @@
 .prominent.bottom {
     background: linear-gradient(
         to top,
-        hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.1) 0,
-        hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.05) 32%,
-        hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.018) 62%,
+        color-mix(in srgb, var(--chrome_bg_100) 10%, transparent) 0,
+        color-mix(in srgb, var(--chrome_bg_100) 5%, transparent) 32%,
+        color-mix(in srgb, var(--chrome_bg_100) 1.8%, transparent) 62%,
         transparent 100%
     );
 }
@@ -54,9 +56,9 @@
     .prominent.top {
         background: linear-gradient(
             to bottom,
-            hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.07) 0,
-            hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.035) 32%,
-            hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.012) 62%,
+            color-mix(in srgb, var(--chrome_bg_100) 7%, transparent) 0,
+            color-mix(in srgb, var(--chrome_bg_100) 3.5%, transparent) 32%,
+            color-mix(in srgb, var(--chrome_bg_100) 1.2%, transparent) 62%,
             transparent 100%
         );
     }
@@ -64,9 +66,9 @@
     .prominent.bottom {
         background: linear-gradient(
             to top,
-            hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.07) 0,
-            hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.035) 32%,
-            hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.012) 62%,
+            color-mix(in srgb, var(--chrome_bg_100) 7%, transparent) 0,
+            color-mix(in srgb, var(--chrome_bg_100) 3.5%, transparent) 32%,
+            color-mix(in srgb, var(--chrome_bg_100) 1.2%, transparent) 62%,
             transparent 100%
         );
     }

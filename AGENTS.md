@@ -25,6 +25,9 @@ Please consult relevant docs in that directory before making changes.
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)
     - `docs/design/app_csp.md`
 
+- Web app theme (colors only from the theme tokens, light-dark(), the color scheme toggle, dark chrome)
+    - `docs/design/app_theme.md`
+
 - Third-party notices
     - `NOTICE` lists vendored third-party code and assets with their licenses. Add an entry when you
       vendor something, and remove it when that code is deleted.

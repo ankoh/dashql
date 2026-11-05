@@ -6,5 +6,5 @@
 
 .error {
     font-size: 11px;
-    color: var(--base_color_red_5);
+    color: var(--color_danger_fg);
 }

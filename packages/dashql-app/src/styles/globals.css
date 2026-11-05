@@ -1,6 +1,17 @@
+/* The color scheme of the app follows the OS, unless the app settings pin it, see docs/design/app_theme.md */
+:root {
+    color-scheme: light dark;
+}
+:root[data-color-scheme="light"] {
+    color-scheme: light;
+}
+:root[data-color-scheme="dark"] {
+    color-scheme: dark;
+}
+
 :root {
     font-family: var(--font_family);
-    color: var(--base_color);
+    color: var(--color_fg);
     /* JetBrains Mono draws operators like <= or != as ligatures that read like the Unicode symbols, SQL shows what
        is typed */
     font-variant-ligatures: no-contextual;

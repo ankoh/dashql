@@ -1,5 +1,7 @@
-/* The rail sits on the dark chrome of the app, framing the page card on the left below the stripe at the top */
+/* The rail sits on the dark chrome of the app, framing the page card on the left below the stripe at the top.
+   It is dark in both color schemes, the tokens inside resolve dark. */
 .rail {
+    color-scheme: dark;
     grid-row: 2;
     grid-column: 1;
     display: flex;
@@ -32,7 +34,7 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    color: var(--nav_tab_fg);
+    color: var(--color_fg);
     fill: currentColor;
     background: transparent;
     border: 1px solid transparent;
@@ -63,7 +65,7 @@
     align-self: stretch;
     height: 1px;
     margin: 6px 8px;
-    background-color: rgba(255, 255, 255, 0.16);
+    background-color: var(--color_bg_selected);
 }
 
 .rail_wide .separator {
@@ -75,10 +77,13 @@
 }
 
 /* A light tint, a darkening would vanish on the dark chrome */
-.button:hover,
+.button:hover {
+    background-color: var(--color_bg_hover);
+    border-color: var(--color_bg_hover);
+}
 .button.active {
-    background-color: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--chrome_bg_active);
+    border-color: var(--color_bg_hover);
 }
 
 /* A page that is not there yet, dimmed and without the tint of the hover */
@@ -93,6 +98,6 @@
 }
 
 .button:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: 1px;
 }

@@ -37,7 +37,7 @@
     grid-column-gap: 8px;
     pointer-events: none;
     font-size: 12px;
-    color: black;
+    color: var(--color_fg);
     z-index: 3;
     font-weight: 400;
 }
@@ -62,8 +62,8 @@
     font-size: 12px;
     font-weight: 400;
     pointer-events: none;
-    color: white;
-    background-color: hsl(var(--neutral_hue), calc(20.7% * var(--neutral_tint)), 30.8%);
+    color: var(--color_fg_inverse);
+    background-color: var(--color_bg_inverse);
     z-index: 3;
     padding: 0px 4px 0px 4px;
     border-radius: 3px;
@@ -76,8 +76,8 @@
     font-size: 12px;
     font-weight: 400;
     pointer-events: none;
-    color: white;
-    background-color: hsla(var(--neutral_hue), calc(20.7% * var(--neutral_tint)), 30.8%, 0.7);
+    color: var(--color_fg_inverse);
+    background-color: color-mix(in srgb, var(--color_bg_inverse) 70%, transparent);
     z-index: 3;
     padding: 0px 4px 0px 4px;
     border-radius: 3px;

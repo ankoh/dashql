@@ -61,7 +61,7 @@ export function SessionConnectionButtons(props: Props & { dependencies?: Session
                                 <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
                             </svg>
                             <svg className={styles.health} width="10px" height="10px" viewBox="0 0 10 10" aria-hidden="true">
-                                <circle cx="5" cy="5" r="5" fill="white" />
+                                <circle cx="5" cy="5" r="5" style={{ fill: 'var(--color_bg_card)' }} />
                                 <circle cx="5" cy="5" r="3.5" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />
                             </svg>
                         </span>

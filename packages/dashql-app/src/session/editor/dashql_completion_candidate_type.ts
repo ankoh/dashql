@@ -25,16 +25,17 @@ export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     ":",
 ];
 
+/// The badge colors of the candidate types, emphasis colors of the theme that carry white text in both schemes
 export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
-    "#aa0d91",
-    "#000",
-    "#000",
-    "#5B18A3",
-    "#DD1141",
-    "#0E7A00",
-    "#666",
-    "#0969da",
-    "#1a7f37",
+    "var(--color_done_emphasis)",
+    "var(--color_neutral_emphasis)",
+    "var(--color_neutral_emphasis)",
+    "var(--color_accent_emphasis)",
+    "var(--color_danger_emphasis)",
+    "var(--color_success_emphasis)",
+    "var(--color_neutral_emphasis)",
+    "var(--color_accent_emphasis)",
+    "var(--color_success_emphasis)",
 ];
 
 export function getCandidateTypeSymbolText(type: CompletionCandidateType) {

@@ -1,14 +1,3 @@
-:root {
-    --editor_header_bg: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
-    /* --editor_gutter_bg: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%); */
-    --editor_gutter_bg: white;
-    --editor_colref_bg: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 88%);
-    --editor_deco_focused_bg: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 90%);
-    --editor_deco_cursor_bg: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%);
-
-    --editor_bg: rgb(255, 255, 255);
-}
-
 .button_icon {
     pointer-events: none;
 }
@@ -17,9 +6,8 @@
     position: relative;
     width: 100%;
     height: 100%;
-    background-color: white;
     overflow: hidden;
-    background-color: var(--editor_bg);
+    background-color: var(--code_bg);
 }
 
 .auto_height_editor {

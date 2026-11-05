@@ -1,7 +1,3 @@
-:root {
-    --storage_browser_header_color: hsl(var(--neutral_hue), calc(24.7% * var(--neutral_tint)), 31.8%);
-}
-
 .overlay {
     height: 100%;
     display: grid;
@@ -17,7 +13,7 @@
     grid-template-rows: 100%;
     grid-template-columns: max-content auto max-content;
 
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
     border-top-right-radius: var(--border_radius);
     border-top-left-radius: var(--border_radius);
 }
@@ -50,7 +46,7 @@
 .summary {
     font-family: var(--font_family_mono);
     font-size: var(--font_size_caption);
-    color: var(--storage_browser_header_color);
+    color: var(--color_fg_muted);
     white-space: nowrap;
 }
 
@@ -58,10 +54,10 @@
     grid-row: 3;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
     font-size: 11px;
     font-weight: 500;
-    color: var(--storage_browser_header_color);
+    color: var(--color_fg_muted);
 }
 
 /* The header columns line up with the entries: the 8px gutter, the 1px border and the 8px entry padding */
@@ -94,7 +90,7 @@
     min-height: 40px;
     padding: 4px 8px 4px 16px;
     box-sizing: border-box;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
     font-size: var(--font_size_body);
 }
 
@@ -107,7 +103,7 @@
 }
 
 .cleanup_message_warning {
-    color: var(--status_color_error, #cf222e);
+    color: var(--color_danger_fg);
 }
 
 /* The rows hold the entries of the tree, see TreeEntry */
@@ -131,7 +127,7 @@
     box-sizing: border-box;
     border: 1px solid transparent;
     border-radius: var(--border_radius);
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
     background: transparent;
     font: inherit;
     text-align: left;
@@ -163,7 +159,7 @@
 
 .icon {
     display: inline-flex;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .name {
@@ -205,7 +201,7 @@
     white-space: nowrap;
     font-family: var(--font_family_mono);
     font-size: 11px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .cell_size,
@@ -216,11 +212,11 @@
     text-overflow: ellipsis;
     font-family: var(--font_family_mono);
     font-size: 11px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .note {
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .reason {
@@ -228,7 +224,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 11px;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 /* A status spans the icon and name cells */
@@ -239,10 +235,10 @@
     white-space: nowrap;
     font-size: 11px;
     font-style: italic;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .status_error {
-    color: var(--status_color_error, #cf222e);
+    color: var(--color_danger_fg);
     font-style: normal;
 }

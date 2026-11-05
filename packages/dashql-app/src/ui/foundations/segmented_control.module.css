@@ -3,12 +3,6 @@
     Adapted for dashql styling system
 */
 
-:root {
-    /* Background of the selected segment in the invisible variant (mirrors the active-tab
-       background of the vertical tab bar). */
-    --segmented_control_invisible_selected_background: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
-}
-
 .segmented_control {
     --segmented-control-icon-width: 32px;
     --segmented-control-button-inner-padding: 12px;
@@ -21,8 +15,8 @@
     margin: 0;
     font-size: 14px;
     list-style: none;
-    background-color: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%);
-    border: 1px solid var(--border_color_primary);
+    background-color: var(--color_bg_subtle);
+    border: 1px solid var(--color_border);
     border-radius: var(--segmented-control-outer-radius);
 }
 
@@ -85,9 +79,9 @@
 }
 
 /* Use the greyish active-tab background of the vertical tab bar for the selected segment
-   instead of the default white pill. */
+   instead of the default card-colored pill. */
 .segmented_control.variant_invisible .button[aria-current='true'] .content {
-    background-color: var(--segmented_control_invisible_selected_background);
+    background-color: var(--color_bg_selected);
 }
 
 /* ==================== Item ==================== */
@@ -111,7 +105,7 @@
     bottom: 8px;
     width: 1px;
     content: '';
-    background-color: var(--border_color_primary);
+    background-color: var(--color_border);
 }
 
 .item.selected::after,
@@ -140,7 +134,7 @@
     font-family: inherit;
     font-size: inherit;
     font-weight: 400;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+    color: var(--color_fg);
     cursor: pointer;
     background-color: transparent;
     border: none;
@@ -149,20 +143,20 @@
 }
 
 .button:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: -1px;
     box-shadow: none;
 }
 
 .button[aria-disabled='true']:not([aria-current='true']) {
     cursor: not-allowed;
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
     background-color: transparent;
 }
 
 .button[aria-disabled='true'] .leading_visual,
 .button[aria-disabled='true'] .icon_button {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+    color: var(--color_fg_subtle);
 }
 
 .icon_button {
@@ -193,19 +187,19 @@
 .button[aria-current='true'] .content {
     padding-right: var(--segmented-control-button-inner-padding);
     padding-left: var(--segmented-control-button-inner-padding);
-    background-color: #ffffff;
-    border-color: var(--border_color_primary);
-    box-shadow: 0 1px 0 hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.04);
+    background-color: var(--color_bg_card);
+    border-color: var(--color_border);
+    box-shadow: var(--shadow_small);
 }
 
 /* Hover state */
 .button:not([aria-current='true'], [aria-disabled='true']):hover .content {
-    background-color: #f3f4f6;
+    background-color: var(--color_bg_hover);
 }
 
 /* Active state */
 .button:not([aria-current='true'], [aria-disabled='true']):active .content {
-    background-color: hsl(var(--neutral_hue), calc(23.5% * var(--neutral_tint)), 93.3%);
+    background-color: var(--color_bg_selected);
 }
 
 /* ==================== Text ==================== */
@@ -239,7 +233,7 @@
 
 .leading_visual {
     display: inline-flex;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
 }
 
 /* ==================== Counter ==================== */
@@ -251,8 +245,8 @@
     font-size: 12px;
     font-weight: 600;
     line-height: 1;
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
-    background-color: hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 72.2%, 0.2);
+    color: var(--color_fg);
+    background-color: var(--color_bg_hover);
     border-radius: 20px;
     min-height: 20px;
 }

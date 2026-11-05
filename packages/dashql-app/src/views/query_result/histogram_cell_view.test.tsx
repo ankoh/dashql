@@ -197,7 +197,7 @@ describe('HistogramCell', () => {
         expect(header()).toBe(TYPE);
         const bars = barRects();
         expect(bars).toHaveLength(4);
-        expect(bars.every(bar => bar.getAttribute('fill') === COLUMN_SUMMARY_COLORS.totalBar)).toBe(true);
+        expect(bars.every(bar => (bar as SVGElement).style.fill === COLUMN_SUMMARY_COLORS.totalBar)).toBe(true);
         const heights = bars.map(bar => bar.getBoundingClientRect().height);
         const unit = heights[1] / 4;
         expect(heights[0]).toBeCloseTo(unit, 3);
@@ -212,7 +212,7 @@ describe('HistogramCell', () => {
         // The axis shows the lower bounds of the first and the last bin, the null bar has its symbol
         expect(labels()).toEqual(['0', '30', '∅']);
         // The null bar shares the scale of the bins
-        expect(nullBar()!.getAttribute('fill')).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBar);
+        expect((nullBar()! as SVGElement).style.fill).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBar);
         expect(nullBar()!.getBoundingClientRect().height).toBeCloseTo(2 * unit, 3);
         expect(nullBar()!.getBoundingClientRect().left).toBeGreaterThan(bars[3].getBoundingClientRect().right);
     });
@@ -226,7 +226,7 @@ describe('HistogramCell', () => {
         expect(labels()).toEqual(['10', '∅']);
         // The focused bar is drawn over the bar of the bin
         const focused = barRects()[4];
-        expect(focused.getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
+        expect((focused as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
         expect(focused.getAttribute('x')).toBe(barRects()[1].getAttribute('x'));
         expect(cell().style.zIndex).toBe('100');
 
@@ -301,7 +301,7 @@ describe('HistogramCell', () => {
         const bounds = nullBar()!.getBoundingClientRect();
         await pointer(nullBar()!, 'pointerover', bounds.left + bounds.width / 2);
         expect(header()).toBe('2 rows (20%)');
-        expect(nullBar()!.getAttribute('fill')).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarFocused);
+        expect((nullBar()! as SVGElement).style.fill).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarFocused);
         // The symbol of the null bar is highlighted, the axis labels stay
         expect(labels()).toEqual(['0', '30', '∅']);
         const symbol = Array.from(cell().querySelectorAll('span')).find(span => span.textContent === '∅')!;
@@ -309,7 +309,7 @@ describe('HistogramCell', () => {
 
         await pointer(nullBar()!, 'pointerout', bounds.left + bounds.width / 2);
         expect(header()).toBe(TYPE);
-        expect(nullBar()!.getAttribute('fill')).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBar);
+        expect((nullBar()! as SVGElement).style.fill).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBar);
         const plain = Array.from(cell().querySelectorAll('span')).find(span => span.textContent === '∅')!;
         expect(plain.className).toBe('');
     });
@@ -434,8 +434,8 @@ describe('HistogramCell', () => {
         // The bars of all rows fade behind the bars of the selected rows
         const rects = barRects();
         expect(rects).toHaveLength(8);
-        expect(rects.slice(0, 4).every(rect => rect.getAttribute('fill') === COLUMN_SUMMARY_COLORS.totalBarWithFilter)).toBe(true);
-        expect(rects.slice(4).every(rect => rect.getAttribute('fill') === COLUMN_SUMMARY_COLORS.filteredBar)).toBe(true);
+        expect(rects.slice(0, 4).every(rect => (rect as SVGElement).style.fill === COLUMN_SUMMARY_COLORS.totalBarWithFilter)).toBe(true);
+        expect(rects.slice(4).every(rect => (rect as SVGElement).style.fill === COLUMN_SUMMARY_COLORS.filteredBar)).toBe(true);
         const heights = rects.map(rect => rect.getBoundingClientRect().height);
         // Bin 1: 2 of 4 rows, bin 2: 1 of 2 rows
         expect(heights[5]).toBeCloseTo(heights[1] / 2, 3);
@@ -444,7 +444,7 @@ describe('HistogramCell', () => {
 
         await hoverBin(1);
         expect(header()).toBe('2 rows (50%)');
-        expect(barRects()[barRects().length - 1].getAttribute('fill')).toBe(COLUMN_SUMMARY_COLORS.filteredBarFocused);
+        expect((barRects()[barRects().length - 1] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.filteredBarFocused);
         await hoverBin(3);
         expect(header()).toBe('0 rows (0%)');
 
@@ -452,7 +452,7 @@ describe('HistogramCell', () => {
         await pointer(overlay(), 'pointerout', 0);
         const nullRects = plotGroups()[3].querySelectorAll(':scope > rect');
         expect(nullRects).toHaveLength(2);
-        expect(nullRects[0].getAttribute('fill')).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarWithFilter);
+        expect((nullRects[0] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarWithFilter);
         expect(nullRects[1].getBoundingClientRect().height).toBeCloseTo(nullRects[0].getBoundingClientRect().height / 2, 3);
         await pointer(nullBar()!, 'pointerover', nullBar()!.getBoundingClientRect().left + 1);
         expect(header()).toBe('1 row (25%)');

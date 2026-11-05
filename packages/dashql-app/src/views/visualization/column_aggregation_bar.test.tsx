@@ -136,7 +136,7 @@ describe('ColumnAggregationBar', () => {
         await act(async () => {
             await vi.waitFor(() => {
                 expect(table().filterTable?.dataTable.numRows).toBe(3);
-                const filled = Array.from(plot(1)!.querySelectorAll('rect')).filter(rect => rect.getAttribute('fill') === COLUMN_SUMMARY_COLORS.filteredBar);
+                const filled = Array.from(plot(1)!.querySelectorAll('rect')).filter(rect => (rect as SVGElement).style.fill === COLUMN_SUMMARY_COLORS.filteredBar);
                 expect(filled.length).toBeGreaterThan(0);
             });
         });

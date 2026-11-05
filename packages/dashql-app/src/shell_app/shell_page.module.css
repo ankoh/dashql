@@ -6,14 +6,16 @@
     overflow: hidden;
 }
 
+/* The terminal is dark in both schemes, like the backdrop around it */
 .terminal {
+    color-scheme: dark;
     width: 100%;
     height: 100%;
     padding: 12px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--color_border_muted);
     border-radius: 12px;
-    background: var(--shell_background_color);
+    background: var(--color_bg_hover);
 }
 
 .terminal_host,
@@ -41,7 +43,7 @@
     top: 12px;
     left: 12px;
     max-width: calc(100% - 24px);
-    color: #e6edf3;
+    color: var(--color_fg);
     font-family: var(--font_family_mono);
     font-size: 13px;
     line-height: 1.2;
@@ -50,6 +52,7 @@
 }
 
 .unsupported {
+    color-scheme: dark;
     display: grid;
     gap: 8px;
     place-content: center;
@@ -57,10 +60,10 @@
     width: 100%;
     height: 100%;
     padding: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--color_border);
     border-radius: 12px;
-    background: var(--shell_background_color);
-    color: #e6edf3;
+    background: var(--color_bg_hover);
+    color: var(--color_fg);
     text-align: center;
 }
 
@@ -75,6 +78,6 @@
 
 .unsupported p {
     max-width: 420px;
-    color: hsl(var(--neutral_hue), calc(12.6% * var(--neutral_tint)), 65.9%);
+    color: var(--color_fg_muted);
     line-height: 1.5;
 }

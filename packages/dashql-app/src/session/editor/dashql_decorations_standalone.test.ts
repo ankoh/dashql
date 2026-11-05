@@ -11,7 +11,7 @@ import {
     DashQLScannerDecorationUpdateEffect,
     DashQLStandaloneScannerDecorationPlugin,
 } from './dashql_decorations_standalone.js';
-import { xcodeLight } from './themes/xcode.js';
+import { xcodeTheme } from './themes/xcode.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -156,7 +156,7 @@ describe('scanner decorations', () => {
         const view = new EditorView({
             state: EditorState.create({
                 doc: text,
-                extensions: [xcodeLight, DashQLStandaloneScannerDecorationPlugin],
+                extensions: [xcodeTheme, DashQLStandaloneScannerDecorationPlugin],
             }),
             parent: document.body,
         });

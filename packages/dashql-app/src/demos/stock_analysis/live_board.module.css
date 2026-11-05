@@ -15,9 +15,9 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--base_color_neutral_5);
-    background-color: white;
-    border-bottom: 1px solid var(--border_color_primary);
+    color: var(--color_fg_muted);
+    background-color: var(--color_bg_card);
+    border-bottom: 1px solid var(--color_border);
     white-space: nowrap;
 }
 
@@ -25,8 +25,8 @@
     padding: 4px 10px;
     text-align: right;
     font-family: var(--font_family_mono);
-    color: var(--base_color_neutral_9);
-    border-bottom: 1px solid var(--base_color_neutral_1);
+    color: var(--color_fg);
+    border-bottom: 1px solid var(--color_border_muted);
     white-space: nowrap;
 }
 
@@ -35,12 +35,12 @@
 }
 
 .board tbody tr:hover {
-    background-color: var(--base_color_neutral_0);
+    background-color: var(--color_bg_hover);
 }
 
 /* The selection takes the color of the charts, it follows the flavor */
 .board tbody tr.selected {
-    background-color: color-mix(in srgb, var(--chart_color_primary) 10%, white);
+    background-color: color-mix(in srgb, var(--chart_color_1) 10%, transparent);
 }
 
 .board th.symbol_col,
@@ -54,15 +54,15 @@
 }
 
 .board td.up {
-    color: var(--base_color_green_6);
+    color: var(--color_success_fg);
 }
 
 .board td.down {
-    color: var(--base_color_red_6);
+    color: var(--color_danger_fg);
 }
 
 .board td.age {
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 /* A price flashes in the direction of its change, then fades back */
@@ -83,12 +83,12 @@
 }
 
 @keyframes flash_up {
-    from { background-color: var(--base_color_green_1); }
+    from { background-color: var(--color_success_muted); }
     to { background-color: transparent; }
 }
 
 @keyframes flash_down {
-    from { background-color: var(--base_color_red_1); }
+    from { background-color: var(--color_danger_muted); }
     to { background-color: transparent; }
 }
 

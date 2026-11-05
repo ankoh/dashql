@@ -6,7 +6,7 @@
     height: 100%;
     min-height: 0;
     overflow: hidden;
-    background: white;
+    background: var(--color_bg_card);
     outline: none;
 }
 
@@ -17,8 +17,8 @@
     gap: 2px;
     min-width: 0;
     padding: 0 6px 0 0;
-    border-bottom: 1px solid var(--log_border_color);
-    color: var(--card_control_color);
+    border-bottom: 1px solid var(--color_border);
+    color: var(--color_fg_muted);
 }
 
 /* A narrow dialog hides the controls that the script menu of the header offers as well */
@@ -51,7 +51,7 @@
 .body {
     position: relative;
     min-height: 0;
-    background-color: var(--session_feed_preview_background);
+    background-color: transparent;
 }
 
 .editor {
@@ -74,5 +74,5 @@
 }
 
 .status {
-    border-top: 1px solid var(--log_border_color);
+    border-top: 1px solid var(--color_border);
 }

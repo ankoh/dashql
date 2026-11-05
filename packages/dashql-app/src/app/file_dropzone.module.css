@@ -5,7 +5,10 @@
     background: var(--background);
 }
 
+/* The drop area covers the app on the dark backdrop while a file is dragged, the tokens inside resolve dark.
+ * The root wraps the whole app and keeps the color scheme of the app. */
 .area_centered {
+    color-scheme: dark;
     width: 100%;
     height: 100%;
 
@@ -19,14 +22,14 @@
     width: 100%;
     height: 100%;
     border-radius: var(--border_radius);
-    background-color: rgba(255, 255, 255, 5%);
+    background-color: var(--color_bg_hover);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .area_logo {
-    color: rgba(255, 255, 255, 8%);
+    color: color-mix(in srgb, var(--color_fg) 8%, transparent);
     --brand_logo_accent: currentColor;
     --brand_logo_ink: currentColor;
 }

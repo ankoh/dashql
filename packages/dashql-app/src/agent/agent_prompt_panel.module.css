@@ -5,10 +5,10 @@
     flex-direction: column;
     gap: 6px;
     padding: var(--composer_agent_padding, 8px 12px);
-    border-bottom: 1px solid var(--log_border_color);
+    border-bottom: 1px solid var(--color_border);
     border-radius: calc(var(--composer_radius, var(--border_radius)) - 1px) calc(var(--composer_radius, var(--border_radius)) - 1px) 0 0;
-    background-color: var(--session_feed_entry_headerbar_background);
-    color: var(--card_control_color);
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg_muted);
     font-size: var(--font_size_small);
 }
 
@@ -21,7 +21,7 @@
 
 .header_icon {
     flex: none;
-    color: var(--background_color_100);
+    color: var(--color_fg);
 }
 
 .header_title {
@@ -36,11 +36,11 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #9a6700;
+    background: var(--color_attention_fg);
 }
 
 .header_dot[data-connected] {
-    background: #1f883d;
+    background: var(--color_success_fg);
 }
 
 .header_detail {
@@ -48,7 +48,7 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 44%);
+    color: var(--color_fg_muted);
 }
 
 /* The questions scroll within a fixed height instead of pushing the composer off the page */
@@ -89,7 +89,7 @@
     padding: 0;
     border: none;
     background: none;
-    color: var(--base_color);
+    color: var(--color_fg);
     font: inherit;
     text-align: left;
     cursor: pointer;
@@ -105,7 +105,7 @@
 .turn_chevron {
     flex: none;
     margin-top: 8px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
     transition: transform 0.1s ease;
 }
 
@@ -127,7 +127,7 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--base_color);
+    color: var(--color_fg);
     font-size: var(--font_size_body);
     line-height: 18px;
     cursor: pointer;
@@ -157,10 +157,10 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     padding: 1px 6px;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: 4px;
-    background: white;
-    color: var(--card_control_color);
+    background: var(--color_bg_card);
+    color: var(--color_fg_muted);
     font-family: var(--font_family_mono);
     font-size: 11px;
     cursor: pointer;
@@ -183,12 +183,12 @@
     overflow-wrap: anywhere;
     font-family: var(--font_family_mono);
     font-size: 11px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
     background: linear-gradient(
         90deg,
-        var(--base_color_neutral_5) 0%,
+        var(--color_fg_muted) 0%,
         var(--agent_accent) 50%,
-        var(--base_color_neutral_5) 100%
+        var(--color_fg_muted) 100%
     );
     background-size: 200% 100%;
     background-clip: text;
@@ -205,14 +205,14 @@
 /* The final message of the agent with its line breaks */
 .turn_note {
     padding-left: 36px;
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg_muted);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
 
 .turn_error {
     padding-left: 36px;
-    color: var(--fgColor-danger, #cf222e);
+    color: var(--color_danger_fg);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }

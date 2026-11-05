@@ -66,7 +66,7 @@ export const AppSetupPage: React.FC<AppSetupPageProps> = (props: AppSetupPagePro
                                         <div className={pageStyles.detail_entry_value} data-testid={`app-setup-${step}`} data-status={IndicatorStatus[props.status[step]]}>
                                             <StatusIndicator
                                                 className={pageStyles.loading_status_indicator}
-                                                fill="black"
+                                                fill="var(--color_fg)"
                                                 width={"14px"}
                                                 height={"14px"}
                                                 status={props.status[step]}

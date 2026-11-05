@@ -139,7 +139,7 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
                         <RectangleWaveSpinner
                             className={styles.plots_progress_spinner}
                             active={true}
-                            color={"rgb(208, 215, 222)"}
+                            color={"var(--color_border)"}
                         />
                     </div>
                 );

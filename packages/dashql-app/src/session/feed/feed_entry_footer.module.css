@@ -18,21 +18,21 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     background: transparent;
-    color: var(--button_fg);
+    color: var(--color_fg);
     font-family: inherit;
     font-size: inherit;
     cursor: pointer;
 }
 
 .tab:hover {
-    background-color: var(--vtabs_tabs_background_hover);
-    border-color: var(--border_color_primary);
+    background-color: var(--color_bg_hover);
+    border-color: var(--color_border);
 }
 
 .tab_active {
-    color: var(--vtabs_tabs_foreground_active);
-    background-color: var(--vtabs_tabs_background_active);
-    border-color: var(--border_color_primary);
+    color: var(--color_fg);
+    background-color: var(--color_bg_selected);
+    border-color: var(--color_border);
 }
 
 .tab svg {

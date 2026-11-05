@@ -27,6 +27,7 @@ import { decodeOAuthState, getOAuthStateFlavor, isAllowedOAuthCallbackUrl, valid
 import { getRequestedFlavor } from '../config/flavor_resolution.js';
 
 import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '../styles/flavors/sidb.css';

@@ -15,6 +15,7 @@ import { useQueryResultCache } from '../../storage/query_result_cache_provider.j
 import { AppFlavor, FLAVORS } from '../../config/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../../config/flavor_provider.js';
 import { useAppRestart } from '../../platform/crosstab/app_hand_over.js';
+import { ColorScheme, useColorSchemeSetting } from '../../config/color_scheme.js';
 
 /// The boolean settings that the panel toggles directly
 type ToggleSettingKey =
@@ -188,6 +189,9 @@ export function AppSettings(props: { onClose: () => void; }) {
         );
     };
 
+    const [colorScheme, setColorScheme] = useColorSchemeSetting();
+    const colorSchemes: [ColorScheme | null, string][] = [[null, 'System'], ['light', 'Light'], ['dark', 'Dark']];
+
     // Apply log level from config on mount
     React.useEffect(() => {
         logger.buffer.setMinLogLevel(minLogLevel);
@@ -230,6 +234,25 @@ export function AppSettings(props: { onClose: () => void; }) {
                                     disabled={config == null || flavorRequested}
                                 >
                                     {f.displayName}
+                                </SegmentedControl.Button>
+                            ))}
+                        </SegmentedControl>
+                    </div>
+                    <div id="app-setting-color-scheme" className={styles.setting_name}>
+                        Color Scheme
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <SegmentedControl
+                            aria-labelledby="app-setting-color-scheme"
+                            onChange={index => setColorScheme(colorSchemes[index][0])}
+                        >
+                            {colorSchemes.map(([scheme, name]) => (
+                                <SegmentedControl.Button
+                                    key={name}
+                                    selected={colorScheme === scheme}
+                                    disabled={config == null}
+                                >
+                                    {name}
                                 </SegmentedControl.Button>
                             ))}
                         </SegmentedControl>

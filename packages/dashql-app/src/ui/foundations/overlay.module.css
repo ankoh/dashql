@@ -1,6 +1,6 @@
 .overlay {
-    background-color: #ffffff;
-    box-shadow: 0 1px 3px hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.12), 0 8px 24px hsla(var(--neutral_hue), calc(11.4% * var(--neutral_tint)), 29.2%, 0.12);
+    background-color: var(--color_bg_card);
+    box-shadow: var(--shadow_large);
     position: absolute;
     min-width: 192px;
     /* Never grow beyond the window. Keeps 16px breathing room on each side
@@ -9,7 +9,7 @@
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 32px);
     border-radius: 12px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     overflow: hidden;
 }
 

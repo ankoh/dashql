@@ -1,13 +1,13 @@
 .literal_quotes {
-    color: #cb4b16;
+    color: var(--code_string);
 }
 .literal_true {}
 .literal_false {}
 .literal_string {
-    color: #cb4b16;
+    color: var(--code_string);
 }
 .literal_string_short {
-    color: #cb4b16;
+    color: var(--code_string);
 }
 .literal_float {}
 .literal_int {}
@@ -20,7 +20,7 @@
 
 .symbol_ellipsis {
     cursor: pointer;
-    color: #cb4b16;
+    color: var(--code_string);
     user-select: none;
 }
 .symbol_arrow_container {}
@@ -33,22 +33,22 @@
 }
 
 .item_count {
-    color: #0000004d;
+    color: var(--color_fg_subtle);
     padding-left: 8px;
     font-style: 'italic';
 }
 
 .object_key_name_number {
-    color: #268bd2;
+    color: var(--code_variable_definition);
 }
 .object_key_name_string {
-    color: #002b36;
+    color: var(--code_property_name);
 }
 .object_key_quotes {
-    color: #236a7c;
+    color: var(--code_variable_name);
 }
 .object_key_colon {
-    color: black;
+    color: var(--code_fg);
     margin-left: 0px;
     margin-right: 2px;
 }
@@ -60,16 +60,16 @@
     padding-left: 4px;
 }
 .object_square_brackets_open {
-    color: #236a7c;
+    color: var(--code_variable_name);
 }
 .object_square_brackets_close {
-    color: #236a7c;
+    color: var(--code_variable_name);
 }
 .object_curly_brackets_open {
-    color: #236a7c;
+    color: var(--code_variable_name);
 }
 .object_curly_brackets_close {
-    color: #236a7c;
+    color: var(--code_variable_name);
 }
 
 .object_header_map {
@@ -92,13 +92,13 @@
     display: inline-flex;
     padding: 0;
     border: 0;
-    background-color: var(--w-rjv-background-color, #fff);
+    background-color: var(--color_bg_card);
 }
 
 .copy_button svg { width: 100%; height: 100%; }
 
 .copy_button_copied {
-    color: #28a745;
+    color: var(--color_success_fg);
 }
 
 .viewer {
@@ -113,8 +113,8 @@
     position: relative;
     line-height: 1.4;
     font-family: Menlo, monospace;
-    color: #002b36;
-    background-color: #00000000;
+    color: var(--code_fg);
+    background-color: transparent;
     font-size: var(--json_view_font_size, 13px);
 }
 .expand_button {
@@ -134,24 +134,18 @@
     padding: 2px 6px;
     border: 0;
     border-radius: 3px;
-    background: hsl(var(--neutral_hue), calc(15% * var(--neutral_tint)), 93%);
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    background: var(--color_neutral_muted);
+    color: var(--color_fg_muted);
     cursor: pointer;
     font: inherit;
 }
 
 /* The explorer variant renders values like an object explorer, without the JSON syntax */
-.viewer_explorer {
-    --json_explorer_key_color: hsl(var(--neutral_hue), calc(15% * var(--neutral_tint)), 38%);
-    --json_explorer_dim_color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 56%);
-    --json_explorer_hover_bg: hsl(var(--neutral_hue), calc(20% * var(--neutral_tint)), 96%);
-}
-
 .viewer_explorer .value_container {
     font-family: var(--font_family);
     font-size: var(--font_size_small);
     line-height: 20px;
-    color: var(--base_color);
+    color: var(--color_fg);
 }
 
 .explorer_row,
@@ -178,13 +172,13 @@
 
 .explorer_row:hover,
 .viewer_explorer .object_entries_line:hover {
-    background-color: var(--json_explorer_hover_bg);
+    background-color: var(--color_bg_hover);
 }
 
 .explorer_row > .expand_button {
     flex: none;
     align-self: center;
-    color: var(--json_explorer_dim_color);
+    color: var(--color_fg_subtle);
 }
 
 .explorer_arrow_spacer {
@@ -196,45 +190,45 @@
 .explorer_key_number {
     flex: none;
     min-width: var(--json_explorer_key_width, 88px);
-    color: var(--json_explorer_key_color);
+    color: var(--color_fg_muted);
 }
 
 .explorer_key_number {
-    color: var(--json_explorer_dim_color);
+    color: var(--color_fg_subtle);
     font-variant-numeric: tabular-nums;
 }
 
 .explorer_summary {
-    color: var(--json_explorer_dim_color);
+    color: var(--color_fg_subtle);
 }
 
 .explorer_placeholder {
-    color: var(--json_explorer_dim_color);
+    color: var(--color_fg_subtle);
     font-style: italic;
 }
 
 .viewer_explorer .literal_string,
 .viewer_explorer .literal_string_short,
 .viewer_explorer .literal_url {
-    color: var(--base_color);
+    color: var(--color_fg);
 }
 
 .viewer_explorer .literal_int,
 .viewer_explorer .literal_float,
 .viewer_explorer .literal_bigint {
-    color: #0550ae;
+    color: var(--color_accent_fg);
     font-variant-numeric: tabular-nums;
 }
 
 .viewer_explorer .literal_true,
 .viewer_explorer .literal_false {
-    color: #8250df;
+    color: var(--color_done_fg);
 }
 
 .viewer_explorer .literal_null,
 .viewer_explorer .literal_undefined,
 .viewer_explorer .literal_nan {
-    color: var(--json_explorer_dim_color);
+    color: var(--color_fg_subtle);
     font-style: italic;
 }
 

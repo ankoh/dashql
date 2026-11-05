@@ -40,7 +40,7 @@ export function ChartSpecJsonEditor(props: Props): React.ReactElement {
     const initialDoc = React.useMemo(() => JSON.stringify(props.initialSpec, null, 2), []);
 
     const extensions = React.useMemo<Extension[]>(() => [
-        themes.xcode.xcodeLight,
+        themes.xcode,
         json(),
         lineNumbers(),
         foldGutter(),

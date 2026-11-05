@@ -1,13 +1,14 @@
-/* The semantic tokens of DashQL, shared by the app and the website. Flavors of the app override them. */
+/* The theme of DashQL, shared by the app and the website. See docs/design/app_theme.md.
+   Every color of the app comes from the closed set of semantic tokens below. They pick from the palette in
+   colors.css with light-dark(<light>, <dark>), resolved against the color-scheme of the element that uses them.
+   The app sets the color-scheme on the root, the always dark chrome forces a dark one. Without a color-scheme
+   the tokens resolve light, like on the website. Flavors of the app override the tokens, never the palette. */
 
 :root {
     /* The greys of the app carry a slight tint of this hue. Flavors can shift the hue or drop the tint with 0. */
     --neutral_hue: 210;
     --neutral_tint: 1;
 
-    --base_color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
-    --background_color_primary: hsl(var(--neutral_hue), calc(24.7% * var(--neutral_tint)), 31.8%);
-    --border_color_primary: hsl(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%);
     --border_radius: 8px;
 
     --font_size_badge: 0.65rem;
@@ -23,83 +24,131 @@
     --font_family: 'Instrument Sans', sans-serif;
     --font_family_mono: 'JetBrains Mono', monospace;
 
-    --navbar_hover_background_color: rgba(0, 0, 0, 0.2);
-    --shell_background_color: rgba(0, 0, 0, 0.2);
+    /* Surfaces: the page, the cards on it (also editors, tables and dialogs), the subtle areas of cards (headers,
+       sunken areas, alternating rows), the overlays of hovered and selected rows, and the inverted surface of
+       tooltips and dark badges */
+    --color_bg: light-dark(var(--base_color_neutral_0), var(--base_color_neutral_11));
+    --color_bg_card: light-dark(var(--base_color_white), var(--base_color_neutral_10));
+    --color_bg_subtle: light-dark(var(--base_color_neutral_0), var(--base_color_neutral_9));
+    --color_bg_hover: light-dark(hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.08), hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.1));
+    --color_bg_selected: light-dark(hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.14), hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.16));
+    --color_bg_inverse: light-dark(var(--base_color_neutral_9), var(--base_color_neutral_1));
 
-    --button_fg: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 22%);
-    --button_fg_inverted: rgb(255, 255, 255);
-    --button_hover_fg: rgb(255, 255, 255);
-    --button_hover_fg_inverted: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 32%);
-    --button_hover_bg: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
-    --button_hover_bg_inverted: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 6%);
+    /* Text and icons: the default, muted (secondary text, controls of headers and toolbars), subtle (placeholders,
+       disabled controls), and the text on emphasis backgrounds and on the inverted surface */
+    --color_fg: light-dark(var(--base_color_neutral_9), var(--base_color_neutral_1));
+    --color_fg_muted: light-dark(var(--base_color_neutral_6), var(--base_color_neutral_3));
+    --color_fg_subtle: light-dark(var(--base_color_neutral_4), var(--base_color_neutral_5));
+    --color_fg_on_emphasis: var(--base_color_white);
+    --color_fg_inverse: light-dark(var(--base_color_white), var(--base_color_neutral_9));
 
-    --button_primary_bg: #1f883d;
-    --button_primary_bg_hover: #1a7f37;
-    /* Pressed or with an open menu */
-    --button_primary_bg_active: hsl(137, 66%, 28%);
-    --button_primary_bg_disabled: #94d3a2;
+    /* Borders: the default of cards and controls, and the muted one of dividers inside them */
+    --color_border: light-dark(var(--base_color_neutral_2), var(--base_color_neutral_8));
+    --color_border_muted: light-dark(var(--base_color_neutral_1), var(--base_color_neutral_9));
 
-    /* The colors of status indicators, like the status icons of scripts and the health dots of connections */
-    --status_color_in_progress: #9a6700;
-    --status_color_success: #1f883d;
-    --status_color_failed: #cf222e;
-    --status_color_other: #6e7781;
+    /* The accent: links and highlighted text, emphasis backgrounds, muted backgrounds of highlights, and focus */
+    --color_accent_fg: light-dark(var(--base_color_blue_5), var(--base_color_blue_3));
+    --color_accent_emphasis: var(--base_color_blue_5);
+    --color_accent_muted: light-dark(var(--base_color_blue_0), color-mix(in srgb, var(--base_color_blue_4) 20%, transparent));
+    --color_focus: light-dark(var(--base_color_blue_5), var(--base_color_blue_4));
 
-    --background_color_80: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 24%);
-    --background_color_100: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
-    --background: radial-gradient(circle at 50% 50%, var(--background_color_80) 20%, transparent 80%),
+    /* Status: the text and icon color, the emphasis background and the muted background of each */
+    --color_success_fg: light-dark(var(--base_color_green_5), var(--base_color_green_3));
+    --color_success_emphasis: light-dark(#1f883d, #238636);
+    --color_success_muted: light-dark(var(--base_color_green_0), color-mix(in srgb, var(--base_color_green_4) 20%, transparent));
+    --color_danger_fg: light-dark(var(--base_color_red_5), var(--base_color_red_3));
+    --color_danger_emphasis: light-dark(var(--base_color_red_5), #da3633);
+    --color_danger_muted: light-dark(var(--base_color_red_0), color-mix(in srgb, var(--base_color_red_4) 20%, transparent));
+    --color_danger_border: color-mix(in srgb, var(--color_danger_fg) 40%, transparent);
+    --color_attention_fg: light-dark(var(--base_color_yellow_5), var(--base_color_yellow_2));
+    --color_attention_muted: light-dark(var(--base_color_yellow_0), color-mix(in srgb, var(--base_color_yellow_4) 20%, transparent));
+    --color_attention_border: color-mix(in srgb, var(--color_attention_fg) 40%, transparent);
+    --color_neutral_fg: light-dark(var(--base_color_neutral_5), var(--base_color_neutral_4));
+    --color_neutral_emphasis: var(--base_color_neutral_6);
+    --color_neutral_muted: light-dark(var(--base_color_neutral_1), color-mix(in srgb, var(--base_color_neutral_5) 25%, transparent));
+    --color_done_fg: light-dark(var(--base_color_purple_5), var(--base_color_purple_3));
+    --color_done_emphasis: var(--base_color_purple_5);
+
+    /* The primary button: rest, hovered, pressed or with an open menu, and disabled */
+    --color_primary_emphasis: var(--color_success_emphasis);
+    --color_primary_emphasis_hover: light-dark(var(--base_color_green_5), #2ea043);
+    --color_primary_emphasis_active: light-dark(hsl(137, 66%, 28%), hsl(137, 60%, 34%));
+    --color_primary_emphasis_disabled: light-dark(#94d3a2, hsl(137, 35%, 24%));
+
+    /* The backdrop that dims the page behind modal drawers and overlays */
+    --color_backdrop: light-dark(hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%, 0.3), hsla(0, 0%, 0%, 0.5));
+
+    /* Elevation */
+    --shadow_small: 0 1px 0 light-dark(hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.04), hsla(0, 0%, 0%, 0.2));
+    --shadow_medium: 0 3px 6px light-dark(hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.15), hsla(0, 0%, 0%, 0.4));
+    --shadow_large: 0 8px 24px light-dark(hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.2), hsla(0, 0%, 0%, 0.5));
+    --shadow_extra_large: 0 12px 28px light-dark(hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.3), hsla(0, 0%, 0%, 0.6));
+
+    /* The chrome around the pages (top bar, nav rail, the backdrop of the setup pages) is dark in both schemes.
+       It forces a dark color-scheme on itself and uses the tokens above, these are only its backgrounds. */
+    --chrome_bg: hsl(var(--neutral_hue), calc(24.7% * var(--neutral_tint)), 31.8%);
+    --chrome_bg_80: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 24%);
+    --chrome_bg_100: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
+    --chrome_bg_active: hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.2);
+    --background: radial-gradient(circle at 50% 50%, var(--chrome_bg_80) 20%, transparent 80%),
         conic-gradient(
             from 45deg at 50% 50%,
-            var(--background_color_100) 0%,
-            var(--background_color_80) 25%,
-            var(--background_color_100) 50%,
-            var(--background_color_80) 75%,
-            var(--background_color_100) 100%
+            var(--chrome_bg_100) 0%,
+            var(--chrome_bg_80) 25%,
+            var(--chrome_bg_100) 50%,
+            var(--chrome_bg_80) 75%,
+            var(--chrome_bg_100) 100%
         );
 
     /* Backdrop of pages with a lot of empty space, like the session feed: a soft light in the middle,
        a faint dot grid, and a vignette that fades the grid out toward the edges. Centered in the element it paints. */
-    --stage_color: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
-    --stage_light: radial-gradient(ellipse 65% 70% at 50% 50%, hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98.1%) 0%, var(--stage_color) 60%);
-    --stage_dot_grid: radial-gradient(circle, hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.1) 0.8px, transparent 1.3px) center / 22px 22px;
-    --stage_vignette: radial-gradient(ellipse 70% 75% at 50% 50%, hsla(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%, 0) 45%, hsl(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%) 100%);
+    --stage_color: var(--color_bg);
+    --stage_light: radial-gradient(ellipse 65% 70% at 50% 50%, light-dark(hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98.1%), hsl(var(--neutral_hue), calc(14% * var(--neutral_tint)), 10.5%)) 0%, var(--stage_color) 60%);
+    --stage_dot_grid: radial-gradient(circle, light-dark(hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.1), hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.07)) 0.8px, transparent 1.3px) center / 22px 22px;
+    --stage_vignette_color: light-dark(hsl(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%), hsl(var(--neutral_hue), calc(14% * var(--neutral_tint)), 7.5%));
+    --stage_vignette: radial-gradient(ellipse 70% 75% at 50% 50%, transparent 45%, var(--stage_vignette_color) 100%);
     --stage_background: var(--stage_vignette), var(--stage_dot_grid), var(--stage_light), var(--stage_color);
 
-    /* The accent of focus rings and focused borders */
-    --focus_outline_color: #0969da;
-    --focus_border_color: var(--focus_outline_color);
-
-    /* The colors of the agent: the three stops of the gradient of its frame, the accent of its icons and the
-       accent of its text. Flavors derive them from their accent. */
+    /* The agent: the three stops of the gradient of its frame, the accent of its icons and the accent of its text.
+       Flavors derive them from their accent. */
     --agent_gradient_1: var(--base_color_blue_3);
     --agent_gradient_2: #3cc4d9;
     --agent_gradient_3: var(--base_color_blue_4);
-    --agent_accent: var(--base_color_blue_5);
-    --agent_accent_text: var(--base_color_blue_6);
+    --agent_accent: light-dark(var(--base_color_blue_5), var(--base_color_blue_3));
+    --agent_accent_text: light-dark(var(--base_color_blue_6), var(--base_color_blue_2));
 
-    /* The colors of charts: the color of a single series and the categorical colors of series in the order they are
-       assigned. Flavors override them, adjacent categorical colors must stay apart for color-blind readers. */
-    --chart_color_primary: var(--base_color_blue_5);
-    --chart_color_1: var(--base_color_blue_5);
-    --chart_color_2: var(--base_color_orange_4);
-    --chart_color_3: var(--base_color_purple_5);
-    --chart_color_4: var(--base_color_green_5);
-    --chart_color_5: var(--base_color_pink_4);
-    --chart_color_6: var(--base_color_yellow_4);
-    --chart_color_7: var(--base_color_blue_3);
-    --chart_color_8: var(--base_color_orange_6);
+    /* Charts: the categorical colors of series in the order they are assigned, the first one is the color of a
+       single series. Flavors override them, adjacent categorical colors must stay apart for color-blind readers. */
+    --chart_color_1: light-dark(var(--base_color_blue_5), var(--base_color_blue_4));
+    --chart_color_2: light-dark(var(--base_color_orange_4), var(--base_color_orange_3));
+    --chart_color_3: light-dark(var(--base_color_purple_5), var(--base_color_purple_4));
+    --chart_color_4: light-dark(var(--base_color_green_5), var(--base_color_green_3));
+    --chart_color_5: light-dark(var(--base_color_pink_4), var(--base_color_pink_3));
+    --chart_color_6: light-dark(var(--base_color_yellow_4), var(--base_color_yellow_3));
+    --chart_color_7: light-dark(var(--base_color_blue_3), var(--base_color_blue_2));
+    --chart_color_8: light-dark(var(--base_color_orange_6), var(--base_color_orange_5));
+
+    /* Code: the editor and code views. The syntax colors are the Xcode themes of @ankoh/dashql-ui/xcode, which the
+       code blocks of the website use too, a test keeps them in sync. The editor sits on the card surface. */
+    --code_bg: var(--color_bg_card);
+    --code_fg: light-dark(#3D3D3D, #CECFD0);
+    --code_caret: light-dark(#3D3D3D, #fff);
+    --code_selection: light-dark(#BBDFFF, #727377);
+    --code_selection_match: light-dark(#BBDFFF, #727377);
+    --code_gutter_fg: light-dark(#AFAFAF, #7F8C98);
+    --code_line_highlight: light-dark(#d5e6ff69, #ffffff0f);
+    --code_comment: light-dark(#707F8D, #7F8C98);
+    --code_keyword: light-dark(#aa0d91, #FF7AB2);
+    --code_type_operator: light-dark(#aa0d91, #CECFD0);
+    --code_type_name: light-dark(#522BB2, #DABAFF);
+    --code_property_name: light-dark(#032f62, #6BAA9F);
+    --code_string: light-dark(#D23423, #FF8170);
+    --code_name: light-dark(#032f62, #6BAA9F);
+    --code_variable_name: light-dark(#23575C, #ACF2E4);
+    --code_variable_definition: light-dark(#327A9E, #6BDFFF);
+    --code_link: light-dark(#0e0eff, #FF8170);
 
     --logo_color_salesforce: rgb(0, 161, 224);
 
     /* --shell_prompt_color: the color of the shell prompt, bold in the terminal foreground color if unset */
-
-    --log_border_color: hsl(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%);
-
-    /* The muted text and icon color of the controls in card headers, status bars and toolbars */
-    --card_control_color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 36%);
-
-    --shadow_small: 0 1px 0 hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.04);
-    --shadow_medium: 0 3px 6px hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.15);
-    --shadow_large: 0 8px 24px hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.2);
-    --shadow_extra_large: 0 12px 28px hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.3);
 }

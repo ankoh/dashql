@@ -7,7 +7,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     /* The stage without its dot grid, which would not line up with the cells of the cards */
-    background: var(--stage_vignette), var(--stage_light), var(--stage_color);
+    background: var(--stage_vignette), var(--stage_light), var(--color_bg);
 }
 
 /* The rows are explicit, the bar of the inputs is absent without inputs */
@@ -56,7 +56,7 @@
 /* The scripts are set apart from the visualizations by a line below them */
 .grid_scripts {
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--log_border_color);
+    border-bottom: 1px solid var(--color_border);
     box-sizing: content-box;
 }
 
@@ -67,16 +67,16 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background: white;
+    background: var(--color_bg_card);
     box-shadow: var(--shadow_small);
 }
 
 /* A script without a visualization, its header fills the single row of the card */
 .card_collapsed {
     grid-template-rows: minmax(0, 1fr);
-    background: rgba(255, 255, 255, 0.6);
+    background: color-mix(in srgb, var(--color_bg_card) 60%, transparent);
     box-shadow: none;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .card_collapsed .card_title {
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg_muted);
 }
 
 /* The actions of a card, small and muted until hovered */
@@ -98,15 +98,15 @@
 .card_actions button {
     width: 26px;
     height: 24px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .card_actions button:hover:not(:disabled) {
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg);
 }
 
 .card_actions button:disabled {
-    color: var(--base_color_neutral_3);
+    color: var(--color_fg_subtle);
 }
 
 .card_header {
@@ -115,7 +115,7 @@
     gap: 8px;
     min-width: 0;
     padding: 0 8px 0 6px;
-    background: white;
+    background: var(--color_bg_card);
 }
 
 /* Narrow, the grip sits close to the edge and the title */
@@ -128,7 +128,7 @@
     place-items: center;
     border: 0;
     border-radius: 5px;
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
     background: transparent;
     cursor: grab;
     touch-action: none;
@@ -136,8 +136,8 @@
 
 .drag_handle:hover,
 .drag_handle:focus-visible {
-    color: var(--base_color_neutral_8);
-    background: var(--base_color_neutral_1);
+    color: var(--color_fg);
+    background: var(--color_bg_hover);
 }
 
 .drag_handle:active {
@@ -163,7 +163,7 @@
     height: 22px;
     margin: 0;
     padding: 0 4px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
     font-family: var(--font_family_mono);
     font-size: var(--font_size_small);
@@ -174,26 +174,26 @@
     flex: 0 0 auto;
 }
 
-/* The renderers are muted like the actions of a card, the selected one is a little darker on its white segment */
+/* The renderers are muted like the actions of a card, the selected one is a little darker on its segment */
 .card_segments button {
-    color: var(--base_color_neutral_5);
+    color: var(--color_fg_muted);
 }
 
 .card_segments button:hover:not([aria-disabled='true']),
 .card_segments button[aria-current='true'] {
-    color: var(--base_color_neutral_7);
+    color: var(--color_fg);
 }
 
 .card_segments button[aria-disabled='true']:not([aria-current='true']) {
-    color: var(--base_color_neutral_3);
+    color: var(--color_fg_subtle);
 }
 
 .shifted_badge {
     flex: 0 0 auto;
     padding: 2px 5px;
     border-radius: 999px;
-    color: var(--base_color_neutral_7);
-    background: var(--base_color_neutral_1);
+    color: var(--color_fg_muted);
+    background: var(--color_neutral_muted);
     font-size: 10px;
     line-height: 14px;
 }
@@ -232,7 +232,7 @@
     height: 16px;
     padding: 0 3px 3px 0;
     border: 0;
-    color: var(--base_color_neutral_3);
+    color: var(--color_fg_subtle);
     background: transparent;
     cursor: nwse-resize;
     touch-action: none;
@@ -244,12 +244,12 @@
 }
 
 .resize_handle:hover {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 .drag_handle:focus-visible,
 .resize_handle:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
@@ -262,14 +262,14 @@
     min-height: 288px;
     max-width: 1600px;
     margin: 0 auto;
-    border: 1px dashed var(--base_color_neutral_3);
+    border: 1px dashed var(--color_border);
     border-radius: 12px;
-    color: var(--base_color_neutral_6);
-    background: rgba(255, 255, 255, 0.55);
+    color: var(--color_fg_muted);
+    background: color-mix(in srgb, var(--color_bg_card) 55%, transparent);
 }
 
 .empty_state strong {
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
     font-family: var(--font_family_mono);
 }
 
@@ -309,7 +309,7 @@
     height: 100%;
     min-height: 0;
     overflow: hidden;
-    background: white;
+    background: var(--color_bg_card);
     outline: none;
 }
 
@@ -319,7 +319,7 @@
     gap: 8px;
     min-width: 0;
     padding: 0 8px 0 12px;
-    border-bottom: 1px solid var(--log_border_color);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .editor_dialog_editor {

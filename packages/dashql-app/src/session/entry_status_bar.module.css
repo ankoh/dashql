@@ -5,8 +5,8 @@
     align-items: center;
     height: 40px;
     font-size: var(--font_size_small);
-    color: var(--card_control_color);
-    border-bottom: 1px solid var(--log_border_color);
+    color: var(--color_fg_muted);
+    border-bottom: 1px solid var(--color_border);
 }
 
 /* A collapsed bar keeps its bottom border as transparent space, the height stays the same */
@@ -105,7 +105,7 @@
     display: flex;
     align-items: center;
     padding: 4px 4px 4px 16px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .error_detail_title {

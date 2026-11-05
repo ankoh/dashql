@@ -5,6 +5,7 @@ import type { View } from 'vega';
 import { observeSize } from '../foundations/size_observer.js';
 import { loadVega, type VegaModules } from './vegalite_loader.js';
 import { createEmbedOptions, resolveChartColors, type ChartColors } from './vegalite_theme.js';
+import { useColorScheme } from '../../config/color_scheme.js';
 import { withViewEncodings } from './vegalite_spec.js';
 import * as styles from './vegalite_chart.module.css';
 
@@ -98,6 +99,8 @@ export function VegaLiteChart(props: Props): React.ReactElement {
     const onView = React.useRef(props.onView);
     onView.current = props.onView;
     const loader = props.loader ?? loadVega;
+    // The canvas does not follow the color scheme, the chart is embedded again with the colors of the new one
+    const colorScheme = useColorScheme();
     // The sizes of the datasets as data-dataset-<name> attributes
     const datasetSizes = Object.fromEntries(
         Object.entries(props.datasets).map(([name, items]) => [`data-dataset-${name}`, items.length]),
@@ -145,7 +148,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
             }
             element.replaceChildren();
         };
-    }, [props.spec, loader]);
+    }, [props.spec, loader, colorScheme]);
 
     // Update the datasets and signals in place
     React.useEffect(() => {

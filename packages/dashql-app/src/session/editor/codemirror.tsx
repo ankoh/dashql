@@ -37,7 +37,7 @@ export function createCodeMirrorExtensions(): Extension[] {
         ...historyKeymap
     ]);
     const extensions: Extension[] = [
-        themes.xcode.xcodeLight,
+        themes.xcode,
         lineNumbers(),
         drawSelection(),
         history(),
@@ -50,7 +50,7 @@ export function createCodeMirrorExtensions(): Extension[] {
 
 export function createReadonlyCodeMirrorExtensions(): Extension[] {
     return [
-        themes.xcode.xcodeLight,
+        themes.xcode,
         lineNumbers(),
         drawSelection(),
         EditorState.readOnly.of(true),

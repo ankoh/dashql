@@ -5,7 +5,7 @@ import * as styles from './histogram_cell.module.css';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '../../compute/computation_types.js';
 import { dataTypeToString } from '../../compute/arrow_formatter.js';
-import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
+import { COLUMN_SUMMARY_BASELINE_COLOR, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { HistogramBars, HistogramNullBar, NULL_SYMBOL } from './histogram_bars.js';
 import { useHistogramBrush } from './histogram_brush.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
@@ -224,8 +224,8 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
             fontSize: "12px",
             fontWeight: 400,
             pointerEvents: "none" as const,
-            color: "white",
-            backgroundColor: "hsl(208.5deg 20.69% 30.76%)",
+            color: "var(--color_fg_inverse)",
+            backgroundColor: "var(--color_bg_inverse)",
             zIndex: 3,
             padding: "0px 4px 0px 4px",
             borderRadius: "3px",
@@ -293,7 +293,7 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
                                 onPointerOut={onPointerOutBin}
                             >
                                 <line x1={0} y1={1} x2={histWidth} y2={1}
-                                    stroke={"hsl(210deg 17.5% 84.31%)"} />
+                                    style={{ stroke: COLUMN_SUMMARY_BASELINE_COLOR }} />
                                 <rect
                                     x={0} y={0}
                                     width={histWidth}

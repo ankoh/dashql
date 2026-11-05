@@ -413,7 +413,7 @@ describe('QueryProfileView keyboard navigation', () => {
         selectAnnotation('accuracy');
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(5, 48, 97)');
-        expect(badge(10)?.querySelector('rect')?.getAttribute('stroke')).toEqual('hsl(210, 13%, 74%)');
+        expect(badge(10)?.querySelector<SVGElement>('rect')?.style.stroke).toEqual('var(--color_border)');
         expect(badge(10)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');
         expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(103, 0, 31)');
         expect(badge(11)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');
@@ -494,9 +494,9 @@ describe('QueryProfileView keyboard navigation', () => {
         expect(edge(10).compareDocumentPosition(highlight) & Node.DOCUMENT_POSITION_FOLLOWING).not.toEqual(0);
         expect(badge(10)?.getAttribute('data-highlighted')).toEqual('true');
         expect(badge(11)?.getAttribute('data-highlighted')).toBeNull();
-        expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('hsl(211, 100%, 45%)');
-        expect(badge(10)?.querySelector('rect')?.getAttribute('stroke')).toEqual('hsl(211, 100%, 45%)');
-        expect(badge(10)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');
+        expect(badge(10)?.querySelector<SVGElement>('rect')?.style.fill).toEqual('var(--color_accent_emphasis)');
+        expect(badge(10)?.querySelector<SVGElement>('rect')?.style.stroke).toEqual('var(--color_accent_emphasis)');
+        expect(badge(10)?.querySelector<SVGElement>('text')?.style.fill).toEqual('var(--color_fg_on_emphasis)');
     });
 
     it('moves the selected operator with arrow keys instead of panning', () => {

@@ -1,6 +1,4 @@
-:root {
-    --loader_card_header_background: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
-}
+/* The page paints the always dark backdrop, the banner on it forces a dark color-scheme, the card follows the app */
 
 @media only screen and (max-width: 1000px) {
     .page {
@@ -24,6 +22,7 @@
         margin-bottom: 20px;
     }
     .banner_container {
+        color-scheme: dark;
         margin-top: 20px;
         margin-bottom: 24px;
         display: grid;
@@ -45,18 +44,18 @@
 
         width: 56px;
         height: 56px;
-        color: white;
+        color: var(--color_fg);
     }
     .banner_title {
         font-size: 1.6rem;
         font-family: var(--font_family);
         font-weight: 400;
-        color: white;
+        color: var(--color_fg);
     }
     .app_version {
         font-size: 0.9rem;
         opacity: 0.7;
-        color: white;
+        color: var(--color_fg);
     }
     .card_body_sections {
         width: 400px;
@@ -93,6 +92,7 @@
         margin-bottom: auto;
     }
     .banner_container {
+        color-scheme: dark;
         justify-self: right;
         align-self: center;
 
@@ -117,18 +117,18 @@
         justify-self: center;
         width: 84px;
         height: 84px;
-        color: white;
+        color: var(--color_fg);
     }
     .banner_title {
         font-size: 1.6rem;
         font-family: var(--font_family);
         font-weight: 400;
-        color: white;
+        color: var(--color_fg);
     }
     .app_version {
         font-size: 0.9rem;
         opacity: 0.7;
-        color: white;
+        color: var(--color_fg);
         line-height: 0.9;
     }
     .card_body_sections {
@@ -138,19 +138,19 @@
         grid-template-rows: max-content;
     }
     .card_body_sections > *:not(:first-child) {
-        border-left: 1px solid var(--border_color_primary);
+        border-left: 1px solid var(--color_border);
     }
 }
 
 .card {
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: white;
+    background-color: var(--color_bg_card);
 }
 
 .card_header {
     border-radius: var(--border_radius) var(--border_radius) 0px 0px;
-    background-color: var(--loader_card_header_background);
+    background-color: var(--color_bg_subtle);
     display: grid;
     grid-template-columns: max-content auto max-content;
     grid-template-rows: 40px;
@@ -180,7 +180,7 @@
 }
 
 .card_section {
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
 }
 
 .section_entries {
@@ -203,7 +203,7 @@
 }
 
 .card_actions {
-    border-top: 1px solid var(--border_color_primary);
+    border-top: 1px solid var(--color_border);
     display: grid;
     grid-template-columns: max-content 1fr max-content;
     align-items: center;

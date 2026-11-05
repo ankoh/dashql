@@ -196,7 +196,7 @@ function PlanDialog(props: PlanDialogProps) {
     };
 
     const extensions = React.useMemo<Extension[]>(() => [
-        themes.xcode.xcodeLight,
+        themes.xcode,
         lineNumbers(),
         drawSelection(),
         history(),

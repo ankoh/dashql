@@ -4,6 +4,7 @@
     align-items: end;
 }
 
+/* The buttons of the navbar on the dark chrome, the inverted ones invert the colors of their surface */
 .button {
     position: relative;
 
@@ -12,25 +13,25 @@
     align-items: center;
     box-sizing: border-box;
 
-    color: var(--button_fg);
+    color: var(--color_fg);
 }
 
 .button.disabled {
-    color: rgb(170, 170, 170);
+    color: var(--color_fg_subtle);
 }
 
 .button.active,
 .button.hover_invert:hover:not(.disabled) {
-    background-color: var(--button_hover_bg);
-    color: var(--button_hover_fg);
+    background-color: var(--color_bg_inverse);
+    color: var(--color_fg_inverse);
 }
 .button.hover_lighten:hover:not(.disabled) {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: var(--button_fg);
+    background-color: var(--color_bg_selected);
+    color: var(--color_fg);
 }
 .button.hover_darken:hover:not(.disabled) {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: var(--button_fg);
+    background-color: var(--color_bg_hover);
+    color: var(--color_fg);
 }
 
 .button_inverted {
@@ -39,23 +40,23 @@
     align-items: center;
     box-sizing: border-box;
 
-    color: var(--button_fg_inverted);
+    color: var(--color_fg_inverse);
 }
 
 .button_inverted.disabled {
-    color: rgb(170, 170, 170);
+    color: var(--color_fg_subtle);
 }
 
 .button_inverted.active,
 .button_inverted.hover_invert:hover:not(.disabled) {
-    background-color: var(--button_hover_bg_inverted);
-    color: var(--button_hover_fg_inverted);
+    background-color: var(--color_bg_inverse);
+    color: var(--color_fg_inverse);
 }
 .button_inverted.hover_lighten:hover:not(.disabled) {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: var(--button_fg_inverted);
+    background-color: var(--color_bg_selected);
+    color: var(--color_fg_inverse);
 }
 .button_inverted.hover_darken:hover:not(.disabled) {
-    background-color: rgba(0, 0, 0, 0.1);
-    color: var(--button_fg_inverted);
+    background-color: var(--color_bg_selected);
+    color: var(--color_fg_inverse);
 }

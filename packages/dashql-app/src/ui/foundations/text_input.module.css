@@ -5,41 +5,41 @@
     font-size: 14px;
     line-height: 20px;
     vertical-align: middle;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: 6px;
     outline: none;
     align-items: stretch;
     min-height: 32px;
     overflow: hidden;
-    box-shadow: inset 0 1px 0 hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.2);
+    box-shadow: inset var(--shadow_small);
 
-    background-color: white;
+    background-color: var(--color_bg_card);
     background-repeat: no-repeat;
     background-position: right 8px center;
 }
 
 .root:focus-within {
-    border-color: var(--focus_outline_color);
-    outline: 2px solid var(--focus_outline_color);
+    border-color: var(--color_focus);
+    outline: 2px solid var(--color_focus);
     outline-offset: -1px;
 }
 
 .root_disabled {
-    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
-    background-color: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
+    color: var(--color_fg_subtle);
+    background-color: var(--color_bg_subtle);
     box-shadow: none;
 }
 .root_disabled > input {
     cursor: not-allowed;
 }
 .root_validation_success {
-    border-color: #1f883d;
+    border-color: var(--color_success_fg);
 }
 .root_validation_warning {
-    border-color: rgb(191, 135, 0);
+    border-color: var(--color_attention_fg);
 }
 .root_validation_error {
-    border-color: #cf222e;
+    border-color: var(--color_danger_fg);
 }
 
 .root_block {
@@ -52,7 +52,7 @@
     margin-right: 8px;
 
     align-self: center;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
     flex-shrink: 0;
 
     margin-left: 12px;
@@ -83,7 +83,7 @@
     margin-left: 8px;
 
     align-self: center;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
     flex-shrink: 0;
 }
 
@@ -94,7 +94,7 @@
 .trailing_action_container {
     display: inline-flex;
     align-self: center;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
     flex-shrink: 0;
 
     margin-left: 12px;

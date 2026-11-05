@@ -1,3 +1,4 @@
+/* The palette of DashQL. Only the theme (tokens.css) and the flavors of the app pick from it. */
 :root {
     --base_color_neutral_0: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%);
     --base_color_neutral_1: hsl(var(--neutral_hue), calc(23.5% * var(--neutral_tint)), 93.3%);
@@ -9,6 +10,9 @@
     --base_color_neutral_7: hsl(var(--neutral_hue), calc(11.4% * var(--neutral_tint)), 29.2%);
     --base_color_neutral_8: hsl(var(--neutral_hue), calc(11.5% * var(--neutral_tint)), 22.2%);
     --base_color_neutral_9: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+    /* The surfaces of the dark color scheme */
+    --base_color_neutral_10: hsl(var(--neutral_hue), calc(14% * var(--neutral_tint)), 12.5%);
+    --base_color_neutral_11: hsl(var(--neutral_hue), calc(14% * var(--neutral_tint)), 9%);
 
     --base_color_blue_0: #ddf4ff;
     --base_color_blue_1: #b6e3ff;

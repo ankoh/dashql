@@ -12,7 +12,7 @@
 }
 
 .viewport:focus-visible {
-    outline: 2px solid hsl(211, 100%, 45%);
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
@@ -31,7 +31,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--fg_color_muted, hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%));
+    color: var(--color_fg_muted);
     font-size: 0.9rem;
     pointer-events: none;
 }
@@ -54,8 +54,8 @@
 
 /* A script box */
 .box {
-    --graph_node_border_color: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
-    --graph_node_background: white;
+    --graph_node_border_color: var(--color_border);
+    --graph_node_background: var(--color_bg_card);
 }
 
 .box[data-dragging="true"] {
@@ -79,8 +79,8 @@
 
 /* Only keyboard focus marks the header, a selected box outlines its card */
 .header:focus-visible .header_hit {
-    fill: hsla(211, 100%, 45%, 0.08);
-    stroke: hsl(211, 100%, 45%);
+    fill: var(--color_accent_muted);
+    stroke: var(--color_focus);
     stroke-width: 1.5px;
     vector-effect: non-scaling-stroke;
 }
@@ -90,7 +90,7 @@
     font-size: 0.8rem;
     font-weight: 600;
     dominant-baseline: central;
-    fill: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 24%);
+    fill: var(--color_fg);
     pointer-events: none;
 }
 
@@ -139,17 +139,17 @@
 }
 .statement:focus { outline: none; }
 .statement:hover {
-    --graph_node_background: hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98%);
+    --graph_node_background: var(--color_bg_subtle);
 }
 .statement[data-selected="true"],
 .statement:focus-visible {
-    --graph_node_background: hsl(211, 100%, 97%);
-    --graph_node_border_color: hsl(211, 100%, 45%);
+    --graph_node_background: var(--color_accent_muted);
+    --graph_node_border_color: var(--color_accent_fg);
 }
 
 .type_badge rect {
-    fill: hsl(var(--neutral_hue), calc(20% * var(--neutral_tint)), 94%);
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    fill: var(--color_neutral_muted);
+    stroke: var(--color_border);
     stroke-width: 1px;
 }
 
@@ -160,14 +160,14 @@
     font-weight: 600;
     text-anchor: middle;
     dominant-baseline: central;
-    fill: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 30%);
+    fill: var(--color_fg_muted);
 }
 
 .label {
     font-family: var(--font_family_mono);
     font-size: 0.75rem;
     dominant-baseline: central;
-    fill: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 24%);
+    fill: var(--color_fg);
     pointer-events: none;
 }
 
@@ -176,35 +176,35 @@
     font-size: 0.7rem;
     text-anchor: end;
     dominant-baseline: central;
-    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 46%);
+    fill: var(--color_fg_muted);
     pointer-events: none;
 }
 
 /* The badge of a table edge */
 .badge {
-    fill: white;
+    fill: var(--color_bg_card);
 }
 [data-highlighted="true"] > .badge {
-    fill: hsl(211, 100%, 45%);
-    stroke: hsl(211, 100%, 45%);
+    fill: var(--color_accent_emphasis);
+    stroke: var(--color_accent_emphasis);
 }
 [data-highlighted="true"] > .badge_text {
-    fill: white;
+    fill: var(--color_fg_on_emphasis);
 }
 
 .chart {
     overflow: hidden;
 }
 
-/* The chart is a white frame inside the outline of its script, like the statement rows */
+/* The chart is a frame of the card surface inside the outline of its script, like the statement rows */
 .chart_body {
     width: 100%;
     height: 100%;
     overflow: hidden;
     box-sizing: border-box;
-    border: 1px solid hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 74%);
+    border: 1px solid var(--color_border);
     border-radius: 6px;
-    background: white;
+    background: var(--color_bg_card);
 }
 
 /* The button that adds a script reading the box, shown on hover */
@@ -219,27 +219,27 @@
 }
 .add:focus { outline: none; }
 .add circle {
-    fill: white;
-    stroke: hsl(211, 100%, 45%);
+    fill: var(--color_bg_card);
+    stroke: var(--color_accent_fg);
     stroke-width: 1px;
 }
 .add path {
-    stroke: hsl(211, 100%, 45%);
+    stroke: var(--color_accent_fg);
     stroke-width: 1.5px;
     stroke-linecap: round;
 }
 
-/* Scripts and inputs are neutral outlines with a faint fill, their rows and charts are the white frames inside */
+/* Scripts and inputs are neutral outlines with a faint fill, their rows and charts are the frames of the card surface inside */
 .card {
     pointer-events: none;
-    fill: hsla(var(--neutral_hue), calc(20% * var(--neutral_tint)), 94%, 0.6);
-    stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 70%);
+    fill: var(--color_bg_hover);
+    stroke: var(--color_border);
     stroke-width: 1px;
     vector-effect: non-scaling-stroke;
 }
 
 .card[data-selected="true"] {
-    stroke: hsl(211, 100%, 45%);
+    stroke: var(--color_accent_fg);
     stroke-width: 1.5px;
 }
 
@@ -248,12 +248,12 @@
     font-size: 0.68rem;
     text-anchor: end;
     dominant-baseline: central;
-    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 42%);
+    fill: var(--color_fg_muted);
     pointer-events: none;
 }
 
 .input_type[data-inferred] {
-    fill: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 58%);
+    fill: var(--color_fg_subtle);
     font-style: italic;
 }
 
@@ -264,7 +264,7 @@
 /* The resize handle in the bottom right corner of a box, a small triangle like on the cards of the board */
 .resize_handle {
     cursor: ew-resize;
-    color: var(--base_color_neutral_3);
+    color: var(--color_fg_subtle);
 }
 .resize_handle[data-chart="true"] {
     cursor: nwse-resize;
@@ -281,10 +281,10 @@
 }
 .resize_handle:hover,
 .box[data-resizing="true"] .resize_handle {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 .resize_handle:focus-visible .resize_hit {
-    stroke: hsl(211, 100%, 45%);
+    stroke: var(--color_focus);
     stroke-width: 1.5px;
     vector-effect: non-scaling-stroke;
 }

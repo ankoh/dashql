@@ -1,11 +1,11 @@
 .warning_trigger,
 .warning_icon {
-    color: var(--base_color_yellow_5);
+    color: var(--color_attention_fg);
 }
 
 .error_trigger,
 .error_icon {
-    color: var(--base_color_red_5);
+    color: var(--color_danger_fg);
 }
 
 .overlay {
@@ -21,7 +21,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px 10px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .title {
@@ -31,7 +31,7 @@
 }
 
 .summary {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-size: 0.75rem;
     white-space: nowrap;
 }
@@ -62,12 +62,12 @@
 }
 
 .item:hover {
-    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
-    border-color: var(--border_color_primary);
+    background-color: var(--color_bg_hover);
+    border-color: var(--color_border);
 }
 
 .item:focus-visible {
-    outline: 2px solid var(--focus_outline_color);
+    outline: 2px solid var(--color_focus);
     outline-offset: -2px;
 }
 
@@ -89,7 +89,7 @@
     justify-content: space-between;
     gap: 8px;
     padding: 0 8px 0 16px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .detail_overlay {

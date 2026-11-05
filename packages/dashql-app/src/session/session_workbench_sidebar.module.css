@@ -6,7 +6,7 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    border-right: 1px solid var(--border_color_primary);
+    border-right: 1px solid var(--color_border);
 }
 
 .section_split {
@@ -17,8 +17,8 @@
 /* A slim grey bar with a drag handle between the sessions and the connections */
 .section_split .section_separator {
     min-height: 0;
-    border-bottom: 1px solid var(--border_color_primary);
-    background-color: hsl(var(--neutral_hue), calc(28.6% * var(--neutral_tint)), 97.3%);
+    border-bottom: 1px solid var(--color_border);
+    background-color: var(--color_bg_subtle);
 }
 
 .section {
@@ -27,7 +27,7 @@
     height: 100%;
     min-width: 0;
     min-height: 0;
-    background: var(--base_color_white);
+    background: var(--color_bg_card);
     overflow: hidden;
 }
 
@@ -37,7 +37,7 @@
     justify-content: space-between;
     min-height: 40px;
     padding: 0 6px 0 12px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
 }
 
 .section_title {
@@ -49,7 +49,7 @@
 
 .section_heading {
     margin: 0;
-    color: var(--base_color_neutral_9);
+    color: var(--color_fg);
     font-size: var(--font_size_body);
     font-weight: 600;
 }
@@ -62,8 +62,8 @@
     min-height: 18px;
     padding: 0 5px;
     border-radius: 20px;
-    color: var(--base_color_neutral_8);
-    background: var(--base_color_neutral_1);
+    color: var(--color_fg);
+    background: var(--color_neutral_muted);
     font-size: 11px;
     font-weight: 600;
     line-height: 1;
@@ -79,7 +79,7 @@
 
 .session_error {
     overflow: hidden;
-    color: var(--base_color_red_6);
+    color: var(--color_danger_fg);
     font-size: var(--font_size_micro);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -147,7 +147,7 @@
 .entry_surface {
     border: 1px solid transparent;
     border-radius: var(--border_radius);
-    color: var(--base_color_neutral_8);
+    color: var(--color_fg);
     background: transparent;
     text-align: left;
 }
@@ -158,8 +158,8 @@
 /* A clicked script keeps the focus, its row only shows a focus from the keyboard */
 .script_row:has(:focus-visible),
 .entry_selected {
-    border-color: var(--border_color_primary);
-    background: var(--base_color_neutral_0);
+    border-color: var(--color_border);
+    background: var(--color_bg_hover);
 }
 
 .session_button {
@@ -193,7 +193,7 @@
 }
 
 .session_path {
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
     font-family: var(--font_family_mono);
     font-size: 11px;
 }
@@ -216,9 +216,9 @@
     box-sizing: border-box;
     padding: 1px 4px;
     margin-left: -5px;
-    border: 1px solid var(--focus_border_color);
+    border: 1px solid var(--color_focus);
     border-radius: var(--border_radius);
-    background-color: var(--input_bg, #ffffff);
+    background-color: var(--color_bg_card);
     color: inherit;
     font-family: var(--font_family);
     font-size: 13px;
@@ -286,14 +286,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--base_color_neutral_6);
+    color: var(--color_fg_muted);
 }
 
 /* The drop targets of a dragged row: a folder that receives it, the line above or below a session */
 .drop_into,
 .drop_into:hover {
-    border-color: var(--focus_border_color);
-    background: var(--base_color_neutral_0);
+    border-color: var(--color_focus);
+    background: var(--color_bg_hover);
 }
 
 /* The insertion line sits in the gap between the rows and starts at the indentation of the row */
@@ -311,7 +311,7 @@
     right: 4px;
     height: 2px;
     border-radius: 1px;
-    background: var(--focus_border_color);
+    background: var(--color_focus);
     pointer-events: none;
     /* Above the dragged row */
     z-index: 2;

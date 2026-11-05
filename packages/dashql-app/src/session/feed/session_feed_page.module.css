@@ -1,11 +1,6 @@
-:root {
-    --session_sidebar_background: hsla(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%, 0.97);
-}
-
 .page {
     --session_header_height: 40px;
     --session_navigation_sidebar_width: 260px;
-    --session_feed_background_color: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
     width: 100%;
     height: 100%;
     display: grid;
@@ -25,7 +20,7 @@
     .body_container {
         grid-row: 2;
         grid-column: 1;
-        background-color: var(--session_sidebar_background);
+        background-color: var(--color_bg_subtle);
     }
 }
 
@@ -43,12 +38,12 @@
         margin: 0;
         display: flex;
         overflow: hidden;
-        background-color: var(--session_sidebar_background);
+        background-color: var(--color_bg_subtle);
     }
     .body_container {
         grid-row: 2;
         grid-column: 2;
-        background-color: var(--session_feed_background_color);
+        background-color: var(--color_bg);
     }
 }
 
@@ -69,8 +64,8 @@
     min-width: 0;
     gap: 8px;
     padding: 0 8px;
-    border-bottom: 1px solid var(--border_color_primary);
-    background: white;
+    border-bottom: 1px solid var(--color_border);
+    background: var(--color_bg_card);
 }
 
 @media only screen and (min-width: 800px) {
@@ -89,11 +84,11 @@
 
 /* The icons of the view switch are muted like the leading visuals of segmented controls, the current view is not */
 .view_bar .view_switch_button {
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
+    color: var(--color_fg_muted);
 }
 
 .view_bar .view_switch_button[aria-current='true'] {
-    color: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
+    color: var(--color_fg);
 }
 
 .view_bar > [aria-label='Session view'] {
@@ -140,7 +135,7 @@
     display: flex;
     align-items: center;
     padding: 4px 4px 4px 16px;
-    border-bottom: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--color_border);
     flex-shrink: 0;
 }
 

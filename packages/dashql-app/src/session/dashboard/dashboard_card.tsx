@@ -361,7 +361,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
             {!collapsed && <div className={styles.card_body}>
                 {visualizeQuery.renderer === 'table' ? (
                     // A table shows the header of the result over the rows that fit, a chart only the chart
-                    <dependencies.QueryResultPanel query={query} cellBackground="white" onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
+                    <dependencies.QueryResultPanel query={query} onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
                 ) : (
                     <dependencies.VisualizationDispatch
                         query={query}

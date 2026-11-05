@@ -1,7 +1,7 @@
 .connection {
     margin: 0 0 12px;
     padding: 8px 12px 10px;
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
     display: flex;
     flex-direction: column;

@@ -5,7 +5,7 @@ import {promisify} from "node:util";
 import {fileURLToPath} from "node:url";
 import {brotliDecompress} from "node:zlib";
 
-import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess, type IpcMainEvent, type WebContents} from "electron";
+import {app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, shell, utilityProcess, type IpcMainEvent, type WebContents} from "electron";
 
 import {AgentHost} from "./agent_host.js";
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
@@ -92,11 +92,21 @@ function rendererTestMode(): RendererTestMode {
     return null;
 }
 
+/// The page backgrounds of the light and the dark color scheme of the app, --color_bg of the theme
+const WINDOW_BACKGROUND_LIGHT = "#f6f8fa";
+const WINDOW_BACKGROUND_DARK = "#14171a";
+
+function windowBackground(): string {
+    return nativeTheme.shouldUseDarkColors ? WINDOW_BACKGROUND_DARK : WINDOW_BACKGROUND_LIGHT;
+}
+
 async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> {
     const preload = process.env.DASHQL_ELECTRON_PRELOAD ?? path.resolve(moduleDirectory, "../preload.cjs");
     const window = new BrowserWindow({
         width: 1500,
         height: 900,
+        // The background while the app loads, in the color scheme of the app, see dashql:set-color-scheme
+        backgroundColor: windowBackground(),
         titleBarStyle: "hiddenInset",
         // Centers the traffic lights in the dark stripe at the top of the app, see .top_bar of navbar.module.css
         trafficLightPosition: { x: 12, y: 10 },
@@ -627,6 +637,16 @@ if (!hasSingleInstanceLock) {
     ipcMain.handle("dashql:claim-session-folder", async (event, folder: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof folder !== "string") throw new Error("Rejected folder claim");
         return await (await folderGrants).claimSessionFolder(folder);
+    });
+
+    // The app pins its color scheme or follows the OS, the windows follow the app.
+    // Electron does not keep the theme source, the app sets it again on every start.
+    ipcMain.handle("dashql:set-color-scheme", (event, scheme: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || (scheme !== "light" && scheme !== "dark" && scheme !== "system")) {
+            throw new Error("Rejected color scheme request");
+        }
+        nativeTheme.themeSource = scheme;
+        for (const window of BrowserWindow.getAllWindows()) window.setBackgroundColor(windowBackground());
     });
 
     ipcMain.handle("dashql:confirm", async (event, options: unknown) => {

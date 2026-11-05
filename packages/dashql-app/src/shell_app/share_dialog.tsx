@@ -182,7 +182,7 @@ function ShareDialog(props: ShareDialogProps) {
     };
 
     const extensions = React.useMemo<Extension[]>(() => [
-        themes.xcode.xcodeLight,
+        themes.xcode,
         lineNumbers(),
         drawSelection(),
         history(),

@@ -3,7 +3,7 @@
     width: 16px;
     height: 16px;
     border-radius: 2px;
-    color: #aa0d91;
+    color: var(--code_keyword);
     cursor: pointer;
     font-family: var(--font_family_mono);
     font-size: 0.85rem;
@@ -12,13 +12,13 @@
 }
 
 .dashql-vis-fold-marker:hover {
-    background: color-mix(in srgb, #aa0d91 10%, transparent);
+    background: color-mix(in srgb, var(--code_keyword) 10%, transparent);
 }
 
 .dashql-vis-fold-marker-error {
-    color: red;
+    color: var(--color_danger_fg);
 }
 
 .dashql-vis-fold-marker-error:hover {
-    background: color-mix(in srgb, red 10%, transparent);
+    background: color-mix(in srgb, var(--color_danger_fg) 10%, transparent);
 }

@@ -257,6 +257,9 @@ export default vite.defineConfig(({ mode, command }) => {
         base,
         build: {
             target: 'es2020',
+            // The theme picks its colors with light-dark(), the browsers that support it natively keep it.
+            // An older target would make the CSS minifier rewrite it, and the minified build would differ from dev.
+            cssTarget: ['chrome123', 'edge123', 'firefox120', 'safari17.5'],
             rolldownOptions: {
                 input: {
                     app: path.resolve(rootDir, "index.html"),
