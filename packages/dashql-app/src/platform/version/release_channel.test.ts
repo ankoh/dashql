@@ -48,12 +48,20 @@ describe('compareReleaseVersions', () => {
 });
 
 describe('canInstallReleaseVersion', () => {
-    it('allows switching from canary to an older stable release', () => {
-        expect(canInstallReleaseVersion('0.0.12', '0.0.13-dev.5')).toBe(true);
+    it('blocks switching from canary to an older stable release', () => {
+        expect(canInstallReleaseVersion('0.0.12', '0.0.13-dev.5')).toBe(false);
     });
 
-    it('allows switching from stable to canary', () => {
+    it('allows switching from canary to the stable release of its core version', () => {
+        expect(canInstallReleaseVersion('0.0.13', '0.0.13-dev.5')).toBe(true);
+    });
+
+    it('allows switching from stable to a newer canary', () => {
         expect(canInstallReleaseVersion('0.0.13-dev.5', '0.0.12')).toBe(true);
+    });
+
+    it('blocks switching from stable to an older canary', () => {
+        expect(canInstallReleaseVersion('0.0.13-dev.5', '0.0.13')).toBe(false);
     });
 
     it('blocks same-channel downgrades and reinstalls', () => {

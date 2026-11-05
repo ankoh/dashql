@@ -46,7 +46,9 @@ export function createElectronUpdater(
     const configure = (channel: UpdateChannel) => {
         configuredChannel = channel;
         autoUpdater.allowPrerelease = channel === "canary";
-        autoUpdater.allowDowngrade = channel !== installedChannel;
+        // Never downgrade, also not when switching channels. A newer canary may have migrated the
+        // local storage to a schema an older stable cannot read.
+        autoUpdater.allowDowngrade = false;
         autoUpdater.setFeedURL({provider: "generic", url: updateFeedUrlForChannel(channel, process.arch)});
     };
 

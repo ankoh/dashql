@@ -61,8 +61,8 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
             // If the installation status refers to this channel, we render the installation status instead.
             // If it's not referring to this channel, we render nothing.
             if (props.installationStatus == null) {
-                // Same-channel installs only move forward. Switching channels may select an older
-                // release, for example when moving from a canary back to stable.
+                // Installs only move forward, also when switching channels. Moving from a canary back
+                // to an older stable would run it on storage the canary already migrated.
                 const isInstallable = versionName != null && canInstallReleaseVersion(versionName, DASHQL_VERSION);
                 if (!isInstallable) {
                     status = props.isActive

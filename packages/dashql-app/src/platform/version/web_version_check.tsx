@@ -111,11 +111,10 @@ export function compareReleaseVersions(a: string, b: string): number {
     return comparePrerelease(pa.prerelease, pb.prerelease);
 }
 
-/// Whether a release should be offered for installation. Updates within the current channel
-/// must move forward, while selecting another channel may move to an older version.
+/// Whether a release should be offered for installation. Installs only move forward, also across
+/// channels: a newer canary may have migrated the local storage to a schema an older stable cannot read.
 export function canInstallReleaseVersion(targetVersion: string, currentVersion: string): boolean {
-    return detectReleaseChannel(targetVersion) !== detectReleaseChannel(currentVersion)
-        || compareReleaseVersions(targetVersion, currentVersion) > 0;
+    return compareReleaseVersions(targetVersion, currentVersion) > 0;
 }
 
 /// Load the release manifest
