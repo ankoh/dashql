@@ -8,13 +8,16 @@
     grid-template-columns: minmax(0, 1fr);
     /* The stage without its dot grid, which would not line up with the cells of the cards */
     background: var(--stage_vignette), var(--stage_light), var(--stage_color);
+    /* The gutter left and right of the cards and the inputs, growing with the stage up to a limit like the one of
+       the feed */
+    --dashboard_inline_padding: clamp(16px, 4%, 48px);
 }
 
 /* The rows are explicit, the bar of the inputs is absent without inputs */
 .inputs {
     grid-row: 1;
-    /* The chips start at the left edge of the cards, 16px from the edge of the page like in the feed */
-    --session_input_strip_inline_padding: max(16px, calc((100% - 1600px) / 2));
+    /* The chips start at the left edge of the cards, the cards stop growing at 1600px */
+    --session_input_strip_inline_padding: max(var(--dashboard_inline_padding), calc((100% - 1600px) / 2));
 }
 
 /* Holds the scroll shadows at the edges of the cards */
@@ -29,8 +32,7 @@
     box-sizing: border-box;
     height: 100%;
     overflow: auto;
-    /* The cards start as far below the bar as the scripts of the feed */
-    padding: 32px 16px 16px 16px;
+    padding: 16px var(--dashboard_inline_padding);
 }
 
 /* The sections of the board stacked, the scripts without a renderer above the visualizations */
