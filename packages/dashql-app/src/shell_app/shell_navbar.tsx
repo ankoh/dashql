@@ -115,7 +115,7 @@ const ShellBrand: React.FC = () => {
                     <span>{flavor.displayName}</span>
                 </>}
             {flavor.tagline != null && (
-                <Tag variant={TagVariant.Outline}>{flavor.tagline}</Tag>
+                <Tag variant={TagVariant.Outline} className={styles.brand_tagline}>{flavor.tagline}</Tag>
             )}
         </span>
     );

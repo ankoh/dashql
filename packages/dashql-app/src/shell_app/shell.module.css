@@ -1,6 +1,4 @@
-/* The shell is a dark backdrop page in both schemes */
 .root {
-    color-scheme: dark;
     display: grid;
     grid-template-rows: 40px minmax(0, 1fr);
     width: 100%;

@@ -24,9 +24,7 @@
     margin: 0 4px 4px;
     overflow: hidden;
     border-radius: 12px;
-    /* The loading shell sits on the dark backdrop of the app in both schemes */
-    color-scheme: dark;
-    color: var(--color_fg);
+    color: var(--shell_fg);
     font-family: var(--font_family_mono);
     font-size: 13px;
     line-height: 1.2;

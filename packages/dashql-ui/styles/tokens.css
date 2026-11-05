@@ -120,6 +120,18 @@
             light-dark(var(--color_bg), var(--page_bg_100)) 100%
         );
 
+    /* The shell: the terminal on the dark backdrop, dark in both schemes. Its surfaces darken and lighten the
+       backdrop, its text is the foreground of the terminal. */
+    --shell_bg: hsla(0, 0%, 0%, 0.2);
+    --shell_header_bg: hsla(0, 0%, 0%, 0.06);
+    --shell_divider: hsla(0, 0%, 0%, 0.14);
+    --shell_edge: hsla(0, 0%, 100%, 0.04);
+    --shell_hover: hsla(0, 0%, 100%, 0.1);
+    --shell_focus: hsla(0, 0%, 100%, 0.5);
+    --shell_fg: #e6edf3;
+    --shell_fg_muted: rgba(230, 237, 243, 0.7);
+    --shell_fg_subtle: hsla(0, 0%, 100%, 0.45);
+
     /* Backdrop of pages with a lot of empty space, like the session feed: a soft light in the middle,
        a faint dot grid, and a vignette that fades the grid out toward the edges. Centered in the element it paints.
        The dark stage is translucent, the background of the page hints through. */

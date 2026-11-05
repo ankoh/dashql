@@ -20,9 +20,9 @@
     color: var(--color_fg_muted);
 }
 
-/* Dark surfaces like the navbar force a dark color-scheme, the tokens follow it */
+/* Surfaces with other colors, e.g. the dark navbar of the shell, override the variables */
 .outline {
     background-color: transparent;
-    border-color: var(--color_border);
-    color: var(--color_fg_muted);
+    border-color: var(--tag_outline_border_color, var(--color_border));
+    color: var(--tag_outline_color, var(--color_fg_muted));
 }
