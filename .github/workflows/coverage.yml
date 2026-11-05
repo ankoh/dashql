@@ -43,13 +43,14 @@ jobs:
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
 
-            - name: Coverage of the Rust core
+            - name: Coverage of the Rust core and tools
               shell: bash
               run: |
                 bazel coverage --config=fastbuild \
-                    --instrumentation_filter="//packages/dashql-core(-session|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:]" \
+                    --instrumentation_filter="//packages/dashql-core(-session|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:],//packages/dashql-cli[/:],//packages/dashql-native-proxy[/:],//packages/dashql-pack[/:]" \
                     //packages/dashql-core/... //packages/dashql-core-session/... //packages/dashql-core-shell/... \
-                    //packages/dashql-core-profile/... //packages/dashql-dataflow/... //packages/dashql-parser/... //packages/dashql-snapshots/...
+                    //packages/dashql-core-profile/... //packages/dashql-dataflow/... //packages/dashql-parser/... //packages/dashql-snapshots/... \
+                    //packages/dashql-cli:tests //packages/dashql-native-proxy:test //packages/dashql-pack:test
                 cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
                     /tmp/lcov_linux.dat
 

@@ -31,9 +31,7 @@ rust_binary(
 
 rust_test(
     name = "test",
-    srcs = glob(["src/**/*.rs"]),
-    crate_root = "src/main.rs",
-    deps = _DEPS,
+    crate = ":pack",
     visibility = ["//visibility:public"],
 )
 
