@@ -90,12 +90,6 @@ pub struct SchemaDeclaration {
     pub schema_name: Arc<str>,
 }
 
-impl SchemaDeclaration {
-    pub fn database_id(&self) -> CatalogDatabaseId {
-        self.object_id.unpack_schema_id().0
-    }
-}
-
 /// A catalog entry that populates a schema
 #[derive(Clone, Copy, Debug)]
 pub struct SchemaEntryInfo {

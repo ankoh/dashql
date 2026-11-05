@@ -180,6 +180,19 @@ fn analyzed_scripts_pack_vis_tags() {
 }
 
 #[test]
+fn analyzed_scripts_pack_markdown_specs() {
+    let catalog = Catalog::new();
+    let script = analyzed(&catalog, "-- @vis markdown by **{{author}}**\n-- @end\nselect 'Ada' as author");
+    let packed = pack_analyzed_script(&script, &pack_visualization);
+    let specs = packed.visualization_specs.unwrap();
+    assert_eq!(specs.len(), 1);
+    assert_eq!(specs[0].renderer.as_deref(), Some("markdown"));
+    // A Markdown spec has no Vega-Lite spec and a Vega-Lite spec no Markdown spec
+    assert!(specs[0].vegalite_spec.is_none());
+    assert!(specs[0].markdown_spec.as_ref().unwrap().document.is_some());
+}
+
+#[test]
 fn analyzed_scripts_pack_expressions() {
     let catalog = Catalog::new();
     let script = analyzed(

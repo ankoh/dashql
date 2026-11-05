@@ -4,7 +4,10 @@
 use dashql_buffers::execution::{ScriptCompilationErrorCode as ErrorCode, ScriptCompilationResultT, ScriptCompilationStatementKind as StatementKind};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
-use dashql_core_session::compiler::{compile, produces_output, read_executable_text, CompilationOptions};
+use dashql_core::analyzer::{MarkdownSpec, VisualizationSpec};
+use dashql_core_session::compiler::{
+    compile, compile_visualization, produces_output, read_executable_text, read_executable_text_with, CompilationOptions,
+};
 use dashql_core::script::Script;
 use dashql_parser::span::TextSpan;
 
@@ -216,4 +219,48 @@ fn executable_text_replaces_obfuscated_literals() {
     // A span that ends within a marker leaves it untouched
     let partial = read_executable_text(scanned, TextSpan::new(0, 10));
     assert_eq!(partial, "select /*S");
+}
+
+#[test]
+fn executable_text_drops_edits_within_obfuscated_literals() {
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text("select /*Integer(FCD0)*/ from t");
+    script.scan();
+    let scanned = script.scanned.as_ref().unwrap();
+    let literal = scanned.obfuscated_literals[0].location;
+    let all = TextSpan::new(0, scanned.text.len() as u32);
+    let plain = read_executable_text(scanned, all);
+    // An edit within the literal is dropped, the literal is replaced
+    let inner = TextSpan::new(literal.offset + 2, 3);
+    assert_eq!(read_executable_text_with(scanned, all, &[(inner, "x".into())]), plain);
+    // An edit after the literal applies, an insertion at the end too
+    let table = TextSpan::new(scanned.text.len() as u32 - 1, 1);
+    let end = TextSpan::new(scanned.text.len() as u32, 0);
+    let edited = read_executable_text_with(scanned, all, &[(table, "u".into()), (end, " limit 1".into())]);
+    assert_eq!(edited, format!("{}u limit 1", plain.strip_suffix('t').unwrap()));
+    // Edits outside of the span are ignored
+    assert_eq!(read_executable_text_with(scanned, TextSpan::new(0, 6), &[(table, "u".into())]), "select");
+}
+
+#[test]
+fn visualizations_need_a_known_renderer() {
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text("select 1 as a");
+    script.analyze(&catalog, true).unwrap();
+    let analyzed = script.analyzed.clone().unwrap();
+    let spec = |renderer: Option<&str>| VisualizationSpec { renderer: renderer.map(str::to_string), ..Default::default() };
+
+    assert_eq!(compile_visualization(&spec(None), &analyzed).unwrap_err(), "could not resolve visualization renderer");
+    assert_eq!(compile_visualization(&spec(Some("chart")), &analyzed).unwrap_err(), "unsupported visualization renderer: chart");
+    // A Markdown visualization needs its row template
+    assert_eq!(compile_visualization(&spec(Some("markdown")), &analyzed).unwrap_err(), "could not compile Markdown visualization spec");
+    let markdown = VisualizationSpec { markdown: Some(MarkdownSpec { row_template: "*{{a}}*".into() }), ..spec(Some("Markdown")) };
+    let compiled = compile_visualization(&markdown, &analyzed).unwrap();
+    // Renderer names are case insensitive
+    assert_eq!(compiled.renderer.as_deref(), Some("markdown"));
+    assert!(compiled.markdown_spec.unwrap().document.is_some());
+    // The strings are always written
+    assert_eq!(compiled.vegalite_spec.as_deref(), Some(""));
 }

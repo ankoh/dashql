@@ -39,3 +39,20 @@ dataflow-snapshots:
       - name: c
         input: |
           select 1;
+
+  # The first cast in session order types an input, a cast to another type is a warning. Positional parameters
+  # are no inputs.
+  - name: InputCastToTwoTypes
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min::int and id > $1;
+      - name: b
+        input: |
+          select count(*) from orders where amount > :min::bigint;
+      - name: c
+        input: |
+          select count(*) from orders where amount > cast(:min as bigint) and id < :min::int;

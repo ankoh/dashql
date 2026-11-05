@@ -1323,6 +1323,41 @@ mod tests {
     }
 
     #[test]
+    fn rejects_duplicate_scripts_and_attachments() {
+        let catalog = Catalog::new();
+        let a = analyzed(&catalog, "select 1");
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER }];
+        // The same script under two names
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }, PlannerScript { script: &a, name: "bar", connection: 0, materialization_file: None }];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(!graph.valid);
+        assert_eq!(messages(&graph), vec!["duplicate planner script"]);
+        // Two attachments of one file
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let attachments = [PlannerAttachment { name: "x", file: "x.parquet", stamp: "1" }, PlannerAttachment { name: "y", file: "x.parquet", stamp: "1" }];
+        let graph = plan_session(&SessionPlanRequest { attachments: &attachments, ..request(&connections, &scripts) });
+        assert!(!graph.valid);
+        assert_eq!(messages(&graph), vec!["duplicate attachment: x.parquet"]);
+    }
+
+    #[test]
+    fn rejects_analyses_of_an_older_catalog_revision() {
+        let mut catalog = Catalog::new();
+        let a = analyzed(&catalog, "select * from t");
+        // Publishing another script makes the analysis stale
+        let schema = analyzed(&catalog, "create table t (x int)");
+        catalog.load_script(schema.analyzed.clone().unwrap(), dashql_core::catalog::CatalogLayer::SESSION).unwrap();
+        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let graph = plan_session(&request(&connections, &scripts));
+        assert!(!graph.valid);
+        assert_eq!(messages(&graph), vec!["stale catalog analysis"]);
+        // A tolerant plan takes the older analysis
+        let tolerant = plan_session(&SessionPlanRequest { scope: PlanScope::Tolerant, ..request(&connections, &scripts) });
+        assert!(!messages(&tolerant).contains(&"stale catalog analysis".to_string()));
+    }
+
+    #[test]
     fn rejects_scripts_of_another_catalog() {
         let (catalog, other) = (Catalog::new(), Catalog::new());
         let a = analyzed(&other, "select 1");

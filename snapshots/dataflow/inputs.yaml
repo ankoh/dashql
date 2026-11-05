@@ -134,3 +134,58 @@ dataflow-snapshots:
           kind: inline
           name: a
           route: [[624,56],[768,56]]
+
+  - name: InputCastToTwoTypes
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min::int and id > $1;
+      - name: b
+        input: |
+          select count(*) from orders where amount > :min::bigint;
+      - name: c
+        input: |
+          select count(*) from orders where amount > cast(:min as bigint) and id < :min::int;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id ..nd id > $1"
+          box: [344,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select cou..in::bigint"
+          box: [344,128,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select cou.. :min::int"
+          box: [344,256,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "10"
+          warnings:
+            - "input :min is cast to integer and to bigint"
+          box: [0,128,200,80]
+      edges:
+        - from: ":min"
+          to: a.0
+          kind: input
+          name: min
+          route: [[200,184],[272,184],[272,56],[344,56]]
+        - from: ":min"
+          to: b.0
+          kind: input
+          name: min
+          route: [[200,184],[344,184]]
+        - from: ":min"
+          to: c.0
+          kind: input
+          name: min
+          route: [[200,184],[272,184],[272,312],[344,312]]

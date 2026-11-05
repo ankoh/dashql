@@ -36,17 +36,11 @@ impl<V> Default for OrderedMap<V> {
 }
 
 impl<V> OrderedMap<V> {
-    pub fn get(&self, key: &str) -> Option<&V> {
-        self.index.get(key).map(|&i| &self.entries[i].1)
-    }
     pub fn get_index(&self, key: &str) -> Option<usize> {
         self.index.get(key).copied()
     }
     pub fn at(&self, i: usize) -> &V {
         &self.entries[i].1
-    }
-    pub fn contains(&self, key: &str) -> bool {
-        self.index.contains_key(key)
     }
     /// Insert a value unless the key exists. Returns the index of the key.
     pub fn insert(&mut self, key: Arc<str>, value: V) -> usize {
@@ -59,12 +53,6 @@ impl<V> OrderedMap<V> {
     }
     pub fn iter(&self) -> impl Iterator<Item = (&Arc<str>, &V)> {
         self.entries.iter().map(|(k, v)| (k, v))
-    }
-    pub fn len(&self) -> usize {
-        self.entries.len()
-    }
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
     }
 }
 

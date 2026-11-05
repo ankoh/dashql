@@ -11,7 +11,7 @@ use dashql_buffers::editor::{
 };
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_buffers::parser::{ScannerTokenType, StatementType};
-use dashql_core::catalog::Catalog;
+use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::pack::pack_completion;
 use dashql_core::vis_rewrite::VisBoard;
 use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
@@ -711,6 +711,21 @@ fn projects_primary_cursor_semantic_context_and_related_references() {
     assert!(context.resolved);
     assert_eq!(context.related_table_reference_ids.as_ref().unwrap().len(), 1);
     assert_eq!(context.related_column_reference_ids.as_ref().unwrap().len(), 3);
+}
+
+#[test]
+fn a_cursor_after_an_alias_dot_is_a_column_reference_without_expression() {
+    let catalog = new_catalog();
+    let _schema = load_schema(&catalog, "create table items (id int)");
+    let mut session = session(&catalog, UTF8);
+    let text = "select i.* from items i";
+    assert_eq!(analyze(&mut session, text).status, EditorUpdateStatus::OK);
+    // `i.*` is no column ref, the cursor recovers the alias before the dot
+    let update = session.set_primary_cursor(session.text_version(), text.find("i.*").unwrap() as u64 + 1);
+    let context = update.primary_cursor_context.as_ref().unwrap();
+    assert_eq!(context.kind, EditorCursorSemanticKind::COLUMN_REFERENCE);
+    assert_eq!(context.reference_id, PROTO_NULL_U32);
+    assert!(!context.resolved);
 }
 
 /// The analysis version of an update

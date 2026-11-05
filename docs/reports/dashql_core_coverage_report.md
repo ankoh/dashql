@@ -1,23 +1,27 @@
 # DashQL Core Coverage Report
 
-Date: 2026-11-04
+Date: 2026-11-05
 
 Line coverage of the Rust core (`dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-parser`) from the `bazel coverage` run of the unit, snapshot and parser tests of these crates and `dashql-snapshots` (generated `tables.rs` and `keywords/table.rs` excluded).
 
-**Overall: 96.2% (24,395 / 25,363 lines)**, up from 95.2% in the report of 2026-11-01 (20,901 / 21,959 lines). That report did not instrument `dashql-core-profile`: the instrumentation filter still named `dashql-core-view`, the crate's former name. This report adds it and `dashql-dataflow` (98.0%, 4,019 / 4,099 lines). Over the same crates, the tests before the new ones measured 94.9% (24,082 / 25,369 lines).
+**Overall: 96.5% (24,497 / 25,397 lines)**, up from 96.2% in the report of 2026-11-04 (24,395 / 25,363 lines). A fresh run before the new tests measured 96.20% (24,399 / 25,364 lines). The line count grew because the inline test modules of `progress/trino.rs` and `planner.rs` count as `src/` lines, and it shrank by the 29 lines of the removed dead helpers.
 
-New tests since the previous report:
+Changes since the previous report:
 
-- `sql_types.rs` 76% → 93%: type names and their SQL text, packing of SQL types and parameters (`tests/sql_types_test.rs`).
-- `pack.rs` 88% → 96%: parameters and their cast types.
-- `script.rs` 91% → 99%, `script_session.rs` 91% → 95%: annotation, `@vis`, `@flow` and `@param` rewrites, flow positions, sessions with allocated entry ids.
-- `dashql-core-shell/src/session.rs` 95% → 98%: the copy of the core status messages was removed (`Error::what`), tests of escaped completion hints and of Tab with a single candidate.
-- `completion.rs` 96% → 97%: columns of CTEs and derived tables after a recovered `alias.`, a schema and a database of the same name after a dot (their merged candidate now keeps both name tags).
-- `analyzer/vis_tags.rs` 93% → 98%: Vega-Lite tags without a spec or with a spec that is no object, unknown fields of many columns and of set operations, `as` arrays, `@flow` without args, negative board columns; the unused `vis_renderer_tag` was removed.
-- `script_references.rs` 95% → 99%: parentheses around queries, in quotes and comments (`inside_parentheses`).
-- `completion_vis.rs` 87% → 91%: completion snapshots of nested layer specs, mark definitions, aggregates, time units, scales, axes, legends, tooltip arrays and `groupby`.
-- Parser: `PRIMARY KEY USING INDEX` builds a `PRIMARY_KEY` constraint (it built `UNIQUE`), and `a NOT GLOB b` parses to `NOT_GLOB` (the scanner makes `NOT_LA` before `GLOB`).
-- `sql_literal.rs` 93% → 99%, `table_parameters.rs` 89% → 99%, `catalog/entry.rs` 88% → 93% (republished function declarations).
+- Parser: `LIMIT n FOR UPDATE` (the locking clause after the limit) wrapped the locking clauses in a second array, and the formatter printed the placeholder `'<ARRAY>'` for it. `sql_opt_for_locking_clause` now passes the clauses through, as PostgreSQL's `opt_for_locking_clause` does. The tree equals the one of `FOR UPDATE LIMIT n` (parser case `select_row_locking_8`, formatter cases `row_locking_after_limit` and `select_set_operation_limit_all_locking`).
+- `progress/trino.rs` 95% → 99%: Trino durations in minutes, hours and days, data sizes in GB, TB and PB, unknown units, canceled and aborted stages.
+- `session_inputs.rs` 92% → 98%: an input cast to two types gets a warning, positional parameters are no inputs. The dataflow snapshot encodes the warnings of an input (`InputCastToTwoTypes`).
+- `visualize/mod.rs` 82% → 100%: packing Markdown visualizations (`pack_test.rs`).
+- `compiler.rs` 89% → 90%: edits within obfuscated literals are dropped, visualizations without a renderer, with an unknown renderer, and Markdown without a row template.
+- `planner.rs` 97% → 98%: duplicate scripts and attachments, analyses of an older catalog revision (rejected, a tolerant plan takes them).
+- `script_session.rs` 94.6% → 95.1%: a cursor on `alias.*` is a column reference without an expression.
+- `dashql-core-shell/src/session.rs`: function completions insert `()`.
+- Removed dead code: `OrderedMap::{get, contains, len, is_empty}` (`analyzer/types.rs` 84% → 97%), `CatalogObjectRef::object_type`, `From<CatalogTableId> for TableLoc` (`catalog/entry.rs` 93% → 99%), `SchemaDeclaration::database_id`.
+
+Unreachable branches found on the way, kept for now:
+
+- `cursor.rs` `read_cursor_name_path`: the `Star` and `Index` components. `t.*` is no column ref (the cursor recovers an `AliasDot` context), and `a[1]` puts no subscript into the name of a column ref.
+- `formatter/select.rs`: `select distinct` without targets. `DISTINCT` needs a target list in the grammar, as in PostgreSQL.
 
 ## Per-file coverage
 
@@ -26,6 +30,7 @@ New tests since the previous report:
 | dashql-core-profile/src/tests_progress.rs | 240/240 | 100.0% |
 | dashql-core-profile/src/tests_trino.rs | 140/140 | 100.0% |
 | dashql-core-session/src/visualize/markdown/tests.rs | 96/96 | 100.0% |
+| dashql-core-session/src/visualize/mod.rs | 28/28 | 100.0% |
 | dashql-core-session/src/visualize/tests.rs | 43/43 | 100.0% |
 | dashql-core-session/src/visualize/vegalite_generator.rs | 11/11 | 100.0% |
 | dashql-core-shell/src/unicode.rs | 27/27 | 100.0% |
@@ -44,7 +49,9 @@ New tests since the previous report:
 | dashql-core-shell/src/prompt_buffer.rs | 311/312 | 99.7% |
 | dashql-core-session/src/catalog_changes.rs | 149/150 | 99.3% |
 | dashql-core/src/table_parameters.rs | 148/149 | 99.3% |
+| dashql-core-profile/src/progress/trino.rs | 262/264 | 99.2% |
 | dashql-core/src/script.rs | 330/333 | 99.1% |
+| dashql-core/src/catalog/entry.rs | 215/217 | 99.1% |
 | dashql-core-profile/src/profile_layout.rs | 305/308 | 99.0% |
 | dashql-core-session/src/script_references.rs | 580/586 | 99.0% |
 | dashql-core/src/compact_json.rs | 88/89 | 98.9% |
@@ -69,17 +76,19 @@ New tests since the previous report:
 | dashql-core/src/catalog/descriptor.rs | 277/283 | 97.9% |
 | dashql-core-session/src/visualize/markdown/mod.rs | 225/230 | 97.8% |
 | dashql-core/src/analyzer/name_resolution.rs | 1,301/1,330 | 97.8% |
-| dashql-core-shell/src/session.rs | 1,446/1,481 | 97.6% |
+| dashql-core-session/src/planner.rs | 929/950 | 97.8% |
+| dashql-core-shell/src/session.rs | 1,447/1,481 | 97.7% |
 | dashql-parser/src/parser/actions.rs | 123/126 | 97.6% |
 | dashql-core/src/analyzer/state.rs | 284/291 | 97.6% |
+| dashql-core-session/src/session_inputs.rs | 81/83 | 97.6% |
 | dashql-dataflow/src/ortho_router/tests.rs | 237/243 | 97.5% |
 | dashql-core/src/formatter/comments.rs | 430/441 | 97.5% |
-| dashql-core-session/src/planner.rs | 898/923 | 97.3% |
+| dashql-core/src/analyzer/types.rs | 71/73 | 97.3% |
+| dashql-core/src/catalog/mod.rs | 625/643 | 97.2% |
 | dashql-core-profile/src/trino_plan_parser.rs | 173/178 | 97.2% |
 | dashql-core/src/completion.rs | 1,205/1,240 | 97.2% |
 | dashql-core/src/analyzer/constants.rs | 136/140 | 97.1% |
 | dashql-parser/src/keywords.rs | 61/63 | 96.8% |
-| dashql-core/src/catalog/mod.rs | 625/646 | 96.7% |
 | dashql-core/src/formatter/pgq.rs | 223/231 | 96.5% |
 | dashql-core/src/analyzer/param_tags.rs | 81/84 | 96.4% |
 | dashql-parser/src/parser/context.rs | 364/378 | 96.3% |
@@ -91,31 +100,26 @@ New tests since the previous report:
 | dashql-parser/src/names.rs | 86/90 | 95.6% |
 | dashql-core/src/script_diff.rs | 479/502 | 95.4% |
 | dashql-core-session/src/batch.rs | 103/108 | 95.4% |
+| dashql-core-session/src/script_session.rs | 835/878 | 95.1% |
 | dashql-core/src/utils/topk.rs | 55/58 | 94.8% |
-| dashql-core-profile/src/progress/trino.rs | 217/229 | 94.8% |
-| dashql-parser/src/scanner.rs | 412/435 | 94.7% |
-| dashql-core-session/src/script_session.rs | 831/878 | 94.6% |
+| dashql-parser/src/scanner.rs | 413/436 | 94.7% |
 | dashql-core/src/analyzer/function_calls.rs | 63/67 | 94.0% |
 | dashql-core-shell/src/session_relations.rs | 31/33 | 93.9% |
 | dashql-parser/src/parser/probe.rs | 200/213 | 93.9% |
-| dashql-core/src/catalog/entry.rs | 215/231 | 93.1% |
 | dashql-core/src/analyzer/sql_types.rs | 173/186 | 93.0% |
-| dashql-core/src/formatter/mod.rs | 2,108/2,293 | 91.9% |
-| dashql-core-session/src/session_inputs.rs | 76/83 | 91.6% |
+| dashql-core/src/formatter/mod.rs | 2,111/2,293 | 92.1% |
+| dashql-core/src/formatter/select.rs | 188/205 | 91.7% |
 | dashql-core/src/formatter/delete.rs | 20/22 | 90.9% |
 | dashql-core/src/completion_vis.rs | 248/273 | 90.8% |
+| dashql-core-session/src/compiler.rs | 165/184 | 89.7% |
 | dashql-core/src/formatter/explain.rs | 26/29 | 89.7% |
 | dashql-parser/src/lib.rs | 43/48 | 89.6% |
-| dashql-core/src/formatter/select.rs | 183/205 | 89.3% |
 | dashql-parser/src/parser/driver.rs | 212/238 | 89.1% |
 | dashql-parser/src/parser/enums.rs | 40/45 | 88.9% |
-| dashql-core-session/src/compiler.rs | 163/184 | 88.6% |
 | dashql-core/src/formatter/insert.rs | 44/50 | 88.0% |
 | dashql-core-shell/src/lib.rs | 14/16 | 87.5% |
 | dashql-core/src/analyzer/mod.rs | 64/74 | 86.5% |
-| dashql-core/src/analyzer/types.rs | 71/85 | 83.5% |
 | dashql-dataflow/src/ortho_router/geom.rs | 59/71 | 83.1% |
-| dashql-core-session/src/visualize/mod.rs | 23/28 | 82.1% |
 | dashql-parser/src/parser/mod.rs | 148/182 | 81.3% |
 | dashql-parser/src/span.rs | 11/14 | 78.6% |
 | dashql-parser/src/attributes.rs | 34/47 | 72.3% |
@@ -130,18 +134,18 @@ New tests since the previous report:
 
 | File | Uncovered | Notes |
 |---|---|---|
-| dashql-core/src/formatter/mod.rs | 185 | Mostly unreachable `format_unimplemented` fallbacks |
-| dashql-core-session/src/script_session.rs | 47 | Rare selection, diagnostic and cursor-context branches (`AliasDot`, non-boundary cursors) |
-| dashql-core-shell/src/session.rs | 35 | Overlay scrolling past the window, failed completion applications |
+| dashql-core/src/formatter/mod.rs | 182 | Mostly unreachable `format_unimplemented` fallbacks |
+| dashql-core-session/src/script_session.rs | 43 | Analysis failures of a session, non-boundary cursors, diagnostics without spans |
 | dashql-core/src/completion.rs | 35 | Dot candidates of the same object, cursor positions at the begin of a dot, unresolved derived columns |
+| dashql-core-shell/src/session.rs | 34 | Overlay scrolling past the window, failed completion applications |
 | dashql-parser/src/parser/mod.rs | 34 | Error recovery and expected-symbol corners |
 | dashql-core/src/pack.rs | 32 | Cursor contexts without a scanner symbol, column candidate objects |
 | dashql-core/src/analyzer/name_resolution.rs | 29 | Defensive branches |
 | dashql-parser/src/parser/driver.rs | 26 | LR error recovery corners |
-| dashql-core-session/src/planner.rs | 25 | Planner error paths (failing visualizations, empty `EXPLAIN`) |
 | dashql-core/src/completion_vis.rs | 25 | Whitespace and word ends while scanning tag args and Vega-Lite tokens, cursor positions without a token |
 | dashql-core/src/script_diff.rs | 23 | Spans past the end of the text (EOF errors), coalescing of overlapping changes, enum value changes |
 | dashql-parser/src/scanner.rs | 23 | `special_character` entries no operator run can be trimmed to (`,`, brackets, `;`), so unreachable |
+| dashql-core-session/src/planner.rs | 21 | Barriers the analyzer never triggers (table refs without a relation, incompatible view kinds), visualization errors |
 
 ## Known issues
 
@@ -151,8 +155,11 @@ New tests since the previous report:
 - Comments between statements are not stable on a second formatting pass: the trailing comment of a statement moves behind the blank line, to the next statement.
 - `exclude` in window frames has no grammar rule (`sql_opt_frame_clause` in `grammar/rules/sql_select.y`); `somefunc(default)` prints the placeholder `'<OBJECT_SQL_NARY_EXPRESSION>'`.
 - Identical duplicate statements always diff as `MOVE` (intended ambiguity handling).
+- Generic type names have no qualified form (`sql_generic_type` in `grammar/rules/sql_select.y` takes one `sql_type_function_name`), so `cast(x as pg_catalog.int4)` is a syntax error. PostgreSQL's `GenericType` takes `type_function_name attrs`. `type_name` in `analyzer/sql_types.rs` already reads a name path, but the grammar never builds one. Adding it accepts new SQL and needs the write-up of `docs/design/core_parser.md` first.
 
 ## Suggested actions
 
-1. Remove unreachable `format_unimplemented` fallbacks or turn them into `unreachable!`, so formatter coverage reflects reachable code.
+1. Remove unreachable `format_unimplemented` fallbacks or turn them into `unreachable!`, so formatter coverage reflects reachable code. Error-recovered parse trees reach some of them, check those first.
 2. Add error-recovery inputs for `parser/mod.rs`, `driver.rs` and `value.rs`.
+3. Decide on qualified generic type names in the grammar (see known issues).
+4. Remove the unreachable `Star` and `Index` name components of `read_cursor_name_path` and the `select distinct` branch without targets, or document why they stay.

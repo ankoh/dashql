@@ -176,6 +176,9 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
             if let Some(literal) = &input.literal {
                 m.quoted("value", &literal.to_hyper());
             }
+            if !input.warnings.is_empty() {
+                m.insert("warnings", Node::seq(input.warnings.iter().map(|w| Node::dquo(w.clone())).collect()));
+            }
             let (x, y, w, h) = boxes[script_count + i];
             m.insert("box", Node::flow_seq([x, y, w, h].iter().map(|v| Node::int(v.round() as i64)).collect()));
             m.into_node()

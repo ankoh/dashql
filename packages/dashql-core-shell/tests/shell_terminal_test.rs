@@ -1217,3 +1217,15 @@ fn escape_dismisses_terminal_completion_before_exiting() {
     assert_eq!(output.status, ShellStatus::Ok);
     assert_eq!(output.action, PromptInputAction::Exit);
 }
+
+#[test]
+fn function_completions_insert_parentheses() {
+    let catalog = catalog();
+    let _schema = load_schema(&catalog, "create function item_count() returns int; create table items (id int);");
+    let mut shell = shell(&catalog, 100);
+    let completions = complete_text(&mut shell, "select item_c");
+    assert!(completions.iter().any(|c| c == "item_count()"), "{completions:?}");
+    // Tables are no functions
+    let completions = complete_text(&mut shell, "select * from ite");
+    assert!(completions.iter().any(|c| c == "items"), "{completions:?}");
+}

@@ -275,15 +275,6 @@ pub struct TableLoc {
     pub index: u32,
 }
 
-impl From<CatalogTableId> for TableLoc {
-    fn from(id: CatalogTableId) -> Self {
-        Self {
-            entry: id.origin,
-            index: id.object,
-        }
-    }
-}
-
 /// The location of a table column
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ColumnLoc {
@@ -313,16 +304,6 @@ pub enum CatalogObjectRef {
 }
 
 impl CatalogObjectRef {
-    pub fn object_type(&self) -> CatalogObjectType {
-        match self {
-            CatalogObjectRef::Database(_) => CatalogObjectType::DatabaseReference,
-            CatalogObjectRef::Schema(_) => CatalogObjectType::SchemaReference,
-            CatalogObjectRef::Table(_) => CatalogObjectType::TableDeclaration,
-            CatalogObjectRef::Column(_) => CatalogObjectType::ColumnDeclaration,
-            CatalogObjectRef::Function(_) => CatalogObjectType::FunctionDeclaration,
-        }
-    }
-
     /// The entry that declares the object
     pub fn entry(&self) -> CatalogEntryId {
         match self {

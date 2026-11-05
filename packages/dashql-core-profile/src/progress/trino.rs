@@ -308,3 +308,53 @@ impl QueryProfile {
         Ok(self.apply_events(&events))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn durations_of_every_unit() {
+        let us = |text: &str| duration_us(Some(&json!(text)));
+        assert_eq!(us("1500ns"), Some(2));
+        assert_eq!(us("956.59us"), Some(957));
+        assert_eq!(us("2.15ms"), Some(2150));
+        assert_eq!(us(" 2.15s "), Some(2_150_000));
+        assert_eq!(us("1.5m"), Some(90_000_000));
+        assert_eq!(us("2h"), Some(7_200_000_000));
+        assert_eq!(us("1d"), Some(86_400_000_000));
+        // Unknown units, missing numbers and non-strings are no durations
+        assert_eq!(us("3w"), None);
+        assert_eq!(us("s"), None);
+        assert_eq!(us("12"), None);
+        assert_eq!(duration_us(Some(&json!(12))), None);
+        assert_eq!(duration_us(None), None);
+    }
+
+    #[test]
+    fn data_sizes_of_every_unit() {
+        let bytes = |text: &str| data_size_bytes(Some(&json!(text)));
+        assert_eq!(bytes("271278B"), Some(271_278));
+        assert_eq!(bytes("2kB"), Some(2048));
+        assert_eq!(bytes("1.5MB"), Some(1_572_864));
+        assert_eq!(bytes("2GB"), Some(2 << 30));
+        assert_eq!(bytes("1TB"), Some(1 << 40));
+        assert_eq!(bytes("1PB"), Some(1 << 50));
+        // Data sizes are binary and case sensitive
+        assert_eq!(bytes("1KB"), None);
+        assert_eq!(bytes("1EB"), None);
+    }
+
+    #[test]
+    fn stage_and_query_states() {
+        assert_eq!(stage_status("PLANNED"), Some(Status::Pending));
+        assert_eq!(stage_status("SCHEDULED"), Some(Status::Running));
+        // A pending stage after running has done its work
+        assert_eq!(stage_status("PENDING"), Some(Status::Succeeded));
+        assert_eq!(stage_status("ABORTED"), Some(Status::Failed));
+        assert_eq!(stage_status("CANCELED"), Some(Status::Skipped));
+        assert_eq!(stage_status("SOMETHING_NEW"), None);
+        assert_eq!(query_status("FAILED"), Some(Status::Failed));
+    }
+}
