@@ -13,6 +13,7 @@ import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indic
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { useConnectorIcon } from './connector_icon.js';
 
 const LOG_CTX = "conn_inline_header";
 
@@ -44,6 +45,7 @@ const PROTOCOL_LABELS: Record<connection.HyperProtocol, string> = {
 };
 
 export function ConnectionInlineHeader(props: Props): React.ReactElement {
+    const connectorIcon = useConnectorIcon();
     const logger = useLogger();
 
     // Get the action button.
@@ -120,7 +122,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                 <div className={style.connector_info}>
                     <div className={style.connector_icon}>
                         <svg width="20px" height="24px">
-                            <use xlinkHref={`${symbols}#${props.connector.icons.colored}`} />
+                            <use xlinkHref={`${symbols}#${connectorIcon(props.connector)}`} />
                         </svg>
                     </div>
                     <div className={style.connector_name} data-testid="connector-name">

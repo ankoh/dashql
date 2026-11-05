@@ -24,6 +24,7 @@ import { connectionLabelParts, connectionLabelText, connectionOrdinals, type Con
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { useSessionScriptsRegistry } from './session_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';
+import { useConnectorIcon } from '../../connections/connector_icon.js';
 
 /// The fields of a connection that a script shows
 export interface ScriptConnectionView {
@@ -87,10 +88,11 @@ export function useAttachPendingConnection(instance: core.DashQL, modifySessionS
 
 /// The colored logo of the database of a connector
 function ConnectorIcon(props: { connectorInfo: ConnectorInfo, size?: number }) {
+    const connectorIcon = useConnectorIcon();
     const size = `${props.size ?? 16}px`;
     return (
         <svg className={styles.connector_icon} width={size} height={size} aria-hidden="true">
-            <use xlinkHref={`${symbols}#${props.connectorInfo.icons.colored}`} />
+            <use xlinkHref={`${symbols}#${connectorIcon(props.connectorInfo)}`} />
         </svg>
     );
 }
@@ -217,6 +219,7 @@ interface MenuProps {
 /// The connections a script or a shell can run on, the connections of the session first.
 /// Subscribes to the registries only while it is open.
 export function ConnectionMenu(props: MenuProps) {
+    const connectorIcon = useConnectorIcon();
     const [connections] = useConnectionRegistry();
     // Re-render when the sessions use other connections
     const [scripts] = useSessionScriptsRegistry();
@@ -275,7 +278,7 @@ export function ConnectionMenu(props: MenuProps) {
                             >
                                 <ActionList.Leading>
                                     <svg className={styles.connector_icon} width="16px" height="16px" aria-hidden="true">
-                                        <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
+                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} />
                                     </svg>
                                 </ActionList.Leading>
                                 <ActionList.ItemText>

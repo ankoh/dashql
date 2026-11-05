@@ -8,6 +8,7 @@ import { ConnectionLabelView } from './connection_label_view.js';
 import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';
 import * as styles from './connection_overview_page.module.css';
+import { useConnectorIcon } from './connector_icon.js';
 
 /// Does a connection run its queries in a Hyper, whose log the metrics are read from?
 function isHyperConnection(connection: ConnectionState): boolean {
@@ -24,6 +25,7 @@ interface Props {
 /// The operational overview of a connection.
 /// Closes itself once the connection is deleted.
 export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose }) => {
+    const connectorIcon = useConnectorIcon();
     const [registry] = useConnectionRegistry();
     const references = useConnectionReferences();
     const connection = registry.connections.get(connectionId) ?? null;
@@ -38,7 +40,7 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
             <section className={styles.page} aria-label={`Overview of ${labelText}`}>
                 <header className={styles.header}>
                     <svg width="16" height="16" aria-hidden="true">
-                        <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
+                        <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} />
                     </svg>
                     <h2 className={styles.title}>
                         <ConnectionLabelView parts={label} inline />

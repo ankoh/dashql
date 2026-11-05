@@ -101,3 +101,5 @@ without breaks between its components. Cards, tables, editors, dialogs and menus
   the charts embed again when `useColorScheme()` changes. Chart images resolve the light scheme on a white
   background in both schemes.
 - Colors that encode data, like the badges of the query profile, stay data colors.
+- The icons of connectors are their colored logos in the light scheme and their monochrome logos in the dark one,
+  which take the color of the text (`useConnectorIcon` in `src/connections/connector_icon.ts`).

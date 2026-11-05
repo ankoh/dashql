@@ -8,6 +8,7 @@ import { SalesforceConnectorSettings } from './salesforce_connection_settings.js
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { useConnectionById } from './connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from './connection_state.js';
+import { useConnectorIcon } from './connector_icon.js';
 
 interface Props {
     className?: string;
@@ -38,6 +39,8 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         }
     }, [props.setSelectedConnectorType, isUnconfigured, conn?.connectorInfo.connectorType, modifyConn]);
 
+    const connectorIcon = useConnectorIcon();
+
     // Build tab props for all connector types
     const tabProps = {} as Record<ConnectorType, any>;
     const tabRenderers = {} as Record<ConnectorType, () => React.ReactElement>;
@@ -50,7 +53,7 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         tabProps[connectorType] = {
             tabId: connectorType,
             icon: `${icons}#${info.icons.outlines}`,
-            iconActive: `${icons}#${info.icons.colored}`,
+            iconActive: `${icons}#${connectorIcon(info)}`,
             labelShort: info.names.displayShort,
             ariaLabel: info.names.displayLong,
             disabled: isDisabled,

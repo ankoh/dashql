@@ -131,6 +131,7 @@ import * as actionMenuStyles from '../app/action_menu.module.css';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
+import { useConnectorIcon } from '../connections/connector_icon.js';
 
 interface SessionItem {
     sessionId: string;
@@ -658,6 +659,7 @@ const InvalidSessionRow: React.FC<{ item: InvalidSessionItem; onDelete: () => vo
 );
 
 export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
+    const connectorIcon = useConnectorIcon();
     const dependencies = props.dependencies ?? DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES;
     const navigate = dependencies.useRouterNavigate();
     const route = dependencies.useRouteContext();
@@ -1283,7 +1285,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                             <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
                                                 <ActionList.Leading>
                                                     <svg width="16px" height="16px" aria-hidden="true">
-                                                        <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
+                                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} />
                                                     </svg>
                                                 </ActionList.Leading>
                                                 <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>
