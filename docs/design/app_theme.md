@@ -14,14 +14,24 @@ packages/dashql-ui/styles/tokens.css     theme: --color_*, --chrome_*, --shadow_
         │                                       --agent_*, each light-dark(<light>, <dark>)
         │ flavors override theme tokens, never the palette
         ▼
-src/styles/flavors/<id>.css              :root[data-flavor="<id>"] { --color_...: light-dark(...) }
+packages/dashql-ui/styles/flavors/<id>.css
+                                         :root[data-flavor="<id>"] { --color_...: light-dark(...) }
         │
         ▼
 *.module.css, editor themes, charts      use theme tokens only
 ```
 
-The palette and the theme are shared with the website (dashql.org). The website sets no color scheme on its root,
-so the tokens resolve light there.
+Every color value of the app lives in `packages/dashql-ui/styles`: the palette, the theme and the flavors. The app only
+uses tokens. A flavor's identity (name, logos, settings) stays in the app (`src/config/flavors.ts`), which sets
+`data-flavor` on the root and imports the stylesheets of the flavors.
+
+A flavor overrides theme tokens on `:root[data-flavor="<id>"]`, which wins over `:root` whatever the order of the
+stylesheets. It writes its values with `light-dark()` too, so one file covers both schemes. Tokens derive from other
+tokens and the greys of the palette from `--neutral_hue`, so a few overrides reach far: a flavor that sets the hue tints
+every grey, and one that sets `--color_bg` moves the stage with it.
+
+The palette and the theme are shared with the website (dashql.org). It loads no flavor and sets no color scheme on its
+root, so the tokens resolve to the default light theme there.
 
 ## Tokens
 
@@ -53,8 +63,8 @@ transparent)` for the inserted statements of a diff.
 - No colors of the palette (`--base_color_*`), no greys of their own (`hsl(var(--neutral_hue), …)`), and no
   `light-dark()`: the theme decides what a role looks like in each scheme.
 - No color custom properties of their own. A custom property that switches per variant may alias theme tokens.
-- The test `src/styles/theme.test.ts` checks every stylesheet of the app except the flavors. It also checks that the
-  `--code_*` tokens match the Xcode palettes that the website uses.
+- The test `src/styles/theme.test.ts` checks every stylesheet of the app. It also checks that the `--code_*` tokens
+  match the Xcode palettes that the website uses.
 
 ## Color scheme
 

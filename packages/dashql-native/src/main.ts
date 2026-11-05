@@ -92,7 +92,8 @@ function rendererTestMode(): RendererTestMode {
     return null;
 }
 
-/// The page backgrounds of the light and the dark color scheme of the app, --color_bg of the theme
+/// The page backgrounds of the light and the dark color scheme of the app, --color_bg of the theme in
+/// @ankoh/dashql-ui/styles/tokens.css. The main process cannot read the stylesheets, keep them in sync.
 const WINDOW_BACKGROUND_LIGHT = "#f6f8fa";
 const WINDOW_BACKGROUND_DARK = "#14171a";
 

@@ -17,7 +17,7 @@ import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '../styles/flavors/sidb.css';
+import '@ankoh/dashql-ui/styles/flavors/sidb.css';
 
 /// The pages of the demos, loaded when they are opened
 const PAGES = new Map(DEMOS.map(demo => [demo.id, React.lazy(demo.load)]));

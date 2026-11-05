@@ -1,11 +1,13 @@
 import { xcodeDarkPalette, xcodeLightPalette } from '@ankoh/dashql-ui/xcode';
 import TOKENS_CSS from '@ankoh/dashql-ui/styles/tokens.css?raw';
 
-// The stylesheets of the app, except for the flavors, which override the theme
+// The stylesheets of the app. The theme and its flavors live in @ankoh/dashql-ui, the app defines no colors.
+// Stale copy_to_bin outputs of moved sources stay in bazel-bin: the core before its extraction, the flavors before
+// their move to @ankoh/dashql-ui.
 const APP_STYLESHEETS = import.meta.glob<string>([
     '../**/*.css',
-    '!./flavors/*.css',
     '!../core/**',
+    '!./flavors/**',
 ], { query: '?raw', import: 'default', eager: true });
 
 // The named colors that a stylesheet could pick instead of a token

@@ -30,7 +30,7 @@ import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '../styles/flavors/sidb.css';
+import '@ankoh/dashql-ui/styles/flavors/sidb.css';
 
 const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;

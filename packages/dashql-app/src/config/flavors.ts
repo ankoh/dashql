@@ -38,7 +38,7 @@ function upcoming(label: string, icon: string): AppFlavorUpcomingPage {
 }
 
 /// A product flavor of the app: brand identity, theme tokens and settings defaults.
-/// The theme tokens live in `src/styles/flavors/<id>.css`, scoped to `:root[data-flavor="<id>"]`.
+/// The theme tokens live in `@ankoh/dashql-ui/styles/flavors/<id>.css`, scoped to `:root[data-flavor="<id>"]`.
 export interface AppFlavor {
     /// The flavor id, used in `?flavor=<id>` and as the `data-flavor` attribute
     id: string;

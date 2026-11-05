@@ -25,7 +25,7 @@ import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '../styles/flavors/sidb.css';
+import '@ankoh/dashql-ui/styles/flavors/sidb.css';
 
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);

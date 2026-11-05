@@ -33,6 +33,7 @@ npm_package(
         "fonts/*.ttf",
         "fonts/*.txt",
         "styles/*.css",
+        "styles/flavors/*.css",
     ]),
     include_transitive_sources = False,
     include_transitive_types = False,
