@@ -235,12 +235,3 @@
     min-width: 0;
     min-height: 0;
 }
-
-.dataflow_inspector {
-    flex: 0 0 min(560px, 45%);
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    border-left: 1px solid var(--border_color_primary);
-    background: var(--bg_color_primary, white);
-}

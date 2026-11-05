@@ -16,7 +16,7 @@ import { SessionNavigationDrawer } from '../session_navigation_drawer.js';
 import { SessionWorkbenchSidebar } from '../session_workbench_sidebar.js';
 import { SessionURLShareOverlay } from '../persistence/session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from '../persistence/session_file_save_overlay.js';
-import { ScriptDetails } from '../scripts/script_details.js';
+import { ScriptEditorDialog } from '../scripts/script_editor_dialog.js';
 import { SessionFeed, type SessionFeedRevealRequest } from './session_feed.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
@@ -43,7 +43,7 @@ const DataflowViewIcon = SymbolIcon('workflow_16');
 
 export interface SessionFeedPageDependencies {
     SessionFeed: typeof SessionFeed;
-    ScriptDetails: typeof ScriptDetails;
+    ScriptEditorDialog: typeof ScriptEditorDialog;
     SessionWorkbenchSidebar: typeof SessionWorkbenchSidebar;
     ConnectionOverviewPage: typeof ConnectionOverviewPage;
     SessionNavigationDrawer: typeof SessionNavigationDrawer;
@@ -63,7 +63,7 @@ export interface SessionFeedPageDependencies {
 
 const DEFAULT_DEPENDENCIES: SessionFeedPageDependencies = {
     SessionFeed,
-    ScriptDetails,
+    ScriptEditorDialog,
     SessionWorkbenchSidebar,
     ConnectionOverviewPage,
     SessionNavigationDrawer,
@@ -94,14 +94,22 @@ interface Props {
 
 export const SessionFeedPage: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    // The composer of the feed renames the references in its draft, also for renames in the dataflow inspector
+    // The composer of the feed renames the references in its draft, also for renames in the dataflow
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
-    // The script that the dataflow inspector shows. It belongs to the session it was opened in and closes
+    // The script that the editor dialog of the dataflow shows. It belongs to the session it was opened in and closes
     // when another session is selected or the script is gone.
     const [details, setDetails] = React.useState<{ sessionId: string; scriptId: number } | null>(null);
     const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId
         && props.sessionScripts.scripts[details.scriptId] != null;
     React.useEffect(() => setDetails(null), [props.sessionScripts.sessionId]);
+    // The dialog selects its script, the commands of the session (Ctrl+E) run the selected script
+    const inspectScript = React.useCallback((scriptKey: number) => {
+        const target = props.sessionScripts.scripts[scriptKey];
+        if (target?.fileName == null) return;
+        props.modifySessionScripts({ type: SELECT_SCRIPT, value: target.fileName });
+        setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey });
+    }, [props.sessionScripts.scripts, props.sessionScripts.sessionId, props.modifySessionScripts]);
+    const closeDetails = React.useCallback(() => setDetails(null), []);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const [overviewConnectionId, setOverviewConnectionId] = React.useState<string | null>(null);
     const closeOverview = React.useCallback(() => setOverviewConnectionId(null), []);
@@ -181,7 +189,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         size={SegmentedControlSize.Small}
                         onChange={(selectedIndex) => {
                             setOverviewConnectionId(null);
-                            // The inspector belongs to the dataflow view
+                            // The editor dialog belongs to the dataflow view
                             setDetails(null);
                             setMode(views[selectedIndex]?.[0] ?? SessionViewMode.Session);
                         }}
@@ -311,27 +319,22 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                     key={props.sessionScripts.sessionId}
                                     sessionScripts={props.sessionScripts}
                                     modifySessionScripts={props.modifySessionScripts}
-                                    onInspect={scriptKey => setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey })}
+                                    scriptConnections={scriptConnections}
+                                    draftRenameRef={draftRenameRef}
+                                    onInspect={inspectScript}
                                 />
                             </div>
                             {showDetails && (
-                                <div className={styles.dataflow_inspector} data-testid="dataflow-inspector">
-                                    <dependencies.ScriptDetails
-                                        sessionScripts={props.sessionScripts}
-                                        modifySessionScripts={props.modifySessionScripts}
-                                        draftRenameRef={draftRenameRef}
-                                        connection={props.connection}
-                                        scriptConnections={props.scriptConnections}
-                                        hideDetails={() => setDetails(null)}
-                                        scriptId={details.scriptId}
-                                        navigateToScript={(scriptKey) => {
-                                            const target = props.sessionScripts.scripts[scriptKey];
-                                            if (!target?.fileName) return;
-                                            props.modifySessionScripts({ type: SELECT_SCRIPT, value: target.fileName });
-                                            setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey });
-                                        }}
-                                    />
-                                </div>
+                                <dependencies.ScriptEditorDialog
+                                    key={details.scriptId}
+                                    sessionScripts={props.sessionScripts}
+                                    modifySessionScripts={props.modifySessionScripts}
+                                    scriptKey={details.scriptId}
+                                    scriptConnections={scriptConnections}
+                                    draftRenameRef={draftRenameRef}
+                                    onNavigateToScript={inspectScript}
+                                    onClose={closeDetails}
+                                />
                             )}
                         </div>
                     )}

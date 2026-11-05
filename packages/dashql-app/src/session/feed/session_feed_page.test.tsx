@@ -10,6 +10,7 @@ import { ConnectionHealth } from '../../connections/connection_state.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { SIDB_FLAVOR } from '../../config/flavors.js';
+import { SELECT_SCRIPT } from '../scripts/session_scripts.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -34,7 +35,7 @@ const dependencies = {
         state.feedProps = props;
         return null;
     },
-    ScriptDetails: () => null,
+    ScriptEditorDialog: () => null,
     SessionWorkbenchSidebar: (props: any) => {
         state.sidebarProps = props;
         return null;
@@ -507,15 +508,15 @@ describe('SessionFeedPage', () => {
         expect(state.setMode).toHaveBeenCalledWith(SessionViewMode.Dataflow);
     });
 
-    it('renders the Dataflow canvas and opens a script in the inspector beside it', () => {
+    it('renders the Dataflow canvas and opens a script in the editor dialog', () => {
         state.dataflowEnabled = true;
         state.mode = SessionViewMode.Dataflow;
         const sessionScripts = scripts();
         const modifySessionScripts = vi.fn();
-        const ScriptDetails = vi.fn((_props: any) => <div data-testid="script-details" />);
+        const ScriptEditorDialog = vi.fn((_props: any) => <div data-testid="script-editor-dialog" />);
         act(() => root.render(
             <SessionFeedPage sessionScripts={sessionScripts} modifySessionScripts={modifySessionScripts} connection={null} active
-                dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />,
+                dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as SessionFeedPageDependencies} />,
         ));
         expect(container.querySelector('[data-testid="dataflow"]')).not.toBeNull();
         expect(state.dataflowProps).toMatchObject({ sessionScripts, modifySessionScripts });
@@ -524,42 +525,44 @@ describe('SessionFeedPage', () => {
         expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dataflow']);
         expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
 
-        expect(container.querySelector('[data-testid="dataflow-inspector"]')).toBeNull();
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
         act(() => state.dataflowProps.onInspect(1));
-        expect(container.querySelector('[data-testid="dataflow-inspector"] [data-testid="script-details"]')).not.toBeNull();
-        expect(ScriptDetails.mock.calls[ScriptDetails.mock.calls.length - 1]?.[0].scriptId).toBe(1);
-        act(() => ScriptDetails.mock.calls[ScriptDetails.mock.calls.length - 1]?.[0].hideDetails());
-        expect(container.querySelector('[data-testid="dataflow-inspector"]')).toBeNull();
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
+        expect(ScriptEditorDialog.mock.calls[ScriptEditorDialog.mock.calls.length - 1]?.[0].scriptKey).toBe(1);
+        // The dialog selects its script, the commands of the session run it
+        expect(modifySessionScripts).toHaveBeenCalledWith({ type: SELECT_SCRIPT, value: sessionScripts.scripts[1].fileName });
+        act(() => ScriptEditorDialog.mock.calls[ScriptEditorDialog.mock.calls.length - 1]?.[0].onClose());
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
     });
 
-    it('closes the dataflow inspector when another session is selected', () => {
+    it('closes the dataflow editor dialog when another session is selected', () => {
         state.dataflowEnabled = true;
         state.mode = SessionViewMode.Dataflow;
-        const ScriptDetails = vi.fn(() => <div data-testid="script-details" />);
+        const ScriptEditorDialog = vi.fn(() => <div data-testid="script-editor-dialog" />);
         const render = (sessionId: string) => act(() => root.render(<SessionFeedPage
             sessionScripts={{ ...scripts(), sessionId }} modifySessionScripts={vi.fn()} connection={null} active
-            dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />));
+            dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as SessionFeedPageDependencies} />));
         render('session');
         act(() => state.dataflowProps.onInspect(1));
-        expect(container.querySelector('[data-testid="script-details"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
         render('other');
-        expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
-        // Coming back does not reopen the inspector
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
+        // Coming back does not reopen the dialog
         render('session');
-        expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
     });
 
-    it('closes the dataflow inspector when its script is gone', () => {
+    it('closes the dataflow editor dialog when its script is gone', () => {
         state.dataflowEnabled = true;
         state.mode = SessionViewMode.Dataflow;
-        const ScriptDetails = vi.fn(() => <div data-testid="script-details" />);
+        const ScriptEditorDialog = vi.fn(() => <div data-testid="script-editor-dialog" />);
         const render = (sessionScripts: any) => act(() => root.render(<SessionFeedPage
             sessionScripts={sessionScripts} modifySessionScripts={vi.fn()} connection={null} active
-            dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />));
+            dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as SessionFeedPageDependencies} />));
         render(scripts());
         act(() => state.dataflowProps.onInspect(1));
-        expect(container.querySelector('[data-testid="script-details"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
         render({ ...scripts(), scriptRefs: {}, scriptOrder: [], scripts: {} });
-        expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
+        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
     });
 });

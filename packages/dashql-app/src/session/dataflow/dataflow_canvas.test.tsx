@@ -3,8 +3,6 @@ import * as core from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
 import { CREATE_SCRIPT,DELETE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
 import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
 import { analyzedTestSession, withTestScript } from './dataflow_test_session.js';
@@ -24,6 +22,13 @@ const dependencies: DataflowCanvasDependencies = {
     useQueryState: () => null,
     VisualizationPanel: () => <div data-testid="chart" />,
     useDataflowModule: () => ({ layout, error: null }),
+    // The header of the feed entry needs the connections and the storage of the app
+    ScriptEntryHeader: ((props: any) => (
+        <div data-testid="entry-header" data-script={props.scriptKey}>
+            <button data-testid="script-delete" onClick={() => props.onDelete(props.sessionScripts.scripts[props.scriptKey])} />
+            {props.onEdit != null && <button data-testid="script-edit" onClick={props.onEdit} />}
+        </div>
+    )) as unknown as DataflowCanvasDependencies['ScriptEntryHeader'],
 };
 
 describe('DataflowCanvas', () => {
@@ -99,18 +104,6 @@ describe('DataflowCanvas', () => {
         const edges = [...container.querySelectorAll('[data-dataflow-edge]')].map(e => e.getAttribute('data-kind'));
         expect(edges).toEqual(['table', 'table']);
         expect([...container.querySelectorAll('[data-dataflow-badge] text')].map(t => t.textContent)).toEqual(['t']);
-    });
-
-    it('shows the status of the last run in the header of a box', () => {
-        const status = () => box('report.sql').querySelector('[data-dataflow-status]')!;
-        render();
-        expect(status().getAttribute('data-dataflow-status')).toBe('None');
-        expect(status().querySelector('title')?.textContent).toBe('Not run yet');
-        const failed = { status: QueryExecutionStatus.FAILED, error: null, statementIndex: null, statementCount: null } as unknown as QueryExecutionState;
-        act(() => root.render(
-            <DataflowCanvas sessionScripts={session} modifySessionScripts={modify} dependencies={{ ...dependencies, useQueryState: () => failed }} />,
-        ));
-        expect(status().getAttribute('data-dataflow-status')).toBe('Failed');
     });
 
     it('draws the edges on the outlines of the boxes and below their statements', () => {
@@ -266,11 +259,39 @@ describe('DataflowCanvas', () => {
         expect(create?.value.text).toBe('select * from :report');
         expect(create?.value.connection).toBe(session.scripts[key('report.sql')].connection);
 
-        act(() => box('report.sql').querySelector<SVGGElement>('[data-dataflow-action="open"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+        act(() => box('report.sql').querySelector<HTMLButtonElement>('[data-testid="script-edit"]')!.click());
         expect(onInspect).toHaveBeenCalledWith(key('report.sql'));
 
-        act(() => box('report.sql').querySelector<SVGGElement>('[data-dataflow-action="delete"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+        act(() => box('report.sql').querySelector<HTMLButtonElement>('[data-testid="script-delete"]')!.click());
         expect(modify.mock.calls[modify.mock.calls.length - 1]?.[0]).toEqual({ type: DELETE_SCRIPT, value: 'report.sql' });
+    });
+
+    it('shows the header of the feed entry in a box, a drag on its free space moves the box', () => {
+        const onInspect = vi.fn();
+        render(onInspect);
+        const header = box('report.sql').querySelector<HTMLDivElement>(`[data-dataflow-header="${key('report.sql')}"]`)!;
+        expect(header.querySelector('[data-testid="entry-header"]')?.getAttribute('data-script')).toBe(String(key('report.sql')));
+        const pointer = (type: string, x: number, y: number) => new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y });
+        // A control of the header does not drag
+        const control = header.querySelector<HTMLButtonElement>('[data-testid="script-delete"]')!;
+        act(() => { control.dispatchEvent(pointer('pointerdown', 100, 100)); });
+        act(() => { control.dispatchEvent(pointer('pointermove', 100, 260)); });
+        expect(box('report.sql').getAttribute('data-dragging')).toBeNull();
+        act(() => { control.dispatchEvent(pointer('pointerup', 100, 260)); });
+        expect(written().size).toBe(0);
+        // The free space of the header does
+        const before = cardAt('report.sql');
+        act(() => { header.dispatchEvent(pointer('pointerdown', 100, 100)); });
+        act(() => { header.dispatchEvent(pointer('pointermove', 100, 260)); });
+        expect(box('report.sql').getAttribute('data-dragging')).toBe('true');
+        act(() => { header.dispatchEvent(pointer('pointerup', 100, 260)); });
+        expect(cardAt('report.sql').y).toBeGreaterThan(before.y);
+        expect(written().get('report.sql')).toMatch(/^\/\*\* @flow /);
+        // A double click on it opens the script, on a control it does not
+        act(() => { control.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+        expect(onInspect).not.toHaveBeenCalled();
+        act(() => { header.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+        expect(onInspect).toHaveBeenCalledExactlyOnceWith(key('report.sql'));
     });
 
     it('arranges the boxes again without the positions of their @flow tags, the sizes stay', () => {

@@ -1,0 +1,78 @@
+/* A script in a dialog: the header of the feed entry, the editor and the status of the last run */
+.dialog {
+    display: grid;
+    grid-template-rows: 40px minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: white;
+    outline: none;
+}
+
+/* The header of the feed entry, then the expand and close buttons of the dialog */
+.titlebar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 0 6px 0 0;
+    border-bottom: 1px solid var(--log_border_color);
+    color: var(--card_control_color);
+}
+
+/* A narrow dialog hides the controls that the script menu of the header offers as well */
+.header_container {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    container-type: inline-size;
+}
+
+/* The header of the feed entry without the space of the drag handle */
+.dialog .header {
+    height: 100%;
+    padding: 0 4px;
+}
+
+@container (max-width: 760px) {
+    .header [data-entry-optional="1"] {
+        display: none;
+    }
+}
+
+@container (max-width: 400px) {
+    .header [data-entry-optional="2"] {
+        display: none;
+    }
+}
+
+.body {
+    position: relative;
+    min-height: 0;
+    background-color: var(--session_feed_preview_background);
+}
+
+.editor {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+}
+
+.editor :global(.cm-editor) {
+    font-size: var(--font_size_compact);
+    line-height: 1.45;
+}
+
+.diff_actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.status {
+    border-top: 1px solid var(--log_border_color);
+}

@@ -4,16 +4,19 @@ import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } fro
 
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { PencilIcon, PlusIcon, SymbolIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
+import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
+import type { ConnectionState } from '../../connections/connection_state.js';
 import { useQueryState } from '../../connections/query_executor.js';
-import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
-import { deriveEntryStatus } from '../entry_status_model.js';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
 import type { ScriptData, SessionScripts } from '../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
+import { checkSessionScriptReferences } from '../scripts/script_reference_reports.js';
+import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
+import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { SessionInputCard } from '../inputs/session_input_card.js';
 import { useApplySessionInput } from '../inputs/use_apply_session_input.js';
@@ -45,11 +48,8 @@ import * as styles from './dataflow.module.css';
 
 const FitIcon = SymbolIcon('graph_align');
 
-/// The approximate width of a character of a statement label and of a box title, labels are truncated to the box
+/// The approximate width of a character of a statement label, labels are truncated to the box
 const LABEL_CHAR_WIDTH = 8;
-const TITLE_CHAR_WIDTH = 7.5;
-/// The size of the icons of a box header
-const HEADER_ICON = 12;
 /// The border of the frame of a chart, see `.chart_body`
 const CHART_BORDER = 1;
 /// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
@@ -62,18 +62,26 @@ export interface DataflowCanvasDependencies {
     useQueryState: typeof useQueryState;
     VisualizationPanel: typeof VisualizationPanel;
     useDataflowModule: typeof useDataflowModule;
+    ScriptEntryHeader: typeof ScriptEntryHeader;
 }
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
     useQueryState,
     VisualizationPanel,
     useDataflowModule,
+    ScriptEntryHeader,
 };
+
+const NO_CONNECTIONS: ReadonlyMap<string, ConnectionState> = new Map();
 
 interface Props {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
-    /// Open the script in the inspector
+    /// The connections that the scripts run on, the headers of the boxes show and pick them
+    scriptConnections?: ReadonlyMap<string, ConnectionState>;
+    /// The function that renames the references in the draft of the composer
+    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
+    /// Open the script in the editor dialog
     onInspect?: (scriptKey: number) => void;
     dependencies?: DataflowCanvasDependencies;
 }
@@ -462,6 +470,9 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     }, [writeSize]);
 
     // Creating and removing scripts
+    const deleteScript = React.useCallback((script: ScriptData) => deleteFlowScript(script, modifySessionScripts), [modifySessionScripts]);
+    // The headers of the boxes show the diagnostics of the script references like the feed
+    const scriptReferences = React.useMemo(() => checkSessionScriptReferences(sessionScripts), [sessionScripts]);
     const quoteIdentifier = React.useCallback((name: string) => sessionScripts.instance.quoteIdentifier(name), [sessionScripts.instance]);
     const createAt = React.useCallback((position: Position | null, producer: ScriptData | null) => {
         void createFlowScript(position, producer, quoteIdentifier, modifySessionScripts);
@@ -558,6 +569,8 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 key={box.script.scriptKey}
                                 className={styles.card}
                                 data-dataflow-card={box.script.scriptKey}
+                                // A selected box outlines the whole card, not its header
+                                data-selected={selection?.scriptKey === box.script.scriptKey && selection.statementId == null && selection.input == null}
                                 x={box.x}
                                 y={box.y}
                                 width={box.width}
@@ -570,6 +583,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                             <rect
                                 key={`input:${box.input.name}`}
                                 className={styles.card}
+                                data-selected={selection?.input === box.input.name}
                                 x={box.x}
                                 y={box.y}
                                 width={box.width}
@@ -605,7 +619,11 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 config={config}
                                 key={box.script.scriptKey}
                                 box={box}
-                                sessionId={sessionScripts.sessionId}
+                                sessionScripts={sessionScripts}
+                                modifySessionScripts={modifySessionScripts}
+                                scriptConnections={props.scriptConnections ?? NO_CONNECTIONS}
+                                scriptReferences={scriptReferences.get(box.script.scriptKey) ?? null}
+                                draftRenameRef={props.draftRenameRef}
                                 script={sessionScripts.scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
                                 dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
@@ -617,7 +635,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 onSelect={setSelection}
                                 onHover={setHover}
                                 onInspect={props.onInspect}
-                                onDelete={script => deleteFlowScript(script, modifySessionScripts)}
+                                onDelete={deleteScript}
                                 onCreateDownstream={createDownstream}
                             />
                         ))}
@@ -676,7 +694,11 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
 interface BoxProps {
     box: DataflowSceneBox;
     config: core.DataflowLayoutConfig;
-    sessionId: string;
+    sessionScripts: SessionScripts;
+    modifySessionScripts: ModifySessionScripts;
+    scriptConnections: ReadonlyMap<string, ConnectionState>;
+    scriptReferences: ScriptReferenceReport | null;
+    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     script: ScriptData | undefined;
     selection: DataflowSelection | null;
     dragging: boolean;
@@ -737,39 +759,32 @@ function DataflowInputPorts(props: { box: DataflowSceneInput; highlighted: boole
     return <GraphPort x={x} y={y} side="right" highlighted={props.highlighted} data-dataflow-port="output" />;
 }
 
-/// The size of the status indicator in a box header
-const STATUS_SIZE = 14;
+/// The controls in the header of a box, a pointer down on them does not drag the box
+const HEADER_CONTROLS = 'button, input, textarea, select, a, [role="button"], [role="menuitem"], [contenteditable]';
 
-/// The status indicator of a box header, centered where the title starts. The message shows as a tooltip.
-function DataflowBoxStatus(props: { x: number; y: number; status: IndicatorStatus; message: string }): React.ReactElement {
-    return (
-        <g transform={`translate(${props.x - STATUS_SIZE / 2}, ${props.y - STATUS_SIZE / 2})`} data-dataflow-status={IndicatorStatus[props.status]}>
-            <title>{props.message}</title>
-            <StatusIndicator status={props.status} width={`${STATUS_SIZE}px`} height={`${STATUS_SIZE}px`} />
-        </g>
-    );
+/// Is a pointer event on the header itself, not on one of its controls or in a popover that the header portals?
+function onHeaderItself(event: React.SyntheticEvent): boolean {
+    const target = event.target as Element;
+    return event.currentTarget.contains(target) && target.closest(HEADER_CONTROLS) == null;
 }
 
-/// A script box: the header with the name and the actions, the statement rows, and the chart. The ports are drawn
+/// A script box: the header of the feed entry of the script, the statement rows, and the chart. The ports are drawn
 /// by `DataflowBoxPorts` in a layer of their own.
 function DataflowBox(props: BoxProps): React.ReactElement {
     const { box, script } = props;
     const config = props.config;
-    const query = props.dependencies.useQueryState(props.sessionId, script?.latestQueryId ?? null);
-    const status = deriveEntryStatus(query ?? null);
+    const sessionId = props.sessionScripts.sessionId;
+    const query = props.dependencies.useQueryState(sessionId, script?.latestQueryId ?? null);
     const name = scriptDisplayName(box.script.fileName);
     const scriptKey = box.script.scriptKey;
     const terminal = box.rows.length - 1;
     const result = query?.resultTable;
-    const actions = [
-        ...(props.onInspect != null ? [{ key: 'open', label: `Open ${name}`, icon: PencilIcon, run: () => props.onInspect!(scriptKey) }] : []),
-        ...(script != null ? [{ key: 'delete', label: `Delete ${name}`, icon: TrashIcon, run: () => props.onDelete(script) }] : []),
-    ];
     // A new script reads the whole script, so the add button sits at the vertical middle of the box
     const addY = box.y + box.height / 2;
-    // The title and the labels are truncated to the width of the box
-    const titleChars = Math.max(8, Math.floor((box.width - 26 - actions.length * (HEADER_ICON + 10) - 8) / TITLE_CHAR_WIDTH));
     const labelChars = (badgeWidth: number) => Math.max(4, Math.floor((box.width - 2 * config.rowPadding - 16 - badgeWidth - 8) / LABEL_CHAR_WIDTH));
+    // The box has no editor, the edit button of the header opens the script in the editor dialog
+    const onInspect = props.onInspect;
+    const edit = React.useCallback(() => onInspect?.(scriptKey), [onInspect, scriptKey]);
     return (
         <g
             className={styles.box}
@@ -797,34 +812,40 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 }}
             >
                 <rect x={box.x} y={box.y} width={box.width} height={config.headerHeight} rx={8} ry={8} className={styles.header_hit} />
-                <DataflowBoxStatus x={box.x + 14} y={box.y + config.headerHeight / 2} status={status.indicator} message={status.message} />
-                <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(name, titleChars)}</text>
             </g>
-            {actions.map((action, i) => {
-                const x = box.x + box.width - 8 - (actions.length - i) * (HEADER_ICON + 10);
-                const Icon = action.icon;
-                return (
-                    <g
-                        key={action.key}
-                        className={styles.action}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={action.label}
-                        data-dataflow-action={action.key}
-                        transform={`translate(${x}, ${box.y + (config.headerHeight - HEADER_ICON) / 2})`}
-                        onPointerDown={event => event.stopPropagation()}
-                        onClick={event => { event.stopPropagation(); action.run(); }}
-                        onKeyDown={event => {
-                            if (event.key !== 'Enter' && event.key !== ' ') return;
-                            event.preventDefault();
-                            action.run();
-                        }}
-                    >
-                        <rect x={-5} y={-5} width={HEADER_ICON + 10} height={HEADER_ICON + 10} rx={4} className={styles.action_hit} />
-                        <Icon size={HEADER_ICON} />
-                    </g>
-                );
-            })}
+            {/* The header of the feed entry, a drag on its free space moves the box */}
+            <foreignObject
+                x={box.x}
+                y={box.y}
+                width={box.width}
+                height={config.headerHeight}
+                className={styles.header_object}
+            >
+                <div
+                    className={styles.header_body}
+                    data-dataflow-header={scriptKey}
+                    onPointerDown={event => { if (onHeaderItself(event)) props.onHandleDown(event, box); }}
+                    onDoubleClick={event => {
+                        if (!onHeaderItself(event)) return;
+                        event.stopPropagation();
+                        props.onInspect?.(scriptKey);
+                    }}
+                >
+                    <props.dependencies.ScriptEntryHeader
+                        sessionScripts={props.sessionScripts}
+                        modifySessionScripts={props.modifySessionScripts}
+                        scriptKey={scriptKey}
+                        scriptConnections={props.scriptConnections}
+                        scriptReferences={props.scriptReferences}
+                        draftRenameRef={props.draftRenameRef}
+                        onDelete={props.onDelete}
+                        onEdit={onInspect != null ? edit : undefined}
+                        // The snippets show in the editor dialog, the box has no room for them
+                        snippets={false}
+                        className={styles.entry_header}
+                    />
+                </div>
+            </foreignObject>
             {!box.collapsed && box.rows.map(row => {
                 const id = row.statement.statementId;
                 const selected = props.selection?.statementId === id;
@@ -967,13 +988,7 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
                 }}
             >
                 <rect x={box.x} y={box.y} width={box.width} height={config.headerHeight} rx={8} ry={8} className={styles.header_hit} />
-                <DataflowBoxStatus
-                    x={box.x + 14}
-                    y={box.y + config.headerHeight / 2}
-                    status={props.busy ? IndicatorStatus.Running : IndicatorStatus.None}
-                    message={props.busy ? 'Running the scripts that use the input' : 'Idle'}
-                />
-                <text className={styles.title} x={box.x + 26} y={box.y + config.headerHeight / 2}>{truncate(`:${name}`, 16)}</text>
+                <text className={styles.title} x={box.x + 12} y={box.y + config.headerHeight / 2}>{truncate(`:${name}`, 16)}</text>
                 <text className={styles.input_type} x={box.x + box.width - 12} y={box.y + config.headerHeight / 2} data-inferred={!input.type.cast || undefined}>
                     {truncate(input.type.sql, 14)}
                 </text>

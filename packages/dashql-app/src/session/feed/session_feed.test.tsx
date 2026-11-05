@@ -304,7 +304,7 @@ describe('V2 session feed rows', () => {
         expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':report');
     });
 
-    it('renames the script in the tag with the edit button and from the action menu', async () => {
+    it('renames the script in the tag from the action menu', async () => {
         const props = baseProps();
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         const setInputValue = (input: HTMLInputElement, value: string) => {
@@ -312,13 +312,12 @@ describe('V2 session feed rows', () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
         };
         const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
-        const rename = () => container.querySelector<HTMLButtonElement>('[data-testid="script-rename"]')!;
-
-        // The edit button sits left of the chart button
-        const chart = container.querySelector('[data-testid="script-chart"]')!;
-        const mentionTag = container.querySelector('[data-testid="script-mention"]')!;
-        expect(mentionTag.compareDocumentPosition(rename()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(rename().compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        // Rename in the action menu edits the name in the tag, the header has no rename button
+        const rename = () => {
+            act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
+            act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="rename"]')!.click());
+        };
+        expect(container.querySelector('[data-testid="script-rename"]')).toBeNull();
         // A double click on the tag mentions the script twice and edits nothing
         const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
         act(() => {
@@ -329,8 +328,8 @@ describe('V2 session feed rows', () => {
         expect(props.onTarget).toHaveBeenCalledTimes(2);
         expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
 
-        // The edit button edits the name
-        act(() => rename().click());
+        // The input keeps the focus after the menu closes
+        rename();
         let input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
         expect(input.value).toBe('01_alpha');
         await act(nextFrame);
@@ -341,19 +340,12 @@ describe('V2 session feed rows', () => {
         expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
 
         // Escape abandons the edit
-        act(() => rename().click());
+        rename();
         input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
         act(() => setInputValue(input, 'other'));
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
         expect(props.onRename).toHaveBeenCalledTimes(1);
         expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':01_alpha');
-
-        // The action menu edits the name in the tag, the input keeps the focus after the menu closes
-        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
-        act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="rename"]')!.click());
-        await act(nextFrame);
-        input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
-        expect(document.activeElement).toBe(input);
     });
 
     it('keeps Play available for SQL with parser diagnostics', () => {

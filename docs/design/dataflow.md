@@ -132,20 +132,30 @@ in the URL), next to the feed and the dashboard in the view switch. `src/session
   from the layout of its box. A script box has a resize handle in its bottom right corner, like the cards of the
   board: dragging it changes the width of the box and the height of its chart on the 8px grid, a box without a chart
   only changes its width, the arrow keys change them by 16px. The box follows the pointer, the other boxes make room
-  on release. The title and the statement labels are truncated to the width of the box. d3-zoom pans and zooms.
+  on release. The statement labels are truncated to the width of the box. d3-zoom pans and zooms.
+- The header of a script box is the header of the feed entry of the script (`FeedEntryHeader`, connected to the
+  session by `ScriptEntryHeader`) in a `foreignObject`: run, connection, diagnostics, the `:<script>` tag, chart
+  builder, edit, the script menu and delete. The feed order controls and the snippets are left out, the editor dialog
+  shows the snippets, edit opens it. A narrow box hides the debug statistics and delete first, then the chart builder,
+  the script menu offers them too. A drag on the free space of the header moves the box, the controls keep the pointer.
 - The box of an input shows the name and the type in its header and the value in its row, the card of the feed
   (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
   change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,
   the canvas remembers where the layout or a drag placed it while the canvas is open, Arrange places it again.
 - `dataflow_source.ts` writes the changes into the scripts: the placements of the boxes into their `@flow` tags, the
   `+` of a box creates `select * from :<script>` on its connection, New script creates a
-  query, a double click on the canvas creates a query at that position, the trash button deletes the script, and
-  Arrange removes the positions of the `@flow` tags, keeps the sizes and lays out every box again.
+  query, a double click on the canvas creates a query at that position, the delete button of the header deletes the
+  script, and Arrange removes the positions of the `@flow` tags, keeps the sizes and lays out every box again.
 
 The layout always lays out full boxes, the canvas draws every box with its statements. Every layout starts from where
 the boxes were: where the last layout put them while the canvas is open, else their `@flow` tags. So a box keeps its
 column, its order and its y while the session changes, and a new script starts next to the boxes it reads. A drop or
 a resize lays out from the dropped box and the new size, then writes the position and the size of every script box
 into its `@flow` tag, tags that hold them already stay, so a reload shows the same layout. A script without
-statements is not remembered until it has some. Opening a box (its pencil, a double click or
-Enter) shows the script in the script details next to the canvas, switching the view closes them.
+statements is not remembered until it has some. Opening a box (the edit button of its header, a double click on its header or
+a statement, or Enter) selects the script and shows it in the editor dialog (`ScriptEditorDialog`), an overlay of
+960×600px that shrinks to the window: the same entry header, then expand and close, the editor with accept and reject
+of a staged rewrite, and the status of the last run. Expand fills the window. A narrow dialog hides the debug statistics
+and delete of the header first, then the chart builder and the snippets, expand and close always show. Escape
+closes an open completion first, then the dialog, a click outside keeps it open. Switching the view or the session
+closes it.

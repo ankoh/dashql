@@ -77,7 +77,7 @@
     fill: transparent;
 }
 
-.box[data-selected="true"] .header_hit,
+/* Only keyboard focus marks the header, a selected box outlines its card */
 .header:focus-visible .header_hit {
     fill: hsla(211, 100%, 45%, 0.08);
     stroke: hsl(211, 100%, 45%);
@@ -94,15 +94,43 @@
     pointer-events: none;
 }
 
-.action {
-    cursor: pointer;
-    color: hsl(var(--neutral_hue), calc(18% * var(--neutral_tint)), 34%);
+/* The header of a script box is the header of the feed entry of the script */
+.header_object {
+    overflow: visible;
 }
-.action:focus { outline: none; }
-.action_hit { fill: transparent; }
-.action:hover .action_hit,
-.action:focus-visible .action_hit {
-    fill: hsla(var(--neutral_hue), calc(20% * var(--neutral_tint)), 40%, 0.1);
+
+.header_body {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    cursor: move;
+    /* A narrow box hides the controls that the action menu of the header offers as well */
+    container-type: inline-size;
+}
+
+.header_body .entry_header {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 8px;
+    gap: 2px;
+}
+
+.header_body .entry_header button {
+    cursor: pointer;
+}
+
+@container (max-width: 400px) {
+    .entry_header [data-entry-optional="1"] {
+        display: none;
+    }
+}
+
+@container (max-width: 320px) {
+    .entry_header [data-entry-optional="2"] {
+        display: none;
+    }
 }
 
 /* A statement row, styled like an operator of the plan view */
@@ -208,6 +236,11 @@
     stroke: hsl(var(--neutral_hue), calc(13% * var(--neutral_tint)), 70%);
     stroke-width: 1px;
     vector-effect: non-scaling-stroke;
+}
+
+.card[data-selected="true"] {
+    stroke: hsl(211, 100%, 45%);
+    stroke-width: 1.5px;
 }
 
 .input_type {

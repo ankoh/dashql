@@ -398,6 +398,11 @@
     border-top: 1px solid var(--log_border_color);
 }
 
+/* A wrapper of a header control that a narrow header may hide, see `data-entry-optional` */
+.feed_entry_optional {
+    display: contents;
+}
+
 .feed_entry_action_separator {
     flex-shrink: 0;
     width: 1px;

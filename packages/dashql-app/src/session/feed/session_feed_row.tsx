@@ -5,7 +5,7 @@ import { useSessionExecution } from '../scripts/session_execution_provider.js';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../ui/foundations/symbol_icon.js';
-import { GraphIcon, PaperAirplaneIcon, PencilIcon, PlusIcon, SquareFillIcon } from '../../ui/foundations/symbol_icon.js';
+import { PlusIcon } from '../../ui/foundations/symbol_icon.js';
 import type { RowComponentProps } from 'react-window';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -14,11 +14,9 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { useRowContextMenu } from '../../ui/foundations/row_context_menu.js';
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
-import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { ConnectorType } from '../../connections/connector_info.js';
-import { QueryExecutionStatus, queryIsDone } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { useCancelQuery, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { getScriptRefs, type SessionScripts, type ScriptData } from '../scripts/session_scripts.js';
@@ -31,14 +29,13 @@ import { ScriptEditor } from '../scripts/script_editor.js';
 import { ScriptStatisticsBar } from '../scripts/script_statistics_bar.js';
 import { formatScriptEditor, formattingDialectForConnector, isScriptFormattable } from '../scripts/script_format.js';
 import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
-import { ScriptActionMenu, type ScriptStorage } from '../scripts/script_action_menu.js';
+import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import { displayPath } from '../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
-import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/script_connection_picker.js';
-import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
+import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
-import { ScriptMentionTag } from './script_mention_tag.js';
+import { FeedEntryHeader } from './feed_entry_header.js';
 import { FEED_TOP_PADDING } from './session_feed_layout.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
 
@@ -142,15 +139,11 @@ const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
 export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCardProps) => {
     const sessionExecution = useSessionExecution(props.sessionId);
     const dependencies = props.dependencies ?? DEFAULT_SCRIPT_CARD_DEPENDENCIES;
-    const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
-    const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
-    const TrashIcon: Icon = SymbolIcon('trash_16');
 
     const queryState = dependencies.useQueryState(props.sessionId, props.scriptData?.latestQueryId ?? null);
     const cancelQuery = dependencies.useCancelQuery();
-    const queryActive = queryState != null && !queryIsDone(queryState.status);
 
     // A staged rewrite waiting to be accepted/rejected. The editable editor renders the
     // in-place diff and these actions provide the same explicit accept/reject alternatives.
@@ -227,10 +220,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         }
     }, [cancelQuery, entryStatus?.kind, props.connectionId, props.scriptData?.latestQueryId, sessionExecution.busy, sessionExecution.stop]);
 
-    // A script on a connection that is not connected keeps a greyed play button that pulses the connections in the bar
-    const needsConnection = !queryActive && props.connectionId != null && props.connectionHealth !== ConnectionHealth.ONLINE;
-    const connectionAttention = React.useContext(SessionConnectionAttentionContext);
-
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) props.onAcceptDiff(scriptKey);
     }, [scriptKey, props.onAcceptDiff]);
@@ -268,17 +257,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const applySnippet = React.useCallback((text: string) => {
         if (scriptKey != null) props.onApplySnippet(scriptKey, text);
     }, [scriptKey, props.onApplySnippet]);
-    const [chartBuilderOpen, setChartBuilderOpen] = React.useState(false);
     const setVisSpec = React.useCallback((spec: string) => {
         if (scriptKey != null) props.onSetVisSpec(scriptKey, spec);
     }, [scriptKey, props.onSetVisSpec]);
-    const closeChartBuilder = React.useCallback(() => setChartBuilderOpen(false), []);
 
     const displayName = scriptDisplayName(props.scriptFileName);
-    // Is the name being edited in the tag of the card?
-    const [renaming, setRenaming] = React.useState(false);
-    // A right click on the action bar opens the script menu
-    const contextMenu = useRowContextMenu();
     const storage = React.useMemo<ScriptStorage>(() => ({
         fileName: props.scriptFileName,
         resolvePath: () => `${displayPath(props.sessionId, props.storageReader.getSessionLocation(props.sessionId))}/${STORAGE_SCRIPTS_FOLDER}/${props.scriptFileName}`,
@@ -301,155 +284,37 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
             data-testid="script-cell"
         >
             <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
-                <div className={styles.feed_entry_action_bar} onContextMenu={contextMenu.onContextMenu}>
-                    <ExecuteConnectionGuard sessionId={props.sessionId} blocked={!queryActive && props.connectionHealth !== ConnectionHealth.ONLINE}>
-                    <IconButton
-                        className={needsConnection ? styles.feed_entry_execute_offline : props.isFocused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
-                        data-testid="script-execute"
-                        aria-current={props.isFocused ? 'true' : undefined}
-                        disabled={!queryActive && (sessionExecution.runActive || (needsConnection ? props.scriptData == null : !props.canExecute))}
-                        onClick={() => {
-                            if (queryActive && props.scriptData?.latestQueryId != null) {
-                                if (sessionExecution.busy) sessionExecution.stop();
-                                else if (props.connectionId != null) cancelQuery(props.connectionId, props.scriptData.latestQueryId);
-                            } else if (needsConnection) {
-                                connectionAttention?.request(props.sessionId);
-                            } else {
-                                props.onExecute(props.scriptFileName);
-                            }
-                        }}
-                    >
-                        {queryActive ? <SquareFillIcon size={12} /> : <PaperAirplaneIcon size={14} />}
-                    </IconButton>
-                    </ExecuteConnectionGuard>
-                    <span className={styles.feed_entry_action_separator} aria-hidden="true" />
-                    <div className={styles.feed_entry_file_name}>
-                        <ScriptConnectionPicker
-                            sessionId={props.sessionId}
-                            scriptName={displayName}
-                            connection={props.connection}
-                            disabled={props.scriptData == null || queryActive || sessionExecution.busy}
-                            onPick={connectionId => props.onPickConnection(props.scriptFileName, connectionId)}
-                            entryHeader
-                        />
-                    </div>
-                    {props.scriptDebugMode && props.scriptData != null && (
-                        <div className={styles.feed_entry_stats_bar}>
-                            <dependencies.ScriptStatisticsBar stats={props.scriptData.statistics} />
-                        </div>
-                    )}
-                    {props.scriptData != null && (
-                        <dependencies.ScriptDiagnosticsButton
-                            scriptData={props.scriptData}
-                            isFormattable={isFormattable}
-                            connectorType={props.connectorType}
-                            iconSize={14}
-                            references={props.scriptReferences ?? null}
-                        />
-                    )}
-                    {props.scriptData?.annotations.manual && (
-                        <span
-                            className={styles.feed_entry_manual}
-                            title="Runs only on request (@manual): Execute All and input changes skip this script"
-                            data-testid="script-manual"
-                        >
-                            manual
-                        </span>
-                    )}
-                    <ScriptMentionTag
-                        scriptName={displayName}
-                        canTarget={props.canTarget}
-                        onTarget={() => props.onTarget(props.scriptFileName)}
-                        renaming={renaming}
-                        onRenamingChange={setRenaming}
-                        onRename={name => props.onRename(props.scriptFileName, name)}
-                    />
-                    <IconButton
-                        variant={renaming ? ButtonVariant.Default : ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        // The input takes the focus, a click while it is open keeps the edit
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={(event) => { event.stopPropagation(); setRenaming(true); }}
-                        aria-label={`Rename ${displayName} script`}
-                        data-testid="script-rename"
-                        disabled={props.scriptData == null}
-                    >
-                        <PencilIcon size={14} />
-                    </IconButton>
-                    <IconButton
-                        variant={chartBuilderOpen ? ButtonVariant.Default : ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={(event) => { event.stopPropagation(); setChartBuilderOpen(true); }}
-                        aria-label={`Build a chart for ${displayName}`}
-                        aria-haspopup="dialog"
-                        aria-expanded={chartBuilderOpen}
-                        data-testid="script-chart"
-                        disabled={props.scriptData == null || hasPendingDiff}
-                    >
-                        <GraphIcon size={14} />
-                    </IconButton>
-                    {chartBuilderOpen && props.scriptData != null && (
-                        <dependencies.ChartBuilderOverlay
-                            scriptName={displayName}
-                            visualizeQuery={props.scriptData.annotations.visualizeQuery}
-                            queryState={queryState}
-                            onChange={setVisSpec}
-                            onClose={closeChartBuilder}
-                        />
-                    )}
-                    <SnippetsOverlay
-                        scriptName={displayName}
-                        connectorType={props.connectorType}
-                        disabled={props.scriptData == null || hasPendingDiff}
-                        onApply={applySnippet}
-                        iconSize={14}
-                    />
-                    <ScriptActionMenu
-                        scriptName={displayName}
-                        formatDisabled={!isFormattable || hasPendingDiff || editorView == null}
-                        onFormat={handleFormat}
-                        onDelete={() => props.onDelete(props.scriptFileName)}
-                        onRename={() => setRenaming(true)}
-                        onAddAbove={() => props.onCreate(props.index)}
-                        onAddBelow={() => props.onCreate(props.index + 1)}
-                        storage={storage}
-                        iconSize={14}
-                        contextMenu={contextMenu}
-                    />
-                    <span className={styles.feed_entry_action_separator} aria-hidden="true" />
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={(event) => { event.stopPropagation(); props.onDelete(props.scriptFileName); }}
-                        aria-label={`Delete ${displayName} script`}
-                        data-testid="script-delete"
-                    >
-                        <TrashIcon size={14} />
-                    </IconButton>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
-                        aria-label="Move script up"
-                        data-testid="script-move-up"
-                        disabled={!props.canMoveUp}
-                    >
-                        <MoveUpIcon size={14} />
-                    </IconButton>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={(event) => { event.stopPropagation(); props.onMoveDown(props.scriptFileName); }}
-                        aria-label="Move script down"
-                        data-testid="script-move-down"
-                        disabled={!props.canMoveDown}
-                    >
-                        <MoveDownIcon size={14} />
-                    </IconButton>
-                </div>
+                <FeedEntryHeader
+                    sessionId={props.sessionId}
+                    scriptData={props.scriptData}
+                    scriptFileName={props.scriptFileName}
+                    connection={props.connection}
+                    connectorType={props.connectorType}
+                    queryState={queryState}
+                    focused={props.isFocused}
+                    canExecute={props.canExecute}
+                    scriptDebugMode={props.scriptDebugMode}
+                    isFormattable={isFormattable}
+                    canFormat={editorView != null}
+                    scriptReferences={props.scriptReferences ?? null}
+                    canTarget={props.canTarget}
+                    onTarget={() => props.onTarget(props.scriptFileName)}
+                    onExecute={() => props.onExecute(props.scriptFileName)}
+                    onPickConnection={connectionId => props.onPickConnection(props.scriptFileName, connectionId)}
+                    onRename={name => props.onRename(props.scriptFileName, name)}
+                    onDelete={() => props.onDelete(props.scriptFileName)}
+                    onFormat={handleFormat}
+                    onApplySnippet={applySnippet}
+                    onSetVisSpec={setVisSpec}
+                    storage={storage}
+                    onAddAbove={() => props.onCreate(props.index)}
+                    onAddBelow={() => props.onCreate(props.index + 1)}
+                    onMoveUp={() => props.onMoveUp(props.scriptFileName)}
+                    onMoveDown={() => props.onMoveDown(props.scriptFileName)}
+                    canMoveUp={props.canMoveUp}
+                    canMoveDown={props.canMoveDown}
+                    dependencies={dependencies}
+                />
                 <div className={styles.feed_body}>
                     <div className={styles.feed_editor_container}>
                         {props.scriptData == null || !props.active ? null : (
