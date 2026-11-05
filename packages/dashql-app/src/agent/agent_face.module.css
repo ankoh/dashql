@@ -1,0 +1,5 @@
+/* The overshoot and the ripple of the morph reach past the viewBox */
+.root {
+    display: block;
+    overflow: visible;
+}
