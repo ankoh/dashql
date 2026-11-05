@@ -1,0 +1,28 @@
+/* The questions share one cell, the widest one sizes it, so the face does not move when they rotate */
+.question {
+    display: grid;
+    margin: 0;
+}
+
+.greeting {
+    grid-area: 1 / 1;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 400ms ease-out, transform 400ms ease-out, visibility 0s linear 400ms;
+}
+
+.greeting[data-active] {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition: opacity 400ms ease-out, transform 400ms ease-out, visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .greeting,
+    .greeting[data-active] {
+        transform: none;
+        transition: none;
+    }
+}

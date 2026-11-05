@@ -1,7 +1,8 @@
 import * as React from 'react';
 
-import { AgentFace, AgentFaceMode, DEFAULT_AGENT_FACE_TUNING, type AgentFaceTuning } from '../../agent/agent_face.js';
+import { AgentFace, AgentFaceMode, DEFAULT_AGENT_FACE_TUNING, useFlavorAgentFaceBrand, type AgentFaceTuning } from '../../agent/agent_face.js';
 import { DASHQL_BRAND, SIDB_BRAND } from '../../agent/agent_face_morph.js';
+import { AgentGreeting } from '../../agent/agent_greeting.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import * as styles from './agent_face_page.module.css';
@@ -71,7 +72,9 @@ const SIZES = [24, 48, 96];
 /// A playground of the agent face that morphs into the DashQL brand mark, to tune its motion
 function AgentFacePage(): React.ReactElement {
     const [tuning, setTuning] = React.useState<AgentFaceTuning>(DEMO_TUNING);
-    const [brand, setBrand] = React.useState(0);
+    // The demo starts with the brand mark of the flavor, `demos.html?flavor=sidb#/agent_face`
+    const flavorBrand = useFlavorAgentFaceBrand();
+    const [brand, setBrand] = React.useState(() => Math.max(0, BRANDS.findIndex(entry => entry.brand === flavorBrand)));
     const [mode, setMode] = React.useState(0);
     const [surface, setSurface] = React.useState(0);
     const [ink, setInk] = React.useState(0);
@@ -96,6 +99,10 @@ function AgentFacePage(): React.ReactElement {
             <div className={styles.layout}>
                 <div className={styles.stage} data-surface={SURFACES[surface]}>
                     <AgentFace {...faceProps} className={styles.stage_face} label="Agent face" />
+                    <div className={styles.greeting}>
+                        <AgentGreeting face={{ ...faceProps, className: styles.greeting_face, label: 'Agent face next to its question' }}
+                            questionClassName={styles.greeting_text} questionElement="p" />
+                    </div>
                     <div className={styles.sizes}>
                         {SIZES.map(size => (
                             <div key={size} className={styles.size}>

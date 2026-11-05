@@ -38,10 +38,12 @@
     grid-row: 2;
     align-self: end;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
+    gap: 16px;
     padding: 32px 16px 24px 16px;
-    text-align: center;
     transition: opacity 120ms ease-out;
 }
 
@@ -54,7 +56,19 @@
 .feed_landing_face {
     width: 72px;
     height: 72px;
+    flex-shrink: 0;
     color: var(--base_color_neutral_6);
+}
+
+/* The question of the agent, right of its face */
+.feed_landing_question {
+    margin: 0;
+    color: var(--base_color_neutral_6);
+    font-size: 20px;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.3;
+    text-wrap: balance;
 }
 
 /* The docked composer sits on the stage below the feed, a card like the scripts */

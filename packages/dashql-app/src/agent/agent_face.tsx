@@ -1,7 +1,16 @@
 import * as React from 'react';
 
-import { DASHQL_BRAND, OUTLINE_POINTS, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
+import { DASHQL_BRAND, OUTLINE_POINTS, SIDB_BRAND, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
+import { useAppFlavor } from '../config/flavor_provider.js';
 import * as styles from './agent_face.module.css';
+
+/// The brand marks by the id of their app flavor
+const BRANDS_BY_FLAVOR: ReadonlyMap<string, AgentFaceBrand> = new Map([DASHQL_BRAND, SIDB_BRAND].map(brand => [brand.id, brand]));
+
+/// The brand mark of the app flavor, the DashQL brand mark for a flavor without one
+export function useFlavorAgentFaceBrand(): AgentFaceBrand {
+    return BRANDS_BY_FLAVOR.get(useAppFlavor().id) ?? DASHQL_BRAND;
+}
 
 /// The knobs of the agent face animation
 export interface AgentFaceTuning {
@@ -67,12 +76,12 @@ const BLINK_MS = 150;
 /// The share of the morph next to the brand mark over which the goo fades out
 const GOO_FADE = 0.45;
 /// The morph progress from which the cutouts of the brand mark fade in
-const CUTOUT_REVEAL_FROM = 0.55;
+const CUTOUT_REVEAL_FROM = 0.8;
 /// How long the eyes take to close before a morph
 const EYES_CLOSE_MS = 180;
 
 interface AgentFaceProps extends Omit<React.SVGProps<SVGSVGElement>, 'ref' | 'mode'> {
-    /// The brand mark the face morphs into
+    /// The brand mark the face morphs into, the brand mark of the app flavor by default
     brand?: AgentFaceBrand;
     tuning?: Partial<AgentFaceTuning>;
     mode?: AgentFaceMode;
@@ -80,6 +89,16 @@ interface AgentFaceProps extends Omit<React.SVGProps<SVGSVGElement>, 'ref' | 'mo
     paused?: boolean;
     /// The accessible label of the face
     label?: string;
+    /// Called when the face starts to morph into the brand mark, and when it is back
+    onMorph?: (event: AgentFaceMorphEvent) => void;
+}
+
+/// The moments of the morph that `onMorph` reports
+export enum AgentFaceMorphEvent {
+    /// The eyes close and the face starts to morph into the brand mark
+    Leaving = 'leaving',
+    /// The face is back and opens its eyes
+    Back = 'back',
 }
 
 /// Jitter a duration by ±20%
@@ -98,11 +117,14 @@ enum Phase {
 /// The agent face, a liquid disk with eyes that glance around and morphs into the DashQL brand mark and back.
 /// The frames write the path data through refs, React renders the face once.
 export function AgentFace(props: AgentFaceProps): React.ReactElement {
-    const { brand = DASHQL_BRAND, tuning, mode = AgentFaceMode.Cycle, paused = false, label, className, ...svgProps } = props;
+    const flavorBrand = useFlavorAgentFaceBrand();
+    const { brand = flavorBrand, tuning, mode = AgentFaceMode.Cycle, paused = false, label, onMorph, className, ...svgProps } = props;
     const tuningRef = React.useRef<AgentFaceTuning>(DEFAULT_AGENT_FACE_TUNING);
     tuningRef.current = { ...DEFAULT_AGENT_FACE_TUNING, ...tuning };
     const modeRef = React.useRef(mode);
     modeRef.current = mode;
+    const onMorphRef = React.useRef(onMorph);
+    onMorphRef.current = onMorph;
 
     const id = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
     const maskId = `agent-face-mask-${id}`;
@@ -134,9 +156,12 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
         let frame = 0;
 
         const enterPhase = (next: Phase, now: number) => {
+            const previous = phase;
             phase = next;
             phaseStart = now;
             if (next === Phase.Face) faceHold = jitter(tuningRef.current.faceHoldMs);
+            if (previous === Phase.Face && next === Phase.ClosingEyes) onMorphRef.current?.(AgentFaceMorphEvent.Leaving);
+            if (previous !== Phase.Face && next === Phase.Face) onMorphRef.current?.(AgentFaceMorphEvent.Back);
         };
 
         const render = (now: number) => {
