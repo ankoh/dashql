@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { MORPH_PIECES, OUTLINE_POINTS, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
+import { DASHQL_BRAND, OUTLINE_POINTS, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
 import * as styles from './agent_face.module.css';
 
 /// The knobs of the agent face animation
@@ -66,10 +66,14 @@ const EYE_HEIGHT = 26;
 const BLINK_MS = 150;
 /// The share of the morph next to the brand mark over which the goo fades out
 const GOO_FADE = 0.45;
+/// The morph progress from which the cutouts of the brand mark fade in
+const CUTOUT_REVEAL_FROM = 0.55;
 /// How long the eyes take to close before a morph
 const EYES_CLOSE_MS = 180;
 
 interface AgentFaceProps extends Omit<React.SVGProps<SVGSVGElement>, 'ref' | 'mode'> {
+    /// The brand mark the face morphs into
+    brand?: AgentFaceBrand;
     tuning?: Partial<AgentFaceTuning>;
     mode?: AgentFaceMode;
     /// Stops the animation, e.g. while the face is hidden
@@ -94,7 +98,7 @@ enum Phase {
 /// The agent face, a liquid disk with eyes that glance around and morphs into the DashQL brand mark and back.
 /// The frames write the path data through refs, React renders the face once.
 export function AgentFace(props: AgentFaceProps): React.ReactElement {
-    const { tuning, mode = AgentFaceMode.Cycle, paused = false, label, className, ...svgProps } = props;
+    const { brand = DASHQL_BRAND, tuning, mode = AgentFaceMode.Cycle, paused = false, label, className, ...svgProps } = props;
     const tuningRef = React.useRef<AgentFaceTuning>(DEFAULT_AGENT_FACE_TUNING);
     tuningRef.current = { ...DEFAULT_AGENT_FACE_TUNING, ...tuning };
     const modeRef = React.useRef(mode);
@@ -107,12 +111,13 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
     const eyeRefs = React.useRef<(SVGRectElement | null)[]>([]);
     const gooGroupRef = React.useRef<SVGGElement | null>(null);
     const blurRef = React.useRef<SVGFEGaussianBlurElement | null>(null);
+    const cutoutsRef = React.useRef<SVGGElement | null>(null);
 
     const reducedMotion = React.useMemo(() => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, []);
 
     React.useEffect(() => {
         if (paused) return;
-        const outlines = MORPH_PIECES.map(() => new Float64Array(2 * OUTLINE_POINTS));
+        const outlines = brand.pieces.map(() => new Float64Array(2 * OUTLINE_POINTS));
         const scratch = new Float64Array(2 * OUTLINE_POINTS);
         const morph: Spring = { value: modeRef.current === AgentFaceMode.Logo ? 1 : 0, velocity: 0 };
         const glance: Spring = { value: 0, velocity: 0 };
@@ -125,6 +130,7 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
         let nextBlink = phaseStart + jitter(tuningRef.current.blinkIntervalMs);
         let last = phaseStart;
         let gooOn = false;
+        gooGroupRef.current?.removeAttribute('filter');
         let frame = 0;
 
         const enterPhase = (next: Phase, now: number) => {
@@ -202,14 +208,14 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
             // Morph the shapes, the exact brand mark once the spring rests at it
             const time = (now / 1000) * t.wobbleSpeed;
             const atLogo = morphTarget === 1 && springAtRest(morph, 1);
-            for (let i = 0; i < MORPH_PIECES.length; ++i) {
+            for (let i = 0; i < brand.pieces.length; ++i) {
                 const path = pathRefs.current[i];
                 if (path == null) continue;
                 if (atLogo) {
-                    path.setAttribute('d', MORPH_PIECES[i].logoPath);
+                    path.setAttribute('d', brand.pieces[i].logoPath);
                     continue;
                 }
-                morphPoints(MORPH_PIECES[i], {
+                morphPoints(brand.pieces[i], {
                     progress: morph.value,
                     time,
                     wobble: reducedMotion ? 0 : t.wobble * Math.max(0, 1 - morph.value),
@@ -217,6 +223,13 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
                     ripple: reducedMotion ? 0 : t.ripple,
                 }, outlines[i], scratch);
                 path.setAttribute('d', outlinePath(outlines[i]));
+            }
+
+            // The cutouts of the brand mark fade in once the shape is close to it
+            const cutouts = cutoutsRef.current;
+            if (cutouts != null) {
+                const reveal = Math.min(Math.max((morph.value - CUTOUT_REVEAL_FROM) / (1 - CUTOUT_REVEAL_FROM), 0), 1);
+                cutouts.setAttribute('opacity', reveal.toFixed(3));
             }
 
             // The goo filter melts the halves together, until they are joined again on the way back.
@@ -239,9 +252,9 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
             if (frame !== 0) cancelAnimationFrame(frame);
         };
         // The tuning and the mode are read through refs, only a still face redraws when the mode changes
-    }, [paused, reducedMotion, gooId, reducedMotion ? mode : null]);
+    }, [brand, paused, reducedMotion, gooId, reducedMotion ? mode : null]);
 
-    const initialPaths = React.useMemo(() => MORPH_PIECES.map(piece => outlinePath(piece.faceRest)), []);
+    const initialPaths = React.useMemo(() => brand.pieces.map(piece => outlinePath(piece.faceRest)), [brand]);
     return (
         <svg
             {...svgProps}
@@ -258,6 +271,11 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
                             x={VIEWBOX_SIZE / 2 + (i === 0 ? -EYE_DX : EYE_DX) - EYE_WIDTH / 2} y={EYE_Y - EYE_HEIGHT / 2}
                             width={EYE_WIDTH} height={EYE_HEIGHT} rx={EYE_WIDTH / 2} fill="black" />
                     ))}
+                    <g ref={cutoutsRef} opacity={0}>
+                        {brand.cutouts.map((cutout, i) => (
+                            <path key={i} d={cutout.d} transform={cutout.transform} fill="black" />
+                        ))}
+                    </g>
                 </mask>
                 <filter id={gooId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
                     <feGaussianBlur ref={blurRef} in="SourceGraphic" stdDeviation={0} result="blur" />

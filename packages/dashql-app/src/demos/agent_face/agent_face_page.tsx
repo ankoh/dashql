@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { AgentFace, AgentFaceMode, DEFAULT_AGENT_FACE_TUNING, type AgentFaceTuning } from '../../agent/agent_face.js';
+import { DASHQL_BRAND, SIDB_BRAND } from '../../agent/agent_face_morph.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import * as styles from './agent_face_page.module.css';
@@ -50,6 +51,13 @@ const KNOB_GROUPS: { title: string; knobs: Knob[] }[] = [
     },
 ];
 
+const BRANDS = [
+    { label: 'DashQL', brand: DASHQL_BRAND },
+    { label: 'SIDB', brand: SIDB_BRAND },
+];
+/// The demo cycles faster than the app, to watch the morph without waiting
+const DEMO_TUNING: AgentFaceTuning = { ...DEFAULT_AGENT_FACE_TUNING, faceHoldMs: 4000, logoHoldMs: 2000 };
+
 const MODES = [AgentFaceMode.Cycle, AgentFaceMode.Face, AgentFaceMode.Logo];
 const MODE_LABELS = ['Cycle', 'Face', 'Logo'];
 const SURFACES = ['light', 'dark'] as const;
@@ -62,7 +70,8 @@ const SIZES = [24, 48, 96];
 
 /// A playground of the agent face that morphs into the DashQL brand mark, to tune its motion
 function AgentFacePage(): React.ReactElement {
-    const [tuning, setTuning] = React.useState<AgentFaceTuning>(DEFAULT_AGENT_FACE_TUNING);
+    const [tuning, setTuning] = React.useState<AgentFaceTuning>(DEMO_TUNING);
+    const [brand, setBrand] = React.useState(0);
     const [mode, setMode] = React.useState(0);
     const [surface, setSurface] = React.useState(0);
     const [ink, setInk] = React.useState(0);
@@ -75,13 +84,13 @@ function AgentFacePage(): React.ReactElement {
         setTimeout(() => setCopied(false), 1200);
     };
 
-    const faceProps = { tuning, mode: MODES[mode], style: { color: INKS[ink].color } };
+    const faceProps = { brand: BRANDS[brand].brand, tuning, mode: MODES[mode], style: { color: INKS[ink].color } };
     return (
         <div className={styles.root}>
             <div className={styles.header}>
                 <h1 className={styles.title}>Agent Face</h1>
                 <p className={styles.subtitle}>
-                    The face of the agent on the empty session, it glances around and now and then melts into the brand mark.
+                    The face of the agent on the empty session, it glances around and now and then melts into a brand mark.
                 </p>
             </div>
             <div className={styles.layout}>
@@ -97,6 +106,14 @@ function AgentFacePage(): React.ReactElement {
                     </div>
                 </div>
                 <div className={styles.controls}>
+                    <div className={styles.control_row}>
+                        <span className={styles.control_label}>Brand</span>
+                        <SegmentedControl aria-label="Brand" size={SegmentedControlSize.Small} onChange={setBrand}>
+                            {BRANDS.map((entry, i) => (
+                                <SegmentedControl.Button key={entry.label} selected={brand === i}>{entry.label}</SegmentedControl.Button>
+                            ))}
+                        </SegmentedControl>
+                    </div>
                     <div className={styles.control_row}>
                         <span className={styles.control_label}>Shows</span>
                         <SegmentedControl aria-label="What the face shows" size={SegmentedControlSize.Small} onChange={setMode}>
@@ -138,7 +155,7 @@ function AgentFacePage(): React.ReactElement {
                         </fieldset>
                     ))}
                     <div className={styles.control_row}>
-                        <Button size={ButtonSize.Small} variant={ButtonVariant.Default} onClick={() => setTuning(DEFAULT_AGENT_FACE_TUNING)}>
+                        <Button size={ButtonSize.Small} variant={ButtonVariant.Default} onClick={() => setTuning(DEMO_TUNING)}>
                             Reset
                         </Button>
                         <Button size={ButtonSize.Small} variant={ButtonVariant.Primary} onClick={copyTuning}>

@@ -20,19 +20,18 @@ const FACE_SEAM_OVERLAP = (3 * Math.PI) / 180;
 /// The share of a spring overshoot past the face that moves the points
 const FACE_OVERSHOOT = 0.3;
 
-/// The two pieces of the brand mark, `static/svg/logo/dashql.svg`, with the translation of their group.
-/// The nested group transforms of the file nearly collapse to a translation per piece, the scales cancel out.
-const LOGO_PIECE_UPPER = {
+/// The two pieces of the DashQL brand mark, `static/svg/logo/dashql.svg`, with the transforms of their groups
+const DASHQL_PIECE_UPPER: BrandShape = {
     d: 'M171.857,146.784C172.231,148.654 173.873,150 175.779,150C189.377,150 241.375,150 257.621,150C258.819,150 259.954,149.463 260.714,148.536C261.474,147.609 261.778,146.391 261.543,145.216C259.52,135.099 254.853,111.766 253.143,103.216C252.769,101.346 251.128,100 249.221,100C241.703,100 223.297,100 215.779,100C213.872,100 212.231,98.654 211.857,96.784C210.051,87.756 204.949,62.244 203.143,53.216C202.769,51.346 201.128,50 199.221,50C190.646,50 167.521,50 157.379,50C156.181,50 155.046,50.537 154.286,51.464C153.526,52.391 153.222,53.609 153.457,54.784C156.947,72.235 168.94,132.201 171.857,146.784Z',
-    dx: -12.5,
+    map: (x, y) => dashqlPoint(x, y, -12.5),
 };
-const LOGO_PIECE_LOWER = {
+const DASHQL_PIECE_LOWER: BrandShape = {
     d: 'M38.457,104.784C38.222,103.609 38.526,102.391 39.286,101.464C40.046,100.537 41.181,100 42.379,100C58.625,100 110.623,100 124.221,100C126.127,100 127.769,101.346 128.143,103.216C131.06,117.799 143.053,177.765 146.543,195.216C146.778,196.391 146.474,197.609 145.714,198.536C144.954,199.463 143.819,200 142.621,200C132.479,200 109.354,200 100.779,200C98.872,200 97.231,198.654 96.857,196.784C95.051,187.756 89.949,162.244 88.143,153.216C87.769,151.346 86.128,150 84.221,150C76.703,150 58.297,150 50.779,150C48.872,150 47.231,148.654 46.857,146.784C45.147,138.234 40.48,114.901 38.457,104.784Z',
-    dx: 12.5,
+    map: (x, y) => dashqlPoint(x, y, 12.5),
 };
 
-/// Map a point of a piece into the viewBox, the transform chain of the logo file
-function logoPoint(x: number, y: number, dx: number): [number, number] {
+/// Map a point of a DashQL piece into the viewBox, the transform chain of the logo file
+function dashqlPoint(x: number, y: number, dx: number): [number, number] {
     // matrix(1.25,0,0,0.935,-61.401,253.25) ∘ translate(dx, 25)
     let px = 1.25 * (x + dx) - 61.401;
     let py = 0.935 * (y + 25) + 253.25;
@@ -46,9 +45,9 @@ function logoPoint(x: number, y: number, dx: number): [number, number] {
 /// A cubic Bézier segment
 type Cubic = [number, number, number, number, number, number, number, number];
 
-/// Parse a closed path of absolute `M`, `C`, `L` and `Z` commands into cubic segments
+/// Parse a closed path of absolute `M`, `C`, `Q`, `L` and `Z` commands into cubic segments
 export function parseClosedPath(d: string): Cubic[] {
-    const tokens = d.match(/[MCLZ]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi) ?? [];
+    const tokens = d.match(/[MCQLZ]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi) ?? [];
     const segments: Cubic[] = [];
     let i = 0;
     let command = '';
@@ -76,6 +75,14 @@ export function parseClosedPath(d: string): Cubic[] {
                 segments.push([x, y, c[0], c[1], c[2], c[3], c[4], c[5]]);
                 x = c[4];
                 y = c[5];
+                break;
+            }
+            case 'Q': {
+                // A quadratic segment is a cubic with the control points two thirds towards the quadratic one
+                const qx = num(), qy = num(), nx = num(), ny = num();
+                segments.push([x, y, x + (2 / 3) * (qx - x), y + (2 / 3) * (qy - y), nx + (2 / 3) * (qx - nx), ny + (2 / 3) * (qy - ny), nx, ny]);
+                x = nx;
+                y = ny;
                 break;
             }
             case 'Z':
@@ -183,34 +190,58 @@ export function alignOutline(a: ArrayLike<number>, b: Float64Array): { outline: 
     return { outline: out, offset: best };
 }
 
-/// The samples of a face half: an arc point at an angle, or a point on the chord between the arc ends
-interface FaceHalf {
-    /// The angles of the arc ends
-    from: number;
-    to: number;
-    /// Per sample, the angle on the arc or NaN for a chord sample
+/// A region of the face: arcs of the face outline, clockwise on screen, with chords from the end of one arc to the
+/// start of the next. One arc and its chord is a half, two arcs are a vertical slice, one full turn is the disk.
+interface FaceRegion {
+    /// The arcs, [from, to] angles with from < to
+    arcs: [number, number][];
+    /// Per sample, the angle on an arc or NaN for a chord sample
     angles: Float64Array;
-    /// Per sample, the position on the chord from the end back to the start
-    chord: Float64Array;
+    /// Per chord sample, the arc whose end the chord leaves
+    chordArc: Int32Array;
+    /// Per chord sample, the position on the chord
+    chordT: Float64Array;
 }
 
-/// Sample a face half evenly by arc length, the arc runs clockwise on screen from `from` to `to`
-function sampleFaceHalf(from: number, to: number, n: number): FaceHalf {
-    const arcLength = FACE_RADIUS * (to - from);
-    const chordLength = 2 * FACE_RADIUS * Math.sin((to - from) / 2);
-    const total = arcLength + chordLength;
+/// Sample a face region evenly by length
+function sampleFaceRegion(arcs: [number, number][], n: number): FaceRegion {
+    const point = (angle: number): [number, number] => [FACE_RADIUS * Math.cos(angle), FACE_RADIUS * Math.sin(angle)];
+    const edges: { arc: number; chord: boolean; length: number }[] = [];
+    for (let k = 0; k < arcs.length; ++k) {
+        const [from, to] = arcs[k];
+        const next = arcs[(k + 1) % arcs.length][0];
+        const [x0, y0] = point(to), [x1, y1] = point(next);
+        edges.push({ arc: k, chord: false, length: FACE_RADIUS * (to - from) });
+        edges.push({ arc: k, chord: true, length: Math.hypot(x1 - x0, y1 - y0) });
+    }
+    const total = edges.reduce((sum, edge) => sum + edge.length, 0);
     const angles = new Float64Array(n);
-    const chord = new Float64Array(n);
+    const chordArc = new Int32Array(n);
+    const chordT = new Float64Array(n);
+    let e = 0, edgeStart = 0;
     for (let i = 0; i < n; ++i) {
         const s = (i * total) / n;
-        if (s < arcLength) {
-            angles[i] = from + s / FACE_RADIUS;
-        } else {
+        while (e < edges.length - 1 && s >= edgeStart + edges[e].length) edgeStart += edges[e++].length;
+        const edge = edges[e];
+        const t = edge.length > 0 ? (s - edgeStart) / edge.length : 0;
+        if (edge.chord) {
             angles[i] = NaN;
-            chord[i] = (s - arcLength) / chordLength;
+            chordArc[i] = edge.arc;
+            chordT[i] = t;
+        } else {
+            const [from, to] = arcs[edge.arc];
+            angles[i] = from + (to - from) * t;
         }
     }
-    return { from, to, angles, chord };
+    return { arcs, angles, chordArc, chordT };
+}
+
+/// A vertical slice of the face between two offsets from the center, in face radii in [-1, 1]
+function faceSlice(left: number, right: number): [number, number][] {
+    const l = Math.acos(Math.max(-1, Math.min(1, left)));
+    const r = Math.acos(Math.max(-1, Math.min(1, right)));
+    // The top arc runs from the left to the right, the bottom arc back
+    return [[-l, -r], [r, l]];
 }
 
 /// The radius wobble of the liquid face at an angle and a time in seconds
@@ -223,30 +254,33 @@ function wobbleRadius(angle: number, time: number, amount: number): number {
     return FACE_RADIUS * (1 + amount * (w + breath));
 }
 
-/// Write the points of a face half at a time into `out`
-function faceHalfPoints(half: FaceHalf, time: number, wobble: number, out: Float64Array) {
-    const r0 = wobbleRadius(half.from, time, wobble), r1 = wobbleRadius(half.to, time, wobble);
-    const x0 = FACE_CENTER + r0 * Math.cos(half.from), y0 = FACE_CENTER + r0 * Math.sin(half.from);
-    const x1 = FACE_CENTER + r1 * Math.cos(half.to), y1 = FACE_CENTER + r1 * Math.sin(half.to);
-    for (let i = 0; i < half.angles.length; ++i) {
-        const angle = half.angles[i];
+/// Write the points of a face region at a time into `out`
+function faceRegionPoints(region: FaceRegion, time: number, wobble: number, out: Float64Array) {
+    const at = (angle: number): [number, number] => {
+        const r = wobbleRadius(angle, time, wobble);
+        return [FACE_CENTER + r * Math.cos(angle), FACE_CENTER + r * Math.sin(angle)];
+    };
+    const ends = region.arcs.map(([from, to]) => ({ from: at(from), to: at(to) }));
+    for (let i = 0; i < region.angles.length; ++i) {
+        const angle = region.angles[i];
         if (Number.isNaN(angle)) {
-            const t = half.chord[i];
-            out[2 * i] = x1 + (x0 - x1) * t;
-            out[2 * i + 1] = y1 + (y0 - y1) * t;
+            const k = region.chordArc[i], t = region.chordT[i];
+            const [x0, y0] = ends[k].to, [x1, y1] = ends[(k + 1) % ends.length].from;
+            out[2 * i] = x0 + (x1 - x0) * t;
+            out[2 * i + 1] = y0 + (y1 - y0) * t;
         } else {
-            const r = wobbleRadius(angle, time, wobble);
-            out[2 * i] = FACE_CENTER + r * Math.cos(angle);
-            out[2 * i + 1] = FACE_CENTER + r * Math.sin(angle);
+            const [x, y] = at(angle);
+            out[2 * i] = x;
+            out[2 * i + 1] = y;
         }
     }
 }
 
-/// One morphing shape: a face half and the brand mark piece it turns into
+/// One morphing shape: a face region and the brand mark piece it turns into
 export interface MorphPiece {
-    /// The samples of the face half
-    face: FaceHalf;
-    /// The outline of the face half at rest
+    /// The samples of the face region
+    face: FaceRegion;
+    /// The outline of the face region at rest
     faceRest: Float64Array;
     /// The outline of the brand mark piece, aligned to the face half
     logo: Float64Array;
@@ -258,11 +292,20 @@ export interface MorphPiece {
     logoCenter: [number, number];
 }
 
+/// A closed outline of a brand mark, mapped into the viewBox
+interface BrandShape {
+    /// The path, absolute `M`, `C`, `L` and `Z` commands
+    d: string;
+    /// Map a point of the path into the viewBox
+    map?: (x: number, y: number) => [number, number];
+}
+
 /// Build a piece of the brand mark in the viewBox, the outline and the exact path
-function buildLogoPiece(piece: { d: string; dx: number }, n: number): { outline: Float64Array; path: string } {
+function buildLogoPiece(piece: BrandShape, n: number): { outline: Float64Array; path: string } {
+    const map = piece.map ?? ((x: number, y: number): [number, number] => [x, y]);
     const cubics = parseClosedPath(piece.d).map(c => {
         const out: number[] = [];
-        for (let i = 0; i < 8; i += 2) out.push(...logoPoint(c[i], c[i + 1], piece.dx));
+        for (let i = 0; i < 8; i += 2) out.push(...map(c[i], c[i + 1]));
         return out as Cubic;
     });
     let outline = resampleClosed(flattenCubics(cubics), n);
@@ -273,11 +316,11 @@ function buildLogoPiece(piece: { d: string; dx: number }, n: number): { outline:
     return { outline, path: `${path}Z` };
 }
 
-/// Build a morph piece from a face half and a brand mark piece
-function buildPiece(from: number, to: number, logoPiece: { d: string; dx: number }, n: number): MorphPiece {
-    const face = sampleFaceHalf(from, to, n);
+/// Build a morph piece from a face region and a brand mark piece
+function buildPiece(arcs: [number, number][], logoPiece: BrandShape, n: number): MorphPiece {
+    const face = sampleFaceRegion(arcs, n);
     const faceRest = new Float64Array(2 * n);
-    faceHalfPoints(face, 0, 0, faceRest);
+    faceRegionPoints(face, 0, 0, faceRest);
     const built = buildLogoPiece(logoPiece, n);
     const { outline: logo } = alignOutline(faceRest, built.outline);
     const travel = new Float64Array(n);
@@ -292,12 +335,73 @@ function buildPiece(from: number, to: number, logoPiece: { d: string; dx: number
     return { face, faceRest, logo, logoPath: built.path, travel, logoCenter: [cx, cy] };
 }
 
-/// The two morph pieces. The upper right face half turns into the upper right piece of the brand mark,
-/// the lower left half into the lower left piece. The diagonal runs from the top left to the bottom right.
-export const MORPH_PIECES: readonly MorphPiece[] = [
-    buildPiece((5 * Math.PI) / 4 - FACE_SEAM_OVERLAP, (9 * Math.PI) / 4 + FACE_SEAM_OVERLAP, LOGO_PIECE_UPPER, OUTLINE_POINTS),
-    buildPiece(Math.PI / 4 - FACE_SEAM_OVERLAP, (5 * Math.PI) / 4 + FACE_SEAM_OVERLAP, LOGO_PIECE_LOWER, OUTLINE_POINTS),
-];
+/// A shape cut out of the brand mark, revealed once the morph arrives at it
+export interface BrandCutout {
+    /// The path data
+    d: string;
+    /// The SVG transform into the viewBox
+    transform: string;
+}
+
+/// A brand mark the face morphs into
+export interface AgentFaceBrand {
+    /// The id of the brand
+    id: string;
+    /// The morphing shapes, every one starts as a region of the face
+    pieces: readonly MorphPiece[];
+    /// The shapes cut out of the brand mark, like the eyes are cut out of the face
+    cutouts: readonly BrandCutout[];
+}
+
+/// The DashQL brand mark, `static/svg/logo/dashql.svg`.
+/// The upper right face half turns into the upper right piece of the brand mark, the lower left half into the
+/// lower left piece. The diagonal runs from the top left to the bottom right.
+export const DASHQL_BRAND: AgentFaceBrand = {
+    id: 'dashql',
+    pieces: [
+        buildPiece([[(5 * Math.PI) / 4 - FACE_SEAM_OVERLAP, (9 * Math.PI) / 4 + FACE_SEAM_OVERLAP]], DASHQL_PIECE_UPPER, OUTLINE_POINTS),
+        buildPiece([[Math.PI / 4 - FACE_SEAM_OVERLAP, (5 * Math.PI) / 4 + FACE_SEAM_OVERLAP]], DASHQL_PIECE_LOWER, OUTLINE_POINTS),
+    ],
+    cutouts: [],
+};
+
+/// The SIDB wordmark, `static/svg/logo/sidb.svg`, glyph outlines of Bricolage Grotesque ExtraBold.
+/// Every outer contour is a piece, the D is a stem and a bowl, the counters of the B are cut out.
+const SIDB_WORDMARK = { minX: 39, maxX: 2270, centerY: -330 };
+const SIDB_SCALE = (VIEWBOX_SIZE - 12) / (SIDB_WORDMARK.maxX - SIDB_WORDMARK.minX);
+const SIDB_DX = 6 - SIDB_WORDMARK.minX * SIDB_SCALE;
+const SIDB_DY = VIEWBOX_SIZE / 2 - SIDB_WORDMARK.centerY * SIDB_SCALE;
+const sidbPoint = (x: number, y: number): [number, number] => [SIDB_DX + x * SIDB_SCALE, SIDB_DY + y * SIDB_SCALE];
+const SIDB_S = 'M331,14Q267,14 215,2Q163,-10 125,-34.5Q87,-59 65,-97Q43,-135 39,-185L180,-232Q183,-190 204,-162Q225,-134 260.5,-120.5Q296,-107 340,-107Q382,-107 410.5,-117.5Q439,-128 453.5,-144.5Q468,-161 468,-180Q468,-202 449,-216.5Q430,-231 397,-241.5Q364,-252 320,-262Q270,-274 222,-288Q174,-302 135,-324.5Q96,-347 73.5,-382.5Q51,-418 51,-472Q51,-533 82,-578Q113,-623 173,-648.5Q233,-674 321,-674Q408,-674 469,-649Q530,-624 563,-579.5Q596,-535 599,-476L455,-435Q455,-464 445.5,-486Q436,-508 419,-522.5Q402,-537 377,-544.5Q352,-552 320,-552Q282,-552 255.5,-543Q229,-534 216,-519.5Q203,-505 203,-486Q203,-462 223.5,-446.5Q244,-431 279.5,-420.5Q315,-410 358,-400Q401,-391 447,-377.5Q493,-364 533,-342Q573,-320 597.5,-282.5Q622,-245 622,-188Q622,-127 589.5,-81.5Q557,-36 492,-11Q427,14 331,14Z';
+const SIDB_I = 'M712,0L712,-660L876,-660L876,0L712,0Z';
+const SIDB_D_BOWL = 'M1075,0L1075,-130L1266,-130Q1318,-130 1353,-152Q1388,-174 1405.5,-218Q1423,-262 1423,-328Q1423,-381 1412,-419Q1401,-457 1379.5,-481.5Q1358,-506 1324.5,-518Q1291,-530 1246,-530L1075,-530L1075,-660L1240,-660Q1363,-660 1441,-621Q1519,-582 1555,-509.5Q1591,-437 1591,-336Q1591,-258 1572.5,-201Q1554,-144 1522,-105.5Q1490,-67 1448.5,-43.5Q1407,-20 1361.5,-10Q1316,0 1271,0L1075,0Z';
+const SIDB_D_STEM = 'M1000,0L1000,-660L1161,-660L1161,0L1000,0Z';
+const SIDB_B = 'M1690,0L1690,-660L1975,-660Q2037,-660 2086.5,-649.5Q2136,-639 2171,-617.5Q2206,-596 2224.5,-562.5Q2243,-529 2243,-483Q2243,-444 2226.5,-415Q2210,-386 2175,-368Q2140,-350 2082,-344L2082,-327Q2178,-321 2224,-281Q2270,-241 2270,-173Q2270,-115 2239,-77Q2208,-39 2148,-19.5Q2088,0 2000,0L1690,0Z';
+const SIDB_B_COUNTERS = 'M1844,-128L1994,-128Q2055,-128 2084,-145.5Q2113,-163 2113,-201Q2113,-243 2078,-264Q2043,-285 1971,-285L1844,-285L1844,-128ZM1844,-383L1949,-383Q2020,-383 2053,-402.5Q2086,-422 2086,-461Q2086,-499 2055.5,-516.5Q2025,-534 1963,-534L1844,-534L1844,-383Z';
+
+/// The face splits into vertical slices from left to right, one per piece of the wordmark. The slices end halfway
+/// between the centers of two neighboring pieces, mapped from the width of the wordmark onto the width of the face.
+function sidbBrand(): AgentFaceBrand {
+    const glyphs = [SIDB_S, SIDB_I, SIDB_D_STEM, SIDB_D_BOWL, SIDB_B];
+    const centers = glyphs.map(d => {
+        const xs = parseClosedPath(d).flatMap(c => [c[0], c[6]]);
+        return (Math.min(...xs) + Math.max(...xs)) / 2;
+    });
+    const toFace = (x: number) => -1 + (2 * (x - SIDB_WORDMARK.minX)) / (SIDB_WORDMARK.maxX - SIDB_WORDMARK.minX);
+    const bounds = [-1, ...centers.slice(1).map((c, i) => toFace((centers[i] + c) / 2)), 1];
+    // The slices overlap a little, so the joined slices show no seam
+    const overlap = 0.04;
+    return {
+        id: 'sidb',
+        pieces: glyphs.map((d, i) => buildPiece(
+            faceSlice(bounds[i] - (i > 0 ? overlap : 0), bounds[i + 1] + (i < glyphs.length - 1 ? overlap : 0)),
+            { d, map: sidbPoint },
+            OUTLINE_POINTS,
+        )),
+        cutouts: [{ d: SIDB_B_COUNTERS, transform: `translate(${SIDB_DX} ${SIDB_DY}) scale(${SIDB_SCALE})` }],
+    };
+}
+export const SIDB_BRAND: AgentFaceBrand = sidbBrand();
 
 /// The parameters of one frame of the morph
 export interface MorphFrame {
@@ -316,7 +420,7 @@ export interface MorphFrame {
 /// Compute the points of a piece for a frame into `out`, `scratch` holds the face points
 export function morphPoints(piece: MorphPiece, frame: MorphFrame, out: Float64Array, scratch: Float64Array) {
     const n = piece.travel.length;
-    faceHalfPoints(piece.face, frame.time, frame.wobble, scratch);
+    faceRegionPoints(piece.face, frame.time, frame.wobble, scratch);
     const lag = Math.min(Math.max(frame.lag, 0), 0.95);
     const x = frame.progress;
     for (let i = 0; i < n; ++i) {
