@@ -806,6 +806,10 @@ parser-snapshots:
   - name: select_row_locking_7
     input: |
       SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo NOWAIT) ss WHERE col1 = 5;
+  # Parse FOR UPDATE after LIMIT, the locking clauses are the same array as before LIMIT
+  - name: select_row_locking_8
+    input: |
+      SELECT * FROM mytable LIMIT 1 FOR UPDATE SKIP LOCKED;
   # Parse LIMIT n
   - name: select_limit_1
     input: |

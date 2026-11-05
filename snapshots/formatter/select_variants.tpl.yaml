@@ -128,6 +128,18 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # LIMIT ALL and row locking of a set operation apply to the combination
+  - name: select_set_operation_limit_all_locking
+    input: select a from t union select b from u limit all offset 2 for update
+    dialects:
+      hyper:
+
+  # Row locking after LIMIT
+  - name: row_locking_after_limit
+    input: select a from t limit 2 for update skip locked
+    dialects:
+      hyper:
+
   # A select without targets
   - name: select_no_targets
     input: select from t

@@ -381,6 +381,48 @@ formatter-snapshots:
               order by 1
               offset 1;
 
+  - name: select_set_operation_limit_all_locking
+    input: |-
+      select a from t union select b from u limit all offset 2 for update
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from t union select b from u limit all offset 2 for update;
+          - mode: compact
+            expected: |-
+              select a from t union select b from u limit all offset 2 for update;
+          - mode: pretty
+            expected: |-
+              select a
+              from t
+              union
+              select b
+              from u
+              limit all
+              offset 2
+              for update;
+
+  - name: row_locking_after_limit
+    input: |-
+      select a from t limit 2 for update skip locked
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from t limit 2 for update skip locked;
+          - mode: compact
+            expected: |-
+              select a from t limit 2 for update skip locked;
+          - mode: pretty
+            expected: |-
+              select a
+              from t
+              limit 2
+              for update skip locked;
+
   - name: select_no_targets
     input: |-
       select from t

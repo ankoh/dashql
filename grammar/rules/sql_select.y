@@ -530,7 +530,7 @@ sql_for_locking_clause:
     ;
 
 sql_opt_for_locking_clause:
-    sql_for_locking_clause  { ctx.list(&[ctx.array(@1, $1)]) }
+    sql_for_locking_clause  { $1 }
   | %empty                  { ctx.list(NO_NODES) }
     ;
 
