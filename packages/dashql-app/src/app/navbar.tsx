@@ -190,8 +190,8 @@ export const CompactNavBar = (props: { showInternals?: boolean }): React.ReactEl
             <BrandIdentity />
             <div className={styles.navbar_actions}>
                 {(props.showInternals ?? true) && <InternalsButton sessionId={route.sessionId} />}
-                <ColorSchemeButton />
                 <VersionButton />
+                <ColorSchemeButton />
             </div>
         </header>
     );
@@ -228,8 +228,8 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
                 <div className={styles.top_bar_actions}>
                     <AgentButton />
                     <InternalsButton sessionId={route.sessionId} />
-                    <ColorSchemeButton />
                     <VersionButton iconSize={14} />
+                    <ColorSchemeButton />
                 </div>
             </header>
             <NavRail key={0} />
