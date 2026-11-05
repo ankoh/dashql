@@ -10,6 +10,10 @@
     overflow: hidden;
     /* One background behind the panes and the stage, the dark page shows it through them */
     background: var(--page_background);
+    /* The edge of the card against the chrome. An outline follows the rounded corners and is drawn over the panes,
+       which reach the edge of the card. */
+    outline: 1px solid var(--color_border);
+    outline-offset: -1px;
 }
 
 @media only screen and (max-width: 799px) {
