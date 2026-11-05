@@ -137,6 +137,8 @@
     --agent_gradient_3: var(--base_color_blue_4);
     --agent_accent: light-dark(var(--base_color_blue_5), var(--base_color_blue_3));
     --agent_accent_text: light-dark(var(--base_color_blue_6), var(--base_color_blue_2));
+    /* The face of the agent and its question on the empty session, muted on the light page and white on the dark one */
+    --agent_fg: light-dark(var(--color_fg_muted), var(--color_fg));
 
     /* Charts: the categorical colors of series in the order they are assigned, the first one is the color of a
        single series. Flavors override them, adjacent categorical colors must stay apart for color-blind readers. */

@@ -49,13 +49,13 @@
     width: 72px;
     height: 72px;
     flex-shrink: 0;
-    color: var(--color_fg_muted);
+    color: var(--agent_fg);
 }
 
 /* The question of the agent, right of its face */
 .feed_landing_question {
     margin: 0;
-    color: var(--color_fg_muted);
+    color: var(--agent_fg);
     font-size: 20px;
     font-weight: 400;
     font-style: italic;

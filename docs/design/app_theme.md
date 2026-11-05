@@ -52,7 +52,7 @@ deliberately, with a role that other stylesheets can share. The groups:
 | Stage | `--stage_background` and its parts | The backdrop of pages with a lot of empty space |
 | Charts | `--chart_color_1..8` | Categorical series, the first one is a single series |
 | Code | `--code_*` | The editors and code views, the Xcode palettes of `@ankoh/dashql-ui/xcode` |
-| Agent | `--agent_gradient_1..3`, `--agent_accent`, `--agent_accent_text` | The agent |
+| Agent | `--agent_gradient_1..3`, `--agent_accent`, `--agent_accent_text`, `--agent_fg` | The agent, its face and question |
 
 Translucent derivations of a token are fine where no token fits, e.g. `color-mix(in srgb, var(--color_success_fg) 18%,
 transparent)` for the inserted statements of a diff.
