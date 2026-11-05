@@ -413,7 +413,7 @@ describe('QueryProfileView keyboard navigation', () => {
         selectAnnotation('accuracy');
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(5, 48, 97)');
-        expect(badge(10)?.querySelector<SVGElement>('rect')?.style.stroke).toEqual('var(--color_border)');
+        expect(badge(10)?.querySelector<SVGElement>('rect')?.style.stroke).toEqual('var(--color_border_strong)');
         expect(badge(10)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');
         expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(103, 0, 31)');
         expect(badge(11)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');

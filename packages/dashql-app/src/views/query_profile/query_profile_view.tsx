@@ -60,7 +60,7 @@ const OPERATOR_ANNOTATION_PADDING = 8;
 const ESTIMATE_APPROXIMATE_ROW_THRESHOLD = 100;
 /// The colors of the badges and the highlighted edge, tokens of the theme.
 /// SVG attributes do not resolve var(), the badges set them as style properties.
-const EDGE_BADGE_BORDER = 'var(--color_border)';
+const EDGE_BADGE_BORDER = 'var(--color_border_strong)';
 const EDGE_HIGHLIGHT_COLOR = 'var(--color_accent_emphasis)';
 const EDGE_HIGHLIGHT_TEXT_COLOR = 'var(--color_fg_on_emphasis)';
 /// What the annotation slot of the operators shows: the status icon, nothing, the actual rows, the estimated rows of

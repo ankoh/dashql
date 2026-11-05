@@ -2,7 +2,7 @@
 
 .edge {
     fill: none;
-    stroke: var(--color_fg_subtle);
+    stroke: var(--color_border_strong);
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
@@ -14,7 +14,7 @@
 }
 
 .edgeBadge rect {
-    stroke: var(--color_fg_subtle);
+    stroke: var(--color_border_strong);
     stroke-width: 1px;
 }
 
@@ -28,7 +28,7 @@
 
 .crossEdge {
     fill: none;
-    stroke: var(--color_fg_subtle);
+    stroke: var(--color_border_strong);
     stroke-width: 1px;
     stroke-dasharray: 6 4;
     stroke-linecap: round;
@@ -89,14 +89,14 @@
 }
 .port_border {
     fill: none;
-    stroke: var(--color_fg_subtle);
+    stroke: var(--color_border_strong);
     stroke-width: 1px;
 }
 .port_mask {
     fill: var(--graph_node_background, var(--color_bg_card));
 }
 .port_dot {
-    fill: var(--color_fg_subtle);
+    fill: var(--color_border_strong);
 }
 .port[data-highlighted="true"] .port_border {
     stroke: var(--color_accent_fg);

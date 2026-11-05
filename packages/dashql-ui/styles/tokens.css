@@ -51,6 +51,8 @@
     /* Borders: the default of cards and controls, and the muted one of dividers inside them */
     --color_border: light-dark(var(--base_color_neutral_2), var(--base_color_neutral_7));
     --color_border_muted: light-dark(var(--base_color_neutral_1), var(--base_color_neutral_dark_3));
+    /* The strong one of lines that have to stand out more than borders, like the edges and the nodes of graphs */
+    --color_border_strong: light-dark(var(--base_color_neutral_3), var(--base_color_neutral_6));
 
     /* The accent: links and highlighted text, emphasis backgrounds, muted backgrounds of highlights, and focus */
     --color_accent_fg: light-dark(var(--base_color_blue_5), var(--base_color_blue_3));

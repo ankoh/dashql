@@ -54,7 +54,7 @@
 
 /* A script box */
 .box {
-    --graph_node_border_color: var(--color_border);
+    --graph_node_border_color: var(--color_border_strong);
     --graph_node_background: var(--color_bg_card);
 }
 
@@ -149,7 +149,7 @@
 
 .type_badge rect {
     fill: var(--color_neutral_muted);
-    stroke: var(--color_border);
+    stroke: var(--color_border_strong);
     stroke-width: 1px;
 }
 
@@ -202,7 +202,7 @@
     height: 100%;
     overflow: hidden;
     box-sizing: border-box;
-    border: 1px solid var(--color_border);
+    border: 1px solid var(--color_border_strong);
     border-radius: 6px;
     background: var(--color_bg_card);
 }
@@ -232,8 +232,9 @@
 /* Scripts and inputs are neutral outlines with a faint fill, their rows and charts are the frames of the card surface inside */
 .card {
     pointer-events: none;
-    fill: var(--color_bg_hover);
-    stroke: var(--color_border);
+    /* A translucent neutral, the dot grid of the stage shows through */
+    fill: color-mix(in srgb, var(--color_neutral_muted) 60%, transparent);
+    stroke: var(--color_border_strong);
     stroke-width: 1px;
     vector-effect: non-scaling-stroke;
 }

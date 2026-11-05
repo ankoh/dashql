@@ -43,7 +43,7 @@ deliberately, with a role that other stylesheets can share. The groups:
 | Surfaces | `--color_bg`, `--color_bg_card`, `--color_bg_subtle`, `--color_bg_hover`, `--color_bg_selected`, `--color_bg_inverse` | The page, cards (also editors, tables, dialogs), headers and sunken areas, hover and selection overlays, tooltips and dark badges |
 | Page | `--page_background`, `--color_bg_pane`, `--color_bg_pane_subtle` | The one background of a page, and the panes on it, like the sidebar and the bars above the stage |
 | Text | `--color_fg`, `--color_fg_muted`, `--color_fg_subtle`, `--color_fg_on_emphasis`, `--color_fg_inverse` | Default, secondary, placeholder and disabled, text on emphasis backgrounds, text on the inverse surface |
-| Borders | `--color_border`, `--color_border_muted` | Cards and controls, dividers inside them |
+| Borders | `--color_border`, `--color_border_muted`, `--color_border_strong` | Cards and controls, dividers inside them, the edges and nodes of graphs |
 | Accent | `--color_accent_fg`, `--color_accent_emphasis`, `--color_accent_muted`, `--color_focus` | Links and highlights, solid accent backgrounds, highlighted rows, focus rings |
 | Status | `--color_{success,danger,attention,neutral,done}_{fg,emphasis,muted}` | Status text and icons, solid status backgrounds with white text, muted status backgrounds |
 | Primary button | `--color_primary_emphasis`, `_hover`, `_active`, `_disabled` | The primary action |

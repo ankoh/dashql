@@ -27,14 +27,14 @@
 .pipeline {
     display: none;
     fill: var(--color_bg_hover);
-    stroke: var(--color_border);
+    stroke: var(--color_border_strong);
     stroke-width: 1px;
 }
 
 .pipeline[data-status="2"], .pipeline[data-status="4"] { display: inline; }
 
 .operator {
-    --graph_node_border_color: var(--color_border);
+    --graph_node_border_color: var(--color_border_strong);
     --graph_node_background: var(--color_bg_card);
     cursor: pointer;
 }
