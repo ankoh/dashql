@@ -24,7 +24,7 @@ import { connectionLabelParts, connectionLabelText, connectionOrdinals, type Con
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { useSessionScriptsRegistry } from './session_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';
-import { useConnectorIcon } from '../../connections/connector_icon.js';
+import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 
 /// The fields of a connection that a script shows
 export interface ScriptConnectionView {
@@ -86,13 +86,13 @@ export function useAttachPendingConnection(instance: core.DashQL, modifySessionS
     }, [attach, instance, modifySessionScripts]);
 }
 
-/// The colored logo of the database of a connector
+/// The logo of the database of a connector, see useConnectorIcon
 function ConnectorIcon(props: { connectorInfo: ConnectorInfo, size?: number }) {
     const connectorIcon = useConnectorIcon();
     const size = `${props.size ?? 16}px`;
     return (
         <svg className={styles.connector_icon} width={size} height={size} aria-hidden="true">
-            <use xlinkHref={`${symbols}#${connectorIcon(props.connectorInfo)}`} />
+            <use xlinkHref={`${symbols}#${connectorIcon(props.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
         </svg>
     );
 }
@@ -278,7 +278,7 @@ export function ConnectionMenu(props: MenuProps) {
                             >
                                 <ActionList.Leading>
                                     <svg className={styles.connector_icon} width="16px" height="16px" aria-hidden="true">
-                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} />
+                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} style={CONNECTOR_ICON_STYLE} />
                                     </svg>
                                 </ActionList.Leading>
                                 <ActionList.ItemText>

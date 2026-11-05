@@ -9,7 +9,7 @@ import { connectionLabelText, type ConnectionLabelParts } from './connection_lab
 import { ConnectionLabelView } from './connection_label_view.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import * as styles from './connection_replace_picker.module.css';
-import { useConnectorIcon } from './connector_icon.js';
+import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
 interface Props {
     /// The connection that is replaced
@@ -40,7 +40,7 @@ export const ConnectionReplacePicker: React.FC<Props> = ({ source, candidates, l
         >
             <ActionList.Leading>
                 <svg className={styles.connector_icon} width="16px" height="16px" aria-hidden="true">
-                    <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} />
+                    <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
                 </svg>
             </ActionList.Leading>
             <ActionList.ItemText>

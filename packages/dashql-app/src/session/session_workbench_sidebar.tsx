@@ -131,7 +131,7 @@ import * as actionMenuStyles from '../app/action_menu.module.css';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
-import { useConnectorIcon } from '../connections/connector_icon.js';
+import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 
 interface SessionItem {
     sessionId: string;
@@ -1285,7 +1285,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                             <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
                                                 <ActionList.Leading>
                                                     <svg width="16px" height="16px" aria-hidden="true">
-                                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} />
+                                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} style={CONNECTOR_ICON_STYLE} />
                                                     </svg>
                                                 </ActionList.Leading>
                                                 <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>

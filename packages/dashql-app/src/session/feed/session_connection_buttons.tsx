@@ -10,7 +10,7 @@ import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../connect
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
 import { connectionLabelText } from '../../connections/connection_label.js';
 import { useConnectionLabeler } from '../connection_labels.js';
-import { useConnectorIcon } from '../../connections/connector_icon.js';
+import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 
 interface Props {
     /// The connections that the scripts of the session and the next script run on
@@ -60,7 +60,7 @@ export function SessionConnectionButtons(props: Props & { dependencies?: Session
                     >
                         <span className={styles.logo}>
                             <svg width="16px" height="16px" aria-hidden="true">
-                                <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} />
+                                <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
                             </svg>
                             <svg className={styles.health} width="10px" height="10px" viewBox="0 0 10 10" aria-hidden="true">
                                 <circle cx="5" cy="5" r="5" style={{ fill: 'var(--color_bg_card)' }} />

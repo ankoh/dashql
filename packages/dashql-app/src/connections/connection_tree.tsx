@@ -45,7 +45,7 @@ import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import { ConnectionReplacePicker } from './connection_replace_picker.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
-import { useConnectorIcon } from './connector_icon.js';
+import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ColumnsIcon = SymbolIcon('columns_16');
@@ -455,7 +455,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         : undefined}
                     icon={(
                         <svg width="14" height="14">
-                            <use xlinkHref={`${symbols}#${connectorIcon(row.database.connectorInfo)}`} />
+                            <use xlinkHref={`${symbols}#${connectorIcon(row.database.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
                         </svg>
                     )}
                 >

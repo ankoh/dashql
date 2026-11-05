@@ -94,9 +94,10 @@
     width: 12px;
 }
 
+/* The icons take the color of the row, like the icons of the session tree */
 .tree_entry_icon {
     display: inline-flex;
-    color: var(--color_fg_muted);
+    color: inherit;
 }
 
 .tree_entry_name {

@@ -13,7 +13,7 @@ import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indic
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useConnectorIcon } from './connector_icon.js';
+import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
 const LOG_CTX = "conn_inline_header";
 
@@ -122,7 +122,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                 <div className={style.connector_info}>
                     <div className={style.connector_icon}>
                         <svg width="20px" height="24px">
-                            <use xlinkHref={`${symbols}#${connectorIcon(props.connector)}`} />
+                            <use xlinkHref={`${symbols}#${connectorIcon(props.connector)}`} style={CONNECTOR_ICON_STYLE} />
                         </svg>
                     </div>
                     <div className={style.connector_name} data-testid="connector-name">
