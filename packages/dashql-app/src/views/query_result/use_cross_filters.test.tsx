@@ -14,7 +14,9 @@ import {
     STRING_COLUMN,
     type TableAggregation,
     TABLE_FILTERING_TASK,
+    TaskStatus,
 } from '../../compute/computation_types.js';
+import type { ScalarFilter } from '../../compute/sql/sqlframe_builder.js';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
@@ -108,6 +110,47 @@ describe('useCrossFilters', () => {
         await vi.waitFor(() => expect(scheduled(TABLE_FILTERING_TASK)).toHaveLength(2));
         const latest = scheduled(TABLE_FILTERING_TASK)[1].value as { filters: { value: unknown }[] };
         expect(latest.filters.map(filter => filter.value)).toContain(3);
+    });
+
+    it('filters again only when the filter table or the running task has other filters', () => {
+        const brushed = new CrossFilters();
+        brushed.addHistogramFilter(1, SCORE, [1, 2]);
+        const transforms = brushed.createFilterTransforms();
+        const base = tableState(brushed);
+        const progress = (status: TaskStatus) => ({ status, startedAt: new Date(), completedAt: null, failedAt: null, failedWithError: null });
+        /// The state after filtering with the filters, with the task in the status
+        const filteredWith = (filters: ScalarFilter[], status: TaskStatus, filterTable = true): TableComputationState => ({
+            ...base,
+            filterTable: filterTable ? { version: base.version, dataTable: tableFromArrays({ rownum: Int32Array.from([0]) }) } as unknown as FilterTable : null,
+            tasks: {
+                ...base.tasks,
+                filteringTask: { tableId: 1, tableVersion: base.version, filters, progress: progress(status) } as unknown as TableComputationState['tasks']['filteringTask'],
+            },
+        });
+        const scheduledFor = (state: TableComputationState) => {
+            const { dispatch, scheduled } = recordingDispatch();
+            const hook = renderCrossFilters(dispatch);
+            hook.render(state);
+            const tasks = scheduled(TABLE_FILTERING_TASK);
+            root!.unmount();
+            root = null;
+            return tasks;
+        };
+
+        // The filter table has the filters of the selection
+        expect(scheduledFor(filteredWith(transforms, TaskStatus.TASK_SUCCEEDED))).toHaveLength(0);
+        // A filter table of fewer filters, of another bin or another field is outdated
+        expect(scheduledFor(filteredWith(transforms.slice(0, 1), TaskStatus.TASK_SUCCEEDED))).toHaveLength(1);
+        expect(scheduledFor(filteredWith([transforms[0], { ...transforms[1], value: 3 }], TaskStatus.TASK_SUCCEEDED))).toHaveLength(1);
+        expect(scheduledFor(filteredWith([{ ...transforms[0], fieldName: 'other_bin' }, transforms[1]], TaskStatus.TASK_SUCCEEDED))).toHaveLength(1);
+        expect(scheduledFor(filteredWith([{ ...transforms[0], op: '>' }, transforms[1]], TaskStatus.TASK_SUCCEEDED))).toHaveLength(1);
+        // A running task of the selection is awaited, a running task of other filters is not
+        expect(scheduledFor(filteredWith(transforms, TaskStatus.TASK_RUNNING, false))).toHaveLength(0);
+        expect(scheduledFor(filteredWith(transforms.slice(1), TaskStatus.TASK_RUNNING, false))).toHaveLength(1);
+        // Clearing the selection drops the filter table
+        expect(scheduledFor({ ...filteredWith(transforms, TaskStatus.TASK_SUCCEEDED), crossFilters: new CrossFilters() })).toHaveLength(1);
+        // Without a selection and a filter table there is nothing to filter
+        expect(scheduledFor({ ...base, crossFilters: new CrossFilters() })).toHaveLength(0);
     });
 
     it('schedules a filtered column aggregation once with the selected row count', () => {

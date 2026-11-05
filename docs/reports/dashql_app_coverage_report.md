@@ -1,6 +1,6 @@
 # DashQL App Coverage Report
 
-Date: 2026-11-04
+Date: 2026-11-05
 
 Coverage of the TypeScript sources of `packages/dashql-app/src` in the Chromium browser tests (tests and `src/tests/`
 excluded). The coverage workflow uploads it to Coveralls together with the Rust core, which shows the uncovered lines
@@ -16,19 +16,20 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 81.5% (52,332 / 64,238 lines) in 572 files**, up from 79.0% (50,730 / 64,237) earlier on the same day
-and 76.1% (46,091 / 60,569 lines in 544 files) on 2026-11-02. The app grew by 28 files between 2026-11-02 and
-2026-11-04, so that part of the increase mixes new tests and new code. The tests of 2026-11-04 cover:
-- the Hyper links of the app (`useHyperLinks`), the Trino and Hyper connection settings, the download of the shell Wasm,
-  the session import transactions, the logging and pickers of the shell files, the pending diff of the editor, the
-  restored connections, the mocked query results, the file download, the synthetic stock feed and `useLiveQuery`;
-- the most frequent value and histogram cells of the data table, rendered with real column aggregates;
-- `LogViewer`, `StorageWriterView` and `HttpRequestViewer`, `replaceShell` of the browser shell, the focus store of the
-  data table, the drag events of the web listener, the flavor of the page url, the connection params label, the editor
-  focus, the input types of the session, the dataflow module hook, a failed session restore and the Salesforce setup.
+**Overall: 85.3% (55,413 / 64,946 lines) in 575 files**, up from 81.7% (52,414 / 64,126 lines in 571 files) at the start
+of the day and 81.5% on 2026-11-04. The 820 new lines are mostly the tested components themselves, which the coverage
+did not count while no test loaded them, and the agent face demo. The tests of 2026-11-05 render the components with the
+largest gaps:
+- `AppSettings`, `StorageBrowserView` (on a mocked OPFS), `QueryCacheView`, `InternalsViewer` with the query history,
+  and `AppSettingsSync`;
+- `Dashboard` (run, rename, delete, renderers, staged changes, keyboard and pointer resize, keyboard drag),
+  `ScriptDiagnosticsButton` and `collectScriptDiagnostics`, `ScriptStatisticsBar`, `TraceLogViewer`, and the save and
+  share overlays of a session;
+- `CellDetailOverlay` with the core, the header plots of the data table, `ColumnAggregationBar` end to end with Hyper
+  and the compute scheduler, `QueryResultActionMenu`, and `scalarFiltersEqual` of the cross filters.
 
-These files are now at 98% to 100%, except `shell/browser_shell.ts` (90.4%), `shell/api.ts` (90.5%) and
-`compute/arrow_formatter.ts` (92.9%).
+These components are now at 97% to 100%. `Dashboard` takes its run function and overlays as `dependencies`, like
+`DashboardCard` and `SessionFeed`.
 
 ## Gaps in logic (`.ts`)
 
@@ -38,7 +39,6 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 |---|---|---|
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
 | `src/platform/hyperdb/hyperdb_provider_web.ts:148-158` | setupWebHyperDB | 11 |
-| `src/views/query_result/use_cross_filters.ts:15-27` | scalarFiltersEqual | 11 |
 | `src/session/persistence/app_state_loader.ts:526-536` | mergeRestoredSessionIntoScripts | 10 |
 | `src/session/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
 | `src/session/scripts/session_scripts.ts:534-543` | reduceScripts | 10 |
@@ -47,7 +47,16 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/session/editor/dashql_completion_listener.ts:54-64` | handleMousedownEvent | 9 |
 | `src/session/inputs/session_inputs.ts:108-116` | collectSessionInputs | 9 |
 | `src/session/persistence/app_state_loader.ts:514-524` | mergeRestoredSessionIntoConnections | 9 |
-| `src/session/scripts/script_reference_reports.ts:4-12` | sameReport | 9 |
+| `src/session/scripts/focus.ts:160-168` | deriveFocusFromCompletionCandidates | 9 |
+| `src/session/scripts/session_scripts.ts:554-563` | reduceScripts | 9 |
+| `src/storage/composite_storage_backend.ts:522-536` | loadNativeSession | 9 |
+| `src/storage/opfs_storage_backend.ts:451-460` | updateConnections | 9 |
+| `src/utils/hash_murmur3.ts:54-62` | clone | 9 |
+| `src/connections/embedded_connection.ts:31-38` | useNewSessionConnection | 8 |
+| `src/connections/embedded_connection.ts:41-48` | useEmbeddedConnection | 8 |
+| `src/session/editor/dashql_processor.ts:328-335` | update | 8 |
+| `src/session/editor/dashql_script_references.ts:22-29` | referenceDiagnostics | 8 |
+| `src/session/editor/editor_focus.ts:8-15` | dashqlEditorOf | 8 |
 
 ## Gaps in components (`.tsx`)
 
@@ -55,23 +64,29 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 |---|---|---|
 | `src/session/persistence/session_import_provider.tsx:89-394` | SessionImportProvider | 268 |
 | `src/agent/agent_bridge.tsx:100-377` | AgentBridgeProvider | 252 |
-| `src/app/internals/app_settings_view.tsx:50-325` | AppSettings | 238 |
-| `src/session/dashboard/dashboard.tsx:90-347` | Dashboard | 228 |
-| `src/app/internals/storage_browser_view.tsx:264-494` | StorageBrowserView | 195 |
 | `src/session/persistence/native_session_sync_react.tsx:131-333` | NativeSessionSync | 158 |
 | `src/session/shell/session_shell_page.tsx:51-216` | SessionShellPage | 151 |
-| `src/views/query_result/cell_detail_overlay.tsx:221-388` | CellDetailOverlayInner | 146 |
-| `src/views/query_result/data_table_cell_header_plots.tsx:40-196` | HeaderPlotsCellImpl | 126 |
-| `src/views/visualization/column_aggregation_bar.tsx:30-182` | ColumnAggregationBar | 126 |
-| `src/session/trace_log_viewer.tsx:33-210` | TraceLogViewer | 122 |
-| `src/session/persistence/query_cache_view.tsx:73-216` | QueryCacheView | 118 |
+| `src/connections/salesforce_connection_settings.tsx:341-477` | SalesforceConnectorSettings | 117 |
+| `src/session/scripts/script_editor.tsx:148-269` | updateEditor | 91 |
+| `src/session/feed/script_entry_header.tsx:49-139` | (anonymous) | 84 |
+| `src/connections/connection_settings_overlay.tsx:35-118` | ConnectionSettingsOverlay | 74 |
+| `src/demos/stock_analysis/live_board.tsx:100-159` | LiveBoard | 54 |
+| `src/connections/hyper/hyper_log_metrics_provider.tsx:100-156` | useHyperLogRows | 49 |
+| `src/ui/logger/logger_toast.tsx:68-140` | LoggerToast | 49 |
+| `src/ui/json/json_copy_button.tsx:39-92` | click | 43 |
+| `src/app/app_setup_page.tsx:45-87` | AppSetupPage | 41 |
+| `src/session/persistence/session_storage_overlay.tsx:68-114` | SessionStorageViewer | 40 |
+| `src/shell_app/internals.tsx:24-65` | ShellInternalsViewer | 40 |
 
 ## Files that no test loads
 
 Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_app/shell_page.tsx` (294), the demo pages
-(`demos/`, 564), `shell/filesystem_dialog.tsx` (152), `app/loading/shared_session_import.tsx` (142),
-`app/loading/app_setup.ts` (131), `app/app.tsx` (122), `shell/filesystem_mount_dialog.tsx` (118),
-`connections/salesforce/salesforce_connection_setup_mock.tsx` (103) and 22 smaller files.
+(`demos/`, 706 with the new agent face page), `shell/filesystem_dialog.tsx` (152),
+`app/loading/shared_session_import.tsx` (142), `app/loading/app_setup.ts` (134),
+`session/scripts/script_editor_dialog.tsx` (126), `app/app.tsx` (122), `shell/filesystem_mount_dialog.tsx` (118),
+`connections/salesforce/salesforce_connection_setup_mock.tsx` (103) and 19 smaller files. `connections/query_viewer.tsx`
+and `views/query_profile/engine_profile_view.tsx` are now loaded by the tests of the internals and the cell detail
+overlay.
 
 ## Bugs found by the new tests
 
@@ -103,14 +118,27 @@ Mostly entry points and pages: `oauth/oauth_redirect.tsx` (354 lines), `shell_ap
 - `LogViewer` threw `RangeError: Invalid index specified: 0` without rows, e.g. for a trace without records: it scrolled
   to the last row of an empty list.
 - `deriveFocusFromEditorUpdate` marked the column references of a focused column as references of the target table.
+- `ColumnAggregationBar` attached its `ResizeObserver` only on the first render, when it usually rendered nothing yet
+  because the table computation did not exist. The width stayed 0 and every plot remained a blank placeholder.
+- `QueryResultActionMenu` took every `ResultProjectionError` for a projected text, the errors are strings as well.
+  "Project Columns" stayed enabled for a script whose last statement is no query, and replaced the script text with
+  `no_query`.
 
 ## Suggested next tests
 
-1. Render tests of `AppSettings`, `StorageBrowserView` and `QueryCacheView` with a test storage backend.
-2. `scalarFiltersEqual` through `useCrossFilters` with a repeated selection, and `computeColumnAggregates` with the
-   compute worker.
-3. `collectSessionInputs` and `deriveFocusFromCompletionCandidates` of a session with core Wasm scripts.
-4. `setupWebHyperDB` once a test can fail the engine after it started; it needs the browser Hyper engine.
+1. `SessionImportProvider` and `SessionShellPage` with a test storage backend and the shell Wasm.
+2. `ConnectionSettingsOverlay`, `SalesforceConnectorSettings` and `LoggerToast` as render tests.
+3. `script_entry_header.tsx` and `script_editor_dialog.tsx` of the feed, and `updateEditor` of `ScriptEditor`.
+4. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
+   `deriveFocusFromCompletionCandidates` of a session with core Wasm scripts.
+5. `setupWebHyperDB` once a test can fail the engine after it started; it needs the browser Hyper engine.
+
+## Other findings
+
+- The JSON schema of the saved app settings (`AppSettings` in `proto/json/dashql/app_manifest.json`) rejects unknown
+  fields but lacks `experimental_wasm_backend`, `macWindowLayout`, `navRailWide`, `agentHarness`, `agentModel` and
+  `agentEffort`. The app saves them anyway, nothing validates the settings when they are written.
+- With the core loaded, `detectFormats` of the cell detail overlay offers SQL for any text, `hello world` included.
 
 ## Flaky tests
 

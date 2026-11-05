@@ -24,6 +24,10 @@ const PROJECTION_ERRORS: Record<ResultProjectionError, string> = {
     [ResultProjectionError.DuplicateColumns]: 'Two columns have the same name',
 };
 
+function isProjectionError(text: string | ResultProjectionError): text is ResultProjectionError {
+    return Object.prototype.hasOwnProperty.call(PROJECTION_ERRORS, text);
+}
+
 /// The script of a session that owns a query result
 function findResultScript(sessionScripts: SessionScripts, owner: string): ScriptData | null {
     for (const script of Object.values(sessionScripts.scripts)) {
@@ -67,7 +71,8 @@ export function QueryResultActionMenu({ query }: Props): React.ReactElement | nu
         );
         const columnNames = query.resultTable.schema.fields.map(field => field.name);
         const text = addResultProjection(sessionScripts.instance, script.scriptSession.getText(), columnNames, formatConfig);
-        setProjection(typeof text === 'string' ? { scriptKey: script.scriptKey, text } : text);
+        // The errors are strings as well
+        setProjection(isProjectionError(text) ? text : { scriptKey: script.scriptKey, text });
     };
     const applyProjection = () => {
         setOpen(false);

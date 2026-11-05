@@ -42,16 +42,6 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
     const [containerWidth, setContainerWidth] = React.useState(0);
     const [scrollLeft, setScrollLeft] = React.useState(0);
-    React.useEffect(() => {
-        const el = rootRef.current;
-        if (!el) return;
-        const observer = new ResizeObserver(entries => {
-            const width = entries[0]?.contentRect.width ?? 0;
-            setContainerWidth(width);
-        });
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
 
     // Build the arrow formatter and layout with the SAME util the table uses, so the
     // column -> aggregate index mapping matches exactly.
@@ -81,8 +71,20 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dataTable, columnGroups, tableFormatter, debugMode, containerWidth, rowNumberWidth]);
 
-    // Track the scroll offset at most once per frame, it only decides which plots are mounted
+    // The bar renders nothing until the table has columns, observe the root once it is mounted
     const hasScrollElement = tableComputation != null && gridLayout != null && gridLayout.columnCount > 0;
+    React.useEffect(() => {
+        const el = rootRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver(entries => {
+            const width = entries[0]?.contentRect.width ?? 0;
+            setContainerWidth(width);
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasScrollElement]);
+
+    // Track the scroll offset at most once per frame, it only decides which plots are mounted
     React.useEffect(() => {
         const element = scrollRef.current;
         if (!element) return;

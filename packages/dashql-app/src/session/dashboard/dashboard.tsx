@@ -10,7 +10,7 @@ import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import type { DashboardSpec } from '../scripts/script_types.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
-import { DashboardCard } from './dashboard_card.js';
+import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
     DASHBOARD_COLLAPSED_WIDTH,
@@ -53,6 +53,23 @@ function sharePlacements(next: DashboardPlacement[], previous: DashboardPlacemen
     return changed ? shared : previous;
 }
 
+/// The functions and components that tests replace
+export interface DashboardDependencies {
+    runSessionScript: typeof runSessionScript;
+    DashboardEditorOverlay: typeof DashboardEditorOverlay;
+    DashboardTableOverlay: typeof DashboardTableOverlay;
+    DashboardChartOverlay: typeof DashboardChartOverlay;
+    /// The dependencies of the cards, the defaults of the card if unset
+    card?: DashboardCardDependencies;
+}
+
+const DEFAULT_DEPENDENCIES: DashboardDependencies = {
+    runSessionScript,
+    DashboardEditorOverlay,
+    DashboardTableOverlay,
+    DashboardChartOverlay,
+};
+
 interface Props {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
@@ -60,6 +77,7 @@ interface Props {
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
     /// The function that renames the references in the draft of the composer
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
+    dependencies?: DashboardDependencies;
 }
 
 /// Every script of the session is a card, in the order of the session
@@ -91,6 +109,7 @@ function readLayout(sessionScripts: SessionScripts): DashboardPlacement[] {
 }
 
 export function Dashboard(props: Props): React.ReactElement {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const gridRef = React.useRef<HTMLDivElement | null>(null);
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
     const getScrollElement = React.useCallback(() => scrollRef.current, []);
@@ -217,8 +236,8 @@ export function Dashboard(props: Props): React.ReactElement {
         const sessionScripts = sessionScriptsRef.current;
         const script = sessionScripts.scripts[scriptKey];
         if (script == null) return;
-        void runSessionScript(sessionScripts, script, executeQuery, props.modifySessionScripts, logger, { refresh });
-    }, [executeQuery, props.modifySessionScripts, logger]);
+        void dependencies.runSessionScript(sessionScripts, script, executeQuery, props.modifySessionScripts, logger, { refresh });
+    }, [dependencies, executeQuery, props.modifySessionScripts, logger]);
     // Stop the run of the session, or the query of the card
     const sessionBusy = sessionExecution.busy;
     const stopSession = sessionExecution.stop;
@@ -300,6 +319,7 @@ export function Dashboard(props: Props): React.ReactElement {
                             onStop={handleStop}
                             onRename={handleRename}
                             onDelete={handleDelete}
+                            dependencies={dependencies.card}
                         />
                     );
                 })}
@@ -340,7 +360,7 @@ export function Dashboard(props: Props): React.ReactElement {
                 />
             </div>
             {overlayScript != null && overlay?.kind === 'editor' && (
-                <DashboardEditorOverlay
+                <dependencies.DashboardEditorOverlay
                     sessionId={props.sessionScripts.sessionId}
                     script={overlayScript}
                     onAcceptDiff={handleAcceptDiff}
@@ -349,10 +369,10 @@ export function Dashboard(props: Props): React.ReactElement {
                 />
             )}
             {overlayScript != null && overlay?.kind === 'table' && (
-                <DashboardTableOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
+                <dependencies.DashboardTableOverlay sessionId={props.sessionScripts.sessionId} script={overlayScript} onClose={closeOverlay} />
             )}
             {overlayScript != null && overlay?.kind === 'chart' && (
-                <DashboardChartOverlay
+                <dependencies.DashboardChartOverlay
                     sessionId={props.sessionScripts.sessionId}
                     script={overlayScript}
                     onChange={handleSetVisSpec}
