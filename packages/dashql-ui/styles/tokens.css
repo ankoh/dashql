@@ -27,16 +27,17 @@
     /* Surfaces: the page, the cards on it (also editors, tables and dialogs), the subtle areas of cards (headers,
        sunken areas, alternating rows), the overlays of hovered and selected rows, and the inverted surface of
        tooltips and dark badges */
-    --color_bg: light-dark(var(--base_color_neutral_0), var(--base_color_neutral_11));
-    --color_bg_card: light-dark(var(--base_color_white), var(--base_color_neutral_10));
-    --color_bg_subtle: light-dark(var(--base_color_neutral_0), var(--base_color_neutral_9));
+    --color_bg: light-dark(var(--base_color_neutral_0), var(--base_color_neutral_dark_0));
+    --color_bg_card: light-dark(var(--base_color_white), var(--base_color_neutral_dark_2));
+    --color_bg_subtle: light-dark(var(--base_color_neutral_0), var(--base_color_neutral_dark_1));
     --color_bg_hover: light-dark(hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.08), hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.1));
     --color_bg_selected: light-dark(hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.14), hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.16));
     --color_bg_inverse: light-dark(var(--base_color_neutral_9), var(--base_color_neutral_1));
 
     /* The panes of a page, like the sidebar and the bars above the stage, and their subtle variant. They are the
-       white and the grey of the light page, the dark page shows its background through them, see --page_background. */
-    --color_bg_pane: light-dark(var(--color_bg_card), transparent);
+       white and the grey of the light page. On the dark page they shade its background like the header of the shell,
+       their subtle variant shows it, see --page_background. */
+    --color_bg_pane: light-dark(var(--color_bg_card), var(--shell_header_bg));
     --color_bg_pane_subtle: light-dark(var(--color_bg_subtle), transparent);
 
     /* Text and icons: the default, muted (secondary text, controls of headers and toolbars), subtle (placeholders,
@@ -48,8 +49,8 @@
     --color_fg_inverse: light-dark(var(--base_color_white), var(--base_color_neutral_9));
 
     /* Borders: the default of cards and controls, and the muted one of dividers inside them */
-    --color_border: light-dark(var(--base_color_neutral_2), var(--base_color_neutral_8));
-    --color_border_muted: light-dark(var(--base_color_neutral_1), var(--base_color_neutral_9));
+    --color_border: light-dark(var(--base_color_neutral_2), var(--base_color_neutral_7));
+    --color_border_muted: light-dark(var(--base_color_neutral_1), var(--base_color_neutral_dark_3));
 
     /* The accent: links and highlighted text, emphasis backgrounds, muted backgrounds of highlights, and focus */
     --color_accent_fg: light-dark(var(--base_color_blue_5), var(--base_color_blue_3));
@@ -106,19 +107,10 @@
         );
 
     /* The background of a page behind its panes and its stage. The light page is flat, its panes cover it.
-       The dark page is a darker take of the backdrop of the chrome, it shows through the panes and hints through the
-       stage, so that the whole page follows one gradient. */
-    --page_bg_80: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 12%);
-    --page_bg_100: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 7%);
-    --page_background: radial-gradient(circle at 50% 50%, light-dark(var(--color_bg), var(--page_bg_80)) 20%, transparent 80%),
-        conic-gradient(
-            from 45deg at 50% 50%,
-            light-dark(var(--color_bg), var(--page_bg_100)) 0%,
-            light-dark(var(--color_bg), var(--page_bg_80)) 25%,
-            light-dark(var(--color_bg), var(--page_bg_100)) 50%,
-            light-dark(var(--color_bg), var(--page_bg_80)) 75%,
-            light-dark(var(--color_bg), var(--page_bg_100)) 100%
-        );
+       The dark page shades the backdrop of the chrome behind it like the card of the shell, so that the whole page
+       follows the gradient of the chrome. */
+    --page_shade: light-dark(var(--color_bg), var(--shell_bg));
+    --page_background: linear-gradient(var(--page_shade), var(--page_shade));
 
     /* The shell: the terminal on the dark backdrop, dark in both schemes. Its surfaces darken and lighten the
        backdrop, its text is the foreground of the terminal. */
@@ -134,11 +126,11 @@
 
     /* Backdrop of pages with a lot of empty space, like the session feed: a soft light in the middle,
        a faint dot grid, and a vignette that fades the grid out toward the edges. Centered in the element it paints.
-       The dark stage is translucent, the background of the page hints through. */
-    --stage_color: light-dark(var(--color_bg), hsla(var(--neutral_hue), calc(14% * var(--neutral_tint)), 8%, 0.55));
-    --stage_light: radial-gradient(ellipse 65% 70% at 50% 50%, light-dark(hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98.1%), hsla(var(--neutral_hue), calc(14% * var(--neutral_tint)), 60%, 0.04)) 0%, light-dark(var(--stage_color), transparent) 60%);
+       The dark stage is only the dot grid, the background of the page shows through. */
+    --stage_color: light-dark(var(--color_bg), transparent);
+    --stage_light: radial-gradient(ellipse 65% 70% at 50% 50%, light-dark(hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98.1%), transparent) 0%, var(--stage_color) 60%);
     --stage_dot_grid: radial-gradient(circle, light-dark(hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.1), hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 80%, 0.07)) 0.8px, transparent 1.3px) center / 22px 22px;
-    --stage_vignette_color: light-dark(hsl(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%), hsla(var(--neutral_hue), calc(14% * var(--neutral_tint)), 4%, 0.45));
+    --stage_vignette_color: light-dark(hsl(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%), transparent);
     --stage_vignette: radial-gradient(ellipse 70% 75% at 50% 50%, transparent 45%, var(--stage_vignette_color) 100%);
     --stage_background: var(--stage_vignette), var(--stage_dot_grid), var(--stage_light), var(--stage_color);
 

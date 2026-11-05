@@ -7,7 +7,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     /* The stage without its dot grid, which would not line up with the cells of the cards */
-    background: var(--stage_vignette), var(--stage_light), var(--color_bg);
+    background: var(--stage_vignette), var(--stage_light), var(--stage_color);
 }
 
 /* The rows are explicit, the bar of the inputs is absent without inputs */

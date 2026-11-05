@@ -14,8 +14,8 @@
     --neutral_tint: 1;
 
     --color_fg: light-dark(var(--sidb_ink), var(--base_color_neutral_1));
-    --color_bg: light-dark(var(--sidb_paper), var(--base_color_neutral_11));
-    --color_bg_subtle: light-dark(var(--sidb_paper), var(--base_color_neutral_9));
+    --color_bg: light-dark(var(--sidb_paper), var(--base_color_neutral_dark_0));
+    --color_bg_subtle: light-dark(var(--sidb_paper), var(--base_color_neutral_dark_1));
     --color_bg_inverse: light-dark(var(--sidb_dark), var(--base_color_neutral_1));
 
     --chrome_bg: hsl(190, 46%, 24%);

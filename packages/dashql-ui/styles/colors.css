@@ -10,9 +10,12 @@
     --base_color_neutral_7: hsl(var(--neutral_hue), calc(11.4% * var(--neutral_tint)), 29.2%);
     --base_color_neutral_8: hsl(var(--neutral_hue), calc(11.5% * var(--neutral_tint)), 22.2%);
     --base_color_neutral_9: hsl(var(--neutral_hue), calc(13.3% * var(--neutral_tint)), 16.3%);
-    /* The surfaces of the dark color scheme */
-    --base_color_neutral_10: hsl(var(--neutral_hue), calc(14% * var(--neutral_tint)), 12.5%);
-    --base_color_neutral_11: hsl(var(--neutral_hue), calc(14% * var(--neutral_tint)), 9%);
+    /* The surfaces of the dark color scheme, between the greys above: the page, the subtle areas, the cards and the
+       muted borders on them */
+    --base_color_neutral_dark_0: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 15%);
+    --base_color_neutral_dark_1: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 18.5%);
+    --base_color_neutral_dark_2: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 20.5%);
+    --base_color_neutral_dark_3: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 24%);
 
     --base_color_blue_0: #ddf4ff;
     --base_color_blue_1: #b6e3ff;

@@ -7,7 +7,7 @@ scheme without reloading, and no component knows which one is shown.
 ## Layers
 
 ```text
-packages/dashql-ui/styles/colors.css     palette: neutral_0..11, blue/green/yellow/orange/red/purple/pink/coral _0.._9
+packages/dashql-ui/styles/colors.css     palette: neutral_0..9 and neutral_dark_0..3, blue/green/yellow/orange/red/purple/pink/coral _0.._9
         │ only the theme and the flavors pick from it
         ▼
 packages/dashql-ui/styles/tokens.css     theme: --color_*, --chrome_*, --shadow_*, --stage_*, --chart_color_*, --code_*,
@@ -97,10 +97,11 @@ purpose, like the terminal of the shell.
 ## Dark page
 
 The light page is cut out of the chrome: its panes are white and grey and cover the page. The dark page is not a cut,
-so it follows the gradient of the chrome instead. The session page paints `--page_background` once, a darker take of
-the backdrop of the chrome, behind all of its panes. The panes are transparent in the dark scheme
-(`--color_bg_pane`, `--color_bg_pane_subtle`) and the stage is translucent, so the gradient runs through the whole page
-without breaks between its components. Cards, tables, editors, dialogs and menus stay opaque.
+so it follows the gradient of the chrome instead, like the card of the shell. The session page paints
+`--page_background` once, a translucent shade (`--shell_bg`) over the backdrop of the chrome behind it. Its panes, the
+sidebar and the bars above the stage, shade it a little more like the header of the shell (`--color_bg_pane`), the
+stage is only its dot grid. So the gradient runs through the whole page without breaks between its components.
+Cards, tables, editors, dialogs and menus are opaque and sit slightly lighter than the page.
 
 ## Colors outside of CSS
 
