@@ -274,6 +274,9 @@ bazel run //packages/dashql-native:dev
 
 Run the last two commands in separate terminals for Electron development.
 
+The dev server reads the tokens and fonts of `packages/dashql-ui/styles` and `packages/dashql-ui/fonts` from their
+sources, an edit updates the page in place without a build or a restart.
+
 The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
 Bazel builds the shared `@ankoh/dashql-ui` package and the SVG symbols it reads from `bazel-bin`:
 

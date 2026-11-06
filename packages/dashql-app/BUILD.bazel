@@ -161,6 +161,17 @@ genrule(
     """,
 )
 
+genrule(
+    name = "browser_test_stylesheets",
+    srcs = glob(["src/**/*.css"]),
+    outs = ["browser_test_stylesheets.txt"],
+    cmd = """
+        for src in $(SRCS); do
+            printf '%s\\n' "$${src#packages/dashql-app/src/}"
+        done > $@
+    """,
+)
+
 copy_to_bin(
     name = "srcs",
     srcs = glob([
@@ -234,6 +245,7 @@ ts_project(
 _vite_web_deps = [
     ":srcs",
     ":browser_test_files",
+    ":browser_test_stylesheets",
     ":example_snippets",
     ":vite_config",
     "//:node_modules/@ankoh/dashql-core",

@@ -38,6 +38,9 @@ export default vite.defineConfig(({ mode, command }) => {
     const CORE_PATH = path.resolve(rootDir, "__CORE_PATH__");
     // The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the website
     const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
+    // The dev server reads the tokens and fonts from their sources, Vite watches those and updates the page in place.
+    // The built package in bazel-bin would only change with a build, and Vite does not watch it.
+    const UI_STYLES_PATH = command === 'serve' ? path.resolve(rootDir, "../dashql-ui") : UI_PATH;
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const SHELL_JS_PATH = path.resolve(rootDir, "__SHELL_JS_PATH__");
@@ -46,10 +49,12 @@ export default vite.defineConfig(({ mode, command }) => {
     // The SQL snippets of examples/snippets, bundled as text
     const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
     // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs.
-    const browserTestPatterns = includesBrowserTests && command === 'build'
-        ? nodeFs.readFileSync(path.join(rootDir, 'browser_test_files.txt'), 'utf8')
+    const declaredTestInputs = (manifest: string) => includesBrowserTests && command === 'build'
+        ? nodeFs.readFileSync(path.join(rootDir, manifest), 'utf8')
             .trim().split('\n').filter(Boolean).map(file => `../${file}`)
         : null;
+    const browserTestPatterns = declaredTestInputs('browser_test_files.txt');
+    const browserTestStylesheets = declaredTestInputs('browser_test_stylesheets.txt');
 
     // The pages deployment ships WebAssembly pre-compressed with Brotli, like hyperdb-wasm does: the bytes we deploy are
     // the bytes users download, no matter what the CDN decides to compress. Each `x.HASH.wasm` is replaced by
@@ -236,6 +241,14 @@ export default vite.defineConfig(({ mode, command }) => {
                     return code.replace("'../**/*.test.{ts,tsx}'", browserTestPatterns.map(file => JSON.stringify(file)).join(',\n'));
                 },
             }, {
+                name: 'bazel-browser-test-stylesheets',
+                enforce: 'pre' as const,
+                transform(code: string, id: string): string | undefined {
+                    if (browserTestStylesheets == null) return;
+                    if (!id.split('?', 1)[0]?.split(path.sep).join('/').endsWith('/src/styles/theme.test.ts')) return;
+                    return code.replace("'../**/*.css'", browserTestStylesheets.map(file => JSON.stringify(file)).join(',\n'));
+                },
+            }, {
                 name: 'dashql-browser-test-file',
                 enforce: 'pre' as const,
                 transform(code: string, id: string): string | undefined {
@@ -320,7 +333,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     replacement: path.join(UI_PATH, 'dist/particle_flow/attach_particle_flow.js'),
                 },
                 { find: /^@ankoh\/dashql-ui\/xcode$/, replacement: path.join(UI_PATH, 'dist/editor/xcode_palette.js') },
-                { find: /^@ankoh\/dashql-ui\/((fonts|styles)\/.*\.css)$/, replacement: path.join(UI_PATH, '$1') },
+                { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_STYLES_PATH, '$1') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
                 { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
@@ -385,6 +398,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     const paths = [
                         CORE_PATH,
                         UI_PATH,
+                        UI_STYLES_PATH,
                         PROTOBUF_PATH,
                         path.dirname(SHELL_JS_PATH),
                         path.dirname(SHELL_WASM_PATH),
