@@ -1,6 +1,6 @@
 # DashQL App Coverage Report
 
-Date: 2026-11-05
+Date: 2026-11-06
 
 Coverage of the TypeScript sources of `packages/dashql-app/src` in the Chromium browser tests (tests and `src/tests/`
 excluded). The coverage workflow uploads it to Coveralls together with the Rust core, which shows the uncovered lines
@@ -16,10 +16,10 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 87.5% (57,073 / 65,223 lines) in 578 files**, up from 85.3% (55,413 / 64,946 lines in 575 files) earlier the
-same day, 81.7% at the start of the day and 81.5% on 2026-11-04. The app sources changed between the two runs of the day,
-so not all of the difference comes from tests. The latest tests cover session import, the sync of native session folders,
-the query executor, the agent bridge and the OAuth redirect page:
+**Overall: 87.9% (57,365 / 65,243 lines) in 578 files**, up from 85.3% (55,413 / 64,946 lines in 575 files) earlier on
+2026-11-05, 81.7% at the start of that day and 81.5% on 2026-11-04. The app sources changed between the runs, so not all of
+the difference comes from tests. The latest tests cover session import, the sync of native session folders, the query
+executor, the agent bridge, the shell page and the OAuth redirect page:
 - `SessionImportProvider` 0.3% → 97.8%: portable bundles and native folders, conflicts, connection questions, failures of
   the writes and the restoration. It takes `reload` and the dependencies of its card as `dependencies`, so the paths that
   reload the app can run in the test frame.
@@ -28,6 +28,9 @@ the query executor, the agent bridge and the OAuth redirect page:
 - `QueryExecutorProvider` 53.6% → 93.0%: results, failures, cancellation, the query result cache, profiles.
 - `AgentBridgeProvider` 2.3% → 98.9%: the connection, agent access, the choices of the harness, the turns and their
   notifications, the commands of the agent, deleted sessions, and browsers that cannot reach the server.
+- `SessionShellPage` → 98.3% (151 uncovered lines before): the real shell Wasm and terminal against a fake query executor,
+  loading and its failures, queries, the result overlay, commands, catalog and connection changes, and the focus. It takes
+  the overlay as a dependency, the overlay has its own tests.
 - `oauth_redirect.tsx` 0% → 100%: both flows, errors of the provider, states that cannot be trusted, callback urls. The
   page moved out of its entry point, `oauth_redirect_main.tsx`, which is the file a test can't load.
 
@@ -74,21 +77,21 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/session/shell/session_shell_page.tsx:51-216` | SessionShellPage | 151 |
 | `src/connections/salesforce_connection_settings.tsx:341-477` | SalesforceConnectorSettings | 117 |
 | `src/session/scripts/script_editor.tsx:148-269` | updateEditor | 91 |
 | `src/session/feed/script_entry_header.tsx:49-139` | (anonymous) | 84 |
 | `src/connections/connection_settings_overlay.tsx:35-118` | ConnectionSettingsOverlay | 74 |
+| `src/shell/filesystem_mount_dialog.tsx:109-181` | MountDialog | 69 |
 | `src/demos/stock_analysis/live_board.tsx:100-159` | LiveBoard | 54 |
 | `src/connections/hyper/hyper_log_metrics_provider.tsx:100-156` | useHyperLogRows | 49 |
 | `src/ui/logger/logger_toast.tsx:68-140` | LoggerToast | 49 |
+| `src/shell/filesystem_dialog.tsx:132-182` | FilesystemDialog | 48 |
 | `src/ui/json/json_copy_button.tsx:39-92` | click | 43 |
 | `src/app/app_setup_page.tsx:45-87` | AppSetupPage | 41 |
 | `src/session/persistence/session_storage_overlay.tsx:68-114` | SessionStorageViewer | 40 |
 | `src/shell_app/internals.tsx:24-65` | ShellInternalsViewer | 40 |
 | `src/session/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
 | `src/connections/connection_overview_page.tsx:28-63` | ConnectionOverviewPage | 32 |
-| `src/ui/logger/logger_toast.tsx:31-66` | Toast | 32 |
 
 ## Files that no test loads
 
@@ -135,18 +138,23 @@ overlay.
 - `deriveFocusFromEditorUpdate` marked the column references of a focused column as references of the target table.
 - `ColumnAggregationBar` attached its `ResizeObserver` only on the first render, when it usually rendered nothing yet
   because the table computation did not exist. The width stayed 0 and every plot remained a blank placeholder.
+- `SessionShellPage` did not check its run again after the terminal opened. A catalog that changed meanwhile left two
+  terminals in the page, a page that closed meanwhile left its terminal and shell behind, and a terminal that could not open
+  left its shell behind.
+- `SessionShellPage` replaced the shell of a new ordinal under the old prompt, e.g. `hyper#2>` after the connection became
+  `#1`.
+- The terminal of `SessionShellPage` took the focus in the frame after it opened, also when its page was hidden by then.
 - `QueryResultActionMenu` took every `ResultProjectionError` for a projected text, the errors are strings as well.
   "Project Columns" stayed enabled for a script whose last statement is no query, and replaced the script text with
   `no_query`.
 
 ## Suggested next tests
 
-1. `SessionShellPage` with a test storage backend and the shell Wasm.
-2. `ConnectionSettingsOverlay`, `SalesforceConnectorSettings` and `LoggerToast` as render tests.
-3. `script_entry_header.tsx` and `script_editor_dialog.tsx` of the feed, and `updateEditor` of `ScriptEditor`.
-4. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
+1. `ConnectionSettingsOverlay`, `SalesforceConnectorSettings` and `LoggerToast` as render tests.
+2. `script_entry_header.tsx` and `script_editor_dialog.tsx` of the feed, and `updateEditor` of `ScriptEditor`.
+3. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
    `deriveFocusFromCompletionCandidates` of a session with core Wasm scripts.
-5. `setupWebHyperDB` once a test can fail the engine after it started; it needs the browser Hyper engine.
+4. `setupWebHyperDB` once a test can fail the engine after it started; it needs the browser Hyper engine.
 
 ## Other findings
 

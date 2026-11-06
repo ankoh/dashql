@@ -150,13 +150,13 @@ Unreachable branches found on the way, kept for now:
 ## Rust tools
 
 Line coverage of the unit tests of the command line tool and the native tools, not counted in the overall number above.
-`dashql-native-proxy` and `dashql-pack` count production code only, without test files and `#[cfg(test)]` modules, which
-would otherwise count as covered. The end-to-end tests of `dashql-cli` run the binary in a subprocess and add nothing
-here, so its number is a lower bound, and it still counts its inline tests.
+The numbers count production code only, without test files and `#[cfg(test)]` modules, which would otherwise count as
+covered. The end-to-end tests of `dashql-cli` run the binary in a subprocess and add nothing here, so its number is a lower
+bound.
 
 | Package | Lines | Coverage |
 |---|---|---|
-| dashql-cli | 3,252/3,667 | 88.7% |
+| dashql-cli | 2,002/2,344 | 85.4%, up from 82.8% |
 | dashql-native-proxy | 1,064/1,132 | 94.0%, up from 18.4% |
 | dashql-pack | 581/621 | 93.6%, up from about 20% |
 
@@ -167,11 +167,10 @@ Largest gaps:
 
 | File | Uncovered | Coverage |
 |---|---|---|
-| dashql-cli/src/agent/server.rs | 124 | 91.9% |
+| dashql-cli/src/agent/server.rs | 115 | 87.6% |
 | dashql-cli/src/main.rs | 110 | 0.0% |
-| dashql-cli/src/lint_files.rs | 43 | 40.3% |
-| dashql-cli/src/agent/harness.rs | 40 | 92.6% |
-| dashql-cli/src/inputs.rs | 37 | 63.0% |
+| dashql-cli/src/agent/harness.rs | 39 | 88.0% |
+| dashql-cli/src/agent/client.rs | 23 | 89.9% |
 | dashql-native-proxy/src/http_stream_manager.rs | 22 | 88.0% |
 | dashql-pack/src/main.rs | 17 | 22.7% |
 | dashql-native-proxy/src/grpc_proxy.rs | 15 | 93.0% |
@@ -194,6 +193,12 @@ Bugs found by these tests in `dashql-native-proxy`:
 - Binary initial metadata of a gRPC call was forwarded raw instead of base64-encoded like binary trailers, and dropped when
   it held control characters.
 
+Bug found by these tests in `dashql-cli`:
+
+- `dashql lint <dir>` followed symlinks without a guard. A link back to a parent directory repeated the scripts on every
+  level, until the kernel gave up after 40 links, and two such links in a directory never finished. Links back into a
+  directory that is being searched are now skipped.
+
 ## Known issues
 
 - `^` is the exponentiation of Hyper and PostgreSQL, but its parse tree operator is `XOR` (`ExpressionOperator::XOR`, `BinaryExpressionFunction::XOR`). The formatter prints it as `^` again; the name is wrong in the FlatBuffers schema.
@@ -209,5 +214,4 @@ Bugs found by these tests in `dashql-native-proxy`:
 1. Remove unreachable `format_unimplemented` fallbacks or turn them into `unreachable!`, so formatter coverage reflects reachable code. Error-recovered parse trees reach some of them, check those first.
 2. Add error-recovery inputs for `parser/mod.rs`, `driver.rs` and `value.rs`.
 3. Decide on qualified generic type names in the grammar (see known issues).
-4. Test `lint_files.rs` and `inputs.rs` of `dashql-cli`.
-5. Remove the unreachable `Star` and `Index` name components of `read_cursor_name_path` and the `select distinct` branch without targets, or document why they stay.
+4. Remove the unreachable `Star` and `Index` name components of `read_cursor_name_path` and the `select distinct` branch without targets, or document why they stay.
