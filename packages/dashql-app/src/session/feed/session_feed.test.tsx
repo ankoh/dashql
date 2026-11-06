@@ -285,8 +285,7 @@ describe('V2 session feed rows', () => {
         expect(input.value).toBe('01_alpha.sql');
         input.value = 'report';
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
-        act(() => input.dispatchEvent(new FocusEvent('focusout', { bubbles: true })));
-        expect(props.onRename).toHaveBeenCalledWith('01_alpha.sql', 'report');
+        expect(props.onRename).toHaveBeenCalledExactlyOnceWith('01_alpha.sql', 'report');
     });
 
     it('mentions the script with a tag that shows its current name', () => {

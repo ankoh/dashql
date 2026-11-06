@@ -147,26 +147,32 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
 function ScriptStorageView(props: { scriptName: string; storage: ScriptStorage; onClose: () => void }) {
     const path = React.useMemo(() => props.storage.resolvePath(), [props.storage]);
     const inputRef = React.useRef<HTMLInputElement>(null);
-    const cancelRef = React.useRef(false);
+    const skipBlurCommitRef = React.useRef(false);
     React.useEffect(() => {
         if (inputRef.current != null) inputRef.current.value = props.storage.fileName;
     }, [props.storage.fileName]);
-    const commit = (event: React.FocusEvent<HTMLInputElement>) => {
-        if (cancelRef.current) {
-            cancelRef.current = false;
-            return;
-        }
-        const name = event.currentTarget.value.trim();
+    const commit = (input: HTMLInputElement) => {
+        const name = input.value.trim();
         if (name && name !== props.storage.fileName) props.storage.onRename(name);
+    };
+    const commitOnBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+        if (!skipBlurCommitRef.current) commit(event.currentTarget);
+    };
+    // Drop the focus without a commit. blur() fires its event synchronously, and none at all while the
+    // window lacks focus, so the keys cannot leave it to the event to commit or to reset the flag.
+    const blurWithoutCommit = (input: HTMLInputElement) => {
+        skipBlurCommitRef.current = true;
+        input.blur();
+        skipBlurCommitRef.current = false;
     };
     const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
-            event.currentTarget.blur();
+            commit(event.currentTarget);
+            blurWithoutCommit(event.currentTarget);
         } else if (event.key === 'Escape') {
             // Abandon the edit
-            cancelRef.current = true;
             event.currentTarget.value = props.storage.fileName;
-            event.currentTarget.blur();
+            blurWithoutCommit(event.currentTarget);
         }
         event.stopPropagation();
     };
@@ -189,7 +195,7 @@ function ScriptStorageView(props: { scriptName: string; storage: ScriptStorage; 
                     data-testid="script-file-name-input"
                     defaultValue={props.storage.fileName}
                     spellCheck={false}
-                    onBlur={commit}
+                    onBlur={commitOnBlur}
                     onKeyDown={onKeyDown}
                     onPointerDown={event => event.stopPropagation()}
                 />

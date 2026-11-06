@@ -71,6 +71,33 @@ describe('NameInput', () => {
         expect(commitName).toHaveBeenCalledWith('Updated name');
     });
 
+    it('commits on Enter when blur() fires no event, as in a window without focus', () => {
+        const input = nameInput();
+        vi.spyOn(input, 'blur').mockImplementation(() => {});
+        act(() => {
+            input.focus();
+            setInputValue(input, 'Updated name');
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        });
+
+        expect(commitName).toHaveBeenCalledOnce();
+        expect(commitName).toHaveBeenCalledWith('Updated name');
+    });
+
+    it('commits a later edit after Escape when blur() fires no event', () => {
+        const input = nameInput();
+        vi.spyOn(input, 'blur').mockImplementation(() => {});
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+        expect(commitName).not.toHaveBeenCalled();
+
+        act(() => {
+            setInputValue(input, 'Updated name');
+            input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        });
+        expect(commitName).toHaveBeenCalledOnce();
+        expect(commitName).toHaveBeenCalledWith('Updated name');
+    });
+
     it('keeps text-entry keys inside the name input', () => {
         const input = nameInput();
 
