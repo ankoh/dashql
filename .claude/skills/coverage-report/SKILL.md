@@ -44,10 +44,10 @@ bazel test //packages/dashql-app:coverage_chromium
 
 7. Read `bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/coverage_summary.txt` (`coverage.dat` next to
    it is the LCOV). It lists the gaps in logic (`.ts`) and in components (`.tsx`): the outermost functions and blocks that
-   never ran, with `file:first-last` lines and the enclosing function, largest first. Then the files that no test loads,
+   never ran, with `file:first-last` lines and the enclosing function, largest first. Then the files where no line ran,
    then the line coverage per file.
 
 8. Rewrite `docs/reports/dashql_app_coverage_report.md` with today's date, the overall line coverage and the change vs
-   the previous report, the top 20 gaps in logic, the top 15 gaps in components, the files that no test loads, and
+   the previous report, the top 20 gaps in logic, the top 15 gaps in components, the files where no line ran, and
    suggested next tests picked from the gaps. Name the gaps by function, not by percentage.
 

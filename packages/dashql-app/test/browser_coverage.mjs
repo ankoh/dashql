@@ -242,9 +242,9 @@ export function toLcov(lines, prefix) {
     return `${records.join('\n')}\n`;
 }
 
-/// A plain-text summary that points at the next gaps: the largest functions and blocks that never ran in files that
-/// tests load, split into logic (.ts) and components (.tsx), the files that no test loads, and the line coverage of all
-/// files
+/// A plain-text summary that points at the next gaps: the largest functions and blocks that never ran in loaded chunks,
+/// split into logic (.ts) and components (.tsx), the files where no line ran, and the line coverage of all files.
+/// A file where no line ran may well be loaded: a module of function declarations has no line that runs on import.
 export function toSummary({ lines, gaps }) {
     const rows = [...lines].map(([source, sourceLines]) => {
         const found = sourceLines.size;
@@ -255,10 +255,8 @@ export function toSummary({ lines, gaps }) {
     const found = rows.reduce((sum, row) => sum + row.found, 0);
     const hit = rows.reduce((sum, row) => sum + row.hit, 0);
     const percent = (h, f) => (f === 0 ? '100.0' : ((100 * h) / f).toFixed(1));
-    const notLoaded = rows.filter(row => row.hit === 0);
-    const notLoadedSources = new Set(notLoaded.map(row => row.source));
-    const loadedGaps = gaps
-        .filter(gap => !notLoadedSources.has(gap.source))
+    const notRun = rows.filter(row => row.hit === 0);
+    const sortedGaps = [...gaps]
         .sort((l, r) => r.uncoveredLines - l.uncoveredLines || l.source.localeCompare(r.source) || l.startLine - r.startLine);
     const gapTable = (title, selected) => [
         `${title} (${selected.length})`,
@@ -269,11 +267,11 @@ export function toSummary({ lines, gaps }) {
     return [
         `Overall: ${percent(hit, found)}% (${hit} / ${found} lines) in ${rows.length} files`,
         '',
-        ...gapTable('Gaps in logic: functions and blocks of .ts files that never ran', loadedGaps.filter(gap => !gap.source.endsWith('.tsx'))),
-        ...gapTable('Gaps in components: functions and blocks of .tsx files that never ran', loadedGaps.filter(gap => gap.source.endsWith('.tsx'))),
-        `Files that no test loads (${notLoaded.length})`,
+        ...gapTable('Gaps in logic: functions and blocks of .ts files that never ran', sortedGaps.filter(gap => !gap.source.endsWith('.tsx'))),
+        ...gapTable('Gaps in components: functions and blocks of .tsx files that never ran', sortedGaps.filter(gap => gap.source.endsWith('.tsx'))),
+        `Files where no line ran (${notRun.length})`,
         'lines\tfile',
-        ...notLoaded.map(row => `${row.found}\t${row.source}`),
+        ...notRun.map(row => `${row.found}\t${row.source}`),
         '',
         'Line coverage per file',
         'uncovered\thit/found\tcoverage\tfile',
