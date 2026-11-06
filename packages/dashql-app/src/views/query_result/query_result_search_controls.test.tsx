@@ -60,7 +60,8 @@ describe('QueryResultSearchControls', () => {
             />,
         ));
         act(() => button('columns')!.click());
-        act(() => input('columns')!.blur());
+        // blur() fires no event while the window lacks focus
+        act(() => { input('columns')!.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
         expect(input('columns')).toBeNull();
         expect(button('columns')).not.toBeNull();
     });

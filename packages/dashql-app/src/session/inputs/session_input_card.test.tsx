@@ -102,9 +102,9 @@ describe('SessionInputCard', () => {
 
         it('writes it when the control loses the focus', () => {
             render(intervalInput('3 day'));
-            act(() => amount().focus());
             act(() => setInputValue(amount(), '7'));
-            act(() => amount().blur());
+            // blur() fires no event while the window lacks focus
+            act(() => { amount().dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
             expect(onCommit).toHaveBeenCalledTimes(1);
             expect(onCommit).toHaveBeenLastCalledWith('span', "interval '7' day");
             act(() => { vi.advanceTimersByTime(SESSION_INPUT_COMMIT_DELAY_MS); });
