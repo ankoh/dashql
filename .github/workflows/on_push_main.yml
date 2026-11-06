@@ -22,7 +22,7 @@ jobs:
         secrets: inherit
 
     tip:
-        name: Check the tip of main
+        name: Gate latest main
         # Asks after the build and the coverage, a commit that was pushed meanwhile replaces this one.
         # A failed coverage does not hold back the publish.
         if: ${{ !cancelled() && needs.build.result == 'success' }}
