@@ -1,8 +1,8 @@
-diff --git a/src/brush.js b/src/brush.js
-index 4ca42e3..7f6067f 100644
---- a/src/brush.js
-+++ b/src/brush.js
-@@ -276,10 +276,10 @@ function brush(dim) {
+diff --git a/dist/d3-brush.mjs b/dist/d3-brush.mjs
+index 6e120ea..8228875 100644
+--- a/dist/d3-brush.mjs
++++ b/dist/d3-brush.mjs
+@@ -302,10 +302,10 @@ function brush(dim) {
      else {
        group.selectAll(".selection,.handle")
            .style("display", "none")

@@ -88,10 +88,10 @@ npm.npm_translate_lock(
     ],
     pnpm_lock = "//:pnpm-lock.yaml",
     patches = {
-        "d3-brush@3.0.0": ["//bazel/patches:d3-brush@3.0.0.patch"],
+        "d3-brush@3.0.1": ["//bazel/patches:d3-brush@3.0.1.patch"],
     },
     patch_args = {
-        "d3-brush@3.0.0": ["-p1"],
+        "d3-brush@3.0.1": ["-p1"],
     },
     # Electron 42 no longer downloads its binary in a postinstall script but on the first run of its bin.
     # The Electron tests start dist/ directly from the read-only node_modules, so download it at install.
