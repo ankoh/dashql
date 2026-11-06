@@ -338,6 +338,10 @@ fn build_version_badge(version: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::git_info::GitVersion;
+    use crate::release_version::build_release_version;
+    use crate::test_s3::{FakeS3, TempDir};
+    use semver::Version;
 
     #[test]
     fn builds_version_badge() {
@@ -362,6 +366,247 @@ mod tests {
         assert_eq!(content_type("channels/canary/badge.svg"), "image/svg+xml");
         assert_eq!(content_type("latest-mac.yml"), "application/yaml");
         assert_eq!(content_type("canary.json"), "application/json");
+    }
+
+    const IMMUTABLE: &str = "public, max-age=31536000, immutable";
+    const ARM64_DMG: &str = "DashQL-arm64.dmg";
+    const ARM64_ZIP: &str = "DashQL-arm64.zip";
+
+    /// The artifacts of a release in a directory
+    fn release_args(dir: &TempDir, iteration: u32) -> ReleaseArgs {
+        let manifest = |zip: &str| format!("version: 1.2.3\nfiles:\n  - url: {zip}\n    sha512: abc\npath: {zip}\nsha512: abc\n");
+        let git_version = GitVersion {
+            description: format!("v1.2.3-{iteration}-gabc1234"),
+            major: 1,
+            minor: 2,
+            patch: 3,
+            iteration,
+            short_hash: "abc1234".to_string(),
+        };
+        ReleaseArgs {
+            remote_base_url: "https://get.example".to_string(),
+            release_version: build_release_version(&git_version).unwrap(),
+            git_repo: GitInfo { version: git_version },
+            macos_arm64_dmg_path: dir.write(ARM64_DMG, b"arm64 dmg"),
+            macos_arm64_zip_path: dir.write(ARM64_ZIP, b"arm64 zip"),
+            macos_arm64_zip_blockmap_path: dir.write("DashQL-arm64.zip.blockmap", b"arm64 blockmap"),
+            macos_arm64_update_manifest_path: dir.write("arm64.yml", manifest(ARM64_ZIP).as_bytes()),
+            macos_x64_dmg_path: dir.write("DashQL-x64.dmg", b"x64 dmg"),
+            macos_x64_zip_path: dir.write("DashQL-x64.zip", b"x64 zip"),
+            macos_x64_zip_blockmap_path: dir.write("DashQL-x64.zip.blockmap", b"x64 blockmap"),
+            macos_x64_update_manifest_path: dir.write("x64.yml", manifest("DashQL-x64.zip").as_bytes()),
+        }
+    }
+
+    /// The mutable pointers that clients read to find a release
+    fn is_channel_pointer(key: &str) -> bool {
+        !key.starts_with("releases/")
+    }
+
+    #[tokio::test]
+    async fn builds_the_paths_of_a_stable_release() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+
+        assert_eq!(release.release_metadata.version, Version::new(1, 2, 3));
+        assert_eq!(release.release_metadata_path, "releases/1.2.3/metadata.json");
+        assert_eq!(release.release_metadata.update_manifest_url, "https://get.example/releases/1.2.3/update.json");
+        assert_eq!(release.release_metadata.git_commit_url, "https://github.com/ankoh/dashql/tree/abc1234");
+        assert_eq!(release.channel_metadata_paths, vec!["stable.json", "canary.json"]);
+        assert_eq!(release.channel_update_manifest_paths, vec!["stable-update.json", "canary-update.json"]);
+
+        let mut uploads: Vec<&String> = release.file_uploads.keys().collect();
+        uploads.sort();
+        assert_eq!(uploads, vec![
+            "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
+            "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
+            "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
+            "releases/1.2.3/macos/x64/DashQL-x64.dmg",
+            "releases/1.2.3/macos/x64/DashQL-x64.zip",
+            "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
+        ]);
+        assert_eq!(release.release_metadata.bundles[0].url, "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.dmg");
+        assert_eq!(release.release_metadata.bundles.len(), 2);
+        assert_eq!(release.release_update_manifest.platforms[&BundleTarget {platform: Platform::Darwin, arch: Architecture::Aarch64}].url,
+            "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.zip");
+        assert_eq!(release.release_update_manifest.platforms[&BundleTarget {platform: Platform::Darwin, arch: Architecture::X86_64}].url,
+            "https://get.example/releases/1.2.3/macos/x64/DashQL-x64.zip");
+    }
+
+    #[tokio::test]
+    async fn a_stable_release_also_moves_the_canary_feeds() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let feeds: Vec<&str> = release.electron_channel_manifests.iter().map(|(path, _)| path.as_str()).collect();
+        assert_eq!(feeds, vec![
+            "channels/stable/macos/arm64/latest-mac.yml",
+            "channels/canary/macos/arm64/latest-mac.yml",
+            "channels/stable/macos/x64/latest-mac.yml",
+            "channels/canary/macos/x64/latest-mac.yml",
+        ]);
+    }
+
+    #[tokio::test]
+    async fn a_canary_release_leaves_the_stable_channel_alone() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 4)).await.unwrap();
+        assert_eq!(release.release_metadata.version.to_string(), "1.2.4-dev.4");
+        assert_eq!(release.channel_metadata_paths, vec!["canary.json"]);
+        assert_eq!(release.channel_update_manifest_paths, vec!["canary-update.json"]);
+        assert!(release.electron_channel_manifests.iter().all(|(path, _)| path.starts_with("channels/canary/")));
+    }
+
+    #[tokio::test]
+    async fn the_electron_feed_points_to_the_versioned_artifacts() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let (_, manifest) = &release.electron_channel_manifests[0];
+        let manifest = String::from_utf8(manifest.clone()).unwrap();
+        let artifact = "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.zip";
+        assert!(manifest.contains(&format!("  - url: {artifact}\n")), "{manifest}");
+        assert!(manifest.contains(&format!("\npath: {artifact}\n")), "{manifest}");
+        // The checksums of the file stay valid
+        assert_eq!(manifest.matches("sha512: abc").count(), 2);
+    }
+
+    #[tokio::test]
+    async fn refuses_a_release_with_a_missing_artifact() {
+        let dir = TempDir::new();
+        let mut args = release_args(&dir, 0);
+        args.macos_x64_zip_blockmap_path = dir.path().join("missing.blockmap");
+        let error = Release::build(args).await.unwrap_err();
+        assert!(error.to_string().contains("missing Electron artifact"), "{error}");
+    }
+
+    #[tokio::test]
+    async fn refuses_a_release_with_a_missing_update_manifest() {
+        let dir = TempDir::new();
+        let mut args = release_args(&dir, 0);
+        args.macos_arm64_update_manifest_path = dir.path().join("missing.yml");
+        assert!(Release::build(args).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn publishes_every_file_of_a_release() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        release.publish(&s3.client()).await.unwrap();
+
+        assert_eq!(s3.object_keys(), vec![
+            "canary-update.json",
+            "canary.json",
+            "channels/canary/badge.svg",
+            "channels/canary/macos/arm64/latest-mac.yml",
+            "channels/canary/macos/x64/latest-mac.yml",
+            "channels/stable/macos/arm64/latest-mac.yml",
+            "channels/stable/macos/x64/latest-mac.yml",
+            "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
+            "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
+            "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
+            "releases/1.2.3/macos/x64/DashQL-x64.dmg",
+            "releases/1.2.3/macos/x64/DashQL-x64.zip",
+            "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
+            "releases/1.2.3/metadata.json",
+            "releases/1.2.3/update.json",
+            "stable-update.json",
+            "stable.json",
+        ]);
+        assert_eq!(s3.object("releases/1.2.3/macos/arm64/DashQL-arm64.dmg").unwrap(), b"arm64 dmg");
+        let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
+        assert_eq!(pointer["version"], "1.2.3");
+        assert_eq!(s3.object("stable.json"), s3.object("releases/1.2.3/metadata.json"));
+        assert_eq!(s3.object("canary-update.json"), s3.object("releases/1.2.3/update.json"));
+    }
+
+    #[tokio::test]
+    async fn moves_the_channel_pointers_only_after_every_immutable_file() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        release.publish(&s3.client()).await.unwrap();
+
+        let requests = s3.requests();
+        let first_pointer = requests.iter().position(|request| is_channel_pointer(&request.key)).unwrap();
+        assert!(requests[first_pointer..].iter().all(|request| is_channel_pointer(&request.key)));
+        assert_eq!(requests[first_pointer..].len(), 9);
+    }
+
+    #[tokio::test]
+    async fn caches_versioned_files_forever_and_revalidates_pointers() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        release.publish(&s3.client()).await.unwrap();
+
+        let header = |key: &str, name: &str| s3.requests().iter()
+            .find(|request| request.key == key && (request.method == "PUT" || request.query.contains_key("uploads")))
+            .and_then(|request| request.headers.get(name).cloned());
+        for key in ["releases/1.2.3/metadata.json", "releases/1.2.3/macos/arm64/DashQL-arm64.dmg"] {
+            assert_eq!(header(key, "cache-control").as_deref(), Some(IMMUTABLE), "{key}");
+        }
+        for key in ["stable.json", "canary-update.json", "channels/canary/badge.svg", "channels/stable/macos/x64/latest-mac.yml"] {
+            assert_eq!(header(key, "cache-control").as_deref(), Some("no-cache"), "{key}");
+        }
+        assert_eq!(header("channels/canary/badge.svg", "content-type").as_deref(), Some("image/svg+xml"));
+        assert_eq!(header("channels/stable/macos/x64/latest-mac.yml", "content-type").as_deref(), Some("application/yaml"));
+        assert_eq!(header("stable.json", "content-type").as_deref(), Some("application/json"));
+    }
+
+    #[tokio::test]
+    async fn a_failed_artifact_upload_leaves_the_channels_alone() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        s3.deny_upload("releases/1.2.3/macos/x64/DashQL-x64.zip");
+        assert!(release.publish(&s3.client()).await.is_err());
+        assert!(s3.object_keys().iter().all(|key| !is_channel_pointer(key)), "{:?}", s3.object_keys());
+        assert_eq!(s3.object("releases/1.2.3/metadata.json"), None);
+    }
+
+    #[tokio::test]
+    async fn a_failed_metadata_upload_leaves_the_channels_alone() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        s3.deny_upload("releases/1.2.3/update.json");
+        assert!(release.publish(&s3.client()).await.is_err());
+        assert!(s3.object_keys().iter().all(|key| !is_channel_pointer(key)), "{:?}", s3.object_keys());
+    }
+
+    #[tokio::test]
+    async fn reports_a_failed_channel_upload_after_trying_the_others() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 0)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        s3.deny_upload("canary.json");
+        assert!(release.publish(&s3.client()).await.is_err());
+        assert!(s3.object("stable.json").is_some());
+        assert_eq!(s3.object("canary.json"), None);
+    }
+
+    #[tokio::test]
+    async fn uploads_large_artifacts_in_parts_of_five_megabytes() {
+        let s3 = FakeS3::start().await;
+        let dir = TempDir::new();
+        let content = vec![7u8; 5 * 1024 * 1024 + 1];
+        let path = dir.write("large.dmg", &content);
+        multipart_upload(&s3.client(), &path, "releases/1.2.3/large.dmg").await.unwrap();
+
+        let parts: Vec<(String, usize)> = s3.requests().iter()
+            .filter(|request| request.query.contains_key("partNumber"))
+            .map(|request| (request.query["partNumber"].clone(), request.body.len()))
+            .collect();
+        assert_eq!(parts, vec![("1".to_string(), 5 * 1024 * 1024), ("2".to_string(), 1)]);
+        assert_eq!(s3.object("releases/1.2.3/large.dmg").unwrap(), content);
+    }
+
+    #[tokio::test]
+    async fn fails_for_an_artifact_that_vanished() {
+        let s3 = FakeS3::start().await;
+        let dir = TempDir::new();
+        assert!(multipart_upload(&s3.client(), &dir.path().join("gone.dmg"), "releases/gone.dmg").await.is_err());
+        assert_eq!(s3.object("releases/gone.dmg"), None);
     }
 }
 

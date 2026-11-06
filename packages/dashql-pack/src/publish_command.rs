@@ -88,18 +88,7 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
     log::info!("r2 access key id: **** (from environment)");
     log::info!("r2 secret access key: **** (from environment)");
 
-    // Build r2 client
-    let r2_credentials = remote_access.get_credentials();
-    let r2_region = aws_config::Region::new("auto");
-    let r2_credential_provider =
-        aws_credential_types::provider::SharedCredentialsProvider::new(r2_credentials);
-    let r2_config = aws_sdk_s3::Config::builder()
-        .behavior_version_latest()
-        .endpoint_url(remote_access.r2_endpoint)
-        .region(r2_region)
-        .credentials_provider(r2_credential_provider)
-        .build();
-    let r2_client = aws_sdk_s3::Client::from_conf(r2_config);
+    let r2_client = remote_access.r2_client();
 
     // Write the metadata (if requested)
     if let Some(path) = &args.save_summary {
@@ -128,4 +117,103 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
         rel.publish(&r2_client).await?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_s3::{git_repository, FakeS3, TempDir, ENV_LOCK};
+
+    /// The arguments of the publish workflow for a repository and its artifacts
+    fn args(source: &TempDir, artifacts: &TempDir, extra: &[String]) -> PublishArgs {
+        let manifest = b"version: 1.2.3\npath: DashQL.zip\n";
+        let mut argv: Vec<String> = vec!["publish".into(), "--source-dir".into(), source.path().display().to_string()];
+        for (flag, name, content) in [
+            ("--macos-arm64-dmg-path", "arm64.dmg", &b"dmg"[..]),
+            ("--macos-arm64-zip-path", "arm64.zip", &b"zip"[..]),
+            ("--macos-arm64-zip-blockmap-path", "arm64.zip.blockmap", &b"map"[..]),
+            ("--macos-arm64-update-manifest-path", "arm64.yml", &manifest[..]),
+            ("--macos-x64-dmg-path", "x64.dmg", &b"dmg"[..]),
+            ("--macos-x64-zip-path", "x64.zip", &b"zip"[..]),
+            ("--macos-x64-zip-blockmap-path", "x64.zip.blockmap", &b"map"[..]),
+            ("--macos-x64-update-manifest-path", "x64.yml", &manifest[..]),
+        ] {
+            argv.push(flag.into());
+            argv.push(artifacts.write(name, content).display().to_string());
+        }
+        argv.extend_from_slice(extra);
+        PublishArgs::try_parse_from(argv).unwrap()
+    }
+
+    fn point_to(s3: &FakeS3) {
+        std::env::set_var("DASHQL_GET_R2_ENDPOINT", s3.endpoint());
+        std::env::set_var("DASHQL_GET_R2_ACCESS_KEY_ID", "key");
+        std::env::set_var("DASHQL_GET_R2_SECRET_ACCESS_KEY", "secret");
+    }
+
+    #[tokio::test]
+    async fn publishes_a_tagged_commit_to_the_stable_channel() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 0);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        publish(args(&source, &artifacts, &[])).await.unwrap();
+        let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
+        assert_eq!(pointer["version"], "1.2.3");
+    }
+
+    #[tokio::test]
+    async fn publishes_a_later_commit_to_the_canary_channel_only() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 2);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        publish(args(&source, &artifacts, &[])).await.unwrap();
+        let pointer: serde_json::Value = serde_json::from_slice(&s3.object("canary.json").unwrap()).unwrap();
+        assert_eq!(pointer["version"], "1.2.4-dev.2");
+        assert_eq!(s3.object("stable.json"), None);
+    }
+
+    #[tokio::test]
+    async fn a_dry_run_writes_the_summary_and_uploads_nothing() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 0);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        let summary = artifacts.path().join("summary.json");
+        let extra = ["--dry-run".to_string(), "--save-summary".to_string(), summary.display().to_string()];
+        publish(args(&source, &artifacts, &extra)).await.unwrap();
+        assert!(s3.requests().is_empty());
+
+        let summary: serde_json::Value = serde_json::from_slice(&std::fs::read(summary).unwrap()).unwrap();
+        assert_eq!(summary["version"], "1.2.3");
+        assert_eq!(summary["release_metadata_url"], "https://get.dashql.app/releases/1.2.3/metadata.json");
+        assert_eq!(summary["update_manifest_url"], "https://get.dashql.app/releases/1.2.3/update.json");
+        assert_eq!(summary["bundle_macos_dmg_url"], "https://get.dashql.app/releases/1.2.3/macos/arm64/arm64.dmg");
+    }
+
+    #[tokio::test]
+    async fn stops_before_uploading_without_a_version() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        assert!(publish(args(&source, &artifacts, &[])).await.is_err());
+        assert!(s3.requests().is_empty());
+    }
+
+    #[tokio::test]
+    async fn needs_credentials() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 0);
+        std::env::remove_var("DASHQL_GET_R2_SECRET_ACCESS_KEY");
+        std::env::set_var("DASHQL_GET_R2_ENDPOINT", "http://127.0.0.1:1");
+        std::env::set_var("DASHQL_GET_R2_ACCESS_KEY_ID", "key");
+        let error = publish(args(&source, &artifacts, &[])).await.unwrap_err();
+        assert!(error.to_string().contains("DASHQL_GET_R2_SECRET_ACCESS_KEY"), "{error}");
+    }
 }

@@ -42,6 +42,18 @@ impl RemoteAccess {
         })
     }
 
+    /// Build the client of the release bucket
+    pub fn r2_client(&self) -> aws_sdk_s3::Client {
+        let credentials = aws_credential_types::provider::SharedCredentialsProvider::new(self.get_credentials());
+        let config = aws_sdk_s3::Config::builder()
+            .behavior_version_latest()
+            .endpoint_url(&self.r2_endpoint)
+            .region(aws_config::Region::new("auto"))
+            .credentials_provider(credentials)
+            .build();
+        aws_sdk_s3::Client::from_conf(config)
+    }
+
     pub fn get_credentials(&self) -> aws_credential_types::Credentials {
         aws_credential_types::Credentials::new(
             self.r2_access_key_id.clone(),

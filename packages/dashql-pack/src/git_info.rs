@@ -130,3 +130,44 @@ pub fn collect_git_info(source_dir: &PathBuf) -> Result<GitInfo> {
     let version = describe_git_version(&source_dir)?;
     Ok(GitInfo { version })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_s3::{git_repository, TempDir};
+
+    #[test]
+    fn describes_a_tagged_commit() {
+        let dir = TempDir::new();
+        git_repository(dir.path(), "v1.2.3", 0);
+        let info = collect_git_info(&dir.path().to_path_buf()).unwrap();
+        assert_eq!((info.version.major, info.version.minor, info.version.patch, info.version.iteration), (1, 2, 3, 0));
+        assert_eq!(info.version.short_hash.len(), 7);
+        assert!(info.version.description.starts_with("v1.2.3-0-g"), "{}", info.version.description);
+        assert_eq!(info.version.to_string(), "1.2.3");
+    }
+
+    #[test]
+    fn counts_the_commits_after_the_tag() {
+        let dir = TempDir::new();
+        git_repository(dir.path(), "v1.2.3", 4);
+        let version = describe_git_version(&dir.path().to_path_buf()).unwrap();
+        assert_eq!(version.iteration, 4);
+        assert_eq!(version.as_semver().to_string(), "1.2.4-dev.4");
+    }
+
+    #[test]
+    fn fails_outside_of_a_repository() {
+        let dir = TempDir::new();
+        let error = describe_git_version(&dir.path().to_path_buf()).err().unwrap();
+        assert!(error.to_string().contains("failed to open git repository"), "{error}");
+    }
+
+    #[test]
+    fn fails_for_a_tag_that_is_no_version() {
+        let dir = TempDir::new();
+        git_repository(dir.path(), "nightly", 1);
+        let error = describe_git_version(&dir.path().to_path_buf()).err().unwrap();
+        assert!(error.to_string().contains("not matching version regex"), "{error}");
+    }
+}

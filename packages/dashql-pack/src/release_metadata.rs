@@ -272,4 +272,53 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn bundle_targets_keep_their_names() -> Result<()> {
+        for platform in [Platform::Darwin, Platform::Linux, Platform::Windows] {
+            for arch in [Architecture::X86_64, Architecture::Aarch64] {
+                let target = BundleTarget { platform, arch };
+                let text = serde_json::to_string(&target)?;
+                assert_eq!(serde_json::from_str::<BundleTarget>(&text)?, target);
+            }
+        }
+        let target = BundleTarget { platform: Platform::Darwin, arch: Architecture::Aarch64 };
+        assert_eq!(serde_json::to_string(&target)?, "\"darwin-aarch64\"");
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_unknown_bundle_targets() {
+        for text in ["\"darwin\"", "\"darwin-x86_64-extra\"", "\"beos-x86_64\"", "\"darwin-riscv\""] {
+            assert!(serde_json::from_str::<BundleTarget>(text).is_err(), "{text}");
+        }
+    }
+
+    #[test]
+    fn metadata_round_trips_with_its_date_and_version() -> Result<()> {
+        let mut metadata = ReleaseMetadata::default();
+        metadata.version = Version::parse("1.2.4-dev.3")?;
+        metadata.pub_date = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).unwrap();
+        metadata.bundles.push(Bundle {
+            url: "https://get.example/a.dmg".to_string(),
+            signature: None,
+            name: "a.dmg".to_string(),
+            bundle_type: BundleType::Dmg,
+            targets: vec![BundleTarget { platform: Platform::Darwin, arch: Architecture::X86_64 }],
+        });
+        let text = serde_json::to_string(&metadata)?;
+        assert!(text.contains("\"version\":\"1.2.4-dev.3\""), "{text}");
+        assert!(text.contains("\"pub_date\":\"2026-01-02T03:04:05Z\""), "{text}");
+        let parsed: ReleaseMetadata = serde_json::from_str(&text)?;
+        assert_eq!(parsed.version, metadata.version);
+        assert_eq!(parsed.pub_date, metadata.pub_date);
+        assert_eq!(parsed.bundles[0].targets[0], metadata.bundles[0].targets[0]);
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_a_date_of_another_format() {
+        let manifest = r#"{ "version": "1.0.0", "notes": "", "pub_date": "2026-01-02", "platforms": {} }"#;
+        assert!(serde_json::from_str::<UpdateManifest>(manifest).is_err());
+    }
 }

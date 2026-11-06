@@ -55,4 +55,28 @@ mod tests {
         assert_eq!(electron_channel_manifest("stable", "arm64"), "channels/stable/macos/arm64/latest-mac.yml");
         assert_eq!(electron_channel_manifest("canary", "x64"), "channels/canary/macos/x64/latest-mac.yml");
     }
+
+    fn release(version: &str, channel: ReleaseChannel) -> ReleaseVersion {
+        ReleaseVersion { version: semver::Version::parse(version).unwrap(), id: uuid::Uuid::nil(), channel }
+    }
+
+    #[test]
+    fn a_stable_release_moves_both_channels() {
+        let paths = derive_remote_paths(&release("1.2.3", ReleaseChannel::Stable));
+        assert_eq!(paths.channel, "stable");
+        assert_eq!(paths.channel_metadata, vec!["stable.json", "canary.json"]);
+        assert_eq!(paths.channel_update, vec!["stable-update.json", "canary-update.json"]);
+        assert_eq!(paths.release_directory, "releases/1.2.3");
+        assert_eq!(paths.release_metadata, "releases/1.2.3/metadata.json");
+        assert_eq!(paths.release_update, "releases/1.2.3/update.json");
+    }
+
+    #[test]
+    fn a_canary_release_only_moves_its_channel() {
+        let paths = derive_remote_paths(&release("1.2.4-dev.3", ReleaseChannel::Canary));
+        assert_eq!(paths.channel, "canary");
+        assert_eq!(paths.channel_metadata, vec!["canary.json"]);
+        assert_eq!(paths.channel_update, vec!["canary-update.json"]);
+        assert_eq!(paths.release_directory, "releases/1.2.4-dev.3");
+    }
 }

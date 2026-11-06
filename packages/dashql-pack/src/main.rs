@@ -7,6 +7,8 @@ mod remote_access;
 mod remote_paths;
 mod serde_date;
 mod serde_version;
+#[cfg(test)]
+mod test_s3;
 mod vacuum_command;
 
 use anyhow::Result;
@@ -63,4 +65,31 @@ async fn main() -> Result<()> {
         CliCommand::Vacuum(args) => vacuum(args).await?,
     };
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_the_subcommands() {
+        assert!(matches!(Cli::try_parse_from(["pack", "version"]).unwrap().command, CliCommand::Version));
+        assert!(matches!(Cli::try_parse_from(["pack", "vacuum", "--dry-run"]).unwrap().command, CliCommand::Vacuum(_)));
+        assert!(Cli::try_parse_from(["pack"]).is_err());
+        assert!(Cli::try_parse_from(["pack", "unknown"]).is_err());
+    }
+
+    #[test]
+    fn publish_needs_every_artifact() {
+        assert!(Cli::try_parse_from(["pack", "publish", "--source-dir", "."]).is_err());
+    }
+
+    #[test]
+    fn prints_the_version_of_a_repository() {
+        let dir = test_s3::TempDir::new();
+        test_s3::git_repository(dir.path(), "v1.2.3", 0);
+        print_version(dir.path()).unwrap();
+        let empty = test_s3::TempDir::new();
+        assert!(print_version(empty.path()).is_err());
+    }
 }
