@@ -96,10 +96,11 @@ describe('Hyper log metrics', () => {
         logMetrics = createLogMetrics(3_600_000);
     });
 
-    function createLogMetrics(pollIntervalMs: number): HyperLogMetrics {
+    function createLogMetrics(pollIntervalMs: number, openRetryMs?: number): HyperLogMetrics {
         return new HyperLogMetrics({
             logger: new TestLogger(),
             pollIntervalMs,
+            openRetryMs,
             sink: async () => database!,
             prepareDatabase: async connectionId => {
                 let path = databases.get(connectionId);
@@ -332,7 +333,11 @@ describe('Hyper log metrics', () => {
     }, 60_000);
 
     it('leaves the monitor unavailable, but readable, while the reads of the log keep timing out', async () => {
-        logMetrics!.watch({ database: timingOut(database!, () => true), sessions: true }, scoped('connection'));
+        // Every read fails here, so the pauses cannot change the outcome. The other tests keep the pauses of the app, they
+        // let a read of the log that really timed out on a loaded machine recover.
+        await logMetrics!.stop();
+        logMetrics = createLogMetrics(3_600_000, 1);
+        logMetrics.watch({ database: timingOut(database!, () => true), sessions: true }, scoped('connection'));
         expect(await logMetrics!.opened(scoped('connection'))).toBe(false);
         const state = logMetrics!.state.current.get(scoped('connection'))!;
         expect(state.status).toBe(HyperLogStatus.Unavailable);

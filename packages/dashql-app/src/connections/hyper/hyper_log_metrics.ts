@@ -352,6 +352,8 @@ export interface HyperLogMetricsOptions {
     logger: Logger;
     /// The polling interval in milliseconds
     pollIntervalMs?: number;
+    /// The pause between the attempts to open an extract while reading the log times out, in milliseconds
+    openRetryMs?: number;
     /// Prepare the monitoring database of a connection, e.g. create the folder of the connection, and return its path
     prepareDatabase: (connectionId: string) => Promise<string>;
     /// The embedded Hyper that holds the monitoring databases, its compute database stages the transfers
@@ -469,7 +471,7 @@ export class HyperLogMetrics {
             } catch (error) {
                 if (attempt < OPEN_ATTEMPTS && isHyperLogFlushTimeout(error)) {
                     this.options.logger.info('Opening the Hyper log extract timed out', { connectionId, attempt: String(attempt) }, LOG_CTX);
-                    await new Promise(resolve => setTimeout(resolve, OPEN_RETRY_MS));
+                    await new Promise(resolve => setTimeout(resolve, this.options.openRetryMs ?? OPEN_RETRY_MS));
                     if (this.monitors.get(connectionId) !== monitor) return null;
                     continue;
                 }

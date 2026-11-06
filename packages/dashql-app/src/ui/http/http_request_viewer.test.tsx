@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,9 +59,24 @@ describe('HttpRequestViewer', () => {
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         act(() => root.unmount());
         container.remove();
     });
+
+    /// Wait for a rendered state under the fake clock. React renders the state of a promise callback in a task of its
+    /// scheduler, which runs on messages and not on the clock, so this counts messages. vi.waitFor needs real timers.
+    async function untilRendered(rendered: () => void): Promise<void> {
+        for (let turn = 1; ; ++turn) {
+            await flushContinuousUpdates();
+            try {
+                rendered();
+                return;
+            } catch (error) {
+                if (turn >= 1000) throw error;
+            }
+        }
+    }
 
     function render(requestLog: HttpRequestLog | null = log) {
         act(() => root.render(<HttpRequestViewer onClose={onClose} log={requestLog} />));
@@ -161,19 +176,25 @@ describe('HttpRequestViewer', () => {
         const copy = () => container.querySelector<HTMLButtonElement>('[data-testid="http-request-copy-curl"]')!;
         const icon = () => copy().querySelector('use')?.getAttribute('xlink:href') ?? '';
         expect(icon()).toMatch(/#copy_16$/);
+        vi.useFakeTimers();
         await act(async () => copy().click());
         expect(writeText).toHaveBeenCalledOnce();
         expect(writeText.mock.calls[0][0]).toContain("curl 'https://trino.example/v1/statement'");
         expect(writeText.mock.calls[0][0]).toContain('Bearer secret');
         // Copying does not open the details
         expect(selected()).toBe(-1);
-        await act(async () => {
-            await vi.waitFor(() => expect(icon()).toMatch(/#check_16$/));
+        await untilRendered(() => expect(icon()).toMatch(/#check_16$/));
+        // The check mark stays before the two seconds have passed
+        act(() => { vi.advanceTimersByTime(1999); });
+        await flushContinuousUpdates();
+        expect(icon()).toMatch(/#check_16$/);
+        // It goes back to the copy icon after two seconds. An effect starts the timer after the render, it may start
+        // only now.
+        await untilRendered(() => {
+            act(() => { vi.advanceTimersByTime(2000); });
+            expect(icon()).toMatch(/#copy_16$/);
         });
-        // The check mark goes back to the copy icon after two seconds
-        await act(async () => {
-            await vi.waitFor(() => expect(icon()).toMatch(/#copy_16$/), { timeout: 3000 });
-        });
+        vi.useRealTimers();
 
         // A clipboard that refuses keeps the icon
         writeText.mockRejectedValueOnce(new Error('denied'));

@@ -7,7 +7,7 @@ import { processTask } from '../../compute/computation_scheduler.js';
 import { SCHEDULE_TASK, type ComputationAction } from '../../compute/computation_state.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { SNIPPET_DATASETS_FOLDER } from './snippet.js';
 import { getBundledSnippets, snippetText } from './snippet_registry.js';
@@ -34,6 +34,16 @@ describe('Snippet execution', () => {
     }, 60_000);
 
     afterAll(async () => {
+        // The last detach writes every table of the database, the results of all snippets and their analyses. They can go
+        // first. Only for speed, a table that stays behind is written.
+        const tables = await connection?.query(`
+            SELECT c.relname AS name
+            FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relkind = 'r' AND n.nspname = 'public'
+        `).catch(() => null);
+        for (const { name } of tables ?? []) {
+            await connection!.execute(`DROP TABLE ${quoteIdentifier(String(name))}`).catch(() => {});
+        }
         await connection?.close();
         await database?.terminate();
         if (!sharedClient) await client?.terminate();
