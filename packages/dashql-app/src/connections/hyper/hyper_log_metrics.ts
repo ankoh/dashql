@@ -14,6 +14,7 @@ import {
     HyperDBLogSource,
     HyperLogUnreadableError,
     hyperLogQueryEndsTable,
+    isHyperLogFlushTimeout,
 } from '../../platform/hyperdb/hyperdb_log_extract.js';
 import { quoteIdentifier } from '../../platform/hyperdb/hyperdb_wasm.js';
 import type { Logger } from '../../platform/logger/logger.js';
@@ -28,6 +29,9 @@ const LOG_CTX = 'hyper_log_metrics';
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
 /// The alias of the monitoring database of a connection on the connections of its monitor
 const MONITORING_ALIAS = 'monitoring';
+/// The attempts to open an extract while reading the log times out, e.g. on a Hyper under load, and the pause between them
+const OPEN_ATTEMPTS = 5;
+const OPEN_RETRY_MS = 1_000;
 /// The time that the extract reaches back, twice the largest window of the connection metrics
 const RETENTION_MS = 2 * 60 * 60_000;
 /// The finished queries that the extract keeps at most, e.g. after a burst of queries. The oldest are deleted first.
@@ -373,6 +377,8 @@ export interface HyperLogMetricsOptions {
 /// - Resource samples are only logged with log_resource_usage_interval set.
 /// - A Hyper that does not let the app read its log, e.g. without experimental_hyper_introspection_functions, leaves the
 ///   monitor unavailable. The connection itself works as before, the monitor does not retry.
+/// - A read of the log that times out on a Hyper under load is retried, see isHyperLogFlushTimeout(). The extract then
+///   falls behind until the reads succeed again, also without a notice in the state.
 export class HyperLogMetrics {
     /// The states of the extracts by connection
     readonly state = new Store<ReadonlyMap<string, HyperLogState>>(new Map());
@@ -415,7 +421,13 @@ export class HyperLogMetrics {
     async poll(connectionId: string): Promise<void> {
         const log = await this.monitors.get(connectionId)?.log;
         if (log == null) return;
-        this.transferred(connectionId, await log.extract.poll());
+        try {
+            this.transferred(connectionId, await log.extract.poll());
+        } catch (error) {
+            // The next poll reads the same events
+            if (!isHyperLogFlushTimeout(error)) throw error;
+            this.options.logger.warn('Polling the Hyper log timed out', { error: stringifyError(error) }, LOG_CTX);
+        }
     }
 
     /// Stop the monitors of all connections except the given ones, e.g. of deleted connections.
@@ -449,7 +461,31 @@ export class HyperLogMetrics {
 
     /// Open the extract of a connection and its reader, and start polling.
     /// A failure leaves the connection unavailable with the error, e.g. for a Hyper that does not let the app read its log.
+    /// A read of the log that times out is tried again first.
     private async open(connectionId: string, monitor: HyperLogMonitor): Promise<OpenHyperLog | null> {
+        for (let attempt = 1; ; ++attempt) {
+            try {
+                return await this.openOnce(connectionId, monitor);
+            } catch (error) {
+                if (attempt < OPEN_ATTEMPTS && isHyperLogFlushTimeout(error)) {
+                    this.options.logger.info('Opening the Hyper log extract timed out', { connectionId, attempt: String(attempt) }, LOG_CTX);
+                    await new Promise(resolve => setTimeout(resolve, OPEN_RETRY_MS));
+                    if (this.monitors.get(connectionId) !== monitor) return null;
+                    continue;
+                }
+                if (error instanceof HyperLogUnreadableError) {
+                    this.options.logger.info('The Hyper does not let the app read its log', { error: stringifyError(error) }, LOG_CTX);
+                } else {
+                    this.options.logger.warn('Opening the Hyper log extract failed', { error: stringifyError(error) }, LOG_CTX);
+                }
+                if (this.monitors.get(connectionId) === monitor) this.fail(connectionId, error);
+                return null;
+            }
+        }
+    }
+
+    /// Open the extract of a connection and its reader, and start polling. A failure closes them again and throws.
+    private async openOnce(connectionId: string, monitor: HyperLogMonitor): Promise<OpenHyperLog | null> {
         const { origin } = monitor;
         const source = new HyperDBLogSource(metricsSourceQuery(connectionId), origin.sessions);
         let extract: HyperDBIncrementalExtract | null = null;
@@ -473,6 +509,8 @@ export class HyperLogMetrics {
                     // A Hyper that was terminated, e.g. by a hand-over to another tab, fails every poll.
                     // Setting up the connection again starts a new monitor.
                     this.options.logger.warn('Polling the Hyper log failed', { error: stringifyError(error) }, LOG_CTX);
+                    // The next poll reads the events of a read that timed out
+                    if (isHyperLogFlushTimeout(error)) return;
                     if (this.monitors.get(connectionId) === monitor) this.fail(connectionId, error);
                 },
             });
@@ -487,13 +525,7 @@ export class HyperLogMetrics {
         } catch (error) {
             await reader?.close().catch(() => {});
             await extract?.stop().catch(() => {});
-            if (error instanceof HyperLogUnreadableError) {
-                this.options.logger.info('The Hyper does not let the app read its log', { error: stringifyError(error) }, LOG_CTX);
-            } else {
-                this.options.logger.warn('Opening the Hyper log extract failed', { error: stringifyError(error) }, LOG_CTX);
-            }
-            if (this.monitors.get(connectionId) === monitor) this.fail(connectionId, error);
-            return null;
+            throw error;
         }
         if (this.monitors.get(connectionId) !== monitor) {
             await reader.close().catch(() => {});

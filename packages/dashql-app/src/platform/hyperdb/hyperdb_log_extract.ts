@@ -127,8 +127,19 @@ export class HyperLogUnreadableError extends Error {
     }
 }
 
+/// Did a read of the log time out? hyper_log() flushes the structured log when a query is planned, which times out on a
+/// Hyper under load. The log can be read, a later read succeeds.
+export function isHyperLogFlushTimeout(error: unknown): boolean {
+    return (error instanceof Error ? error.message : String(error)).includes('Timed out while flushing the structured log');
+}
+
 /// The time zones are offset from UTC by multiples of 15 minutes
 const CLOCK_OFFSET_STEP_MS = 15 * 60_000;
+/// How long readClockOffset() waits for the end of its marker query in the log, e.g. on a Hyper under load
+const CLOCK_QUERY_LOG_TIMEOUT_MS = 10_000;
+/// The pauses between the reads of readClockOffset(), they double up to the maximum
+const CLOCK_QUERY_LOG_FIRST_RETRY_MS = 50;
+const CLOCK_QUERY_LOG_MAX_RETRY_MS = 1_000;
 
 /// The Hyper log as the source of an incremental extract, the relation `log` of its queries.
 ///
@@ -165,6 +176,7 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
         try {
             await connection.query(`EXPLAIN (FORMAT SCHEMA) SELECT * FROM hyper_log(current_session := true, last_log_scope := ${this.scoped})`);
         } catch (error) {
+            if (isHyperLogFlushTimeout(error)) throw error;
             throw new HyperLogUnreadableError(error instanceof Error ? error.message : String(error));
         }
     }
@@ -178,20 +190,36 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
     ///
     /// The offset is the logged end of a marker query read as UTC, minus its end on the clock of the app, rounded to
     /// 15 minutes. It tolerates a clock skew and a latency of a few minutes. A scoped source reads the marker from the
-    /// scope of a new connection, otherwise it reads the whole retained log once.
-    async readClockOffset(connection: HyperDBSourceConnection): Promise<number> {
+    /// scope of a new connection, otherwise it reads the whole retained log.
+    ///
+    /// Hyper may return the result of a query before it logs the end of the query, and a read may time out, so the read
+    /// is repeated until the log holds the marker.
+    async readClockOffset(connection: HyperDBSourceConnection, timeoutMs = CLOCK_QUERY_LOG_TIMEOUT_MS): Promise<number> {
         const marker = `dashql_clock_${crypto.randomUUID().replace(/-/g, '_')}`;
         await connection.query(`SELECT 1 AS ${marker}`);
         const endedAt = Date.now();
-        const result = await connection.query(`
-            SELECT (extract(epoch from max(ts)) * 1000)::double precision AS ended_at
-            FROM hyper_log(current_session := ${this.scoped}, last_log_scope := ${this.scoped})
-            WHERE k = 'query-end' AND v::json->>'query-trunc' LIKE ${quoteLiteral(`%${marker}%`)}
-        `);
-        const loggedAt = result.getChild('ended_at')?.get(0);
-        if (loggedAt == null) throw new Error('the Hyper log does not hold the end of the clock query');
-        // + 0 turns the -0 of a log just before the clock of the app into 0
-        return Math.round((Number(loggedAt) - endedAt) / CLOCK_OFFSET_STEP_MS) * CLOCK_OFFSET_STEP_MS + 0;
+        const deadline = performance.now() + timeoutMs;
+        for (let retryMs = CLOCK_QUERY_LOG_FIRST_RETRY_MS; ; retryMs = Math.min(retryMs * 2, CLOCK_QUERY_LOG_MAX_RETRY_MS)) {
+            let loggedAt: unknown = null;
+            try {
+                const result = await connection.query(`
+                    SELECT (extract(epoch from max(ts)) * 1000)::double precision AS ended_at
+                    FROM hyper_log(current_session := ${this.scoped}, last_log_scope := ${this.scoped})
+                    WHERE k = 'query-end' AND v::json->>'query-trunc' LIKE ${quoteLiteral(`%${marker}%`)}
+                `);
+                loggedAt = result.getChild('ended_at')?.get(0);
+            } catch (error) {
+                if (!isHyperLogFlushTimeout(error)) throw error;
+            }
+            if (loggedAt != null) {
+                // + 0 turns the -0 of a log just before the clock of the app into 0
+                return Math.round((Number(loggedAt) - endedAt) / CLOCK_OFFSET_STEP_MS) * CLOCK_OFFSET_STEP_MS + 0;
+            }
+            if (performance.now() + retryMs > deadline) {
+                throw new Error(`the Hyper log does not hold the end of the clock query after ${timeoutMs}ms`);
+            }
+            await new Promise(resolve => setTimeout(resolve, retryMs));
+        }
     }
 
     /// The source query over the scoped or watermarked log
