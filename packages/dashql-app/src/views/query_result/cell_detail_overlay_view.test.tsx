@@ -158,6 +158,26 @@ describe('CellDetailOverlay', () => {
         await expectEditorText(JSON.stringify({ id: '7n', tags: ['a'] }, null, 2));
     });
 
+    it('keeps the picked format when the core arrives after the pick', async () => {
+        let provideCore!: (instance: dashql.DashQL) => void;
+        vi.mocked(dashql.DashQL.create).mockReturnValue(new Promise(resolve => { provideCore = resolve; }));
+        root = createTestRoot();
+        await act(async () => {
+            root!.render(<LoggerProvider><DashQLCoreProvider><CellDetailOverlay {...props({ structuredValue: { id: 7 } })} /></DashQLCoreProvider></LoggerProvider>);
+        });
+        expect(selectedFormat()).toBe('Structured');
+        selectFormat('Raw');
+        expect(selectedFormat()).toBe('Raw');
+
+        // The overlay detects the formats again once it has the core
+        await act(async () => {
+            await vi.waitFor(() => expect(dashql.DashQL.create).toHaveBeenCalled());
+            provideCore(core);
+            await new Promise(resolve => setTimeout(resolve, 50));
+        });
+        expect(selectedFormat()).toBe('Raw');
+    });
+
     it('renders the plans of engines and falls back for plans that do not load', async () => {
         await render(props({ formattedValue: PLAN }));
         expect(formats()).toEqual(['Raw', 'Structured', 'Plan']);

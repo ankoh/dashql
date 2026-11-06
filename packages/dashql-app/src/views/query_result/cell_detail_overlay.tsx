@@ -225,6 +225,10 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     const [formats, setFormats] = React.useState<DetectedFormats>(EMPTY_FORMATS);
     const [selectedFormat, setSelectedFormat] = React.useState<FormatMode>(FormatMode.Raw);
     const [expanded, setExpanded] = React.useState(false);
+    const value = props.structuredValue ?? props.formattedValue;
+    // The value that the user picked a format for. A value starts with its default format, but the formats are detected
+    // again when the core arrives, which must not undo a pick.
+    const pickedValue = React.useRef<typeof value | undefined>(undefined);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -239,14 +243,17 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
             ? detectFormats(core, props.formattedValue, keywordCase)
             : detectStructuredFormats(props.structuredValue);
         setFormats(f);
-        setSelectedFormat(pickDefaultMode(f));
+        setSelectedFormat(selected => pickedValue.current === value && getAvailableModes(f).includes(selected)
+            ? selected
+            : pickDefaultMode(f));
     }, [props.formattedValue, props.structuredValue, core, keywordCase]);
 
     const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
 
     const onSegmentChange = React.useCallback((index: number) => {
+        pickedValue.current = value;
         setSelectedFormat(availableModes[index]);
-    }, [availableModes]);
+    }, [availableModes, value]);
 
     useKeyEvents(React.useMemo(() => [
         {
