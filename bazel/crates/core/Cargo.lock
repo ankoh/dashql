@@ -858,9 +858,9 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "org-eclipse-elk-alg-common"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b19d24c9e81f12eb847298b103e379d41dbe426f839e3d742d5b4ab7dbb694b0"
+checksum = "6441a6e67e83d5799ef3d6dedd914993e3426a297894197b08b1057137dc7030"
 dependencies = [
  "org-eclipse-elk-core",
  "org-eclipse-elk-graph",
@@ -869,9 +869,9 @@ dependencies = [
 
 [[package]]
 name = "org-eclipse-elk-alg-layered"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f258a779f770653655a9c173a82d8db54a0c30b8c98766781d4ad106bdd452cd"
+checksum = "232028cdf2a795afdf08d115158adcf2096630fe06643e19a60345a4c93d435d"
 dependencies = [
  "org-eclipse-elk-alg-common",
  "org-eclipse-elk-core",
@@ -882,18 +882,18 @@ dependencies = [
 
 [[package]]
 name = "org-eclipse-elk-core"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8002ab4315d01bc1fd228e5c79ed022af94299ebb3df6b2d9e965cb0e348ed43"
+checksum = "74979fa4d8b08c9aaa0cc00b99aef7a4907b4b97b9681cc677cf476f134012a9"
 dependencies = [
  "org-eclipse-elk-graph",
 ]
 
 [[package]]
 name = "org-eclipse-elk-graph"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67bd179462ab23433f7a47cb30db163ec0e2c8e515377b8b6f761d7883907aba"
+checksum = "7267640e79baa15e0d2cdce015800d8fcd4ce600f080bcd220b5494ced2d7a86"
 dependencies = [
  "parking_lot",
  "rustc-hash",

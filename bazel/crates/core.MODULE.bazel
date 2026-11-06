@@ -31,9 +31,9 @@ crate_core.spec(package = "tokio-tungstenite", default_features = False, feature
 crate_core.spec(package = "libtest-mimic", version = "=0.8.2")
 
 # The Eclipse Layout Kernel ported to Rust, the layered layout of the dataflow canvas (//packages/dashql-dataflow)
-crate_core.spec(package = "org-eclipse-elk-alg-layered", version = "=0.12.1")
-crate_core.spec(package = "org-eclipse-elk-core", version = "=0.12.1")
-crate_core.spec(package = "org-eclipse-elk-graph", version = "=0.12.1")
+crate_core.spec(package = "org-eclipse-elk-alg-layered", version = "=0.12.2")
+crate_core.spec(package = "org-eclipse-elk-core", version = "=0.12.2")
+crate_core.spec(package = "org-eclipse-elk-graph", version = "=0.12.2")
 
 # Lexer generator of the SQL scanner (dashql_parser::scanner)
 crate_core.spec(package = "logos", version = "=0.16.1")
