@@ -15,9 +15,10 @@ on:
                 type: boolean
                 default: false
 
+# Overlapping publishes wait for each other: a cancelled publish would mark the run of a good commit as cancelled
 concurrency:
     group: ${{ github.workflow }}
-    cancel-in-progress: true
+    queue: max
 
 jobs:
     desktop_release:
