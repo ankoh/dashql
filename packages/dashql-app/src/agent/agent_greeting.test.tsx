@@ -23,10 +23,4 @@ describe('Agent greeting', () => {
         expect(container.querySelector('svg[aria-label="Agent"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="question"]')?.getAttribute('aria-label')).toBe('Where do we start?');
     });
-
-    it('shows only the question without the face', () => {
-        act(() => root.render(<AgentGreeting showFace={false} face={{ label: 'Agent' }} questionTestId="question" greetings={['Where do we start?']} />));
-        expect(container.querySelector('svg')).toBeNull();
-        expect(container.querySelector('[data-testid="question"]')).not.toBeNull();
-    });
 });

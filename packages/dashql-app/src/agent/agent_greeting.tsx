@@ -24,15 +24,11 @@ interface AgentGreetingProps {
     questionElement?: 'h1' | 'p';
     /// The questions, the greetings of the agent by default
     greetings?: readonly string[];
-    /// Show the face, without it only the question is shown and rotates on its own
-    showFace?: boolean;
 }
 
 /// The time to type a character, jittered so the typing feels like a hand
 const TYPE_MS = 14;
 const TYPE_JITTER_MS = 10;
-/// How often the question rotates without a face, about a cycle of the face
-const ROTATE_WITHOUT_FACE_MS = 10000;
 /// The time to delete a character
 const DELETE_MS = 8;
 
@@ -66,14 +62,6 @@ export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
         }
     }, [greetings.length, reducedMotion]);
 
-    // Without a face, the question rotates on its own
-    const showFace = props.showFace ?? true;
-    React.useEffect(() => {
-        if (showFace) return;
-        const timer = setInterval(() => onMorph(AgentFaceMorphEvent.Leaving), ROTATE_WITHOUT_FACE_MS);
-        return () => clearInterval(timer);
-    }, [showFace, onMorph]);
-
     // Type or delete the next character
     React.useEffect(() => {
         if (reducedMotion) {
@@ -102,7 +90,7 @@ export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
     const questionClassName = props.questionClassName == null ? styles.question : `${styles.question} ${props.questionClassName}`;
     return (
         <>
-            {showFace && <AgentFace {...props.face} onMorph={onMorph} />}
+            <AgentFace {...props.face} onMorph={onMorph} />
             <Question className={questionClassName} data-testid={props.questionTestId} aria-label={chars.join('')}>
                 {/* Every question takes the cell invisibly, the widest one sizes it so the face does not move */}
                 {greetings.map(text => (

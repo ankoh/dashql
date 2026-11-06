@@ -823,7 +823,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             {landing && (
                 <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
                     <AgentGreeting
-                        showFace={config?.settings?.agentFace !== false}
                         face={landingFace}
                         questionClassName={styles.feed_landing_question}
                         questionTestId="feed-landing-question" />

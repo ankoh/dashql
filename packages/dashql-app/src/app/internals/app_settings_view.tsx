@@ -19,7 +19,6 @@ import { ColorScheme, useColorSchemeSetting } from '../../config/color_scheme.js
 
 /// The boolean settings that the panel toggles directly
 type ToggleSettingKey =
-    | 'agentFace'
     | 'narrowScreenLayout'
     | 'macWindowLayout'
     | 'scriptDebugMode'
@@ -60,11 +59,11 @@ export function AppSettings(props: { onClose: () => void; }) {
     const [isClearing, setIsClearing] = React.useState(false);
     const [isRestarting, setIsRestarting] = React.useState(false);
 
-    /// Toggle a setting, an unset setting has its default
-    const toggleSetting = React.useCallback((key: ToggleSettingKey, defaultValue: boolean) => {
+    /// Toggle a setting, an unset setting is off
+    const toggleSetting = React.useCallback((key: ToggleSettingKey) => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
-            settings: { ...(value.settings ?? {}), [key]: !(value.settings?.[key] ?? defaultValue) },
+            settings: { ...(value.settings ?? {}), [key]: !value.settings?.[key] },
         }));
     }, [reconfigure]);
     // The embedded database reads the backend when it starts, the app restarts to apply it.
@@ -169,7 +168,7 @@ export function AppSettings(props: { onClose: () => void; }) {
     }, [storageReader, queryResultCache, logger]);
 
     // A row with the name of a boolean setting and its switch
-    const toggle = (key: ToggleSettingKey, name: string, defaultValue: boolean = false) => {
+    const toggle = (key: ToggleSettingKey, name: string) => {
         const id = `app-setting-${key}`;
         return (
             <React.Fragment key={key}>
@@ -179,8 +178,8 @@ export function AppSettings(props: { onClose: () => void; }) {
                 <div className={styles.setting_switch}>
                     <ToggleSwitch
                         size="medium"
-                        checked={config?.settings?.[key] ?? defaultValue}
-                        onClick={() => toggleSetting(key, defaultValue)}
+                        checked={config?.settings?.[key] ?? false}
+                        onClick={() => toggleSetting(key)}
                         disabled={config == null}
                         aria-labelledby={id}
                     />
@@ -257,7 +256,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                             ))}
                         </SegmentedControl>
                     </div>
-                    {toggle('agentFace', 'Agent Face', true)}
                     <div id="app-setting-keyword-case" className={styles.setting_name}>
                         SQL Keyword Case
                     </div>

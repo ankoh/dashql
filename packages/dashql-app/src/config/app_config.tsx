@@ -33,9 +33,6 @@ export interface AppSettings {
     flavor?: string;
     /// The color scheme of the app, the one of the OS if unset
     colorScheme?: 'light' | 'dark';
-    /// Show the animated agent face next to the question of an empty session, only the question without.
-    /// Shown unless disabled.
-    agentFace?: boolean;
     /// The sessions whose scripts agents may read, edit and run through the local agent server
     agentSessions?: string[];
     /// The port of the local agent server, the build's default if unset
