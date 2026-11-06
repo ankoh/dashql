@@ -71,7 +71,7 @@ async function setup(
 
 describe('Trino OAuth setup', () => {
     afterEach(() => {
-        globalThis.dashqlElectron = undefined;
+        delete globalThis.dashqlElectron;
     });
 
     it('authorizes through the loopback server with the configured scopes', async () => {

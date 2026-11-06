@@ -19,7 +19,7 @@ async function readAll(iterator: AsyncIterator<Uint8Array>): Promise<string[]> {
 
 describe('NativeGrpcClient', () => {
     afterEach(() => {
-        globalThis.dashqlElectron = undefined;
+        delete globalThis.dashqlElectron;
     });
 
     it('opens a channel with the endpoint, the TLS files and the request metadata', async () => {

@@ -25,7 +25,7 @@ describe('ElectronPlatformEventListener', () => {
     afterEach(() => {
         listener?.dispose();
         listener = null;
-        globalThis.dashqlElectron = undefined;
+        delete globalThis.dashqlElectron;
     });
 
     it('dispatches the initial and later deep links and unsubscribes on dispose', async () => {

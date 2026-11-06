@@ -16,7 +16,7 @@ function pickFolder(folder: string | null) {
 const fakeWriter = () => ({ pause: vi.fn(), resume: vi.fn(), flush: vi.fn(async () => { }) });
 
 afterEach(() => {
-    globalThis.dashqlElectron = undefined;
+    delete globalThis.dashqlElectron;
 });
 
 describe('relocateSessionToNative', () => {

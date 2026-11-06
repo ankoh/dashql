@@ -33,7 +33,7 @@ const queryParam = (query: string) => buf.create(hyper.QueryParamSchema, { query
 
 describe('NativeHyperDatabaseClient', () => {
     afterEach(() => {
-        globalThis.dashqlElectron = undefined;
+        delete globalThis.dashqlElectron;
     });
 
     it('executes a query with the attached databases and parameters and reads the Arrow batches', async () => {
