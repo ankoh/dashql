@@ -291,7 +291,7 @@ async function runNativeAddonTest(): Promise<void> {
             received.url = request.url ?? "";
             response.writeHead(206, {
                 "content-type": "application/octet-stream",
-                "dashql-test-header": "loopback",
+                "x-test-header": "loopback",
             });
             response.write(Buffer.from([1, 2, 3, 4]));
             response.end(Buffer.from([5, 6, 7, 8]));
@@ -414,6 +414,7 @@ async function runNativeAddonTest(): Promise<void> {
             removedStatus: removed.status,
             streamBody: [...streamed.body],
             streamEvent: headers.get("dashql-batch-event"),
+            streamHeader: headers.get("x-test-header"),
             streamStatus: streamed.status,
         };
         console.log(JSON.stringify(output));
@@ -421,7 +422,7 @@ async function runNativeAddonTest(): Promise<void> {
             output.receivedUrl === "/stream-test?token=loopback" &&
             Buffer.compare(received.body, requestBody) === 0 && streamed.status === 206 &&
             Buffer.compare(Buffer.from(streamed.body), Buffer.from([1, 2, 3, 4, 5, 6, 7, 8])) === 0 &&
-            headers.get("dashql-test-header") === "loopback" &&
+            headers.get("x-test-header") === "loopback" &&
             headers.get("dashql-batch-event") === "StreamFinished" && removed.status === 200 &&
             grpcServer.requests.length === 2 &&
             grpcServer.requests[0]?.headers["x-test-request"] === "unary" &&
