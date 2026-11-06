@@ -11,40 +11,36 @@ bazel test //packages/dashql-app:coverage_chromium
 ```
 
 The target builds the pages bundle unminified and with source maps (`vite --mode coverage`), records the V8 block
-coverage of the test page and its test frames, and maps it back to the sources (`test/browser_coverage.mjs`). It writes
-`coverage.dat` (LCOV) and `coverage_summary.txt` to `bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/`.
-The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
-function, largest first. Workers are not covered.
+coverage of the test page, its test frames and the real pages of the page tests, and maps it back to the sources
+(`test/browser_coverage.mjs`). It writes `coverage.dat` (LCOV) and `coverage_summary.txt` to
+`bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/`. The summary lists the gaps: the outermost functions
+and blocks that never ran, with their lines and the enclosing function, largest first. Workers are not covered.
 
-**Overall: 87.9% (57,365 / 65,243 lines) in 578 files**, up from 85.3% (55,413 / 64,946 lines in 575 files) earlier on
-2026-11-05, 81.7% at the start of that day and 81.5% on 2026-11-04. The app sources changed between the runs, so not all of
-the difference comes from tests. The latest tests cover session import, the sync of native session folders, the query
-executor, the agent bridge, the shell page and the OAuth redirect page:
-- `SessionImportProvider` 0.3% → 97.8%: portable bundles and native folders, conflicts, connection questions, failures of
-  the writes and the restoration. It takes `reload` and the dependencies of its card as `dependencies`, so the paths that
-  reload the app can run in the test frame.
-- `NativeSessionSync` 14.7% → 98.2%: external changes, local edits while the question is open, connections and script
-  files that a session file brings along, attachments.
-- `QueryExecutorProvider` 53.6% → 93.0%: results, failures, cancellation, the query result cache, profiles.
-- `AgentBridgeProvider` 2.3% → 98.9%: the connection, agent access, the choices of the harness, the turns and their
-  notifications, the commands of the agent, deleted sessions, and browsers that cannot reach the server.
-- `SessionShellPage` → 98.3% (151 uncovered lines before): the real shell Wasm and terminal against a fake query executor,
-  loading and its failures, queries, the result overlay, commands, catalog and connection changes, and the focus. It takes
-  the overlay as a dependency, the overlay has its own tests.
-- `oauth_redirect.tsx` 0% → 100%: both flows, errors of the provider, states that cannot be trusted, callback urls. The
-  page moved out of its entry point, `oauth_redirect_main.tsx`, which is the file a test can't load.
+**Overall: 93.7% (61,186 / 65,309 lines) in 578 files**, up from 87.9% (57,365 / 65,243 lines in 578 files) earlier on
+2026-11-06. Nearly all of the difference comes from the page tests (`test/browser_page_tests.mjs`), which boot the real
+`index.html`, `shell.html`, `demos.html` and `oauth.html`:
+- the app: a query in the composer, the dashboard and its editor overlay, the dataflow canvas and its editor dialog, an edit
+  that survives a reload, the session storage, the navbar, the color scheme, a session opened from its link, and the warning
+  and the drawer of a narrow screen;
+- the shell: a query, its query history, a file mounted with `.fs`, a reset;
+- the demos: the index, the stock analysis on the synthetic feed, the UI foundations, the agent face;
+- the redirect page of OAuth without a provider response.
 
-The earlier tests of 2026-11-05 render these components:
-- `AppSettings`, `StorageBrowserView` (on a mocked OPFS), `QueryCacheView`, `InternalsViewer` with the query history,
-  and `AppSettingsSync`;
-- `Dashboard` (run, rename, delete, renderers, staged changes, keyboard and pointer resize, keyboard drag),
-  `ScriptDiagnosticsButton` and `collectScriptDiagnostics`, `ScriptStatisticsBar`, `TraceLogViewer`, and the save and
-  share overlays of a session;
-- `CellDetailOverlay` with the core, the header plots of the data table, `ColumnAggregationBar` end to end with Hyper
-  and the compute scheduler, `QueryResultActionMenu`, and `scalarFiltersEqual` of the cross filters.
+The folders that were low, before and after:
 
-These components are now at 97% to 100%. `Dashboard` takes its run function and overlays as `dependencies`, like
-`DashboardCard` and `SessionFeed`.
+| Folder | Before | After |
+|---|---|---|
+| `styles` | 0.0% | 100.0% |
+| `demos` | 36.6% | 97.2% |
+| `app` | 63.5% | 92.7% |
+| `shell_app` | 75.9% | 90.2% |
+| `shell` | 82.4% | 93.8% |
+| `session` | 88.5% | 93.7% |
+| `connections` | 90.0% | 93.1% |
+
+These lines ran on the way to the states that the page tests check, and without a console error. Much of the new coverage of
+the demos and the app shell only shows that they render, it does not check their behavior line by line like the tests in the
+test frame.
 
 ## Gaps in logic (`.ts`)
 
@@ -53,55 +49,51 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | Location | Function | Uncovered lines |
 |---|---|---|
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
-| `src/platform/hyperdb/hyperdb_provider_web.ts:148-158` | setupWebHyperDB | 11 |
 | `src/session/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
-| `src/session/scripts/session_scripts.ts:534-543` | reduceScripts | 10 |
-| `src/session/scripts/session_scripts.ts:544-553` | reduceScripts | 10 |
-| `src/session/editor/dashql_completion_hint.ts:215-226` | computeCompletionHintDecorations | 9 |
-| `src/session/editor/dashql_completion_listener.ts:54-64` | handleMousedownEvent | 9 |
+| `src/app/loading/app_setup.ts:189-197` | useAppSetup | 9 |
 | `src/session/inputs/session_inputs.ts:108-116` | collectSessionInputs | 9 |
 | `src/session/scripts/focus.ts:160-168` | deriveFocusFromCompletionCandidates | 9 |
-| `src/session/scripts/session_scripts.ts:554-563` | reduceScripts | 9 |
 | `src/storage/composite_storage_backend.ts:522-536` | loadNativeSession | 9 |
-| `src/storage/opfs_storage_backend.ts:451-460` | updateConnections | 9 |
 | `src/utils/hash_murmur3.ts:54-62` | clone | 9 |
-| `src/connections/embedded_connection.ts:31-38` | useNewSessionConnection | 8 |
-| `src/connections/embedded_connection.ts:41-48` | useEmbeddedConnection | 8 |
-| `src/session/editor/dashql_processor.ts:328-335` | update | 8 |
-| `src/session/editor/dashql_script_references.ts:22-29` | referenceDiagnostics | 8 |
-| `src/session/editor/editor_focus.ts:8-15` | dashqlEditorOf | 8 |
+| `src/platform/process.ts:4-11` | relaunch | 8 |
 | `src/session/inputs/session_inputs.ts:186-193` | sessionInputLiteral | 8 |
-| `src/session/scripts/session_scripts.ts:518-525` | reduceScripts | 8 |
+| `src/shell/api.ts:374-381` | applyCompletion | 8 |
+| `src/shell/api.ts:730-737` | formatElapsed | 8 |
+| `src/storage/session_test_backend.ts:140-147` | renameDataFile | 8 |
+| `src/utils/base64.ts:105-112` | decode | 8 |
+| `src/compute/computation_state.ts:702-708` | reduceComputationState | 7 |
+| `src/compute/tasks/table_aggregation.ts:60-68` | computeTableAggregates | 7 |
+| `src/connections/hyper/hyper_error_info.ts:116-123` | decodeGrpcStatusDetails | 7 |
+| `src/connections/trino/trino_connection_setup.ts:251-257` | setupTrinoConnectionOAuth | 7 |
+| `src/session/dataflow/dataflow_scene.ts:532-538` | buildDataflowScene | 7 |
+| `src/session/editor/dashql_completion_listener.ts:66-73` | handleScrollEvent | 7 |
+| `src/session/editor/dashql_completion_listener.ts:75-82` | handleBlurEvent | 7 |
 
 ## Gaps in components (`.tsx`)
 
 | Location | Function | Uncovered lines |
 |---|---|---|
 | `src/connections/salesforce_connection_settings.tsx:341-477` | SalesforceConnectorSettings | 117 |
-| `src/session/scripts/script_editor.tsx:148-269` | updateEditor | 91 |
-| `src/session/feed/script_entry_header.tsx:49-139` | (anonymous) | 84 |
-| `src/connections/connection_settings_overlay.tsx:35-118` | ConnectionSettingsOverlay | 74 |
-| `src/shell/filesystem_mount_dialog.tsx:109-181` | MountDialog | 69 |
-| `src/demos/stock_analysis/live_board.tsx:100-159` | LiveBoard | 54 |
+| `src/connections/salesforce/salesforce_connection_setup_mock.tsx:29-137` | setupSalesforceConnection | 91 |
 | `src/connections/hyper/hyper_log_metrics_provider.tsx:100-156` | useHyperLogRows | 49 |
-| `src/ui/logger/logger_toast.tsx:68-140` | LoggerToast | 49 |
-| `src/shell/filesystem_dialog.tsx:132-182` | FilesystemDialog | 48 |
+| `src/shell_app/shell_page.tsx:130-180` | authenticate | 48 |
 | `src/ui/json/json_copy_button.tsx:39-92` | click | 43 |
-| `src/app/app_setup_page.tsx:45-87` | AppSetupPage | 41 |
-| `src/session/persistence/session_storage_overlay.tsx:68-114` | SessionStorageViewer | 40 |
-| `src/shell_app/internals.tsx:24-65` | ShellInternalsViewer | 40 |
 | `src/session/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
 | `src/connections/connection_overview_page.tsx:28-63` | ConnectionOverviewPage | 32 |
+| `src/ui/logger/logger_toast.tsx:31-66` | Toast | 32 |
+| `src/query/query_history_viewer.tsx:55-85` | entryToObject | 31 |
+| `src/connections/hyper/hyper_log_dashboard.tsx:424-453` | HyperLogDashboard | 29 |
+| `src/connections/connection_status.tsx:32-66` | - | 28 |
+| `src/session/inputs/session_input_card.tsx:177-205` | SessionInputCard | 27 |
+| `src/ui/version/version_viewer.tsx:176-205` | VersionInfo | 27 |
+| `src/views/visualization/visualization_panel.tsx:30-58` | VisualizationPanel | 26 |
+| `src/ui/version/release_bundle.tsx:20-45` | ReleaseBundle | 25 |
 
-## Files that no test loads
+## Files where no line ran
 
-Mostly entry points and pages: `shell_app/shell_page.tsx` (294 lines), the demo pages
-(`demos/`, 706 with the new agent face page), `shell/filesystem_dialog.tsx` (152),
-`app/loading/shared_session_import.tsx` (142), `app/loading/app_setup.ts` (134),
-`session/scripts/script_editor_dialog.tsx` (126), `app/app.tsx` (122), `shell/filesystem_mount_dialog.tsx` (118),
-`connections/salesforce/salesforce_connection_setup_mock.tsx` (103) and 19 smaller files. `connections/query_viewer.tsx`
-and `views/query_profile/engine_profile_view.tsx` are now loaded by the tests of the internals and the cell detail
-overlay.
+`connections/salesforce/salesforce_connection_setup_mock.tsx` (103) and `platform/process.ts` (8). This list used to be
+called "Files that no test loads", which was not accurate: a loaded module of function declarations has no line that runs on
+import. The gap tables now include these files, too.
 
 ## Bugs found by the new tests
 
@@ -150,11 +142,12 @@ overlay.
 
 ## Suggested next tests
 
-1. `ConnectionSettingsOverlay`, `SalesforceConnectorSettings` and `LoggerToast` as render tests.
-2. `script_entry_header.tsx` and `script_editor_dialog.tsx` of the feed, and `updateEditor` of `ScriptEditor`.
-3. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
+1. `SalesforceConnectorSettings`, as a render test or with the Salesforce mock in a page test.
+2. The remaining paths of the entry points: a session loaded from a shared URL (`shared_session_import.tsx`), a dropped file
+   (`file_dropzone.tsx`), and the login and the shared scripts of `shell_page.tsx`.
+3. The `release_bundle.tsx` part of `VersionInfo`, with a release manifest that lists bundles.
+4. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
    `deriveFocusFromCompletionCandidates` of a session with core Wasm scripts.
-4. `setupWebHyperDB` once a test can fail the engine after it started; it needs the browser Hyper engine.
 
 ## Other findings
 
@@ -168,6 +161,8 @@ overlay.
   fields but lacks `experimental_wasm_backend`, `macWindowLayout`, `navRailWide`, `agentHarness`, `agentModel` and
   `agentEffort`. The app saves them anyway, nothing validates the settings when they are written.
 - With the core loaded, `detectFormats` of the cell detail overlay offers SQL for any text, `hello world` included.
+- `oauth.html` without a `state` shows `Unexpected end of JSON input` under "Authorization Failed": the parser error of the
+  missing state, not a message about the missing provider response.
 
 ## Flaky tests
 
