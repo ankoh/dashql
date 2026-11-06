@@ -3,8 +3,8 @@
 Date: 2026-11-06
 
 Coverage of the TypeScript sources of `packages/dashql-app/src` in the Chromium browser tests (tests and `src/tests/`
-excluded). The coverage workflow uploads it to Coveralls together with the Rust core, which shows the uncovered lines
-of every file.
+excluded). The coverage workflow uploads it to Coveralls together with the Rust core and publishes both to
+[coverage.dashql.app](https://coverage.dashql.app), which show the uncovered lines of every file.
 
 ```bash
 bazel test //packages/dashql-app:coverage_chromium

@@ -6,7 +6,9 @@ siblings), `//packages/dashql-dataflow/...`, `//packages/dashql-parser/...`, `//
 unit tests of `dashql-cli`, `dashql-native-proxy` and `dashql-pack`, instruments those crates except
 `dashql-snapshots`, and uploads Bazel's combined report (`_coverage_report.dat`) to Coveralls. It uploads the LCOV of
 the app's browser tests (`//packages/dashql-app:coverage_chromium`, see `docs/reports/dashql_app_coverage_report.md`)
-with it.
+with it. It also renders both with `genhtml` and deploys the result to [coverage.dashql.app](https://coverage.dashql.app),
+next to the raw tracefiles (`lcov_rust.info`, `lcov_app.info`) and the gaps of the app (`app_gaps.txt`). Coveralls keeps
+the history, the page only shows the latest push to main.
 
 ## Test targets must name their crate
 

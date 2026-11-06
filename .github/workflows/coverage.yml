@@ -66,6 +66,31 @@ jobs:
                     echo '```'
                 } >> "$GITHUB_STEP_SUMMARY"
 
+            - name: Render the coverage report
+              shell: bash
+              env:
+                  COMMIT: ${{ inputs.commit }}
+              run: |
+                # Without --prefix, genhtml strips the prefix of the largest crate and shows the others with absolute paths.
+                # The function rate is left out: the app has no function records, and the Rust ones count every
+                # instantiation of a function on its own.
+                genhtml /tmp/lcov_linux.dat /tmp/lcov_app.dat \
+                    --output-directory /tmp/coverage_site \
+                    --title "DashQL ${COMMIT::7}" \
+                    --prefix "$PWD/packages" \
+                    --hierarchical \
+                    --no-function-coverage
+                cp /tmp/lcov_linux.dat /tmp/coverage_site/lcov_rust.info
+                cp /tmp/lcov_app.dat /tmp/coverage_site/lcov_app.info
+                cp bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/coverage_summary.txt \
+                    /tmp/coverage_site/app_gaps.txt
+
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: coverage_site
+                  path: /tmp/coverage_site/
+                  retention-days: 1
+
             - name: Upload to Coveralls
               uses: coverallsapp/github-action@v2
               with:
@@ -73,3 +98,35 @@ jobs:
                   files: /tmp/lcov_linux.dat /tmp/lcov_app.dat
                   format: lcov
                   flag-name: linux
+
+    coverage_deploy:
+        name: Cloudflare Pages (coverage.dashql.app)
+        needs:
+            - linux_coverage
+        runs-on: ubuntu-26.04
+        # Like the coverage job: a failed run keeps the last good page and does not fail the push
+        continue-on-error: true
+        permissions:
+            contents: read
+        environment:
+            name: cloudflare-pages-coverage
+            url: ${{ steps.deployment.outputs.deployment-url }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: coverage_site
+                  path: ${{ runner.temp }}/artifacts/coverage
+
+            - name: Deploy the coverage report
+              id: deployment
+              uses: cloudflare/wrangler-action@v4
+              with:
+                  apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
+                  accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  workingDirectory: ${{ runner.temp }}
+                  packageManager: npm
+                  command: pages deploy ${{ runner.temp }}/artifacts/coverage --project-name=dashql-coverage --branch=main --commit-hash=${{ inputs.commit }}
