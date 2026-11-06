@@ -47,7 +47,7 @@ bazel build //...
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
-| `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the particle flow shared by the app and the website |
+| `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the particle flow shared by the app and the website, a source package with nothing compiled |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
@@ -120,6 +120,7 @@ bazel test //...
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint` |
+| `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |
@@ -274,11 +275,11 @@ bazel run //packages/dashql-native:dev
 
 Run the last two commands in separate terminals for Electron development.
 
-The dev server reads the tokens and fonts of `packages/dashql-ui/styles` and `packages/dashql-ui/fonts` from their
-sources, an edit updates the page in place without a build or a restart.
+The dev servers of the app and the website read `packages/dashql-ui` from its sources, an edit updates the page in place
+without a build or a restart.
 
 The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
-Bazel builds the shared `@ankoh/dashql-ui` package and the SVG symbols it reads from `bazel-bin`:
+Bazel builds the SVG symbols it reads from `bazel-bin`:
 
 ```bash
 bazel run //packages/dashql-org:dev

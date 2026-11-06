@@ -139,7 +139,7 @@ genrule(
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
             -e "s|__CORE_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-core/dist|g" \
-            -e "s|__UI_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-ui|g" \
+            -e "s|__UI_PATH__|../dashql-ui|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
             -e "s|__SHELL_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.js|g" \
@@ -427,7 +427,6 @@ sh_binary(
     data = [
             ":dev_config",
         "//:node_modules/@ankoh/dashql-core",
-        "//:node_modules/@ankoh/dashql-ui",
         ":dep_protobuf",
         ":dep_jsonschema",
         ":dep_shell_wasm",

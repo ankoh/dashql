@@ -31,10 +31,10 @@
                 "./bazel-bin/packages/dashql-core-js/dist/browser_worker.d.ts"
             ],
             "@ankoh/dashql-ui/particle_flow": [
-                "./bazel-bin/packages/dashql-ui/dist/particle_flow/attach_particle_flow.d.ts"
+                "./packages/dashql-ui/src/particle_flow/attach_particle_flow.ts"
             ],
             "@ankoh/dashql-ui/xcode": [
-                "./bazel-bin/packages/dashql-ui/dist/editor/xcode_palette.d.ts"
+                "./packages/dashql-ui/src/editor/xcode_palette.ts"
             ],
             "@ankoh/dashql-svg-symbols": [
                 "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"

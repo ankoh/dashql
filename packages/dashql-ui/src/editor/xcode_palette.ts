@@ -1,5 +1,8 @@
+import palettes from './xcode_palettes.json' with { type: 'json' };
+
 /// The colors of the Xcode editor themes, shared by the editor of the app (CodeMirror) and the code blocks of the
-/// website (Shiki). The names follow the highlight tags of the app editor.
+/// website (Shiki). The names follow the highlight tags of the app editor. They are plain JSON because Node reads them
+/// when it evaluates the config of the website.
 
 export interface XcodePalette {
     background: string;
@@ -23,40 +26,6 @@ export interface XcodePalette {
     link: string;
 }
 
-export const xcodeLightPalette: XcodePalette = {
-    background: '#fff',
-    foreground: '#3D3D3D',
-    selection: '#BBDFFF',
-    selectionMatch: '#BBDFFF',
-    gutterBackground: '#fff',
-    gutterForeground: '#AFAFAF',
-    lineHighlight: '#d5e6ff69',
-    comment: '#707F8D',
-    keyword: '#aa0d91',
-    typeOperator: '#aa0d91',
-    typeName: '#522BB2',
-    propertyName: '#032f62',
-    string: '#D23423',
-    name: '#032f62',
-    variableName: '#23575C',
-    variableDefinition: '#327A9E',
-    link: '#0e0eff',
-};
+export const xcodeLightPalette: XcodePalette = palettes.light;
 
-export const xcodeDarkPalette: XcodePalette = {
-    background: '#292A30',
-    foreground: '#CECFD0',
-    caret: '#fff',
-    selection: '#727377',
-    selectionMatch: '#727377',
-    lineHighlight: '#ffffff0f',
-    comment: '#7F8C98',
-    keyword: '#FF7AB2',
-    typeName: '#DABAFF',
-    propertyName: '#6BAA9F',
-    string: '#FF8170',
-    name: '#6BAA9F',
-    variableName: '#ACF2E4',
-    variableDefinition: '#6BDFFF',
-    link: '#FF8170',
-};
+export const xcodeDarkPalette: XcodePalette = palettes.dark;

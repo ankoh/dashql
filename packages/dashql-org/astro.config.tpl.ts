@@ -2,11 +2,12 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
-import { realpathSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 // Bazel fills in the paths, they differ between the build in bazel-bin and the dev server in the source tree.
-// The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the app
+// The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the app. A source package: the dev server
+// reads packages/dashql-ui, Vite watches it and updates the page in place.
 const uiPath = resolve(process.cwd(), '__UI_PATH__');
 // The SVG symbols of the brand logos, generated from //packages/dashql-app:svg_logo_files
 const svgSymbolsPath = resolve(process.cwd(), '__SVG_SYMBOLS_PATH__');
@@ -22,8 +23,8 @@ function realpath(path: string): string {
 }
 
 // The code blocks use the Xcode light theme of the app editor, the colors come from @ankoh/dashql-ui.
-// Node loads the palette when it evaluates the config, Vite has nothing to bundle there.
-const { xcodeLightPalette: xcode } = await import(/* @vite-ignore */ join(uiPath, 'dist/editor/xcode_palette.js'));
+// Node reads the palette when it evaluates the config, Vite has nothing to bundle there.
+const xcode = JSON.parse(readFileSync(join(uiPath, 'src/editor/xcode_palettes.json'), 'utf8')).light;
 const xcodeLightTheme = {
     name: 'dashql-xcode-light',
     type: 'light',
@@ -69,12 +70,9 @@ export default defineConfig({
         css: {
             modules: { localsConvention: 'camelCase' },
         },
-        optimizeDeps: {
-            exclude: ['@ankoh/dashql-ui/particle_flow'],
-        },
         resolve: {
             alias: [
-                { find: /^@ankoh\/dashql-ui\/particle_flow$/, replacement: join(uiPath, 'dist/particle_flow/attach_particle_flow.js') },
+                { find: /^@ankoh\/dashql-ui\/particle_flow$/, replacement: join(uiPath, 'src/particle_flow/attach_particle_flow.ts') },
                 { find: /^@ankoh\/dashql-ui\/((fonts|styles)\/.*\.css)$/, replacement: join(uiPath, '$1') },
                 { find: /^@dashql\/svg-symbols$/, replacement: `${svgSymbolsPath}?url` },
                 { find: /^@dashql\/favicons\/(.*)$/, replacement: join(faviconsPath, '$1') },

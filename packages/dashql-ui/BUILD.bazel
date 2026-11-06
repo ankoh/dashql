@@ -3,32 +3,35 @@ load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 
 # Code, tokens and fonts shared by the app (//packages/dashql-app) and the website (//packages/dashql-org).
-# Linked as //:node_modules/@ankoh/dashql-ui. The particle flow imports three, consumers resolve it from the
-# root node_modules, so they have to depend on //:node_modules/three.
+# A source package, nothing is compiled: consumers bundle the TypeScript and the stylesheets themselves.
+# Linked as //:node_modules/@ankoh/dashql-ui, their dev servers read packages/dashql-ui directly. The particle flow
+# imports three, consumers resolve it from the root node_modules, so they have to depend on //:node_modules/three.
 
 package(default_visibility = ["//visibility:public"])
 
+_SOURCES = glob(["src/**/*.json", "src/**/*.ts"])
+
 copy_to_bin(
-    name = "compile_inputs",
-    srcs = glob(["src/**/*.ts"]) + ["package.json", "tsconfig.json"],
+    name = "typecheck_inputs",
+    srcs = _SOURCES + ["package.json", "tsconfig.json"],
 )
 
-typescript_bin.tsc(
-    name = "compile",
-    srcs = [
-        ":compile_inputs",
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.json"],
+    chdir = "packages/dashql-ui",
+    data = [
+        ":typecheck_inputs",
         "//:node_modules/@types/three",
         "//:node_modules/three",
     ],
-    args = ["--project", "tsconfig.json", "--outDir", "dist"],
-    chdir = "packages/dashql-ui",
-    out_dirs = ["dist"],
 )
 
 npm_package(
     name = "npm_package",
     package = "@ankoh/dashql-ui",
-    srcs = [":compile", "package.json"] + glob([
+    srcs = ["package.json"] + _SOURCES + glob([
         "fonts/*.css",
         "fonts/*.ttf",
         "fonts/*.txt",

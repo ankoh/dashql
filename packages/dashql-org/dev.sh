@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the Astro dev server in the source tree, with the node_modules of `pnpm install`.
-# Bazel builds the shared package and the SVG symbols, the generated config points into bazel-bin.
+# The shared package comes from its sources, Bazel builds the SVG symbols and the generated config points to them.
 
 set -euo pipefail
 

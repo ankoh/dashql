@@ -7,9 +7,8 @@
     "types": [],
     "strict": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "rootDir": "src",
-    "outDir": "dist"
+    "resolveJsonModule": true,
+    "noEmit": true
   },
   "include": ["src/**/*.ts"]
 }

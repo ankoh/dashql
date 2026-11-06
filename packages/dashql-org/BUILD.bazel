@@ -57,7 +57,7 @@ genrule(
     srcs = ["astro.config.tpl.ts"],
     outs = ["astro.config.dev.ts"],
     cmd = """
-        sed -e "s|__UI_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-ui|g" \\
+        sed -e "s|__UI_PATH__|../dashql-ui|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-org/dependencies/svg-symbols/symbols.generated.svg|g" \\
             $(location astro.config.tpl.ts) > $@
     """,
@@ -113,7 +113,5 @@ sh_binary(
     data = [
         ":dev_config",
         ":svg_symbols",
-        "//:node_modules/@ankoh/dashql-ui",
-        "//:node_modules/three",
     ],
 )
