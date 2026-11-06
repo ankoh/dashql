@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { createTestHyperDBClient, getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../../platform/hyperdb/hyperdb_wasm.js';
@@ -41,6 +41,26 @@ function sessionless(database: HyperDB): HyperDBSourceDatabase {
     };
 }
 
+/// A Hyper whose reads of the log time out while a test asks for it, like a Hyper under load
+function timingOut(database: HyperDB, timeOut: () => boolean): HyperDBSourceDatabase {
+    return {
+        connect: async options => {
+            const connection = await database.connect(options);
+            return {
+                query: async (sql, abort) => {
+                    if (sql.includes('hyper_log(') && timeOut()) throw new Error('Timed out while flushing the structured log.');
+                    return await connection.query(sql, abort);
+                },
+                execute: (statement, abort) => connection.execute(statement, abort),
+                close: () => connection.close(),
+            };
+        },
+    };
+}
+
+/// How long a test waits for the log. Hyper may log the end of a query after its result, and a read may time out.
+const LOG_WAIT = { timeout: 30_000, interval: 250 };
+
 /// Is a query a statement of the app on the sessions? HyperDB attaches the default database.
 function isSetup(query: HyperQueryEnd): boolean {
     return query.statement === 'ATTACH';
@@ -73,9 +93,13 @@ describe('Hyper log metrics', () => {
         run = crypto.randomUUID();
         databases.clear();
         // Poll explicitly, the timer would race with the assertions
-        logMetrics = new HyperLogMetrics({
+        logMetrics = createLogMetrics(3_600_000);
+    });
+
+    function createLogMetrics(pollIntervalMs: number): HyperLogMetrics {
+        return new HyperLogMetrics({
             logger: new TestLogger(),
-            pollIntervalMs: 3_600_000,
+            pollIntervalMs,
             sink: async () => database!,
             prepareDatabase: async connectionId => {
                 let path = databases.get(connectionId);
@@ -86,7 +110,7 @@ describe('Hyper log metrics', () => {
                 return path;
             },
         });
-    });
+    }
 
     afterEach(async () => {
         await logMetrics?.stop();
@@ -126,15 +150,20 @@ describe('Hyper log metrics', () => {
         await logMetrics!.poll(scoped(connectionId));
     }
 
-    /// Poll the log of a connection until its own queries satisfy a condition, at most for 10s.
-    /// The log may not hold the end of a query yet right after its result, e.g. under the load of CI.
-    async function pollUntil(connectionId: string, done: (own: HyperQueryEnd[]) => boolean): Promise<void> {
-        const deadline = performance.now() + 10_000;
-        await poll(connectionId);
-        while (!done(await ownQueries(connectionId)) && performance.now() < deadline) {
-            await new Promise(resolve => setTimeout(resolve, 250));
+    /// Poll the log of a connection until a check passes, the last failure of the check fails the test.
+    /// One poll is not enough: the log may not hold the end of a query yet right after its result.
+    async function pollUntil(connectionId: string, check: () => Promise<void>): Promise<void> {
+        await vi.waitFor(async () => {
             await poll(connectionId);
-        }
+            await check();
+        }, LOG_WAIT);
+    }
+
+    /// Poll the log of a connection until the extract holds exactly these own queries
+    async function pollUntilOwn(connectionId: string, expected: string[]): Promise<void> {
+        await pollUntil(connectionId, async () => {
+            expect((await ownQueries(connectionId)).map(query => query.query)).toEqual(expected);
+        });
     }
 
     /// The finished queries in the extract of a connection, read like the connection overview
@@ -161,15 +190,14 @@ describe('Hyper log metrics', () => {
         const connection = await connect('connection');
         const before = Date.now();
         await connection.query('SELECT 1 AS before_poll');
-        await poll('connection');
+        await pollUntilOwn('connection', ['SELECT 1 AS before_poll']);
         await connection.query('SELECT 2 AS after_poll');
-        await poll('connection');
-        await poll('connection');
-        const own = await ownQueries('connection');
-        expect(own.map(query => query.query)).toEqual(['SELECT 1 AS before_poll', 'SELECT 2 AS after_poll']);
-        for (const query of own) expect(query.endedAt).toBeGreaterThanOrEqual(before - 1_000);
+        await pollUntilOwn('connection', ['SELECT 1 AS before_poll', 'SELECT 2 AS after_poll']);
+        for (const query of await ownQueries('connection')) expect(query.endedAt).toBeGreaterThanOrEqual(before - 1_000);
         // The reads of the monitor run with its client context
-        expect((await queries('connection')).some(query => query.queryType === 'monitor' && query.query?.includes('hyper_log'))).toBe(true);
+        await pollUntil('connection', async () => {
+            expect((await queries('connection')).some(query => query.queryType === 'monitor' && query.query?.includes('hyper_log'))).toBe(true);
+        });
     }, 60_000);
 
     it('extracts the finished queries of a connection by its client context', async () => {
@@ -184,16 +212,19 @@ describe('Hyper log metrics', () => {
         await expect(first.query('SELECT * FROM query_log_missing_table')).rejects.toThrow();
         await second.query('SELECT 1 AS one');
         await unattributed.query('SELECT 2 AS two');
-        await pollUntil('first', own => own.length >= 2);
-        await pollUntil('second', own => own.length >= 1);
+        await pollUntil('first', async () => {
+            expect(await ownQueries('first')).toHaveLength(2);
+            // The setup of a session runs with its client context
+            expect((await queries('first')).filter(query => isSetup(query) && query.queryType === 'user')).toHaveLength(1);
+        });
+        await pollUntilOwn('second', ['SELECT 1 AS one']);
         const after = Date.now();
 
+        // Not by their order, a query may log its end after the next query started
         const firstQueries = await ownQueries('first');
-        expect(firstQueries.map(query => [query.succeeded, query.queryType, query.sentByApp])).toEqual([
-            [true, 'user', false],
-            [false, 'user', false],
-        ]);
-        const [succeeded, failed] = firstQueries;
+        for (const query of firstQueries) expect([query.queryType, query.sentByApp]).toEqual(['user', false]);
+        const succeeded = firstQueries.find(query => query.succeeded)!;
+        const failed = firstQueries.find(query => !query.succeeded)!;
         expect(succeeded.query).toContain('generate_series');
         expect(succeeded.statement).toBe('SELECT');
         expect(succeeded.rows).toBe(1);
@@ -208,9 +239,6 @@ describe('Hyper log metrics', () => {
             expect(query.endedAt).toBeGreaterThanOrEqual(before - 1_000);
             expect(query.endedAt).toBeLessThanOrEqual(after + 1_000);
         }
-        expect((await ownQueries('second')).map(query => query.query)).toEqual(['SELECT 1 AS one']);
-        // The setup of a session runs with its client context
-        expect((await queries('first')).filter(query => isSetup(query) && query.queryType === 'user')).toHaveLength(1);
     }, 60_000);
 
     it('extracts the queries of pooled connections by their client context', async () => {
@@ -224,15 +252,19 @@ describe('Hyper log metrics', () => {
         await other.query('SELECT 4 AS other_query');
         await other.close();
         await channel.query('SELECT 1 AS one');
-        await poll('connection');
 
-        expect((await ownQueries('connection')).map(query => [query.query, query.sentByApp, query.succeeded])).toEqual([
-            ['SELECT 3 AS sqlframe_query', true, true],
-            ['SELECT * FROM sqlframe_missing_table', true, false],
-            ['SELECT 1 AS one', false, true],
-        ]);
-        // The attaching of the compute database runs with the client context of its session
-        expect((await queries('connection')).filter(query => isSetup(query) && query.queryType === 'sqlframe')).toHaveLength(1);
+        await pollUntil('connection', async () => {
+            // Not by their order, a query may log its end after the next query started
+            const own = (await ownQueries('connection')).map(query => [query.query, query.sentByApp, query.succeeded]);
+            expect(own).toHaveLength(3);
+            expect(own).toEqual(expect.arrayContaining([
+                ['SELECT 3 AS sqlframe_query', true, true],
+                ['SELECT * FROM sqlframe_missing_table', true, false],
+                ['SELECT 1 AS one', false, true],
+            ]));
+            // The attaching of the compute database runs with the client context of its session
+            expect((await queries('connection')).filter(query => isSetup(query) && query.queryType === 'sqlframe')).toHaveLength(1);
+        });
     }, 60_000);
 
     it('reads the processed rows of the queries', async () => {
@@ -240,9 +272,10 @@ describe('Hyper log metrics', () => {
         const connection = await connect('connection');
         await connection.execute('CREATE TABLE log_metrics_scan AS SELECT i FROM generate_series(1, 1000) g(i)');
         await connection.query('SELECT count(*) AS n FROM log_metrics_scan');
-        await poll('connection');
-        const scan = (await queries('connection')).find(query => query.query?.includes('count(*)'));
-        expect(scan?.processedRows).toBe(1000);
+        await pollUntil('connection', async () => {
+            const scan = (await queries('connection')).find(query => query.query?.includes('count(*)'));
+            expect(scan?.processedRows).toBe(1000);
+        });
     }, 60_000);
 
     it('extracts the queries of the own monitor and notifies new rows', async () => {
@@ -251,31 +284,31 @@ describe('Hyper log metrics', () => {
         const connection = await connect('connection');
         const transfers = logMetrics!.state.current.get(scoped('connection'))!.transfers;
         await connection.query('SELECT 1 AS one');
-        await poll('connection');
-        await queries('connection');
-        await poll('connection');
-        await poll('other');
-        expect(logMetrics!.state.current.get(scoped('connection'))!.transfers).toBeGreaterThan(transfers);
-        expect((await ownQueries('connection')).map(query => query.query)).toEqual(['SELECT 1 AS one']);
-        // Every read of the log is read by the next reader. The sink writes the extract.
-        const listed = await queries('connection');
-        const monitor = listed.filter(query => query.queryType === 'monitor');
-        expect(monitor.some(query => query.query?.includes('hyper_log'))).toBe(true);
-        expect(monitor.some(query => query.statement === 'INSERT')).toBe(true);
-        expect(monitor.every(query => query.sentByApp)).toBe(true);
-        // The reads of the extract by the overview are queries of the connection too
-        expect(listed.some(query => query.queryType === 'overview' && query.sentByApp)).toBe(true);
+        await pollUntil('connection', async () => {
+            expect(logMetrics!.state.current.get(scoped('connection'))!.transfers).toBeGreaterThan(transfers);
+            expect((await ownQueries('connection')).map(query => query.query)).toEqual(['SELECT 1 AS one']);
+            // Every read of the log is read by the next reader. The sink writes the extract.
+            const listed = await queries('connection');
+            const monitor = listed.filter(query => query.queryType === 'monitor');
+            expect(monitor.some(query => query.query?.includes('hyper_log'))).toBe(true);
+            expect(monitor.some(query => query.statement === 'INSERT')).toBe(true);
+            expect(monitor.every(query => query.sentByApp)).toBe(true);
+            // The reads of the extract by the overview are queries of the connection too
+            expect(listed.some(query => query.queryType === 'overview' && query.sentByApp)).toBe(true);
+        });
         // The extract of another connection on the same Hyper has its own monitor, but not the queries of the connection
-        const other = await queries('other');
-        expect(other.some(query => query.queryType === 'monitor')).toBe(true);
-        expect(other.some(query => query.query === 'SELECT 1 AS one')).toBe(false);
+        await pollUntil('other', async () => {
+            const other = await queries('other');
+            expect(other.some(query => query.queryType === 'monitor')).toBe(true);
+            expect(other.some(query => query.query === 'SELECT 1 AS one')).toBe(false);
+        });
     }, 60_000);
 
     it('reads the rows after a row of the extract', async () => {
         await watch('connection');
         const connection = await connect('connection');
         await connection.query('SELECT 1 AS one');
-        await poll('connection');
+        await pollUntilOwn('connection', ['SELECT 1 AS one']);
         const { queryEnds, clockOffsetMs } = logMetrics!.state.current.get(scoped('connection'))!;
         const read = async (afterRow: number) => await logMetrics!.query(
             scoped('connection'),
@@ -283,25 +316,65 @@ describe('Hyper log metrics', () => {
         );
         const last = lastExtractRow(await read(0));
         await connection.query('SELECT 2 AS two');
+        await pollUntil('connection', async () => {
+            const next = readQueryEnds(await read(last)).filter(query => query.queryType === 'user' && !isSetup(query));
+            expect(next.map(query => query.query)).toEqual(['SELECT 2 AS two']);
+        });
+    }, 60_000);
+
+    it('opens the extract after a read of the log timed out', async () => {
+        let timeouts = 1;
+        const origin = timingOut(database!, () => timeouts-- > 0);
+        logMetrics!.watch({ database: origin, sessions: true }, scoped('connection'));
+        expect(await logMetrics!.opened(scoped('connection'))).toBe(true);
+        expect(timeouts).toBeLessThan(0);
+        expect(logMetrics!.state.current.get(scoped('connection'))?.status).toBe(HyperLogStatus.Open);
+    }, 60_000);
+
+    it('leaves the monitor unavailable, but readable, while the reads of the log keep timing out', async () => {
+        logMetrics!.watch({ database: timingOut(database!, () => true), sessions: true }, scoped('connection'));
+        expect(await logMetrics!.opened(scoped('connection'))).toBe(false);
+        const state = logMetrics!.state.current.get(scoped('connection'))!;
+        expect(state.status).toBe(HyperLogStatus.Unavailable);
+        expect(state.error?.unreadable).toBe(false);
+        expect(state.error?.message).toContain('Timed out while flushing');
+    }, 60_000);
+
+    it('keeps polling after a read of the log timed out', async () => {
+        await logMetrics!.stop();
+        logMetrics = createLogMetrics(50);
+        let timeouts = 0;
+        logMetrics.watch({ database: timingOut(database!, () => timeouts-- > 0), sessions: true }, scoped('connection'));
+        expect(await logMetrics.opened(scoped('connection'))).toBe(true);
+        const connection = await connect('connection');
+
+        // A poll of the timer times out, and the next one reads the events
+        timeouts = 3;
+        await connection.query('SELECT 1 AS timed_out');
+        await vi.waitFor(async () => {
+            expect((await ownQueries('connection')).map(query => query.query)).toEqual(['SELECT 1 AS timed_out']);
+        }, LOG_WAIT);
+        expect(timeouts).toBeLessThanOrEqual(0);
+        expect(logMetrics.state.current.get(scoped('connection'))?.status).toBe(HyperLogStatus.Open);
+
+        // An explicit poll does not fail either
+        timeouts = 1;
         await poll('connection');
-        const next = readQueryEnds(await read(last)).filter(query => query.queryType === 'user');
-        expect(next.map(query => query.query)).toEqual(['SELECT 2 AS two']);
+        expect(logMetrics.state.current.get(scoped('connection'))?.status).toBe(HyperLogStatus.Open);
     }, 60_000);
 
     it('keeps the extract of a connection across monitors and closes it when forgotten', async () => {
         await watch('connection');
         const connection = await connect('connection');
         await connection.query('SELECT 1 AS before_restart');
-        await poll('connection');
+        await pollUntilOwn('connection', ['SELECT 1 AS before_restart']);
         await logMetrics!.forget(scoped('connection'));
         expect(logMetrics!.state.current.has(scoped('connection'))).toBe(false);
 
         // A new monitor, e.g. of a new app window, continues the extract
         await watch('connection');
         await connection.query('SELECT 2 AS after_restart');
-        await poll('connection');
-        const listed = (await ownQueries('connection')).map(query => query.query);
-        expect(listed).toEqual(['SELECT 1 AS before_restart', 'SELECT 2 AS after_restart']);
+        await pollUntilOwn('connection', ['SELECT 1 AS before_restart', 'SELECT 2 AS after_restart']);
 
         // The forgotten monitor closed the monitoring database, it can be deleted
         await logMetrics!.forget(scoped('connection'));
@@ -346,14 +419,12 @@ describe('Hyper log metrics of resources', () => {
         const { resourceMetrics, clockOffsetMs } = logMetrics.state.current.get('connection')!;
         const readSamples = async () => readResourceSamples(await logMetrics!.query('connection', resourceSamplesQuery(resourceMetrics!, clockOffsetMs!, { afterRow: 0, since: before })));
         // Poll until the first sample since the start of the test
-        const deadline = performance.now() + 10_000;
-        let samples = await readSamples();
-        while (samples.length === 0) {
-            if (performance.now() > deadline) throw new Error('the extract holds no resource sample after 10s');
-            await new Promise(resolve => setTimeout(resolve, 250));
-            await logMetrics.poll('connection');
+        let samples: Awaited<ReturnType<typeof readSamples>> = [];
+        await vi.waitFor(async () => {
+            await logMetrics!.poll('connection');
             samples = await readSamples();
-        }
+            expect(samples.length, 'the resource samples in the extract').toBeGreaterThan(0);
+        }, LOG_WAIT);
         const after = Date.now();
         for (const sample of samples) {
             expect(sample.sampledAt).toBeGreaterThanOrEqual(before - 1_000);
@@ -439,13 +510,14 @@ describe('Hyper log metrics without the log settings', () => {
         logMetrics!.watch({ database, sessions: true }, 'connection');
         expect(await logMetrics!.opened('connection')).toBe(true);
         expect(logMetrics!.state.current.get('connection')?.resourceUsageLogged).toBeNull();
-        await logMetrics!.poll('connection');
-
-        const state = logMetrics!.state.current.get('connection')!;
-        expect(state.status).toBe(HyperLogStatus.Open);
-        expect(state.error).toBeNull();
-        expect(state.resourceUsageLogged).toBe(false);
-        // The queries are still extracted, e.g. of the monitor itself
-        expect((await logMetrics!.query('connection', queryEndsQuery(state.queryEnds!, state.clockOffsetMs!))).numRows).toBeGreaterThan(0);
+        await vi.waitFor(async () => {
+            await logMetrics!.poll('connection');
+            const state = logMetrics!.state.current.get('connection')!;
+            expect(state.status).toBe(HyperLogStatus.Open);
+            expect(state.error).toBeNull();
+            expect(state.resourceUsageLogged).toBe(false);
+            // The queries are still extracted, e.g. of the monitor itself
+            expect((await logMetrics!.query('connection', queryEndsQuery(state.queryEnds!, state.clockOffsetMs!))).numRows).toBeGreaterThan(0);
+        }, LOG_WAIT);
     }, 60_000);
 });

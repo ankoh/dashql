@@ -1,10 +1,10 @@
 import type * as arrow from 'apache-arrow';
-import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { connectionClientContext, HyperLogMetrics, queryEndsQuery, sqlframeClientContext } from './hyper_log_metrics.js';
+import { connectionClientContext, HyperLogMetrics, queryEndsQuery, readQueryEnds, sqlframeClientContext } from './hyper_log_metrics.js';
 import { QueryScope } from './hyper_log_stats.js';
 import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
 
@@ -82,12 +82,24 @@ describe('Hyper log query SQL', () => {
         await compute.query('SELECT 3 AS sqlframe_query');
         await compute.close();
         await other.query('SELECT 4 AS other_query');
-        await logMetrics!.poll(connectionId);
         const state = logMetrics!.state.current.get(connectionId)!;
-        return {
-            queryEnds: queryEndsQuery(state.queryEnds!, state.clockOffsetMs!),
-            read: sql => logMetrics!.query(connectionId, sql),
-        };
+        const queryEnds = queryEndsQuery(state.queryEnds!, state.clockOffsetMs!);
+        const read = (sql: string) => logMetrics!.query(connectionId, sql);
+        // One poll is not enough: the log may not hold the end of a query yet right after its result
+        await vi.waitFor(async () => {
+            await logMetrics!.poll(connectionId);
+            const ended = readQueryEnds(await read(queryEnds));
+            expect(ended.map(query => query.query)).toEqual(expect.arrayContaining([
+                'SELECT 1 AS v WHERE 2 > 1',
+                'SELECT 1 AS v WHERE 3 > 1',
+                'SELECT * FROM query_sql_missing_table',
+                'SELECT 3 AS sqlframe_query',
+            ]));
+            expect(ended.filter(query => query.statement === 'ATTACH' && query.queryType !== 'monitor' && query.queryType !== 'overview')
+                .map(query => query.queryType).sort()).toEqual(['sqlframe', 'user']);
+            expect(ended.some(query => query.queryType === 'monitor')).toBe(true);
+        }, { timeout: 30_000, interval: 250 });
+        return { queryEnds, read };
     }
 
     it('lists the queries of a connection, newest first', async () => {
