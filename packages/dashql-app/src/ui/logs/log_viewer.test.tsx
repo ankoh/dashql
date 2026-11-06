@@ -44,7 +44,8 @@ describe('LogViewer', () => {
         logger.push(testLogRecord({
             message,
             level,
-            timestamp: Date.UTC(2026, 10, 4, 12, 30, 15),
+            // In local time, the viewer shows the time of the browser
+            timestamp: new Date(2026, 10, 4, 12, 30, 15).getTime(),
             tracing: traceId === undefined ? null : { traceId, spanId: 1, parentSpanId: null },
         }));
     }
