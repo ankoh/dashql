@@ -16,16 +16,18 @@ coverage of the test page and its test frames, and maps it back to the sources (
 The summary lists the gaps: the outermost functions and blocks that never ran, with their lines and the enclosing
 function, largest first. Workers are not covered.
 
-**Overall: 87.1% (56,806 / 65,216 lines) in 578 files**, up from 85.3% (55,413 / 64,946 lines in 575 files) earlier the
+**Overall: 87.5% (57,073 / 65,223 lines) in 578 files**, up from 85.3% (55,413 / 64,946 lines in 575 files) earlier the
 same day, 81.7% at the start of the day and 81.5% on 2026-11-04. The app sources changed between the two runs of the day,
 so not all of the difference comes from tests. The latest tests cover session import, the sync of native session folders,
-the query executor and the OAuth redirect page:
+the query executor, the agent bridge and the OAuth redirect page:
 - `SessionImportProvider` 0.3% → 97.8%: portable bundles and native folders, conflicts, connection questions, failures of
   the writes and the restoration. It takes `reload` and the dependencies of its card as `dependencies`, so the paths that
   reload the app can run in the test frame.
 - `NativeSessionSync` 14.7% → 98.2%: external changes, local edits while the question is open, connections and script
   files that a session file brings along, attachments.
 - `QueryExecutorProvider` 53.6% → 93.0%: results, failures, cancellation, the query result cache, profiles.
+- `AgentBridgeProvider` 2.3% → 98.9%: the connection, agent access, the choices of the harness, the turns and their
+  notifications, the commands of the agent, deleted sessions, and browsers that cannot reach the server.
 - `oauth_redirect.tsx` 0% → 100%: both flows, errors of the provider, states that cannot be trusted, callback urls. The
   page moved out of its entry point, `oauth_redirect_main.tsx`, which is the file a test can't load.
 
@@ -72,7 +74,6 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 
 | Location | Function | Uncovered lines |
 |---|---|---|
-| `src/agent/agent_bridge.tsx:100-377` | AgentBridgeProvider | 252 |
 | `src/session/shell/session_shell_page.tsx:51-216` | SessionShellPage | 151 |
 | `src/connections/salesforce_connection_settings.tsx:341-477` | SalesforceConnectorSettings | 117 |
 | `src/session/scripts/script_editor.tsx:148-269` | updateEditor | 91 |
@@ -87,6 +88,7 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/shell_app/internals.tsx:24-65` | ShellInternalsViewer | 40 |
 | `src/session/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
 | `src/connections/connection_overview_page.tsx:28-63` | ConnectionOverviewPage | 32 |
+| `src/ui/logger/logger_toast.tsx:31-66` | Toast | 32 |
 
 ## Files that no test loads
 
@@ -139,7 +141,7 @@ overlay.
 
 ## Suggested next tests
 
-1. `AgentBridgeProvider`, and `SessionShellPage` with a test storage backend and the shell Wasm.
+1. `SessionShellPage` with a test storage backend and the shell Wasm.
 2. `ConnectionSettingsOverlay`, `SalesforceConnectorSettings` and `LoggerToast` as render tests.
 3. `script_entry_header.tsx` and `script_editor_dialog.tsx` of the feed, and `updateEditor` of `ScriptEditor`.
 4. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and

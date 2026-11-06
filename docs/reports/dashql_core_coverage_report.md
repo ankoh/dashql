@@ -150,30 +150,49 @@ Unreachable branches found on the way, kept for now:
 ## Rust tools
 
 Line coverage of the unit tests of the command line tool and the native tools, not counted in the overall number above.
-The end-to-end tests of `dashql-cli` run the binary in a subprocess and add nothing here, so its number is a lower bound.
+`dashql-native-proxy` and `dashql-pack` count production code only, without test files and `#[cfg(test)]` modules, which
+would otherwise count as covered. The end-to-end tests of `dashql-cli` run the binary in a subprocess and add nothing
+here, so its number is a lower bound, and it still counts its inline tests.
 
 | Package | Lines | Coverage |
 |---|---|---|
 | dashql-cli | 3,252/3,667 | 88.7% |
-| dashql-native-proxy | 526/1,455 | 36.2% |
-| dashql-pack | 149/727 | 20.5% |
+| dashql-native-proxy | 1,064/1,132 | 94.0%, up from 18.4% |
+| dashql-pack | 581/621 | 93.6%, up from about 20% |
+
+The tests of `dashql-pack` drive `vacuum` and `publish` against an S3 server in memory (`src/test_s3.rs`). The tests of
+`dashql-native-proxy` go through `route_proxy_request`, against the gRPC mock and an HTTP server they answer by hand.
 
 Largest gaps:
 
 | File | Uncovered | Coverage |
 |---|---|---|
-| dashql-pack/src/release.rs | 219 | 15.4% |
-| dashql-native-proxy/src/status.rs | 216 | 0.0% |
-| dashql-native-proxy/src/grpc_proxy.rs | 215 | 0.0% |
-| dashql-native-proxy/src/http_stream_manager.rs | 182 | 0.0% |
 | dashql-cli/src/agent/server.rs | 124 | 91.9% |
 | dashql-cli/src/main.rs | 110 | 0.0% |
-| dashql-pack/src/vacuum_command.rs | 89 | 11.9% |
-| dashql-native-proxy/src/grpc_proxy_globals.rs | 86 | 0.0% |
-| dashql-native-proxy/src/http_proxy.rs | 80 | 0.0% |
-| dashql-pack/src/publish_command.rs | 65 | 0.0% |
+| dashql-cli/src/lint_files.rs | 43 | 40.3% |
+| dashql-cli/src/agent/harness.rs | 40 | 92.6% |
+| dashql-cli/src/inputs.rs | 37 | 63.0% |
+| dashql-native-proxy/src/http_stream_manager.rs | 22 | 88.0% |
+| dashql-pack/src/main.rs | 17 | 22.7% |
+| dashql-native-proxy/src/grpc_proxy.rs | 15 | 93.0% |
 
-`dashql-pack/src/vacuum_command.rs` deletes old releases, its retention rule has a test but the deletion has none.
+TLS connections of `dashql-native-proxy` are only tested up to their failures, a successful handshake needs a certificate
+that the tests don't have.
+
+Bugs found by these tests in `dashql-native-proxy`:
+
+- Deleting a stream did not stop the request. The reader task held both ends of the queue of the stream, so it kept the
+  call open until the remote ended it or, for HTTP, until the read timeout. With a full queue it waited forever. The server
+  was not told to stop, deleting the stream now cancels the call.
+- A gRPC error message with a line break or a non-ASCII character panicked while the error response was built
+  (`dashql-grpc-message`), so the request failed without its error. The message is now percent-encoded like the
+  `grpc-message` trailer, the app decodes it.
+- A remote could replace the `dashql-` headers of the proxy with its response headers or trailers, e.g.
+  `dashql-batch-event: StreamFinished` ended a read early.
+- A read timeout after the headers of a response and before its body lost the status and the headers for good.
+- Only the last value of a repeated response header arrived, e.g. of `Set-Cookie`.
+- Binary initial metadata of a gRPC call was forwarded raw instead of base64-encoded like binary trailers, and dropped when
+  it held control characters.
 
 ## Known issues
 
@@ -190,5 +209,5 @@ Largest gaps:
 1. Remove unreachable `format_unimplemented` fallbacks or turn them into `unreachable!`, so formatter coverage reflects reachable code. Error-recovered parse trees reach some of them, check those first.
 2. Add error-recovery inputs for `parser/mod.rs`, `driver.rs` and `value.rs`.
 3. Decide on qualified generic type names in the grammar (see known issues).
-4. Test the deletion of `dashql-pack vacuum` and the proxies of `dashql-native-proxy` (`grpc_proxy.rs`, `http_stream_manager.rs`).
+4. Test `lint_files.rs` and `inputs.rs` of `dashql-cli`.
 5. Remove the unreachable `Star` and `Index` name components of `read_cursor_name_path` and the `select distinct` branch without targets, or document why they stay.
