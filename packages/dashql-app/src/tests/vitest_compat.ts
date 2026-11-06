@@ -197,11 +197,9 @@ function unstubAllGlobals(): void {
 }
 
 async function waitFor(assertion: () => unknown, options?: { interval?: number; timeout?: number }): Promise<void> {
-    const interval = options?.interval ?? 10;
+    // Most conditions hold after a few event loop turns, so without an interval the retries start at once and back off
+    let delay = options?.interval ?? 0;
     const timeout = options?.timeout ?? 1000;
-    // The timeout counts the time the page could run. A stalled event loop (a loaded machine, a GC pause) delays the
-    // waits, but the code under test needs its own timer turns after the stall, so a wait is charged at most this much.
-    const maxCharge = interval + 50;
     let elapsed = 0;
     for (;;) {
         try {
@@ -211,8 +209,11 @@ async function waitFor(assertion: () => unknown, options?: { interval?: number; 
             if (elapsed >= timeout) throw error;
         }
         const waitStart = performance.now();
-        await new Promise(resolve => setTimeout(resolve, interval));
-        elapsed += Math.min(performance.now() - waitStart, maxCharge);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        // The timeout counts the time the page could run. A stalled event loop (a loaded machine, a GC pause) delays the
+        // waits, but the code under test needs its own timer turns after the stall, so a wait is charged at most this much.
+        elapsed += Math.min(performance.now() - waitStart, delay + 50);
+        if (options?.interval == null) delay = Math.min(Math.max(delay * 2, 1), 10);
     }
 }
 
