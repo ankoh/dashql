@@ -181,11 +181,26 @@ const afterEach = ((test: TestFunction) => currentContext().afterEach(test)) as 
 let clock: Clock | null = null;
 const originalGlobals = new Map<string, PropertyDescriptor | undefined>();
 
-function stubGlobal(name: string, value: unknown): void {
+/// The stubs of the top level of the test files.
+/// Vitest isolates the globals of a test file, here the files share a frame and all load before the first test runs.
+/// So the stubs of a file wait for its tests, otherwise the last file that loads would decide for all of them.
+const topLevelStubs = new Map<string, [string, unknown][]>();
+let testsStarted = false;
+
+function applyStub(name: string, value: unknown): void {
     if (!originalGlobals.has(name)) {
         originalGlobals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
     }
     Object.defineProperty(globalThis, name, { configurable: true, value, writable: true });
+}
+
+function stubGlobal(name: string, value: unknown): void {
+    const file = globalThis.__DASHQL_CURRENT_TEST_FILE__;
+    if (testsStarted || !file) {
+        applyStub(name, value);
+        return;
+    }
+    topLevelStubs.set(file, [...topLevelStubs.get(file) ?? [], [name, value]]);
 }
 
 function unstubAllGlobals(): void {
@@ -194,6 +209,17 @@ function unstubAllGlobals(): void {
         else delete (globalThis as Record<string, unknown>)[name];
     }
     originalGlobals.clear();
+}
+
+/// The tests of a file start, its top level stubs apply until the file ends
+export function beginTestFile(file: string): void {
+    testsStarted = true;
+    for (const [name, value] of topLevelStubs.get(file) ?? []) applyStub(name, value);
+}
+
+/// The tests of a file ended, the next file starts with the original globals
+export function endTestFile(): void {
+    unstubAllGlobals();
 }
 
 async function waitFor(assertion: () => unknown, options?: { interval?: number; timeout?: number }): Promise<void> {

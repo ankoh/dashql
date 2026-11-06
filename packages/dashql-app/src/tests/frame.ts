@@ -81,6 +81,7 @@ async function run(): Promise<void> {
     const importFailures = new Map<string, SerializedTestError>();
     let mocha: BrowserMocha;
     let disposeHyperDBPool: (() => void) | null = null;
+    let vitestCompat: typeof import('./vitest_compat.js');
     try {
         await setupBrowserTestEnvironment();
         const { installSharedHyperDBTestPool } = await import('./hyperdb_pool.js');
@@ -94,7 +95,7 @@ async function run(): Promise<void> {
             timeout: 60_000,
             ui: 'bdd',
         });
-        await import('./vitest_compat.js');
+        vitestCompat = await import('./vitest_compat.js');
         if (requestedFiles.length === 0) {
             await import('./test_bundle.js');
         } else {
@@ -150,6 +151,7 @@ async function run(): Promise<void> {
             const file = suite.__dashqlFile;
             if (!file || started.has(file)) return;
             started.add(file);
+            vitestCompat.beginTestFile(file);
             fileStartedAt.set(file, performance.now());
             send({ type: 'file-start', file });
         });
@@ -181,6 +183,7 @@ async function run(): Promise<void> {
             const file = suite.__dashqlFile;
             if (file) {
                 globalThis.__DASHQL_TEST_RESET_CORE_INSTANCE__?.();
+                vitestCompat.endTestFile();
                 reportFile(file);
             }
         });
