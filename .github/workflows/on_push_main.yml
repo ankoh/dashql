@@ -19,6 +19,8 @@ jobs:
         uses: ./.github/workflows/coverage.yml
         with:
             commit: ${{ github.sha }}
+        needs:
+            - build
         secrets: inherit
 
     publish:
