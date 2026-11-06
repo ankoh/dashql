@@ -6,14 +6,14 @@ use uuid::Uuid;
 
 pub enum ReleaseChannel {
     Stable,
-    Canary,
+    Latest,
 }
 
 impl fmt::Display for ReleaseChannel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ReleaseChannel::Stable => write!(f, "stable"),
-            ReleaseChannel::Canary => write!(f, "canary"),
+            ReleaseChannel::Latest => write!(f, "latest"),
         }
     }
 }
@@ -24,7 +24,7 @@ pub struct ReleaseVersion {
     pub version: Version,
     /// The release id, a UUID v5 of the version string
     pub id: Uuid,
-    /// The release channel, stable for tagged commits and canary otherwise
+    /// The release channel, stable for tagged commits and latest otherwise
     pub channel: ReleaseChannel,
 }
 
@@ -37,7 +37,7 @@ pub fn build_release_version(git_version: &GitVersion) -> Result<ReleaseVersion>
     let channel = if git_version.iteration == 0 {
         ReleaseChannel::Stable
     } else {
-        ReleaseChannel::Canary
+        ReleaseChannel::Latest
     };
     Ok(ReleaseVersion {
         version: semver,
@@ -69,17 +69,17 @@ mod tests {
     }
 
     #[test]
-    fn a_later_commit_is_a_canary_of_the_next_patch() {
+    fn a_later_commit_is_a_prerelease_of_the_next_patch() {
         let release = build_release_version(&git_version(4)).unwrap();
         assert_eq!(release.version.to_string(), "1.2.4-dev.4");
-        assert_eq!(release.channel.to_string(), "canary");
+        assert_eq!(release.channel.to_string(), "latest");
     }
 
     #[test]
-    fn a_canary_sorts_after_the_tag_and_before_the_next_tag() {
-        let canary = build_release_version(&git_version(4)).unwrap().version;
-        assert!(canary > Version::new(1, 2, 3));
-        assert!(canary < Version::new(1, 2, 4));
+    fn a_prerelease_sorts_after_the_tag_and_before_the_next_tag() {
+        let prerelease = build_release_version(&git_version(4)).unwrap().version;
+        assert!(prerelease > Version::new(1, 2, 3));
+        assert!(prerelease < Version::new(1, 2, 4));
     }
 
     #[test]

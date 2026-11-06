@@ -14,7 +14,7 @@ use crate::{
     remote_paths::{derive_remote_paths, electron_channel_manifest},
 };
 
-const CANARY_BADGE_PATH: &str = "channels/canary/badge.svg";
+const LATEST_BADGE_PATH: &str = "channels/latest/badge.svg";
 
 /// A local file to upload into the release bucket
 #[derive(Debug)]
@@ -44,8 +44,8 @@ pub struct Release {
     pub channel_update_manifest_paths: Vec<&'static str>,
     /// The electron-builder channel manifests as `(object key, content)` pairs
     pub electron_channel_manifests: Vec<(String, Vec<u8>)>,
-    /// The SVG version badge uploaded for the canary channel
-    pub canary_badge: Vec<u8>,
+    /// The SVG version badge uploaded for the latest channel
+    pub latest_badge: Vec<u8>,
 }
 
 /// The inputs for building a [`Release`]
@@ -107,7 +107,7 @@ impl Release {
         release.release_update_manifest.version = args.release_version.version.clone();
         release.release_update_manifest.pub_date = pub_date;
         release.release_update_manifest.notes = "".to_string(); // XXX Get from commit info
-        release.canary_badge = build_version_badge(&args.release_version.version.to_string()).into_bytes();
+        release.latest_badge = build_version_badge(&args.release_version.version.to_string()).into_bytes();
 
         // Prepare channel paths
         release.channel_metadata_paths = remote_paths.channel_metadata.clone();
@@ -152,7 +152,7 @@ impl Release {
                 .replace(&format!("path: {}", zip_name), &format!("path: {}{}", artifact_base, zip_name));
             release.electron_channel_manifests.push((electron_channel_manifest(remote_paths.channel, arch), manifest_text.into_bytes()));
             if remote_paths.channel == "stable" {
-                release.electron_channel_manifests.push((electron_channel_manifest("canary", arch), release.electron_channel_manifests.last().unwrap().1.clone()));
+                release.electron_channel_manifests.push((electron_channel_manifest("latest", arch), release.electron_channel_manifests.last().unwrap().1.clone()));
             }
         }
 
@@ -253,7 +253,7 @@ impl Release {
         for (path, manifest) in &self.electron_channel_manifests {
             pending_uploads.push((path.clone(), manifest));
         }
-        pending_uploads.push((CANARY_BADGE_PATH.to_string(), &self.canary_badge));
+        pending_uploads.push((LATEST_BADGE_PATH.to_string(), &self.latest_badge));
         for (path, metadata) in pending_uploads.drain(..) {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
@@ -266,7 +266,7 @@ impl Release {
                     .key(&path)
                     .body(bytes)
                     .content_type(content_type(&path))
-                    // Channel pointers (stable.json/canary.json + update manifests) are mutable.
+                    // Channel pointers (stable.json/latest.json + update manifests) are mutable.
                     // Force revalidation on every load so clients never serve a stale channel
                     // manifest from heuristic browser caching (revalidates cheaply via ETag).
                     .cache_control("no-cache")
@@ -363,9 +363,9 @@ mod tests {
 
     #[test]
     fn detects_upload_content_type() {
-        assert_eq!(content_type("channels/canary/badge.svg"), "image/svg+xml");
+        assert_eq!(content_type("channels/latest/badge.svg"), "image/svg+xml");
         assert_eq!(content_type("latest-mac.yml"), "application/yaml");
-        assert_eq!(content_type("canary.json"), "application/json");
+        assert_eq!(content_type("latest.json"), "application/json");
     }
 
     const IMMUTABLE: &str = "public, max-age=31536000, immutable";
@@ -412,8 +412,8 @@ mod tests {
         assert_eq!(release.release_metadata_path, "releases/1.2.3/metadata.json");
         assert_eq!(release.release_metadata.update_manifest_url, "https://get.example/releases/1.2.3/update.json");
         assert_eq!(release.release_metadata.git_commit_url, "https://github.com/ankoh/dashql/tree/abc1234");
-        assert_eq!(release.channel_metadata_paths, vec!["stable.json", "canary.json"]);
-        assert_eq!(release.channel_update_manifest_paths, vec!["stable-update.json", "canary-update.json"]);
+        assert_eq!(release.channel_metadata_paths, vec!["stable.json", "latest.json"]);
+        assert_eq!(release.channel_update_manifest_paths, vec!["stable-update.json", "latest-update.json"]);
 
         let mut uploads: Vec<&String> = release.file_uploads.keys().collect();
         uploads.sort();
@@ -434,26 +434,26 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_stable_release_also_moves_the_canary_feeds() {
+    async fn a_stable_release_also_moves_the_latest_feeds() {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 0)).await.unwrap();
         let feeds: Vec<&str> = release.electron_channel_manifests.iter().map(|(path, _)| path.as_str()).collect();
         assert_eq!(feeds, vec![
             "channels/stable/macos/arm64/latest-mac.yml",
-            "channels/canary/macos/arm64/latest-mac.yml",
+            "channels/latest/macos/arm64/latest-mac.yml",
             "channels/stable/macos/x64/latest-mac.yml",
-            "channels/canary/macos/x64/latest-mac.yml",
+            "channels/latest/macos/x64/latest-mac.yml",
         ]);
     }
 
     #[tokio::test]
-    async fn a_canary_release_leaves_the_stable_channel_alone() {
+    async fn a_prerelease_leaves_the_stable_channel_alone() {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 4)).await.unwrap();
         assert_eq!(release.release_metadata.version.to_string(), "1.2.4-dev.4");
-        assert_eq!(release.channel_metadata_paths, vec!["canary.json"]);
-        assert_eq!(release.channel_update_manifest_paths, vec!["canary-update.json"]);
-        assert!(release.electron_channel_manifests.iter().all(|(path, _)| path.starts_with("channels/canary/")));
+        assert_eq!(release.channel_metadata_paths, vec!["latest.json"]);
+        assert_eq!(release.channel_update_manifest_paths, vec!["latest-update.json"]);
+        assert!(release.electron_channel_manifests.iter().all(|(path, _)| path.starts_with("channels/latest/")));
     }
 
     #[tokio::test]
@@ -494,13 +494,13 @@ mod tests {
         release.publish(&s3.client()).await.unwrap();
 
         assert_eq!(s3.object_keys(), vec![
-            "canary-update.json",
-            "canary.json",
-            "channels/canary/badge.svg",
-            "channels/canary/macos/arm64/latest-mac.yml",
-            "channels/canary/macos/x64/latest-mac.yml",
+            "channels/latest/badge.svg",
+            "channels/latest/macos/arm64/latest-mac.yml",
+            "channels/latest/macos/x64/latest-mac.yml",
             "channels/stable/macos/arm64/latest-mac.yml",
             "channels/stable/macos/x64/latest-mac.yml",
+            "latest-update.json",
+            "latest.json",
             "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
             "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
             "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
@@ -516,7 +516,7 @@ mod tests {
         let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.3");
         assert_eq!(s3.object("stable.json"), s3.object("releases/1.2.3/metadata.json"));
-        assert_eq!(s3.object("canary-update.json"), s3.object("releases/1.2.3/update.json"));
+        assert_eq!(s3.object("latest-update.json"), s3.object("releases/1.2.3/update.json"));
     }
 
     #[tokio::test]
@@ -545,10 +545,10 @@ mod tests {
         for key in ["releases/1.2.3/metadata.json", "releases/1.2.3/macos/arm64/DashQL-arm64.dmg"] {
             assert_eq!(header(key, "cache-control").as_deref(), Some(IMMUTABLE), "{key}");
         }
-        for key in ["stable.json", "canary-update.json", "channels/canary/badge.svg", "channels/stable/macos/x64/latest-mac.yml"] {
+        for key in ["stable.json", "latest-update.json", "channels/latest/badge.svg", "channels/stable/macos/x64/latest-mac.yml"] {
             assert_eq!(header(key, "cache-control").as_deref(), Some("no-cache"), "{key}");
         }
-        assert_eq!(header("channels/canary/badge.svg", "content-type").as_deref(), Some("image/svg+xml"));
+        assert_eq!(header("channels/latest/badge.svg", "content-type").as_deref(), Some("image/svg+xml"));
         assert_eq!(header("channels/stable/macos/x64/latest-mac.yml", "content-type").as_deref(), Some("application/yaml"));
         assert_eq!(header("stable.json", "content-type").as_deref(), Some("application/json"));
     }
@@ -579,10 +579,10 @@ mod tests {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 0)).await.unwrap();
         let s3 = FakeS3::start().await;
-        s3.deny_upload("canary.json");
+        s3.deny_upload("latest.json");
         assert!(release.publish(&s3.client()).await.is_err());
         assert!(s3.object("stable.json").is_some());
-        assert_eq!(s3.object("canary.json"), None);
+        assert_eq!(s3.object("latest.json"), None);
     }
 
     #[tokio::test]

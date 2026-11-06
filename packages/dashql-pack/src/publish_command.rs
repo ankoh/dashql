@@ -164,14 +164,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn publishes_a_later_commit_to_the_canary_channel_only() {
+    async fn publishes_a_later_commit_to_the_latest_channel_only() {
         let _guard = ENV_LOCK.lock().await;
         let (source, artifacts) = (TempDir::new(), TempDir::new());
         git_repository(source.path(), "v1.2.3", 2);
         let s3 = FakeS3::start().await;
         point_to(&s3);
         publish(args(&source, &artifacts, &[])).await.unwrap();
-        let pointer: serde_json::Value = serde_json::from_slice(&s3.object("canary.json").unwrap()).unwrap();
+        let pointer: serde_json::Value = serde_json::from_slice(&s3.object("latest.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.4-dev.2");
         assert_eq!(s3.object("stable.json"), None);
     }

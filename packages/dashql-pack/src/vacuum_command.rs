@@ -11,9 +11,9 @@ pub struct VacuumArgs {
     /// List the objects to delete without deleting them
     #[arg(long, required = false, default_value = "false")]
     dry_run: bool,
-    /// The number of newest canary versions to keep
+    /// The number of newest prerelease versions to keep
     #[arg(long, required = false, default_value_t = 10)]
-    keep_canary: usize,
+    keep_latest: usize,
     /// The number of newest stable versions to keep
     #[arg(long, required = false, default_value_t = 100)]
     keep_stable: usize,
@@ -41,10 +41,10 @@ pub async fn vacuum(args: VacuumArgs) -> Result<()> {
 }
 
 /// The objects of the versions that are not among the newest ones.
-/// Stable and canary versions are retained separately, keys without a version are never expired.
-fn expired_objects(keys: &[String], keep_canary: usize, keep_stable: usize) -> Vec<String> {
+/// Stable and prerelease versions are retained separately, keys without a version are never expired.
+fn expired_objects(keys: &[String], keep_latest: usize, keep_stable: usize) -> Vec<String> {
     let mut stable_objects: HashMap<Version, Vec<String>> = HashMap::new();
-    let mut canary_objects: HashMap<Version, Vec<String>> = HashMap::new();
+    let mut latest_objects: HashMap<Version, Vec<String>> = HashMap::new();
     for key in keys {
         let relative = key.strip_prefix("releases/").unwrap_or(key);
         let version_text = &relative[..relative.find('/').unwrap_or(relative.len())];
@@ -52,22 +52,22 @@ fn expired_objects(keys: &[String], keep_canary: usize, keep_stable: usize) -> V
         let objects = if version.pre.is_empty() {
             stable_objects.entry(version).or_default()
         } else {
-            canary_objects.entry(version).or_default()
+            latest_objects.entry(version).or_default()
         };
         objects.push(key.clone());
     }
 
-    let (keep_canary, delete_canary) = retained_versions(canary_objects.keys().cloned().collect(), keep_canary);
+    let (keep_latest, delete_latest) = retained_versions(latest_objects.keys().cloned().collect(), keep_latest);
     let (keep_stable, delete_stable) = retained_versions(stable_objects.keys().cloned().collect(), keep_stable);
 
-    log::info!("keep canary versions: {:?}", keep_canary);
+    log::info!("keep prerelease versions: {:?}", keep_latest);
     log::info!("keep stable versions: {:?}", keep_stable);
     log::info!("delete stable versions: {:?}", delete_stable);
-    log::info!("delete canary versions: {:?}", delete_canary);
+    log::info!("delete prerelease versions: {:?}", delete_latest);
 
-    let canary = delete_canary.iter().flat_map(|v| canary_objects[v].iter());
+    let latest = delete_latest.iter().flat_map(|v| latest_objects[v].iter());
     let stable = delete_stable.iter().flat_map(|v| stable_objects[v].iter());
-    canary.chain(stable).cloned().collect()
+    latest.chain(stable).cloned().collect()
 }
 
 /// List every object of the versioned release directories
@@ -91,7 +91,7 @@ async fn list_release_objects(client: &aws_sdk_s3::Client) -> Result<Vec<String>
 
 async fn vacuum_bucket(client: &aws_sdk_s3::Client, args: &VacuumArgs) -> Result<()> {
     let keys = list_release_objects(client).await?;
-    let expired = expired_objects(&keys, args.keep_canary, args.keep_stable);
+    let expired = expired_objects(&keys, args.keep_latest, args.keep_stable);
     log::info!("delete objects: {:?}", expired);
 
     if !args.dry_run {
@@ -135,8 +135,8 @@ mod tests {
             .collect()
     }
 
-    fn args(keep_canary: usize, keep_stable: usize, dry_run: bool) -> VacuumArgs {
-        VacuumArgs { dry_run, keep_canary, keep_stable }
+    fn args(keep_latest: usize, keep_stable: usize, dry_run: bool) -> VacuumArgs {
+        VacuumArgs { dry_run, keep_latest, keep_stable }
     }
 
     fn sorted(mut values: Vec<String>) -> Vec<String> {
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn retains_stable_and_canary_versions_separately() {
+    fn retains_stable_and_prerelease_versions_separately() {
         // The canaries are newer than every stable version, they must not push the stable versions out
         let objects = objects_of(&["1.0.0", "1.1.0", "1.1.1-dev.1", "1.1.1-dev.2", "1.1.1-dev.3"]);
         assert_eq!(sorted(expired_objects(&objects, 2, 2)), sorted(objects_of(&["1.1.1-dev.1"])));
@@ -193,16 +193,16 @@ mod tests {
 
     #[test]
     fn parses_the_arguments_of_the_publish_workflow() {
-        let parsed = VacuumArgs::try_parse_from(["vacuum", "--keep-stable", "100", "--keep-canary", "10"]).unwrap();
+        let parsed = VacuumArgs::try_parse_from(["vacuum", "--keep-stable", "100", "--keep-latest", "10"]).unwrap();
         assert!(!parsed.dry_run);
-        assert_eq!((parsed.keep_stable, parsed.keep_canary), (100, 10));
+        assert_eq!((parsed.keep_stable, parsed.keep_latest), (100, 10));
     }
 
     #[test]
     fn dry_run_is_a_flag_and_retention_has_defaults() {
         let parsed = VacuumArgs::try_parse_from(["vacuum", "--dry-run"]).unwrap();
         assert!(parsed.dry_run);
-        assert_eq!((parsed.keep_stable, parsed.keep_canary), (100, 10));
+        assert_eq!((parsed.keep_stable, parsed.keep_latest), (100, 10));
         assert!(!VacuumArgs::try_parse_from(["vacuum"]).unwrap().dry_run);
     }
 
@@ -210,12 +210,12 @@ mod tests {
     async fn deletes_only_the_expired_objects_of_the_bucket() {
         let s3 = FakeS3::start().await;
         s3.put_objects(objects_of(&["1.0.0", "2.0.0", "2.0.1-dev.1", "2.0.1-dev.2"]));
-        s3.put_objects(keys(&["stable.json", "canary.json", "channels/stable/macos/arm64/latest-mac.yml", "releases/notes.txt"]));
+        s3.put_objects(keys(&["stable.json", "latest.json", "channels/stable/macos/arm64/latest-mac.yml", "releases/notes.txt"]));
 
         vacuum_bucket(&s3.client(), &args(1, 1, false)).await.unwrap();
 
         let mut expected = objects_of(&["2.0.0", "2.0.1-dev.2"]);
-        expected.extend(keys(&["stable.json", "canary.json", "channels/stable/macos/arm64/latest-mac.yml", "releases/notes.txt"]));
+        expected.extend(keys(&["stable.json", "latest.json", "channels/stable/macos/arm64/latest-mac.yml", "releases/notes.txt"]));
         assert_eq!(s3.object_keys(), sorted(expected));
     }
 

@@ -12,22 +12,22 @@ pub struct RemotePaths {
     pub release_metadata: String,
     /// The key of the release update manifest
     pub release_update: String,
-    /// The name of the release channel, `stable` or `canary`
+    /// The name of the release channel, `stable` or `latest`
     pub channel: &'static str,
 }
 
 pub fn derive_remote_paths(release: &ReleaseVersion) -> RemotePaths {
     let channel_metadata = match release.channel {
-        ReleaseChannel::Stable => vec!["stable.json", "canary.json"],
-        ReleaseChannel::Canary => vec!["canary.json"],
+        ReleaseChannel::Stable => vec!["stable.json", "latest.json"],
+        ReleaseChannel::Latest => vec!["latest.json"],
     };
     let channel = match release.channel {
         ReleaseChannel::Stable => "stable",
-        ReleaseChannel::Canary => "canary",
+        ReleaseChannel::Latest => "latest",
     };
     let channel_update = match release.channel {
-        ReleaseChannel::Stable => vec!["stable-update.json", "canary-update.json"],
-        ReleaseChannel::Canary => vec!["canary-update.json"],
+        ReleaseChannel::Stable => vec!["stable-update.json", "latest-update.json"],
+        ReleaseChannel::Latest => vec!["latest-update.json"],
     };
     let release_directory = format!("releases/{}", release.version.to_string());
     let release_metadata = format!("{}/{}", &release_directory, "metadata.json");
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn architecture_specific_electron_feed() {
         assert_eq!(electron_channel_manifest("stable", "arm64"), "channels/stable/macos/arm64/latest-mac.yml");
-        assert_eq!(electron_channel_manifest("canary", "x64"), "channels/canary/macos/x64/latest-mac.yml");
+        assert_eq!(electron_channel_manifest("latest", "x64"), "channels/latest/macos/x64/latest-mac.yml");
     }
 
     fn release(version: &str, channel: ReleaseChannel) -> ReleaseVersion {
@@ -64,19 +64,19 @@ mod tests {
     fn a_stable_release_moves_both_channels() {
         let paths = derive_remote_paths(&release("1.2.3", ReleaseChannel::Stable));
         assert_eq!(paths.channel, "stable");
-        assert_eq!(paths.channel_metadata, vec!["stable.json", "canary.json"]);
-        assert_eq!(paths.channel_update, vec!["stable-update.json", "canary-update.json"]);
+        assert_eq!(paths.channel_metadata, vec!["stable.json", "latest.json"]);
+        assert_eq!(paths.channel_update, vec!["stable-update.json", "latest-update.json"]);
         assert_eq!(paths.release_directory, "releases/1.2.3");
         assert_eq!(paths.release_metadata, "releases/1.2.3/metadata.json");
         assert_eq!(paths.release_update, "releases/1.2.3/update.json");
     }
 
     #[test]
-    fn a_canary_release_only_moves_its_channel() {
-        let paths = derive_remote_paths(&release("1.2.4-dev.3", ReleaseChannel::Canary));
-        assert_eq!(paths.channel, "canary");
-        assert_eq!(paths.channel_metadata, vec!["canary.json"]);
-        assert_eq!(paths.channel_update, vec!["canary-update.json"]);
+    fn a_prerelease_only_moves_the_latest_channel() {
+        let paths = derive_remote_paths(&release("1.2.4-dev.3", ReleaseChannel::Latest));
+        assert_eq!(paths.channel, "latest");
+        assert_eq!(paths.channel_metadata, vec!["latest.json"]);
+        assert_eq!(paths.channel_update, vec!["latest-update.json"]);
         assert_eq!(paths.release_directory, "releases/1.2.4-dev.3");
     }
 }

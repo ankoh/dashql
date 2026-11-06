@@ -83,7 +83,7 @@ jobs:
               run: |
                   bazel run --config=release //packages/dashql-pack:vacuum -- \
                       --keep-stable 100 \
-                      --keep-canary 10
+                      --keep-latest 10
 
     pages_deploy:
         name: Cloudflare Pages (dashql.app)
