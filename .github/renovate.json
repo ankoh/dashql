@@ -177,6 +177,12 @@
             "matchPackageNames": ["vega", "vega-embed", "vega-interpreter", "vega-lite"]
         },
         {
+            "description": "The ELK crates pin each other to the exact version, so a single crate has no valid resolution.",
+            "groupName": "elk",
+            "automerge": false,
+            "matchPackageNames": ["/^org-eclipse-elk-.*/"]
+        },
+        {
             "groupName": "flatbuffers",
             "automerge": false,
             "matchPackageNames": ["flatbuffers", "google/flatbuffers"]
