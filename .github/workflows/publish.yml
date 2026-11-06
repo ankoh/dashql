@@ -6,6 +6,10 @@ on:
             commit:
                 required: true
                 type: string
+            channel:
+                description: The release channel of the Electron release, stable or latest
+                required: true
+                type: string
             publish_latest_pages:
                 required: false
                 type: boolean
@@ -89,6 +93,7 @@ jobs:
                   DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
                   DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
                   DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
+                  CHANNEL: ${{ inputs.channel }}
               run: |
                   ARM64="${{ runner.temp }}/artifacts/electron/arm64"
                   X64="${{ runner.temp }}/artifacts/electron/x64"
@@ -103,6 +108,7 @@ jobs:
                       exit 1
                   fi
                   bazel run --config=release //packages/dashql-pack:pack -- publish \
+                      --channel "${CHANNEL}" \
                       --source-dir "${{ github.workspace }}" \
                       --macos-arm64-dmg-path "$ARM64"/DashQL-*-arm64.dmg \
                       --macos-arm64-zip-path "$ARM64"/DashQL-*-arm64.zip \

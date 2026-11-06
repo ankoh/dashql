@@ -2,11 +2,11 @@ use crate::{
     git_info::collect_git_info,
     release::{Release, ReleaseArgs},
     release_metadata::ReleaseSummary,
-    release_version::build_release_version,
+    release_version::{build_release_version, read_manifest_version, ReleaseChannel},
     remote_access::RemoteAccess,
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use std::io::Write;
 use std::path::PathBuf;
@@ -20,7 +20,10 @@ pub struct PublishArgs {
     /// Write a JSON summary of the release to this path
     #[arg(long, required = false)]
     save_summary: Option<PathBuf>,
-    /// The git repository to derive the release version from
+    /// The release channel to move to this release
+    #[arg(long, value_enum, required = true)]
+    channel: ReleaseChannel,
+    /// The git repository of the released commit
     #[arg(long, required = true)]
     source_dir: PathBuf,
 
@@ -56,11 +59,29 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
         log::info!("DRY RUN, no persistent changes will be made");
     }
 
+    // The artifacts know their version, a tag that was pushed after the build must not change it
+    let artifact_version = read_manifest_version(&std::fs::read_to_string(&args.macos_arm64_update_manifest_path)?)?;
+    let x64_version = read_manifest_version(&std::fs::read_to_string(&args.macos_x64_update_manifest_path)?)?;
+    if artifact_version != x64_version {
+        return Err(anyhow!("the artifacts differ in their version: arm64 {}, x64 {}", artifact_version, x64_version));
+    }
+    match (args.channel, artifact_version.pre.is_empty()) {
+        (ReleaseChannel::Stable, false) => {
+            return Err(anyhow!("refusing to publish the prerelease {} to the stable channel", artifact_version));
+        }
+        (ReleaseChannel::Latest, true) => {
+            // The run of the tag owns this version, a second upload could replace the artifacts its feed points to
+            log::warn!("{} was built from a tagged commit, leaving the publish to the run of the tag", artifact_version);
+            return Ok(());
+        }
+        _ => {}
+    }
+
     // Resolve the git version
     let git_repo = collect_git_info(&args.source_dir)?;
     log::info!("git description: {}", &git_repo.version.description);
 
-    let version = build_release_version(&git_repo.version)?;
+    let version = build_release_version(artifact_version, args.channel);
     log::info!("release version: {}", &version.version);
     log::info!("release id: {}", &version.id);
     log::info!("release channel: {}", &version.channel);
@@ -125,9 +146,15 @@ mod tests {
     use crate::test_s3::{git_repository, FakeS3, TempDir, ENV_LOCK};
 
     /// The arguments of the publish workflow for a repository and its artifacts
-    fn args(source: &TempDir, artifacts: &TempDir, extra: &[String]) -> PublishArgs {
-        let manifest = b"version: 1.2.3\npath: DashQL.zip\n";
-        let mut argv: Vec<String> = vec!["publish".into(), "--source-dir".into(), source.path().display().to_string()];
+    fn args(source: &TempDir, artifacts: &TempDir, version: &str, channel: &str, extra: &[String]) -> PublishArgs {
+        let manifest = format!("version: {version}\npath: DashQL.zip\n").into_bytes();
+        let mut argv: Vec<String> = vec![
+            "publish".into(),
+            "--channel".into(),
+            channel.into(),
+            "--source-dir".into(),
+            source.path().display().to_string(),
+        ];
         for (flag, name, content) in [
             ("--macos-arm64-dmg-path", "arm64.dmg", &b"dmg"[..]),
             ("--macos-arm64-zip-path", "arm64.zip", &b"zip"[..]),
@@ -152,28 +179,80 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn publishes_a_tagged_commit_to_the_stable_channel() {
+    async fn publishes_a_stable_release_to_the_stable_channel_only() {
         let _guard = ENV_LOCK.lock().await;
         let (source, artifacts) = (TempDir::new(), TempDir::new());
         git_repository(source.path(), "v1.2.3", 0);
         let s3 = FakeS3::start().await;
         point_to(&s3);
-        publish(args(&source, &artifacts, &[])).await.unwrap();
+        publish(args(&source, &artifacts, "1.2.3", "stable", &[])).await.unwrap();
         let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.3");
+        assert_eq!(s3.object("latest.json"), None);
     }
 
     #[tokio::test]
-    async fn publishes_a_later_commit_to_the_latest_channel_only() {
+    async fn publishes_a_prerelease_to_the_latest_channel_only() {
         let _guard = ENV_LOCK.lock().await;
         let (source, artifacts) = (TempDir::new(), TempDir::new());
         git_repository(source.path(), "v1.2.3", 2);
         let s3 = FakeS3::start().await;
         point_to(&s3);
-        publish(args(&source, &artifacts, &[])).await.unwrap();
+        publish(args(&source, &artifacts, "1.2.4-dev.2", "latest", &[])).await.unwrap();
         let pointer: serde_json::Value = serde_json::from_slice(&s3.object("latest.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.4-dev.2");
         assert_eq!(s3.object("stable.json"), None);
+    }
+
+    #[tokio::test]
+    async fn a_tag_pushed_after_the_build_does_not_change_the_release() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 0);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        publish(args(&source, &artifacts, "1.2.3-dev.7", "latest", &[])).await.unwrap();
+        let pointer: serde_json::Value = serde_json::from_slice(&s3.object("latest.json").unwrap()).unwrap();
+        assert_eq!(pointer["version"], "1.2.3-dev.7");
+        assert_eq!(s3.object("stable.json"), None);
+        assert_eq!(s3.object("releases/1.2.3/metadata.json"), None);
+    }
+
+    #[tokio::test]
+    async fn leaves_a_build_of_a_tagged_commit_to_the_run_of_the_tag() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 0);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        publish(args(&source, &artifacts, "1.2.3", "latest", &[])).await.unwrap();
+        assert!(s3.requests().is_empty());
+    }
+
+    #[tokio::test]
+    async fn refuses_a_prerelease_on_the_stable_channel() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 2);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        let error = publish(args(&source, &artifacts, "1.2.4-dev.2", "stable", &[])).await.unwrap_err();
+        assert!(error.to_string().contains("refusing to publish the prerelease"), "{error}");
+        assert!(s3.requests().is_empty());
+    }
+
+    #[tokio::test]
+    async fn refuses_artifacts_of_different_versions() {
+        let _guard = ENV_LOCK.lock().await;
+        let (source, artifacts) = (TempDir::new(), TempDir::new());
+        git_repository(source.path(), "v1.2.3", 2);
+        let s3 = FakeS3::start().await;
+        point_to(&s3);
+        let args = args(&source, &artifacts, "1.2.4-dev.2", "latest", &[]);
+        artifacts.write("x64.yml", b"version: 1.2.4-dev.1\npath: DashQL.zip\n");
+        let error = publish(args).await.unwrap_err();
+        assert!(error.to_string().contains("differ in their version"), "{error}");
+        assert!(s3.requests().is_empty());
     }
 
     #[tokio::test]
@@ -185,7 +264,7 @@ mod tests {
         point_to(&s3);
         let summary = artifacts.path().join("summary.json");
         let extra = ["--dry-run".to_string(), "--save-summary".to_string(), summary.display().to_string()];
-        publish(args(&source, &artifacts, &extra)).await.unwrap();
+        publish(args(&source, &artifacts, "1.2.3", "stable", &extra)).await.unwrap();
         assert!(s3.requests().is_empty());
 
         let summary: serde_json::Value = serde_json::from_slice(&std::fs::read(summary).unwrap()).unwrap();
@@ -196,12 +275,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stops_before_uploading_without_a_version() {
+    async fn stops_before_uploading_without_a_repository() {
         let _guard = ENV_LOCK.lock().await;
         let (source, artifacts) = (TempDir::new(), TempDir::new());
         let s3 = FakeS3::start().await;
         point_to(&s3);
-        assert!(publish(args(&source, &artifacts, &[])).await.is_err());
+        assert!(publish(args(&source, &artifacts, "1.2.3", "stable", &[])).await.is_err());
         assert!(s3.requests().is_empty());
     }
 
@@ -213,7 +292,7 @@ mod tests {
         std::env::remove_var("DASHQL_GET_R2_SECRET_ACCESS_KEY");
         std::env::set_var("DASHQL_GET_R2_ENDPOINT", "http://127.0.0.1:1");
         std::env::set_var("DASHQL_GET_R2_ACCESS_KEY_ID", "key");
-        let error = publish(args(&source, &artifacts, &[])).await.unwrap_err();
+        let error = publish(args(&source, &artifacts, "1.2.3", "stable", &[])).await.unwrap_err();
         assert!(error.to_string().contains("DASHQL_GET_R2_SECRET_ACCESS_KEY"), "{error}");
     }
 }

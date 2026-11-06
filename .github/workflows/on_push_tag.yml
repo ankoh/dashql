@@ -19,6 +19,7 @@ jobs:
         uses: ./.github/workflows/publish.yml
         with:
             commit: ${{ github.sha }}
+            channel: stable
             publish_latest_pages: false
             publish_stable_pages: true
         needs:

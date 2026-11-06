@@ -134,7 +134,12 @@ on macOS runners, signed on pushes to main and on tags. Setup is in `docs/misc/b
 - immutable artifacts at `releases/<version>/macos/<arch>/<artifact>` with
   `Cache-Control: public, max-age=31536000, immutable`, uploaded first,
 - mutable manifests at `channels/<channel>/macos/<arch>/latest-mac.yml` with `no-cache`, uploaded last, with
-  absolute artifact URLs. A stable release also updates the latest channel.
+  absolute artifact URLs.
+
+The workflow names the channel with `--channel`: a push to main publishes to latest, a tag to stable, and a release
+moves only its own channel. A tag on an older commit therefore leaves latest at the tip of main. The version comes from
+the update manifests of the artifacts, so a tag pushed after the build does not change what a run publishes. When main
+builds a commit that is already tagged, its publish uploads nothing and leaves that version to the run of the tag.
 
 `:vacuum` removes expired versions (`--keep-stable 100 --keep-latest 10`). The updater reads the feed of its
 channel (`src/update_feed.ts`), downloads only on request, installs on quit, and can switch between stable

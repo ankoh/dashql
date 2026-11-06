@@ -39,14 +39,14 @@ pub struct Release {
     pub release_update_manifest: UpdateManifest,
     /// The object key of the release update manifest
     pub release_update_manifest_path: String,
-    /// The channel metadata keys that are pointed to this release
-    pub channel_metadata_paths: Vec<&'static str>,
-    /// The channel update manifest keys that are pointed to this release
-    pub channel_update_manifest_paths: Vec<&'static str>,
+    /// The channel metadata key that is pointed to this release
+    pub channel_metadata_path: &'static str,
+    /// The channel update manifest key that is pointed to this release
+    pub channel_update_manifest_path: &'static str,
     /// The electron-builder channel manifests as `(object key, content)` pairs
     pub electron_channel_manifests: Vec<(String, Vec<u8>)>,
-    /// The SVG version badge uploaded for the latest channel
-    pub latest_badge: Vec<u8>,
+    /// The SVG version badge, only a release of the latest channel has one
+    pub latest_badge: Option<Vec<u8>>,
 }
 
 /// The inputs for building a [`Release`]
@@ -108,11 +108,13 @@ impl Release {
         release.release_update_manifest.version = args.release_version.version.clone();
         release.release_update_manifest.pub_date = pub_date;
         release.release_update_manifest.notes = "".to_string(); // XXX Get from commit info
-        release.latest_badge = build_version_badge(&args.release_version.version.to_string()).into_bytes();
+        if remote_paths.channel == "latest" {
+            release.latest_badge = Some(build_version_badge(&args.release_version.version.to_string()).into_bytes());
+        }
 
         // Prepare channel paths
-        release.channel_metadata_paths = remote_paths.channel_metadata.clone();
-        release.channel_update_manifest_paths = remote_paths.channel_update.clone();
+        release.channel_metadata_path = remote_paths.channel_metadata;
+        release.channel_update_manifest_path = remote_paths.channel_update;
 
         for (arch, architecture, dmg, zip, blockmap, manifest) in [
             ("arm64", Architecture::Aarch64, &args.macos_arm64_dmg_path, &args.macos_arm64_zip_path, &args.macos_arm64_zip_blockmap_path, &args.macos_arm64_update_manifest_path),
@@ -152,9 +154,6 @@ impl Release {
                 .replace(&format!("url: {}", zip_name), &format!("url: {}{}", artifact_base, zip_name))
                 .replace(&format!("path: {}", zip_name), &format!("path: {}{}", artifact_base, zip_name));
             release.electron_channel_manifests.push((electron_channel_manifest(remote_paths.channel, arch), manifest_text.into_bytes()));
-            if remote_paths.channel == "stable" {
-                release.electron_channel_manifests.push((electron_channel_manifest("latest", arch), release.electron_channel_manifests.last().unwrap().1.clone()));
-            }
         }
 
         log::info!("{:?}", &release);
@@ -245,16 +244,14 @@ impl Release {
         }
 
         // Update mutable channel pointers only after every immutable artifact is available.
-        for channel_metadata_path in self.channel_metadata_paths.iter() {
-            pending_uploads.push((channel_metadata_path.to_string(), &release_metadata));
-        }
-        for ref channel_update_manifest_path in self.channel_update_manifest_paths.iter() {
-            pending_uploads.push((channel_update_manifest_path.to_string(), &update_manifest));
-        }
+        pending_uploads.push((self.channel_metadata_path.to_string(), &release_metadata));
+        pending_uploads.push((self.channel_update_manifest_path.to_string(), &update_manifest));
         for (path, manifest) in &self.electron_channel_manifests {
             pending_uploads.push((path.clone(), manifest));
         }
-        pending_uploads.push((LATEST_BADGE_PATH.to_string(), &self.latest_badge));
+        if let Some(badge) = &self.latest_badge {
+            pending_uploads.push((LATEST_BADGE_PATH.to_string(), badge));
+        }
         for (path, metadata) in pending_uploads.drain(..) {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
@@ -315,7 +312,7 @@ fn content_type(path: &str) -> &'static str {
 mod tests {
     use super::*;
     use crate::git_info::GitVersion;
-    use crate::release_version::build_release_version;
+    use crate::release_version::{build_release_version, ReleaseChannel};
     use crate::test_s3::{FakeS3, TempDir};
     use semver::Version;
 
@@ -341,9 +338,10 @@ mod tests {
             iteration,
             short_hash: "abc1234".to_string(),
         };
+        let channel = if iteration == 0 { ReleaseChannel::Stable } else { ReleaseChannel::Latest };
         ReleaseArgs {
             remote_base_url: "https://get.example".to_string(),
-            release_version: build_release_version(&git_version).unwrap(),
+            release_version: build_release_version(git_version.as_semver(), channel),
             git_repo: GitInfo { version: git_version },
             macos_arm64_dmg_path: dir.write(ARM64_DMG, b"arm64 dmg"),
             macos_arm64_zip_path: dir.write(ARM64_ZIP, b"arm64 zip"),
@@ -370,8 +368,8 @@ mod tests {
         assert_eq!(release.release_metadata_path, "releases/1.2.3/metadata.json");
         assert_eq!(release.release_metadata.update_manifest_url, "https://get.example/releases/1.2.3/update.json");
         assert_eq!(release.release_metadata.git_commit_url, "https://github.com/ankoh/dashql/tree/abc1234");
-        assert_eq!(release.channel_metadata_paths, vec!["stable.json", "latest.json"]);
-        assert_eq!(release.channel_update_manifest_paths, vec!["stable-update.json", "latest-update.json"]);
+        assert_eq!(release.channel_metadata_path, "stable.json");
+        assert_eq!(release.channel_update_manifest_path, "stable-update.json");
 
         let mut uploads: Vec<&String> = release.file_uploads.keys().collect();
         uploads.sort();
@@ -392,16 +390,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_stable_release_also_moves_the_latest_feeds() {
+    async fn a_stable_release_leaves_the_latest_channel_alone() {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 0)).await.unwrap();
         let feeds: Vec<&str> = release.electron_channel_manifests.iter().map(|(path, _)| path.as_str()).collect();
         assert_eq!(feeds, vec![
             "channels/stable/macos/arm64/latest-mac.yml",
-            "channels/latest/macos/arm64/latest-mac.yml",
             "channels/stable/macos/x64/latest-mac.yml",
-            "channels/latest/macos/x64/latest-mac.yml",
         ]);
+        assert_eq!(release.latest_badge, None);
     }
 
     #[tokio::test]
@@ -409,8 +406,8 @@ mod tests {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 4)).await.unwrap();
         assert_eq!(release.release_metadata.version.to_string(), "1.2.4-dev.4");
-        assert_eq!(release.channel_metadata_paths, vec!["latest.json"]);
-        assert_eq!(release.channel_update_manifest_paths, vec!["latest-update.json"]);
+        assert_eq!(release.channel_metadata_path, "latest.json");
+        assert_eq!(release.channel_update_manifest_path, "latest-update.json");
         assert!(release.electron_channel_manifests.iter().all(|(path, _)| path.starts_with("channels/latest/")));
     }
 
@@ -452,13 +449,8 @@ mod tests {
         release.publish(&s3.client()).await.unwrap();
 
         assert_eq!(s3.object_keys(), vec![
-            "channels/latest/badge.svg",
-            "channels/latest/macos/arm64/latest-mac.yml",
-            "channels/latest/macos/x64/latest-mac.yml",
             "channels/stable/macos/arm64/latest-mac.yml",
             "channels/stable/macos/x64/latest-mac.yml",
-            "latest-update.json",
-            "latest.json",
             "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
             "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
             "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
@@ -474,7 +466,27 @@ mod tests {
         let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.3");
         assert_eq!(s3.object("stable.json"), s3.object("releases/1.2.3/metadata.json"));
-        assert_eq!(s3.object("latest-update.json"), s3.object("releases/1.2.3/update.json"));
+        assert_eq!(s3.object("stable-update.json"), s3.object("releases/1.2.3/update.json"));
+    }
+
+    #[tokio::test]
+    async fn a_prerelease_moves_the_latest_channel_and_its_badge() {
+        let dir = TempDir::new();
+        let release = Release::build(release_args(&dir, 4)).await.unwrap();
+        let s3 = FakeS3::start().await;
+        release.publish(&s3.client()).await.unwrap();
+
+        let pointers: Vec<String> = s3.object_keys().into_iter().filter(|key| is_channel_pointer(key)).collect();
+        assert_eq!(pointers, vec![
+            "channels/latest/badge.svg",
+            "channels/latest/macos/arm64/latest-mac.yml",
+            "channels/latest/macos/x64/latest-mac.yml",
+            "latest-update.json",
+            "latest.json",
+        ]);
+        let badge = s3.requests().into_iter().find(|request| request.key == "channels/latest/badge.svg").unwrap();
+        assert_eq!(badge.headers.get("cache-control").map(String::as_str), Some("no-cache"));
+        assert_eq!(badge.headers.get("content-type").map(String::as_str), Some("image/svg+xml"));
     }
 
     #[tokio::test]
@@ -487,7 +499,7 @@ mod tests {
         let requests = s3.requests();
         let first_pointer = requests.iter().position(|request| is_channel_pointer(&request.key)).unwrap();
         assert!(requests[first_pointer..].iter().all(|request| is_channel_pointer(&request.key)));
-        assert_eq!(requests[first_pointer..].len(), 9);
+        assert_eq!(requests[first_pointer..].len(), 4);
     }
 
     #[tokio::test]
@@ -503,10 +515,9 @@ mod tests {
         for key in ["releases/1.2.3/metadata.json", "releases/1.2.3/macos/arm64/DashQL-arm64.dmg"] {
             assert_eq!(header(key, "cache-control").as_deref(), Some(IMMUTABLE), "{key}");
         }
-        for key in ["stable.json", "latest-update.json", "channels/latest/badge.svg", "channels/stable/macos/x64/latest-mac.yml"] {
+        for key in ["stable.json", "stable-update.json", "channels/stable/macos/x64/latest-mac.yml"] {
             assert_eq!(header(key, "cache-control").as_deref(), Some("no-cache"), "{key}");
         }
-        assert_eq!(header("channels/latest/badge.svg", "content-type").as_deref(), Some("image/svg+xml"));
         assert_eq!(header("channels/stable/macos/x64/latest-mac.yml", "content-type").as_deref(), Some("application/yaml"));
         assert_eq!(header("stable.json", "content-type").as_deref(), Some("application/json"));
     }
@@ -537,10 +548,10 @@ mod tests {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 0)).await.unwrap();
         let s3 = FakeS3::start().await;
-        s3.deny_upload("latest.json");
+        s3.deny_upload("stable-update.json");
         assert!(release.publish(&s3.client()).await.is_err());
         assert!(s3.object("stable.json").is_some());
-        assert_eq!(s3.object("latest.json"), None);
+        assert_eq!(s3.object("stable-update.json"), None);
     }
 
     #[tokio::test]

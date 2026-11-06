@@ -28,6 +28,7 @@ jobs:
         uses: ./.github/workflows/publish.yml
         with:
             commit: ${{ github.sha }}
+            channel: latest
             require_tip: true
         needs:
             - build

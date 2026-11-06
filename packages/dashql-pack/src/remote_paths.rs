@@ -2,10 +2,10 @@ use super::release_version::{ReleaseChannel, ReleaseVersion};
 
 /// The object keys a release is uploaded to
 pub struct RemotePaths {
-    /// The channel metadata keys to point to the release, e.g. `stable.json`
-    pub channel_metadata: Vec<&'static str>,
-    /// The channel update manifest keys to point to the release, e.g. `stable-update.json`
-    pub channel_update: Vec<&'static str>,
+    /// The channel metadata key to point to the release, e.g. `stable.json`
+    pub channel_metadata: &'static str,
+    /// The channel update manifest key to point to the release, e.g. `stable-update.json`
+    pub channel_update: &'static str,
     /// The versioned directory of the release, `releases/<version>`
     pub release_directory: String,
     /// The key of the release metadata
@@ -17,17 +17,9 @@ pub struct RemotePaths {
 }
 
 pub fn derive_remote_paths(release: &ReleaseVersion) -> RemotePaths {
-    let channel_metadata = match release.channel {
-        ReleaseChannel::Stable => vec!["stable.json", "latest.json"],
-        ReleaseChannel::Latest => vec!["latest.json"],
-    };
-    let channel = match release.channel {
-        ReleaseChannel::Stable => "stable",
-        ReleaseChannel::Latest => "latest",
-    };
-    let channel_update = match release.channel {
-        ReleaseChannel::Stable => vec!["stable-update.json", "latest-update.json"],
-        ReleaseChannel::Latest => vec!["latest-update.json"],
+    let (channel, channel_metadata, channel_update) = match release.channel {
+        ReleaseChannel::Stable => ("stable", "stable.json", "stable-update.json"),
+        ReleaseChannel::Latest => ("latest", "latest.json", "latest-update.json"),
     };
     let release_directory = format!("releases/{}", release.version.to_string());
     let release_metadata = format!("{}/{}", &release_directory, "metadata.json");
@@ -61,11 +53,11 @@ mod tests {
     }
 
     #[test]
-    fn a_stable_release_moves_both_channels() {
+    fn a_stable_release_only_moves_the_stable_channel() {
         let paths = derive_remote_paths(&release("1.2.3", ReleaseChannel::Stable));
         assert_eq!(paths.channel, "stable");
-        assert_eq!(paths.channel_metadata, vec!["stable.json", "latest.json"]);
-        assert_eq!(paths.channel_update, vec!["stable-update.json", "latest-update.json"]);
+        assert_eq!(paths.channel_metadata, "stable.json");
+        assert_eq!(paths.channel_update, "stable-update.json");
         assert_eq!(paths.release_directory, "releases/1.2.3");
         assert_eq!(paths.release_metadata, "releases/1.2.3/metadata.json");
         assert_eq!(paths.release_update, "releases/1.2.3/update.json");
@@ -75,8 +67,8 @@ mod tests {
     fn a_prerelease_only_moves_the_latest_channel() {
         let paths = derive_remote_paths(&release("1.2.4-dev.3", ReleaseChannel::Latest));
         assert_eq!(paths.channel, "latest");
-        assert_eq!(paths.channel_metadata, vec!["latest.json"]);
-        assert_eq!(paths.channel_update, vec!["latest-update.json"]);
+        assert_eq!(paths.channel_metadata, "latest.json");
+        assert_eq!(paths.channel_update, "latest-update.json");
         assert_eq!(paths.release_directory, "releases/1.2.4-dev.3");
     }
 }
