@@ -58,7 +58,7 @@ defines the cross-origin isolation headers and browser cache policy:
     `electron` builds stay uncompressed.
 - HTML entrypoints: stored with mandatory revalidation.
 
-Release manifests such as `canary.json` and `stable.json`, along with updater routes, remain on
+Release manifests such as `latest.json` and `stable.json`, along with updater routes, remain on
 `get.dashql.app` and are not configured by this Pages deployment.
 
 The global rule applies `Cross-Origin-Opener-Policy: same-origin` and

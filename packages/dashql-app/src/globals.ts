@@ -10,8 +10,8 @@ export const DASHQL_AGENT_PORT: number = Number(process.env.DASHQL_AGENT_PORT ??
 export const DASHQL_GIT_REPO: URL = new URL(`https://github.com/ankoh/dashql/tree/${DASHQL_GIT_COMMIT}`);
 /// The URL of the stable release manifest
 export const DASHQL_STABLE_RELEASE_MANIFEST = new URL("https://get.dashql.app/stable.json");
-/// The URL of the canary release manifest
-export const DASHQL_CANARY_RELEASE_MANIFEST = new URL("https://get.dashql.app/canary.json");
+/// The URL of the latest release manifest
+export const DASHQL_LATEST_RELEASE_MANIFEST = new URL("https://get.dashql.app/latest.json");
 
 export function isDebugBuild() {
     return DASHQL_BUILD_MODE == "development";

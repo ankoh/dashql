@@ -14,9 +14,9 @@ describe('detectReleaseChannel', () => {
         expect(detectReleaseChannel('10.20.30')).toBe('stable');
     });
 
-    it('classifies prerelease (dev) versions as canary', () => {
-        expect(detectReleaseChannel('0.0.2-dev.17')).toBe('canary');
-        expect(detectReleaseChannel('1.2.3-dev.1')).toBe('canary');
+    it('classifies prerelease (dev) versions as latest', () => {
+        expect(detectReleaseChannel('0.0.2-dev.17')).toBe('latest');
+        expect(detectReleaseChannel('1.2.3-dev.1')).toBe('latest');
     });
 });
 
@@ -39,28 +39,28 @@ describe('compareReleaseVersions', () => {
         expect(sign(compareReleaseVersions('0.0.3-dev.10', '0.0.3-dev.2'))).toBe(1);
     });
 
-    it('treats an older stable as a downgrade from a newer canary', () => {
-        // Installing stable 0.0.2 while on canary 0.0.3-dev.5 must not be an upgrade
+    it('treats an older stable as a downgrade from a newer latest build', () => {
+        // Installing stable 0.0.2 while on latest 0.0.3-dev.5 must not be an upgrade
         expect(compareReleaseVersions('0.0.2', '0.0.3-dev.5')).toBeLessThan(0);
-        // The canary of the next core version is an upgrade over the current stable
+        // The latest build of the next core version is an upgrade over the current stable
         expect(compareReleaseVersions('0.0.3-dev.5', '0.0.2')).toBeGreaterThan(0);
     });
 });
 
 describe('canInstallReleaseVersion', () => {
-    it('blocks switching from canary to an older stable release', () => {
+    it('blocks switching from latest to an older stable release', () => {
         expect(canInstallReleaseVersion('0.0.12', '0.0.13-dev.5')).toBe(false);
     });
 
-    it('allows switching from canary to the stable release of its core version', () => {
+    it('allows switching from latest to the stable release of its core version', () => {
         expect(canInstallReleaseVersion('0.0.13', '0.0.13-dev.5')).toBe(true);
     });
 
-    it('allows switching from stable to a newer canary', () => {
+    it('allows switching from stable to a newer latest build', () => {
         expect(canInstallReleaseVersion('0.0.13-dev.5', '0.0.12')).toBe(true);
     });
 
-    it('blocks switching from stable to an older canary', () => {
+    it('blocks switching from stable to an older latest build', () => {
         expect(canInstallReleaseVersion('0.0.13-dev.5', '0.0.13')).toBe(false);
     });
 

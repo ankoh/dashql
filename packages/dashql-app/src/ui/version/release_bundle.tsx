@@ -4,7 +4,7 @@ import { classNames } from '../../utils/classnames.js';
 import { Button, ButtonSize } from '../foundations/button.js';
 import { ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useCanaryReleaseManifest, useStableReleaseManifest } from '../../platform/version/version_check.js';
+import { useLatestReleaseManifest, useStableReleaseManifest } from '../../platform/version/version_check.js';
 
 import * as styles from './release_bundle.module.css';
 import { Result, RESULT_OK } from '../../utils/result.js';
@@ -50,12 +50,12 @@ interface ReleaseBundlesProps {
 
 export const ReleaseBundles: React.FC<ReleaseBundlesProps> = (props: ReleaseBundlesProps) => {
     const stableReleaseManifest = useStableReleaseManifest();
-    const canaryReleaseManifest = useCanaryReleaseManifest();
+    const latestReleaseManifest = useLatestReleaseManifest();
 
     // We'll care about identifying the exact platform bundles as soon as we support more than mac.
     const macBundles: ReleaseBundleProps[] = React.useMemo(() => {
         const macBundles: ReleaseBundleProps[] = []
-        const releaseManifests: [Result<ReleaseManifest> | null, ReleaseChannel][] = [[stableReleaseManifest, "stable"], [canaryReleaseManifest, "canary"]];
+        const releaseManifests: [Result<ReleaseManifest> | null, ReleaseChannel][] = [[stableReleaseManifest, "stable"], [latestReleaseManifest, "latest"]];
         for (const [manifest, channel] of releaseManifests) {
             if (manifest != null && manifest.type == RESULT_OK) {
                 for (const bundle of manifest.value.bundles) {
@@ -72,7 +72,7 @@ export const ReleaseBundles: React.FC<ReleaseBundlesProps> = (props: ReleaseBund
             }
         }
         return macBundles;
-    }, [stableReleaseManifest, canaryReleaseManifest]);
+    }, [stableReleaseManifest, latestReleaseManifest]);
 
     return (
         <div className={classNames(styles.native_apps_container, props.className)}>

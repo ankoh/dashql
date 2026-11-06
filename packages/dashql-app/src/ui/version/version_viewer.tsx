@@ -9,8 +9,8 @@ import {
     InstallableUpdate,
     InstallationStatusCode,
     InstallationState,
-    useCanaryReleaseManifest,
-    useCanaryUpdateManifest,
+    useLatestReleaseManifest,
+    useLatestUpdateManifest,
     useInstallationStatus,
     useStableReleaseManifest,
     useStableUpdateManifest,
@@ -48,7 +48,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
     let versionName: string | null = null;
     let status: React.ReactElement | null = null;
 
-    // Get the latest version from the release manifest
+    // Get the newest version of the channel from the release manifest
     if (props.releaseManifest?.type === RESULT_OK) {
         if (props.releaseManifest.value != null) {
             versionName = props.releaseManifest.value.version;
@@ -61,8 +61,8 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
             // If the installation status refers to this channel, we render the installation status instead.
             // If it's not referring to this channel, we render nothing.
             if (props.installationStatus == null) {
-                // Installs only move forward, also when switching channels. Moving from a canary back
-                // to an older stable would run it on storage the canary already migrated.
+                // Installs only move forward, also when switching channels. Moving from a latest build back
+                // to an older stable would run it on storage the latest build already migrated.
                 const isInstallable = versionName != null && canInstallReleaseVersion(versionName, DASHQL_VERSION);
                 if (!isInstallable) {
                     status = props.isActive
@@ -136,8 +136,8 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     const isWebPlatform = platformType == PlatformType.WEB;
     const stableReleaseManifest = useStableReleaseManifest();
     const stableUpdateManifest = useStableUpdateManifest();
-    const canaryReleaseManifest = useCanaryReleaseManifest();
-    const canaryUpdateManifest = useCanaryUpdateManifest();
+    const latestReleaseManifest = useLatestReleaseManifest();
+    const latestUpdateManifest = useLatestUpdateManifest();
     const installationStatus = useInstallationStatus();
     const versionCheck = useVersionCheck();
     const logger = useLogger();
@@ -145,13 +145,13 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
 
     // The channel the app currently tracks. It is fully dictated by the installed version scheme.
     const activeChannel: ReleaseChannel = detectReleaseChannel(DASHQL_VERSION);
-    const activeUpdateManifest = activeChannel == "canary" ? canaryUpdateManifest : stableUpdateManifest;
+    const activeUpdateManifest = activeChannel == "latest" ? latestUpdateManifest : stableUpdateManifest;
 
     // Are we on the most recent version of the active channel?
     // A successful update check that yields no update means we're up to date.
-    let onLatestVersion: boolean | null = null;
+    let isUpToDate: boolean | null = null;
     if (activeUpdateManifest?.type === RESULT_OK) {
-        onLatestVersion = activeUpdateManifest.value == null;
+        isUpToDate = activeUpdateManifest.value == null;
     }
 
     // Install an update. The app restarts on the new version afterwards, so the channel re-derives itself.
@@ -229,8 +229,8 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                 </div>
                 <div className={styles.version_info_value}>
                     <span>{DASHQL_VERSION}</span>
-                    {!isWebPlatform && onLatestVersion === true && (
-                        <span className={styles.version_info_latest}>latest</span>
+                    {!isWebPlatform && isUpToDate === true && (
+                        <span className={styles.version_info_up_to_date}>up to date</span>
                     )}
                 </div>
                 <div className={styles.version_info_key}>
@@ -262,11 +262,11 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                             onInstall={onInstall}
                         />
                         <UpdateChannel
-                            channel="canary"
-                            name="canary"
-                            isActive={activeChannel == "canary"}
-                            releaseManifest={canaryReleaseManifest}
-                            updateManifest={canaryUpdateManifest}
+                            channel="latest"
+                            name="latest"
+                            isActive={activeChannel == "latest"}
+                            releaseManifest={latestReleaseManifest}
+                            updateManifest={latestUpdateManifest}
                             installationStatus={installationStatus}
                             onInstall={onInstall}
                         />

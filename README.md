@@ -6,7 +6,7 @@
   <a href="https://github.com/ankoh/dashql/actions/workflows/renovate.yml"><img src="https://github.com/ankoh/dashql/actions/workflows/renovate.yml/badge.svg" /></a>
   <a href="https://coveralls.io/github/ankoh/dashql?branch=main"><img src="https://img.shields.io/coverallsCoverage/github/ankoh/dashql?branch=main" /></a>
   <a href="https://opensource.org/licenses/MPL-2.0"><img src="misc/badge_mpl2.svg?raw=true" /></a>
-  <a href="https://get.dashql.app/canary.json"><img src="https://get.dashql.app/channels/canary/badge.svg" /></a>
+  <a href="https://get.dashql.app/latest.json"><img src="https://get.dashql.app/channels/latest/badge.svg" /></a>
 </p>
 
 ---
@@ -83,7 +83,7 @@ bazel run //packages/dashql-datasets:sync
     - `//packages/dashql-app:pages` is published to Cloudflare Pages
     - We use aggressive caching with cache busting
 - Native apps and update bundles are published to **get.dashql.app**
-- We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/canary.json](https://get.dashql.app/canary.json)
+- We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
     - Built hermetically by `//packages/dashql-datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //packages/dashql-datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry

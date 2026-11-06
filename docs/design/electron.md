@@ -134,11 +134,24 @@ on macOS runners, signed on pushes to main and on tags. Setup is in `docs/misc/b
 - immutable artifacts at `releases/<version>/macos/<arch>/<artifact>` with
   `Cache-Control: public, max-age=31536000, immutable`, uploaded first,
 - mutable manifests at `channels/<channel>/macos/<arch>/latest-mac.yml` with `no-cache`, uploaded last, with
-  absolute artifact URLs. A stable release also updates the canary channel.
+  absolute artifact URLs. A stable release also updates the latest channel.
 
-`:vacuum` removes expired versions (`--keep-stable 100 --keep-canary 10`). The updater reads the feed of its
+`:vacuum` removes expired versions (`--keep-stable 100 --keep-latest 10`). The updater reads the feed of its
 channel (`src/update_feed.ts`), downloads only on request, installs on quit, and can switch between stable
-and canary. Integrity relies on electron-updater's SHA-512 manifest and Apple code signing.
+and latest. Integrity relies on electron-updater's SHA-512 manifest and Apple code signing.
+
+The latest channel used to be called `canary`, and installed apps from that time have its feed URL compiled in. They
+update through it to a build that reads `channels/latest`. URL Rewrite rules of the `dashql.app` zone keep the old URLs
+working on `get.dashql.app`. They live only in Cloudflare, no test covers them:
+
+| Path | Rewritten to |
+|---|---|
+| `/canary.json` | `/latest.json` |
+| `/canary-update.json` | `/latest-update.json` |
+| `/channels/canary/*` | `/channels/latest/${1}` |
+
+Keep these rules for as long as such installs may exist. There is no telemetry on installed versions, so nothing shows
+when they are gone, and without the third rule they stop receiving updates without any visible error.
 
 ## Not Implemented
 

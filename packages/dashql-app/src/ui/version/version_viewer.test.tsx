@@ -98,10 +98,10 @@ describe('VersionInfoOverlay', () => {
         await render(false);
         await settleRefresh();
         let resolveStable!: (response: Response) => void;
-        let resolveCanary!: (response: Response) => void;
+        let resolveLatest!: (response: Response) => void;
         fetchManifest
             .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveStable = resolve; }))
-            .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveCanary = resolve; }));
+            .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveLatest = resolve; }));
 
         await render(true);
         const refreshButton = () => document.querySelector<HTMLButtonElement>('[data-testid="version-check-refresh"]');
@@ -115,9 +115,9 @@ describe('VersionInfoOverlay', () => {
         await act(async () => resolveStable(new Response(JSON.stringify(manifest))));
         expect(refreshButton()!.getAttribute('aria-disabled'), 'still busy after stable resolves').toBe('true');
 
-        await act(async () => resolveCanary(new Response(JSON.stringify(manifest))));
+        await act(async () => resolveLatest(new Response(JSON.stringify(manifest))));
         await settleRefresh();
-        expect(refreshButton()!.getAttribute('aria-disabled'), 'idle after canary resolves').not.toBe('true');
+        expect(refreshButton()!.getAttribute('aria-disabled'), 'idle after the latest manifest resolves').not.toBe('true');
         act(() => refreshButton()!.click());
         await act(async () => {});
         expect(fetchManifest).toHaveBeenCalledTimes(6);

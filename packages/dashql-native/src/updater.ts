@@ -20,8 +20,8 @@ export interface ElectronUpdater {
     install(): void;
 }
 
-function channelFor(version: string): "canary" | "stable" {
-    return version.includes("-") ? "canary" : "stable";
+function channelFor(version: string): "latest" | "stable" {
+    return version.includes("-") ? "latest" : "stable";
 }
 
 export function createElectronUpdater(
@@ -45,8 +45,8 @@ export function createElectronUpdater(
 
     const configure = (channel: UpdateChannel) => {
         configuredChannel = channel;
-        autoUpdater.allowPrerelease = channel === "canary";
-        // Never downgrade, also not when switching channels. A newer canary may have migrated the
+        autoUpdater.allowPrerelease = channel === "latest";
+        // Never downgrade, also not when switching channels. A newer latest build may have migrated the
         // local storage to a schema an older stable cannot read.
         autoUpdater.allowDowngrade = false;
         autoUpdater.setFeedURL({provider: "generic", url: updateFeedUrlForChannel(channel, process.arch)});
@@ -54,6 +54,7 @@ export function createElectronUpdater(
 
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+    // Selects the manifest file name latest-mac.yml in every feed, this is not our release channel
     autoUpdater.channel = "latest";
     configure(configuredChannel);
     autoUpdater.on("checking-for-update", () => publish({status: "checking", channel: configuredChannel}));

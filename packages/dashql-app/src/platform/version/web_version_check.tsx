@@ -4,8 +4,8 @@ import { useLogger } from '../logger/logger_provider.js';
 import { awaitAndSet, Result } from '../../utils/result.js';
 import { Logger, stringifyError } from '../logger/logger.js';
 import { createTrace } from '../logger/trace_context.js';
-import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
-import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, useVersionCheckRefreshState } from './version_check.js';
+import { DASHQL_LATEST_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
+import { LATEST_RELEASE_MANIFEST_CTX, LATEST_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, useVersionCheckRefreshState } from './version_check.js';
 
 const LOG_CTX = "version_check";
 
@@ -44,16 +44,16 @@ function parseReleaseManifest(raw: any): ReleaseManifest {
 }
 
 /// A release channel
-export type ReleaseChannel = "stable" | "canary";
+export type ReleaseChannel = "stable" | "latest";
 
 /// Detect the release channel of an installed version from its version scheme.
 ///
 /// Releases are versioned as `MAJOR.MINOR.PATCH` for stable builds and
-/// `MAJOR.MINOR.PATCH-dev.N` for canary builds (see `bazel/versioning.bzl` and
+/// `MAJOR.MINOR.PATCH-dev.N` for prereleases on the latest channel (see `bazel/versioning.bzl` and
 /// `dashql-pack/src/release_version.rs`, which derive the channel from the git iteration).
-/// A prerelease suffix therefore uniquely identifies a canary build.
+/// A prerelease suffix therefore uniquely identifies a build of the latest channel.
 export function detectReleaseChannel(version: string): ReleaseChannel {
-    return version.includes("-") ? "canary" : "stable";
+    return version.includes("-") ? "latest" : "stable";
 }
 
 interface ParsedVersion {
@@ -112,7 +112,7 @@ export function compareReleaseVersions(a: string, b: string): number {
 }
 
 /// Whether a release should be offered for installation. Installs only move forward, also across
-/// channels: a newer canary may have migrated the local storage to a schema an older stable cannot read.
+/// channels: a newer latest build may have migrated the local storage to a schema an older stable cannot read.
 export function canInstallReleaseVersion(targetVersion: string, currentVersion: string): boolean {
     return compareReleaseVersions(targetVersion, currentVersion) > 0;
 }
@@ -142,12 +142,12 @@ export const WebVersionCheck: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
 
     const [stableRelease, setStableRelease] = React.useState<Result<ReleaseManifest> | null>(null);
-    const [canaryRelease, setCanaryRelease] = React.useState<Result<ReleaseManifest> | null>(null);
+    const [latestRelease, setLatestRelease] = React.useState<Result<ReleaseManifest> | null>(null);
 
     const check = React.useCallback(async () => {
         await Promise.all([
             awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease),
-            awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease),
+            awaitAndSet(loadReleaseManifest("latest", DASHQL_LATEST_RELEASE_MANIFEST, logger), setLatestRelease),
         ]);
     }, [logger]);
     const refresh = useVersionCheckRefreshState(check);
@@ -158,11 +158,11 @@ export const WebVersionCheck: React.FC<Props> = (props: Props) => {
                 <INSTALLATION_STATUS_CTX.Provider value={null}>
                     <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
                         <STABLE_UPDATE_MANIFEST_CTX.Provider value={null}>
-                            <CANARY_RELEASE_MANIFEST_CTX.Provider value={canaryRelease}>
-                                <CANARY_UPDATE_MANIFEST_CTX.Provider value={null}>
+                            <LATEST_RELEASE_MANIFEST_CTX.Provider value={latestRelease}>
+                                <LATEST_UPDATE_MANIFEST_CTX.Provider value={null}>
                                     {props.children}
-                                </CANARY_UPDATE_MANIFEST_CTX.Provider>
-                            </CANARY_RELEASE_MANIFEST_CTX.Provider>
+                                </LATEST_UPDATE_MANIFEST_CTX.Provider>
+                            </LATEST_RELEASE_MANIFEST_CTX.Provider>
                         </STABLE_UPDATE_MANIFEST_CTX.Provider>
                     </STABLE_RELEASE_MANIFEST_CTX.Provider>
                 </INSTALLATION_STATUS_CTX.Provider>

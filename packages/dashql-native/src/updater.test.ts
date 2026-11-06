@@ -7,12 +7,12 @@ describe("updateFeedUrl", () => {
         expect(updateFeedUrl("1.2.3", "arm64")).toBe("https://get.dashql.app/channels/stable/macos/arm64");
     });
 
-    it("selects canary and x64", () => {
-        expect(updateFeedUrl("1.2.4-dev.3", "x64")).toBe("https://get.dashql.app/channels/canary/macos/x64");
+    it("selects latest and x64", () => {
+        expect(updateFeedUrl("1.2.4-dev.3", "x64")).toBe("https://get.dashql.app/channels/latest/macos/x64");
     });
 
-    it("allows a stable installation to explicitly select the canary feed", () => {
-        expect(updateFeedUrlForChannel("canary", "arm64")).toBe("https://get.dashql.app/channels/canary/macos/arm64");
+    it("allows a stable installation to explicitly select the latest feed", () => {
+        expect(updateFeedUrlForChannel("latest", "arm64")).toBe("https://get.dashql.app/channels/latest/macos/arm64");
     });
 });
 

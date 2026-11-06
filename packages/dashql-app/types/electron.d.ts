@@ -64,7 +64,7 @@ interface DashQLOAuthLoopbackResult {
     errorDescription?: string;
 }
 
-type DashQLUpdateChannel = 'canary' | 'stable';
+type DashQLUpdateChannel = 'latest' | 'stable';
 
 type DashQLElectronUpdateStatus =
     | {status: 'disabled'}
