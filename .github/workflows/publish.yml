@@ -123,9 +123,6 @@ jobs:
     stable_pages_deploy:
         name: Cloudflare Pages (stable.dashql.app)
         if: inputs.publish_stable_pages
-        # The site moves after stable.json has moved, so that the two agree on the stable version
-        needs:
-            - desktop_release
         runs-on: ubuntu-26.04
         permissions:
             contents: read

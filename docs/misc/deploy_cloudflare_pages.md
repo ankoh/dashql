@@ -92,9 +92,9 @@ static assets should be immutable. Every `.br` WebAssembly response needs `Conte
 ## stable.dashql.app
 
 `dashql.app` follows `main`, `stable.dashql.app` follows the release tags. The `stable_pages_deploy` job of
-`publish.yml` runs for tag pushes after the desktop release was published, so the site and
-`get.dashql.app/stable.json` agree on the version. It uploads the `dashql_app_pages` artifact of the tag build to a
-separate Direct Upload project with the same `PAGES_DASHQL_*` secrets.
+`publish.yml` runs for tag pushes and uploads the `dashql_app_pages` artifact of the tag build to a separate Direct
+Upload project with the same `PAGES_DASHQL_*` secrets. It runs independently of the desktop release, like the
+deployment of `dashql.app`.
 
 Set this up before pushing the first tag that runs the job:
 
