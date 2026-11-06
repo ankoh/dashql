@@ -37,6 +37,14 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
     return `Loading [${'#'.repeat(blocks)}${'-'.repeat(10 - blocks)}]`;
 }
 
+export interface SessionShellPageDependencies {
+    ShellQueryResultOverlay: typeof ShellQueryResultOverlay;
+}
+
+const DEFAULT_DEPENDENCIES: SessionShellPageDependencies = {
+    ShellQueryResultOverlay,
+};
+
 interface Props {
     sessionId: string;
     sessionName?: string | null;
@@ -45,9 +53,13 @@ interface Props {
     /// The ordinal that tells the connection apart from others of its connector, see `connectionOrdinals`
     ordinal?: number | null;
     active: boolean;
+    dependencies?: SessionShellPageDependencies;
 }
 
-export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, connectionId, ordinal = null, active }) => {
+export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, connectionId, ordinal = null, active, dependencies = DEFAULT_DEPENDENCIES }) => {
+    const ResultOverlay = dependencies.ShellQueryResultOverlay;
+    const activeRef = React.useRef(active);
+    activeRef.current = active;
     const [connection] = useConnectionById(connectionId);
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const keywordCaseRef = React.useRef(keywordCase);
@@ -150,24 +162,38 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                     nextShell.destroy();
                     return;
                 }
-                controllerRef.current = await embedDashQLShell({
-                    container: containerRef.current,
-                    shell: nextShell,
-                    greeter: sessionName ? [shellName, sessionName, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
-                    prompt,
-                    onExit: () => setMode(SessionViewMode.Session),
-                    onQueryResult: setResultQueryId,
-                    onTerminalResize: columns => { terminalColumnsRef.current = columns; },
-                });
+                let controller: BrowserShellController;
+                try {
+                    controller = await embedDashQLShell({
+                        container: containerRef.current,
+                        shell: nextShell,
+                        greeter: sessionName ? [shellName, sessionName, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
+                        prompt,
+                        onExit: () => setMode(SessionViewMode.Session),
+                        onQueryResult: setResultQueryId,
+                        onTerminalResize: columns => { terminalColumnsRef.current = columns; },
+                        mayFocus: () => activeRef.current,
+                    });
+                } catch (error) {
+                    nextShell.destroy();
+                    throw error;
+                }
+                // The inputs changed or the page closed while the terminal opened, the terminal of a newer run takes over
+                if (cancelled || generation !== generationRef.current) {
+                    controller.dispose();
+                    nextShell.destroy();
+                    return;
+                }
+                controllerRef.current = controller;
             } else {
-                controllerRef.current.replaceShell(nextShell);
+                controllerRef.current.replaceShell(nextShell, prompt);
                 controllerRef.current.writeStatus('Catalog refreshed');
             }
             const previous = shellRef.current;
             shellRef.current = nextShell;
             previous?.destroy();
             setStatus('');
-            if (active) controllerRef.current.focus();
+            if (activeRef.current) controllerRef.current.focus();
         }).catch(error => {
             if (cancelled || generation !== generationRef.current) return;
             const message = `Failed to load shell: ${stringifyError(error)}`;
@@ -207,7 +233,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                 </div>
             )}
             {resultQuery != null && (
-                <ShellQueryResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} />
+                <ResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} />
             )}
             {snippetsBrowserDialog}
             {fileDialogs}

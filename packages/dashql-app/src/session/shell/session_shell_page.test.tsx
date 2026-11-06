@@ -1,0 +1,711 @@
+import * as arrow from 'apache-arrow';
+import * as React from 'react';
+import { act } from '@dashql/browser-test-act';
+import { createRoot, type Root } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ComputationRegistry, useComputationRegistry } from '../../compute/computation_registry.js';
+import { ComputeConnectionProvider } from '../../compute/compute_connection_provider.js';
+import { COMPUTATION_FROM_QUERY_RESULT } from '../../compute/computation_state.js';
+import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
+import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
+import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/query_executor.js';
+import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
+import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
+import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { DashQLCoreProvider } from '../../runtime/core_provider.js';
+import { DashQLShell } from '../../shell/api.js';
+import { ShellFileRegistry } from '../../shell/shell_files.js';
+import { StorageProvider } from '../../storage/storage_provider.js';
+import { SessionTestBackend } from '../../storage/session_test_backend.js';
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { SessionViewMode, SessionViewModeProvider, useSessionViewMode } from '../session_view_mode.js';
+import { SessionShellPage, type SessionShellPageDependencies } from './session_shell_page.js';
+
+vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
+
+const WAIT = { timeout: 8000 };
+const SESSION_ID = 'session';
+const MAIN = 'main';
+const OTHER = 'other';
+
+type CacheGlobal = typeof globalThis & { __dashqlShellModuleCache?: unknown };
+
+/// The shell module is instantiated once per page and shared, tests start with it loaded
+async function loadShellModule(): Promise<void> {
+    const shell = await DashQLShell.create({
+        environment: { executeQuery: async () => new Uint8Array() },
+        wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+    });
+    shell.destroy();
+}
+
+function createConnection(connectionId: string, options: {
+    setupParams?: object;
+    relationsSql?: string;
+    functionsSql?: string;
+    queriesFinished?: Map<number, unknown>;
+} = {}): ConnectionState {
+    return {
+        connectionId,
+        active: false,
+        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+        connectionHealth: ConnectionHealth.ONLINE,
+        metrics: createConnectionMetrics(),
+        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
+        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: options.setupParams ?? { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } } },
+        catalogRelationScript: { toString: () => options.relationsSql ?? '' },
+        catalogFunctionScript: { toString: () => options.functionsSql ?? '' },
+        queriesActive: new Map(),
+        queriesActiveOrdered: [],
+        queriesFinished: options.queriesFinished ?? new Map(),
+        queriesFinishedOrdered: [],
+    } as unknown as ConnectionState;
+}
+
+function finishedQuery(queryId: number, resultTable: arrow.Table) {
+    return { queryId, status: QueryExecutionStatus.SUCCEEDED, resultTable, queryMetadata: { sessionId: SESSION_ID } };
+}
+
+/// What the tests reach through the providers
+interface Api {
+    setConnections(connections: ConnectionState[]): void;
+    computations(): number[];
+    createComputation(queryId: number, table: arrow.Table): void;
+    mode(): SessionViewMode;
+    reconfigure(settings: AppConfig['settings']): void;
+}
+
+function Capture(props: { capture: (api: Api) => void; children: React.ReactElement }) {
+    const [, setRegistry] = useConnectionRegistry();
+    const [computations, dispatch] = useComputationRegistry();
+    const { mode } = useSessionViewMode();
+    const reconfigure = useAppReconfigure();
+    props.capture({
+        setConnections: connections => setRegistry(prev => {
+            const next = { ...prev, connections: new Map(prev.connections), connectionsByType: CONNECTOR_TYPES.map(() => [] as string[]) };
+            for (const connection of connections) {
+                next.connections.set(connection.connectionId, connection);
+                next.connectionsByType[connection.connectorInfo.connectorType].push(connection.connectionId);
+            }
+            return next;
+        }),
+        computations: () => Object.keys(computations.tableComputations).map(Number),
+        createComputation: (queryId, table) => dispatch({
+            type: COMPUTATION_FROM_QUERY_RESULT,
+            value: [queryId, table, [], new AbortController()],
+        }),
+        mode: () => mode,
+        reconfigure: settings => reconfigure(config => ({ ...(config ?? {}), settings } as AppConfig)),
+    });
+    return props.children;
+}
+
+/// The overlay has its own tests, this shows which result the page opens
+const dependencies: SessionShellPageDependencies = {
+    ShellQueryResultOverlay: ({ query, onClose }) => (
+        <div role="dialog" data-query-id={query.queryId}>
+            <button type="button" aria-label="Close shell query results" onClick={onClose} />
+        </div>
+    ),
+};
+
+describe('SessionShellPage', () => {
+    let container: HTMLDivElement;
+    let root: Root;
+    let api: Api;
+    let created: DashQLShell[];
+    let destroyed: Set<DashQLShell>;
+    let nextQueryId: number;
+    let execute: ReturnType<typeof vi.fn>;
+    let cancel: ReturnType<typeof vi.fn>;
+    let executor: QueryExecutorContextValue;
+    let database: EmbeddedComputeDatabase | null;
+    let transcript: string[];
+    let backend: SessionTestBackend;
+
+    beforeEach(async () => {
+        await loadShellModule();
+        created = [];
+        destroyed = new Set();
+        const create = DashQLShell.create.bind(DashQLShell);
+        vi.spyOn(DashQLShell, 'create').mockImplementation(async options => {
+            const shell = await create(options);
+            created.push(shell);
+            return shell;
+        });
+        const destroy = DashQLShell.prototype.destroy;
+        vi.spyOn(DashQLShell.prototype, 'destroy').mockImplementation(function (this: DashQLShell) {
+            destroyed.add(this);
+            destroy.call(this);
+        });
+        transcript = [];
+        backend = new SessionTestBackend();
+        const { Terminal } = await import('@xterm/xterm');
+        const write = Terminal.prototype.write;
+        vi.spyOn(Terminal.prototype, 'write').mockImplementation(function (this: InstanceType<typeof Terminal>, data: string | Uint8Array, callback?: () => void) {
+            transcript.push(String(data));
+            write.call(this, data, callback);
+        });
+        nextQueryId = 100;
+        execute = vi.fn((_connectionId: string, _args: unknown) => [
+            nextQueryId++,
+            Promise.resolve(tableFromArrays({ answer: [42] })),
+        ]);
+        cancel = vi.fn();
+        executor = { execute, cancel, watchProfile: vi.fn() } as unknown as QueryExecutorContextValue;
+        database = null;
+        // The app config has no settings until a test sets them
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('{}')));
+        container = document.createElement('div');
+        container.style.width = '1000px';
+        container.style.height = '500px';
+        container.style.display = 'flex';
+        document.body.appendChild(container);
+        root = createRoot(container);
+    });
+
+    afterEach(async () => {
+        act(() => root.unmount());
+        container.remove();
+        document.getElementById('__dashqlPortalRoot__')?.remove();
+        vi.unstubAllGlobals();
+        vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+        vi.restoreAllMocks();
+        // Shells that a page loaded and no longer needs are destroyed once their load ends
+        await vi.waitFor(() => expect(created.filter(shell => !destroyed.has(shell))).toEqual([]), WAIT);
+    });
+
+    interface PageProps {
+        connectionId?: string;
+        sessionName?: string | null;
+        ordinal?: number | null;
+        active?: boolean;
+    }
+
+    function tree(props: PageProps = {}) {
+        return (
+            <LoggerProvider>
+                <StorageProvider backend={backend}>
+                    <AppConfigProvider>
+                        <ConnectionRegistry>
+                            <ComputationRegistry>
+                                <EmbeddedDatabaseProvider setupDatabase={async () => database ?? ({} as EmbeddedComputeDatabase)}>
+                                    <ComputeConnectionProvider>
+                                        <EXECUTOR_CTX.Provider value={executor}>
+                                            <MemoryRouter initialEntries={['/?view=dashboard']}>
+                                                <SessionViewModeProvider>
+                                                    <DashQLCoreProvider>
+                                                        <Capture capture={next => { api = next; }}>
+                                                            <SessionShellPage
+                                                                dependencies={dependencies}
+                                                                sessionId={SESSION_ID}
+                                                                sessionName={props.sessionName === undefined ? 'My session' : props.sessionName}
+                                                                connectionId={props.connectionId ?? MAIN}
+                                                                ordinal={props.ordinal === undefined ? 2 : props.ordinal}
+                                                                active={props.active ?? true}
+                                                            />
+                                                        </Capture>
+                                                    </DashQLCoreProvider>
+                                                </SessionViewModeProvider>
+                                            </MemoryRouter>
+                                        </EXECUTOR_CTX.Provider>
+                                    </ComputeConnectionProvider>
+                                </EmbeddedDatabaseProvider>
+                            </ComputationRegistry>
+                        </ConnectionRegistry>
+                    </AppConfigProvider>
+                </StorageProvider>
+            </LoggerProvider>
+        );
+    }
+
+    function render(props: PageProps = {}) {
+        act(() => root.render(tree(props)));
+    }
+
+    const status = () => container.querySelector('[role="status"]')?.textContent ?? null;
+    const page = () => container.querySelector('main');
+    const input = () => container.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
+    /// What the page wrote to the terminal without its escape sequences. The renderer of xterm pauses in a test frame,
+    /// so the rows of the terminal go stale.
+    const screen = () => transcript.join('').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\r/g, '');
+
+    /// Forget the loaded shell module, the next shell downloads it with this response
+    function stubDownload(response: () => Response) {
+        vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => String(url).includes('.wasm') ? response() : new Response('{}')));
+        delete (globalThis as CacheGlobal).__dashqlShellModuleCache;
+    }
+
+    /// Mount the page and wait until its terminal shows the prompt
+    async function open(connections: ConnectionState[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
+        render(props);
+        act(() => api.setConnections(connections));
+        await vi.waitFor(() => expect(screen()).toContain(prompt), WAIT);
+        await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+    }
+
+    /// Paste into the terminal, Firefox does not take clipboard data when constructing a ClipboardEvent
+    function type(text: string) {
+        const event = new Event('paste', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'clipboardData', { value: { getData: () => text } });
+        input()!.dispatchEvent(event);
+    }
+
+    function press(key: string, init: KeyboardEventInit = {}) {
+        input()!.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+    }
+
+    function run(text: string) {
+        type(text);
+        press('Enter');
+    }
+
+    /// Click an element of the page or its dialogs once it is there
+    async function click(selector: string) {
+        await vi.waitFor(() => expect(document.querySelector(selector)).not.toBeNull(), WAIT);
+        act(() => document.querySelector<HTMLElement>(selector)!.click());
+    }
+
+    describe('while it starts', () => {
+        it('names the connection and the session in the greeter', async () => {
+            await open();
+            expect(screen()).toContain('Hyper #2');
+            expect(screen()).toContain('My session');
+            expect(screen()).toContain('Enter .help for usage hints.');
+            expect(page()?.getAttribute('aria-label')).toContain('Hyper #2');
+            expect(page()?.getAttribute('aria-label')).toContain('Shell');
+        });
+
+        it('leaves out the session and the ordinal when there are none', async () => {
+            await open([createConnection(MAIN)], { sessionName: null, ordinal: null }, 'hyper> ');
+            expect(screen()).not.toContain('My session');
+            expect(screen()).not.toContain('#');
+        });
+
+        it('waits for its connection', async () => {
+            render();
+            expect(status()).toContain('Instantiating Shell');
+            expect(page()?.getAttribute('aria-label')).toBe('Shell');
+            expect(input()).toBeNull();
+            expect(DashQLShell.create).not.toHaveBeenCalled();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
+        });
+
+        it('shows the progress of the download', async () => {
+            const wasm = await DASHQL_SHELL_PRECOMPILED;
+            const half = Math.floor(wasm.length / 2);
+            let finish = () => { };
+            stubDownload(() => new Response(new ReadableStream<Uint8Array>({
+                async start(controller) {
+                    controller.enqueue(wasm.subarray(0, half));
+                    await new Promise<void>(resolve => { finish = resolve; });
+                    controller.enqueue(wasm.subarray(half));
+                    controller.close();
+                },
+            }), { headers: { 'content-length': String(wasm.length) } }));
+
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(status()).toContain('Instantiating Shell: Loading [####'), WAIT);
+            finish();
+            await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
+            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+        });
+
+        it('counts the bytes of a download without a known size', async () => {
+            const wasm = await DASHQL_SHELL_PRECOMPILED;
+            let finish = () => { };
+            stubDownload(() => new Response(new ReadableStream<Uint8Array>({
+                async start(controller) {
+                    controller.enqueue(wasm.subarray(0, 5000));
+                    await new Promise<void>(resolve => { finish = resolve; });
+                    controller.enqueue(wasm.subarray(5000));
+                    controller.close();
+                },
+            })));
+
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(status()).toContain('Instantiating Shell: Loading 5 kB'), WAIT);
+            finish();
+            await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
+        });
+
+        it('reports a shell that cannot load', async () => {
+            stubDownload(() => new Response('', { status: 500, statusText: 'Broken' }));
+
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: failed to fetch shell Wasm: 500 Broken'), WAIT);
+            expect(input()).toBeNull();
+        });
+
+        it('destroys a shell that finishes loading after the page closed', async () => {
+            const wasm = await DASHQL_SHELL_PRECOMPILED;
+            let finish = () => { };
+            stubDownload(() => new Response(new ReadableStream<Uint8Array>({
+                async start(controller) {
+                    await new Promise<void>(resolve => { finish = resolve; });
+                    controller.enqueue(wasm);
+                    controller.close();
+                },
+            })));
+
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(status()).toContain('Instantiating Shell'), WAIT);
+            await vi.waitFor(() => expect(DashQLShell.create).toHaveBeenCalled(), WAIT);
+            act(() => root.render(<div />));
+            finish();
+            await vi.waitFor(() => expect(created).toHaveLength(1), WAIT);
+            await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
+        });
+    });
+
+    describe('with queries', () => {
+        it('runs a query on its connection and prints the result', async () => {
+            await open();
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
+            await vi.waitFor(() => expect(screen()).toMatch(/42\s/), WAIT);
+            expect(execute).toHaveBeenCalledTimes(1);
+            const [connectionId, args] = execute.mock.calls[0] as [string, { query: string; metadata: { sessionId: string } }];
+            expect(connectionId).toBe(MAIN);
+            expect(args.query).toContain('select 42 as answer');
+            expect(args.metadata.sessionId).toBe(SESSION_ID);
+        });
+
+        it('prints a failed query and stays usable', async () => {
+            execute.mockImplementationOnce(() => [nextQueryId++, Promise.reject(new Error('table is gone'))]);
+            await open();
+            run('select 1;');
+            await vi.waitFor(() => expect(screen()).toContain('table is gone'), WAIT);
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
+            expect(execute).toHaveBeenCalledTimes(2);
+        });
+
+        /// Run a query that the overlay shows
+        async function showResult(table: arrow.Table, connections: ConnectionState[]): Promise<number> {
+            const queryId = nextQueryId;
+            for (const connection of connections) {
+                connection.queriesFinished.set(queryId, finishedQuery(queryId, table) as never);
+            }
+            act(() => api.createComputation(queryId, table));
+            execute.mockImplementationOnce(() => [nextQueryId++, Promise.resolve(table)]);
+            run('select * from t;');
+            return queryId;
+        }
+        const overlay = () => document.querySelector('[role="dialog"]');
+        const closeOverlay = () => document.querySelector<HTMLButtonElement>('[aria-label="Close shell query results"]');
+
+        it('opens the overlay with .output ui and releases the result when it closes', async () => {
+            const connection = createConnection(MAIN);
+            const table = tableFromArrays({ answer: [42] });
+            await open([connection]);
+            run('.output ui');
+            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
+
+            const queryId = await showResult(table, [connection]);
+            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
+            expect(api.computations()).toContain(queryId);
+
+            act(() => closeOverlay()!.click());
+            expect(overlay()).toBeNull();
+            await vi.waitFor(() => expect(api.computations()).not.toContain(queryId), WAIT);
+        });
+
+        it('releases the shown result when another one replaces it', async () => {
+            const connection = createConnection(MAIN);
+            const table = tableFromArrays({ answer: [42] });
+            await open([connection]);
+            run('.output ui');
+            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
+
+            const first = await showResult(table, [connection]);
+            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
+            const second = await showResult(table, [connection]);
+            await vi.waitFor(() => expect(api.computations()).not.toContain(first), WAIT);
+            expect(api.computations()).toContain(second);
+        });
+
+        it('opens the overlay when a result does not fit the terminal', async () => {
+            const connection = createConnection(MAIN);
+            const columns = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`long_column_name_${i}`, [i]]));
+            await open([connection]);
+            await showResult(tableFromArrays(columns), [connection]);
+            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
+        });
+
+        it('sizes the results by the width of the terminal', async () => {
+            const connection = createConnection(MAIN);
+            const resize = vi.spyOn(DashQLShell.prototype, 'resize');
+            const table = tableFromArrays(Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`column_${i}`, [i]])));
+
+            await open([connection]);
+            await vi.waitFor(() => expect(resize).toHaveBeenCalled(), WAIT);
+            await showResult(table, [connection]);
+            await vi.waitFor(() => expect(screen()).toContain('column_4'), WAIT);
+            expect(overlay()).toBeNull();
+
+            // The terminal gets too narrow for the same result
+            resize.mockClear();
+            container.style.width = '220px';
+            await vi.waitFor(() => expect(resize).toHaveBeenCalled(), WAIT);
+            await showResult(table, [connection]);
+            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
+        });
+    });
+
+    describe('with commands', () => {
+        it('leaves the shell with Ctrl+D', async () => {
+            await open();
+            expect(api.mode()).toBe(SessionViewMode.Dashboard);
+            press('d', { ctrlKey: true });
+            await vi.waitFor(() => expect(api.mode()).toBe(SessionViewMode.Session), WAIT);
+        });
+
+        it('offers .fs only for a connection on the embedded database', async () => {
+            await open();
+            run('.help');
+            await vi.waitFor(() => expect(screen()).toContain('.output'), WAIT);
+            expect(screen()).toContain('.examples');
+            expect(screen()).not.toContain('.fs');
+        });
+
+        it('mounts files for a connection on the embedded database and drops them with the page', async () => {
+            const dispose = vi.spyOn(ShellFileRegistry.prototype, 'dispose');
+            database = {} as EmbeddedComputeDatabase;
+            await open([createConnection(MAIN, { setupParams: { protocol: 'WASM' } })]);
+            run('.help');
+            await vi.waitFor(() => expect(screen()).toContain('.fs'), WAIT);
+            expect(dispose).not.toHaveBeenCalled();
+            act(() => root.render(<div />));
+            expect(dispose).toHaveBeenCalled();
+        });
+
+        it('fills the prompts of a snippet and runs them one by one', async () => {
+            const finished = vi.spyOn(DashQLShell.prototype, 'finishTerminalQuery');
+            await open();
+            run('.examples');
+            await vi.waitFor(() => expect(document.querySelector('[data-testid="snippets-overlay"]')).not.toBeNull(), WAIT);
+            await click('[data-testid="snippet"]');
+            await click('[data-testid="snippet-apply"]');
+            await vi.waitFor(() => expect(document.querySelector('[data-testid="snippets-overlay"]')).toBeNull(), WAIT);
+            await vi.waitFor(() => expect(finished).toHaveBeenCalled(), WAIT);
+            // Inserting never runs a statement
+            expect(execute).not.toHaveBeenCalled();
+            press('Enter');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalled(), WAIT);
+        });
+
+        it('leaves the prompt empty when the snippets are closed', async () => {
+            const finished = vi.spyOn(DashQLShell.prototype, 'finishTerminalQuery');
+            await open();
+            run('.examples');
+            await click('[data-testid="snippets-close"]');
+            await vi.waitFor(() => expect(finished).toHaveBeenCalled(), WAIT);
+            press('Enter');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(execute).not.toHaveBeenCalled();
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+        });
+    });
+
+    describe('when its inputs change', () => {
+        const catalog = (relationsSql: string) => createConnection(MAIN, { relationsSql });
+
+        it('completes names of the catalog', async () => {
+            await open([catalog('create table orders (id integer);')]);
+            type('select * from ord');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('orders'), WAIT);
+        });
+
+        it('replaces the shell when the catalog changes and keeps the history', async () => {
+            await open([catalog('create table orders (id integer);')]);
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
+
+            act(() => api.setConnections([catalog('create table items (id integer);')]));
+            await vi.waitFor(() => expect(screen()).toContain('Catalog refreshed'), WAIT);
+            await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
+            await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
+            expect(destroyed.has(created[1])).toBe(false);
+            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+
+            type('select * from ite');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
+            press('c', { ctrlKey: true });
+            press('ArrowUp');
+            await vi.waitFor(() => expect(screen()).toContain('select 42 as answer'), WAIT);
+        });
+
+        it('takes the prompt of a new ordinal', async () => {
+            const connection = createConnection(MAIN);
+            await open([connection]);
+            render({ ordinal: 1 });
+            await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
+            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('hyper#1> '), WAIT);
+        });
+
+        it('destroys a shell whose catalog is out of date when it finishes loading', async () => {
+            await open([catalog('create table orders (id integer);')]);
+            act(() => api.setConnections([catalog('create table a (id integer);')]));
+            act(() => api.setConnections([catalog('create table items (id integer);')]));
+            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+            await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
+            type('select * from ite');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
+        });
+
+        /// Run a function when the page opens its first terminal, which takes a while
+        async function whileTerminalOpens(run: () => void) {
+            const { Terminal } = await import('@xterm/xterm');
+            const realOpen = Terminal.prototype.open;
+            const open = vi.spyOn(Terminal.prototype, 'open');
+            open.mockImplementationOnce(function (this: InstanceType<typeof Terminal>, parent: HTMLElement) {
+                realOpen.call(this, parent);
+                run();
+            });
+            return { Terminal };
+        }
+
+        it('shows one terminal when the catalog changes while the terminal opens', async () => {
+            await whileTerminalOpens(() => act(() => api.setConnections([catalog('create table items (id integer);')])));
+            render();
+            act(() => api.setConnections([catalog('create table orders (id integer);')]));
+            await vi.waitFor(() => expect(created.length).toBe(2), WAIT);
+            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            expect(container.querySelectorAll('.xterm')).toHaveLength(1);
+            expect(destroyed.has(created[0])).toBe(true);
+            type('select * from ite');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
+        });
+
+        it('closes the terminal and its shell when the page closes while the terminal opens', async () => {
+            const { Terminal } = await whileTerminalOpens(() => act(() => root.render(<div />)));
+            const dispose = vi.spyOn(Terminal.prototype, 'dispose');
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(created).toHaveLength(1), WAIT);
+            await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
+            await vi.waitFor(() => expect(dispose).toHaveBeenCalled(), WAIT);
+        });
+
+        it('destroys the shell when the terminal cannot open', async () => {
+            const { Terminal } = await import('@xterm/xterm');
+            vi.spyOn(Terminal.prototype, 'open').mockImplementationOnce(() => { throw new Error('no terminal'); });
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: no terminal'), WAIT);
+            expect(destroyed.has(created[0])).toBe(true);
+        });
+
+        it('reports a catalog that cannot be loaded', async () => {
+            const load = vi.spyOn(DashQLShell.prototype, 'loadCatalogScript').mockImplementationOnce(() => {
+                throw new Error('catalog is broken');
+            });
+            render();
+            act(() => api.setConnections([createConnection(MAIN)]));
+            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: catalog is broken'), WAIT);
+            expect(load).toHaveBeenCalled();
+            expect(input()).toBeNull();
+        });
+
+        it('prints a catalog refresh that failed into the terminal it keeps', async () => {
+            await open([catalog('create table orders (id integer);')]);
+            vi.spyOn(DashQLShell.prototype, 'loadCatalogScript').mockImplementationOnce(() => {
+                throw new Error('catalog is broken');
+            });
+            act(() => api.setConnections([catalog('create table items (id integer);')]));
+            await vi.waitFor(() => expect(screen()).toContain('Failed to load shell: catalog is broken'), WAIT);
+            expect(status()).toContain('catalog is broken');
+            // The shell of the old catalog still runs queries
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+        });
+
+        it('closes the result when the connection changes', async () => {
+            const connections = [createConnection(MAIN), createConnection(OTHER)];
+            await open(connections);
+            run('.output ui');
+            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
+            const table = tableFromArrays({ answer: [42] });
+            const queryId = nextQueryId;
+            connections[0].queriesFinished.set(queryId, finishedQuery(queryId, table) as never);
+            execute.mockImplementationOnce(() => [nextQueryId++, Promise.resolve(table)]);
+            run('select * from t;');
+            await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull(), WAIT);
+
+            render({ connectionId: OTHER });
+            await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull(), WAIT);
+            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
+            await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('Catalog refreshed'), WAIT);
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(execute.mock.calls[execute.mock.calls.length - 1]?.[0]).toBe(OTHER), WAIT);
+        });
+
+        it('applies the keyword case of the settings', async () => {
+            await open();
+            type('sel');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('select'), WAIT);
+            press('c', { ctrlKey: true });
+            act(() => api.reconfigure({ keywordCase: 'upper' } as AppConfig['settings']));
+            type('sel');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('SELECT'), WAIT);
+        });
+
+        it('focuses the terminal when it becomes active', async () => {
+            await open();
+            await vi.waitFor(() => expect(document.activeElement).toBe(input()), WAIT);
+            // The terminal also takes the focus in the first frame after it opened
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+            input()!.blur();
+            render({ active: false });
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(document.activeElement).not.toBe(input());
+            render({ active: true });
+            await vi.waitFor(() => expect(document.activeElement).toBe(input()), WAIT);
+        });
+
+        it('leaves the focus alone when the page goes to the background while the terminal opens', async () => {
+            const outside = document.createElement('button');
+            document.body.appendChild(outside);
+            outside.focus();
+            await whileTerminalOpens(() => act(() => root.render(tree({ active: false }))));
+            await open([createConnection(MAIN)]);
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+            expect(document.activeElement).toBe(outside);
+            outside.remove();
+        });
+
+        it('leaves the focus alone when a shell of a hidden page starts', async () => {
+            const outside = document.createElement('button');
+            document.body.appendChild(outside);
+            outside.focus();
+            await open([createConnection(MAIN)], { active: false });
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+            expect(document.activeElement).toBe(outside);
+            outside.remove();
+        });
+    });
+});

@@ -54,11 +54,14 @@ export interface BrowserShellOptions {
     onQueryResult?: (queryId: number) => void;
     onTerminalResize?: (columns: number) => void;
     inputAriaLabel?: string;
+    /// May the terminal take the focus once it opened? A page that went to the background meanwhile must not.
+    mayFocus?: () => boolean;
 }
 
 export interface BrowserShellController {
     focus(): void;
-    replaceShell(shell: DashQLShell): void;
+    /// Continue with another shell, by default under the same prompt
+    replaceShell(shell: DashQLShell, prompt?: string): void;
     writeStatus(message: string): void;
     /// Offer prompts one after another, each submit fills in the next one
     queuePrompts(prompts: readonly string[]): void;
@@ -224,7 +227,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     let activeProgress: TerminalQueryProgress | null = null;
     let disposed = false;
     let pendingPrompts: string[] = [];
-    const prompt = options.prompt ?? 'dashql> ';
+    let prompt = options.prompt ?? 'dashql> ';
     const promptColor = resolveShellPromptColor(options.container);
     const terminal: Terminal = new Terminal({
         allowProposedApi: false,
@@ -364,18 +367,19 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         : formatTerminalGreeter(options.greeter) + shell.openTerminal(prompt).data);
     requestAnimationFrame(() => {
         syncSize();
-        terminal.focus();
+        if (!disposed && (options.mayFocus?.() ?? true)) terminal.focus();
     });
 
     return {
         focus: () => terminal.focus(),
-        replaceShell(nextShell) {
+        replaceShell(nextShell, nextPrompt = prompt) {
             const history = shell.exportHistory();
             pendingPrompts = [];
             activeProgress?.clear();
             activeProgress = null;
             activeQuery?.abort();
             shell = nextShell;
+            prompt = nextPrompt;
             shell.importHistory(history);
             shell.setTerminalPromptColor(promptColor);
             terminal.write(shell.openTerminal(prompt).data);
