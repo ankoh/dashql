@@ -30,7 +30,8 @@ export function parseClipboardSetup(text: string): ClipboardSetup | null {
     }
 
     const isDashQLLink = url.protocol === "dashql:" && url.hostname === "localhost";
-    const isProductionLink = url.protocol === "https:" && url.hostname === "dashql.app" && url.port === "";
+    const isProductionHost = url.hostname === "dashql.app" || url.hostname === "stable.dashql.app";
+    const isProductionLink = url.protocol === "https:" && isProductionHost && url.port === "";
     const isDevelopmentLink = url.protocol === "http:" && url.hostname === "localhost" && url.port === "9002";
     if ((!isDashQLLink && !isProductionLink && !isDevelopmentLink) || url.username !== "" || url.password !== "") {
         return null;

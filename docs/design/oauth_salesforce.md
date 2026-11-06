@@ -134,8 +134,9 @@ The popup is opened from `localhost` with `callbackUrl = http://localhost:<port>
 Salesforce redirects it to `dashql.app/oauth.html`. Since the callback is on another origin, the redirect
 page checks it with `isAllowedOAuthCallbackUrl` (`oauth/oauth_redirect_utils.ts`): the path must be
 `/oauth.html` without query, hash or credentials, and the origin must be the page's own, `https://dashql.app`,
-`https://hyperdb.sh`, or `http(s)` on `localhost` or `127.0.0.1`. Other callbacks fail. An allowed callback
-gets the query of the redirect (`code`, `state`, `error`, ...) and replaces the location of the popup. The
+`https://stable.dashql.app`, `https://hyperdb.sh`, or `http(s)` on `localhost` or `127.0.0.1`. Other callbacks
+fail. `stable.dashql.app` and `hyperdb.sh` take this path too, their logins pass through
+`dashql.app/oauth.html`. An allowed callback gets the query of the redirect (`code`, `state`, `error`, ...) and replaces the location of the popup. The
 `oauth.html` of the dev server then continues as in Path A, its BroadcastChannel is same-origin with the
 app.
 

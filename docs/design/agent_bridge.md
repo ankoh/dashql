@@ -290,7 +290,8 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 ### Authentication
 
 - **Clients → server:** the server accepts a WebSocket only with `Origin:
-  https://dashql.app`, `app://bundle` (desktop windows) or the origins configured in `config.json`, and
+  https://dashql.app`, `https://stable.dashql.app`, `app://bundle` (desktop windows) or the origins configured in
+  `config.json`, and
   `Host: 127.0.0.1:<port>` or `localhost:<port>`. Development builds also accept the web dev server
   (`http://localhost:9002` or `http://127.0.0.1:9002`, `client_origins` in `config.rs`); release builds
   (`--config=release`, `cfg(dashql_release)`) don't, since any page on that port, e.g. the dev server of another

@@ -18,6 +18,7 @@ describe("parseDeepLink", () => {
     it.each([
         "dashql://localhost?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
         "https://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
+        "https://stable.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
         "http://localhost:9002/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
         "dashql://localhost?notebook=https%3A%2F%2Fexample.com%2Fdashql-session.json",
         "https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-session.json",
@@ -33,6 +34,8 @@ describe("parseDeepLink", () => {
         "https://localhost?data=abc",
         "https://example.com?data=abc",
         "http://dashql.app?data=abc",
+        "http://stable.dashql.app?data=abc",
+        "https://other.dashql.app?data=abc",
         "http://localhost:9003?data=abc",
         "dashql://remote?data=abc",
         "dashql://user@localhost?data=abc",

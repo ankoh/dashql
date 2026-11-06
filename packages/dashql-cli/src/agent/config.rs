@@ -8,7 +8,7 @@ use std::time::Duration;
 pub const DEFAULT_PORT: u16 = 47100;
 
 /// The origins of DashQL clients: the web app and desktop windows
-const RELEASE_ORIGINS: [&str; 2] = ["https://dashql.app", "app://bundle"];
+const RELEASE_ORIGINS: [&str; 3] = ["https://dashql.app", "https://stable.dashql.app", "app://bundle"];
 
 /// The origins of the dev server of the web app. Only development builds accept them: in a release, any page on
 /// that port, e.g. the dev server of another project, would be a DashQL client. A release that should accept them
@@ -335,6 +335,7 @@ mod tests {
     fn accepts_the_dev_server_only_in_development_builds() {
         let origins = client_origins();
         assert!(origins.contains(&"https://dashql.app") && origins.contains(&"app://bundle"));
+        assert!(origins.contains(&"https://stable.dashql.app"));
         assert_eq!(origins.contains(&"http://localhost:9002"), !cfg!(dashql_release));
         assert_eq!(origins.contains(&"http://127.0.0.1:9002"), !cfg!(dashql_release));
     }

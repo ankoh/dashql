@@ -30,6 +30,7 @@ describe('PlatformEventListener clipboard events', () => {
     it.each([
         'dashql://localhost?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
         'https://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
+        'https://stable.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
         'http://localhost:9002/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
         'https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-session.json',
     ])('accepts a session link from %s', link => {
@@ -42,6 +43,8 @@ describe('PlatformEventListener clipboard events', () => {
     it.each([
         'https://example.com/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
         'http://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
+        'http://stable.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
+        'https://other.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
         'http://localhost:9003/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
     ])('rejects an app link from an untrusted origin: %s', link => {
         expect(parseClipboardSetup(link)).toBeNull();

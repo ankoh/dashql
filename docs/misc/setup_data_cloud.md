@@ -30,7 +30,7 @@ https://orgfarm-fdd95295a3.test2.file.pc-rnd.force.com
 # Setup CORS
 
 1. Go To Setup > CORS
-2. Add `https://dashql.app` and `http://localhost:9002`
+2. Add `https://dashql.app`, `https://stable.dashql.app` and `http://localhost:9002`
 3. Check "Enable CORS for OAuth endpoints"
 
 DashQL uses authorization code + PKCE, not a client-signed JWT-Bearer assertion.

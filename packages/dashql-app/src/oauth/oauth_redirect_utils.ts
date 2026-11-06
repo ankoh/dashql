@@ -2,7 +2,7 @@ import type { OAuthState } from './oauth_types.js';
 import { AppFlavor, FLAVORS } from '../config/flavors.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
 
-const PUBLIC_OAUTH_ORIGINS = new Set(['https://dashql.app', 'https://hyperdb.sh']);
+const PUBLIC_OAUTH_ORIGINS = new Set(['https://dashql.app', 'https://stable.dashql.app', 'https://hyperdb.sh']);
 const DEVELOPMENT_OAUTH_HOSTS = new Set(['localhost', '127.0.0.1']);
 
 export function isAllowedOAuthCallbackUrl(callbackUrl: string, currentUrl: URL): boolean {
