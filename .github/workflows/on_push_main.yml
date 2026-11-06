@@ -21,42 +21,17 @@ jobs:
             commit: ${{ github.sha }}
         secrets: inherit
 
-    tip:
-        name: Gate latest main
-        # Asks after the build and the coverage, a commit that was pushed meanwhile replaces this one.
-        # A failed coverage does not hold back the publish.
-        if: ${{ !cancelled() && needs.build.result == 'success' }}
-        needs:
-            - build
-            - coverage
-        runs-on: ubuntu-26.04
-        permissions:
-            contents: read
-        outputs:
-            is_tip: ${{ steps.check.outputs.is_tip }}
-        steps:
-            - name: Compare the commit with the tip of main
-              id: check
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: |
-                  TIP="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
-                  echo "tip of main: ${TIP}, this commit: ${GITHUB_SHA}"
-                  if [[ "${TIP}" == "${GITHUB_SHA}" ]]; then
-                      echo "is_tip=true" >> "${GITHUB_OUTPUT}"
-                  else
-                      echo "is_tip=false" >> "${GITHUB_OUTPUT}"
-                  fi
-
     publish:
         name: Publish
-        # An older commit must not overwrite a newer one, not even when its build finishes later or is re-run
-        if: ${{ !cancelled() && needs.tip.outputs.is_tip == 'true' }}
+        # Starts after the build and the coverage, a failed coverage does not hold back the publish
+        if: ${{ !cancelled() && needs.build.result == 'success' }}
         uses: ./.github/workflows/publish.yml
         with:
             commit: ${{ github.sha }}
+            require_tip: true
         needs:
-            - tip
+            - build
+            - coverage
         secrets: inherit
         permissions:
             contents: read

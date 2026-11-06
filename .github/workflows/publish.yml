@@ -14,6 +14,10 @@ on:
                 required: false
                 type: boolean
                 default: false
+            require_tip:
+                required: false
+                type: boolean
+                default: false
 
 # Overlapping publishes wait for each other: a cancelled publish would mark the run of a good commit as cancelled
 concurrency:
@@ -21,8 +25,38 @@ concurrency:
     queue: max
 
 jobs:
+    tip:
+        name: Gate latest main
+        # An older commit must not overwrite a newer one, not even when its build finishes later or is re-run
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+        outputs:
+            publish: ${{ steps.check.outputs.publish }}
+        steps:
+            - name: Compare the commit with the tip of main
+              id: check
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  COMMIT: ${{ inputs.commit }}
+                  REQUIRE_TIP: ${{ inputs.require_tip }}
+              run: |
+                  if [[ "${REQUIRE_TIP}" != "true" ]]; then
+                      echo "publish=true" >> "${GITHUB_OUTPUT}"
+                      exit 0
+                  fi
+                  TIP="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+                  echo "tip of main: ${TIP}, this commit: ${COMMIT}"
+                  if [[ "${TIP}" == "${COMMIT}" ]]; then
+                      echo "publish=true" >> "${GITHUB_OUTPUT}"
+                  else
+                      echo "publish=false" >> "${GITHUB_OUTPUT}"
+                  fi
+
     desktop_release:
         name: Electron Release
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true'
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -92,7 +126,8 @@ jobs:
 
     pages_deploy:
         name: dashql.app
-        if: inputs.publish_latest_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -123,7 +158,8 @@ jobs:
 
     stable_pages_deploy:
         name: stable.dashql.app
-        if: inputs.publish_stable_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_stable_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -154,7 +190,8 @@ jobs:
 
     org_pages_deploy:
         name: dashql.org
-        if: inputs.publish_latest_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -185,7 +222,8 @@ jobs:
 
     coverage_pages_deploy:
         name: coverage.dashql.app
-        if: inputs.publish_latest_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         # Like the coverage job: without a report the last good page stays, and the publish does not fail
         continue-on-error: true
