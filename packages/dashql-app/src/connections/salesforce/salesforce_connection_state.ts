@@ -118,6 +118,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
             };
             break;
         case SETUP_STARTED: {
+            const requestedAt = Date.now();
             const newDetails: SalesforceConnectionStateDetails = {
                 proto: {
                     ...details.proto,
@@ -133,8 +134,8 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                         oauthParams: {
                             instanceUrl: action.value.instanceUrl,
                             appConsumerKey: action.value.appConsumerKey,
-                            requestedAt: Date.now(),
-                            expiresAt: Date.now() + (2 * 60 * 60 * 1000), // 2 hours
+                            requestedAt,
+                            expiresAt: requestedAt + (2 * 60 * 60 * 1000), // 2 hours
                         },
                         oauthPkce: details.proto.oauthState?.oauthPkce ?? ({ value: "", verifier: "" } as auth.OAuthPKCEChallenge),
                         coreAuthCode: details.proto.oauthState?.coreAuthCode ?? ({ token: "", createdAt: new Date().toISOString() } as auth.TemporaryToken),
