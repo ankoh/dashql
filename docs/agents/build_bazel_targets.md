@@ -145,6 +145,20 @@ bazel run //packages/trino-testing:trino_recorder
 bazel run //:trino [-- --port 8080]
 ```
 
+### Browser Tests
+
+`test_chromium` and `test_firefox` split the test files over several browser pages that run at the same time, one page
+per four cores and at most four. Every page has its own browser context and Hyper. `coverage_chromium` stays on one page.
+`getBrowserTestShard` in `packages/dashql-app/src/tests/test_modules.ts` picks the files of a page, so a test can run
+after any other test file: tests have to clean up the globals they set.
+
+```bash
+# Choose the number of pages
+bazel test //packages/dashql-app:test_chromium --test_env=DASHQL_BROWSER_TEST_SHARDS=1
+```
+
+`tests.html` on the dev server runs all files on one page.
+
 ### Test Output
 
 By default, Bazel only shows output for failed tests (configured in `.bazelrc`):

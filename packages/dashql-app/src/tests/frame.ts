@@ -99,18 +99,19 @@ async function run(): Promise<void> {
         if (requestedFiles.length === 0) {
             await import('./test_bundle.js');
         } else {
-            await Promise.all(files.map(async file => {
+            // One at a time, the files register their tests when they load and a run should keep its order
+            for (const file of files) {
                 const load = getBrowserTestModule(file);
                 if (!load) {
                     importFailures.set(file, serializeError(new Error(`Unknown browser test file: ${file}`)));
-                    return;
+                    continue;
                 }
                 try {
                     await load();
                 } catch (error) {
                     importFailures.set(file, serializeError(error));
                 }
-            }));
+            }
         }
         await new Promise<void>(resolve => mocha.run(resolve));
         await disposeHyperDBPool();

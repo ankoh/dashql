@@ -1,5 +1,6 @@
 import { createReadStream, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { availableParallelism } from 'node:os';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
 const playwright = await import('playwright-core');
@@ -11,12 +12,18 @@ const timeout = Number.parseInt(process.env.DASHQL_BROWSER_TEST_TIMEOUT ?? '6000
 const browserName = process.env.DASHQL_BROWSER ?? 'chromium';
 const browserType = playwright[browserName];
 if (!browserType) throw new Error(`Unsupported browser: ${browserName}`);
+const outputs = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
 const collectCoverage = process.env.DASHQL_BROWSER_COVERAGE === '1';
 if (collectCoverage && browserName !== 'chromium') throw new Error('Coverage needs the V8 profiler of Chromium');
 const executableRoot = process.env.DASHQL_BROWSER_EXECUTABLE_ROOT;
 const executablePath = executableRoot
     ? join(executableRoot, process.platform === 'darwin' ? 'firefox/Nightly.app/Contents/MacOS/firefox' : 'firefox/firefox')
     : process.env.DASHQL_BROWSER_EXECUTABLE;
+// The pages of a run share the test files, every page has a browser context and a Hyper of its own. A page keeps about
+// two cores busy, more than one page per four cores barely gets faster. Coverage reads the counters of one page.
+const shardCount = requestedFile || collectCoverage
+    ? 1
+    : Number.parseInt(process.env.DASHQL_BROWSER_TEST_SHARDS ?? String(Math.min(4, Math.max(1, Math.floor(availableParallelism() / 4)))), 10);
 
 const mimeTypes = {
     '.br': 'application/octet-stream',
@@ -63,7 +70,8 @@ function responseHeaders(pathname, file, size) {
     return { 'Content-Length': String(size), 'Content-Type': mimeTypes[extname(file)] ?? 'application/octet-stream', ...matched };
 }
 
-const server = createServer((request, response) => {
+// The URL of the test frame of a shard lists its files
+const server = createServer({ maxHeaderSize: 1024 * 1024 }, (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
     const relative = normalize(pathname === '/' ? 'index.html' : pathname.slice(1));
     const file = resolve(join(root, relative));
@@ -94,8 +102,9 @@ const browser = await browserType.launch({
     headless: true,
 });
 
-try {
-    const page = await browser.newPage();
+/// Run the test files of a shard on a page of its own
+async function runShard(shard) {
+    const page = await (await browser.newContext()).newPage();
     const browserErrors = [];
     page.on('console', message => {
         if (message.type() === 'error') browserErrors.push(message.text());
@@ -110,9 +119,12 @@ try {
 
     const query = new URLSearchParams({ autorun: '1' });
     if (requestedFile) query.set('file', requestedFile);
+    if (shardCount > 1) query.set('shard', `${shard}/${shardCount}`);
     await page.goto(`http://127.0.0.1:${address.port}/tests.html?${query}`, { waitUntil: 'domcontentloaded' });
+    // Poll with a timer, animation frames can stop on a page in the background
+    const polling = 100;
     try {
-        await page.waitForFunction(() => globalThis.__DASHQL_BROWSER_TESTS__?.status === 'running', null, { timeout: 30_000 });
+        await page.waitForFunction(() => globalThis.__DASHQL_BROWSER_TESTS__?.status === 'running', null, { polling, timeout: 30_000 });
     } catch (error) {
         const current = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
         console.error(`Browser test run did not start; current status: ${current?.status ?? 'unavailable'}`);
@@ -123,7 +135,7 @@ try {
         await page.waitForFunction(() => {
             const status = globalThis.__DASHQL_BROWSER_TESTS__?.status;
             return status === 'passed' || status === 'failed';
-        }, null, { timeout });
+        }, null, { polling, timeout });
     } catch (error) {
         const current = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
         const running = current?.files.find(file => file.status === 'running');
@@ -131,17 +143,7 @@ try {
         if (browserErrors.length > 0) console.error(`\nBrowser errors:\n${browserErrors.join('\n')}`);
         throw error;
     }
-
-    // V8 stacks start with the error message, Firefox stacks only list frames.
-    const formatError = error => {
-        if (!error) return 'Failed';
-        const header = `${error.name ?? 'Error'}: ${error.message ?? ''}`;
-        if (!error.stack) return header;
-        return error.stack.startsWith(header) ? error.stack : `${header}\n${error.stack}`;
-    };
     const summary = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
-    const outputs = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
-    if (outputs) writeFileSync(join(outputs, 'browser_test_summary.json'), JSON.stringify(summary, null, 2));
     if (profiler) {
         const { result } = await profiler.send('Profiler.takePreciseCoverage');
         await profiler.send('Profiler.stopPreciseCoverage');
@@ -153,6 +155,32 @@ try {
             writeFileSync(join(outputs, 'coverage_summary.txt'), `${coverageSummary}\n`);
         }
     }
+    return { browserErrors, summary };
+}
+
+try {
+    const startedAt = performance.now();
+    const shards = await Promise.all(Array.from({ length: shardCount }, (_, shard) => runShard(shard)));
+    const sum = key => shards.reduce((total, shard) => total + shard.summary[key], 0);
+    const summary = {
+        duration: performance.now() - startedAt,
+        failed: sum('failed'),
+        files: shards.flatMap(shard => shard.summary.files).sort((a, b) => a.file.localeCompare(b.file)),
+        passed: sum('passed'),
+        skipped: sum('skipped'),
+        status: shards.every(shard => shard.summary.status === 'passed') ? 'passed' : 'failed',
+        total: sum('total'),
+    };
+    const browserErrors = shards.flatMap(shard => shard.browserErrors);
+    if (outputs) writeFileSync(join(outputs, 'browser_test_summary.json'), JSON.stringify(summary, null, 2));
+
+    // V8 stacks start with the error message, Firefox stacks only list frames.
+    const formatError = error => {
+        if (!error) return 'Failed';
+        const header = `${error.name ?? 'Error'}: ${error.message ?? ''}`;
+        if (!error.stack) return header;
+        return error.stack.startsWith(header) ? error.stack : `${header}\n${error.stack}`;
+    };
     const failures = summary.files.flatMap(file => {
         const fileFailure = file.error ? [`${file.file}\n${formatError(file.error)}`] : [];
         const testFailures = file.tests
@@ -161,7 +189,7 @@ try {
         return [...fileFailure, ...testFailures];
     });
 
-    console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s`);
+    console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s on ${shardCount} ${shardCount === 1 ? 'page' : 'pages'}`);
     if (failures.length > 0) console.error(`\n${failures.join('\n\n')}`);
     if (browserErrors.length > 0) console.error(`\nBrowser errors:\n${browserErrors.join('\n')}`);
     if (summary.status !== 'passed' || browserErrors.length > 0) process.exitCode = 1;

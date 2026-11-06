@@ -23,7 +23,7 @@ import {
     type BrowserTestFrameEvent,
     type BrowserTestSummary,
 } from './protocol.js';
-import { BLOCKED_BROWSER_TEST_FILES, BROWSER_TEST_FILES } from './test_modules.js';
+import { BLOCKED_BROWSER_TEST_FILES, BROWSER_TEST_FILES, getBrowserTestShard } from './test_modules.js';
 import styles from './dashboard.module.css';
 import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
@@ -147,7 +147,11 @@ function TestDashboard(): React.ReactElement {
         const params = new URLSearchParams(location.search);
         if (!params.has('autorun')) return;
         const requestedFile = params.get('file');
-        runFiles(requestedFile && BROWSER_TEST_FILES.includes(requestedFile) ? [requestedFile] : BROWSER_TEST_FILES);
+        // The test driver runs the suite on several pages, ?shard=index/count picks the files of one
+        const shard = params.get('shard')?.split('/').map(Number);
+        if (requestedFile && BROWSER_TEST_FILES.includes(requestedFile)) runFiles([requestedFile]);
+        else if (shard) runFiles(getBrowserTestShard(shard[0], shard[1]));
+        else runFiles(BROWSER_TEST_FILES);
     }, []);
 
     React.useEffect(() => {
