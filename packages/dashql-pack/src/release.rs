@@ -5,6 +5,7 @@ use std::{collections::HashMap, io::Read};
 use std::path::PathBuf;
 
 use crate::{
+    badge::build_version_badge,
     git_info::GitInfo,
     release_metadata::{
         Architecture, Bundle, BundleTarget, BundleType, Platform, ReleaseMetadata, UpdateArtifact,
@@ -310,31 +311,6 @@ fn content_type(path: &str) -> &'static str {
     }
 }
 
-fn build_version_badge(version: &str) -> String {
-    const LABEL: &str = "version";
-    const LABEL_WIDTH: usize = 51;
-    const CHARACTER_WIDTH: usize = 7;
-    const VALUE_PADDING: usize = 10;
-
-    let escaped_version = version
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;");
-    let value_width = version.chars().count() * CHARACTER_WIDTH + VALUE_PADDING;
-    let width = LABEL_WIDTH + value_width;
-    let label_center = LABEL_WIDTH * 5;
-    let value_center = (LABEL_WIDTH + value_width / 2) * 10;
-    let label_text_length = 410;
-    let value_text_length = (value_width - VALUE_PADDING) * 10;
-    let title = format!("{LABEL}: {escaped_version}");
-
-    format!(
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="20" role="img" aria-label="{title}"><title>{title}</title><linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><clipPath id="r"><rect width="{width}" height="20" rx="3" fill="#fff"/></clipPath><g clip-path="url(#r)"><rect width="{LABEL_WIDTH}" height="20" fill="#555"/><rect x="{LABEL_WIDTH}" width="{value_width}" height="20" fill="#007ec6"/><rect width="{width}" height="20" fill="url(#s)"/></g><g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><text aria-hidden="true" x="{label_center}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="{label_text_length}">{LABEL}</text><text x="{label_center}" y="140" transform="scale(.1)" fill="#fff" textLength="{label_text_length}">{LABEL}</text><text aria-hidden="true" x="{value_center}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="{value_text_length}">{escaped_version}</text><text x="{value_center}" y="140" transform="scale(.1)" fill="#fff" textLength="{value_text_length}">{escaped_version}</text></g></svg>"##
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -342,24 +318,6 @@ mod tests {
     use crate::release_version::build_release_version;
     use crate::test_s3::{FakeS3, TempDir};
     use semver::Version;
-
-    #[test]
-    fn builds_version_badge() {
-        let badge = build_version_badge("0.0.7-dev.6");
-
-        assert!(badge.contains("width=\"138\""));
-        assert!(badge.contains("aria-label=\"version: 0.0.7-dev.6\""));
-        assert!(badge.contains(">version</text>"));
-        assert_eq!(badge.matches(">0.0.7-dev.6</text>").count(), 2);
-    }
-
-    #[test]
-    fn escapes_version_badge_text() {
-        let badge = build_version_badge("1<&\"'>");
-
-        assert!(badge.contains("version: 1&lt;&amp;&quot;&apos;&gt;"));
-        assert!(!badge.contains("version: 1<&\"'>"));
-    }
 
     #[test]
     fn detects_upload_content_type() {

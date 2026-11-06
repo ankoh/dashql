@@ -1,3 +1,5 @@
+mod badge;
+mod coverage_badge_command;
 mod git_info;
 mod publish_command;
 mod release;
@@ -13,6 +15,7 @@ mod vacuum_command;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use coverage_badge_command::{coverage_badge, CoverageBadgeArgs};
 use publish_command::{publish, PublishArgs};
 use std::env;
 use vacuum_command::{vacuum, VacuumArgs};
@@ -31,6 +34,7 @@ enum CliCommand {
     Version,
     Publish(PublishArgs),
     Vacuum(VacuumArgs),
+    CoverageBadge(CoverageBadgeArgs),
 }
 
 fn print_version(source_dir: &std::path::Path) -> Result<()> {
@@ -63,6 +67,7 @@ async fn main() -> Result<()> {
         CliCommand::Version => print_version(&source_dir)?,
         CliCommand::Publish(args) => publish(args).await?,
         CliCommand::Vacuum(args) => vacuum(args).await?,
+        CliCommand::CoverageBadge(args) => coverage_badge(args)?,
     };
     Ok(())
 }
@@ -75,6 +80,11 @@ mod tests {
     fn parses_the_subcommands() {
         assert!(matches!(Cli::try_parse_from(["pack", "version"]).unwrap().command, CliCommand::Version));
         assert!(matches!(Cli::try_parse_from(["pack", "vacuum", "--dry-run"]).unwrap().command, CliCommand::Vacuum(_)));
+        assert!(matches!(
+            Cli::try_parse_from(["pack", "coverage-badge", "a.dat", "b.dat", "--output", "badge.svg"]).unwrap().command,
+            CliCommand::CoverageBadge(_)
+        ));
+        assert!(Cli::try_parse_from(["pack", "coverage-badge", "--output", "badge.svg"]).is_err());
         assert!(Cli::try_parse_from(["pack"]).is_err());
         assert!(Cli::try_parse_from(["pack", "unknown"]).is_err());
     }

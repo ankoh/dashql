@@ -84,6 +84,11 @@ jobs:
                 cp /tmp/lcov_app.dat /tmp/coverage_site/lcov_app.info
                 cp bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/coverage_summary.txt \
                     /tmp/coverage_site/app_gaps.txt
+                bazel run --config=fastbuild //packages/dashql-pack:pack -- coverage-badge \
+                    /tmp/lcov_linux.dat /tmp/lcov_app.dat \
+                    --output /tmp/coverage_site/badge.svg
+                # The same rule as the release badge in dashql-pack
+                printf '/badge.svg\n  Cache-Control: no-cache\n' > /tmp/coverage_site/_headers
 
             - uses: actions/upload-artifact@v7
               with:
