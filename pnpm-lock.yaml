@@ -258,7 +258,7 @@ importers:
         specifier: ^21.2.0
         version: 21.2.0
       d3:
-        specifier: ^7.9.1
+        specifier: ^7.9.2
         version: 7.9.2
       dexie:
         specifier: ^4.4.7
