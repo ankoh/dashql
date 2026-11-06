@@ -105,7 +105,7 @@ jobs:
                   flag-name: linux
 
     coverage_deploy:
-        name: Cloudflare Pages (coverage.dashql.app)
+        name: coverage.dashql.app
         needs:
             - linux_coverage
         runs-on: ubuntu-26.04

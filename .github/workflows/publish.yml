@@ -90,7 +90,7 @@ jobs:
                       --keep-latest 10
 
     pages_deploy:
-        name: Cloudflare Pages (dashql.app)
+        name: dashql.app
         if: inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
@@ -121,7 +121,7 @@ jobs:
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
     stable_pages_deploy:
-        name: Cloudflare Pages (stable.dashql.app)
+        name: stable.dashql.app
         if: inputs.publish_stable_pages
         runs-on: ubuntu-26.04
         permissions:
@@ -152,7 +152,7 @@ jobs:
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
     org_pages_deploy:
-        name: Cloudflare Pages (dashql.org)
+        name: dashql.org
         if: inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
