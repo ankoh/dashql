@@ -182,3 +182,36 @@ jobs:
                   packageManager: npm
                   command: pages deploy ${{ runner.temp }}/artifacts/org_pages --project-name=dashql-org --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+    coverage_pages_deploy:
+        name: coverage.dashql.app
+        if: inputs.publish_latest_pages
+        runs-on: ubuntu-26.04
+        # Like the coverage job: without a report the last good page stays, and the publish does not fail
+        continue-on-error: true
+        permissions:
+            contents: read
+            deployments: write
+        environment:
+            name: cloudflare-pages-coverage
+            url: ${{ steps.deployment.outputs.deployment-url }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: coverage_site
+                  path: ${{ runner.temp }}/artifacts/coverage
+
+            - name: Deploy the coverage report
+              id: deployment
+              uses: cloudflare/wrangler-action@v4
+              with:
+                  apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
+                  accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  workingDirectory: ${{ runner.temp }}
+                  packageManager: npm
+                  command: pages deploy ${{ runner.temp }}/artifacts/coverage --project-name=dashql-coverage --branch=main --commit-hash=${{ inputs.commit }}
+                  gitHubToken: ${{ secrets.GITHUB_TOKEN }}
