@@ -109,7 +109,7 @@ describe('session creation', () => {
             });
             expect(secondId).toBe(firstId);
             expect(isEphemeralSession(registry.sessionScriptsMap.get(firstId)!)).toBe(true);
-            expect(registry.sessionScriptsMap.get(firstId)?.name).toBe('New session');
+            expect(registry.sessionScriptsMap.get(firstId)?.name).toBe('New Session');
             expect(registry.sessionScriptsMap.get(namedId)?.name).toBe('Untitled');
             await writer.flush();
             expect(backend.sessions.get(firstId)!.metadata.ephemeral).toBe(true);

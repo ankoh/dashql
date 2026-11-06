@@ -99,7 +99,7 @@ whether their results are cached.
 
 The greeter at the root of the app shows the ephemeral session, a session without scripts with `metadata.ephemeral: true`.
 It is stored and restored like any other session. The sidebar always lists it as the last session of the root, with the
-italic name "New session" and no menu, and the create button of the sessions jumps to it. Its first script promotes it, whatever created the script: the marker goes, the session takes a free
+italic name "New Session" and no menu, and the create button of the sessions jumps to it. Its first script promotes it, whatever created the script: the marker goes, the session takes a free
 "Untitled" name and the session moves to the end of the root. The next ephemeral session is created right away.
 Every launch ends with exactly one: it creates a missing one and deletes all but the first in restore order. A marked
 session that holds scripts stopped before its promotion was written, the restore finishes the promotion.

@@ -107,7 +107,7 @@ export function scriptConnectionOf(connection: ConnectionState): ScriptConnectio
 }
 
 /// The name of the ephemeral session, the sidebar shows it until a script promotes the session
-export const EPHEMERAL_SESSION_NAME = 'New session';
+export const EPHEMERAL_SESSION_NAME = 'New Session';
 
 /// Is this the ephemeral session of the greeter? It has no scripts and the first one promotes it to a full session.
 export function isEphemeralSession(state: SessionScripts): boolean {

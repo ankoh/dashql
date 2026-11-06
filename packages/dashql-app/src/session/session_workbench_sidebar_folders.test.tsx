@@ -262,7 +262,7 @@ describe('SessionWorkbenchSidebar folders', () => {
 
         function addEphemeralSession(sessionId: string): void {
             state.sessionScriptsMap.set(sessionId, {
-                sessionId, name: 'New session', sessionMetadata: { ephemeral: true }, scripts: {}, scriptRefs: {}, scriptOrder: [],
+                sessionId, name: 'New Session', sessionMetadata: { ephemeral: true }, scripts: {}, scriptRefs: {}, scriptOrder: [],
             });
         }
         function ephemeralRow(): HTMLElement | null {
@@ -289,7 +289,7 @@ describe('SessionWorkbenchSidebar folders', () => {
             expect(row.previousElementSibling).toBe(sessionRow('Root'));
             expect(row.style.paddingLeft).toBe(sessionRow('Root').style.paddingLeft);
             expect(row.querySelector('button')!.className).toBe(sessionRow('Root').querySelector(':scope > button')!.className);
-            expect(row.textContent).toBe('New session');
+            expect(row.textContent).toBe('New Session');
             expect(getComputedStyle(row.querySelector('button > span:last-child')!).fontStyle).toBe('italic');
             expect(row.querySelector('[data-testid="session-row-menu"]')).toBeNull();
             expect(sessionCount()).toBe('3');
