@@ -512,6 +512,47 @@ describe('HyperDB Wasm log extract', () => {
         }
     }, 60_000);
 
+    it('reads the log again after a read raced with the rotation of its files', async () => {
+        const worker = await database!.connect();
+        const tag = uniqueTag('rotation');
+        let failures = 0;
+        const sourceDatabase: HyperDBSourceDatabase = {
+            connect: async options => {
+                const connection = await database!.connect(options);
+                return {
+                    query: async (sql, abort) => {
+                        if (failures > 0 && sql.includes('last_log_scope := true')) {
+                            --failures;
+                            throw new Error('could not read from external source');
+                        }
+                        return await connection.query(sql, abort);
+                    },
+                    execute: (statement, abort) => connection.execute(statement, abort),
+                    close: () => connection.close(),
+                };
+            },
+        };
+        try {
+            await openExtract({ sourceDatabase });
+            const connection = await openReader();
+            await failQueries(worker, `${tag}_raced`, 1);
+            failures = 1;
+            await extract!.poll();
+            expect(failures).toBe(0);
+            expect(await countUserErrors(connection, `${tag}_raced`)).toBe(1);
+
+            // An error that stays fails the poll, the next poll reads its events
+            await failQueries(worker, `${tag}_failed`, 1);
+            failures = 3;
+            await expect(extract!.poll()).rejects.toThrow('could not read from external source');
+            expect(failures).toBe(0);
+            await extract!.poll();
+            expect(await countUserErrors(connection, `${tag}_failed`)).toBe(1);
+        } finally {
+            await worker.close();
+        }
+    }, 60_000);
+
     it('extracts every event from the watermark without sessions', async () => {
         const worker = await database!.connect();
         const tag = uniqueTag('sessionless');

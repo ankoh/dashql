@@ -55,6 +55,8 @@ export interface HyperDBIncrementalExtractSource {
     watermarkColumn: string;
     /// Check the source on the first source connection, before the first query
     open?(connection: HyperDBSourceConnection): Promise<void>;
+    /// Did a read of the source rows fail in a way that the next read does not? It is then read again at once.
+    isTransientReadError?(error: unknown): boolean;
     /// The query of the source rows that satisfy the watermark predicate, or of all rows when it is null
     backfillQuery(since: string | null): string;
     /// The query of the source rows since the connection that runs it was connected, cheaper than a backfill.
@@ -135,6 +137,8 @@ class ExtractNames {
 
 const DEFAULT_INTERVAL_MS = 10_000;
 const DEFAULT_BACKFILL_OVERLAP_MS = 10_000;
+/// How often a read of the source rows is tried when it keeps failing with a transient error
+const SOURCE_READ_ATTEMPTS = 3;
 
 /// Incrementally copies rows of one Hyper (the source) into the tables of an extract file in another Hyper (the sink).
 ///
@@ -222,7 +226,7 @@ export class HyperDBIncrementalExtract {
 
             // The first update reads the rows since the reader connected again, the sink skips them
             const stagingTable = `__hyper_extract_staging_${crypto.randomUUID().replace(/-/g, '_')}`;
-            const rows = await reader.query(await backfillQuery(sink, names, options));
+            const rows = await readSource(reader, source, await backfillQuery(sink, names, options));
             const backfill = await transfer(sink, stager, stagingTable, options, names, schemas, rows);
             return new HyperDBIncrementalExtract(reader, sink, stager, stagingTable, options, names, schemas, backfill);
         } catch (error) {
@@ -246,14 +250,14 @@ export class HyperDBIncrementalExtract {
             const { source, sourceDatabase, clientContext } = this.options;
             const updateQuery = source.updateQuery?.();
             if (updateQuery == null) {
-                const rows = await this.reader.query(await backfillQuery(this.sink, this.names, this.options));
+                const rows = await readSource(this.reader, source, await backfillQuery(this.sink, this.names, this.options));
                 return await transfer(this.sink, this.stager, this.stagingTable, this.options, this.names, this.schemas, rows);
             }
             // The next reader starts before the read, it replaces the current reader once the rows are transferred.
             // A failed poll keeps the current reader, the next poll reads its rows again.
             const next = await sourceDatabase.connect({ clientContext });
             try {
-                const rows = await this.reader.query(projectSourceQuery(source, updateQuery));
+                const rows = await readSource(this.reader, source, projectSourceQuery(source, updateQuery));
                 const transferred = await transfer(this.sink, this.stager, this.stagingTable, this.options, this.names, this.schemas, rows);
                 const previous = this.reader;
                 this.reader = next;
@@ -303,6 +307,17 @@ export class HyperDBIncrementalExtract {
             }
         } finally {
             await this.sink.close();
+        }
+    }
+}
+
+/// Read source rows, again at once after a transient error. An error that stays fails the read.
+async function readSource(reader: HyperDBSourceConnection, source: HyperDBIncrementalExtractSource, query: string): Promise<arrow.Table> {
+    for (let attempt = 1; ; ++attempt) {
+        try {
+            return await reader.query(query);
+        } catch (error) {
+            if (attempt >= SOURCE_READ_ATTEMPTS || !source.isTransientReadError?.(error)) throw error;
         }
     }
 }

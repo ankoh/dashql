@@ -133,6 +133,14 @@ export function isHyperLogFlushTimeout(error: unknown): boolean {
     return (error instanceof Error ? error.message : String(error)).includes('Timed out while flushing the structured log');
 }
 
+/// Did a read of the log race with the rotation of the log files? These errors come with rotating log files, probably
+/// because a read plans its files before it scans them: a file that was deleted meanwhile cannot be read, and the invalid
+/// JSON may be a partial event. A read right after it succeeds.
+export function isHyperLogRotationRace(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('could not read from external source') || message.includes('invalid JSON document');
+}
+
 /// The time zones are offset from UTC by multiples of 15 minutes
 const CLOCK_OFFSET_STEP_MS = 15 * 60_000;
 /// How long readClockOffset() waits for the end of its marker query in the log, e.g. on a Hyper under load
@@ -158,6 +166,7 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
     readonly relation = 'log';
     readonly columns = HYPER_LOG_COLUMNS;
     readonly watermarkColumn = 'ts';
+    readonly isTransientReadError = isHyperLogRotationRace;
     /// The query of the events in the scope of the reader, only for a scoped source
     readonly updateQuery?: () => string;
 
@@ -209,7 +218,7 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
                 `);
                 loggedAt = result.getChild('ended_at')?.get(0);
             } catch (error) {
-                if (!isHyperLogFlushTimeout(error)) throw error;
+                if (!isHyperLogFlushTimeout(error) && !isHyperLogRotationRace(error)) throw error;
             }
             if (loggedAt != null) {
                 // + 0 turns the -0 of a log just before the clock of the app into 0

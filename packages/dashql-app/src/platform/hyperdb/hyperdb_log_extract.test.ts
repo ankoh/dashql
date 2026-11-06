@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { HyperDBLogSource, HyperLogUnreadableError, isHyperLogFlushTimeout } from './hyperdb_log_extract.js';
+import { HyperDBLogSource, HyperLogUnreadableError, isHyperLogFlushTimeout, isHyperLogRotationRace } from './hyperdb_log_extract.js';
 import type { HyperDBSourceConnection } from './hyperdb_incremental_extract.js';
 
 /// A connection whose log holds the end of the clock query after a number of reads
@@ -48,6 +48,25 @@ describe('HyperDBLogSource', () => {
         };
         expect(await new HyperDBLogSource().readClockOffset(connection)).toBe(0);
         expect(logReads()).toBe(2);
+    });
+
+    it('reads the clock offset again after a read of the log raced with its rotation', async () => {
+        const { connection, logReads } = connectionLoggingAfter(1, () => Date.now());
+        const query = connection.query.bind(connection);
+        connection.query = async (sql: string) => {
+            const table = await query(sql);
+            if (sql.includes('hyper_log(') && logReads() === 1) throw new Error('could not read from external source');
+            return table;
+        };
+        expect(await new HyperDBLogSource().readClockOffset(connection)).toBe(0);
+        expect(logReads()).toBe(2);
+    });
+
+    it('tells the errors of a read that raced with the rotation of the log from others', () => {
+        expect(isHyperLogRotationRace(new Error('could not read from external source'))).toBe(true);
+        expect(isHyperLogRotationRace(new Error('invalid JSON document'))).toBe(true);
+        expect(isHyperLogRotationRace(new Error(FLUSH_TIMEOUT))).toBe(false);
+        expect(isHyperLogRotationRace(new Error('function hyper_log does not exist'))).toBe(false);
     });
 
     it('fails on other errors of a read of the clock offset', async () => {
