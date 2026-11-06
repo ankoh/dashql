@@ -122,6 +122,20 @@ describe('hyper_error_info', () => {
             expect(info!.grpcStatusCode).toBe(14);
         });
 
+        it('decodes the percent-encoding of the proxy in the grpc-message', () => {
+            const headers = new Headers();
+            headers.set(HEADER_GRPC_STATUS, "3");
+            headers.set(HEADER_GRPC_MESSAGE, 'syntax error at line 1%0Anear "caf%C3%A9" 100%25');
+            expect(decodeGrpcErrorHeaders(headers)!.primaryMessage).toBe('syntax error at line 1\nnear "café" 100%');
+        });
+
+        it('keeps a grpc-message that is not percent-encoded', () => {
+            const headers = new Headers();
+            headers.set(HEADER_GRPC_STATUS, "3");
+            headers.set(HEADER_GRPC_MESSAGE, "100% broken");
+            expect(decodeGrpcErrorHeaders(headers)!.primaryMessage).toBe("100% broken");
+        });
+
         it('returns null when there is no error data', () => {
             expect(decodeGrpcErrorHeaders(new Headers())).toBeNull();
             expect(decodeGrpcErrorHeaders(null)).toBeNull();

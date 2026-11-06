@@ -144,12 +144,21 @@ export function decodeGrpcErrorHeaders(headers: Headers | null | undefined): Hyp
     const message = headers.get(HEADER_GRPC_MESSAGE);
     if (message) {
         return {
-            primaryMessage: message,
+            primaryMessage: decodeGrpcMessage(message),
             errorSource: "Unknown",
             grpcStatusCode,
         };
     }
     return null;
+}
+
+/// The proxy percent-encodes the message like the `grpc-message` trailer, a header value can't hold line breaks
+function decodeGrpcMessage(message: string): string {
+    try {
+        return decodeURIComponent(message);
+    } catch {
+        return message;
+    }
 }
 
 /// Flatten a HyperErrorInfo into a string key/value map for logging and for

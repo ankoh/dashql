@@ -11,7 +11,6 @@ use http::Request;
 use http::Response;
 use tonic::metadata::KeyAndValueRef;
 use tonic::metadata::MetadataMap;
-use tonic::metadata::KeyAndMutValueRef;
 use lazy_static::lazy_static;
 use tracing::instrument;
 
@@ -56,29 +55,36 @@ pub async fn delete_grpc_channel(channel_id: usize) -> Response<Vec<u8>> {
     }
 }
 
-fn copy_metadata(metadata: &mut MetadataMap, headers: &mut HeaderMap) {
-    for entry in metadata.iter_mut() {
+/// Copy the metadata or the trailers of a call into response headers.
+/// The `dashql-` headers belong to the proxy, a server must not be able to replace them.
+fn copy_metadata(metadata: &MetadataMap, headers: &mut HeaderMap) {
+    for entry in metadata.iter() {
         match entry {
-            KeyAndMutValueRef::Ascii(k, v) => {
-                if k.as_str().starts_with(HEADER_PREFIX) {
+            KeyAndValueRef::Ascii(key, value) => {
+                if key.as_str().starts_with(HEADER_PREFIX) {
                     continue;
                 }
-                let k = HeaderName::from_bytes(k.as_str().as_bytes()).ok();
-                let v = HeaderValue::from_str(v.to_str().unwrap_or_default()).ok();
-                if let (Some(k), Some(v)) = (k, v) {
-                    headers.insert(k, v);
+                let key = HeaderName::from_str(key.as_str());
+                let value = HeaderValue::from_str(value.to_str().unwrap_or_default());
+                if let (Ok(key), Ok(value)) = (key, value) {
+                    headers.insert(key, value);
                 }
-            },
-            KeyAndMutValueRef::Binary(k, v) => {
-                if k.as_str().starts_with(HEADER_PREFIX) {
+            }
+            // Binary metadata (e.g. `grpc-status-details-bin`) cannot be
+            // put into an HTTP header verbatim. Forward it base64-encoded
+            // under the same `-bin` key so the frontend can decode it.
+            KeyAndValueRef::Binary(key, value) => {
+                if key.as_str().starts_with(HEADER_PREFIX) {
                     continue;
                 }
-                let k = HeaderName::from_bytes(k.as_str().as_bytes()).ok();
-                let v = HeaderValue::from_bytes(&v.to_bytes().unwrap_or_default()).ok();
-                if let (Some(k), Some(v)) = (k, v) {
-                    headers.insert(k, v);
+                let encoded = base64::engine::general_purpose::STANDARD
+                    .encode(value.to_bytes().unwrap_or_default());
+                let key = HeaderName::from_str(key.as_str());
+                let value = HeaderValue::from_str(&encoded);
+                if let (Ok(key), Ok(value)) = (key, value) {
+                    headers.insert(key, value);
                 }
-            },
+            }
         }
     }
 }
@@ -88,13 +94,13 @@ pub async fn call_grpc_unary(channel_id: usize, mut req: Request<Vec<u8>>) -> Re
     let body = std::mem::take(req.body_mut());
     tracing::Span::current().record("body_size", body.len());
     match GRPC_PROXY.call_unary(channel_id, req.headers_mut(), body).await {
-        Ok((body, mut metadata)) => {
+        Ok((body, metadata)) => {
             let mut response = Response::builder()
                 .status(200)
                 .header(HEADER_NAME_CHANNEL_ID, channel_id)
                 .body(body)
                 .unwrap();
-            copy_metadata(&mut metadata, response.headers_mut());
+            copy_metadata(&metadata, response.headers_mut());
             response
         },
         Err(e) => Response::from(&e)
@@ -105,14 +111,14 @@ pub async fn call_grpc_unary(channel_id: usize, mut req: Request<Vec<u8>>) -> Re
 pub async fn start_grpc_server_stream(channel_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let body = std::mem::take(req.body_mut());
     match GRPC_PROXY.start_server_stream(channel_id, req.headers_mut(), body).await {
-        Ok((stream_id, mut metadata)) => {
+        Ok((stream_id, metadata)) => {
             let mut response = Response::builder()
                 .status(200)
                 .header(HEADER_NAME_CHANNEL_ID, channel_id)
                 .header(HEADER_NAME_STREAM_ID, stream_id)
                 .body(Vec::new())
                 .unwrap();
-            copy_metadata(&mut metadata, response.headers_mut());
+            copy_metadata(&metadata, response.headers_mut());
             response
         },
         Err(e) => Response::from(&e)
@@ -136,30 +142,7 @@ pub async fn read_grpc_server_stream(channel_id: usize, stream_id: usize, mut re
                 .header(HEADER_NAME_BATCH_BYTES, batches.total_message_bytes);
             if let Some(trailers) = batches.trailers {
                 log::debug!("{:?}", trailers);
-                let headers = &mut response.headers_mut().unwrap();
-                for entry in trailers.iter() {
-                    match entry {
-                        KeyAndValueRef::Ascii(ref key, ref value) => {
-                            let key = HeaderName::from_str(&key.to_string());
-                            let value = HeaderValue::from_str(value.to_str().unwrap_or_default());
-                            if let (Ok(key), Ok(value)) = (key, value) {
-                                headers.insert(key, value);
-                            }
-                        }
-                        // Binary trailers (e.g. `grpc-status-details-bin`) cannot be
-                        // put into an HTTP header verbatim. Forward them base64-encoded
-                        // under the same `-bin` key so the frontend can decode them.
-                        KeyAndValueRef::Binary(ref key, ref value) => {
-                            let encoded = base64::engine::general_purpose::STANDARD
-                                .encode(value.to_bytes().unwrap_or_default());
-                            let key = HeaderName::from_str(&key.to_string());
-                            let value = HeaderValue::from_str(&encoded);
-                            if let (Ok(key), Ok(value)) = (key, value) {
-                                headers.insert(key, value);
-                            }
-                        }
-                    }
-                }
+                copy_metadata(&trailers, response.headers_mut().unwrap());
             }
             response
                 .body(buffer)
@@ -179,5 +162,37 @@ pub async fn delete_grpc_server_stream(channel_id: usize, stream_id: usize, _req
                 .unwrap()
         }
         Err(e) => Response::from(&e)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use tonic::metadata::{AsciiMetadataValue, BinaryMetadataValue};
+
+    fn metadata() -> MetadataMap {
+        let mut metadata = MetadataMap::new();
+        metadata.insert("x-trace", AsciiMetadataValue::from_static("abc"));
+        metadata.insert("dashql-batch-event", AsciiMetadataValue::from_static("StreamFinished"));
+        metadata.insert_bin("grpc-status-details-bin", BinaryMetadataValue::from_bytes(&[0, 1, 255]));
+        metadata.insert_bin("dashql-error-bin", BinaryMetadataValue::from_bytes(b"spoofed"));
+        metadata
+    }
+
+    #[test]
+    fn metadata_is_forwarded_and_binary_values_stay_base64() {
+        let mut headers = HeaderMap::new();
+        copy_metadata(&metadata(), &mut headers);
+        assert_eq!(headers.get("x-trace").unwrap(), "abc");
+        assert_eq!(headers.get("grpc-status-details-bin").unwrap(), "AAH/");
+    }
+
+    #[test]
+    fn a_server_cannot_replace_headers_of_the_proxy() {
+        let mut headers = HeaderMap::new();
+        headers.insert(HEADER_NAME_BATCH_EVENT, HeaderValue::from_static("FlushAfterBytes"));
+        copy_metadata(&metadata(), &mut headers);
+        assert_eq!(headers.get(HEADER_NAME_BATCH_EVENT).unwrap(), "FlushAfterBytes");
+        assert!(headers.get("dashql-error-bin").is_none());
     }
 }

@@ -9,6 +9,7 @@ use crate::proxy_headers::HEADER_NAME_BATCH_BYTES;
 use crate::proxy_headers::HEADER_NAME_BATCH_EVENT;
 use crate::proxy_headers::HEADER_NAME_RESPONSE_STARTED;
 use crate::proxy_headers::HEADER_NAME_STREAM_ID;
+use crate::proxy_headers::HEADER_PREFIX;
 
 lazy_static! {
     static ref HTTP_PROXY: HttpProxy = HttpProxy::default();
@@ -49,8 +50,12 @@ pub async fn read_http_server_stream(stream_id: usize, req: Request<Vec<u8>>) ->
             if batches.status.is_some() {
                 headers.insert(HEADER_NAME_RESPONSE_STARTED, "true".parse().unwrap());
             }
+            // The `dashql-` headers belong to the proxy, a remote must not be able to replace them.
+            // A header may repeat, e.g. Set-Cookie.
             for (key, value) in batches.headers.iter() {
-                headers.insert(key, value.clone());
+                if !key.as_str().starts_with(HEADER_PREFIX) {
+                    headers.append(key, value.clone());
+                }
             }
             response
                 .body(buffer)

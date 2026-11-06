@@ -16,7 +16,7 @@ pub const HEADER_NAME_BATCH_EVENT: &'static str = "dashql-batch-event";
 pub const HEADER_NAME_RESPONSE_STARTED: &'static str = "dashql-response-started";
 pub const HEADER_NAME_BATCH_MESSAGES: &'static str = "dashql-batch-messages";
 pub const HEADER_NAME_GRPC_STATUS: &'static str = "dashql-grpc-status";
-/// The terse gRPC status message (the `grpc-message` trailer).
+/// The terse gRPC status message, percent-encoded like the `grpc-message` trailer.
 pub const HEADER_NAME_GRPC_MESSAGE: &'static str = "dashql-grpc-message";
 /// The base64-encoded `google.rpc.Status` from the `grpc-status-details-bin`
 /// trailer (the gRPC richer error model). Carries Hyper's `ErrorInfo`.

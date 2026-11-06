@@ -68,9 +68,7 @@ pub struct GRPCServerStream {
     /// The channel id
     #[allow(dead_code)]
     channel_id: usize,
-    /// The response queue
-    response_sender: tokio::sync::mpsc::Sender<GrpcServerStreamEvent>,
-    /// The response queue reading
+    /// The response queue reading. Dropping it stops the reader task, which cancels the call.
     response_receiver: Mutex<tokio::sync::mpsc::Receiver<GrpcServerStreamEvent>>,
 }
 
@@ -102,57 +100,62 @@ impl GrpcStreamManager {
         let (sender, receiver) = tokio::sync::mpsc::channel(STREAM_CAPACITY);
         let stream_entry = Arc::new(GRPCServerStream {
             channel_id,
-            response_sender: sender,
             response_receiver: Mutex::new(receiver),
         });
         if let Ok(mut streams) = self.server_streams.write() {
-            streams.insert(stream_id, stream_entry.clone());
+            streams.insert(stream_id, stream_entry);
         }
 
         // Spawn the async reader
         tokio::spawn(async move {
-            let mut stream_alive = true;
-            while stream_alive {
-                // Read the next message from the gRPC output stream
-                let response = match streaming.message().await {
-                    // Received bytes, forward the message as-is to receivers
-                    Ok(Some(m)) => {
-                        let buffer: Vec<u8> = m.into();
-                        log::debug!(
-                            "Receiving message from server stream, bytes={}",
-                            buffer.len()
-                        );
-                        GrpcServerStreamEvent::Message(buffer)
-                    }
-                    // Stream was closed, delete stream and return trailers
-                    Ok(None) => {
-                        stream_alive = false;
-                        log::debug!("Server stream ended");
-                        match streaming.trailers().await {
-                            Ok(Some(trailer)) => GrpcServerStreamEvent::End(trailer),
-                            Ok(None) => GrpcServerStreamEvent::End(MetadataMap::new()),
-                            Err(e) => {
-                                GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Trailers)
+            let reader = async {
+                let mut stream_alive = true;
+                while stream_alive {
+                    // Read the next message from the gRPC output stream
+                    let response = match streaming.message().await {
+                        // Received bytes, forward the message as-is to receivers
+                        Ok(Some(m)) => {
+                            let buffer: Vec<u8> = m.into();
+                            log::debug!(
+                                "Receiving message from server stream, bytes={}",
+                                buffer.len()
+                            );
+                            GrpcServerStreamEvent::Message(buffer)
+                        }
+                        // Stream was closed, delete stream and return trailers
+                        Ok(None) => {
+                            stream_alive = false;
+                            log::debug!("Server stream ended");
+                            match streaming.trailers().await {
+                                Ok(Some(trailer)) => GrpcServerStreamEvent::End(trailer),
+                                Ok(None) => GrpcServerStreamEvent::End(MetadataMap::new()),
+                                Err(e) => {
+                                    GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Trailers)
+                                }
                             }
                         }
-                    }
-                    // Stream failed, send error to receivers and close the stream
-                    Err(e) => {
-                        stream_alive = false;
-                        log::warn!("Failed reading from server stream: {}", e);
-                        GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Message)
-                    }
-                };
+                        // Stream failed, send error to receivers and close the stream
+                        Err(e) => {
+                            stream_alive = false;
+                            log::warn!("Failed reading from server stream: {}", e);
+                            GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Message)
+                        }
+                    };
 
-                // Push the response into the queue
-                if let Err(e) = stream_entry
-                    .response_sender
-                    .send(response)
-                    .await
-                {
-                    stream_alive = false;
-                    log::warn!("Failed writing response to stream: {}", e);
+                    // Push the response into the queue
+                    if let Err(e) = sender
+                        .send(response)
+                        .await
+                    {
+                        stream_alive = false;
+                        log::warn!("Failed writing response to stream: {}", e);
+                    }
                 }
+            };
+            // A deleted stream drops the receiver, dropping the call then tells the server to stop
+            tokio::select! {
+                _ = sender.closed() => log::debug!("Server stream {} was deleted", stream_id),
+                _ = reader => {}
             }
         });
 
@@ -264,10 +267,9 @@ impl GrpcStreamManager {
         }
     }
 
-    /// Cancellation is done by just dropping everything
+    /// Cancellation is done by just dropping everything, see `start_server_stream`
     #[allow(dead_code)]
     pub async fn destroy_server_stream(self: &Arc<Self>, stream_id: usize) {
-        // XXX Is tonic internally awaiting the finish of the server?
         if let Ok(mut streams) = self.server_streams.write() {
             streams.remove(&stream_id);
         }

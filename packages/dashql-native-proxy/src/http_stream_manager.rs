@@ -115,9 +115,7 @@ impl Default for HttpServerStreamBatch {
 
 /// An HTTP response stream whose events are buffered by a background reader task
 pub struct HttpServerStream {
-    /// The response queue
-    response_sender: tokio::sync::mpsc::Sender<HttpServerStreamEvent>,
-    /// The response queue reading
+    /// The response queue reading. Dropping it stops the reader task, which cancels the request.
     response_receiver: Mutex<tokio::sync::mpsc::Receiver<HttpServerStreamEvent>>,
 }
 
@@ -149,35 +147,33 @@ impl HttpStreamManager {
         const STREAM_CAPACITY: usize = 10;
         let (sender, receiver) = tokio::sync::mpsc::channel(STREAM_CAPACITY);
         let stream_entry = Arc::new(HttpServerStream {
-            response_sender: sender,
             response_receiver: Mutex::new(receiver),
         });
         if let Ok(mut streams) = self.server_streams.write() {
-            streams.insert(stream_id, stream_entry.clone());
+            streams.insert(stream_id, stream_entry);
         }
 
         // Spawn the async reader
         tokio::spawn(async move {
-            // Execute a request
-            let mut response = match client.execute(request).await {
-                Ok(response) => response,
-                Err(e) => {
-                    let mapped = HttpError::from(&e);
-                    let queue_error = stream_entry
-                        .response_sender
-                        .send(HttpServerStreamEvent::RequestFailed(mapped))
-                        .await;
-                    if let Err(e) = queue_error {
-                        log::warn!("Failed forwarding request error: {}", e);
+            let reader = async {
+                // Execute a request
+                let mut response = match client.execute(request).await {
+                    Ok(response) => response,
+                    Err(e) => {
+                        let mapped = HttpError::from(&e);
+                        let queue_error = sender
+                            .send(HttpServerStreamEvent::RequestFailed(mapped))
+                            .await;
+                        if let Err(e) = queue_error {
+                            log::warn!("Failed forwarding request error: {}", e);
+                            return;
+                        }
                         return;
                     }
-                    return;
-                }
             };
 
             // Send the header
-            if let Err(e) = stream_entry
-                .response_sender
+            if let Err(e) = sender
                 .send(HttpServerStreamEvent::Header(response.status(), std::mem::take(response.headers_mut())))
                 .await
             {
@@ -215,14 +211,19 @@ impl HttpStreamManager {
                 };
 
                 // Push the response into the queue
-                if let Err(e) = stream_entry
-                    .response_sender
+                if let Err(e) = sender
                     .send(response)
                     .await
                 {
                     stream_alive = false;
                     log::warn!("Failed writing response to stream: {}", e);
                 }
+            }
+            };
+            // A deleted stream drops the receiver, dropping the reader then cancels the request
+            tokio::select! {
+                _ = sender.closed() => log::debug!("Server stream {} was deleted", stream_id),
+                _ = reader => {}
             }
         });
 
@@ -260,7 +261,7 @@ impl HttpStreamManager {
         loop {
             // Receive the next message from the reader
             let elapsed_since_start = started_at.elapsed();
-            let response = if batch.body_chunks.len() == 0 {
+            let response = if batch.body_chunks.len() == 0 && batch.status.is_none() {
                 // Initially, we check the `timeout_read_after` timeout.
                 let receive_timeout = timeout_read_after.checked_sub(elapsed_since_start).unwrap_or_default();
                 match timeout(receive_timeout, receiver.recv()).await {
@@ -278,7 +279,8 @@ impl HttpStreamManager {
                     }
                 }
             } else {
-                // After receiving one batch, we check the `flush_batch_after` timeout.
+                // After receiving one batch or the status, we check the `flush_batch_after` timeout.
+                // A status must not get lost when the body takes longer than the read timeout.
                 let receive_timeout = match flush_batch_after.checked_sub(elapsed_since_start) {
                     Some(timeout) => {
                         timeout
@@ -360,10 +362,9 @@ impl HttpStreamManager {
         }
     }
 
-    /// Cancellation is done by just dropping everything
+    /// Cancellation is done by just dropping everything, see `start_server_stream`
     #[allow(dead_code)]
     pub async fn destroy_server_stream(self: &Arc<Self>, stream_id: usize) {
-        // XXX We should let reqwest cancel the request
         if let Ok(mut streams) = self.server_streams.write() {
             streams.remove(&stream_id);
         }

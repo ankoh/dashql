@@ -247,10 +247,24 @@ impl From<&Status> for StatusCode {
     }
 }
 
+/// Percent-encode a gRPC status message for a header, the encoding of the `grpc-message` trailer.
+/// Database errors span lines and quote the text of the user, which a header value cannot hold.
+fn encode_grpc_message(message: &str) -> String {
+    let mut encoded = String::with_capacity(message.len());
+    for byte in message.bytes() {
+        if (0x20..=0x7E).contains(&byte) && byte != b'%' {
+            encoded.push(byte as char);
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    encoded
+}
+
 /// Build an error response for a failed gRPC call/stream, forwarding the
 /// gRPC "richer error model" data to the frontend:
 /// - `dashql-grpc-status`: the numeric gRPC status code
-/// - `dashql-grpc-message`: the terse gRPC status message
+/// - `dashql-grpc-message`: the terse gRPC status message, percent-encoded
 /// - `dashql-grpc-status-details-bin`: base64 of the `google.rpc.Status`
 ///   details envelope (carrying Hyper's `ErrorInfo`), if present.
 fn grpc_error_response(s: &Status, status: &tonic::Status, body: Vec<u8>) -> Response<Vec<u8>> {
@@ -259,7 +273,7 @@ fn grpc_error_response(s: &Status, status: &tonic::Status, body: Vec<u8>) -> Res
         .status(StatusCode::from(s).as_u16())
         .header(HEADER_NAME_ERROR, "true")
         .header(HEADER_NAME_GRPC_STATUS, &grpc_code)
-        .header(HEADER_NAME_GRPC_MESSAGE, status.message())
+        .header(HEADER_NAME_GRPC_MESSAGE, encode_grpc_message(status.message()))
         .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str());
     // Forward the raw status-details-bin (google.rpc.Status) as base64, if any.
     // The frontend decodes it to surface Hyper's ErrorInfo (sqlstate, hint,
@@ -291,6 +305,98 @@ impl From<&Status> for Response<Vec<u8>> {
                     .body(body)
                     .unwrap()
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn header(response: &Response<Vec<u8>>, name: &str) -> Option<String> {
+        response.headers().get(name).map(|value| value.to_str().unwrap().to_string())
+    }
+
+    fn json(response: &Response<Vec<u8>>) -> serde_json::Value {
+        serde_json::from_slice(response.body()).unwrap()
+    }
+
+    #[test]
+    fn every_status_describes_itself_as_json() {
+        let text = || "text".to_string();
+        let grpc = || tonic::Status::internal("boom");
+        let cases: Vec<(Status, u16, &str, &[(&str, &str)])> = vec![
+            (Status::GrpcChannelIdIsUnknown { channel_id: 1 }, 404, "gRPC channel id is unknown", &[("channel", "1")]),
+            (Status::GrpcEndpointConnectFailed { message: text() }, 400, "connecting to gRPC endpoint failed", &[("error", "text")]),
+            (Status::GrpcTlsConfigInvalid { message: text() }, 400, "gRPC tls config is invalid", &[("error", "text")]),
+            (Status::GrpcStreamClosed { channel_id: 1, stream_id: 2 }, 400, "gRPC stream is closed", &[("channel", "1"), ("stream", "2")]),
+            (Status::GrpcStreamIsUnknown { channel_id: 1, stream_id: 2 }, 404, "gRPC stream is unknown", &[("channel", "1"), ("stream", "2")]),
+            (Status::GrpcStreamReadTimedOut { channel_id: 1, stream_id: 2 }, 400, "reading from gRPC stream timed out", &[("channel", "1"), ("stream", "2")]),
+            (Status::GrpcCallFailed { status: grpc() }, 400, "gRPC call failed", &[]),
+            (Status::GrpcStreamReadFailed { channel_id: 1, stream_id: 2, element: GrpcStreamElement::Message, status: grpc() }, 400, "reading from gRPC stream failed", &[("target", "message")]),
+            (Status::GrpcStreamReadFailed { channel_id: 1, stream_id: 2, element: GrpcStreamElement::Trailers, status: grpc() }, 400, "reading from gRPC stream failed", &[("target", "trailers")]),
+            (Status::HeaderHasInvalidEncoding { header: "h", message: text() }, 400, "header has an invalid encoding", &[("header", "h"), ("error", "text")]),
+            (Status::HeaderIsNotAValidEndpoint { header: "h", message: text() }, 400, "header is not a valid endpoint", &[("header", "h"), ("error", "text")]),
+            (Status::HeaderIsNotAnUsize { header: "h", message: text() }, 400, "header is not an unsigned integer", &[("header", "h"), ("error", "text")]),
+            (Status::HeaderPathIsInvalid { header: "h", path: "p".to_string(), message: text() }, 400, "header stores invalid path", &[("header", "h"), ("path", "p")]),
+            (Status::HeaderRequiredButMissing { header: "h" }, 400, "header is missing", &[("header", "h")]),
+            (Status::HttpClientConfigInvalid { message: text() }, 400, "http client config is invalid", &[("error", "text")]),
+            (Status::HttpEndpointIsInvalid { header: "h", endpoint: "e".to_string(), message: text() }, 400, "header stores invalid endpoint", &[("endpoint", "e")]),
+            (Status::HttpMethodIsInvalid { header: "h", method: "m".to_string(), message: text() }, 400, "header stores invalid method", &[("method", "m")]),
+            (Status::HttpRequestFailed { stream_id: 2, error: text() }, 400, "http request failed", &[("stream", "2"), ("error", "text")]),
+            (Status::HttpStreamClosed { stream_id: 2 }, 400, "http stream is closed", &[("stream", "2")]),
+            (Status::HttpStreamFailed { stream_id: 2, error: text() }, 400, "http stream failed", &[("stream", "2"), ("error", "text")]),
+            (Status::HttpStreamIsUnknown { stream_id: 2 }, 404, "http stream is unknown", &[("stream", "2")]),
+            (Status::HttpStreamReadFailed { stream_id: 2, error: text() }, 400, "reading chunk from http stream failed", &[("stream", "2"), ("error", "text")]),
+            (Status::HttpStreamReadTimedOut { stream_id: 2 }, 400, "reading from http stream timed out", &[("stream", "2")]),
+            (Status::HttpUrlIsInvalid { message: text() }, 400, "http url is invalid", &[("error", "text")]),
+        ];
+        for (status, code, message, details) in cases {
+            let response = Response::from(&status);
+            assert_eq!(response.status().as_u16(), code, "{status:?}");
+            assert_eq!(header(&response, HEADER_NAME_ERROR).as_deref(), Some("true"), "{status:?}");
+            assert_eq!(header(&response, "content-type").as_deref(), Some("application/json"), "{status:?}");
+            let body = json(&response);
+            assert_eq!(body["message"], message, "{status:?}");
+            for (name, value) in details {
+                assert_eq!(body["details"][name], *value, "{status:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_failed_grpc_call_forwards_the_rich_error() {
+        let status = tonic::Status::with_details(tonic::Code::InvalidArgument, "bad query", vec![0, 1, 255].into());
+        let response = Response::from(&Status::GrpcCallFailed { status });
+        assert_eq!(header(&response, HEADER_NAME_GRPC_STATUS).as_deref(), Some("3"));
+        assert_eq!(header(&response, HEADER_NAME_GRPC_MESSAGE).as_deref(), Some("bad query"));
+        assert_eq!(header(&response, HEADER_NAME_GRPC_STATUS_DETAILS).as_deref(), Some("AAH/"));
+    }
+
+    #[test]
+    fn a_failed_grpc_call_without_details_sends_none() {
+        let response = Response::from(&Status::GrpcCallFailed { status: tonic::Status::internal("boom") });
+        assert_eq!(header(&response, HEADER_NAME_GRPC_STATUS).as_deref(), Some("13"));
+        assert_eq!(header(&response, HEADER_NAME_GRPC_STATUS_DETAILS), None);
+    }
+
+    #[test]
+    fn a_grpc_message_that_is_no_header_value_reaches_the_app() {
+        // Database errors span lines and quote the text of the user
+        let message = "syntax error at line 1\nnear \"caf\u{e9}\" 100%";
+        let status = tonic::Status::new(tonic::Code::InvalidArgument, message);
+        for status in [
+            Status::GrpcCallFailed { status: status.clone() },
+            Status::GrpcStreamReadFailed { channel_id: 1, stream_id: 2, element: GrpcStreamElement::Message, status },
+        ] {
+            let response = Response::from(&status);
+            assert_eq!(header(&response, HEADER_NAME_GRPC_STATUS).as_deref(), Some("3"));
+            // Percent-encoded like the `grpc-message` trailer it comes from
+            assert_eq!(
+                header(&response, HEADER_NAME_GRPC_MESSAGE).as_deref(),
+                Some("syntax error at line 1%0Anear \"caf%C3%A9\" 100%25"),
+            );
+            assert!(json(&response)["details"]["error"].as_str().unwrap().contains("caf\u{e9}"));
         }
     }
 }

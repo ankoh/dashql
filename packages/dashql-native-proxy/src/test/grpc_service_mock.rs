@@ -1,10 +1,10 @@
 use crate::proto::dashql_test::{
     test_service_server::{TestService, TestServiceServer}, TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse
 };
-use std::{net::SocketAddr, pin::Pin};
+use std::{net::SocketAddr, pin::Pin, sync::{Arc, Mutex}};
 use tokio::sync::oneshot;
 use tokio_stream::{wrappers::ReceiverStream, Stream};
-use tonic::Status;
+use tonic::{metadata::MetadataMap, Status};
 
 pub type UnaryResponseSender = tokio::sync::mpsc::Sender<Result<TestUnaryResponse, tonic::Status>>;
 pub type ServerStreamingResponseSender = tokio::sync::mpsc::Sender<Result<TestServerStreamingResponse, tonic::Status>>;
@@ -15,6 +15,8 @@ pub struct GrpcServiceMock {
     pub setup_unary: tokio::sync::mpsc::Sender<(TestUnaryRequest, UnaryResponseSender)>,
     /// Receives the parameters of a streaming call together with the sender of its responses
     pub setup_server_streaming: tokio::sync::mpsc::Sender<(TestServerStreamingRequest, ServerStreamingResponseSender)>,
+    /// The metadata of the received calls
+    pub received_metadata: Arc<Mutex<Vec<MetadataMap>>>,
 }
 
 impl GrpcServiceMock {
@@ -25,7 +27,7 @@ impl GrpcServiceMock {
     ) {
         let (send_unary_setup, recv_unary_setup) = tokio::sync::mpsc::channel(1);
         let (send_server_streaming_setup, recv_server_streaming_setup) = tokio::sync::mpsc::channel(1);
-        (Self { setup_unary: send_unary_setup, setup_server_streaming: send_server_streaming_setup }, recv_unary_setup, recv_server_streaming_setup)
+        (Self { setup_unary: send_unary_setup, setup_server_streaming: send_server_streaming_setup, received_metadata: Default::default() }, recv_unary_setup, recv_server_streaming_setup)
     }
 }
 
@@ -39,6 +41,7 @@ impl TestService for GrpcServiceMock {
         &self,
         request: tonic::Request<TestUnaryRequest>
     ) -> Result<tonic::Response<TestUnaryResponse>, tonic::Status> {
+        self.received_metadata.lock().unwrap().push(request.metadata().clone());
         // Setup a channel for sending the result
         let (result_sender, mut receiver) = tokio::sync::mpsc::channel(1);
         let test_setup = self.setup_unary.clone();
@@ -56,6 +59,7 @@ impl TestService for GrpcServiceMock {
         &self,
         request: tonic::Request<TestServerStreamingRequest>,
     ) -> Result<tonic::Response<Self::TestServerStreamingStream>, tonic::Status> {
+        self.received_metadata.lock().unwrap().push(request.metadata().clone());
         // Setup a channel for sending results
         let (result_sender, receive) = tokio::sync::mpsc::channel(10);
         let test_setup = self.setup_server_streaming.clone();
