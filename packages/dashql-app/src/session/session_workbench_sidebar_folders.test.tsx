@@ -74,6 +74,11 @@ const dependencies = {
     createConnectionStateFromParams: vi.fn(),
 } as unknown as SessionWorkbenchSidebarDependencies;
 
+/// Leave an input. blur() fires no event while the window lacks focus, as in a background window of the test dashboard.
+function leaveInput(input: HTMLInputElement): void {
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+}
+
 function addSession(sessionId: string, name: string, scriptOrder: string[] = []): void {
     const scriptRefs = Object.fromEntries(scriptOrder.map((fileName, scriptId) => [fileName, { fileName, scriptId }]));
     state.sessionScriptsMap.set(sessionId, { sessionId, name, sessionMetadata: {}, scripts: {}, scriptRefs, scriptOrder });
@@ -215,9 +220,8 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(input.value).toBe('revenue');
         state.modifySessionScripts.mockReset();
         await act(async () => {
-            input.focus();
             input.value = 'income';
-            input.blur();
+            leaveInput(input);
         });
         expect(state.modifySessionScripts).toHaveBeenCalledWith({ type: RENAME_SCRIPT, value: { fileName: 'revenue.sql', newFileName: 'income' } });
         expect(container.querySelector('input[aria-label="Script name"]')).toBeNull();
@@ -231,8 +235,7 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(menuInput.value).toBe('orders');
         state.modifySessionScripts.mockReset();
         await act(async () => {
-            menuInput.focus();
-            menuInput.blur();
+            leaveInput(menuInput);
         });
         expect(state.modifySessionScripts).not.toHaveBeenCalled();
         expect(container.querySelector('input[aria-label="Script name"]')).toBeNull();
@@ -257,9 +260,8 @@ describe('SessionWorkbenchSidebar folders', () => {
         const input = container.querySelector<HTMLInputElement>('input[aria-label="Folder name"]')!;
         expect(input.value).toBe('New folder');
         await act(async () => {
-            input.focus();
             input.value = 'reports';
-            input.blur();
+            leaveInput(input);
         });
         await vi.waitFor(() => expect(state.registry.tree.folders.map(folder => folder.name)).toEqual(['clients', 'reports']));
         await vi.waitFor(() => expect(rows()).toContain('0:reports'));
