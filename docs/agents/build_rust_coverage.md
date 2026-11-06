@@ -13,7 +13,7 @@ with it.
 `bazel coverage` does not instrument test targets, only the libraries and binaries they test. A `rust_test` with its own
 `srcs` passes but reports nothing (`There was no coverage found.`), so a crate's unit tests take `crate = ":<target>"`.
 
-The end-to-end tests of `dashql-cli` (`:bridge_test`, `:bridge_harness_test`) run the `dashql` binary in a subprocess and
+The end-to-end tests of `dashql-cli` (`:bridge_test`, `:bridge_harness_test`, `:lint_test`) run the `dashql` binary in a subprocess and
 report nothing either, so the coverage of `dashql-cli` is a lower bound and `src/main.rs` shows as uncovered.
 
 ## Empty tracefiles under Bazel 8/9

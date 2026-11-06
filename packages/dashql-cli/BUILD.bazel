@@ -62,6 +62,20 @@ rust_test(
     crate = ":dashql",
 )
 
+# dashql lint as the user calls it: the binary, its exit codes, stdin and the invoking directory
+rust_test(
+    name = "lint_test",
+    size = "small",
+    srcs = ["tests/lint_test.rs"],
+    data = [":dashql"],
+    edition = "2021",
+    env = {"DASHQL_BINARY": "$(rootpath :dashql)"},
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
 BRIDGE_TEST_DEPS = [
     "@core_crates//:futures-util",
     "@core_crates//:serde_json",

@@ -60,6 +60,7 @@ dashql lint [--schema <file.sql>]... [--debug] <file.sql|dir|->...
 
 Relative paths are resolved against the directory you invoke Bazel from. Directories are searched recursively for
 `*.sql` files, the generated catalog files of sessions (`dashql-catalog-relations.sql`, `dashql-catalog-functions.sql`, `dashql-catalog-changes.sql`) are skipped.
+Symlinks are followed, except links back into a directory that is being searched.
 `-` reads a script from stdin:
 
 ```
