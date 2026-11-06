@@ -1,12 +1,14 @@
 import * as React from 'react';
 import * as styles from './session_page.module.css';
 
+import { useLocation } from 'react-router-dom';
+
 import { useSessionScripts } from './scripts/session_scripts_registry.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
 import type { ConnectionState } from '../connections/connection_state.js';
-import { newScriptConnection, sessionConnectionIds } from './scripts/session_scripts.js';
+import { isEphemeralSession, newScriptConnection, sessionConnectionIds } from './scripts/session_scripts.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useRouteContext } from '../app/router/router.js';
+import { PROMOTE_SESSION, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 
 import { SessionFeedPage } from './feed/session_feed_page.js';
 import { SessionViewMode, useSessionViewMode } from './session_view_mode.js';
@@ -20,6 +22,8 @@ export interface SessionPageDependencies {
     useConnectionRegistry: typeof useConnectionRegistry;
     useLogger: typeof useLogger;
     useRouteContext: typeof useRouteContext;
+    useRouterNavigate: typeof useRouterNavigate;
+    useLocation: typeof useLocation;
     useSessionViewMode: typeof useSessionViewMode;
     SessionFeedPage: typeof SessionFeedPage;
     SessionShellsPage: typeof SessionShellsPage;
@@ -30,6 +34,8 @@ const DEFAULT_DEPENDENCIES: SessionPageDependencies = {
     useConnectionRegistry,
     useLogger,
     useRouteContext,
+    useRouterNavigate,
+    useLocation,
     useSessionViewMode,
     SessionFeedPage,
     SessionShellsPage,
@@ -66,6 +72,14 @@ export const SessionPage: React.FC<Props> = (props: Props) => {
             logger.warn('missing session id', {}, LOG_CTX);
         }
     }, [route.sessionId]);
+
+    // The greeter stays at the root until a script promotes its session
+    const navigate = dependencies.useRouterNavigate();
+    const pathname = dependencies.useLocation().pathname;
+    const promotedSessionId = sessionScripts != null && !isEphemeralSession(sessionScripts) && pathname === '/' ? sessionScripts.sessionId : null;
+    React.useEffect(() => {
+        if (promotedSessionId != null) navigate({ type: PROMOTE_SESSION, value: promotedSessionId });
+    }, [navigate, promotedSessionId]);
 
     if (route.sessionId === null || sessionScripts == null) {
         return <div />;

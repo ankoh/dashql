@@ -98,14 +98,15 @@ hyperd.
 - **Receiving**: the app event of a link arrives like every app event, from the address of the page, from the native
   app, or pasted (`PlatformEventListener.dispatchAppEvent`). The listener keeps the latest link until `useHyperLinks`
   (`app/hyper_links.ts`) subscribes.
-- **Following**: once the app opened its first session, `useHyperLinks` (with the helpers of
+- **Following**: once the app opened the session it starts with, `useHyperLinks` (with the helpers of
   `connections/hyper/hyper_link.ts`)
   1. confirms the host of a link to another machine, unless a connection to it exists (`confirmHyperLink`),
   2. binds the link to a connection (`bindHyperLink`): the connection to the endpoint of the link, otherwise the user
      may reuse the connection of the latest link, which is saved with the new endpoint, otherwise a new connection,
   3. remembers the token of the connection in the session storage of the tab and makes it the connection of new
      sessions (`setHyperLinkToken`), a reload keeps both and closing the tab ends them,
-  4. opens the open session if it runs on the connection, otherwise the first session on it, otherwise a new one.
+  4. opens the open session if it runs on the connection, otherwise the first session on it, otherwise the greeter on
+     the connection. The first script of the greeter creates the session.
 - **Connecting**: `V3_HTTP_LINK` connects like `V3_HTTP` (`setupHyperConnection`) with the token of the tab as
   `authorization` header (`hyperLinkChannelParams`). Without a token the setup asks to open the link again. The
   connection of an open session connects right away, as the embedded Hyper does, and again for every new link

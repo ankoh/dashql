@@ -9,7 +9,7 @@ import type { DashQL } from '@ankoh/dashql-core';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { destroyRestoredSession, restoreAppState, restoreSingleSession } from './app_state_loader.js';
-import { destroySessionScripts, sessionConnectionIds } from '../scripts/session_scripts.js';
+import { destroySessionScripts, isEphemeralSession, sessionConnectionIds } from '../scripts/session_scripts.js';
 import type { SessionRegistryBackend } from '../../storage/storage_backend.js';
 import { StorageBackendType } from '../../storage/storage_backend.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testConnections, testSession } from '../../storage/session_test_backend.js';
@@ -165,6 +165,24 @@ describe('V2 app state loader', () => {
         const session = result.sessionScripts.get(TEST_SESSION_ID)!;
         expect(Object.values(session.scripts).map(script => script.connection.connectionId)).toEqual([TEST_CONNECTION_ID, TEST_CONNECTION_ID]);
         expect(sessionConnectionIds(session)).toEqual([TEST_CONNECTION_ID]);
+    });
+
+    it('keeps an empty ephemeral session and promotes one that holds scripts', async () => {
+        const session = testSession();
+        vi.mocked(backend.loadSession).mockResolvedValue({ ...session, scripts: [], metadata: { ...session.metadata, ephemeral: true } });
+        vi.mocked(backend.loadScripts).mockResolvedValue([]);
+        const empty = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
+        expect(isEphemeralSession(empty.sessionScripts.get(TEST_SESSION_ID)!)).toBe(true);
+        expect(backend.saveSessionManifest).not.toHaveBeenCalled();
+
+        // The app stopped after the script was written, before the promotion was
+        vi.mocked(backend.loadSession).mockResolvedValue({ ...session, metadata: { ...session.metadata, ephemeral: true } });
+        vi.mocked(backend.loadScripts).mockResolvedValue([{ name: '1.sql', sql: 'SELECT 1' }]);
+        const crashed = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
+        expect(isEphemeralSession(crashed.sessionScripts.get(TEST_SESSION_ID)!)).toBe(false);
+        const written = vi.mocked(backend.saveSessionManifest).mock.lastCall!;
+        expect(written[0]).toBe(TEST_SESSION_ID);
+        expect('ephemeral' in written[1].metadata).toBe(false);
     });
 
     it('restores saved Salesforce relations and functions into the main catalog on reopen', async () => {

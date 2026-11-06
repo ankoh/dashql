@@ -147,6 +147,10 @@
           "type": "string",
           "format": "date-time",
           "description": "When was created"
+        },
+        "ephemeral": {
+          "type": "boolean",
+          "description": "Is this the session of the greeter? It has no scripts and is promoted to a full session by its first script"
         }
       },
       "additionalProperties": false

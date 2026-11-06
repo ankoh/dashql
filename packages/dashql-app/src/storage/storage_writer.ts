@@ -63,6 +63,8 @@ export const WRITE_SESSION_PROPERTIES = Symbol('WRITE_SESSION_PROPERTIES');
 export interface SessionProperties {
     /// The session name, null if the user never named the session
     name: string | null;
+    /// Does the session stay ephemeral? A write without it promotes the session
+    ephemeral?: boolean;
 }
 /// A session that is written as a whole, its scripts first and its manifest last
 export interface SessionReplacement {
@@ -98,7 +100,7 @@ export interface SessionScriptList {
 }
 
 export type StorageWriteTaskVariant =
-    | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, SessionConnection[]]>
+    | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, SessionConnection[]] | [string, SessionConnection[], { ephemeral: boolean }]>
     | VariantKind<typeof WRITE_SESSION_PROPERTIES, [string, SessionProperties]>
     | VariantKind<typeof REPLACE_SESSION_SCRIPTS, SessionReplacement>
     | VariantKind<typeof WRITE_CONNECTION_ENTRY, ConnectionEntry>
@@ -711,7 +713,7 @@ export class StorageWriter {
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
         switch (task.type) {
             case WRITE_SESSION_MANIFEST: {
-                const [sessionId, connections] = task.value;
+                const [sessionId, connections, created] = task.value;
                 this.logger.info("Writing session", {
                     key,
                     sessionId,
@@ -732,6 +734,7 @@ export class StorageWriter {
                 const sessionMetadata: StorageSessionMetadata = {
                     ...existingSession?.metadata,
                     createdAt: existingSession?.metadata?.createdAt ?? new Date().toISOString(),
+                    ...(created?.ephemeral ? { ephemeral: true } : {}),
                 };
 
                 // sessionPath is a display-only field, recomputed from the UUID + location for
@@ -761,11 +764,15 @@ export class StorageWriter {
                 break;
             }
             case WRITE_SESSION_PROPERTIES: {
-                const [sessionId, { name }] = task.value;
+                const [sessionId, { name, ephemeral }] = task.value;
                 await this.patchSessionFile(key, sessionId, existing => {
                     const next: SessionData = { ...existing };
                     if (name) next.name = name;
                     else delete next.name;
+                    if (!ephemeral && next.metadata?.ephemeral != null) {
+                        const { ephemeral: _promoted, ...metadata } = next.metadata;
+                        next.metadata = metadata;
+                    }
                     return next;
                 });
                 break;

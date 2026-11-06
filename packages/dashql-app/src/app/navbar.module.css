@@ -153,6 +153,13 @@
     letter-spacing: 0.02em;
 }
 
+/* The brand in the top bar opens the greeter */
+.brand_button {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
 .navbar_overlay {
     position: absolute;
     z-index: 2;

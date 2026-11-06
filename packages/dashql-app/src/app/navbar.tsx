@@ -19,6 +19,7 @@ import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
 import { NavRail, useNavRailWide } from './nav_rail.js';
 import { useMacWindowLayout } from './mac_window_layout.js';
 import { useColorSchemeToggle } from '../config/color_scheme.js';
+import { useOpenGreeter } from '../session/session_creation.js';
 
 const LOG_CTX = "navbar";
 
@@ -166,17 +167,26 @@ const TOP_BAR_WORDMARK_HEIGHT = 14;
 
 /// The brand in the stripe at the top, the logo and, next to the wide rail, the name without the tagline.
 /// A square logo is a bit larger without the traffic lights of macOS next to it.
+/// A click opens the greeter.
 const TopBarBrand = (props: { mac: boolean, showName: boolean }) => {
+    const openGreeter = useOpenGreeter();
     const flavor = useAppFlavor();
     return (
-        <div className={styles.brand_identity} data-electron-drag-region>
+        <button
+            type="button"
+            className={`${styles.brand_identity} ${styles.brand_button}`}
+            aria-label={`${flavor.displayName}, new session`}
+            data-testid="brand-home"
+            data-electron-drag-region="false"
+            onClick={openGreeter}
+        >
             {flavor.logo.wordmark
                 ? <FlavorLogo height={TOP_BAR_WORDMARK_HEIGHT} ariaHidden />
                 : <>
                     <FlavorLogo height={props.mac ? 22 : 24} ariaHidden />
                     {props.showName && <span>{flavor.displayName}</span>}
                 </>}
-        </div>
+        </button>
     );
 };
 

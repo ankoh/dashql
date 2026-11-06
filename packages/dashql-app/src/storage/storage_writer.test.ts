@@ -56,6 +56,36 @@ describe('V2 storage writer flat mutations', () => {
             expect(session.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: saved }]);
         }
     });
+    it('writes the marker of an ephemeral session, keeps it and removes it on promotion', async () => {
+        const backend = new SessionTestBackend();
+        const writer = new StorageWriter(new TestLogger(), backend);
+        const connection = testSession().connections[0];
+        const write = async (task: StorageWriteTaskVariant) => {
+            await writer.write(groupSessionManifestWrites(TEST_SESSION_ID), task, 0);
+            await writer.flush();
+            return backend.loadSession(TEST_SESSION_ID);
+        };
+        const created = await write({ type: WRITE_SESSION_MANIFEST, value: [TEST_SESSION_ID, [connection], { ephemeral: true }] });
+        expect(created.metadata.ephemeral).toBe(true);
+
+        // A connection change rewrites the manifest and a whole session may be written while it is ephemeral
+        const rewritten = await write({ type: WRITE_SESSION_MANIFEST, value: [TEST_SESSION_ID, [connection]] });
+        expect(rewritten.metadata.ephemeral).toBe(true);
+        await writer.write(groupSessionWrites(TEST_SESSION_ID), {
+            type: REPLACE_SESSION_SCRIPTS,
+            value: { sessionId: TEST_SESSION_ID, name: 'New Session', scripts: [], connection, originalFileName: '' },
+        }, 0);
+        await writer.flush();
+        expect((await backend.loadSession(TEST_SESSION_ID)).metadata.ephemeral).toBe(true);
+
+        // The properties keep it while the session stays ephemeral
+        const kept = await write({ type: WRITE_SESSION_PROPERTIES, value: [TEST_SESSION_ID, { name: 'New Session', ephemeral: true }] });
+        expect(kept.metadata.ephemeral).toBe(true);
+        const promoted = await write({ type: WRITE_SESSION_PROPERTIES, value: [TEST_SESSION_ID, { name: 'Untitled' }] });
+        expect(promoted.name).toBe('Untitled');
+        expect('ephemeral' in promoted.metadata).toBe(false);
+    });
+
     it('patches the script list with its connections without losing pending property writes', async () => {
         const backend = new SessionTestBackend();
         const writer = new StorageWriter(new TestLogger(), backend);

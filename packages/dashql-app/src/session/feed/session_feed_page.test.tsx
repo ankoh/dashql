@@ -380,6 +380,25 @@ describe('SessionFeedPage', () => {
         for (const testId of sessionControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
     });
 
+    it('keeps only the connections and the agent in the header while the session is ephemeral', () => {
+        const ephemeral = { ...scripts(), sessionMetadata: { ephemeral: true }, scriptOrder: [], scripts: {}, scriptRefs: {} };
+        act(() => root.render(<SessionFeedPage sessionScripts={ephemeral} modifySessionScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
+        const header = container.querySelector('header')!;
+        for (const control of ['session-view-switch', 'execute-all', 'share-url', 'export-session']) {
+            expect(header.querySelector(`[data-testid="${control}"]`)).toBeNull();
+        }
+        expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
+        expect(state.connectionButtonsProps).not.toBeNull();
+        expect(state.setMode).not.toHaveBeenCalled();
+    });
+
+    it.each([SessionViewMode.Dashboard, SessionViewMode.Dataflow])('leaves a view without a switch while the session is ephemeral (%s)', mode => {
+        state.mode = mode;
+        const ephemeral = { ...scripts(), sessionMetadata: { ephemeral: true }, scriptOrder: [], scripts: {}, scriptRefs: {} };
+        act(() => root.render(<SessionFeedPage sessionScripts={ephemeral} modifySessionScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
+        expect(state.setMode).toHaveBeenCalledWith(SessionViewMode.Session);
+    });
+
     it('hides the archive export when the flavor does not support it', () => {
         act(() => root.render(
             <FlavorProvider requested={SIDB_FLAVOR}>

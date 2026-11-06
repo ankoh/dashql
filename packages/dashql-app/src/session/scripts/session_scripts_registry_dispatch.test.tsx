@@ -7,7 +7,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { REGISTER_QUERY, RENAME_SESSION, type SessionScripts } from './session_scripts.js';
+import { isEphemeralSession, REGISTER_QUERY, RENAME_SESSION, type SessionScripts } from './session_scripts.js';
 import { StorageWriter, WRITE_SESSION_PROPERTIES } from '../../storage/storage_writer.js';
 import {
     SessionScriptsRegistryProvider,
@@ -117,6 +117,61 @@ describe('useSessionScripts dispatch', () => {
             write.mockRestore();
             act(() => root.unmount());
             container.remove();
+        }
+    });
+
+    it('promotes an ephemeral session that holds a script', async () => {
+        const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
+        const greeter = {
+            ...fixture('greeter'),
+            name: 'New Session',
+            sessionMetadata: { originalFileName: 'hyper', ephemeral: true },
+        } as SessionScripts;
+        const empty = { ...fixture('empty'), name: 'Other', sessionMetadata: { ephemeral: true }, scriptOrder: [] } as unknown as SessionScripts;
+        const sessions = [{ ...fixture('other'), name: 'Untitled', sessionMetadata: {} } as SessionScripts, greeter, empty];
+        const container = document.createElement('div');
+        const root = createRoot(container);
+        let current!: ScriptsHook;
+        let registry!: ScriptsRegistry;
+        const capture = (scripts: ScriptsHook, nextRegistry: ScriptsRegistry) => {
+            current = scripts;
+            registry = nextRegistry;
+        };
+        try {
+            await act(async () => {
+                root.render(<LoggerProvider>
+                    <StorageProvider backend={new SessionTestBackend()}>
+                        <ConnectionRegistry>
+                            <SessionScriptsRegistryProvider>
+                                <SeedRegistry sessions={sessions}>
+                                    <Consumer sessionId="greeter" capture={capture} />
+                                </SeedRegistry>
+                            </SessionScriptsRegistryProvider>
+                        </ConnectionRegistry>
+                    </StorageProvider>
+                </LoggerProvider>);
+            });
+            await vi.waitFor(() => expect(current?.[0]?.sessionId).toBe('greeter'));
+
+            await act(async () => { await current[1]({ type: REGISTER_QUERY, value: [1, 101] }); });
+            const promoted = registry.sessionScriptsMap.get('greeter')!;
+            expect(isEphemeralSession(promoted)).toBe(false);
+            expect(promoted.sessionMetadata).toEqual({ originalFileName: 'hyper' });
+            // A free name among the full sessions, the name of the other ephemeral session is not taken
+            expect(promoted.name).toBe('Untitled 2');
+            expect(write).toHaveBeenCalledWith(expect.any(String), {
+                type: WRITE_SESSION_PROPERTIES, value: ['greeter', { name: 'Untitled 2' }],
+            }, expect.any(Number));
+
+            // Later writes of the properties don't bring the marker back
+            await act(async () => { await current[1]({ type: RENAME_SESSION, value: 'Renamed' }); });
+            expect(isEphemeralSession(registry.sessionScriptsMap.get('greeter')!)).toBe(false);
+            expect(write).toHaveBeenLastCalledWith(expect.any(String), {
+                type: WRITE_SESSION_PROPERTIES, value: ['greeter', { name: 'Renamed' }],
+            }, expect.any(Number));
+        } finally {
+            write.mockRestore();
+            act(() => root.unmount());
         }
     });
 });

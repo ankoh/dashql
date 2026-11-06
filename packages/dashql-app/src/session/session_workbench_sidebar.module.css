@@ -192,6 +192,11 @@
     font-weight: 500;
 }
 
+/* The ephemeral session has no name yet */
+.session_name_ephemeral {
+    font-style: italic;
+}
+
 .session_path {
     color: var(--color_fg_muted);
     font-family: var(--font_family_mono);

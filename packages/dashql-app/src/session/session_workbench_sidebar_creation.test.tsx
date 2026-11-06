@@ -17,6 +17,8 @@ const state = {
     navigate: vi.fn(),
     dispatchDatabase: vi.fn(),
     createSession: vi.fn(),
+    openGreeter: vi.fn(),
+    ensureEphemeralSession: vi.fn(),
     modifySessionScripts: vi.fn(),
     write: vi.fn<() => Promise<boolean>>(),
     refreshCatalog: vi.fn(),
@@ -91,6 +93,8 @@ const dependencies = {
     useSessionScriptsRegistry: () => [{ sessionScriptsMap: state.sessionScriptsMap }],
     useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
+    useOpenGreeter: () => state.openGreeter,
+    useEnsureEphemeralSession: () => state.ensureEphemeralSession,
     useMergeConnections: () => async () => {},
     useReplaceConnection: () => async () => ({ removed: false }),
     useDetachConnection: () => state.detachConnection,
@@ -140,6 +144,8 @@ describe('SessionWorkbenchSidebar session creation', () => {
         state.modifySessionScripts.mockReset();
         state.dispatchDatabase.mockReset();
         state.createSession.mockReset().mockReturnValue({ sessionId: '00000000-0000-4000-8000-000000000001' });
+        state.openGreeter.mockReset();
+        state.ensureEphemeralSession.mockReset();
         state.write.mockReset().mockResolvedValue(true);
         state.refreshCatalog.mockReset();
         state.createConnectionStateFromParams.mockReset().mockReturnValue({ type: 'remote' });
@@ -253,17 +259,12 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(state.navigate).not.toHaveBeenCalled();
     });
 
-    it('creates and selects a session on the new session connection with one click', () => {
-        state.write.mockReturnValue(new Promise(() => {}));
+    it('opens the greeter instead of creating a session', () => {
         click('create-session');
-        expect(state.resolveNewSessionConnection).toHaveBeenCalledTimes(1);
-        expect(state.createSession).toHaveBeenCalledWith(state.local);
+        expect(state.openGreeter).toHaveBeenCalledTimes(1);
+        expect(state.createSession).not.toHaveBeenCalled();
         expect(state.allocateConnection).not.toHaveBeenCalled();
         expect(state.createConnectionStateFromParams).not.toHaveBeenCalled();
-        expect(state.navigate).toHaveBeenCalledWith({
-            type: SELECT_SESSION,
-            value: '00000000-0000-4000-8000-000000000001',
-        });
         expect(state.overlayProps?.isOpen).toBe(false);
     });
 

@@ -83,7 +83,7 @@ import {
 } from './persistence/app_state_loader.js';
 import { useSessionImport } from './persistence/session_import_provider.js';
 import { describeSessionValidationError } from '../storage/session_validation.js';
-import { scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
+import { EPHEMERAL_SESSION_NAME, isEphemeralSession, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type SessionScripts } from './scripts/session_scripts.js';
 import { scriptDisplayName } from './scripts/script_types.js';
 import { renameScript } from './scripts/script_rename.js';
 import {
@@ -92,7 +92,7 @@ import {
     useSessionScriptsDeletion,
     useSessionScriptsRegistry,
 } from './scripts/session_scripts_registry.js';
-import { useSessionCreation } from './session_creation.js';
+import { useEnsureEphemeralSession, useOpenGreeter, useSessionCreation } from './session_creation.js';
 import { SESSION_LIST_CARET_COLUMN, SessionFolderRow, sessionListRowPadding, startsRowDrag } from './session_folder_row.js';
 import {
     type SessionListDrop,
@@ -184,6 +184,24 @@ const TopLevelDropZone: React.FC<{ targeted: boolean }> = ({ targeted }) => {
     );
 };
 
+/// The row of the ephemeral session, the last session of the root. It looks like the other sessions and only opens the
+/// greeter: there is nothing to rename, move or delete until a script promotes the session.
+const EphemeralSessionRow: React.FC<{ selected: boolean; onOpen: () => void }> = ({ selected, onOpen }) => (
+    <li
+        className={classNames(styles.entry_surface, styles.entry_interactive, styles.session_row, {
+            [styles.entry_selected]: selected,
+        })}
+        style={{ paddingLeft: sessionListRowPadding(0) }}
+        data-testid="session-ephemeral-row"
+    >
+        <button type="button" className={styles.tree_button} aria-current={selected ? 'page' : undefined} onClick={onOpen}>
+            <span aria-hidden="true" />
+            <StackIcon size={14} aria-hidden="true" />
+            <span className={classNames(styles.session_name, styles.session_name_ephemeral)}>{EPHEMERAL_SESSION_NAME}</span>
+        </button>
+    </li>
+);
+
 interface Props {
     sessionScripts: SessionScripts;
     closeAfterSelection?: () => void;
@@ -206,6 +224,8 @@ export interface SessionWorkbenchSidebarDependencies {
     useConnectionReferences: typeof useConnectionReferences;
     useConnectionAllocator: typeof useConnectionAllocator;
     useSessionCreation: typeof useSessionCreation;
+    useOpenGreeter: typeof useOpenGreeter;
+    useEnsureEphemeralSession: typeof useEnsureEphemeralSession;
     useMergeConnections: typeof useMergeConnections;
     useReplaceConnection: typeof useReplaceConnection;
     useDetachConnection: typeof useDetachConnection;
@@ -238,6 +258,8 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useConnectionReferences,
     useConnectionAllocator,
     useSessionCreation,
+    useOpenGreeter,
+    useEnsureEphemeralSession,
     useMergeConnections,
     useReplaceConnection,
     useDetachConnection,
@@ -669,6 +691,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const references = dependencies.useConnectionReferences();
     const allocateConnection = dependencies.useConnectionAllocator();
     const createSession = dependencies.useSessionCreation();
+    const openGreeterPage = dependencies.useOpenGreeter();
+    const ensureEphemeralSession = dependencies.useEnsureEphemeralSession();
     const resolveNewSessionConnection = dependencies.useNewSessionConnection();
     const mergeConnections = dependencies.useMergeConnections();
     const replaceConnection = dependencies.useReplaceConnection();
@@ -719,6 +743,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const sessionItems = React.useMemo<Map<string, SessionItem>>(() => {
         const items = new Map<string, SessionItem>();
         for (const [sessionId, scripts] of scriptsRegistry.sessionScriptsMap) {
+            // The ephemeral session has its own row at the end of the list
+            if (isEphemeralSession(scripts)) continue;
             const connections = references.connectionsOf(sessionId)
                 .map(id => databaseRegistry.connections.get(id))
                 .filter((connection): connection is ConnectionState => connection != null);
@@ -797,7 +823,10 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     );
     const connectionCount = connectionRows.length;
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
-        const sessionIds = references.sessionsOf(connectionId);
+        const sessionIds = references.sessionsOf(connectionId).filter(sessionId => {
+            const scripts = scriptsRegistry.sessionScriptsMap.get(sessionId);
+            return scripts == null || !isEphemeralSession(scripts);
+        });
         const database = databaseRegistry.connections.get(connectionId);
         const scriptsOf = (sessionId: string) => {
             const scripts = scriptsRegistry.sessionScriptsMap.get(sessionId);
@@ -930,14 +959,40 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         changeSessionTree('delete the folder', folders => folders.deleteFolder(folder.path));
     }, [changeSessionTree]);
 
-    /// Create a session on the embedded Hyper, or on the Hyper of the link that the app was opened with.
+    /// Open the greeter, its first script creates the session
+    const openGreeter = React.useCallback(() => {
+        openGreeterPage();
+        props.onOpenOverview?.(null);
+        props.closeAfterSelection?.();
+    }, [openGreeterPage, props.closeAfterSelection, props.onOpenOverview]);
+
+    /// Create a session in a folder on the embedded Hyper, or on the Hyper of the link that the app was opened with.
     /// Its scripts attach other connections.
-    const createNewSession = React.useCallback((folderPath: string[] = []) => {
+    const createSessionInFolder = React.useCallback((folderPath: string[]) => {
         const { sessionId } = createSession(resolveNewSessionConnection(props.sessionScripts.instance));
-        if (folderPath.length > 0) moveSession(sessionId, folderPath, Number.MAX_SAFE_INTEGER);
+        moveSession(sessionId, folderPath, Number.MAX_SAFE_INTEGER);
         navigate({ type: SELECT_SESSION, value: sessionId });
         props.closeAfterSelection?.();
     }, [createSession, moveSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveNewSessionConnection]);
+
+    // A promoted session moves to the end of the root like a new session, its entry in the tree may be older than the
+    // others. The next ephemeral session takes over the row. The aside and the drawer may both do this: the second move
+    // changes nothing and the second session is found.
+    const ephemeralSession = React.useMemo(
+        () => [...scriptsRegistry.sessionScriptsMap.values()].find(isEphemeralSession) ?? null,
+        [scriptsRegistry],
+    );
+    const ephemeralSessionId = ephemeralSession?.sessionId ?? null;
+    // An open connection overview replaces the session
+    const ephemeralSessionSelected = props.openOverviewId == null && ephemeralSessionId === props.sessionScripts.sessionId;
+    const knownEphemeralSessionId = React.useRef(ephemeralSessionId);
+    React.useEffect(() => {
+        const known = knownEphemeralSessionId.current;
+        knownEphemeralSessionId.current = ephemeralSessionId;
+        if (known == null || known === ephemeralSessionId || !scriptsRegistry.sessionScriptsMap.has(known)) return;
+        moveSession(known, [], Number.MAX_SAFE_INTEGER);
+        ensureEphemeralSession();
+    }, [ensureEphemeralSession, ephemeralSessionId, moveSession, scriptsRegistry]);
 
     /// Create a connection and open its settings, the next script of the current session runs on it
     const createConnection = React.useCallback((connector: ConnectorType) => {
@@ -1093,8 +1148,9 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         if (item.sessionId === props.sessionScripts.sessionId) {
             const next = sessions.find(session => session.sessionId !== item.sessionId);
             if (next != null) navigate({ type: OPEN_SESSION, value: next.sessionId });
+            else openGreeter();
         }
-    }, [computationDispatch, deleteSessionScripts, navigate, sessions, props.sessionScripts.sessionId, storageWriter]);
+    }, [computationDispatch, deleteSessionScripts, navigate, openGreeter, sessions, props.sessionScripts.sessionId, storageWriter]);
 
     const openSession = React.useCallback((item: SessionItem) => {
         navigate({ type: SELECT_SESSION, value: item.sessionId });
@@ -1181,7 +1237,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                     size={ButtonSize.Small}
                                     variant={ButtonVariant.Invisible}
                                     aria-label="Create session"
-                                    onClick={() => createNewSession()}
+                                    disabled={ephemeralSessionSelected}
+                                    onClick={openGreeter}
                                 ><StackPlusIcon size={14} /></IconButton>
                             </div>
                         </header>
@@ -1208,7 +1265,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                                 onStartRename={() => setRenamingFolder(folderPathKey(row.folder.path))}
                                                 onRename={name => renameFolder(row.folder, name)}
                                                 onCancelRename={() => setRenamingFolder(null)}
-                                                onNewSession={() => createNewSession(row.folder.path)}
+                                                onNewSession={() => createSessionInFolder(row.folder.path)}
                                                 onMoveToTopLevel={row.depth === 0 ? null : () => changeSessionTree('move the folder', folders => folders.moveFolder(row.folder.path, []))}
                                                 onDelete={() => deleteFolder(row.folder)}
                                                 dropTarget={drop?.targetId === row.id}
@@ -1237,6 +1294,9 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                                 onDelete={() => { void deleteInvalidSession(item.sessionId); }}
                                             />
                                         ))}
+                                        {ephemeralSession != null && (
+                                            <EphemeralSessionRow selected={ephemeralSessionSelected} onOpen={openGreeter} />
+                                        )}
                                         {storageReader.sessionFolders != null && (
                                             <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} />
                                         )}

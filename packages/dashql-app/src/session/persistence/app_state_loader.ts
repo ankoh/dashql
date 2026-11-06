@@ -6,7 +6,7 @@ import type { ConnectionState } from '../../connections/connection_state.js';
 import { registerConnection, sessionConnectionFromState, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import type { SessionScripts, ScriptData } from '../scripts/session_scripts.js';
 import { addSessionScriptsForConnection, copySessionScriptsRegistry, type SessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
-import { createEmptyScriptData, destroySessionScripts, replaceScriptSessionText, scriptConnectionOf, sessionConnectionIds } from '../scripts/session_scripts.js';
+import { createEmptyScriptData, destroySessionScripts, isEphemeralSession, replaceScriptSessionText, scriptConnectionOf, sessionConnectionIds } from '../scripts/session_scripts.js';
 import { readSessionAttachments, type SessionAttachment } from '../attachments/session_attachments.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection, restoreConnectionCatalog } from '../../connections/connection_restore.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '../../connections/connector_info.js';
@@ -181,6 +181,8 @@ interface RestorePendingWrites {
     sessionCopies: Array<{ sessionId: string; connectionId: string }>;
     /// Sessions whose script lists or connections disagree with the restored scripts
     sessionScriptLists: Array<{ sessionId: string; scripts: SessionScript[]; connections: SessionConnection[] }>;
+    /// Ephemeral sessions that hold scripts, the app stopped before their promotion was written
+    promotedSessions: string[];
 }
 
 function createRestoreContext(core: DashQL, backend: StorageBackend, logger: Logger, processor: BatchProcessor | undefined): RestoreContext {
@@ -194,7 +196,7 @@ function createRestoreContext(core: DashQL, backend: StorageBackend, logger: Log
         connectionStatesByType: CONNECTOR_TYPES.map(() => []),
         catalogsRestored: new Set(),
         newConnections: new Map(),
-        pendingWrites: { connectionEntries: [], staleConnectionFiles: [], sessionCopies: [], sessionScriptLists: [] },
+        pendingWrites: { connectionEntries: [], staleConnectionFiles: [], sessionCopies: [], sessionScriptLists: [], promotedSessions: [] },
     };
 }
 
@@ -359,6 +361,11 @@ async function restoreSessionEntry(
             logger
         );
         restoredSessionScripts = restored.sessionScripts;
+        if (isEphemeralSession(restoredSessionScripts) && restoredSessionScripts.scriptOrder.length > 0) {
+            const { ephemeral: _promoted, ...sessionMetadata } = restoredSessionScripts.sessionMetadata;
+            restoredSessionScripts = { ...restoredSessionScripts, sessionMetadata };
+            ctx.pendingWrites.promotedSessions.push(sessionId);
+        }
         if (sessionScriptsResolutionChanged(sessionData, restored.session)) {
             const { scripts, connections } = restored.session;
             ctx.pendingWrites.sessionScriptLists.push({ sessionId, scripts, connections });
@@ -450,6 +457,12 @@ async function flushRestoreWrites(ctx: RestoreContext): Promise<void> {
         await patchRestoredSession(ctx, sessionId, session => {
             const next = withSessionScripts(session, scripts, connections);
             return sessionScriptsResolutionChanged(session, next) ? next : null;
+        });
+    }
+    for (const sessionId of pendingWrites.promotedSessions) {
+        await patchRestoredSession(ctx, sessionId, session => {
+            const { ephemeral: _promoted, ...metadata } = session.metadata;
+            return { ...session, metadata };
         });
     }
 }

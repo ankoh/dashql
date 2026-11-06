@@ -27,6 +27,8 @@ export const CANCEL_SESSION_SETUP = Symbol("CANCEL_SESSION_SETUP");
 export const SKIP_SESSION_SETUP = Symbol("SKIP_SESSION_SETUP");
 export const OPEN_LINK_SESSION = Symbol("OPEN_LINK_SESSION");
 export const OPEN_SESSION = Symbol("OPEN_SESSION");
+export const OPEN_EPHEMERAL_SESSION = Symbol("OPEN_EPHEMERAL_SESSION");
+export const PROMOTE_SESSION = Symbol("PROMOTE_SESSION");
 
 export function sessionPath(sessionId: string): string {
     return `/sessions/${encodeURIComponent(sessionId)}`;
@@ -54,6 +56,8 @@ export type RouteTarget =
     | VariantKind<typeof SKIP_SESSION_SETUP, null>
     | VariantKind<typeof OPEN_LINK_SESSION, string>
     | VariantKind<typeof OPEN_SESSION, string>
+    | VariantKind<typeof OPEN_EPHEMERAL_SESSION, string>
+    | VariantKind<typeof PROMOTE_SESSION, string>
     ;
 
 export function useRouteContext() {
@@ -173,6 +177,31 @@ export function useRouterNavigate() {
                         confirmedFinishedSetup: false,
                         sessionId: route.value,
                         sessionSetupStatus: SessionSetupStatus.OPENING,
+                    }
+                });
+                break;
+            case OPEN_EPHEMERAL_SESSION:
+                // The greeter stays at the root until a script promotes the session. The startup replaces its entry:
+                // going back to it would find a root without a route context and show the loading page.
+                // The status is not OPENING, the loader would open the path of the session.
+                navigate("/", {
+                    replace: location.pathname === "/",
+                    state: {
+                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+                        confirmedFinishedSetup: context.confirmedFinishedSetup,
+                        sessionId: route.value,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
+                    }
+                });
+                break;
+            case PROMOTE_SESSION:
+                // Replaces the root, going back would promote the session again
+                navigate(sessionPath(route.value), {
+                    replace: true,
+                    state: {
+                        ...context,
+                        sessionId: route.value,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
                     }
                 });
                 break;

@@ -31,6 +31,57 @@ async function openSessionWithQuery(page, navigate) {
     await page.getByText('42', { exact: true }).last().waitFor();
 }
 
+/// The pathname of the page
+const pathnameOf = page => new URL(page.url()).pathname;
+
+/// The greeter at the root: a session only appears with its first script, a reload stays in it, the brand goes back
+async function testAppGreeter(page, navigate) {
+    const expectGreeter = async () => {
+        await page.getByTestId('feed-landing-face').waitFor();
+        await page.getByTestId('session-ephemeral-row').waitFor();
+        if (pathnameOf(page) !== '/') throw new Error(`The greeter is at ${page.url()}`);
+        if (!await page.getByTestId('create-session').isDisabled()) throw new Error('The greeter can jump to itself');
+    };
+    await navigate('/');
+    await expectGreeter();
+    if (await page.getByTestId('session-row-menu').count() !== 0) throw new Error('The greeter created a session');
+    // A reload doesn't create a session either
+    await navigate();
+    await expectGreeter();
+    if (await page.getByTestId('session-row-menu').count() !== 0) throw new Error('The reload created a session');
+
+    await page.getByTestId('composer-send').waitFor();
+    await page.locator('.cm-content').first().click();
+    await page.keyboard.type('select 42 as answer');
+    await page.getByTestId('composer-send').click();
+    await page.getByText('Statement executed successfully').waitFor();
+    await page.waitForURL(url => url.pathname.startsWith('/sessions/'));
+    const sessionPathname = pathnameOf(page);
+    await page.getByTestId('session-row-menu').waitFor();
+    await page.getByTestId('session-ephemeral-row').waitFor();
+
+    await navigate();
+    await scriptEditor(page, 'select 42 as answer').waitFor();
+    if (pathnameOf(page) !== sessionPathname) throw new Error(`The reload left the session for ${page.url()}`);
+
+    await page.getByTestId('brand-home').click();
+    await expectGreeter();
+    await page.getByTestId('session-row-menu').waitFor();
+    // The session is one step back
+    await page.goBack();
+    await scriptEditor(page, 'select 42 as answer').waitFor();
+    await page.getByTestId('create-session').click();
+    await expectGreeter();
+    await page.goBack();
+    await scriptEditor(page, 'select 42 as answer').waitFor();
+    await page.getByTestId('session-ephemeral-row').locator('button').click();
+    await expectGreeter();
+    // Opening the app at the root greets as well, with sessions in the list
+    await navigate('/');
+    await expectGreeter();
+    await page.getByTestId('session-row-menu').waitFor();
+}
+
 /// The views of a session on the real providers: the dashboard, the dataflow canvas and its editor dialog.
 /// An edit in the dialog is still there after a reload.
 async function testAppSession(page, navigate) {
@@ -174,6 +225,7 @@ const NARROW = { viewport: { width: 420, height: 800 } };
 
 const PAGE_TESTS = [
     { name: 'app_session', options: DESKTOP, test: testAppSession },
+    { name: 'app_greeter', options: DESKTOP, test: testAppGreeter },
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
     { name: 'app_shared_session', options: DESKTOP, test: testAppSharedSession },
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },

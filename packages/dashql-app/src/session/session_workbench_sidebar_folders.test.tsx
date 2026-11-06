@@ -19,6 +19,8 @@ const NEW_SESSION = '00000000-0000-4000-8000-00000000000d';
 
 const state = {
     createSession: vi.fn(),
+    openGreeter: vi.fn(),
+    ensureEphemeralSession: vi.fn(),
     navigate: vi.fn(),
     modifySessionScripts: vi.fn(),
     sessionScriptsMap: new Map<string, unknown>(),
@@ -54,6 +56,8 @@ const dependencies = {
     useSessionScriptsRegistry: () => [{ sessionScriptsMap: state.sessionScriptsMap }],
     useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
+    useOpenGreeter: () => state.openGreeter,
+    useEnsureEphemeralSession: () => state.ensureEphemeralSession,
     useMergeConnections: () => async () => {},
     useReplaceConnection: () => async () => ({ removed: false }),
     useDetachConnection: () => vi.fn(),
@@ -105,7 +109,7 @@ describe('SessionWorkbenchSidebar folders', () => {
 
     /// The rows of the session list as `<depth>:<label>`, the scripts of a session one level deeper
     function rows(): string[] {
-        return Array.from(container.querySelectorAll('ul[aria-label="Sessions"] > li:not([data-testid="session-top-level-drop"])')).map(row => {
+        return Array.from(container.querySelectorAll('ul[aria-label="Sessions"] > li:not([data-testid="session-top-level-drop"], [data-testid="session-ephemeral-row"])')).map(row => {
             // A script row starts below the icon of its session, after the caret column
             const script = row.getAttribute('data-testid') === 'session-script-row';
             const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - (script ? 20 : 0)) / 16 + (script ? 1 : 0);
@@ -135,6 +139,8 @@ describe('SessionWorkbenchSidebar folders', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         state.createSession.mockReset().mockReturnValue({ sessionId: NEW_SESSION });
+        state.openGreeter.mockReset();
+        state.ensureEphemeralSession.mockReset();
         state.navigate.mockReset();
         state.modifySessionScripts.mockReset();
         state.sessionScriptsMap.clear();
@@ -248,6 +254,92 @@ describe('SessionWorkbenchSidebar folders', () => {
         await vi.waitFor(() => expect(state.registry.tree.folders[0].folders[0].sessions.map(entry => entry.path)).toEqual([ACME_SESSION, NEW_SESSION]));
         expect(state.createSession).toHaveBeenCalledTimes(1);
         await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '2:New', '1:Client', '0:Root']));
+    });
+
+    describe('the ephemeral session', () => {
+        const GREETER_SESSION = '00000000-0000-4000-8000-00000000000e';
+        const NEXT_GREETER_SESSION = '00000000-0000-4000-8000-00000000000f';
+
+        function addEphemeralSession(sessionId: string): void {
+            state.sessionScriptsMap.set(sessionId, {
+                sessionId, name: 'New session', sessionMetadata: { ephemeral: true }, scripts: {}, scriptRefs: {}, scriptOrder: [],
+            });
+        }
+        function ephemeralRow(): HTMLElement | null {
+            return container.querySelector('[data-testid="session-ephemeral-row"]');
+        }
+        function sessionCount(): string | null | undefined {
+            return container.querySelector('[data-testid="session-count"]')?.textContent;
+        }
+        async function registerInTree(sessionId: string, atStartOfRootSessions: boolean = false): Promise<void> {
+            await state.registry.upsertSessionEntry({ path: sessionId });
+            if (atStartOfRootSessions) await state.registry.moveSession(sessionId, [], 0);
+            await state.backend!.initialize();
+        }
+
+        it('shows the row at the end of the list, without a menu and outside the count', async () => {
+            await registerInTree(GREETER_SESSION, true);
+            addEphemeralSession(GREETER_SESSION);
+            render(GREETER_SESSION);
+            expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+            const row = ephemeralRow()!;
+            // The last session, the same row as the others directly below them
+            const sessionRows = Array.from(row.parentElement!.children).filter(child => child.getAttribute('data-testid') !== 'session-top-level-drop');
+            expect(sessionRows[sessionRows.length - 1]).toBe(row);
+            expect(row.previousElementSibling).toBe(sessionRow('Root'));
+            expect(row.style.paddingLeft).toBe(sessionRow('Root').style.paddingLeft);
+            expect(row.querySelector('button')!.className).toBe(sessionRow('Root').querySelector(':scope > button')!.className);
+            expect(row.textContent).toBe('New session');
+            expect(getComputedStyle(row.querySelector('button > span:last-child')!).fontStyle).toBe('italic');
+            expect(row.querySelector('[data-testid="session-row-menu"]')).toBeNull();
+            expect(sessionCount()).toBe('3');
+            expect(row.querySelector('button')!.getAttribute('aria-current')).toBe('page');
+
+            render(ROOT_SESSION);
+            expect(ephemeralRow()!.querySelector('button')!.getAttribute('aria-current')).toBeNull();
+            act(() => ephemeralRow()!.querySelector('button')!.click());
+            expect(state.openGreeter).toHaveBeenCalledTimes(1);
+        });
+
+        it('disables the create button while the ephemeral session is selected', async () => {
+            addEphemeralSession(GREETER_SESSION);
+            const createButton = () => container.querySelector<HTMLButtonElement>('[data-testid="create-session"]')!;
+            render(GREETER_SESSION);
+            expect(createButton().disabled).toBe(true);
+
+            render(ROOT_SESSION);
+            expect(createButton().disabled).toBe(false);
+            act(() => createButton().click());
+            expect(state.openGreeter).toHaveBeenCalledTimes(1);
+        });
+
+        it('opens the greeter when the last session is deleted', async () => {
+            vi.spyOn(window, 'confirm').mockReturnValue(true);
+            state.sessionScriptsMap.clear();
+            addSession(ROOT_SESSION, 'Root');
+            addEphemeralSession(GREETER_SESSION);
+            render();
+            act(() => (sessionRow('Root').querySelector('[data-testid="session-row-menu"]') as HTMLButtonElement).click());
+            await act(async () => {
+                (document.querySelector('[data-testid="session-menu-item"][data-action="delete"]') as HTMLElement).click();
+            });
+            await vi.waitFor(() => expect(state.openGreeter).toHaveBeenCalledTimes(1));
+        });
+
+        it('moves a promoted session to the end of the root and asks for the next ephemeral session', async () => {
+            await registerInTree(GREETER_SESSION, true);
+            addEphemeralSession(GREETER_SESSION);
+            render(GREETER_SESSION);
+            expect(state.ensureEphemeralSession).not.toHaveBeenCalled();
+
+            addSession(GREETER_SESSION, 'Untitled', ['1.sql']);
+            addEphemeralSession(NEXT_GREETER_SESSION);
+            render(GREETER_SESSION);
+            await vi.waitFor(() => expect(state.registry.tree.sessions.map(entry => entry.path)).toEqual([ROOT_SESSION, GREETER_SESSION]));
+            expect(state.ensureEphemeralSession).toHaveBeenCalledTimes(1);
+            await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root', '0:Untitled']));
+            expect(ephemeralRow()).not.toBeNull();
+        });
     });
 
     it('creates a folder and edits its name', async () => {

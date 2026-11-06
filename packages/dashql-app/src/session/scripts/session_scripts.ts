@@ -106,6 +106,31 @@ export function scriptConnectionOf(connection: ConnectionState): ScriptConnectio
     };
 }
 
+/// The name of the ephemeral session, the sidebar shows it until a script promotes the session
+export const EPHEMERAL_SESSION_NAME = 'New session';
+
+/// Is this the ephemeral session of the greeter? It has no scripts and the first one promotes it to a full session.
+export function isEphemeralSession(state: SessionScripts): boolean {
+    return state.sessionMetadata?.ephemeral === true;
+}
+
+/// The first of "Untitled", "Untitled 2", ... that no other session has, compared case-insensitively
+export function freeSessionName(names: Iterable<string | null>): string {
+    const taken = new Set<string>();
+    for (const name of names) {
+        if (name != null) taken.add(name.trim().toLowerCase());
+    }
+    if (!taken.has('untitled')) return 'Untitled';
+    let n = 2;
+    while (taken.has(`untitled ${n}`)) ++n;
+    return `Untitled ${n}`;
+}
+
+/// The names that a new session cannot take, the ephemeral session gives up its name
+export function takenSessionNames(sessions: Iterable<SessionScripts>): (string | null)[] {
+    return [...sessions].filter(session => !isEphemeralSession(session)).map(session => session.name);
+}
+
 /// The scripts of a session in session order, the order of the feed
 export function orderedSessionScripts(state: SessionScripts): ScriptData[] {
     return (state.scriptOrder ?? []).flatMap(name => state.scripts[state.scriptRefs[name]?.scriptId] ?? []);
@@ -433,9 +458,19 @@ function writeSessionScriptList(state: SessionScripts, storage: SessionScriptsSt
 function writeSessionProperties(state: SessionScripts, storage: SessionScriptsStorage) {
     void storage.write(
         groupSessionManifestWrites(state.sessionId),
-        { type: WRITE_SESSION_PROPERTIES, value: [state.sessionId, { name: state.name }] },
+        { type: WRITE_SESSION_PROPERTIES, value: [state.sessionId, { name: state.name, ...(isEphemeralSession(state) ? { ephemeral: true } : {}) }] },
         DEBOUNCE_DURATION_SESSION_WRITE,
     );
+}
+
+/// Promote an ephemeral session with scripts to a full session: it drops the marker and takes a free name.
+/// Every path that adds a script ends here, also the commands of the agent.
+export function promoteEphemeralSession(state: SessionScripts, sessions: Iterable<SessionScripts>, storage: SessionScriptsStorage): SessionScripts {
+    if (!isEphemeralSession(state) || state.scriptOrder.length === 0) return state;
+    const { ephemeral: _promoted, ...sessionMetadata } = state.sessionMetadata;
+    const next: SessionScripts = { ...state, sessionMetadata, name: freeSessionName(takenSessionNames(sessions)) };
+    writeSessionProperties(next, storage);
+    return next;
 }
 
 export function reduceSessionScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {

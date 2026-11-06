@@ -5,7 +5,6 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useHyperLinks } from './hyper_links.js';
-import { sessionPath } from './router/router.js';
 import {
     ConnectionReferencesProvider,
     ConnectionRegistry as ConnectionRegistryProvider,
@@ -20,7 +19,7 @@ import type { PlatformEventListener } from '../platform/events/event_listener.js
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { SessionScriptsRegistryProvider, useSessionScriptsRegistry, type SessionScriptsRegistry } from '../session/scripts/session_scripts_registry.js';
-import { sessionConnectionIds } from '../session/scripts/session_scripts.js';
+import { isEphemeralSession, sessionConnectionIds } from '../session/scripts/session_scripts.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { SessionTestBackend } from '../storage/session_test_backend.js';
 
@@ -92,13 +91,13 @@ describe('following Hyper links', () => {
             && connection.params.hyper.protocol === 'V3_HTTP_LINK');
     }
 
-    it('opens a session on a new connection once the app opened', async () => {
+    it('opens the greeter on a new connection once the app opened', async () => {
         act(() => listener.dispatchAppEvent({ hyperLink: LOCAL_LINK }));
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
         expect(linkConnections()).toEqual([]);
 
         markOpened();
-        await waitForRender(() => expect(pathname).not.toBe('/'));
+        await waitForRender(() => expect(sessions.sessionScriptsMap.size).toBe(1));
         const [connection] = linkConnections();
         expect(connection.params).toMatchObject({ hyper: { endpoint: LOCAL_LINK.endpoint } });
         expect(getHyperLinkTabState().current).toBe(connection.connectionId);
@@ -107,7 +106,8 @@ describe('following Hyper links', () => {
             .filter(([, scripts]) => sessionConnectionIds(scripts).includes(connection.connectionId))
             .map(([sessionId]) => sessionId);
         expect(sessionIds.length).toBe(1);
-        expect(pathname).toBe(sessionPath(sessionIds[0]));
+        expect(isEphemeralSession(sessions.sessionScriptsMap.get(sessionIds[0])!)).toBe(true);
+        expect(pathname).toBe('/');
         // A loopback link needs no confirmation
         expect(confirm).not.toHaveBeenCalled();
 
@@ -115,7 +115,7 @@ describe('following Hyper links', () => {
         await receive({ ...LOCAL_LINK, token: 'second' }, () => expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('second'));
         expect(linkConnections().length).toBe(1);
         expect(sessions.sessionScriptsMap.size).toBe(1);
-        expect(pathname).toBe(sessionPath(sessionIds[0]));
+        expect(pathname).toBe('/');
     });
 
     it('ignores a link to another machine unless the user confirms it', async () => {
@@ -127,7 +127,7 @@ describe('following Hyper links', () => {
         expect(pathname).toBe('/');
 
         confirm.mockReturnValue(true);
-        await receive(REMOTE_LINK, () => expect(pathname).not.toBe('/'));
+        await receive(REMOTE_LINK, () => expect(sessions.sessionScriptsMap.size).toBe(1));
         expect(linkConnections().map(connection => connection.params)).toMatchObject([{ hyper: { endpoint: REMOTE_LINK.endpoint } }]);
         const sessionPathname = pathname;
 

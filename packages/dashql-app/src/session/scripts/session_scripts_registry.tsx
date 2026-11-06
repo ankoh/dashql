@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { forgetSessionScriptReferences } from './script_reference_reports.js';
 import { forgetDataflowGraph } from '../dataflow/dataflow_graph.js';
-import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, isAnalysisOutdated, newScriptConnection, reduceSessionScripts, SessionScriptsEffects, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
+import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, isAnalysisOutdated, newScriptConnection, promoteEphemeralSession, reduceSessionScripts, SessionScriptsEffects, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
 import { Dispatch } from '../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../utils/store.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
@@ -302,7 +302,7 @@ function dispatchSessionScriptsAction(
             let next: SessionScripts;
             const effects = new SessionScriptsEffects(storageWriter);
             try {
-                next = reduceSessionScripts(prev, action, effects, logger);
+                next = promoteEphemeralSession(reduceSessionScripts(prev, action, effects, logger), reg.sessionScriptsMap.values(), effects);
             } catch (e: unknown) {
                 // Drop the action, a throw would also drop the other updates of the queue flush
                 logger.error('Session script action failed', {

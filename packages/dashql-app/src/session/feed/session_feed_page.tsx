@@ -5,6 +5,7 @@ import { LinkIcon, PaperAirplaneIcon, PlugIcon, SquareFillIcon, SymbolIcon, Thre
 
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import {
+    isEphemeralSession,
     scriptConnectionIds,
     SELECT_SCRIPT,
     sessionConnectionIds,
@@ -145,6 +146,11 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
         : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
         : run.phase === 'succeeded' ? `${progress} succeeded` : `${progress} completed`;
     const { mode, setMode } = dependencies.useSessionViewMode();
+    // The greeter shows the feed, its session has nothing to run, show or share until a script promotes it
+    const ephemeral = isEphemeralSession(props.sessionScripts);
+    React.useEffect(() => {
+        if (ephemeral && (mode === SessionViewMode.Dashboard || mode === SessionViewMode.Dataflow)) setMode(SessionViewMode.Session);
+    }, [ephemeral, mode, setMode]);
     const dashboardActive = mode === SessionViewMode.Dashboard;
     const dataflowActive = mode === SessionViewMode.Dataflow;
     const activeView = dashboardActive ? SessionViewMode.Dashboard : dataflowActive ? SessionViewMode.Dataflow : SessionViewMode.Session;
@@ -177,7 +183,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                 </dependencies.IconButton>
                 {/* A connection overview is not part of the session, its controls are hidden */}
                 {!overviewActive && <>
-                    <dependencies.SegmentedControl
+                    {!ephemeral && <dependencies.SegmentedControl
                         aria-label="Session view"
                         data-testid="session-view-switch"
                         size={SegmentedControlSize.Small}
@@ -197,8 +203,8 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                 selected={activeView === view}
                             />
                         ))}
-                    </dependencies.SegmentedControl>
-                    <div className={styles.execution_controls}>
+                    </dependencies.SegmentedControl>}
+                    {!ephemeral && <div className={styles.execution_controls}>
                         <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
                         <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
                             leadingVisual={execution.busy ? SquareFillIcon : disconnected ? PlugIcon : PaperAirplaneIcon}
@@ -245,19 +251,19 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                 </AnchoredOverlay>
                             </>}
                         </div>
-                    </div>
+                    </div>}
                     <div className={styles.header_actions}>
                         {/* The connections of the session, the user sees which one is not connected */}
                         <dependencies.SessionConnectionButtons connections={barConnections} attention={connectionAttention.active} />
                         <AgentSessionMenu sessionId={props.sessionScripts.sessionId} labelClassName={styles.action_label} />
-                        <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
+                        {!ephemeral && <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);
                             setShareOpen(value => !value);
                         }}>
                             <span className={styles.action_label}>Share as URL</span>
-                        </dependencies.Button>
+                        </dependencies.Button>}
                         <dependencies.SessionURLShareOverlay sessionId={props.sessionScripts.sessionId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
-                        {archiveExport && (
+                        {archiveExport && !ephemeral && (
                             <>
                                 <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-session" aria-expanded={exportOpen} onClick={() => {
                                     setShareOpen(false);

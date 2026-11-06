@@ -11,6 +11,7 @@ import { ProgressCounter } from '../../utils/progress.js';
 import { InvalidSession } from '../../storage/session_validation.js';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';
+import { isEphemeralSession, type SessionScripts } from '../../session/scripts/session_scripts.js';
 
 export function canShowSession(route: RouteContext, pauseAfterSetup: boolean): boolean {
     return route.appLoadingStatus === AppLoadingStatus.SETUP_DONE
@@ -22,15 +23,34 @@ export interface AppLoadingResult {
     /// Sessions whose metadata failed validation and were refused a load (keyed by bare UUID).
     invalidSessions: Map<string, InvalidSession>;
     /// Valid restored sessions in persisted manifest order.
-    restoredSessionIds: string[];
+    restoredSessions: ReadonlyMap<string, SessionScripts>;
     /// The restored connections
     restoredConnections: Map<string, ConnectionState>;
 }
 
+/// The session that the app opens with: the restored session of the path, otherwise the app opens the greeter
 export function selectStartupSession(
-    restoredSessionIds: readonly string[],
+    requestedSessionId: string | null,
+    restoredSessions: ReadonlyMap<string, SessionScripts>,
 ): string | null {
-    return restoredSessionIds[0] ?? null;
+    const requested = requestedSessionId == null ? undefined : restoredSessions.get(requestedSessionId);
+    return requested != null && !isEphemeralSession(requested) ? requested.sessionId : null;
+}
+
+/// Delete the ephemeral sessions beyond the first one, the app keeps a single one.
+/// A session that cannot be deleted is reported and the next launch deletes it again, it stays hidden until then.
+export async function deleteSurplusEphemeralSessions(
+    sessions: Iterable<SessionScripts>,
+    deleteSession: (sessionId: string) => Promise<void>,
+    onFailure: (sessionId: string, error: unknown) => void,
+): Promise<void> {
+    for (const { sessionId } of [...sessions].filter(isEphemeralSession).slice(1)) {
+        try {
+            await deleteSession(sessionId);
+        } catch (error) {
+            onFailure(sessionId, error);
+        }
+    }
 }
 
 export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<boolean> | null): Promise<boolean> {
@@ -101,7 +121,7 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
 
     return {
         invalidSessions: state.invalidSessions,
-        restoredSessionIds: [...state.sessionScripts.keys()],
+        restoredSessions: state.sessionScripts,
         restoredConnections: state.connectionStates,
     };
 }

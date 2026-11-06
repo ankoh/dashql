@@ -1,23 +1,25 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 
-import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
+import { OPEN_EPHEMERAL_SESSION, OPEN_LINK_SESSION, sessionIdFromPathname, useRouterNavigate } from '../router/router.js';
 import { useConnectionAllocator, useConnectionRegistrySetter } from '../../connections/connection_registry.js';
 import { embeddedConnection, newSessionConnection } from '../../connections/embedded_connection.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
-import { useSessionCreation } from '../../session/session_creation.js';
+import { useEphemeralSession } from '../../session/session_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
-import { loadApp, selectStartupSession, shouldFinishInitialNavigation } from './app_loading_logic.js';
+import { deleteSurplusEphemeralSessions, loadApp, selectStartupSession, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { useStorage } from '../../storage/storage_provider.js';
-import { useSessionScriptsRegistrySetter } from '../../session/scripts/session_scripts_registry.js';
+import { useStorage, useStorageWriter } from '../../storage/storage_provider.js';
+import { useSessionScriptsDeletion, useSessionScriptsRegistrySetter } from '../../session/scripts/session_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
 import { restoreAppState } from '../../session/persistence/app_state_loader.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
+import { stringifyError } from '../../platform/logger/logger.js';
 
 const LOG_CTX = "app_loader";
 
@@ -41,7 +43,7 @@ async function loadFonts(): Promise<void> {
 export interface AppSetup {
     /// Resolves once the app state is restored
     done: Promise<void>;
-    /// Resolves once the app opened its first session
+    /// Resolves once the app opened the session it starts with
     opened: Promise<void>;
     /// The progress of the restoration
     progress: AppLoadingProgress;
@@ -52,15 +54,19 @@ export interface AppSetup {
 /// Set up the app once its settings are ready.
 ///
 /// The setup initializes the core, the embedded database and the fonts, restores the connections and
-/// sessions and then opens the first session. A session that the app was started with is opened by
-/// its import instead, `initialImport` resolves to true if it opened one.
+/// sessions and makes sure that there is exactly one ephemeral session. It then opens the session of the path, otherwise
+/// the greeter on the ephemeral session. A session that the app was started with is opened by its import instead,
+/// `initialImport` resolves to true if it opened one.
 export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | null>): AppSetup {
     const config = useAppConfig();
     const appSettingsReady = useAppSettingsReady();
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const setupCore = useDashQLCoreSetup();
-    const createSession = useSessionCreation();
+    const ephemeralSession = useEphemeralSession();
+    const deleteSessionScripts = useSessionScriptsDeletion();
+    const storageWriter = useStorageWriter();
+    const pathname = useLocation().pathname;
     const [storageReader] = useStorage();
     const allocateConnection = useConnectionAllocator();
     const setConnReg = useConnectionRegistrySetter();
@@ -167,16 +173,20 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             const embedded = embeddedConnection(connections.values(), allocateConnection, core);
             connections.set(embedded.connectionId, embedded);
 
+            // The app holds exactly one ephemeral session, whatever it opens below
+            await deleteSurplusEphemeralSessions(loaded.restoredSessions.values(), async sessionId => {
+                await storageWriter.deleteSession(sessionId);
+                deleteSessionScripts(sessionId);
+            }, (sessionId, error) => {
+                traced.warn("Failed to delete a surplus ephemeral session", { sessionId, error: stringifyError(error) }, LOG_CTX);
+            });
+            const greeter = ephemeralSession(newSessionConnection(connections, allocateConnection, core));
+
             if (await shouldFinishInitialNavigation(initialImport.current)) {
-                let sessionId = selectStartupSession(loaded.restoredSessionIds);
-                if (sessionId == null) {
-                    const database = newSessionConnection(connections, allocateConnection, core);
-                    sessionId = createSession(database).sessionId;
-                }
-                navigate({
-                    type: OPEN_LINK_SESSION,
-                    value: sessionId,
-                });
+                const sessionId = selectStartupSession(sessionIdFromPathname(pathname), loaded.restoredSessions);
+                navigate(sessionId != null
+                    ? { type: OPEN_LINK_SESSION, value: sessionId }
+                    : { type: OPEN_EPHEMERAL_SESSION, value: greeter.sessionId });
             }
             resolveOpened();
             globalThis.__DASHQL_STARTUP__ = {
