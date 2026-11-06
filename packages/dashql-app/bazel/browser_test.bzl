@@ -18,6 +18,7 @@ def browser_test(name, browser, executable, runtime = None, executable_root = Fa
         data = [
             bundle,
             "test/browser_coverage.mjs",
+            "test/browser_page_tests.mjs",
             "//:node_modules/playwright-core",
         ] + browser_data,
         entry_point = "test/browser_test_driver.mjs",

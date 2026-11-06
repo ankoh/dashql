@@ -159,6 +159,18 @@ bazel test //packages/dashql-app:test_chromium --test_env=DASHQL_BROWSER_TEST_SH
 
 `tests.html` on the dev server runs all files on one page.
 
+After the test files, the driver runs `packages/dashql-app/test/browser_page_tests.mjs`: Playwright boots the real pages of
+the bundle (`index.html`, `shell.html`, `demos.html`, `oauth.html`) in browser contexts of their own, with the headers and
+the Content-Security-Policy of the deployment and without WebGL, and walks through them. Their entry points can't be
+imported by a test, and nothing else renders the real composition of the providers. A page test fails if the page logs a
+console error, or if it sends a request to another origin that the test does not stub. On a failure the driver writes
+`page_<name>.png` to the test outputs. A run of a single test file leaves them out.
+
+```bash
+# Only the page tests
+bazel test //packages/dashql-app:test_chromium --test_env=DASHQL_BROWSER_PAGE_TESTS_ONLY=1
+```
+
 ### Test Output
 
 By default, Bazel only shows output for failed tests (configured in `.bazelrc`):

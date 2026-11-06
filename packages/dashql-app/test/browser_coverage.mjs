@@ -1,7 +1,8 @@
 // Line coverage of the app sources from the V8 block coverage of Chromium.
 //
 // The coverage bundle (`:coverage_pages`) is unminified and has source maps. The driver records the precise coverage
-// of the page and its same-origin test frames over the whole run. Every mapping segment of a source map is one probe
+// of the page and its same-origin test frames over the whole run, and of the real pages in the page tests, see
+// browser_page_tests.mjs. Every mapping segment of a source map is one probe
 // of an original line: it gets the count of the innermost V8 range around its generated offset. A line is hit if one
 // of its probes ran. Chunks that were never loaded count as not run, so untested modules show up as uncovered.
 

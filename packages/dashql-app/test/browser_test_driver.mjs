@@ -5,6 +5,7 @@ import { extname, join, normalize, resolve, sep } from 'node:path';
 
 const playwright = await import('playwright-core');
 const { mapCoverage, toLcov, toSummary } = await import('./browser_coverage.mjs');
+const { runPageTests } = await import('./browser_page_tests.mjs');
 
 const root = resolve(process.argv[2]);
 const requestedFile = process.argv[3] ?? '';
@@ -14,6 +15,7 @@ const browserType = playwright[browserName];
 if (!browserType) throw new Error(`Unsupported browser: ${browserName}`);
 const outputs = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
 const collectCoverage = process.env.DASHQL_BROWSER_COVERAGE === '1';
+const pageTestsOnly = process.env.DASHQL_BROWSER_PAGE_TESTS_ONLY === '1';
 if (collectCoverage && browserName !== 'chromium') throw new Error('Coverage needs the V8 profiler of Chromium');
 const executableRoot = process.env.DASHQL_BROWSER_EXECUTABLE_ROOT;
 const executablePath = executableRoot
@@ -73,7 +75,8 @@ function responseHeaders(pathname, file, size) {
 // The URL of the test frame of a shard lists its files
 const server = createServer({ maxHeaderSize: 1024 * 1024 }, (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-    const relative = normalize(pathname === '/' ? 'index.html' : pathname.slice(1));
+    // Pages serves the app for the routes of its router, since the bundle has no 404.html
+    const relative = normalize(pathname === '/' || extname(pathname) === '' ? 'index.html' : pathname.slice(1));
     const file = resolve(join(root, relative));
     if (file !== root && !file.startsWith(`${root}${sep}`)) {
         response.writeHead(403).end('Forbidden');
@@ -144,10 +147,24 @@ async function runShard(shard) {
         throw error;
     }
     const summary = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
+    let scriptCoverages = [];
     if (profiler) {
         const { result } = await profiler.send('Profiler.takePreciseCoverage');
         await profiler.send('Profiler.stopPreciseCoverage');
-        const coverage = mapCoverage(root, result);
+        scriptCoverages = result;
+    }
+    return { browserErrors, scriptCoverages, summary };
+}
+
+try {
+    const startedAt = performance.now();
+    const shards = pageTestsOnly ? [] : await Promise.all(Array.from({ length: shardCount }, (_, shard) => runShard(shard)));
+    // A run of a single test file leaves out the pages
+    const pages = requestedFile
+        ? { failures: [], scriptCoverages: [] }
+        : await runPageTests(browser, `http://127.0.0.1:${address.port}`, { collectCoverage, outputs });
+    if (collectCoverage) {
+        const coverage = mapCoverage(root, [...shards.flatMap(shard => shard.scriptCoverages), ...pages.scriptCoverages]);
         const coverageSummary = toSummary(coverage);
         console.log(coverageSummary.split('\n', 1)[0]);
         if (outputs) {
@@ -155,12 +172,6 @@ async function runShard(shard) {
             writeFileSync(join(outputs, 'coverage_summary.txt'), `${coverageSummary}\n`);
         }
     }
-    return { browserErrors, summary };
-}
-
-try {
-    const startedAt = performance.now();
-    const shards = await Promise.all(Array.from({ length: shardCount }, (_, shard) => runShard(shard)));
     const sum = key => shards.reduce((total, shard) => total + shard.summary[key], 0);
     const summary = {
         duration: performance.now() - startedAt,
@@ -168,7 +179,8 @@ try {
         files: shards.flatMap(shard => shard.summary.files).sort((a, b) => a.file.localeCompare(b.file)),
         passed: sum('passed'),
         skipped: sum('skipped'),
-        status: shards.every(shard => shard.summary.status === 'passed') ? 'passed' : 'failed',
+        status: shards.every(shard => shard.summary.status === 'passed') && pages.failures.length === 0 ? 'passed' : 'failed',
+        pageFailures: pages.failures,
         total: sum('total'),
     };
     const browserErrors = shards.flatMap(shard => shard.browserErrors);
@@ -192,6 +204,7 @@ try {
     console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s on ${shardCount} ${shardCount === 1 ? 'page' : 'pages'}`);
     if (failures.length > 0) console.error(`\n${failures.join('\n\n')}`);
     if (browserErrors.length > 0) console.error(`\nBrowser errors:\n${browserErrors.join('\n')}`);
+    if (pages.failures.length > 0) console.error(`\nPage tests:\n${pages.failures.join('\n\n')}`);
     if (summary.status !== 'passed' || browserErrors.length > 0) process.exitCode = 1;
 } finally {
     await browser.close();
