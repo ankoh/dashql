@@ -81,10 +81,26 @@ describe('following Hyper links', () => {
         sessionStorage.removeItem('dashql.hyper_links');
     });
 
+    /// Wait until a rendered state holds.
+    /// The development React of the dev server renders the updates of an act scope when the scope ends, a wait inside
+    /// one scope would never see them. So every attempt gets a scope of its own, and the wait stays inside the scopes:
+    /// an update between two of them would warn that it was not wrapped in act.
+    async function waitForRender(rendered: () => void) {
+        for (let attempt = 1; ; ++attempt) {
+            await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+            try {
+                rendered();
+                return;
+            } catch (error) {
+                if (attempt >= 1000) throw error;
+            }
+        }
+    }
+
     /// Receive a link and wait until the app followed it
     async function receive(link: { endpoint: string; token: string }, followed: () => void) {
         act(() => listener.dispatchAppEvent({ hyperLink: link }));
-        await act(async () => { await vi.waitFor(followed, { timeout: 10_000 }); });
+        await waitForRender(followed);
     }
 
     function linkConnections() {
@@ -98,7 +114,7 @@ describe('following Hyper links', () => {
         expect(linkConnections()).toEqual([]);
 
         markOpened();
-        await act(async () => { await vi.waitFor(() => expect(pathname).not.toBe('/'), { timeout: 10_000 }); });
+        await waitForRender(() => expect(pathname).not.toBe('/'));
         const [connection] = linkConnections();
         expect(connection.params).toMatchObject({ hyper: { endpoint: LOCAL_LINK.endpoint } });
         expect(getHyperLinkTabState().current).toBe(connection.connectionId);
@@ -139,8 +155,8 @@ describe('following Hyper links', () => {
             expect.stringContaining(`Run new sessions on the Hyper at ${MOVED_LINK.endpoint}`),
             expect.stringContaining(`to ${REMOTE_LINK.endpoint} for the Hyper at ${MOVED_LINK.endpoint}`),
         ]);
-        await act(async () => { await vi.waitFor(() => expect(linkConnections().map(c => c.params))
-            .toMatchObject([{ hyper: { endpoint: MOVED_LINK.endpoint } }])); });
+        await waitForRender(() => expect(linkConnections().map(c => c.params))
+            .toMatchObject([{ hyper: { endpoint: MOVED_LINK.endpoint } }]));
         expect(pathname).toBe(sessionPathname);
     });
 });
