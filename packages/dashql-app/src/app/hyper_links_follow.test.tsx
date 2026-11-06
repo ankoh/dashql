@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act, waitForRender } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -80,22 +80,6 @@ describe('following Hyper links', () => {
         vi.unstubAllGlobals();
         sessionStorage.removeItem('dashql.hyper_links');
     });
-
-    /// Wait until a rendered state holds.
-    /// The development React of the dev server renders the updates of an act scope when the scope ends, a wait inside
-    /// one scope would never see them. So every attempt gets a scope of its own, and the wait stays inside the scopes:
-    /// an update between two of them would warn that it was not wrapped in act.
-    async function waitForRender(rendered: () => void) {
-        for (let attempt = 1; ; ++attempt) {
-            await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
-            try {
-                rendered();
-                return;
-            } catch (error) {
-                if (attempt >= 1000) throw error;
-            }
-        }
-    }
 
     /// Receive a link and wait until the app followed it
     async function receive(link: { endpoint: string; token: string }, followed: () => void) {
