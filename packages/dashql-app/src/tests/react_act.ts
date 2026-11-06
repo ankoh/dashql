@@ -1,7 +1,11 @@
-import * as React from 'react';
+import type * as React from 'react';
 import { flushSync } from 'react-dom';
 
-function fallbackAct<T>(callback: () => T | Promise<T>): T | Promise<T> {
+/// The tests run on this act in every build, also where React brings its own.
+/// Production React has no act. The act of development React renders the updates of a scope only when the outermost
+/// scope ends, so nested calls see nothing yet, and a test that hangs inside a scope stops the rendering of the tests
+/// after it. The tests would pass in the bundle and fail on the dev server.
+function flushSyncAct<T>(callback: () => T | Promise<T>): T | Promise<T> {
     let result!: T | Promise<T>;
     flushSync(() => {
         result = callback();
@@ -16,12 +20,9 @@ function fallbackAct<T>(callback: () => T | Promise<T>): T | Promise<T> {
     return result;
 }
 
-export const act: typeof React.act = React.act ?? fallbackAct as typeof React.act;
+export const act = flushSyncAct as typeof React.act;
 
-/// Wait until a rendered state holds.
-/// The development React of the dev server renders the updates of an act scope when the scope ends, a wait inside
-/// one scope would never see them. So every attempt gets a scope of its own, and the wait stays inside the scopes:
-/// an update between two of them would warn that it was not wrapped in act.
+/// Wait until a rendered state holds, every attempt renders the pending updates first.
 export async function waitForRender(rendered: () => void): Promise<void> {
     for (let attempt = 1; ; ++attempt) {
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
@@ -35,7 +36,7 @@ export async function waitForRender(rendered: () => void): Promise<void> {
 }
 
 /// Wait until React has rendered the updates of continuous events (pointermove, pointerover, pointerout, ...).
-/// Production React has no act, and flushSync renders only the sync lane. React schedules the continuous lane in a
+/// The act of the tests is flushSync, which renders only the sync lane. React schedules the continuous lane in a
 /// microtask that posts a Scheduler task through a MessageChannel and renders that lane without time slicing, so the
 /// update is committed once a message posted after that microtask arrives. Waiting for a frame races with that task.
 export async function flushContinuousUpdates(): Promise<void> {
