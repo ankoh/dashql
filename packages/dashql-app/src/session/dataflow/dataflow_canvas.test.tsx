@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
-import { act } from '@dashql/browser-test-act';
+import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CREATE_SCRIPT,DELETE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
@@ -133,7 +133,7 @@ describe('DataflowCanvas', () => {
         // continuous, React renders its update in a task of its own.
         const move = async (from: Element, to: Element) => act(async () => {
             from.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerId: 1, relatedTarget: to }));
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await flushContinuousUpdates();
         });
         await move(svg, hit);
         const highlights = [...container.querySelectorAll('[data-dataflow-edge-highlight]')];
