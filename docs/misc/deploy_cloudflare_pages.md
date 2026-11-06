@@ -13,9 +13,9 @@ artifact. Cloudflare does not clone or build the repository.
    - `PAGES_DASHQL_ACCOUNT_ID`: the Cloudflare account ID.
    - `PAGES_DASHQL_API_TOKEN`: the Pages API token.
 
-   The deploy jobs of `publish.yml` run in the GitHub environments `cloudflare-pages` (the app) and
-   `cloudflare-pages-org` (dashql.org). Add the secrets to the repository, or scope them to both
-   environments.
+   The deploy jobs of `publish.yml` run in the GitHub environments `cloudflare-pages` (the app),
+   `cloudflare-pages-stable` (stable.dashql.app) and `cloudflare-pages-org` (dashql.org). Add the secrets to the
+   repository, or scope them to all three environments.
 4. Run the main-branch workflow once. The publish job downloads the `dashql_app_pages` artifact
    produced by Bazel and uploads it with `wrangler pages deploy`.
 5. In the Pages project's **Custom domains** settings, add both `dashql.app` and `hyperdb.sh`.
@@ -62,9 +62,9 @@ Release manifests such as `latest.json` and `stable.json`, along with updater ro
 `get.dashql.app` and are not configured by this Pages deployment.
 
 The global rule applies `Cross-Origin-Opener-Policy: same-origin` and
-`Cross-Origin-Embedder-Policy: require-corp` to responses on `dashql.app`, `hyperdb.sh`, and Pages
-preview URLs. It also applies `Access-Control-Allow-Origin: *`, allowing static resources to be
-loaded cross-origin from either domain.
+`Cross-Origin-Embedder-Policy: require-corp` to responses on `dashql.app`, `stable.dashql.app`,
+`hyperdb.sh`, and Pages preview URLs. It also applies `Access-Control-Allow-Origin: *`, allowing static
+resources to be loaded cross-origin from any of these domains.
 
 Cloudflare Pages automatically invalidates its deployment cache when a new deployment is
 published. The explicit TTLs above control browser caching; no additional zone Cache Rules are
@@ -88,6 +88,43 @@ The responses should include `Cross-Origin-Embedder-Policy: require-corp`,
 route should return the app HTML, entrypoints should require revalidation, and fingerprinted
 static assets should be immutable. Every `.br` WebAssembly response needs `Content-Encoding: br` and
 `Content-Type: application/wasm`.
+
+## stable.dashql.app
+
+`dashql.app` follows `main`, `stable.dashql.app` follows the release tags. The `stable_pages_deploy` job of
+`publish.yml` runs for tag pushes after the desktop release was published, so the site and
+`get.dashql.app/stable.json` agree on the version. It uploads the `dashql_app_pages` artifact of the tag build to a
+separate Direct Upload project with the same `PAGES_DASHQL_*` secrets.
+
+Set this up before pushing the first tag that runs the job:
+
+1. Create a Cloudflare Pages **Direct Upload** project named `dashql-stable` with production branch `main`.
+   `wrangler pages deploy` fails if the project does not exist.
+2. Add `stable.dashql.app` in the project's **Custom domains** settings.
+3. Add `https://stable.dashql.app` to the R2 CORS policies of the buckets behind `get.dashql.app` and
+   `data.dashql.app`. Without it the version viewer cannot load the release manifests and the hosted datasets do not
+   load.
+4. Add `https://stable.dashql.app` to the CORS list of each Salesforce org, see `docs/misc/setup_data_cloud.md`.
+
+The site is a separate origin, so its browser storage is separate from `dashql.app`. Two things still lead to
+`dashql.app`:
+
+- Salesforce only redirects to the registered `https://dashql.app/oauth.html`, which forwards the popup to
+  `stable.dashql.app/oauth.html` (`isAllowedOAuthCallbackUrl`). A login on the stable site therefore needs a working
+  `dashql.app`.
+- Session links use the build-time `DASHQL_APP_URL` and open on `dashql.app`, also when created on the stable site.
+
+Verify the deployment after the first tag:
+
+```bash
+curl -I https://stable.dashql.app/
+curl -I https://stable.dashql.app/oauth.html
+curl -I https://stable.dashql.app/static/wasm/<fingerprinted-core-wasm>.br
+curl -sI -H 'Origin: https://stable.dashql.app' https://get.dashql.app/stable.json | grep -i access-control
+curl -sI -H 'Origin: https://stable.dashql.app' https://data.dashql.app/index.json | grep -i access-control
+```
+
+Check the first three responses as described under Verification, the last two have to allow the origin.
 
 ## dashql.org
 

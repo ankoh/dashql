@@ -82,6 +82,7 @@ bazel run //packages/dashql-datasets:sync
 - We're continuously deploying main to [dashql.app](https://dashql.app)
     - `//packages/dashql-app:pages` is published to Cloudflare Pages
     - We use aggressive caching with cache busting
+- Every release tag deploys the same web app to [stable.dashql.app](https://stable.dashql.app)
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)

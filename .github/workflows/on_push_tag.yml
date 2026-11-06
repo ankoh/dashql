@@ -19,7 +19,8 @@ jobs:
         uses: ./.github/workflows/publish.yml
         with:
             commit: ${{ github.sha }}
-            publish_pages: false
+            publish_latest_pages: false
+            publish_stable_pages: true
         needs:
             - build
         secrets: inherit

@@ -6,10 +6,14 @@ on:
             commit:
                 required: true
                 type: string
-            publish_pages:
+            publish_latest_pages:
                 required: false
                 type: boolean
                 default: true
+            publish_stable_pages:
+                required: false
+                type: boolean
+                default: false
 
 concurrency:
     group: ${{ github.workflow }}
@@ -87,7 +91,7 @@ jobs:
 
     pages_deploy:
         name: Cloudflare Pages (dashql.app)
-        if: inputs.publish_pages
+        if: inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -116,9 +120,43 @@ jobs:
                   command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
+    stable_pages_deploy:
+        name: Cloudflare Pages (stable.dashql.app)
+        if: inputs.publish_stable_pages
+        # The site moves after stable.json has moved, so that the two agree on the stable version
+        needs:
+            - desktop_release
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            deployments: write
+        environment:
+            name: cloudflare-pages-stable
+            url: ${{ steps.deployment.outputs.deployment-url }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_app_pages
+                  path: ${{ runner.temp }}/artifacts/pages
+
+            - name: Deploy prebuilt web app
+              id: deployment
+              uses: cloudflare/wrangler-action@v4
+              with:
+                  apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
+                  accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  workingDirectory: ${{ runner.temp }}
+                  packageManager: npm
+                  command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql-stable --branch=main --commit-hash=${{ inputs.commit }}
+                  gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
     org_pages_deploy:
         name: Cloudflare Pages (dashql.org)
-        if: inputs.publish_pages
+        if: inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
