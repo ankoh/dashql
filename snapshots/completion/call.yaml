@@ -15,7 +15,7 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 262144
+        - score: 1048576
           value: tickets
           candidate-tags: [PREFIX_MATCH]
           location: "tic"
@@ -112,20 +112,20 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 262144
-          value: export_start
+        - score: 1048577
+          value: ticket_feed
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
-          value: request
+        - score: 1048577
+          value: ticket_list
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
-          value: rule_create
+        - score: 1048577
+          value: ticket_search
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
@@ -147,7 +147,7 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 262144
+        - score: 1048576
           value: webhook_create
           candidate-tags: [PREFIX_MATCH]
           location: "web"
@@ -196,25 +196,25 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: page_size
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: page_token
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _next
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _pages
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -237,13 +237,13 @@ completion-snapshots:
       limit: 10
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: page_size
           candidate-tags: [PREFIX_MATCH]
           location: "pa"
           location-qualified: "pa"
           objects: []
-        - score: 262145
+        - score: 1048577
           value: page_token
           candidate-tags: [PREFIX_MATCH]
           location: "pa"
@@ -256,6 +256,35 @@ completion-snapshots:
           location-qualified: "pa"
           objects: []
       text: "pa"
+
+  - name: call_options_prefix_before_required
+    catalog:
+      client_functions: tickets
+    editor:
+      input: call tickets.ticket_create (l
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (l
+        index: 2
+    completions:
+      limit: 10
+      strategy: DEFAULT
+      entries:
+        - score: 1048577
+          value: labels
+          candidate-tags: [PREFIX_MATCH]
+          location: "l"
+          location-qualified: "l"
+          objects: []
+        - score: 262144
+          value: title
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "l"
+          location-qualified: "l"
+          objects: []
+      text: "l"
 
   - name: call_options_keyword_prefix
     catalog:
@@ -300,25 +329,25 @@ completion-snapshots:
       limit: 10
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: page_size
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: page_token
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _next
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _pages
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -354,25 +383,25 @@ completion-snapshots:
       limit: 10
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: page_size
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: page_token
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _next
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _pages
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -418,7 +447,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: notify
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -446,13 +475,13 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: children
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: name
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -503,7 +532,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: notify
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -606,7 +635,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: '"X-Trace-Id"'
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -680,7 +709,7 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: '"X-Trace-Id"'
           candidate-tags: [PREFIX_MATCH]
           location: "X"
@@ -731,13 +760,13 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 262144
+        - score: 1048576
           value: _poll
           candidate-tags: [PREFIX_MATCH]
           location: "_"
           location-qualified: "_"
           objects: []
-        - score: 262144
+        - score: 1048576
           value: _wait
           candidate-tags: [PREFIX_MATCH]
           location: "_"
@@ -760,19 +789,19 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: cron
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: event
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: filter
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -800,7 +829,7 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 262145
+        - score: 1048577
           value: filter
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -834,7 +863,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           objects: []
-        - score: 262145
+        - score: 1048577
           value: owner
           candidate-tags: [PREFIX_MATCH]
           location: ""

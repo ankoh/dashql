@@ -95,6 +95,18 @@ completion-snapshots:
     completions:
       limit: 10
   # A name that is also a keyword is typed like any other
+  # A prefix match ranks before a required option that only contains the text
+  - name: call_options_prefix_before_required
+    catalog:
+      client_functions: tickets
+    editor:
+      input: call tickets.ticket_create (l
+    cursor:
+      search:
+        text: (l
+        index: 2
+    completions:
+      limit: 10
   - name: call_options_keyword_prefix
     catalog:
       client_functions: tickets

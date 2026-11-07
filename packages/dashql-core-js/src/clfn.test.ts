@@ -96,6 +96,14 @@ describe('Client functions', () => {
         expect(analyzed.errorsLength()).toEqual(0);
     });
 
+    it('stays registered when the catalog is cleared', () => {
+        const catalog = dql.createCatalog();
+        catalog.registerClientFunctions(SPEC);
+        catalog.clear();
+        const analyzed = analyze(catalog, 'call tickets.ticket_list ();').getAnalyzed().read();
+        expect(analyzed.clientFunctionCallsLength()).toEqual(1);
+    });
+
     it('rejects invalid specs and a namespace that is taken', () => {
         const catalog = dql.createCatalog();
         expect(() => catalog.registerClientFunctions('{')).toThrow(/invalid client function spec/);

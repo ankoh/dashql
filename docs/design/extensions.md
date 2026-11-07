@@ -1,6 +1,6 @@
 # Extensions
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360/clfn/docs/overview.md#the-spec-is-the-source) implemented. The connector bindings don't exist yet, so a client function call can't run in the app, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360/clfn/docs/overview.md#the-spec-is-the-source) implemented. Salesforce connections register the spec, so scripts get checks and completion, but a client function call can't run in the app yet, and nothing has run against a real service.
 
 An **extension** adds what DashQL needs for a service, in a folder of `extensions/`. It holds client functions and snippets so far. Extensions are bundled with the app and declarative: nothing gets installed, and an extension runs no code of its own.
 
@@ -263,17 +263,15 @@ There are three places to see the actual names: the reference of a spec, such as
 A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-app/src/connections/connector_descriptor.ts`):
 
 ```ts
-interface ClientFunctionBinding<Details> {
-    /// Load the spec, only when the connection needs it
+interface ClientFunctionBinding {
+    /// Load the spec, only when a connection needs it
     loadSpec(): Promise<ClientFunctionSpec>;
-    /// Resolve a host that the spec names. Async, since a token may need a refresh or an exchange.
-    resolveHost(details: Details, host: string): Promise<{ baseUrl: URL; headers: Record<string, string> }>;
-    /// The values of the `{variables}` in the base paths
-    variables(details: Details): Record<string, string>;
 }
 ```
 
-When the connection is set up, the binding loads the spec and registers it on the connection's catalog. Requests go through the existing `HttpClient`. `headers` also carries what a service wants on every call, such as an API version header or a token type.
+This is all that exists so far, and it's enough for checks and completion. Running a call will add two more, to resolve a host that the spec names, async since a token may need a refresh or an exchange, and to fill the `{variables}` of the base paths. Requests will go through the existing `HttpClient`, with the headers of the host also carrying what a service wants on every call, such as an API version header or a token type.
+
+**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `syncConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, and it drops the spec if the connection switches to a connector without it.
 
 **A service with no SQL backend** would need a connector that runs no `SELECT`, with a setup UI and its own auth flows. That's later work, and it's not needed for a service that sits on an existing connection.
 
@@ -282,7 +280,8 @@ When the connection is set up, the binding loads the spec and registers it on th
 **A spec shadows its namespace on a connection.** Everything under `cdp.` belongs to the spec, so a function it doesn't know is an error, and nothing under `cdp.` reaches the backend, even if the backend has a schema of that name. Every other `CALL` goes to the backend as written: another namespace, and `CALL cdp.x` on a connection without that spec, since a Trino connection can have its own `cdp` schema.
 
 - **Scope:** every `ConnectionState` owns its catalog, and a session belongs to the catalog it was created with, so registering on the catalog scopes the namespace to the connection.
-- **Catalog version:** registering bumps it, so open scripts are analyzed again.
+- **Catalog version:** registering bumps it, and the app marks the scripts of the connection as outdated, so they are analyzed again.
+- **Clearing the catalog keeps the specs:** they come with the connector and not from the backend, so a reset of the connection doesn't change what a script may call.
 - **Multiple specs:** a connection can have several. Two with the same namespace is a registration error.
 
 ## Checks
@@ -327,12 +326,20 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 | Position | Candidates |
 |---|---|
 | `CALL \|` | The namespaces with a spec. If none matches, core SQL completes as usual |
-| `CALL tickets.\|` | Every function of the namespace |
+| `CALL tickets.\|` | Every function of the namespace, those that only read first |
 | `CALL tickets.ticket_list (\|` | That function's options, minus those already used, required ones first |
 | `assignee => (\|` | The attributes of that schema, minus those already used |
 | `labels => [(\|` | The attributes of the array's item schema |
 | Inside `(SELECT \|` | Core SQL, as usual |
 | A free-form value | None |
+
+**Ranking** only looks at the spec and the typed text, and ties sort by name:
+
+1. A prefix match ranks before any substring match. An empty prefix counts as a prefix.
+2. Among options and attributes, a required one ranks first, then one of the spec, then a standard option.
+3. Among functions, one that only reads ranks first.
+
+The editor is the same as for SQL. Right after `.` or `(` it shows the first candidate as an inline hint, such as `access_policy_get` for `CALL cdp.|`. Typing a name opens the list, which holds the top 10 (`DASHQL_COMPLETION_LIMIT`), so a script finds a function by typing part of its name.
 
 **The position comes from tokens, not the tree,** because the text being typed usually doesn't parse. From the start of the statement, the walk keeps a stack with the key that opened each `(` and `[`. A `(` followed by `select`, `with`, `table` or `values` (not followed by `=`, or with `values` followed by `(`) starts embedded SQL, which falls through to normal completion. A wrong decision here only affects suggestions, since it isn't part of parsing.
 
@@ -606,7 +613,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 **It only reads so far.** A call with `effect: write`, or a raw call with a method other than `GET`, fails before anything is sent. `EXPLAIN` works for every call, since it sends nothing.
 
-**Nothing calls it yet.** The planner still rejects client function calls, until connector bindings exist. The tests use a mock `HttpClient`, so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec.
+**Nothing calls it yet.** Salesforce connections have their spec, for checks and completion, while the planner still rejects client function calls until a binding can resolve hosts. The tests use a mock `HttpClient`, so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec.
 
 ## What was checked
 

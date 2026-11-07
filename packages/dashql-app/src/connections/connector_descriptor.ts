@@ -9,6 +9,7 @@ import type { TrinoConnectionStateDetails } from './trino/trino_connection_state
 import { ConnectorType, type ConnectorInfo } from './connector_info.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import type { QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
 import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
 import { SALESFORCE_CONNECTOR_DESCRIPTOR, SIDB_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
 import { TRINO_CONNECTOR_DESCRIPTOR } from './trino/trino_connector_descriptor.js';
@@ -37,6 +38,12 @@ interface ConnectorDetailsMap {
 }
 /// The field of the connection params that holds the params of a connector, e.g. `{ hyper: ... }`
 export type ConnectorParamsKey = keyof ConnectorParamsMap;
+
+/// The client functions that a connector enables on its connections
+export interface ClientFunctionBinding {
+    /// Load the spec, only when a connection needs it
+    loadSpec(): Promise<ClientFunctionSpec>;
+}
 
 /// What the connection layer knows about a connector.
 ///
@@ -76,6 +83,8 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     catalogIsDurable(params: ConnectorParamsMap[K]): boolean;
     /// Can the queries of a connection read the data files that are attached to a session?
     readsAttachments(details: ConnectorDetailsMap[K]): boolean;
+    /// The client functions of the connections, undefined if they have none
+    clientFunctions?: ClientFunctionBinding;
 }
 
 /// The connectors by connector type

@@ -4,7 +4,7 @@
 //! start of the statement keeps a stack with the schema of every open `(` and `[`. A wrong decision here only affects
 //! suggestions, since nothing of this is part of parsing.
 
-use crate::catalog::clfn::{ClientFunctionAttribute, ClientFunctionField, ClientFunction, ClientFunctionSchema, ClientFunctionSpec, ClientFunctionUnknownPolicy};
+use crate::catalog::clfn::{ClientFunctionAttribute, ClientFunctionEffect, ClientFunctionField, ClientFunction, ClientFunctionSchema, ClientFunctionSpec, ClientFunctionUnknownPolicy};
 use crate::catalog::CatalogSnapshot;
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
@@ -16,12 +16,14 @@ use dashql_parser::keywords::Keyword;
 use dashql_parser::SymbolKind;
 use std::sync::Arc;
 
-/// The score of a required option, it ranks before every other candidate
-const REQUIRED_BONUS: Score = 1 << 20;
-/// The score of a prefix match over a substring match
-const PREFIX_BONUS: Score = 1 << 18;
+/// The score of a prefix match, it ranks before every substring match
+const PREFIX_BONUS: Score = 1 << 20;
+/// The score of a required option over an optional one that matches equally well
+const REQUIRED_BONUS: Score = 1 << 18;
 /// The score of an option of the spec over a standard option
 const SPEC_OPTION_BONUS: Score = 1;
+/// The score of a function that only reads over one that changes something
+const READ_FUNCTION_BONUS: Score = 1;
 
 /// Can a token be the name of a function, an option or an attribute?
 fn is_name(kind: SymbolKind) -> bool {
@@ -317,7 +319,7 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         }
         Position::Function(spec) => {
             for function in &spec.functions {
-                candidates.add(&function.name, 0);
+                candidates.add(&function.name, if function.effect() == ClientFunctionEffect::Read { READ_FUNCTION_BONUS } else { 0 });
             }
         }
         Position::Key(spec, scope) => {

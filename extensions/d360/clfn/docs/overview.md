@@ -1,6 +1,6 @@
 # CDP SQL
 
-Status: the spec is in `extensions/d360/clfn/spec/`, and the core and the runtime read it. It has no binding yet, so no call can run, and nothing has been tested against an org.
+Status: the spec is in `extensions/d360/clfn/spec/`, and the core and the runtime read it. Salesforce connections register it, for checks and completion. No call can run yet, and nothing has been tested against an org.
 
 CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [extension](../../../../docs/design/extensions.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [extensions.md](../../../../docs/design/extensions.md) describes them.
 
@@ -64,7 +64,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 
 **`api_version`** comes from the binding. DashQL's own calls use v64.0, while the spec is v68, and the hosted server needs v66 or later. The binding could load a spec per API version later, which needs no rebuild.
 
-**SIDB** spreads the Salesforce descriptor, so it would inherit the binding. Whether it should is an [open question](#open-questions).
+**SIDB** spreads the Salesforce descriptor and turns the binding off, since it isn't known whether it has this API, see the [open questions](#open-questions).
 
 **Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../../../docs/design/extensions.md#running-calls).
 
@@ -120,7 +120,7 @@ bazel run //extensions/d360:update
 
 **A family document lists** the schemas of its family and all that its functions and schemas reach, sorted. A schema is defined in one family, and other documents that reach it repeat its section.
 
-**The app bundles `spec.json`.** `//packages/dashql-app:extensions` stages it for the `@dashql/extensions` alias, and `loadClientFunctionSpec('d360')` in `clfn_specs.ts` loads it as a chunk of its own. No app page calls it until the binding exists. The `pages` deploy holds the chunk already, because it bundles the browser test dashboard, while a build without the tests, such as `reloc`, gets it with the binding.
+**The app bundles `spec.json`.** `//packages/dashql-app:extensions` stages it for the `@dashql/extensions` alias, and `loadClientFunctionSpec('d360')` in `clfn_specs.ts` loads it as a chunk of its own. The binding calls it when a Salesforce connection exists, so a session without one doesn't load it.
 
 **Corrections go into the YAML.** The contract marks some fields required that its own examples leave out, such as every body field of the `PATCH` of `ml_configured_model_update`. Those attributes aren't required there, with a note.
 
@@ -306,7 +306,7 @@ The [extension roadmap](../../../../docs/design/extensions.md#roadmap) comes fir
 
 ## Open questions
 
-1. **SIDB.** Its descriptor spreads Salesforce's, so it would get the binding too. Does SIDB have this API?
+1. **SIDB.** Its binding is off. Does SIDB have this API?
 2. **CORS for writes.** If `POST`, `PATCH`, `PUT` and `DELETE` fail on `/services/data` from a browser, even with the org's allowlist, writes are Electron-only.
 3. **Which spec version.** The API has versions, and a spec describes one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
 4. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.

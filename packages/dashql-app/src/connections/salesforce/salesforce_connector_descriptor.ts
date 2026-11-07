@@ -3,6 +3,7 @@ import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_C
 import { SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, SIDB_DEFAULT_DATABASE_NAME } from './salesforce_catalog_update.js';
 import { createSalesforceConnectionStateDetails, reduceSalesforceConnectionState } from './salesforce_connection_state.js';
 import { queryParam, requireChannel } from '../query_channel.js';
+import { loadClientFunctionSpec } from '../clfn/clfn_specs.js';
 
 /// Salesforce Data Cloud connections
 export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> = {
@@ -28,6 +29,7 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     maxConcurrentQueries: () => 1,
     catalogIsDurable: () => true,
     readsAttachments: () => false,
+    clientFunctions: { loadSpec: () => loadClientFunctionSpec('d360') },
 };
 
 /// SIDB connections, they behave like Salesforce Data Cloud connections for now
@@ -37,6 +39,8 @@ export const SIDB_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'sidb'> = {
     paramsKey: 'sidb',
     detailsType: SIDB_CONNECTOR,
     defaultParams: () => ({ ...SALESFORCE_CONNECTOR_DESCRIPTOR.defaultParams(), databaseName: SIDB_DEFAULT_DATABASE_NAME }),
+    // It isn't known whether SIDB has the Data 360 API
+    clientFunctions: undefined,
     cacheSignature: params => ({
         ...SALESFORCE_CONNECTOR_DESCRIPTOR.cacheSignature(params) as object,
         case: "sidb",

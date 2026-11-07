@@ -20,6 +20,7 @@ import { updateInformationSchemaCatalog } from './catalog_query_information_sche
 import { queryTrinoCatalogScopes, trinoCatalogScopes } from '../trino/trino_catalogs.js';
 import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
 import { connectionCatalogIsDurable } from '../connection_params.js';
+import { syncConnectionClientFunctions } from '../connection_client_functions.js';
 
 const LOG_CTX = 'catalog_loader';
 
@@ -96,6 +97,13 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             if (!connMap.has(connectionId)) seen.delete(connectionId);
         }
     }, [connReg, connMap]);
+
+    // The client functions of a connection come with its connector, scripts that call them are re-analyzed
+    React.useEffect(() => {
+        for (const connectionId of connMap.keys()) {
+            syncConnectionClientFunctions(connMap, connectionId, id => onCatalogDidUpdate.current?.(id), logger);
+        }
+    }, [connReg, connMap, logger]);
 
     // Maintain a queue
     const [queueState, setQueueState] = React.useState<CatalogLoaderQueue>(() => ({ queue: new Map() }));

@@ -670,9 +670,8 @@ impl Catalog {
         }
     }
 
-    /// Clear the catalog
+    /// Clear the catalog. The client function specs stay, they come with the connector and not from the backend.
     pub fn clear(&mut self) {
-        self.client_function_specs.clear();
         self.entries_by_qualified_schema.clear();
         self.entries_by_schema.clear();
         self.entries_ranked.clear();

@@ -7,7 +7,7 @@ import { CatalogLoaderProvider, useCatalogLoaderQueue, type CatalogLoaderDepende
 import { type ConnectionRegistry, type DynamicConnectionDispatch } from '../connection_registry.js';
 import { CATALOG_UPDATE_CANCELLED, CATALOG_UPDATE_FAILED, CATALOG_UPDATE_SUCCEEDED, ConnectionHealth, type ConnectionState, type CatalogAction } from '../connection_state.js';
 import { reduceCatalogAction } from './catalog_update_state.js';
-import { HYPER_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -140,6 +140,19 @@ describe('CatalogLoaderProvider queue', () => {
         expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
         await settleUpdate(() => updates[1].resolve());
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('registers the client functions of a connection and announces them', async () => {
+        const registerClientFunctions = vi.fn(() => 'cdp');
+        registry.connections.set('salesforce', {
+            connectionId: 'salesforce',
+            connectorInfo: {},
+            details: { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: {} } } },
+            catalog: { registerClientFunctions },
+        } as unknown as ConnectionState);
+        await render();
+        await vi.waitFor(() => expect(registerClientFunctions).toHaveBeenCalledTimes(1), { timeout: 5000 });
+        await vi.waitFor(() => expect(scriptsDispatch).toHaveBeenCalledWith('salesforce'));
     });
 
     it('describes an SIDB connection with the Hyper catalog of its attached database', async () => {
