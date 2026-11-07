@@ -115,6 +115,15 @@ describe('Session composer', () => {
         expect(getComputedStyle(editor.scrollDOM).scrollbarWidth).toBe('none');
     });
 
+    it('keeps the cursor at the start of a line inside of the scroller, which would clip it otherwise', async () => {
+        const editor = await render();
+        await vi.waitFor(() => expect(container.querySelector('.cm-cursor')).not.toBeNull());
+        // The cursor is only displayed in a focused window, its layout is read from its position and its margin
+        const left = editor.coordsAtPos(0)!.left + parseFloat(getComputedStyle(container.querySelector('.cm-cursor')!).marginLeft);
+        expect(left).toBeLessThan(editor.coordsAtPos(0)!.left);
+        expect(left).toBeGreaterThanOrEqual(editor.scrollDOM.getBoundingClientRect().left);
+    });
+
     it('ignores blank drafts and sends through the button', async () => {
         const editor = await render();
         act(() => type(editor, '  '));

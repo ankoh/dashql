@@ -61,7 +61,9 @@ function createPromptExtensions(configurable: Extension[], callbacks: React.RefO
         EditorView.theme({
             '&': { minHeight: '24px', backgroundColor: 'transparent' },
             '&.cm-focused': { outline: 'none' },
-            '.cm-scroller': { overflow: 'auto', maxHeight: 'var(--prompt_editor_max_height, 40vh)', scrollbarWidth: 'none' },
+            // The lines have no padding and the cursor sits slightly left of its position.
+            // The scroller reaches 1px further out, it would clip the cursor at the start of a line otherwise.
+            '.cm-scroller': { overflow: 'auto', maxHeight: 'var(--prompt_editor_max_height, 40vh)', scrollbarWidth: 'none', paddingLeft: '1px', marginLeft: '-1px' },
             '.cm-content': { minHeight: '24px', padding: '0' },
             '.cm-line': { padding: '0' },
             '.cm-gutters': { display: 'none' },
