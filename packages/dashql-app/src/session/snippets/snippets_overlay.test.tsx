@@ -170,10 +170,10 @@ describe('SnippetsOverlay', () => {
             const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
             nested = buildSnippetRegistry(core, {
                 'hyper/datasets/tpch.sql': file('select 1;'),
-                'hyper/d360/overview.sql': file('select 2;'),
-                'hyper/d360/agent-memory/01-create.sql': file('select 3;'),
-                'hyper/d360/agent-memory/02-list.sql': file('select 4;'),
-                'hyper/d360/segments/deep/run.sql': file('select 5;'),
+                'hyper/batch/overview.sql': file('select 2;'),
+                'hyper/batch/agent-memory/01-create.sql': file('select 3;'),
+                'hyper/batch/agent-memory/02-list.sql': file('select 4;'),
+                'hyper/batch/segments/deep/run.sql': file('select 5;'),
                 'hyper/dates/month.sql': file('select 6;'),
             });
             expect(nested.errors).toEqual([]);
@@ -182,15 +182,15 @@ describe('SnippetsOverlay', () => {
         it('shows the folders of a folder with their own names, before its files', () => {
             render(ConnectorType.HYPER, false, nested);
             open();
-            expect(folders()).toEqual(['datasets', 'd360', 'd360/agent-memory', 'd360/segments', 'd360/segments/deep', 'dates']);
-            expect(folder('d360/agent-memory')!.textContent).toEqual('agent-memory');
-            expect(folder('d360/agent-memory')!.querySelector('[title]')!.getAttribute('title')).toEqual('d360/agent-memory');
+            expect(folders()).toEqual(['datasets', 'batch', 'batch/agent-memory', 'batch/segments', 'batch/segments/deep', 'dates']);
+            expect(folder('batch/agent-memory')!.textContent).toEqual('agent-memory');
+            expect(folder('batch/agent-memory')!.querySelector('[title]')!.getAttribute('title')).toEqual('batch/agent-memory');
             expect(snippetIds()).toEqual([
                 'datasets/tpch',
-                'd360/agent-memory/01-create',
-                'd360/agent-memory/02-list',
-                'd360/segments/deep/run',
-                'd360/overview',
+                'batch/agent-memory/01-create',
+                'batch/agent-memory/02-list',
+                'batch/segments/deep/run',
+                'batch/overview',
                 'dates/month',
             ]);
         });
@@ -200,24 +200,24 @@ describe('SnippetsOverlay', () => {
             open();
             const indent = (element: HTMLElement) => parseFloat(element.style.paddingLeft);
             const entry = (id: string) => query<HTMLElement>(`[data-testid="snippet"][data-snippet-id="${id}"]`)!;
-            expect(indent(folder('d360/segments')!)).toBeGreaterThan(indent(folder('d360')!));
-            expect(indent(folder('d360/segments/deep')!)).toBeGreaterThan(indent(folder('d360/segments')!));
-            expect(indent(entry('d360/segments/deep/run'))).toBeGreaterThan(indent(folder('d360/segments/deep')!));
-            expect(indent(entry('d360/overview'))).toEqual(indent(folder('d360/segments')!));
+            expect(indent(folder('batch/segments')!)).toBeGreaterThan(indent(folder('batch')!));
+            expect(indent(folder('batch/segments/deep')!)).toBeGreaterThan(indent(folder('batch/segments')!));
+            expect(indent(entry('batch/segments/deep/run'))).toBeGreaterThan(indent(folder('batch/segments/deep')!));
+            expect(indent(entry('batch/overview'))).toEqual(indent(folder('batch/segments')!));
         });
 
         it('hides everything below a collapsed folder and restores it', () => {
             render(ConnectorType.HYPER, false, nested);
             open();
-            act(() => folder('d360/segments/deep')!.click());
-            act(() => folder('d360')!.click());
-            expect(folders()).toEqual(['datasets', 'd360', 'dates']);
+            act(() => folder('batch/segments/deep')!.click());
+            act(() => folder('batch')!.click());
+            expect(folders()).toEqual(['datasets', 'batch', 'dates']);
             expect(snippetIds()).toEqual(['datasets/tpch', 'dates/month']);
             // The inner folder stays as it was
-            act(() => folder('d360')!.click());
-            expect(folders()).toContain('d360/segments/deep');
-            expect(folder('d360/segments/deep')!.getAttribute('aria-expanded')).toEqual('false');
-            expect(snippetIds()).not.toContain('d360/segments/deep/run');
+            act(() => folder('batch')!.click());
+            expect(folders()).toContain('batch/segments/deep');
+            expect(folder('batch/segments/deep')!.getAttribute('aria-expanded')).toEqual('false');
+            expect(snippetIds()).not.toContain('batch/segments/deep/run');
         });
 
         it('moves through the snippets in the order of the tree, past collapsed folders', () => {
@@ -226,12 +226,12 @@ describe('SnippetsOverlay', () => {
             const list = query<HTMLElement>('[data-testid="snippet-list"]')!;
             const selected = () => query('[data-testid="snippet-preview"]')!.dataset.snippetId;
             const down = () => act(() => { list.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
-            act(() => folder('d360/agent-memory')!.click());
+            act(() => folder('batch/agent-memory')!.click());
             expect(selected()).toEqual('datasets/tpch');
             down();
-            expect(selected()).toEqual('d360/segments/deep/run');
+            expect(selected()).toEqual('batch/segments/deep/run');
             down();
-            expect(selected()).toEqual('d360/overview');
+            expect(selected()).toEqual('batch/overview');
             down();
             expect(selected()).toEqual('dates/month');
         });
@@ -239,10 +239,32 @@ describe('SnippetsOverlay', () => {
         it('applies the text of a nested snippet', () => {
             render(ConnectorType.HYPER, false, nested);
             open();
-            selectSnippet('d360/agent-memory/02-list');
+            selectSnippet('batch/agent-memory/02-list');
             applySelected();
             expect(onApply.mock.calls[0][0]).toContain('select 4');
         });
+    });
+
+    it('shows the roots of a connector with several as top-level folders', async () => {
+        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        const roots = buildSnippetRegistry(core, {
+            'd360-api/agent-memory/01-create.sql': file('call cdp.agent_list ();'),
+            'd360/json/access.sql': file('select 1;'),
+            'hyper/json/access.sql': file('select 2;'),
+        });
+        expect(roots.errors).toEqual([]);
+        render(ConnectorType.SALESFORCE_DATA_CLOUD, false, roots);
+        open();
+        const folders = () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="snippet-folder"]')).map(item => item.dataset.folder);
+        expect(folders()).toEqual(['d360', 'd360/json', 'd360-api', 'd360-api/agent-memory']);
+        selectSnippet('d360-api/agent-memory/01-create');
+        applySelected();
+        expect(onApply.mock.calls[0][0]).toContain('call cdp.agent_list');
+        act(() => root.unmount());
+        root = createRoot(container);
+        render(ConnectorType.HYPER, false, roots);
+        open();
+        expect(folders()).toEqual(['json']);
     });
 
     it('keeps a long name on one line at the start of the entry', () => {

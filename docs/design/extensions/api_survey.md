@@ -13,7 +13,7 @@ A script read each published OpenAPI document, resolved its references, and coun
 - **Specs under-declare.** GitHub's search endpoint declares no `Link` header, for example, so real numbers can be higher.
 - **Schema statistics count each named schema once,** because unfolding Stripe's schemas is exponential.
 
-Data 360 is the [contract normalized by Salesforce](../../../extensions/d360/clfn/docs/api_notes.md#sources-for-the-api-surface) rather than a full OpenAPI document, so some of its rows are missing. It keeps no response headers at all, so `Link` and `Location` are unknown there.
+Data 360 is the [contract normalized by Salesforce](../../../extensions/d360-api/clfn/docs/api_notes.md#sources-for-the-api-surface) rather than a full OpenAPI document, so some of its rows are missing. It keeps no response headers at all, so `Link` and `Location` are unknown there.
 
 ## The numbers
 
@@ -104,7 +104,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 - **dlt's parent and child resources** call an endpoint once per parent row. That's a real need, and it's left out here, because it hides a call count that can cost money.
 
 **Standards:**
-- **[OpenAPI Overlay 1.0](https://spec.openapis.org/overlay/v1.0.0)** is a list of updates applied in order to an OpenAPI document. It's the standard form of the annotations [Data 360 needs](../../../extensions/d360/clfn/docs/overview.md#where-attributes-come-from), so it's the format for a generator's input. Despite the name, it's unrelated to DashQL's overlays.
+- **[OpenAPI Overlay 1.0](https://spec.openapis.org/overlay/v1.0.0)** is a list of updates applied in order to an OpenAPI document. It's the standard form of the annotations [Data 360 needs](../../../extensions/d360-api/clfn/docs/overview.md#where-attributes-come-from), so it's the format for a generator's input. Despite the name, it's unrelated to DashQL's overlays.
 - **OpenAPI has no paging standard.** None of the extensions in the Snowflake, GitHub and Stripe documents describe it: they're `x-github`, `x-multi-segment`, `x-expandableFields` and `x-stripeBypassValidation`. Every service needs annotations for this.
 
 ## Sources

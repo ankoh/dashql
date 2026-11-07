@@ -12,12 +12,12 @@ This does not apply to parser, analyzer, planner or formatter snapshot inputs, w
 shape is what the test covers. It also doesn't apply to the workflows in `extensions/*/snippets/`: an API has no
 `if not exists`, and their steps build on each other.
 
-The snippets are what `dashql format` prints, `//extensions/d360:snippets_formatted_test` and
+The snippets are what `dashql format` prints, `//extensions/d360-api:snippets_formatted_test` and
 `//packages/dashql-cli:example_snippets_formatted_test` check that. After writing one, format its folder, with the dialect
 of its engine:
 
 ```bash
-bazel run //packages/dashql-cli:dashql -- format --write extensions/d360/snippets
-bazel run //packages/dashql-cli:dashql -- format --write examples/snippets/hyper examples/snippets/salesforce
+bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
+bazel run //packages/dashql-cli:dashql -- format --write examples/snippets/hyper examples/snippets/d360
 bazel run //packages/dashql-cli:dashql -- format --write --dialect trino examples/snippets/trino
 ```

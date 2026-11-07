@@ -4,13 +4,13 @@ import { loadClientFunctionSpec } from './clfn_specs.js';
 
 describe('client function specs', () => {
     it('loads the generated spec of an extension', async () => {
-        const spec = await loadClientFunctionSpec('d360');
+        const spec = await loadClientFunctionSpec('d360-api');
         expect(spec.namespace).toEqual('cdp');
         expect(spec.functions.length).toBeGreaterThan(500);
     });
 
     it('leaves out the prose of the reference', async () => {
-        const spec = await loadClientFunctionSpec('d360');
+        const spec = await loadClientFunctionSpec('d360-api');
         for (const fn of spec.functions) {
             expect(Object.keys(fn)).not.toContain('notes');
             expect(Object.keys(fn)).not.toContain('example');

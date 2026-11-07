@@ -16,7 +16,7 @@
 bazel run //packages/dashql-cli:dashql -- agent serve
 bazel run //packages/dashql-cli:dashql -- agent status
 bazel run //packages/dashql-cli:dashql -- lint examples/snippets/hyper
-bazel run //packages/dashql-cli:dashql -- format --write extensions/d360/snippets
+bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
 ```
 
 ## Agent server

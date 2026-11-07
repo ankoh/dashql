@@ -43,7 +43,7 @@ copy_to_directory(
 # the fixtures as well.
 copy_to_directory(
     name = "extensions",
-    srcs = ["//extensions/d360:files"],
+    srcs = ["//extensions/d360-api:files"],
     out = "dependencies/extensions",
     replace_prefixes = {
         "extensions": "",

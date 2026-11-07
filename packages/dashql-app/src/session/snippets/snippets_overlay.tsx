@@ -43,7 +43,7 @@ const EMPTY_REGISTRY: SnippetRegistry = { snippets: [], byId: new Map(), errors:
 
 /// A folder of the snippet tree
 interface SnippetFolder {
-    /// The path of the folder below the engine, it identifies the folder. Empty for the root.
+    /// The path of the folder, it identifies the folder. Empty for the root of the tree.
     path: string;
     /// The name of the folder
     name: string;
@@ -260,11 +260,6 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
         item?.scrollIntoView({ block: 'nearest' });
     }, [apply, visible, selected, props.listRef]);
 
-    const folderIcon = (folder: SnippetFolder): React.ReactElement => {
-        // The datasets load data, the snippets of the other folders query it. A folder of folders holds no snippets to run.
-        if (folder.path === SNIPPET_DATASETS_FOLDER) return <DatabaseIcon size={14} />;
-        return folder.folders.length > 0 ? <FileDirectoryIcon size={14} /> : <SearchIcon size={14} />;
-    };
     const renderEntries = (parent: SnippetFolder, depth: number): React.ReactNode => (
         <>
             {parent.folders.map(folder => {
@@ -274,7 +269,8 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
                         <TreeEntry
                             depth={depth}
                             expanded={expanded}
-                            icon={folderIcon(folder)}
+                            // The datasets load the data that the snippets of the other folders use
+                            icon={folder.path === SNIPPET_DATASETS_FOLDER ? <DatabaseIcon size={14} /> : <FileDirectoryIcon size={14} />}
                             label={<TreeEntryName title={folder.path}>{folder.name}</TreeEntryName>}
                             data-testid="snippet-folder"
                             data-folder={folder.path}

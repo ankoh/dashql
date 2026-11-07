@@ -1,0 +1,6 @@
+# The Data 360 reference, its family documents are generated from extensions/d360-api/clfn/spec/*.yaml.
+filegroup(
+    name = "reference",
+    srcs = glob(["*.md"]),
+    visibility = ["//extensions/d360-api:__pkg__"],
+)

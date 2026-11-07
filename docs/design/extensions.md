@@ -1,6 +1,6 @@
 # Extensions
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360/clfn/docs/overview.md#the-spec-is-the-source) implemented. Salesforce connections register the spec, so scripts get checks and completion, but a client function call can't run in the app yet, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. Salesforce connections register the spec, so scripts get checks and completion, but a client function call can't run in the app yet, and nothing has run against a real service.
 
 An **extension** adds what DashQL needs for a service, in a folder of `extensions/`. It holds client functions and snippets so far. Extensions are bundled with the app and declarative: nothing gets installed, and an extension runs no code of its own.
 
@@ -8,7 +8,7 @@ A **client function** (`clfn` in paths) lets a DashQL script reach a remote REST
 
 A declarative JSON document, the **spec**, describes the client functions of a service: its functions, their attributes, how they page and what they return. A **connector binding** says where the service is and how to authenticate.
 
-- [CDP SQL](../../extensions/d360/clfn/docs/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [extensions/d360/clfn/docs/](../../extensions/d360/clfn/docs/).
+- [CDP SQL](../../extensions/d360-api/clfn/docs/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [extensions/d360-api/clfn/docs/](../../extensions/d360-api/clfn/docs/).
 - [The API survey](extensions/api_survey.md) measures this format against Snowflake, GitHub and Stripe, and records what similar formats do.
 
 ## Goals
@@ -125,13 +125,13 @@ A separate Wasm module doesn't solve this. The script, cursor, analyzer and cata
 
 ## The spec
 
-One JSON document per namespace, in an extension named for the API, which needn't equal the namespace. `extensions/d360/` holds the client functions of `cdp`:
+One JSON document per namespace, in an extension named for the API, which needn't equal the namespace. `extensions/d360-api/` holds the client functions of `cdp`:
 
 | Folder | Holds |
 |---|---|
 | `clfn/spec/` | The source of `spec.json`, or the file itself. Data 360 generates it from YAML, and the app bundles what Bazel generates |
 | `clfn/tests/` | A fixture per family: calls, the requests they should send, and responses with the tables they should give |
-| `snippets/` | Workflows for the snippet browser, whose steps build on each other |
+| `snippets/` | Workflows for the snippet browser, whose steps build on each other. The extension is a root of the browser (`SNIPPET_ROOT_CONNECTORS`), and a connector with several roots shows them as top-level folders: a Salesforce connection has `d360` with the SQL of `examples/snippets/d360`, and `d360-api` |
 | `clfn/docs/` | The reference documents |
 
 This is the whole shape of a spec, with one function:
@@ -228,7 +228,7 @@ This is the whole shape of a spec, with one function:
 
 **Names are mapped explicitly, not converted by a rule.** A script writes `name`, and the request carries `api_name`, the API's exact spelling. A rule couldn't do this: APIs mix `primaryDMO`, `orderBy`, `orderby` and `dataSpace`, and some of those spellings differ per endpoint. A generator can derive `name` from `api_name`, but the spec records both. A missing `api_name` means the two are the same, and a name the spec doesn't list is sent as written, so `new_field` is not turned into `newField`.
 
-There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](../../extensions/d360/clfn/docs/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its API names. Completion shows the script's names only, on purpose.
+There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](../../extensions/d360-api/clfn/docs/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its API names. Completion shows the script's names only, on purpose.
 
 **A schema** has `attributes`, plus `unknown` with the same values as on a function. An attribute with a `schema` accepts one object or an array of them, because real APIs and their own examples often disagree on which is right.
 
@@ -247,7 +247,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 **`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body_root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
 
-**Generating a spec.** A spec can be written by hand or generated. [Data 360](../../extensions/d360/clfn/docs/overview.md#the-spec-is-the-source) edits YAML by hand and generates its spec and documents from it, so no fact has to be read back from prose. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
+**Generating a spec.** A spec can be written by hand or generated. [Data 360](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) edits YAML by hand and generates its spec and documents from it, so no fact has to be read back from prose. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
 - OpenAPI is an input and not the format. None of the Snowflake, GitHub or Stripe documents describe paging in a machine-readable way, and real contracts are often narrower than the payloads they describe.
 - The annotations use the [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) format, a standard list of updates applied in order.
 - A generator keeps schemas named. Stripe has 124 recursive references, so unfolding them doesn't terminate in practice.
@@ -619,11 +619,11 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 - **Grammar:** no conflicts, and precedence resolutions stay at 1,814, the same as without `CALL`. It adds 50 states and one token.
 - **Ordinary SQL:** every existing parser, formatter, analyzer, completion and planner snapshot is unchanged byte for byte.
-- **Examples:** every `CALL` in [the Data 360 reference](../../extensions/d360/clfn/docs/functions.md) parses on the real parser and passes the real checks against the spec, and completion offers exactly what the reference lists, see [its tests](../../extensions/d360/clfn/docs/overview.md#the-spec-is-the-source).
+- **Examples:** every `CALL` in [the Data 360 reference](../../extensions/d360-api/clfn/docs/functions.md) parses on the real parser and passes the real checks against the spec, and completion offers exactly what the reference lists, see [its tests](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source).
 - **The format:** [the survey](extensions/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
 
 **What this doesn't show:**
-- Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](../../extensions/d360/clfn/docs/overview.md#the-fixtures).
+- Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](../../extensions/d360-api/clfn/docs/overview.md#the-fixtures).
 - The runtime only runs reads. Writes are only checked up to their requests.
 - A spec's load time isn't measured.
 - Nothing ran against a service.
@@ -635,7 +635,7 @@ Each phase lands separately.
 1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
 2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
-4. **First spec:** the [Data 360 spec](../../extensions/d360/clfn/docs/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
+4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
 5. **Writes:** mutating calls, run gating and agent policy. To be designed; `effect` and `billed` are its input. A [secret store](../wip/secret_store.md) is deferred.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 

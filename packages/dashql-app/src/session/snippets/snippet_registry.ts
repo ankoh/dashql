@@ -20,6 +20,12 @@ const SNIPPET_FILES = import.meta.glob<string>('@dashql/snippets/**/*.sql', {
     import: 'default',
     eager: true,
 });
+/// The snippet files of the extensions, `<extension>/snippets/<folders>/<name>.sql`
+const EXTENSION_SNIPPET_FILES = import.meta.glob<string>('@dashql/extensions/*/snippets/**/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+});
 
 /// The text of a snippet for a connector
 export function snippetText(snippet: Snippet, connector: ConnectorType): string {
@@ -49,8 +55,18 @@ function mergeSnippetFiles(files: SnippetFile[]): Snippet {
     };
 }
 
-/// Build the registry from the raw snippet files by path below the snippet folder, the folder of a file below its
-/// engine folder is its category
+/// Compare the ids of snippets by their path segments, so that `d360` sorts before `d360-api`
+function compareSnippetIds(left: string, right: string): number {
+    const l = left.split('/');
+    const r = right.split('/');
+    for (let i = 0; i < Math.min(l.length, r.length); ++i) {
+        const order = l[i].localeCompare(r[i]);
+        if (order !== 0) return order;
+    }
+    return l.length - r.length;
+}
+
+/// Build the registry from the raw snippet files by path, starting at their root folders
 export function buildSnippetRegistry(core: dashql.DashQL, rawFiles: Record<string, string>): SnippetRegistry {
     const errors: string[] = [];
 
@@ -68,17 +84,22 @@ export function buildSnippetRegistry(core: dashql.DashQL, rawFiles: Record<strin
     }
     const byId = new Map([...filesById].map(([id, files]) => [id, mergeSnippetFiles(files)]));
     const datasetsFirst = (snippet: Snippet) => snippet.category === SNIPPET_DATASETS_FOLDER ? 0 : 1;
-    const snippets = [...byId.values()].sort((l, r) => (datasetsFirst(l) - datasetsFirst(r)) || l.id.localeCompare(r.id));
+    const snippets = [...byId.values()].sort((l, r) => (datasetsFirst(l) - datasetsFirst(r)) || compareSnippetIds(l.id, r.id));
     return { snippets, byId, errors };
 }
 
-/// The snippet files by path below the snippet folder
+/// The bundled snippet files by path, starting at their root folders
 export function bundledSnippetFiles(): Record<string, string> {
     const files: Record<string, string> = {};
+    // The depth below the folders varies, and the paths of the folders differ between the dev server and a build
+    const folder = '/snippets/';
     for (const [path, raw] of Object.entries(SNIPPET_FILES)) {
-        // The depth below the folder varies, and the path of the folder itself differs between the dev server and a build
-        const folder = '/snippets/';
         files[path.slice(path.indexOf(folder) + folder.length)] = raw;
+    }
+    for (const [path, raw] of Object.entries(EXTENSION_SNIPPET_FILES)) {
+        const begin = path.indexOf(folder);
+        const extension = path.slice(path.lastIndexOf('/', begin - 1) + 1, begin);
+        files[`${extension}/${path.slice(begin + folder.length)}`] = raw;
     }
     return files;
 }

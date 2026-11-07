@@ -29,7 +29,7 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     maxConcurrentQueries: () => 1,
     catalogIsDurable: () => true,
     readsAttachments: () => false,
-    clientFunctions: { loadSpec: () => loadClientFunctionSpec('d360') },
+    clientFunctions: { loadSpec: () => loadClientFunctionSpec('d360-api') },
 };
 
 /// SIDB connections, they behave like Salesforce Data Cloud connections for now

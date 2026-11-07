@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { explainClientFunctionCall, ClientFunctionEnvironment, runClientFunctionCall } from './clfn_runtime.js';
 import type { ClientFunctionCallDescription, ClientFunctionSpec } from './clfn_spec.js';
 
-/// The real spec and its fixtures, see extensions/d360/clfn/tests. Their requests are computed apart from this runtime.
-const SPEC = import.meta.glob<ClientFunctionSpec>('@dashql/extensions/d360/clfn/spec/spec.json', { import: 'default', eager: true });
-const FIXTURES = import.meta.glob<{ cases: FixtureCase[] }>('@dashql/extensions/d360/clfn/tests/*.json', { import: 'default', eager: true });
+/// The real spec and its fixtures, see extensions/d360-api/clfn/tests. Their requests are computed apart from this runtime.
+const SPEC = import.meta.glob<ClientFunctionSpec>('@dashql/extensions/d360-api/clfn/spec/spec.json', { import: 'default', eager: true });
+const FIXTURES = import.meta.glob<{ cases: FixtureCase[] }>('@dashql/extensions/d360-api/clfn/tests/*.json', { import: 'default', eager: true });
 
 interface FixtureCase {
     function: string;

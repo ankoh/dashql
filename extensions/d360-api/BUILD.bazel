@@ -1,0 +1,126 @@
+# The Data 360 extension, with client functions in the namespace `cdp` of a Salesforce connection. See
+# extensions/d360-api/clfn/docs/overview.md.
+#
+#   clfn/spec/   the source, edited by hand: clfn.yaml and a file per family with its functions, schemas and prose
+#   clfn/tests/  a fixture per family: calls, their requests, and responses with where they came from
+#   clfn/docs/   the reference: a document per family generated from clfn/spec/, and the notes behind it
+#   snippets/    workflows for the snippet browser, their steps build on each other
+#
+# Bazel generates clfn/spec/spec.json from the source, which is what the core, the runtime and the app read. After
+# editing the source, regenerate the documents and the fixtures with `bazel run //extensions/d360-api:update`. A fixture
+# response that isn't `assumed` is kept.
+
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+filegroup(
+    name = "files",
+    srcs = ["clfn/spec/spec.json"] + glob(["clfn/tests/*.json"], allow_empty = True) + glob(["snippets/*/*.sql"]),
+    visibility = ["//packages/dashql-app:__pkg__"],
+)
+
+rust_binary(
+    name = "generate_spec",
+    srcs = ["clfn/spec/generate_spec.rs"],
+    edition = "2021",
+    deps = [
+        "@core_crates//:serde_json",
+        "@core_crates//:yaml-rust2",
+    ],
+)
+
+rust_test(
+    name = "generate_spec_test",
+    size = "small",
+    crate = ":generate_spec",
+    edition = "2021",
+)
+
+# The facts of the source, as JSON. A build output: the core reads it in the tests below, and the app bundles it.
+genrule(
+    name = "spec",
+    srcs = glob(["clfn/spec/*.yaml"]),
+    outs = ["clfn/spec/spec.json"],
+    cmd = "$(execpath :generate_spec) --source=$$(dirname $(execpath clfn/spec/clfn.yaml)) --spec=$@",
+    tools = [":generate_spec"],
+)
+
+rust_binary(
+    name = "generate_tests",
+    srcs = ["clfn/tests/generate_tests.rs"],
+    edition = "2021",
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "@core_crates//:serde_json",
+    ],
+)
+
+sh_binary(
+    name = "update",
+    srcs = ["update.sh"],
+    args = [
+        "$(rootpath :generate_spec)",
+        "$(rootpath :generate_tests)",
+        "$(rootpath clfn/spec/spec.json)",
+    ],
+    data = [
+        "clfn/spec/spec.json",
+        ":generate_spec",
+        ":generate_tests",
+    ],
+)
+
+# The documents are what the source generates
+sh_test(
+    name = "docs_up_to_date_test",
+    size = "small",
+    srcs = ["clfn/tests/check_docs.sh"],
+    args = ["$(rootpath :generate_spec)"],
+    data = [
+        ":generate_spec",
+        "//extensions/d360-api/clfn/docs:reference",
+    ] + glob(["clfn/spec/*.yaml"]),
+)
+
+# The fixtures are what the spec and the examples of the reference generate
+sh_test(
+    name = "tests_up_to_date_test",
+    size = "small",
+    srcs = ["clfn/tests/check_tests.sh"],
+    args = ["$(rootpath :generate_tests)"],
+    data = [
+        "clfn/spec/spec.json",
+        ":generate_tests",
+        "//extensions/d360-api/clfn/docs:reference",
+    ] + glob(["clfn/tests/*.json"], allow_empty = True),
+)
+
+# The snippets are what `dashql format` prints: bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
+sh_test(
+    name = "snippets_formatted_test",
+    size = "small",
+    srcs = ["clfn/tests/check_snippets.sh"],
+    args = ["$(rootpath //packages/dashql-cli:dashql)"],
+    data = ["//packages/dashql-cli:dashql"] + glob(["snippets/*/*.sql"]),
+)
+
+# The core reads the spec: every documented example and snippet passes the checks, and completion offers exactly what
+# the reference lists
+rust_test(
+    name = "spec_test",
+    size = "medium",
+    srcs = ["clfn/tests/spec_test.rs"],
+    data = [
+        "clfn/spec/spec.json",
+        "//extensions/d360-api/clfn/docs:reference",
+    ] + glob(["snippets/*/*.sql"]),
+    edition = "2021",
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:serde_json",
+    ],
+)

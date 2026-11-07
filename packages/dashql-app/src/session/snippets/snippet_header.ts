@@ -1,18 +1,19 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectorType } from '../../connections/connector_info.js';
-import { SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
+import { SNIPPET_ROOT_CONNECTORS, snippetRootIsFolder } from './snippet.js';
 
-/// One snippet file, `<engine>/<folders>/<name>.sql` with at least one folder, a leading comment describes the snippet.
-/// The files of the engines with the same folders and name are the variants of one snippet.
+/// One snippet file, `<root>/<folders>/<name>.sql` with at least one folder, a leading comment describes the snippet.
+/// The files of the roots with the same folders and name are the variants of one snippet. A root that is a folder of
+/// the browser is part of the id, so its files are variants of nothing.
 export interface SnippetFile {
-    /// The path of the file below the snippet folder
+    /// The path of the file, starting at its root folder
     path: string;
     /// The id of the snippet, `<category>/<name>`
     id: string;
-    /// The category of the snippet, the path of the folder of the file below the engine
+    /// The category of the snippet, the path of its folder in the tree of the browser
     category: string;
-    /// The connectors that the body of the file runs on, those of its engine
+    /// The connectors that the body of the file runs on, those of its root
     connectors: readonly ConnectorType[];
     /// The text of the file, with its description
     body: string;
@@ -61,11 +62,12 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
     if (pathMatch == null) {
         throw new Error(`invalid snippet path: ${path}`);
     }
-    const [, engine, category, name] = pathMatch;
-    const engineConnectors = SNIPPET_ENGINE_CONNECTORS.get(engine);
-    if (engineConnectors === undefined) {
-        throw new Error(`unknown engine folder "${engine}" of snippet ${path}`);
+    const [, root, folders, name] = pathMatch;
+    const connectors = SNIPPET_ROOT_CONNECTORS.get(root);
+    if (connectors === undefined) {
+        throw new Error(`unknown root folder "${root}" of snippet ${path}`);
     }
+    const category = snippetRootIsFolder(root) ? `${root}/${folders}` : folders;
 
     const bytes = encoder.encode(raw);
     const { tags, inner, statements } = readComments(core, raw, bytes);
@@ -84,7 +86,7 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
         path,
         id: `${category}/${name}`,
         category,
-        connectors: engineConnectors,
+        connectors,
         body: raw.trim(),
     };
 }

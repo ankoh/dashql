@@ -27,9 +27,9 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/extensions/api_survey.md` (the format measured against Snowflake, GitHub and Stripe, similar formats)
 
 - CDP SQL (proposed, not implemented: the first extension, `CALL cdp.*` over the Salesforce Data 360 API)
-    - `extensions/d360/clfn/docs/overview.md` (the Salesforce binding, how Data 360 fits the format, naming, where attributes come from)
-    - `extensions/d360/clfn/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `extensions/d360/clfn/spec/*.yaml`, the source of the spec as well)
-    - `extensions/d360/clfn/docs/api_notes.md` (API quirks, usage order, source conflicts, checks to run on an org)
+    - `extensions/d360-api/clfn/docs/overview.md` (the Salesforce binding, how Data 360 fits the format, naming, where attributes come from)
+    - `extensions/d360-api/clfn/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `extensions/d360-api/clfn/spec/*.yaml`, the source of the spec as well)
+    - `extensions/d360-api/clfn/docs/api_notes.md` (API quirks, usage order, source conflicts, checks to run on an org)
 
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)
     - `docs/design/app_csp.md`
