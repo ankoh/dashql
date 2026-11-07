@@ -2,7 +2,7 @@
 
 Status: research, as of 2026-11. It backs the format in [overlay.md](../overlay.md), and it measures whether the format stays general, or only fits the API it was designed on.
 
-**The short version:** the layers, named hosts and the `name` and `wire` split hold up. The first version of the format was shaped too closely to Data 360: Stripe couldn't be expressed at all, and Snowflake only in part. The changes below are now in the format.
+**The short version:** the layers, named hosts and the `name` and `api_name` split hold up. The first version of the format was shaped too closely to Data 360: Stripe couldn't be expressed at all, and Snowflake only in part. The changes below are now in the format.
 
 ## How this was measured
 
@@ -62,7 +62,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 |---|---|
 | Named hosts, resolved by the binding | `uploads.github.com` and `files.stripe.com` are per-operation servers, and they fit a host name. Snowflake's host is per account |
 | Auth and fixed headers in the binding | Snowflake's `X-Snowflake-Authorization-Token-Type` header depends on the token. GitHub declares no security schemes in its document at all |
-| `name` and `wire` | 26 Snowflake operations such as `PUT /warehouses/{name}` have `name` in the path and body. A prefix on one solves it |
+| `name` and `api_name` | 26 Snowflake operations such as `PUT /warehouses/{name}` have `name` in the path and body. A prefix on one solves it |
 | Plain paths | 191 Snowflake operations use `:rename`-style paths, which need nothing special |
 | Named schemas, walked along the value | Recursion doesn't matter when the walk follows a script's finite value |
 | Leaving out non-JSON responses | About 10 Snowflake operations, mostly Cortex and Spark Connect. Stripe has 1 PDF, and GitHub a handful of diffs |
@@ -77,7 +77,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 | Stripe ends with `has_more` | `end` takes `{ "has_more": ... }` |
 | 400 Snowflake operations can return `202` | `pending`, with `_poll` and `_wait` |
 | A poll URL and a page token can't be told apart in one value | `_poll` is separate from `_next` |
-| Snowflake's `:set-tags` and `:unset-tags` take an array as the whole body | `in: "body:root"` |
+| Snowflake's `:set-tags` and `:unset-tags` take an array as the whole body | `in: "body_root"` |
 | Stripe's whole API is form-encoded | `body: "form"` |
 | Stripe's `created[gte]=1` and `expand` | A per-option `style` |
 | 68 GitHub operations have path values containing `/` | `multi_segment`. The earlier rule of percent-encoding everything breaks them |

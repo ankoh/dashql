@@ -264,3 +264,39 @@ completion-snapshots:
         index: 3
     completions:
       limit: 3
+  # A union offers what its variants take, nothing is required until one is selected
+  - name: call_union_all_variants
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.rule_create (trigger => (
+    cursor:
+      search:
+        text: "=> ("
+        index: 4
+    completions:
+      limit: 5
+  # An attribute narrows the variants
+  - name: call_union_narrowed_by_attribute
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.rule_create (trigger => (event = 'x',
+    cursor:
+      search:
+        text: "'x',"
+        index: 4
+    completions:
+      limit: 5
+  # The value of a tag selects the variant
+  - name: call_union_narrowed_by_tag
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.rule_create (target => (kind = 'queue',
+    cursor:
+      search:
+        text: "'queue',"
+        index: 8
+    completions:
+      limit: 5

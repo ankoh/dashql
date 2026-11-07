@@ -4,7 +4,7 @@
 //! start of the statement keeps a stack with the schema of every open `(` and `[`. A wrong decision here only affects
 //! suggestions, since nothing of this is part of parsing.
 
-use crate::catalog::overlay::{OverlayAttribute, OverlayFunction, OverlaySchema, OverlaySpec, OverlayUnknownPolicy};
+use crate::catalog::overlay::{OverlayAttribute, OverlayField, OverlayFunction, OverlaySchema, OverlaySpec, OverlayUnknownPolicy};
 use crate::catalog::CatalogSnapshot;
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
@@ -43,8 +43,8 @@ enum Frame<'s> {
 /// A frame and its names so far
 struct Scope<'s> {
     frame: Frame<'s>,
-    /// The names that are used already, in lower case
-    used: Vec<String>,
+    /// The names that are used already in lower case, with their values if they are strings
+    used: Vec<OverlayField>,
     /// The attribute of the value being read
     attribute: Option<&'s OverlayAttribute>,
     /// Is the next token a key?
@@ -57,12 +57,23 @@ impl<'s> Scope<'s> {
         Self { frame, used: Vec::new(), attribute: None, at_key }
     }
 
-    /// The attributes that a key selects from
-    fn attributes(&self) -> &'s [OverlayAttribute] {
+    /// The attributes that a key selects from and if they are required. A union offers what its variants that still
+    /// fit take, and an attribute is only required if all of them need it.
+    fn attributes(&self, spec: &'s OverlaySpec) -> Vec<(&'s OverlayAttribute, bool)> {
         match self.frame {
-            Frame::Options(function) => &function.options,
-            Frame::Fields(Some(schema)) => &schema.attributes,
-            _ => &[],
+            Frame::Options(function) => function.options.iter().map(|o| (o, o.required)).collect(),
+            Frame::Fields(Some(schema)) => {
+                let variants = spec.fit(schema, &self.used).variants;
+                let mut out: Vec<(&'s OverlayAttribute, bool)> = Vec::new();
+                for attribute in variants.iter().flat_map(|v| v.attributes.iter()) {
+                    if !out.iter().any(|(a, _)| a.name == attribute.name) {
+                        let required = variants.iter().all(|v| v.attributes.iter().any(|a| a.name == attribute.name && a.required));
+                        out.push((attribute, required));
+                    }
+                }
+                out
+            }
+            _ => Vec::new(),
         }
     }
 }
@@ -194,9 +205,15 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
             _ if top.at_key => {
                 // A key: remember its attribute for the value that follows
                 let text = token_text(completion, symbol);
-                top.attribute = top.attributes().iter().find(|a| a.name.eq_ignore_ascii_case(&text));
-                top.used.push(text);
+                top.used.push(OverlayField { name: text.clone(), ..Default::default() });
+                top.attribute = top.attributes(spec).into_iter().map(|(a, _)| a).find(|a| a.name.eq_ignore_ascii_case(&text));
                 top.at_key = false;
+            }
+            // The value of the key, it can select the variant of a union
+            S_SCONST => {
+                if let Some(field) = top.used.last_mut() {
+                    field.text = Some(token_text(completion, symbol).trim_matches('\'').to_string());
+                }
             }
             _ => {}
         }
@@ -310,9 +327,9 @@ pub(crate) fn complete_overlay_call(completion: &mut Completion, k: usize) -> bo
                 _ => false,
             };
             if !free_form {
-                let used = |name: &str| scope.used.iter().any(|u| u.eq_ignore_ascii_case(name));
-                for attribute in scope.attributes().iter().filter(|a| !used(&a.name)) {
-                    candidates.add(&attribute.name, if attribute.required { REQUIRED_BONUS } else { SPEC_OPTION_BONUS });
+                let used = |name: &str| scope.used.iter().any(|u| u.name.eq_ignore_ascii_case(name));
+                for (attribute, required) in scope.attributes(spec).into_iter().filter(|(a, _)| !used(&a.name)) {
+                    candidates.add(&attribute.name, if required { REQUIRED_BONUS } else { SPEC_OPTION_BONUS });
                 }
                 if let Frame::Options(function) = scope.frame {
                     for option in function.standard_options(spec).iter().filter(|o| !used(o)) {

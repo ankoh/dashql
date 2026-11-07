@@ -1,4 +1,4 @@
-import { OverlayAttribute, OverlayCallBinding, OverlayCallDescription, OverlayError, OverlayFunction, OverlaySpec } from './overlay_spec.js';
+import { OverlayAttribute, OverlayCallBinding, OverlayCallDescription, OverlayError, OverlayFunction, OverlaySchema, OverlaySpec } from './overlay_spec.js';
 
 /// The options that the runtime applies itself, they are never sent
 export const STANDARD_OPTIONS = ['_next', '_pages', '_poll', '_wait'] as const;
@@ -48,10 +48,25 @@ function findAttribute(attributes: OverlayAttribute[] | undefined, name: string)
     return attributes?.find(a => a.name === name);
 }
 
+/// The attribute of a name in a schema. A name means the same in all variants of a union, so any of them can answer.
+function findSchemaAttribute(spec: OverlaySpec, schema: OverlaySchema | undefined, name: string): OverlayAttribute | undefined {
+    const own = findAttribute(schema?.attributes, name);
+    if (own !== undefined) {
+        return own;
+    }
+    for (const variant of schema?.variants ?? []) {
+        const attribute = findAttribute(spec.schemas?.[variant]?.attributes, name);
+        if (attribute !== undefined) {
+            return attribute;
+        }
+    }
+    return undefined;
+}
+
 /// A value in the spelling of the API
-function toWireValue(spec: OverlaySpec, value: unknown, attribute: OverlayAttribute | undefined): unknown {
+function toApiValue(spec: OverlaySpec, value: unknown, attribute: OverlayAttribute | undefined): unknown {
     if (Array.isArray(value)) {
-        return value.map(item => toWireValue(spec, item, attribute));
+        return value.map(item => toApiValue(spec, item, attribute));
     }
     if (typeof value !== 'object' || value === null) {
         return value;
@@ -59,8 +74,8 @@ function toWireValue(spec: OverlaySpec, value: unknown, attribute: OverlayAttrib
     const schema = attribute?.schema !== undefined ? spec.schemas?.[attribute.schema] : undefined;
     const out: Record<string, unknown> = {};
     for (const [name, field] of Object.entries(value)) {
-        const fieldAttribute = findAttribute(schema?.attributes, name);
-        out[fieldAttribute?.wire ?? name] = toWireValue(spec, field, fieldAttribute);
+        const fieldAttribute = findSchemaAttribute(spec, schema, name);
+        out[fieldAttribute?.api_name ?? name] = toApiValue(spec, field, fieldAttribute);
     }
     return out;
 }
@@ -189,19 +204,19 @@ export function buildOverlayRequest(spec: OverlaySpec, fn: OverlayFunction, opti
             continue;
         }
         const attribute = findAttribute(fn.options, name);
-        const wire = attribute?.wire ?? name;
+        const apiName = attribute?.api_name ?? name;
         // A name the overlay doesn't list goes to the body if the function has one
         const location = attribute?.in ?? (hasBody ? 'body' : 'query');
-        if (location.startsWith('path:')) {
-            pathValues.set(location.substring('path:'.length), encodePathValue(name, value, attribute?.multi_segment ?? false));
+        if (location === 'path') {
+            pathValues.set(apiName, encodePathValue(name, value, attribute?.multi_segment ?? false));
         } else if (location === 'query') {
-            addQueryOption(wire, toWireValue(spec, value, attribute), attribute?.style, query);
+            addQueryOption(apiName, toApiValue(spec, value, attribute), attribute?.style, query);
         } else if (location === 'header') {
-            headers.push([wire, scalarText(value)]);
-        } else if (location === 'body:root') {
-            rootBody = toWireValue(spec, value, attribute);
+            headers.push([apiName, scalarText(value)]);
+        } else if (location === 'body_root') {
+            rootBody = toApiValue(spec, value, attribute);
         } else if (location === 'body') {
-            bodyFields[wire] = toWireValue(spec, value, attribute);
+            bodyFields[apiName] = toApiValue(spec, value, attribute);
         } else {
             throw new OverlayError(`${spec.namespace}.${fn.name}: the option ${name} has the unknown location ${location}`);
         }

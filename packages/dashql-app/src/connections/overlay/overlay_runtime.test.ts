@@ -60,19 +60,32 @@ describe('overlay requests', () => {
         method: 'POST',
         path: '/projects/{project}/items',
         options: [
-            { name: 'project', in: 'path:project' },
-            { name: 'page_size', wire: 'pageSize', in: 'query' },
-            { name: 'tags', wire: 'tagList', in: 'query', style: 'csv' },
+            { name: 'project', in: 'path' },
+            { name: 'page_size', api_name: 'pageSize', in: 'query' },
+            { name: 'tags', api_name: 'tagList', in: 'query', style: 'csv' },
             { name: 'ids', in: 'query' },
             { name: 'created', in: 'query', style: 'deep' },
-            { name: 'trace_id', wire: 'X-Trace-Id', in: 'header' },
-            { name: 'display_name', wire: 'displayName', in: 'body' },
-            { name: 'owner', wire: 'ownerInfo', in: 'body', schema: 'Owner' },
+            { name: 'trace_id', api_name: 'X-Trace-Id', in: 'header' },
+            { name: 'display_name', api_name: 'displayName', in: 'body' },
+            { name: 'owner', api_name: 'ownerInfo', in: 'body', schema: 'Owner' },
         ],
     };
-    const schemas = { Owner: { attributes: [{ name: 'first_name', wire: 'firstName' }, { name: 'parent', wire: 'parentOwner', schema: 'Owner' }] } };
+    const schemas = { Owner: { attributes: [{ name: 'first_name', api_name: 'firstName' }, { name: 'parent', api_name: 'parentOwner', schema: 'Owner' }] } };
 
-    it('sends the wire names from the overlay', async () => {
+    it('sends the API names of the variants of a union', async () => {
+        const { fetch, environment } = env([json({})]);
+        const unions = {
+            ...schemas,
+            Team: { attributes: [{ name: 'team_name', api_name: 'teamName' }, { name: 'lead', api_name: 'teamLead', schema: 'Owner' }] },
+            Person: { attributes: [{ name: 'full_name', api_name: 'fullName' }] },
+            Assignee: { variants: ['Team', 'Person'] },
+        };
+        const assign: OverlayFunction = { name: 'assign', method: 'POST', effect: 'read', path: '/assign', options: [{ name: 'to', api_name: 'assignTo', in: 'body', schema: 'Assignee' }] };
+        await runOverlayCall(spec([assign], { schemas: unions }), call('assign', { to: { team_name: 'T', lead: { first_name: 'A' }, other_key: 1 } }), environment);
+        expect(JSON.parse(initOf(fetch, 0).body as string)).toEqual({ assignTo: { teamName: 'T', teamLead: { firstName: 'A' }, other_key: 1 } });
+    });
+
+    it('sends the API names from the overlay', async () => {
         const { fetch, environment } = env([json({})]);
         await runOverlayCall(spec([create], { schemas }), call('create', {
             project: 'a b/c',
@@ -112,7 +125,7 @@ describe('overlay requests', () => {
     });
 
     it('keeps path values on their endpoint', async () => {
-        const fn: OverlayFunction = { name: 'read', path: '/files/{path}', options: [{ name: 'path', in: 'path:path', multi_segment: true }] };
+        const fn: OverlayFunction = { name: 'read', path: '/files/{path}', options: [{ name: 'path', in: 'path', multi_segment: true }] };
         const { fetch, environment } = env([json({})]);
         await runOverlayCall(spec([fn]), call('read', { path: 'a b/c' }), environment);
         expect(new URL(urlOf(fetch, 0)).pathname).toEqual('/v2/files/a%20b/c');
@@ -125,7 +138,7 @@ describe('overlay requests', () => {
         expect(new Headers(initOf(form.fetch, 0).headers).get('Content-Type')).toEqual('application/x-www-form-urlencoded');
         expect(new URLSearchParams(initOf(form.fetch, 0).body as string).get('meta[b][0]')).toEqual('2');
         const root = env([json({})]);
-        await runOverlayCall(spec([{ name: 'r', method: 'POST', effect: 'read', options: [{ name: 'tags', in: 'body:root' }] }]), call('r', { tags: [{ a: 1 }] }), root.environment);
+        await runOverlayCall(spec([{ name: 'r', method: 'POST', effect: 'read', options: [{ name: 'tags', in: 'body_root' }] }]), call('r', { tags: [{ a: 1 }] }), root.environment);
         expect(JSON.parse(initOf(root.fetch, 0).body as string)).toEqual([{ a: 1 }]);
         const csv = env([json({})]);
         await runOverlayCall(spec([{ name: 'c', method: 'POST', effect: 'read', body: 'text/csv', options: [{ name: 'csv', in: 'body' }] }]), call('c', { csv: 'id,name' }), csv.environment);
@@ -133,7 +146,7 @@ describe('overlay requests', () => {
     });
 
     it('fills in parameters and secrets', async () => {
-        const fn: OverlayFunction = { name: 'p', options: [{ name: 'a', in: 'query' }, { name: 'key', wire: 'apiKey', in: 'header' }] };
+        const fn: OverlayFunction = { name: 'p', options: [{ name: 'a', in: 'query' }, { name: 'key', api_name: 'apiKey', in: 'header' }] };
         const description = call('p', { a: null, key: null }, [{ pointer: '/a', param: 'x' }, { pointer: '/key', secret: 'k' }]);
         const { fetch, environment } = env([json({})], { params: { x: 7 }, resolveSecret: async () => 'hidden' });
         await runOverlayCall(spec([fn]), description, environment);
@@ -167,7 +180,7 @@ describe('overlay paging', () => {
     const token: OverlayFunction = {
         name: 'list',
         rows: '/items',
-        options: [{ name: 'token', wire: 'pageToken', in: 'query' }, { name: 'size', in: 'query' }],
+        options: [{ name: 'token', api_name: 'pageToken', in: 'query' }, { name: 'size', in: 'query' }],
         columns: [{ name: 'id', type: 'BIGINT' }],
         paging: { kind: 'token', from: '/next', option: 'token' },
     };
@@ -233,7 +246,7 @@ describe('overlay paging', () => {
             method: 'POST',
             effect: 'read',
             rows: '',
-            options: [{ name: 'q', in: 'body' }, { name: 'trace', wire: 'X-Trace', in: 'header' }],
+            options: [{ name: 'q', in: 'body' }, { name: 'trace', api_name: 'X-Trace', in: 'header' }],
             paging: { kind: 'url', from: 'header:Link#next' },
         };
         const { fetch, environment } = env([
@@ -253,7 +266,7 @@ describe('overlay paging', () => {
     });
 
     it('never sends the token to another origin', async () => {
-        const fn: OverlayFunction = { name: 'feed', rows: '/items', options: [{ name: 'required', in: 'path:r' }], path: '/{r}', paging: { kind: 'url', from: '/next' } };
+        const fn: OverlayFunction = { name: 'feed', rows: '/items', options: [{ name: 'required', api_name: 'r', in: 'path' }], path: '/{r}', paging: { kind: 'url', from: '/next' } };
         const fromScript = env([]);
         await expect(runOverlayCall(spec([fn]), call('feed', { _next: 'https://evil.example.com/x' }), fromScript.environment)).rejects.toThrow(/another origin/);
         expect(fromScript.fetch).not.toHaveBeenCalled();
@@ -312,7 +325,7 @@ describe('overlay paging', () => {
 
 describe('overlay results', () => {
     const columns: OverlayFunction['columns'] = [
-        { name: 'api_name', wire: 'apiName', type: 'VARCHAR' },
+        { name: 'api_name', api_name: 'apiName', type: 'VARCHAR' },
         { name: 'count', type: 'INTEGER' },
         { name: 'size', type: 'BIGINT' },
         { name: 'ratio', type: 'DOUBLE' },
@@ -465,14 +478,14 @@ describe('overlay EXPLAIN', () => {
         method: 'POST',
         path: '/projects/{project}',
         options: [
-            { name: 'project', in: 'path:project' },
-            { name: 'page_size', wire: 'pageSize', in: 'query' },
-            { name: 'signing_key', wire: 'signingKey', in: 'body' },
-            { name: 'token', wire: 'X-Token', in: 'header' },
+            { name: 'project', in: 'path' },
+            { name: 'page_size', api_name: 'pageSize', in: 'query' },
+            { name: 'signing_key', api_name: 'signingKey', in: 'body' },
+            { name: 'token', api_name: 'X-Token', in: 'header' },
         ],
     };
 
-    it('prints the request with wire names and sends nothing, even for a write', async () => {
+    it('prints the request with API names and sends nothing, even for a write', async () => {
         const description = call('create', { project: 'a', page_size: 5, signing_key: null, token: 'abc' }, [{ pointer: '/signing_key', secret: 'k' }]);
         const result = await explainOverlayCall(spec([fn]), description, { variables: () => ({ version: '2' }) });
         expect(cell(result, 0, 'method')).toEqual('POST');

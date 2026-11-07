@@ -25,7 +25,7 @@ An overlay is a declarative JSON document, the **spec**, that describes a servic
 | **Core** (Rust) | `CALL`, namespaces, functions, typed named arguments, nested schemas, result columns | HTTP, any service |
 | **Runtime** (TypeScript) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
 | **Connector binding** (TypeScript) | Host URLs, which credentials go to which host, path variables such as the API version | Individual functions |
-| **Spec** (JSON) | Namespace, functions, wire names, paging, schemas, effects | Credentials, absolute URLs |
+| **Spec** (JSON) | Namespace, functions, API names, paging, schemas, effects | Credentials, absolute URLs |
 
 Dependencies point one way: core never imports the runtime, and the runtime never imports a connector. Core tests use a made-up fixture spec, so they can't start depending on a real one.
 
@@ -69,7 +69,7 @@ EXPLAIN CALL tickets.ticket_delete (id => 7);
 - **`$$` strings are verbatim.** Nothing is trimmed, so `$$` followed by a line break starts the value with a line break. They're for text the grammar shouldn't touch: SQL it can't parse, CSV, formulas.
 - **`(SELECT ...)` keeps core parsing and completion.** It's analyzed like any other query, and the text is sent as written. A service's SQL dialect isn't enforced, which is what `$$` is for.
 - **Strings need unescaping.** Consumers currently read literals by stripping the outer quotes, without unescaping `''` (see [core_quirks.md](core_quirks.md)). Lowering has to unescape them, or a payload with an apostrophe is sent wrong.
-- **Spelling comes from the spec or the source text.** `read_identifier` lower-cases unquoted names. Known names take their wire spelling from the spec. Unknown and quoted ones read it from the token's byte span in `ScannerTokens`, because keyword names carry token indexes in their byte-span fields (see [core_quirks.md](core_quirks.md)).
+- **Spelling comes from the spec or the source text.** `read_identifier` lower-cases unquoted names. Known names take their API spelling from the spec. Unknown and quoted ones read it from the token's byte span in `ScannerTokens`, because keyword names carry token indexes in their byte-span fields (see [core_quirks.md](core_quirks.md)).
 
 ## Grammar
 
@@ -148,8 +148,8 @@ This is the whole shape of a spec, with one function:
   "schemas": {
     "Assignee": {
       "attributes": [
-        { "name": "id", "wire": "id", "type": "integer" },
-        { "name": "notify", "wire": "notifyUser", "type": "boolean" }
+        { "name": "id", "api_name": "id", "type": "integer" },
+        { "name": "notify", "api_name": "notifyUser", "type": "boolean" }
       ]
     }
   },
@@ -161,14 +161,14 @@ This is the whole shape of a spec, with one function:
       "host": "api",
       "path": "/projects/{project}/tickets",
       "options": [
-        { "name": "project", "wire": "project", "in": "path:project", "type": "string", "required": true },
-        { "name": "page_size", "wire": "pageSize", "in": "query", "type": "integer" },
-        { "name": "page_token", "wire": "pageToken", "in": "query", "type": "string" }
+        { "name": "project", "api_name": "project", "in": "path", "type": "string", "required": true },
+        { "name": "page_size", "api_name": "pageSize", "in": "query", "type": "integer" },
+        { "name": "page_token", "api_name": "pageToken", "in": "query", "type": "string" }
       ],
       "rows": "/items",
       "columns": [
-        { "name": "id", "wire": "id", "type": "BIGINT" },
-        { "name": "created_at", "wire": "createdAt", "type": "TIMESTAMPTZ" }
+        { "name": "id", "api_name": "id", "type": "BIGINT" },
+        { "name": "created_at", "api_name": "createdAt", "type": "TIMESTAMPTZ" }
       ],
       "paging": { "kind": "token", "from": "/nextPageToken", "option": "page_token" },
       "effect": "read"
@@ -200,7 +200,7 @@ This is the whole shape of a spec, with one function:
 | `body` | The body's format: `json` by default, `form`, or a media type such as `text/csv`, whose body is one string option |
 | `unknown` | What an unlisted option does, see [Checks](#checks). `error` by default |
 | `rows` | JSON pointer to the rows: `/items`, or `""` when the response itself is the array. Absent means one row. A generator must never guess it, see [Results and errors](#results-and-errors) |
-| `columns` | Known result columns: `name`, `wire`, `type` |
+| `columns` | Known result columns: `name`, `api_name`, `type` |
 | `paging` | See [Paging](#paging) |
 | `pending` | Overrides the top-level value, or `null` for none |
 | `errors` | Overrides, see [Results and errors](#results-and-errors) |
@@ -215,8 +215,8 @@ This is the whole shape of a spec, with one function:
 | Field | Meaning |
 |---|---|
 | `name` | The script's name. Names starting with `_` are reserved, see [Paging](#paging) |
-| `wire` | The API's exact spelling |
-| `in` | Options only: `path:<placeholder>`, `query`, `header`, `body`, or `body:root` when this option is the whole body |
+| `api_name` | The API's exact spelling |
+| `in` | Options only: `path`, `query`, `header`, `body`, or `body_root` when this option is the whole body. A `path` option fills the placeholder of its `api_name`, which isn't sent any other way, so the placeholder is the spelling |
 | `type` | `string`, `integer`, `number`, `boolean`, `sql` or `any` |
 | `schema` | A name in `schemas`, in place of `type`, for an object |
 | `required` | Missing it is an error |
@@ -224,13 +224,26 @@ This is the whole shape of a spec, with one function:
 | `multi_segment` | Path options whose value may contain `/`, see [Security](#security) |
 | `description` | For completion, which doesn't show it yet |
 
-**Names are mapped explicitly, not converted by a rule.** A script writes `name`, and the request carries `wire`, the API's exact spelling. A rule couldn't do this: APIs mix `primaryDMO`, `orderBy`, `orderby` and `dataSpace`, and some of those spellings differ per endpoint. A generator can derive `name` from `wire`, but the spec records both. A missing `wire` means the two are the same, and a name the spec doesn't list is sent as written, so `new_field` is not turned into `newField`.
+**Names are mapped explicitly, not converted by a rule.** A script writes `name`, and the request carries `api_name`, the API's exact spelling. A rule couldn't do this: APIs mix `primaryDMO`, `orderBy`, `orderby` and `dataSpace`, and some of those spellings differ per endpoint. A generator can derive `name` from `api_name`, but the spec records both. A missing `api_name` means the two are the same, and a name the spec doesn't list is sent as written, so `new_field` is not turned into `newField`.
 
-There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](../../overlay/d360/docs/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its wire names. Completion shows the script's names only, on purpose.
+There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](../../overlay/d360/docs/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its API names. Completion shows the script's names only, on purpose.
 
 **A schema** has `attributes`, plus `unknown` with the same values as on a function. An attribute with a `schema` accepts one object or an array of them, because real APIs and their own examples often disagree on which is right.
 
-**`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body:root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
+**A union** is a schema with `variants` instead of `attributes`, for `oneOf` and `anyOf`. A value has to fit one variant, so a union is never flattened into one list of attributes:
+
+```json
+"Route": {
+  "variants": ["SnowflakeRoute", "RedshiftRoute"],
+  "tag": { "attribute": "type", "values": { "Snowflake": "SnowflakeRoute", "Redshift": "RedshiftRoute" } }
+}
+```
+
+- `tag` is optional. The value of its attribute selects the variant, whatever the case of the value. A value that isn't listed, or that isn't known yet such as a `:param`, selects nothing.
+- A name means one thing in a union: variants that share an attribute give it the same `api_name` and `schema`. A runtime can then spell a request without knowing the variant, and the core rejects a spec that breaks this.
+- A variant is a plain schema, not another union. It's named on its own, so the same one can appear in several unions.
+
+**`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body_root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
 
 **Generating a spec.** A spec can be written by hand or generated, and [Data 360](../../overlay/d360/docs/overview.md#generating-the-spec) generates its spec from its reference documents. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
 - OpenAPI is an input and not the format. None of the Snowflake, GitHub or Stripe documents describe paging in a machine-readable way, and real contracts are often narrower than the payloads they describe.
@@ -294,7 +307,15 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 
 **Scalar values aren't type-checked.** APIs disagree with their own specs too often, and the server decides. `:param` and `$$` are accepted in place of an object.
 
-**Unions are permissive.** `oneOf` and `anyOf` variants become the union of their attributes. Snowflake has 25 discriminated schemas and Stripe 2,050 `anyOf`s, so completion can offer an attribute a given variant doesn't take. See [Open questions](#open-questions).
+**A union checks one variant.** Its `tag` selects the variant if the value says which. Then every attribute in script order keeps the variants that take it:
+
+| Script | Result |
+|---|---|
+| An attribute the selected variant doesn't take | Error at the attribute: `no attribute account_url when type is 'Redshift'` |
+| An attribute that no variant left takes | Error at the attribute: `broker_endpoints does not fit the attributes before it` |
+| Either of them, quoted | Accepted and sent as written, like any quoted name |
+| A name that no variant takes | Same as any unlisted name, by the `unknown` of the variants left |
+| Required attributes | One variant has to be satisfied. The closest one says what's missing, and a tie is a choice: `needs one of the attributes cron, event` |
 
 **Where unknown options go:** to the body if the function has one, otherwise to the query string. `EXPLAIN` shows the result.
 
@@ -596,7 +617,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | File | What it does |
 |---|---|
 | `overlay_spec.ts` | The types of the document and of the core's description |
-| `overlay_request.ts` | Builds a request from a description: wire names, path encoding, query styles, body formats, followed URLs and the origin check |
+| `overlay_request.ts` | Builds a request from a description: API names, path encoding, query styles, body formats, followed URLs and the origin check |
 | `overlay_runtime.ts` | `runOverlayCall` sends it through an `HttpClient`, with paging, polling and errors, and returns the result table. `explainOverlayCall` returns the request and sends nothing |
 | `overlay_result_stream.ts` | The result as a `QueryExecutionResponseStream`, like every other query result |
 
@@ -632,8 +653,8 @@ Each phase lands separately.
 
 1. **Format stability.** `format` allows changes, but anything published has to keep working. This is why publishing comes last.
 2. **Specs from elsewhere.** This document covers bundled specs. Loading others needs a trust decision, even with the security rules above.
-3. **Variants.** Unions accept any variant's attributes. A `variants` field keyed by a discriminator could narrow completion and checks, but only Snowflake's 25 schemas would use it so far, and Stripe's `anyOf`s aren't discriminated.
-4. **Spec size.** The Data 360 spec is 910 KB, or 60 KB gzipped, for 535 functions and it loads lazily. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,143 here.
+3. **Tags beside an object.** A `tag` reads an attribute of the object itself. Some APIs select a variant with a sibling instead, such as `type` next to `config` in Data 360, so only the attributes of those objects decide. A `tag` that reads a sibling would close this, once a source says which value selects which variant.
+4. **Spec size.** The Data 360 spec is 915 KB, or 60 KB gzipped, for 535 functions and it loads lazily. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
 5. **`_next` on an empty page.** The one-row rule covers it, at the cost of `count(*)`. If that turns out to be wrong in practice, the alternative is carrying the value in result metadata, outside the table.
 6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a session attachment.
 7. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.

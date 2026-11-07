@@ -1160,3 +1160,232 @@ analyzer-snapshots:
           text: "60"
         - expression: 2
           text: "'x'"
+
+  - name: call_union_tag
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = 'EMAIL', address = 'a@b.c', owner = (id = 1)));
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"EMAIL\",\"address\":\"a@b.c\",\"owner\":{\"id\":1}}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'EMAIL'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a@b.c'"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'EMAIL'"
+        - expression: 1
+          text: "'a@b.c'"
+        - expression: 2
+          text: "1"
+
+  - name: call_union_tag_mismatch
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = 'Email', queue = 'ops'));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: no attribute queue when kind is 'Email'
+          text: "queue"
+        - type: OVERLAY_MISSING_OPTION
+          message: needs the attribute address
+          text: "(kind = 'E..e = 'ops')"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Email\",\"queue\":\"ops\"}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'Email'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'ops'"
+      constants:
+        - expression: 0
+          text: "'Email'"
+        - expression: 1
+          text: "'ops'"
+
+  - name: call_union_tag_parameter
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = :kind, queue = 'ops'));
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":null,\"queue\":\"ops\"}},\"bindings\":[{\"pointer\":\"/target/kind\",\"param\":\"kind\"}]}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'ops'"
+      constants:
+        - expression: 0
+          text: "'ops'"
+      parameters:
+        - kind: scalar
+          name: kind
+          statement-id: 0
+          text: ":kind"
+
+  - name: call_union_shape
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (trigger => (event = 'created', filter = 'x'));
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"filter\":\"x\"}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'created'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+      constants:
+        - expression: 0
+          text: "'created'"
+        - expression: 1
+          text: "'x'"
+
+  - name: call_union_shape_conflict
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (trigger => (event = 'created', cron = '* * * * *'));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: cron does not fit the attributes before it
+          text: "cron"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"cron\":\"* * * * *\"}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'created'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'* * * * *'"
+      constants:
+        - expression: 0
+          text: "'created'"
+        - expression: 1
+          text: "'* * * * *'"
+
+  - name: call_union_unknown
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (trigger => (evnt = 'created'));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: 'no attribute evnt here, did you mean event?'
+          text: "evnt"
+        - type: OVERLAY_MISSING_OPTION
+          message: 'needs one of the attributes cron, event'
+          text: "(evnt = 'created')"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"evnt\":\"created\"}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'created'"
+      constants:
+        - expression: 0
+          text: "'created'"
+
+  - name: call_union_nested
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = 'Queue', queue = 'ops', owner = (nope = 1)));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: no attribute nope here
+          text: "nope"
+        - type: OVERLAY_MISSING_OPTION
+          message: needs the attribute id
+          text: "(nope = 1)"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: rule_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Queue\",\"queue\":\"ops\",\"owner\":{\"nope\":1}}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'Queue'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'ops'"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'Queue'"
+        - expression: 1
+          text: "'ops'"
+        - expression: 2
+          text: "1"

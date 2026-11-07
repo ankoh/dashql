@@ -157,6 +157,13 @@ fn fields_of<'p>(parsed: &'p ParsedScript, object: &Node) -> Vec<(&'p Node, &'p 
         .collect()
 }
 
+/// A field as it decides the variant of a union
+fn read_field(parsed: &ParsedScript, key: &Node, value: &Node) -> OverlayField {
+    let name = read_key(parsed, key);
+    let text = (value.node_type() == NodeType::LITERAL_STRING).then(|| string_text(source(parsed, value)));
+    OverlayField { name: name.text, quoted: name.quoted, text }
+}
+
 /// Add a suggestion to a message
 fn with_suggestion(message: String, suggestion: Option<&str>) -> String {
     match suggestion {
@@ -378,32 +385,65 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    /// Check the fields of an object against its schema. Without a schema any key goes.
+    /// Check the fields of an object against its schema. Without a schema any key goes. An object of a union has to fit
+    /// one variant.
     fn check_fields(&mut self, object: &Node, schema: Option<&OverlaySchema>, path: &mut Vec<Arc<str>>) {
         let parsed = self.state.parsed;
+        let spec = self.spec;
         let fields = fields_of(parsed, object);
+        let read: Vec<OverlayField> = fields.iter().map(|(key, value)| read_field(parsed, key, value)).collect();
+        let fit = schema.map(|s| spec.fit(s, &read));
         let mut seen: Vec<Arc<str>> = Vec::new();
-        for (key, value) in fields.iter().copied() {
-            let name = read_key(parsed, key);
-            let attribute = schema.and_then(|s| find_attribute(&s.attributes, &name.text, name.quoted));
-            let canonical: Arc<str> = Arc::from(attribute.map_or(name.text.as_str(), |a| a.name.as_str()));
+        for (i, (key, value)) in fields.iter().copied().enumerate() {
+            let name = &read[i];
+            let attribute = schema.and_then(|s| spec.attribute_of(s, &name.name, name.quoted));
+            let canonical: Arc<str> = Arc::from(attribute.map_or(name.name.as_str(), |a| a.name.as_str()));
             if seen.contains(&canonical) {
                 self.error(AnalyzerErrorType::OVERLAY_DUPLICATE_OPTION, key, format!("duplicate attribute {canonical}"));
             }
             seen.push(canonical.clone());
-            if let Some(schema) = schema.filter(|_| attribute.is_none() && !name.quoted) {
-                let suggestion = closest_name(&name.text, schema.attributes.iter().map(|a| a.name.as_str()));
-                let message = with_suggestion(format!("no attribute {} here", name.text), suggestion);
-                self.report_unknown(schema.unknown, key, message);
+            if let Some(fit) = fit.as_ref() {
+                if attribute.is_none() && !name.quoted {
+                    let candidates = fit.variants.iter().flat_map(|v| v.attributes.iter()).map(|a| a.name.as_str());
+                    let message = with_suggestion(format!("no attribute {} here", name.name), closest_name(&name.name, candidates));
+                    self.report_unknown(fit.unknown(), key, message);
+                } else if fit.conflicts.contains(&i) {
+                    let message = match fit.tag_field.map(|t| &read[t]) {
+                        Some(tag) => format!("no attribute {} when {} is '{}'", name.name, tag.name, tag.text.as_deref().unwrap_or_default()),
+                        None => format!("{} does not fit the attributes before it", name.name),
+                    };
+                    self.report_unknown(fit.unknown(), key, message);
+                }
             }
             path.push(canonical);
             self.check_value(value, attribute, path, &fields);
             path.pop();
         }
-        for attribute in schema.iter().flat_map(|s| s.attributes.iter()).filter(|a| a.required) {
-            if !seen.iter().any(|s| **s == *attribute.name) {
-                self.error(AnalyzerErrorType::OVERLAY_MISSING_OPTION, object, format!("needs the attribute {}", attribute.name));
-            }
+        // An object only has to satisfy one variant, the closest ones say what is missing
+        let missing: Vec<Vec<&str>> = fit
+            .iter()
+            .flat_map(|f| f.variants.iter())
+            .map(|variant| {
+                let is_missing = |a: &&OverlayAttribute| a.required && !seen.iter().any(|s| **s == *a.name);
+                variant.attributes.iter().filter(is_missing).map(|a| a.name.as_str()).collect()
+            })
+            .collect();
+        let fewest = missing.iter().map(Vec::len).min().unwrap_or(0);
+        if fewest == 0 {
+            return;
+        }
+        let closest: Vec<&Vec<&str>> = missing.iter().filter(|m| m.len() == fewest).collect();
+        // What all of them need is certain, the rest is a choice between them
+        let needed_by_all = |name: &str| closest.iter().all(|m| m.contains(&name));
+        for name in closest[0].iter().copied().filter(|name| needed_by_all(name)) {
+            self.error(AnalyzerErrorType::OVERLAY_MISSING_OPTION, object, format!("needs the attribute {name}"));
+        }
+        let mut choice: Vec<&str> = closest.iter().flat_map(|m| m.iter().copied()).filter(|name| !needed_by_all(name)).collect();
+        choice.sort_unstable();
+        choice.dedup();
+        if !choice.is_empty() {
+            let message = format!("needs one of the attributes {}", choice.join(", "));
+            self.error(AnalyzerErrorType::OVERLAY_MISSING_OPTION, object, message);
         }
     }
 }
@@ -495,7 +535,7 @@ impl Describer<'_> {
                     let [key, value] = attrs!(parsed.children(field), [K::EXT_VARARG_FIELD_KEY, K::EXT_VARARG_FIELD_VALUE]);
                     let (Some(key), Some(value)) = (key, value) else { continue };
                     let name = read_key(&parsed, key);
-                    let field_attribute = schema.and_then(|s| find_attribute(&s.attributes, &name.text, name.quoted));
+                    let field_attribute = schema.and_then(|s| spec.attribute_of(s, &name.text, name.quoted));
                     let field_name = field_attribute.map_or(name.text, |a| a.name.clone());
                     let field_pointer = format!("{pointer}/{}", pointer_segment(&field_name));
                     let field_value = self.value(value, field_attribute, &field_pointer);

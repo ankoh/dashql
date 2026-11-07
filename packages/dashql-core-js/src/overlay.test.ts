@@ -21,8 +21,8 @@ const SPEC = JSON.stringify({
             method: 'GET',
             path: '/tickets',
             options: [
-                { name: 'project', wire: 'project', in: 'query', type: 'string', required: true },
-                { name: 'page_size', wire: 'pageSize', in: 'query', type: 'integer' },
+                { name: 'project', api_name: 'project', in: 'query', type: 'string', required: true },
+                { name: 'page_size', api_name: 'pageSize', in: 'query', type: 'integer' },
             ],
         },
     ],

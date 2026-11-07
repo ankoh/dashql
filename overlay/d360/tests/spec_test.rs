@@ -132,7 +132,11 @@ fn completion_offers_the_attributes_of_every_object_option() {
             let Some(schema) = option["schema"].as_str() else { continue };
             let option_name = inserted(option["name"].as_str().unwrap());
             let schema = &spec["schemas"][schema];
-            let expected = names(schema.get("attributes"));
+            let mut expected = names(schema.get("attributes"));
+            // Nothing selects a variant yet, so a union offers what any variant takes
+            for variant in schema["variants"].as_array().into_iter().flatten() {
+                expected.extend(names(spec["schemas"][variant.as_str().unwrap()].get("attributes")));
+            }
             let actual = complete(&catalog, &format!("call cdp.{name} ({option_name} => ("));
             assert_eq!(actual, expected, "{name}.{option_name}");
             checked += 1;
@@ -140,6 +144,60 @@ fn completion_offers_the_attributes_of_every_object_option() {
     }
     println!("{checked} object options");
     assert!(checked > 200, "only {checked} object options");
+}
+
+/// The errors and warnings of a script
+fn messages(catalog: &Catalog, text: &str) -> Vec<String> {
+    let entry_id = catalog.allocate_entry_id();
+    let parsed = Arc::new(parse(Arc::new(scan(text, 0, entry_id))));
+    assert!(parsed.errors.is_empty(), "{text}: {:?}", parsed.errors);
+    analyze(parsed, catalog).expect("the analysis runs").errors.iter().map(|e| e.message.clone()).collect()
+}
+
+/// A union is no merged schema: the tag or the attributes of an object select a variant
+#[test]
+fn unions_check_one_variant() {
+    let catalog = catalog();
+    let check = |call: &str, expected: &[&str]| assert_eq!(messages(&catalog, &format!("call cdp.{call};")), expected, "{call}");
+    let route = |fields: &str| format!("private_network_route_create (name => 'n', label => 'l', description => 'd', route => ({fields}))");
+
+    // The tag selects the variant
+    check(&route("type = 'Redshift', service_name = 's'"), &[]);
+    check(&route("type = 'Snowflake', service_name = 's', account_url = 'u'"), &[]);
+    check(&route("type = 'Redshift', service_name = 's', account_url = 'u'"), &["no attribute account_url when type is 'Redshift'"]);
+    check(&route("type = 'Snowflake', service_name = 's'"), &["needs the attribute account_url"]);
+    check(&route("type = 'AmazonMsk', service_name = 's', account_url = 'u'"), &["no attribute account_url when type is 'AmazonMsk'", "needs the attribute broker_endpoints"]);
+    // A value without a variant selects nothing, and a parameter isn't known yet
+    check(&route("type = 'SnowflakeInternalStage', service_name = 's'"), &[]);
+    check(&route("type = :type, service_name = 's', account_url = 'u'"), &[]);
+    // The attributes of different variants never go together
+    check(&route("type = :type, service_name = 's', account_url = 'u', broker_endpoints = ['b']"), &["broker_endpoints does not fit the attributes before it"]);
+
+    // The case of a value doesn't matter, the examples of the spec write DCSQL for DcSql
+    let definition = |fields: &str| format!("transform_validate (name => 'n', label => 'l', type => 'BATCH', definition => ({fields}))");
+    check(&definition("type = 'SQL', version = '1', expression = 'e'"), &[]);
+    check(&definition("type = 'SQL', version = '1', manifest = :manifest"), &["no attribute manifest when type is 'SQL'"]);
+    check(&definition("type = 'DCSQL', version = '1', expression = 'e'"), &["no attribute expression when type is 'DCSQL'"]);
+    check(&definition("type = 'SqlHidden', version = '1', expression = 'e'"), &[]);
+
+    // Without a tag the attributes decide
+    let target = |fields: &str| format!("dataaction_target_create (api_name => 'n', label => 'l', type => 't', config => ({fields}))");
+    check(&target("api_contract = 'a', org_id = 'o', org_label = 'l'"), &[]);
+    check(&target("api_contract = 'a', content_key = 'k'"), &[]);
+    check(&target("org_id = 'o', content_key = 'k'"), &["content_key does not fit the attributes before it"]);
+    check(&target("api_contract = 'a', nope = 1"), &["no attribute nope here"]);
+}
+
+#[test]
+fn unions_narrow_completion() {
+    let catalog = catalog();
+    let route = "call cdp.private_network_route_create (route => (";
+    let names = |text: &str| complete(&catalog, text);
+    let set = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<BTreeSet<_>>();
+    assert_eq!(names(route), set(&["account_url", "broker_endpoints", "service_name", "type"]));
+    assert_eq!(names(&format!("{route}type = 'Redshift',")), set(&["service_name"]));
+    assert_eq!(names(&format!("{route}type = 'snowflake',")), set(&["account_url", "service_name"]));
+    assert_eq!(names(&format!("{route}broker_endpoints = ['b'],")), set(&["service_name", "type"]));
 }
 
 /// The snippets are workflows, their steps build on each other. They can't run alone, but each of them has to pass the
@@ -194,8 +252,8 @@ fn every_function_describes_a_request() {
         // Every placeholder has an option, so a request can be built
         let placeholders: Vec<&str> = path.split('{').skip(1).map(|p| p.split('}').next().unwrap()).collect();
         for placeholder in placeholders {
-            let location = format!("path:{placeholder}");
-            let found = function["options"].as_array().into_iter().flatten().any(|o| o["in"] == location.as_str());
+            let fills = |o: &Value| o["in"] == "path" && o.get("api_name").unwrap_or(&o["name"]) == placeholder;
+            let found = function["options"].as_array().into_iter().flatten().any(fills);
             assert!(found, "{name}: no option fills {{{placeholder}}}");
         }
     }

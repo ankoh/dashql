@@ -49,17 +49,23 @@ fn find_attribute<'a>(attributes: Option<&'a Value>, name: &str) -> Option<&'a V
     attributes?.as_array()?.iter().find(|a| a["name"] == name)
 }
 
+/// The attribute of a name in a schema. A name means one thing in a union, so any variant can answer.
+fn find_schema_attribute<'a>(spec: &'a Value, schema: &'a Value, name: &str) -> Option<&'a Value> {
+    let variants = schema["variants"].as_array().into_iter().flatten();
+    find_attribute(schema.get("attributes"), name).or_else(|| variants.filter_map(|v| find_attribute(spec["schemas"][v.as_str()?].get("attributes"), name)).next())
+}
+
 /// A value in the spelling of the API
-fn to_wire(spec: &Value, value: &Value, attribute: Option<&Value>) -> Value {
+fn to_api(spec: &Value, value: &Value, attribute: Option<&Value>) -> Value {
     match value {
-        Value::Array(items) => Value::Array(items.iter().map(|i| to_wire(spec, i, attribute)).collect()),
+        Value::Array(items) => Value::Array(items.iter().map(|i| to_api(spec, i, attribute)).collect()),
         Value::Object(fields) => {
             let schema = attribute.and_then(|a| a["schema"].as_str()).map(|s| &spec["schemas"][s]);
             let mut out = Map::new();
             for (name, field) in fields {
-                let field_attribute = schema.and_then(|s| find_attribute(s.get("attributes"), name));
-                let wire = field_attribute.and_then(|a| a["wire"].as_str()).unwrap_or(name);
-                out.insert(wire.to_string(), to_wire(spec, field, field_attribute));
+                let field_attribute = schema.and_then(|s| find_schema_attribute(spec, s, name));
+                let api_name = field_attribute.and_then(|a| a["api_name"].as_str()).unwrap_or(name);
+                out.insert(api_name.to_string(), to_api(spec, field, field_attribute));
             }
             Value::Object(out)
         }
@@ -145,18 +151,18 @@ fn expected_request(spec: &Value, function: &Value, options: &Value) -> Option<V
             continue;
         }
         let attribute = find_attribute(function.get("options"), name);
-        let wire = attribute.and_then(|a| a["wire"].as_str()).unwrap_or(name);
+        let api_name = attribute.and_then(|a| a["api_name"].as_str()).unwrap_or(name);
         let location = attribute.and_then(|a| a["in"].as_str()).unwrap_or(if has_body { "body" } else { "query" });
-        if let Some(placeholder) = location.strip_prefix("path:") {
-            path_values.insert(placeholder.to_string(), encode_component(&scalar_text(value)));
+        if location == "path" {
+            path_values.insert(api_name.to_string(), encode_component(&scalar_text(value)));
         } else if location == "query" {
-            add_query(wire, &to_wire(spec, value, attribute), attribute.and_then(|a| a["style"].as_str()), &mut query);
+            add_query(api_name, &to_api(spec, value, attribute), attribute.and_then(|a| a["style"].as_str()), &mut query);
         } else if location == "header" {
-            headers.insert(wire.to_string(), Value::String(scalar_text(value)));
-        } else if location == "body:root" {
-            root = Some(to_wire(spec, value, attribute));
+            headers.insert(api_name.to_string(), Value::String(scalar_text(value)));
+        } else if location == "body_root" {
+            root = Some(to_api(spec, value, attribute));
         } else {
-            fields.insert(wire.to_string(), to_wire(spec, value, attribute));
+            fields.insert(api_name.to_string(), to_api(spec, value, attribute));
         }
     }
     let mut path = function["path"].as_str()?.to_string();
@@ -224,8 +230,8 @@ fn expected_row(function: &Value, item: &Value, status: i64, next: &Value, meta:
     let mut row = Map::new();
     for column in function["columns"].as_array().into_iter().flatten() {
         let name = column["name"].as_str().unwrap();
-        let wire = column["wire"].as_str().unwrap_or(name);
-        let value = rest.remove(wire).unwrap_or(Value::Null);
+        let api_name = column["api_name"].as_str().unwrap_or(name);
+        let value = rest.remove(api_name).unwrap_or(Value::Null);
         // JSON columns hold text
         let value = if column["type"] == "JSON" && !value.is_null() { Value::String(value.to_string()) } else { value };
         row.insert(name.to_string(), value);
@@ -242,7 +248,7 @@ fn assumed_response(function: &Value, options: &Value) -> (Value, Value) {
     let mut item = Map::new();
     for column in function["columns"].as_array().into_iter().flatten() {
         let name = column["name"].as_str().unwrap();
-        item.insert(column["wire"].as_str().unwrap_or(name).to_string(), assumed_value(column));
+        item.insert(column["api_name"].as_str().unwrap_or(name).to_string(), assumed_value(column));
     }
     // A field that the spec doesn't list lands in `_raw`
     item.insert("assumedUnlistedField".to_string(), json!(true));

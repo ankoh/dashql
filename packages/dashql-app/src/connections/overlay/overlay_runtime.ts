@@ -274,11 +274,11 @@ class OverlayCallRun {
         }
         const rest: Record<string, unknown> = { ...item };
         const row: unknown[] = this.columns.map(column => {
-            const wire = column.wire ?? column.name;
-            const converted = convertValue(rest[wire], column.type);
+            const apiName = column.api_name ?? column.name;
+            const converted = convertValue(rest[apiName], column.type);
             // A value that can't be converted stays in `_raw`, so a spec that disagrees doesn't fail the statement
             if (converted !== undefined) {
-                delete rest[wire];
+                delete rest[apiName];
             }
             return converted ?? null;
         });
@@ -458,7 +458,7 @@ class OverlayCallRun {
         const headers: [string, string][] = [];
         for (const option of this.fn.options ?? []) {
             if (option.in === 'header' && options[option.name] !== undefined && options[option.name] !== null) {
-                headers.push([option.wire ?? option.name, String(options[option.name])]);
+                headers.push([option.api_name ?? option.name, String(options[option.name])]);
             }
         }
         return { method: 'GET', host, path: '', query: [], headers, body: null, followUrl: null };

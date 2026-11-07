@@ -5,8 +5,8 @@ export interface OverlayAttribute {
     /// The name in a script
     name: string;
     /// The spelling of the API, the name if absent
-    wire?: string;
-    /// Options only: `path:<placeholder>`, `query`, `header`, `body` or `body:root`
+    api_name?: string;
+    /// Options only: `path`, `query`, `header`, `body` or `body_root`. A path option fills the placeholder of its `api_name`.
     in?: string;
     /// The type of a scalar
     type?: string;
@@ -20,9 +20,11 @@ export interface OverlayAttribute {
     multi_segment?: boolean;
 }
 
-/// A named object
+/// A named object, or a union of named objects
 export interface OverlaySchema {
     attributes?: OverlayAttribute[];
+    /// A union: the schemas that a value can be. A name means the same in all of them.
+    variants?: string[];
 }
 
 /// A result column
@@ -30,7 +32,7 @@ export interface OverlayColumn {
     /// The name in a script
     name: string;
     /// The spelling of the API, the name if absent
-    wire?: string;
+    api_name?: string;
     /// VARCHAR, TIMESTAMPTZ, DATE, INTEGER, BIGINT, DOUBLE, BOOLEAN or JSON
     type?: string;
 }

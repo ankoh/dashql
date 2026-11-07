@@ -125,7 +125,7 @@ completion-snapshots:
           location-qualified: ""
           objects: []
         - score: 262144
-          value: ticket_create
+          value: rule_create
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
@@ -744,3 +744,100 @@ completion-snapshots:
           location-qualified: "_"
           objects: []
       text: "_"
+
+  - name: call_union_all_variants
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.rule_create (trigger => (
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: "=> ("
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: cron
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: event
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: filter
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
+  - name: call_union_narrowed_by_attribute
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.rule_create (trigger => (event = 'x',
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          text: "'x'"
+    cursor:
+      search:
+        text: "'x',"
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: filter
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ","
+
+  - name: call_union_narrowed_by_tag
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.rule_create (target => (kind = 'queue',
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          text: "'queue'"
+    cursor:
+      search:
+        text: "'queue',"
+        index: 8
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: queue
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: owner
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ","

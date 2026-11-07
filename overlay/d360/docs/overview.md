@@ -88,7 +88,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../../docs/design/overlay.md#open-questions) |
 | Credentials, where `value` is secret depending on `param_name` | `sensitive` with `public_when` |
 | `agent_id`: a header on most agentic memory calls, a query parameter on one | `in` per function |
-| Data space filtering that the API doesn't support | Not handled. Values are wire values, and the client adds no filtering |
+| Data space filtering that the API doesn't support | Not handled. Values are API values, and the client adds no filtering |
 | Segment SQL rules, call order, readiness | Stay out of the spec. The server decides, and [the notes](api_notes.md) explain |
 
 Data 360's contract doesn't exercise the format much: it has no top-level array responses or form encoding, and it doesn't record response headers. [The survey](../../../docs/design/overlay/api_survey.md) measures the format against APIs that do.
@@ -108,7 +108,7 @@ bazel run //overlay/d360:update
 | Schemas | 466 |
 | Schema attributes | 1,889 |
 | Result columns | 4,700 |
-| Size | 910 KB, 60 KB gzipped |
+| Size | 915 KB, 60 KB gzipped |
 
 **The reference is the source.** It already merges the contract with everything the contract leaves out, and its tables are regular, so changing the API means editing the reference and regenerating. Rules that are only prose in the reference are in `generate.py`: a few paging notes, and the `param_name` values of `credentials` that are plain settings.
 
@@ -153,7 +153,7 @@ So the spec is the contract plus annotations, built mechanically and labeled per
 
 | Source | What it adds |
 |---|---|
-| Official contract | Functions, options, schemas, result columns, including `oneOf` and `anyOf` variants as a union of attributes |
+| Official contract | Functions, options, schemas, result columns, including `oneOf` variants |
 | Spec examples | Request attributes and result columns that examples use but schemas omit |
 | MCP payload examples and request classes | Attributes Salesforce's own server sends |
 | Examples, for untyped objects | Schemas for what the spec types only as `object`, such as `match_rules` in `ir_create` |
@@ -172,6 +172,24 @@ That merged knowledge is what [the reference](functions.md) records, so it's the
 
 A schema inferred from examples can miss attributes. The prototype hit this with `case_sensitive_match` and `source_object_name`. With `warning`, these still get sent, and quoting the name always works.
 
+### Variants
+
+The contract has 10 request attributes that are one of several schemas, and these become [unions](../../../docs/design/overlay.md#the-spec). Each is named after its first use, such as `transform_create.definition`.
+
+The contract declares no discriminators, and all variants of a union list the same enum. So nothing official says which value selects which variant. `UNION_TAGS` in `api/generate.py` connects them where the value and the variant have the same name:
+
+| Union | Tag | Values that select a variant | Values that select nothing |
+|---|---|---|---|
+| `transform_create.definition` | `type` | `DcSql`, `Sql`, `Stl` | `DbtHidden`, `SqlHidden`, `StlHidden` |
+| `private_network_route_create.route` | `type` | `AmazonMsk`, `Databricks`, `Redshift`, `Snowflake` | `DatabricksInternalStage`, `SnowflakeInternalStage` |
+| `segment_update.publish_schedule_info` | `frequency` | `Daily`, `Hourly`, `Minutely`, `Monthly`, `MonthlyRelative`, `None`, `Weekly` | `Transform` |
+| `DataCleanRoomOutputConfigurationRepresentation.connection_attributes` | `connector_type` | `CleanroomAwsS3`, `CleanroomSnowflake` | |
+| `MlRetrieverQueryTemplateDefinitionInputRepresentation.query_citation_definition` | `citation_type` | `Custom`, `Default` | |
+
+The other 5 have no such attribute inside the object, so only their attributes decide: `CdpDataKitDeployComponentRepresentation.config`, `CdpDataKitDeployComponentConfigForBundle.bundle_config`, `ConnectorInputRepresentation.connector_details`, `DataKitComponentInputRepresentation.info` and `dataaction_target_create.config`. Variants that overlap stay possible together: `config = (template_dev_name = 'x')` fits several of the 27 variants of `config`.
+
+The mapping is unverified until it runs against an org. A wrong entry rejects a valid call. Quoting the attribute that doesn't fit gets past that, and `cdp.request` takes anything.
+
 **The spec also disagrees with itself on values.** Enums often differ in case between schema and examples (`Direct` and `DIRECT`), and the field names `dataSpaceName` and `dataspaceName` both appear. Values aren't checked, so those reach the server, and the family documents call out the known conflicts.
 
 ## Functions and options
@@ -180,7 +198,7 @@ A schema inferred from examples can miss attributes. The prototype hit this with
 - **One function per HTTP operation.** Variants collapse: `datastream_create_snowflake` is an ordinary `datastream_create` with particular attributes.
 - **Function names** follow Salesforce's MCP tool names without `d360_` where a tool exists, so its skills and examples transfer. Others follow the same `<noun>_<verb>` pattern, derived from the spec's summary.
 - **Option names** are the API's names in snake_case. The rare clash between a body field and a path or query parameter gets a prefix on the body field: `segment_create` has both `dataspace` (query) and `body_dataspace` (body). A handful of functions need this.
-- **Values are wire values.** Enums are the API's strings (`'Dbt'`), and ids and names are what each endpoint expects. Scripts see the API's quirks, on purpose. The function reference documents them.
+- **Values are API values.** Enums are the API's strings (`'Dbt'`), and ids and names are what each endpoint expects. Scripts see the API's quirks, on purpose. The function reference documents them.
 
 ## Naming
 
@@ -250,12 +268,12 @@ It's the only function with a `body` option.
   "path": "/ssot/segments",
   "host": "core",
   "options": [
-    { "name": "dataspace", "wire": "dataspace", "in": "query", "type": "string" },
-    { "name": "display_name", "wire": "displayName", "in": "body", "type": "string", "required": true },
-    { "name": "include_dbt", "wire": "includeDbt", "in": "body", "schema": "CdpSegmentDbtInputRepresentation" },
-    { "name": "body_dataspace", "wire": "dataSpace", "in": "body", "type": "string" }
+    { "name": "dataspace", "api_name": "dataspace", "in": "query", "type": "string" },
+    { "name": "display_name", "api_name": "displayName", "in": "body", "type": "string", "required": true },
+    { "name": "include_dbt", "api_name": "includeDbt", "in": "body", "schema": "CdpSegmentDbtInputRepresentation" },
+    { "name": "body_dataspace", "api_name": "dataSpace", "in": "body", "type": "string" }
   ],
-  "columns": [{ "name": "api_name", "wire": "apiName", "type": "VARCHAR" }],
+  "columns": [{ "name": "api_name", "api_name": "apiName", "type": "VARCHAR" }],
   "effect": "write",
   "billed": false,
   "evidence": "O"

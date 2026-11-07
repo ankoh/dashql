@@ -188,3 +188,45 @@ analyzer-snapshots:
       overlay: tickets
     script:
       input: call tickets.ticket_delete (id => 1, _wait => 60, _poll => 'x');
+  # A tag selects the variant of a union, whatever the case of its value
+  - name: call_union_tag
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = 'EMAIL', address = 'a@b.c', owner = (id = 1)));
+  # An attribute of another variant, and what the selected variant still needs
+  - name: call_union_tag_mismatch
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = 'Email', queue = 'ops'));
+  # A parameter selects nothing, so the attributes decide. Here they still fit one variant.
+  - name: call_union_tag_parameter
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = :kind, queue = 'ops'));
+  # Without a tag the attributes decide: they have to fit one variant
+  - name: call_union_shape
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (trigger => (event = 'created', filter = 'x'));
+  # The first attribute that leaves no variant is the mistake
+  - name: call_union_shape_conflict
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (trigger => (event = 'created', cron = '* * * * *'));
+  # A name that no variant takes, and the closest variant needs its attribute
+  - name: call_union_unknown
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (trigger => (evnt = 'created'));
+  # Nested schemas are checked through a union
+  - name: call_union_nested
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.rule_create (target => (kind = 'Queue', queue = 'ops', owner = (nope = 1)));

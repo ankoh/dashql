@@ -33,7 +33,7 @@ Field names here use the API's spelling. Scripts write them in snake_case, see [
 | Source | What it gives | Limits |
 |---|---|---|
 | [`FamilyCatalog.java`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) | 241 tools with verb and path, 223 distinct operations | The hosted server has tools the repo lacks, such as `d360_segment_count` |
-| [`tools/*.java`](https://github.com/forcedotcom/d360-mcp-server/tree/main/src/main/java/com/salesforce/data360/mcp/tools) | Parameters and rule text per tool | MCP convenience parameters aren't always wire names |
+| [`tools/*.java`](https://github.com/forcedotcom/d360-mcp-server/tree/main/src/main/java/com/salesforce/data360/mcp/tools) | Parameters and rule text per tool | MCP convenience parameters aren't always API names |
 | [`payload-examples.json`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) | Example bodies for 89 tools | Some contradict the tool rules, see [Source conflicts](#source-conflicts) |
 | [Official doc index](https://developer.salesforce.com/docs/llms-data-cloud.txt) | Per-operation pages for Query, ingestion and agentic memory | No per-operation Connect pages |
 | [`connect-openapi-contracts.json`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-contracts.json) | **The main source.** The official v68 contract normalized by Salesforce's `sf-pi` repository: 414 operations, 1,210 schemas | Normalized, so it has no descriptions or examples |

@@ -52,6 +52,55 @@ PUBLIC_CREDENTIAL_PARAMS = [
     "warehouse",
 ]
 
+# The attribute that selects the variant of a union, and the variant of a value. The contract declares no discriminators
+# and every variant lists the same enum, so only the names connect a value to a variant, and only those are listed. A
+# value that is not listed, such as `SqlHidden`, selects nothing and the attributes of the object decide.
+UNION_TAGS = [
+    {
+        "attribute": "citation_type",
+        "values": {
+            "Custom": "MlRetrieverQueryTemplateCitationDefinitionCustomInputRepresentation",
+            "Default": "MlRetrieverQueryTemplateCitationDefinitionDefaultInputRepresentation",
+        },
+    },
+    {
+        "attribute": "connector_type",
+        "values": {
+            "CleanroomAwsS3": "DataCleanRoomAwsS3ConnectionAttributesRepresentation",
+            "CleanroomSnowflake": "DataCleanRoomSnowflakeConnectionAttributesRepresentation",
+        },
+    },
+    {
+        "attribute": "frequency",
+        "values": {
+            "Daily": "DailyScheduleInputRepresentation",
+            "Hourly": "CdpHourlyScheduleInputRepresentation",
+            "Minutely": "CdpMinutelyScheduleInputRepresentation",
+            "Monthly": "MonthlySpecificScheduleInputRepresentation",
+            "MonthlyRelative": "CdpMonthlyRelativeScheduleInputRepresentation",
+            "None": "CdpNoneScheduleInputRepresentation",
+            "Weekly": "WeeklyScheduleInputRepresentation",
+        },
+    },
+    {
+        "attribute": "type",
+        "values": {
+            "AmazonMsk": "AmazonMSKRouteDetailsInputRepresentation",
+            "Databricks": "DatabricksRouteDetailsInputRepresentation",
+            "Redshift": "RedshiftRouteDetailsInputRepresentation",
+            "Snowflake": "SnowflakeRouteDetailsInputRepresentation",
+        },
+    },
+    {
+        "attribute": "type",
+        "values": {
+            "DcSql": "DcSqlDataTransformDefinitionInputRepresentation",
+            "Sql": "SqlDataTransformDefinitionInputRepresentation",
+            "Stl": "StlDataTransformDefinitionInputRepresentation",
+        },
+    },
+]
+
 COLUMN_TYPES = {"VARCHAR", "TIMESTAMPTZ", "DATE", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN", "JSON"}
 
 
@@ -140,18 +189,17 @@ class Reference:
             self.families.append((title, lines[start][3:], header, section))
 
 
-def attribute(reference, name, wire, text, required, owner, unions):
+def attribute(reference, name, api_name, text, required, owner, unions):
     """An option or attribute from the cells of its name, API name, type and required"""
     out = {"name": strip_code(name)}
-    if strip_code(wire) != out["name"]:
-        out["wire"] = strip_code(wire)
+    if strip_code(api_name) != out["name"]:
+        out["api_name"] = strip_code(api_name)
     schemas = reference.schema_of_type(text, owner)
     if len(schemas) == 1:
         out["schema"] = schemas[0]
     elif len(schemas) > 1:
-        # `one of`: the checks accept the union of the variants
-        out["schema"] = "_or_".join(schemas)
-        unions[out["schema"]] = schemas
+        # `one of`: named after its first use, the same variants are one schema
+        out["schema"] = unions.setdefault(tuple(schemas), f"{owner}.{out['name']}")
     elif text.startswith("integer"):
         out["type"] = "integer"
     elif text.startswith("number"):
@@ -179,8 +227,8 @@ def read_paging(section, rows, columns):
     # A next value sits beside the rows
     parent = rows.rsplit("/", 1)[0] if rows else ""
     if "`next_page_url`" in note.split("(")[0] or "`next_page_url`" in note.split(". ")[0]:
-        wire = next((c.get("wire", c["name"]) for c in columns if c["name"] == "next_page_url"), "nextPageUrl")
-        return {"kind": "url", "from": f"{parent}/{wire}"}
+        api_name = next((c.get("api_name", c["name"]) for c in columns if c["name"] == "next_page_url"), "nextPageUrl")
+        return {"kind": "url", "from": f"{parent}/{api_name}"}
     match = re.match(r"`page_token`, from `(\w+)`", note)
     if match:
         return {"kind": "token", "from": f"{parent}/{match.group(1)}", "option": "page_token"}
@@ -211,13 +259,11 @@ def read_function(reference, title, name, header, section, unions):
     sensitive = []
     for row in read_table(section, 1, "Option"):
         option = attribute(reference, row[0], row[1], row[3], row[4], name, unions)
-        where = row[2]
-        placement = "path:" + (option.get("wire", option["name"])) if where == "path" else where
         ordered = {"name": option["name"]}
-        if "wire" in option:
-            ordered["wire"] = option["wire"]
-        ordered["in"] = placement
-        ordered.update({k: v for k, v in option.items() if k not in ("name", "wire")})
+        if "api_name" in option:
+            ordered["api_name"] = option["api_name"]
+        ordered["in"] = row[2]
+        ordered.update({k: v for k, v in option.items() if k not in ("name", "api_name")})
         options.append(ordered)
         if "(text/csv)" in row[3]:
             fn["body"] = "text/csv"
@@ -242,9 +288,9 @@ def read_function(reference, title, name, header, section, unions):
             if strip_code(row[0]).startswith("<"):
                 continue
             column = {"name": strip_code(row[0])}
-            wire = strip_code(row[1])
-            if wire != column["name"]:
-                column["wire"] = wire
+            api_name = strip_code(row[1])
+            if api_name != column["name"]:
+                column["api_name"] = api_name
             column_type = row[2].split(" ")[0]
             if column_type not in COLUMN_TYPES:
                 reference.problems.append(f"{name}: the column {column['name']} has the type {row[2]}")
@@ -317,28 +363,28 @@ def generate(directory):
             return
         seen.add(schema_name)
         used_by.setdefault(schema_name, set()).add(evidence)
-        for attr in schemas[schema_name]["attributes"]:
+        for variant in schemas[schema_name].get("variants", []):
+            visit(variant, evidence, seen)
+        for attr in schemas[schema_name].get("attributes", []):
             if "schema" in attr:
                 visit(attr["schema"], evidence, seen)
 
-    for name, variants in sorted(unions.items()):
-        merged = []
-        for variant in variants:
-            for attr in schemas.get(variant, {}).get("attributes", []):
-                if not any(m["name"].lower() == attr["name"].lower() for m in merged):
-                    # An attribute is only required in its own variant
-                    merged.append({k: v for k, v in attr.items() if k != "required"})
-        schema = {"attributes": merged}
-        if any(schemas.get(v, {}).get("unknown") == "warning" for v in variants):
-            schema["unknown"] = "warning"
+    for variants, name in unions.items():
+        schema = {"variants": list(variants)}
+        tag = next((t for t in UNION_TAGS if set(t["values"].values()) <= set(variants)), None)
+        if tag:
+            schema["tag"] = tag
         schemas[name] = schema
+    for tag in UNION_TAGS:
+        if not any(set(tag["values"].values()) <= set(variants) for variants in unions):
+            reference.problems.append(f"no union has the variants of the tag {tag['attribute']}: {sorted(tag['values'])}")
 
     for fn in functions:
         for option in fn.get("options", []):
             if "schema" in option:
                 visit(option["schema"], fn.get("evidence", "O"), set())
     for name, evidences in used_by.items():
-        if "O" not in evidences and schemas[name].get("unknown") is None:
+        if "O" not in evidences and schemas[name].get("unknown") is None and "variants" not in schemas[name]:
             schemas[name]["unknown"] = "warning"
 
     # Names that differ in case only are one name in a script, the first spelling wins
@@ -348,7 +394,7 @@ def generate(directory):
         for attr in attributes:
             key = attr["name"].lower()
             if key in seen:
-                if seen[key].get("wire", seen[key]["name"]) != attr.get("wire", attr["name"]):
+                if seen[key].get("api_name", seen[key]["name"]) != attr.get("api_name", attr["name"]):
                     reference.problems.append(f"{owner}: {attr['name']} has two API spellings")
                 continue
             seen[key] = attr
@@ -359,7 +405,8 @@ def generate(directory):
         if "options" in fn:
             fn["options"] = dedupe(fn["name"], fn["options"])
     for name, schema in schemas.items():
-        schema["attributes"] = dedupe(name, schema["attributes"])
+        if "attributes" in schema:
+            schema["attributes"] = dedupe(name, schema["attributes"])
 
     spec = {
         "format": 1,
@@ -417,7 +464,7 @@ def main():
     if args.write:
         with open(args.write, "w", encoding="utf-8") as out:
             out.write(text)
-        attributes = sum(len(f.get("options", [])) for f in spec["functions"]) + sum(len(s["attributes"]) for s in spec["schemas"].values())
+        attributes = sum(len(f.get("options", [])) for f in spec["functions"]) + sum(len(s.get("attributes", [])) for s in spec["schemas"].values())
         print(f"{len(spec['functions'])} functions, {len(spec['schemas'])} schemas, {attributes} attributes, {len(text)} bytes")
     if args.check:
         with open(args.check, encoding="utf-8") as current:

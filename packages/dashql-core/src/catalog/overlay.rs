@@ -2,7 +2,7 @@
 //!
 //! A host registers an overlay on the catalog of a connection (see `docs/design/overlay.md`). The core reads the
 //! generic part of the spec: namespaces, functions, typed named options, nested schemas and result columns. Everything
-//! a request needs (methods, paths, wire names) stays in the document for the runtime of the host, the core ignores it.
+//! a request needs (methods, paths, API names) stays in the document for the runtime of the host, the core ignores it.
 
 use crate::error::{Error, Result};
 use crate::hash::HashMap;
@@ -48,6 +48,8 @@ pub enum OverlayEffect {
 pub struct OverlayAttribute {
     /// The name in a script
     pub name: String,
+    /// The spelling of the API. Only the check of a union reads it, the runtime sends it.
+    pub api_name: Option<String>,
     /// The type of a scalar value
     #[serde(rename = "type")]
     pub value_type: Option<String>,
@@ -59,14 +61,71 @@ pub struct OverlayAttribute {
     pub description: Option<String>,
 }
 
-/// A named object
+/// The attribute of a union whose value selects the variant
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default)]
+pub struct OverlayTag {
+    /// The attribute
+    pub attribute: String,
+    /// The variant of a value, whatever its case. A value that is not listed selects nothing.
+    pub values: HashMap<String, String>,
+}
+
+/// A named object, or a union of named objects
 #[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct OverlaySchema {
-    /// The attributes
+    /// The attributes, a union has none
     pub attributes: Vec<OverlayAttribute>,
     /// What an attribute that is not listed does
     pub unknown: OverlayUnknownPolicy,
+    /// The schemas that a value of a union can be
+    pub variants: Vec<String>,
+    /// What selects the variant of a union, without it only the attributes of a value decide
+    pub tag: Option<OverlayTag>,
+}
+
+impl OverlaySchema {
+    /// Does an object of this schema take a name?
+    fn takes(&self, name: &str, quoted: bool) -> bool {
+        self.unknown == OverlayUnknownPolicy::Allow || find_attribute(&self.attributes, name, quoted).is_some()
+    }
+}
+
+/// A field of an object, as far as it decides a variant
+#[derive(Clone, Debug, Default)]
+pub struct OverlayField {
+    /// The name in the script
+    pub name: String,
+    /// Was the name quoted?
+    pub quoted: bool,
+    /// The value, if it is a string
+    pub text: Option<String>,
+}
+
+/// What an object can be
+#[derive(Debug)]
+pub struct OverlayFit<'a> {
+    /// The variants that fit, the only one of a schema that is no union. Never empty.
+    pub variants: Vec<&'a OverlaySchema>,
+    /// The field whose value selected the variant
+    pub tag_field: Option<usize>,
+    /// The fields that another variant takes, but none that fits the fields before them
+    pub conflicts: Vec<usize>,
+}
+
+impl OverlayFit<'_> {
+    /// What an attribute that no variant lists does: the most lenient variant decides
+    pub fn unknown(&self) -> OverlayUnknownPolicy {
+        let policy = |p: OverlayUnknownPolicy| self.variants.iter().any(|v| v.unknown == p);
+        if policy(OverlayUnknownPolicy::Allow) {
+            OverlayUnknownPolicy::Allow
+        } else if policy(OverlayUnknownPolicy::Warning) {
+            OverlayUnknownPolicy::Warning
+        } else {
+            OverlayUnknownPolicy::Error
+        }
+    }
 }
 
 /// A result column
@@ -222,6 +281,44 @@ fn check_attributes(owner: &str, attributes: &[OverlayAttribute], schemas: &Hash
     Ok(())
 }
 
+/// Check the variants and the tag of a union
+fn check_union(owner: &str, schema: &OverlaySchema, schemas: &HashMap<String, OverlaySchema>) -> Result<()> {
+    let invalid = |message: String| Err(Error::invalid_argument(format!("{owner}: {message}")));
+    if schema.variants.is_empty() {
+        return if schema.tag.is_some() { invalid("a tag needs variants".to_string()) } else { Ok(()) };
+    }
+    if !schema.attributes.is_empty() {
+        return invalid("a union has variants instead of attributes".to_string());
+    }
+    let mut attributes: Vec<&OverlayAttribute> = Vec::new();
+    for name in &schema.variants {
+        let Some(variant) = schemas.get(name) else { return invalid(format!("unknown variant {name}")) };
+        if !variant.variants.is_empty() {
+            return invalid(format!("the variant {name} is a union"));
+        }
+        // A name means one thing in a union, so that neither a request nor a nested check depends on the variant
+        for attribute in &variant.attributes {
+            match attributes.iter().find(|a| a.name.eq_ignore_ascii_case(&attribute.name)) {
+                Some(other) if other.api_name != attribute.api_name || other.schema != attribute.schema => {
+                    return invalid(format!("the variants disagree on the attribute {}", attribute.name));
+                }
+                Some(_) => {}
+                None => attributes.push(attribute),
+            }
+        }
+    }
+    for (value, name) in schema.tag.iter().flat_map(|t| t.values.iter()) {
+        let tag = schema.tag.as_ref().map_or("", |t| t.attribute.as_str());
+        if !schema.variants.contains(name) {
+            return invalid(format!("the tag value {value} selects {name}, which is no variant"));
+        }
+        if schemas.get(name).is_some_and(|v| find_attribute(&v.attributes, tag, false).is_none()) {
+            return invalid(format!("the variant {name} has no attribute {tag}"));
+        }
+    }
+    Ok(())
+}
+
 impl OverlaySpec {
     /// Read and check a spec
     pub fn parse(json: &str) -> Result<Self> {
@@ -235,6 +332,7 @@ impl OverlaySpec {
         }
         for (name, schema) in &spec.schemas {
             check_attributes(name, &schema.attributes, &spec.schemas)?;
+            check_union(name, schema, &spec.schemas)?;
         }
         for (i, function) in spec.functions.iter().enumerate() {
             if !is_plain_lowercase(&function.name) {
@@ -263,6 +361,51 @@ impl OverlaySpec {
     /// A schema by name
     pub fn schema(&self, name: &str) -> Option<&OverlaySchema> {
         self.schemas.get(name)
+    }
+
+    /// The variants of a schema, a schema that is no union is its own only variant
+    fn variants_of<'a>(&'a self, schema: &'a OverlaySchema) -> Vec<&'a OverlaySchema> {
+        if schema.variants.is_empty() {
+            return vec![schema];
+        }
+        schema.variants.iter().filter_map(|name| self.schema(name)).collect()
+    }
+
+    /// The attribute that a name selects in a schema. A name means one thing in a union, so any variant can answer.
+    pub fn attribute_of<'a>(&'a self, schema: &'a OverlaySchema, name: &str, quoted: bool) -> Option<&'a OverlayAttribute> {
+        self.variants_of(schema).into_iter().find_map(|variant| find_attribute(&variant.attributes, name, quoted))
+    }
+
+    /// What an object with these fields can be. A tag selects its variant. Then every field in script order keeps the
+    /// variants that take it, and one that would leave none is a conflict. A name that no variant takes says nothing.
+    pub fn fit<'a>(&'a self, schema: &'a OverlaySchema, fields: &[OverlayField]) -> OverlayFit<'a> {
+        let variants = self.variants_of(schema);
+        let mut fit = OverlayFit { variants: variants.clone(), tag_field: None, conflicts: Vec::new() };
+        if let Some(tag) = &schema.tag {
+            let is_tag = |f: &OverlayField| if f.quoted { f.name == tag.attribute } else { f.name.eq_ignore_ascii_case(&tag.attribute) };
+            if let Some(i) = fields.iter().position(is_tag) {
+                let selected = fields[i].text.as_ref().and_then(|text| tag.values.iter().find(|(value, _)| value.eq_ignore_ascii_case(text)));
+                if let Some(variant) = selected.and_then(|(_, name)| self.schema(name)) {
+                    fit.variants = vec![variant];
+                    fit.tag_field = Some(i);
+                }
+            }
+        }
+        for (i, field) in fields.iter().enumerate() {
+            if !variants.iter().any(|v| v.takes(&field.name, field.quoted)) {
+                continue;
+            }
+            let fitting: Vec<_> = fit.variants.iter().copied().filter(|v| v.takes(&field.name, field.quoted)).collect();
+            if fitting.is_empty() {
+                // A quoted name means what it says
+                if !field.quoted {
+                    fit.conflicts.push(i);
+                }
+            } else {
+                fit.variants = fitting;
+            }
+        }
+        fit
     }
 
     /// Can a function answer before it finishes?
@@ -333,6 +476,71 @@ mod tests {
         assert!(OverlaySpec::parse(&function("f", r#", "columns": [{"name": "_raw"}]"#)).is_err());
         assert!(OverlaySpec::parse(&function("f", r#", "options": [{"name": "a", "schema": "Nope"}]"#)).is_err());
         assert!(OverlaySpec::parse(&function("f", r#", "options": [{"name": "a"}, {"name": "A"}]"#)).is_err());
+    }
+
+    const UNION: &str = r#"{"format": 1, "namespace": "t", "schemas": {
+        "A": {"attributes": [{"name": "kind"}, {"name": "a"}, {"name": "both"}]},
+        "B": {"attributes": [{"name": "kind"}, {"name": "b"}, {"name": "both"}]},
+        "C": {"attributes": [{"name": "c"}]},
+        "Tagged": {"variants": ["A", "B"], "tag": {"attribute": "kind", "values": {"IsA": "A", "IsB": "B"}}},
+        "Shape": {"variants": ["A", "C"]}
+    }}"#;
+
+    fn union(schemas: &str) -> Result<OverlaySpec> {
+        OverlaySpec::parse(&format!(r#"{{"format": 1, "namespace": "t", "schemas": {schemas}}}"#))
+    }
+
+    #[test]
+    fn rejects_invalid_unions() {
+        let a = r#""A": {"attributes": [{"name": "x", "api_name": "X"}]}"#;
+        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"]}}}}"#)).is_ok());
+        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["Nope"]}}}}"#)).is_err());
+        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"], "attributes": [{{"name": "y"}}]}}}}"#)).is_err());
+        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"]}}, "V": {{"variants": ["U"]}}}}"#)).is_err());
+        assert!(union(&format!(r#"{{{a}, "U": {{"tag": {{"attribute": "x", "values": {{}}}}}}}}"#)).is_err());
+        // A tag selects a variant of the union that has the tag
+        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"], "tag": {{"attribute": "x", "values": {{"v": "A"}}}}}}}}"#)).is_ok());
+        assert!(union(&format!(r#"{{{a}, "Z": {{}}, "U": {{"variants": ["A"], "tag": {{"attribute": "x", "values": {{"v": "Z"}}}}}}}}"#)).is_err());
+        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"], "tag": {{"attribute": "y", "values": {{"v": "A"}}}}}}}}"#)).is_err());
+        // A name means one thing in a union
+        let api_name = r#""B": {"attributes": [{"name": "x", "api_name": "Other"}]}"#;
+        assert!(union(&format!(r#"{{{a}, {api_name}, "U": {{"variants": ["A", "B"]}}}}"#)).is_err());
+        let schema = r#""B": {"attributes": [{"name": "x", "api_name": "X", "schema": "A"}]}"#;
+        assert!(union(&format!(r#"{{{a}, {schema}, "U": {{"variants": ["A", "B"]}}}}"#)).is_err());
+    }
+
+    fn field(name: &str, text: Option<&str>) -> OverlayField {
+        OverlayField { name: name.to_string(), quoted: false, text: text.map(str::to_string) }
+    }
+
+    #[test]
+    fn fits_variants() {
+        let spec = OverlaySpec::parse(UNION).unwrap();
+        let fit = |schema: &str, fields: &[OverlayField]| {
+            let schema = &spec.schemas[schema];
+            let fit = spec.fit(schema, fields);
+            let names: Vec<&str> = fit.variants.iter().map(|v| v.attributes[1.min(v.attributes.len() - 1)].name.as_str()).collect();
+            (names.join(","), fit.tag_field, fit.conflicts)
+        };
+        // Nothing yet: any variant
+        assert_eq!(fit("Tagged", &[]), ("a,b".to_string(), None, vec![]));
+        // The value selects the variant, whatever its case
+        assert_eq!(fit("Tagged", &[field("kind", Some("isb"))]), ("b".to_string(), Some(0), vec![]));
+        // A wrong attribute for the tag, in any order
+        assert_eq!(fit("Tagged", &[field("a", None), field("KIND", Some("IsB"))]), ("b".to_string(), Some(1), vec![0]));
+        // A value that isn't listed or isn't known yet selects nothing, the attributes decide
+        assert_eq!(fit("Tagged", &[field("kind", Some("Other")), field("a", None)]), ("a".to_string(), None, vec![]));
+        assert_eq!(fit("Tagged", &[field("kind", None), field("b", None)]), ("b".to_string(), None, vec![]));
+        // Without a tag the attributes decide, the first one that leaves no variant is the conflict
+        assert_eq!(fit("Shape", &[field("a", None), field("c", None)]), ("a".to_string(), None, vec![1]));
+        assert_eq!(fit("Shape", &[field("c", None), field("a", None)]), ("c".to_string(), None, vec![1]));
+        // A name that no variant takes says nothing
+        assert_eq!(fit("Shape", &[field("nope", None)]), ("a,c".to_string(), None, vec![]));
+        // A shared attribute keeps both
+        assert_eq!(fit("Tagged", &[field("both", None)]), ("a,b".to_string(), None, vec![]));
+        // A quoted name means what it says, it's no conflict
+        let quoted = OverlayField { name: "c".to_string(), quoted: true, text: None };
+        assert_eq!(fit("Shape", &[field("a", None), quoted]), ("a".to_string(), None, vec![]));
     }
 
     #[test]

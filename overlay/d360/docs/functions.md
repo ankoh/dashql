@@ -56,7 +56,7 @@ Each function has the same parts:
 
 **Paths** under `/ssot`, `/connect`, `/personalization` and `/semantic-engine` are relative to `/services/data/vXX.X`. Paths under `/api/...` are on the tenant host. See [Hosts and tokens](api_notes.md#hosts-and-tokens).
 
-**Option types** link to a schema where the value is an object. `one of` lists variants, and the checks accept the union of their attributes. Every object attribute accepts both a single object and an array, because the spec and its own examples often disagree on which is right.
+**Option types** link to a schema where the value is an object. `one of` lists variants, and a value has to fit one of them, see [Variants](overview.md#variants). Every object attribute accepts both a single object and an array, because the spec and its own examples often disagree on which is right.
 
 ## Evidence
 

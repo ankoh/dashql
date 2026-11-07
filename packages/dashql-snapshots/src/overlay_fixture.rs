@@ -1,7 +1,7 @@
 //! A made-up overlay for the tests of the core, so that they can't start to depend on a real service.
 
 /// A ticket service. It covers what the core reads: required and unknown options, nested schemas, recursion, free-form
-/// objects, paging, pending results, sensitive values and the escape hatch.
+/// objects, unions, paging, pending results, sensitive values and the escape hatch.
 pub const TICKETS: &str = r#"{
   "format": 1,
   "namespace": "tickets",
@@ -11,21 +11,47 @@ pub const TICKETS: &str = r#"{
   "schemas": {
     "Assignee": {
       "attributes": [
-        { "name": "id", "wire": "id", "type": "integer", "required": true },
-        { "name": "notify", "wire": "notifyUser", "type": "boolean" }
+        { "name": "id", "api_name": "id", "type": "integer", "required": true },
+        { "name": "notify", "api_name": "notifyUser", "type": "boolean" }
       ]
     },
     "Component": {
       "attributes": [
-        { "name": "name", "wire": "name", "type": "string" },
-        { "name": "children", "wire": "children", "schema": "Component" }
+        { "name": "name", "api_name": "name", "type": "string" },
+        { "name": "children", "api_name": "children", "schema": "Component" }
       ]
     },
     "Inferred": {
       "unknown": "warning",
-      "attributes": [{ "name": "known", "wire": "known", "type": "string" }]
+      "attributes": [{ "name": "known", "api_name": "known", "type": "string" }]
     },
-    "Free": { "unknown": "allow" }
+    "Free": { "unknown": "allow" },
+    "EmailTarget": {
+      "attributes": [
+        { "name": "kind", "api_name": "kind", "type": "string", "required": true },
+        { "name": "address", "api_name": "emailAddress", "type": "string", "required": true },
+        { "name": "owner", "api_name": "owner", "schema": "Assignee" }
+      ]
+    },
+    "QueueTarget": {
+      "attributes": [
+        { "name": "kind", "api_name": "kind", "type": "string", "required": true },
+        { "name": "queue", "api_name": "queueName", "type": "string", "required": true },
+        { "name": "owner", "api_name": "owner", "schema": "Assignee" }
+      ]
+    },
+    "Target": {
+      "variants": ["EmailTarget", "QueueTarget"],
+      "tag": { "attribute": "kind", "values": { "Email": "EmailTarget", "Queue": "QueueTarget" } }
+    },
+    "CronTrigger": { "attributes": [{ "name": "cron", "api_name": "cron", "type": "string", "required": true }] },
+    "EventTrigger": {
+      "attributes": [
+        { "name": "event", "api_name": "event", "type": "string", "required": true },
+        { "name": "filter", "api_name": "filter", "type": "string" }
+      ]
+    },
+    "Trigger": { "variants": ["CronTrigger", "EventTrigger"] }
   },
   "functions": [
     {
@@ -35,12 +61,12 @@ pub const TICKETS: &str = r#"{
       "host": "api",
       "path": "/projects/{project}/tickets",
       "options": [
-        { "name": "project", "wire": "project", "in": "path:project", "type": "string", "required": true },
-        { "name": "page_size", "wire": "pageSize", "in": "query", "type": "integer" },
-        { "name": "page_token", "wire": "pageToken", "in": "query", "type": "string" }
+        { "name": "project", "api_name": "project", "in": "path", "type": "string", "required": true },
+        { "name": "page_size", "api_name": "pageSize", "in": "query", "type": "integer" },
+        { "name": "page_token", "api_name": "pageToken", "in": "query", "type": "string" }
       ],
       "rows": "/items",
-      "columns": [{ "name": "id", "wire": "id", "type": "BIGINT" }],
+      "columns": [{ "name": "id", "api_name": "id", "type": "BIGINT" }],
       "paging": { "kind": "token", "from": "/nextPageToken", "option": "page_token" }
     },
     {
@@ -48,7 +74,7 @@ pub const TICKETS: &str = r#"{
       "method": "GET",
       "host": "api",
       "path": "/feed",
-      "options": [{ "name": "project", "wire": "project", "in": "query", "type": "string", "required": true }],
+      "options": [{ "name": "project", "api_name": "project", "in": "query", "type": "string", "required": true }],
       "paging": { "kind": "url", "from": "header:Link#next" }
     },
     {
@@ -58,16 +84,16 @@ pub const TICKETS: &str = r#"{
       "host": "api",
       "path": "/tickets",
       "options": [
-        { "name": "project", "wire": "project", "in": "body", "type": "string", "required": true },
-        { "name": "title", "wire": "title", "in": "body", "type": "string", "required": true },
-        { "name": "labels", "wire": "labels", "in": "body", "type": "any" },
-        { "name": "assignee", "wire": "assignee", "in": "body", "schema": "Assignee" },
-        { "name": "components", "wire": "components", "in": "body", "schema": "Component" },
-        { "name": "inferred", "wire": "inferred", "in": "body", "schema": "Inferred" },
-        { "name": "metadata", "wire": "metadata", "in": "body", "schema": "Free" },
-        { "name": "affected", "wire": "affected", "in": "body", "type": "sql" },
-        { "name": "DataSourceId__c", "wire": "DataSourceId__c", "in": "body", "type": "string" },
-        { "name": "X-Trace-Id", "wire": "X-Trace-Id", "in": "header", "type": "string" }
+        { "name": "project", "api_name": "project", "in": "body", "type": "string", "required": true },
+        { "name": "title", "api_name": "title", "in": "body", "type": "string", "required": true },
+        { "name": "labels", "api_name": "labels", "in": "body", "type": "any" },
+        { "name": "assignee", "api_name": "assignee", "in": "body", "schema": "Assignee" },
+        { "name": "components", "api_name": "components", "in": "body", "schema": "Component" },
+        { "name": "inferred", "api_name": "inferred", "in": "body", "schema": "Inferred" },
+        { "name": "metadata", "api_name": "metadata", "in": "body", "schema": "Free" },
+        { "name": "affected", "api_name": "affected", "in": "body", "type": "sql" },
+        { "name": "DataSourceId__c", "api_name": "DataSourceId__c", "in": "body", "type": "string" },
+        { "name": "X-Trace-Id", "api_name": "X-Trace-Id", "in": "header", "type": "string" }
       ]
     },
     {
@@ -75,7 +101,7 @@ pub const TICKETS: &str = r#"{
       "method": "DELETE",
       "host": "api",
       "path": "/tickets/{id}",
-      "options": [{ "name": "id", "wire": "id", "in": "path:id", "type": "integer", "required": true }]
+      "options": [{ "name": "id", "api_name": "id", "in": "path", "type": "integer", "required": true }]
     },
     {
       "name": "ticket_search",
@@ -84,7 +110,7 @@ pub const TICKETS: &str = r#"{
       "host": "api",
       "path": "/tickets:search",
       "unknown": "warning",
-      "options": [{ "name": "query", "wire": "q", "in": "body", "type": "string" }]
+      "options": [{ "name": "query", "api_name": "q", "in": "body", "type": "string" }]
     },
     {
       "name": "export_start",
@@ -92,7 +118,7 @@ pub const TICKETS: &str = r#"{
       "host": "api",
       "path": "/exports",
       "pending": { "status": 202, "poll": "header:Location" },
-      "options": [{ "name": "format", "wire": "format", "in": "body", "type": "string", "required": true }]
+      "options": [{ "name": "format", "api_name": "format", "in": "body", "type": "string", "required": true }]
     },
     {
       "name": "webhook_create",
@@ -100,13 +126,23 @@ pub const TICKETS: &str = r#"{
       "host": "api",
       "path": "/webhooks",
       "options": [
-        { "name": "url", "wire": "url", "in": "body", "type": "string" },
-        { "name": "signing_key", "wire": "signingKey", "in": "body", "type": "string" },
-        { "name": "credentials", "wire": "credentials", "in": "body", "type": "any" }
+        { "name": "url", "api_name": "url", "in": "body", "type": "string" },
+        { "name": "signing_key", "api_name": "signingKey", "in": "body", "type": "string" },
+        { "name": "credentials", "api_name": "credentials", "in": "body", "type": "any" }
       ],
       "sensitive": [
         { "pointer": "/signing_key" },
         { "pointer": "/credentials/*/value", "public_when": { "param_name": ["user", "account"] } }
+      ]
+    },
+    {
+      "name": "rule_create",
+      "method": "POST",
+      "host": "api",
+      "path": "/rules",
+      "options": [
+        { "name": "target", "api_name": "target", "in": "body", "schema": "Target" },
+        { "name": "trigger", "api_name": "trigger", "in": "body", "schema": "Trigger" }
       ]
     },
     { "name": "request", "raw": true, "host": "api" }
