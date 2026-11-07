@@ -39,7 +39,8 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
-# Stage the overlays for the @dashql/overlays alias, the browser tests read their specs and fixtures.
+# Stage the overlays for the @dashql/overlays alias: the app bundles their generated specs, and the browser tests read
+# the fixtures as well.
 copy_to_directory(
     name = "overlays",
     srcs = ["//overlay/d360:files"],

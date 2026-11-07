@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/data_transforms.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Data Transforms
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -683,7 +685,7 @@ One row. Schema `DataTransformRepresentation`.
 
 **Can a streaming transform change?** Sources disagree. [Help](https://help.salesforce.com/s/articleView?id=data.c360_a_streaming_transform_considerations.htm&language=en_US&type=5) says you can't change one after saving, and to delete and recreate it. A [release note](https://help.salesforce.com/s/articleView?id=release-notes.rn_c360_truth.htm&language=en_US&release=250&type=5) says the name and SQL expression can change, effective on incoming data at save, with a [rebuild](#transform_rebuild) for existing data.
 
-**Spec example.** It uses `key_qualifier_field`, while the schema has `key_qualifier_field_name`. Follow the schema. It also shows `schedule` with `interval` and `days_of_week` inside a definition, which the [schedule schema](#cdphourlyscheduleinputrepresentation) covers.
+**Spec example.** It uses `key_qualifier_field`, while the schema has `key_qualifier_field_name`. Follow the schema. It also shows `schedule` with `interval` and `days_of_week` inside a definition, which the [schedule schema](segments.md#cdphourlyscheduleinputrepresentation) covers.
 
 ## transform_schedule_set
 
@@ -726,7 +728,7 @@ One row. Schema `CdpScheduleBaseRepresentation`.
 | `type` | `type` | VARCHAR | Type of schedule frequency. The endpoint returns the schedule output object that corresponds to the type of schedule frequency. Only `Daily`, `Hourly`, or `None` are supported for data transforms. For example, the Daily Schedule Output is returned for the `Daily` publish frequency. Since v58.0. |
 | `time` | `time` | JSON (CdpTimeRepresentation) | - |
 
-**Notes:** **`interval` is missing from the table.** [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) says the platform requires it, from 1 to 31, although the spec lists only `frequency` and `time`. So this example may be rejected until the option exists. The spec has `interval` and `days_of_week` on the [hourly input](#cdphourlyscheduleinputrepresentation), and its example uses `Hourly`, `interval` = 8 and `days_of_week` = `Wednesday`, `Thursday`, `Friday`. sf-pi's daily example sends `interval` = 1.
+**Notes:** **`interval` is missing from the table.** [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) says the platform requires it, from 1 to 31, although the spec lists only `frequency` and `time`. So this example may be rejected until the option exists. The spec has `interval` and `days_of_week` on the [hourly input](segments.md#cdphourlyscheduleinputrepresentation), and its example uses `Hourly`, `interval` = 8 and `days_of_week` = `Wednesday`, `Thursday`, `Friday`. sf-pi's daily example sends `interval` = 1.
 
 **Frequencies disagree.** The spec's response text says only `Daily`, `Hourly` and `None` apply to transforms. The [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/datatransform/DataTransformScheduleRequest.java) also lists `Monthly`, `MonthlyRelative` and `Weekly`, and spells days `MONDAY` where the spec has `Monday`.
 
@@ -797,11 +799,11 @@ Represents the input fields in the data object.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `is_primary_key` | `isPrimaryKey` | boolean | yes | Indicates whether this field is a primary key (`true`) or not (`false`). Since v60.0. |
-| `key_qualifier_field_name` | `keyQualifierFieldName` | string |  | Key qualifier field name. Since v60.0. |
+| `is_primary_key` | `isPrimaryKey` | boolean | yes | Indicates whether this field is a primary key (`true`) or not (`false`). A create needs at least one `true` (tool text). Since v60.0. |
+| `key_qualifier_field_name` | `keyQualifierFieldName` | string |  | Key qualifier field name. The MCP request class calls this `key_qualifier_field`. The spec's example omits it and gets a generated `KQ_<field>` back. Since v60.0. |
 | `label` | `label` | string | yes | Label of the field. Since v60.0. |
-| `name` | `name` | string | yes | Name of the field. Since v60.0. |
-| `type` | `type` | enum(Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url) |  | Data type of the field. Since v60.0. |
+| `name` | `name` | string | yes | Name of the field. The spec's example omits `__c` and gets it back with the suffix, while a community example passes `event_id__c`. Since v60.0. |
+| `type` | `type` | enum(Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url) |  | Data type of the field. **Conflict:** the spec's schema says `type`, while its examples, the [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dmo/DataObjectFieldInput.java) and two community clients send `data_type`, and a community template uses `type`. The MCP class takes `type` only as an input alias and sends `data_type`. The spec's 400 text rejects fields with no data type. |
 | `description` | `description` | string |  | Not in the spec schema: from the spec's examples. |
 | `is_dynamic_lookup` | `isDynamicLookup` | boolean |  | Not in the spec schema: from the spec's examples. |
 | `data_type` | `dataType` | string |  | Not in the spec schema: from the spec's examples. |
@@ -974,9 +976,15 @@ Represents the input definition for Dc Sql data transforms.
 | `name` | `name` | string |  | Name of the transform definition. Since v63.0. |
 | `output_data_objects` | `outputDataObjects` | array of [DataObjectInput](#dataobjectinputrepresentation) |  | Information about the objects into which the data transform writes the transformed data. Since v60.0. |
 | `schedule` | `schedule` | [CdpScheduleInput](#cdpscheduleinputrepresentation) |  | Schedule for running the transform. Applies to transforms that use the definitions array structure (which can contain one or more definitions). Does not apply to legacy transforms with a single definition field. Since v67.0. |
-| `type` | `type` | enum(DbtHidden, DcSql, Sql, SqlHidden, Stl, StlHidden) | yes | Type of definition. Since v60.0. |
-| `version` | `version` | string | yes | Version of the transform. Since v60.0. |
+| `type` | `type` | enum(DbtHidden, DcSql, Sql, SqlHidden, Stl, StlHidden) | yes | Type of definition. Definition type. `DCSQL` in the MCP examples, `DcSql` in the spec enum. Since v60.0. |
+| `version` | `version` | string | yes | Version of the transform. `1.0` in the MCP examples. Since v60.0. |
 | `manifest` | `manifest` | [DcSqlDataTransformManifestInput](#dcsqldatatransformmanifestinputrepresentation) |  | Manifest of the DC SQL data transform. Since v63.0. |
+
+### DcSqlDataTransformDependsOn
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `nodes` | `nodes` | array of string |  | Names of the nodes this node depends on. |
 
 ### DcSqlDataTransformManifestInputRepresentation
 
@@ -984,9 +992,27 @@ Input representation of the DCSQL transform manifest format
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `macros` | `macros` | map to object |  | Map of DC SQL manifest macros. Since v63.0. |
-| `nodes` | `nodes` | map to object |  | Map of DC SQL manifest nodes. Since v63.0. |
-| `sources` | `sources` | map to object |  | Map of DC SQL manifest sources. Since v63.0. |
+| `macros` | `macros` | map to object |  | Manifest macros. Since v63.0. |
+| `nodes` | `nodes` | map to object |  | SQL nodes, keyed by node name. The spec types input nodes as plain objects, so the node attributes come from its output form. Since v63.0. Each is a [DcSqlDataTransformNode](#dcsqldatatransformnode). |
+| `sources` | `sources` | map to object |  | Manifest sources. Each has `relation_name`, the table read, in the output form. Since v63.0. |
+
+### DcSqlDataTransformNode
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `name` | `name` | string |  | Node name. Other nodes refer to it in `depends_on` and in `FROM`. |
+| `compiled_code` | `compiled_code` | string |  | The node's SQL. |
+| `relation_name` | `relation_name` | string |  | Table this node writes to. Set on output nodes in the MCP examples. |
+| `config` | `config` | [DcSqlDataTransformNodeConfiguration](#dcsqldatatransformnodeconfiguration) |  | Materialization and write mode. |
+| `depends_on` | `depends_on` | [DcSqlDataTransformDependsOn](#dcsqldatatransformdependson) |  | Nodes this node reads. |
+| `resource_type` | `resource_type` | enum(macro, model, source) |  | Type of node resource. Not used in the MCP examples. |
+
+### DcSqlDataTransformNodeConfiguration
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `materialized` | `materialized` | enum(ephemeral, table) |  | `ephemeral` for intermediate nodes and `table` for outputs in the MCP examples. |
+| `write_mode` | `writeMode` | enum(Append, DeleteOnly, Merge, MergeUpsertDelete, Overwrite) |  | Write mode for the node. The examples send `OVERWRITE`. |
 
 ### PivotV2InputRepresentation
 
@@ -1070,8 +1096,8 @@ Defines a streaming data transform during a creation (post) request.
 | `name` | `name` | string |  | Name of the transform definition. Since v63.0. |
 | `output_data_objects` | `outputDataObjects` | array of [DataObjectInput](#dataobjectinputrepresentation) |  | Information about the objects into which the data transform writes the transformed data. Since v60.0. |
 | `schedule` | `schedule` | [CdpScheduleInput](#cdpscheduleinputrepresentation) |  | Schedule for running the transform. Applies to transforms that use the definitions array structure (which can contain one or more definitions). Does not apply to legacy transforms with a single definition field. Since v67.0. |
-| `type` | `type` | enum(DbtHidden, DcSql, Sql, SqlHidden, Stl, StlHidden) | yes | Type of definition. Since v60.0. |
-| `version` | `version` | string | yes | Version of the transform. Since v60.0. |
+| `type` | `type` | enum(DbtHidden, DcSql, Sql, SqlHidden, Stl, StlHidden) | yes | Type of definition. Definition type. `SQL` in the examples, `Sql` in the spec enum. Since v60.0. |
+| `version` | `version` | string | yes | Version of the transform. `63.0` in the examples. The spec's validate example leaves it out. Since v60.0. |
 | `expression` | `expression` | string |  | SQL expression for the streaming transform. Since v60.0. |
 | `target_dlo` | `targetDlo` | string |  | Target data lake object (DLO) for the streaming transform. Since v60.0. |
 | `target_dmo` | `targetDmo` | string |  | Target data model object (DMO) for the streaming transform. Since v60.0. |
@@ -1086,76 +1112,7 @@ Defines a batch data transform during a creation (post) request.
 | `name` | `name` | string |  | Name of the transform definition. Since v63.0. |
 | `output_data_objects` | `outputDataObjects` | array of [DataObjectInput](#dataobjectinputrepresentation) |  | Information about the objects into which the data transform writes the transformed data. Since v60.0. |
 | `schedule` | `schedule` | [CdpScheduleInput](#cdpscheduleinputrepresentation) |  | Schedule for running the transform. Applies to transforms that use the definitions array structure (which can contain one or more definitions). Does not apply to legacy transforms with a single definition field. Since v67.0. |
-| `type` | `type` | enum(DbtHidden, DcSql, Sql, SqlHidden, Stl, StlHidden) | yes | Type of definition. Since v60.0. |
-| `version` | `version` | string | yes | Version of the transform. Since v60.0. |
-| `nodes` | `nodes` | [DataTransformNodeInput](#datatransformnodeinputrepresentation) |  | Map of transform nodes defined for the batch data transform. Since v62.0. |
+| `type` | `type` | enum(DbtHidden, DcSql, Sql, SqlHidden, Stl, StlHidden) | yes | Type of definition. Definition type. `STL` in the examples, `Stl` in the spec enum. Since v60.0. |
+| `version` | `version` | string | yes | Version of the transform. `56.0` in the examples. Since v60.0. |
+| `nodes` | `nodes` | [DataTransformNodeInput](#datatransformnodeinputrepresentation) |  | Transform nodes for the batch transform, each with `action`, `parameters` and `sources`. Since v62.0. |
 | `ui` | `ui` | object |  | UI object info required for rendering in the interactive data transform editor. Since v62.0. |
-
-### CdpHourlyScheduleInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `days_of_week` | `daysOfWeek` | array of enum(Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday) |  | Days of the week on which the schedule runs. From the older spec copy. Since v60.0. |
-| `interval` | `interval` | integer |  | Number of hours between runs. From the older spec copy. Since v60.0. |
-
-### DcSqlDataTransformDefinitionInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string | yes | Definition type. `DCSQL` in the MCP examples, `DcSql` in the spec enum. |
-| `version` | `version` | string | yes | `1.0` in the MCP examples. |
-| `manifest` | `manifest` | [DcSqlDataTransformManifestInput](#dcsqldatatransformmanifestinputrepresentation) |  | Manifest of the DCSQL transform. Since v63.0. |
-| `output_data_objects` | `outputDataObjects` | array of [DataObjectInput](#dataobjectinputrepresentation) |  | Objects the transform writes to. |
-
-### DcSqlDataTransformDependsOn
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `nodes` | `nodes` | array of string |  | Names of the nodes this node depends on. |
-
-### DcSqlDataTransformManifestInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `nodes` | `nodes` | map of name to [DcSqlDataTransformNode](#dcsqldatatransformnode) |  | SQL nodes, keyed by node name. The spec types input nodes as plain objects, so the node attributes come from its output form. Since v63.0. |
-| `sources` | `sources` | map of name to object |  | Manifest sources. Each has `relation_name`, the table read, in the output form. Since v63.0. |
-| `macros` | `macros` | map of name to object |  | Manifest macros. Since v63.0. |
-
-### DcSqlDataTransformNode
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `name` | `name` | string |  | Node name. Other nodes refer to it in `depends_on` and in `FROM`. |
-| `compiled_code` | `compiled_code` | string |  | The node's SQL. |
-| `relation_name` | `relation_name` | string |  | Table this node writes to. Set on output nodes in the MCP examples. |
-| `config` | `config` | [DcSqlDataTransformNodeConfiguration](#dcsqldatatransformnodeconfiguration) |  | Materialization and write mode. |
-| `depends_on` | `depends_on` | [DcSqlDataTransformDependsOn](#dcsqldatatransformdependson) |  | Nodes this node reads. |
-| `resource_type` | `resource_type` | enum(macro, model, source) |  | Type of node resource. Not used in the MCP examples. |
-
-### DcSqlDataTransformNodeConfiguration
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `materialized` | `materialized` | enum(ephemeral, table) |  | `ephemeral` for intermediate nodes and `table` for outputs in the MCP examples. |
-| `write_mode` | `writeMode` | enum(Append, DeleteOnly, Merge, MergeUpsertDelete, Overwrite) |  | Write mode for the node. The examples send `OVERWRITE`. |
-
-### SqlDataTransformDefinitionInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string | yes | Definition type. `SQL` in the examples, `Sql` in the spec enum. |
-| `version` | `version` | string | yes | `63.0` in the examples. The spec's validate example leaves it out. |
-| `expression` | `expression` | string |  | SQL expression for the streaming transform. Since v60.0. |
-| `target_dlo` | `targetDlo` | string |  | Target DLO for the streaming transform. Since v60.0. |
-| `target_dmo` | `targetDmo` | string |  | Target DMO for the streaming transform. Since v60.0. |
-| `output_data_objects` | `outputDataObjects` | array of [DataObjectInput](#dataobjectinputrepresentation) |  | Objects the transform writes to. |
-
-### StlDataTransformDefinitionInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string | yes | Definition type. `STL` in the examples, `Stl` in the spec enum. |
-| `version` | `version` | string | yes | `56.0` in the examples. |
-| `nodes` | `nodes` | map of name to object |  | Transform nodes for the batch transform, each with `action`, `parameters` and `sources`. Since v62.0. |
-| `ui` | `ui` | object |  | Layout for the interactive transform editor. Since v62.0. |
-| `output_data_objects` | `outputDataObjects` | array of [DataObjectInput](#dataobjectinputrepresentation) |  | Objects the transform writes to. |

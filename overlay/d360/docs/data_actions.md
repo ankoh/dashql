@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/data_actions.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Data Actions
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -468,16 +470,6 @@ Represents the config input for web data hook action targets.
 | `api_contract` | `apiContract` | string |  | API contract for the data action target. Since v58.0. |
 | `target_endpoint` | `targetEndpoint` | string |  | Target endpoint. Since v58.0. |
 
-### dataaction_create_config
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `template` | `template` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `target_audience` | `targetAudience` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `recipient_field` | `recipientField` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `personalization_fields` | `personalizationFields` | array |  | Seen in examples: the spec types the parent as a free-form object. |
-
 ### DataActionCondition
 
 | Attribute | API name | Type | Required | Description |
@@ -554,3 +546,13 @@ Represents the config input for web data hook action targets.
 |---|---|---|---|---|
 | `array_field` | `arrayField` | string |  | Array field. The MCP source says no more. |
 | `event_mappings` | `eventMappings` | object |  | String map of the event payload mapping. |
+
+### dataaction_create_config
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `template` | `template` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `target_audience` | `targetAudience` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `recipient_field` | `recipientField` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `personalization_fields` | `personalizationFields` | array |  | Seen in examples: the spec types the parent as a free-form object. |

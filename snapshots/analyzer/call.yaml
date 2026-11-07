@@ -260,52 +260,36 @@ analyzer-snapshots:
       overlay: tickets
     script:
       input: |
-        call tickets.webhook_create (url => :hook_url, signing_key => secret(hook_key), credentials => [(param_name = 'pw', value = secret('stored'))]);
+        call tickets.webhook_create (url => :hook_url, signing_key => :hook_key, credentials => [(param_name = 'pw', value = :stored)]);
       catalog-id: 1
       errors: []
       overlay-calls:
         - statement: 0
           namespace: tickets
           function: webhook_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"secret\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"secret\":\"stored\"}]}"
+          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"param\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"param\":\"stored\"}]}"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "hook_key"
-        - expression-idx: 1
-          type: function
-          name: secret
-          statement-id: 0
-          text: "secret(hook_key)"
-        - expression-idx: 2
-          type: function
-          name: secret
-          is-const: true
-          statement-id: 0
-          text: "secret('stored')"
-        - expression-idx: 3
           type: literal/string
           is-const: true
           statement-id: 0
           text: "'pw'"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'stored'"
       constants:
-        - expression: 3
+        - expression: 0
           text: "'pw'"
-        - expression: 4
-          text: "'stored'"
-        - expression: 2
-          text: "secret('stored')"
       parameters:
         - kind: scalar
           name: hook_url
           statement-id: 0
           text: ":hook_url"
+        - kind: scalar
+          name: hook_key
+          statement-id: 0
+          text: ":hook_key"
+        - kind: scalar
+          name: stored
+          statement-id: 0
+          text: ":stored"
 
   - name: call_explain
     catalog:
@@ -741,7 +725,7 @@ analyzer-snapshots:
         - expression: 3
           text: "1"
 
-  - name: call_sensitive
+  - name: call_credentials
     catalog:
       overlay: tickets
     script:
@@ -750,122 +734,67 @@ analyzer-snapshots:
           signing_key => 'literal',
           credentials => [
             (param_name = 'user', value = 'public'),
-            (param_name = 'password', value = :leaked),
-            (param_name = 'key', value = secret(stored))
+            (param_name = 'password', value = :stored)
           ]
         );
       catalog-id: 1
-      errors:
-        - type: OVERLAY_SENSITIVE_VALUE
-          message: 'signing_key is sensitive, it must be a secret()'
-          text: "'literal'"
-        - type: OVERLAY_SENSITIVE_VALUE
-          message: 'credentials.value is sensitive, it must be a secret()'
-          text: ":leaked"
+      errors: []
       overlay-calls:
         - statement: 0
           namespace: tickets
           function: webhook_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null},{\"param_name\":\"key\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"leaked\"},{\"pointer\":\"/credentials/2/value\",\"secret\":\"stored\"}]}"
+          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"stored\"}]}"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: literal/string
+          is-const: true
           statement-id: 0
-          text: "stored"
+          text: "'literal'"
         - expression-idx: 1
-          type: function
-          name: secret
+          type: literal/string
+          is-const: true
           statement-id: 0
-          text: "secret(stored)"
+          text: "'user'"
         - expression-idx: 2
           type: literal/string
           is-const: true
           statement-id: 0
-          text: "'literal'"
+          text: "'public'"
         - expression-idx: 3
           type: literal/string
           is-const: true
           statement-id: 0
-          text: "'user'"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'public'"
-        - expression-idx: 5
-          type: literal/string
-          is-const: true
-          statement-id: 0
           text: "'password'"
-        - expression-idx: 6
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'key'"
-      constants:
-        - expression: 2
-          text: "'literal'"
-        - expression: 3
-          text: "'user'"
-        - expression: 4
-          text: "'public'"
-        - expression: 5
-          text: "'password'"
-        - expression: 6
-          text: "'key'"
-      parameters:
-        - kind: scalar
-          name: leaked
-          statement-id: 0
-          text: ":leaked"
-
-  - name: call_sensitive_single_object
-    catalog:
-      overlay: tickets
-    script:
-      input: call tickets.webhook_create (credentials => (param_name = 'password', value = 'literal'));
-      catalog-id: 1
-      errors:
-        - type: OVERLAY_SENSITIVE_VALUE
-          message: 'credentials.value is sensitive, it must be a secret()'
-          text: "'literal'"
-      overlay-calls:
-        - statement: 0
-          namespace: tickets
-          function: webhook_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"credentials\":{\"param_name\":\"password\",\"value\":\"literal\"}}}"
-      expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'password'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'literal'"
       constants:
         - expression: 0
-          text: "'password'"
-        - expression: 1
           text: "'literal'"
+        - expression: 1
+          text: "'user'"
+        - expression: 2
+          text: "'public'"
+        - expression: 3
+          text: "'password'"
+      parameters:
+        - kind: scalar
+          name: stored
+          statement-id: 0
+          text: ":stored"
 
   - name: call_invalid_functions
     catalog:
       overlay: tickets
     script:
-      input: call tickets.ticket_list (project => now(), page_size => secret(a, b), page_token => cast(1 as text));
+      input: call tickets.ticket_list (project => now(), page_size => secret(a), page_token => cast(1 as text));
       catalog-id: 1
       errors:
         - type: OVERLAY_INVALID_VALUE
-          message: a value can only call secret(<name>)
+          message: a value can't call a function
           text: "now()"
         - type: OVERLAY_INVALID_VALUE
-          message: a value can only call secret(<name>)
-          text: "secret(a, b)"
+          message: a value can't call a function
+          text: "secret(a)"
         - type: OVERLAY_INVALID_VALUE
-          message: a value can only call secret(<name>)
+          message: a value can't call a function
           text: "cast(1 as text)"
       overlay-calls:
         - statement: 0
@@ -878,33 +807,29 @@ analyzer-snapshots:
           statement-id: 0
           text: "a"
         - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
           type: function
           name: now
           is-const: true
           statement-id: 0
           text: "now()"
-        - expression-idx: 3
+        - expression-idx: 2
           type: function
           name: secret
           statement-id: 0
-          text: "secret(a, b)"
-        - expression-idx: 4
+          text: "secret(a)"
+        - expression-idx: 3
           type: function
           known-function: CAST
           is-const: true
           statement-id: 0
           text: "cast(1 as text)"
-        - expression-idx: 5
+        - expression-idx: 4
           type: literal/integer
           is-const: true
           statement-id: 0
           text: "1"
       constants:
-        - expression: 5
+        - expression: 4
           text: "1"
 
   - name: call_paging

@@ -645,7 +645,7 @@
     },
     {
       "function": "activation_platform_create",
-      "call": "CALL cdp.activation_platform_create (\n  name => 'abc_user_identifiers',\n  label => 'abc-user-identifiers',\n  description => 'Activates only user identifiers',\n  platform_type => 'Advertising',\n  output_format => 'Csv',\n  output_grouping => 'PerAccount',\n  refresh_settings => (mode = 'Full', frequency = 'TwentyFourHours'),\n  connector => (bucketName = 'example-bucket', exportDirectory = 'datacloud-activations'),\n  custom_metadata => (connector_type = 'S3', access_key = secret(s3_access_key), secret_key = secret(s3_secret_key)),\n  activation_platform_attributes => [(name = 'EmailAddress', label = 'Hashed Email', destination_name = 'EmailAddress', object_name = 'ContactPointEmail', field_name = 'Email', is_required = true, apply_hash = true, is_identifier = true)],\n  fields => [(name = 'AccountId', is_required = true, is_hidden = false, type = 'Text')],\n  additional_metadata => (hash_method = 'SHA256')\n)",
+      "call": "CALL cdp.activation_platform_create (\n  name => 'abc_user_identifiers',\n  label => 'abc-user-identifiers',\n  description => 'Activates only user identifiers',\n  platform_type => 'Advertising',\n  output_format => 'Csv',\n  output_grouping => 'PerAccount',\n  refresh_settings => (mode = 'Full', frequency = 'TwentyFourHours'),\n  connector => (bucketName = 'example-bucket', exportDirectory = 'datacloud-activations'),\n  custom_metadata => (connector_type = 'S3', access_key = :s3_access_key, secret_key = :s3_secret_key),\n  activation_platform_attributes => [(name = 'EmailAddress', label = 'Hashed Email', destination_name = 'EmailAddress', object_name = 'ContactPointEmail', field_name = 'Email', is_required = true, apply_hash = true, is_identifier = true)],\n  fields => [(name = 'AccountId', is_required = true, is_hidden = false, type = 'Text')],\n  additional_metadata => (hash_method = 'SHA256')\n)",
       "description": {
         "namespace": "cdp",
         "function": "activation_platform_create",
@@ -698,11 +698,11 @@
         "bindings": [
           {
             "pointer": "/custom_metadata/access_key",
-            "secret": "s3_access_key"
+            "param": "s3_access_key"
           },
           {
             "pointer": "/custom_metadata/secret_key",
-            "secret": "s3_secret_key"
+            "param": "s3_secret_key"
           }
         ]
       },
@@ -731,8 +731,8 @@
           },
           "customMetadata": {
             "connectorType": "S3",
-            "accessKey": "secret(s3_access_key)",
-            "secretKey": "secret(s3_secret_key)"
+            "accessKey": ":s3_access_key",
+            "secretKey": ":s3_secret_key"
           },
           "activationPlatformAttributes": [
             {

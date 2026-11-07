@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/activation_platforms.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Activation Platforms
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -450,7 +452,7 @@ CALL cdp.activation_platform_create (
   output_grouping => 'PerAccount',
   refresh_settings => (mode = 'Full', frequency = 'TwentyFourHours'),
   connector => (bucketName = 'example-bucket', exportDirectory = 'datacloud-activations'),
-  custom_metadata => (connector_type = 'S3', access_key = secret(s3_access_key), secret_key = secret(s3_secret_key)),
+  custom_metadata => (connector_type = 'S3', access_key = :s3_access_key, secret_key = :s3_secret_key),
   activation_platform_attributes => [(name = 'EmailAddress', label = 'Hashed Email', destination_name = 'EmailAddress', object_name = 'ContactPointEmail', field_name = 'Email', is_required = true, apply_hash = true, is_identifier = true)],
   fields => [(name = 'AccountId', is_required = true, is_hidden = false, type = 'Text')],
   additional_metadata => (hash_method = 'SHA256')
@@ -503,7 +505,7 @@ One row. Schema `ActivationPlatformRepresentation`.
 
 **Done when:** `activation_platform_get.status` leaves `Processing` for `Active` or `Error`. This is read from the status enum and the spec's example responses; no source documents the timing. Publish once `can_publish_now` is `true`.
 
-**Notes:** **The spec's example has literal credentials.** Use `secret(name)` for `access_key` and `secret_key`.
+**Notes:** **The spec's example has literal credentials.**
 
 The server renames children. The spec's example sends attribute `EmailAddress` and field `AccountId`, and gets back generated names such as `abc_user_identifiers1786035439839`, with `AccountId` kept as the `label`. Read the names back before an update.
 
@@ -762,9 +764,9 @@ Represents the connector credentials for toolkit-created activation platforms. T
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `access_key` | `accessKey` | string |  | Access key for the connector. Required for S3. Use `secret(name)`. Since v67.0. |
+| `access_key` | `accessKey` | string |  | Access key for the connector. Required for S3. Since v67.0. |
 | `connector_type` | `connectorType` | string | yes | Connector type, such as `S3`, `Sftp`, or `AzureBlob`. Since v67.0. |
-| `secret_key` | `secretKey` | string |  | Secret key for the connector. Required for S3. Use `secret(name)`. Since v67.0. |
+| `secret_key` | `secretKey` | string |  | Secret key for the connector. Required for S3. Since v67.0. |
 
 ### ActivationPlatformEventAttributeInputRepresentation
 

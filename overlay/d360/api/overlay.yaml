@@ -1,0 +1,22 @@
+format: 1
+namespace: cdp
+title: Salesforce Data 360
+hosts:
+  core: {base_path: "/services/data/v{api_version}"}
+  connect: {base_path: "/services/data/v{api_version}"}
+  tenant: {base_path: ""}
+errors:
+  message: ["/0/message", /message]
+  message_is_json: true
+
+functions:
+  - name: request
+    family: Escape hatch
+    raw: true
+    host: connect
+    options:
+      - {name: method, type: string, required: true}
+      - {name: path, type: string, required: true}
+      - {name: host, type: string}
+      - {name: body, type: any}
+    unknown: allow

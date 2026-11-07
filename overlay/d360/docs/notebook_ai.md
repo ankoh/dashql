@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/notebook_ai.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Notebook AI
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).

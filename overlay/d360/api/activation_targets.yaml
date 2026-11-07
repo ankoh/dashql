@@ -1,0 +1,577 @@
+title: Activation Targets
+description: |
+  An activation target is a destination for segment data: a file drop such as Amazon S3 or SFTP, Marketing Cloud, Data 360 itself, or an ad platform. You set it up once, then [`activation_create`](activations.md#activation_create) sends a segment to it by `activation_target_name`. So the order is: find the platform, create the target, check that it's active, and only then create the activation.
+
+  The gotchas that matter most:
+
+  - **The spec undersells `connector`.** Its schema lists only `name` and `output_format`, while its own examples send more per platform. [`activation_target_create`](#activation_target_create) has the table.
+  - **Enum spelling isn't stable.** The schema says `Active`, examples show `ACTIVE`, and filters use `active`. Compare without case.
+  - **Id or name depends on the call.** Enable and disable take an 18-character id. Get, update and delete claim both, but [one org](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) found id only (community).
+  - **Availability is uneven.** Enable, disable, retry, ad accounts and the `metadata` lists are `Since v67.0`, and ad connectors such as Google Ads need an [add-on license](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-googleadsadaudiences-connector.md).
+  - **Gated orgs.** `CdpActivationTarget` or `CdpActivationExternalPlatform` means the surface is [gated for this org or user](https://github.com/forcedotcom/sf-skills/blob/2476476dda1b671762c6e963b9d10c4a7056f1c4/skills/data360-activate/SKILL.md), so don't retry blindly.
+
+  ```sql
+  CALL cdp.activation_platform_metadata_list (platform_type => 'Sftp');
+
+  CALL cdp.activation_target_create (
+    name => 'sftp_exports',
+    dataspace_name => 'default',
+    platform_type => 'Sftp',
+    connector => (name = 'sftpTargetConnector'),
+    egress_properties => (predetermined_filename = 'SegmentActivation', filename_date_suffix_format = 'yyyy-MM-dd-HH-mm-ss', output_delimiter = 'Comma', output_compression_format = 'Gzip', output_max_file_size_mega_bytes = 500, output_format = 'CSV')
+  );
+
+  /* Wait for status Active, using the id from the create result */
+  CALL cdp.activation_target_get (activation_target_id => '85USB000004ADXx2AO');
+  ```
+
+functions:
+  - name: activation_target_delete
+    method: DELETE
+    host: connect
+    path: /ssot/activation-targets/{activationTargetId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D/delete
+    description: Delete an activation target by ID or developer name. Since v60.0.
+    example: CALL cdp.activation_target_delete (activation_target_id => '85UVF000000Dr4v2AC');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "ID or developer name, per the spec. See the conflict noted on `activation_target_get`."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The spec doesn't say what happens to activations that still use the target. [`activation_platform_delete`](activation_platforms.md#activation_platform_delete) documents a 412 when a platform is referenced, but no such rule is documented here. For id versus name, see [`activation_target_get`](#activation_target_get)."
+
+  - name: activation_target_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets/get
+    tools: [d360_activation_target_list]
+    description: Get a list of activation targets with selected filters. Since v60.0.
+    example: CALL cdp.activation_target_list (filters => 'targetStatus in active AND platformName in Amazon S3', order_by => 'createdDate desc', batch_size => 50);
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of results to return. Values are from `1` through `200`. If unspecified, the default value is `20`. Since v60.0."}
+      - {name: filters, in: query, type: string, description: "Filter expression using `in`, joined with `AND`. Fields: `master_label` (target name), `targetStatus` (such as `active`), `connectionType` (a `platform_type` value) and `platform_name`. Spec examples: `targetStatus in active AND platform_name in Amazon S3`, `MasterLabel in Target002`. Since v60.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be greater than or equal to `0`. If unspecified, no rows are skipped. Since v60.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set by `created_date`. If unspecified, items are returned by ID in ascending order. Since v60.0."}
+    rows: /activationTargets
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: connector, type: JSON, schema: DataConnectorRepresentation, description: "Details about the connector that is used for the activation target. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for this activation target. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation target. Since v60.0."}
+      - {name: egress_properties, api_name: egressProperties, type: JSON, schema: EgressPropertiesRepresentation, description: "Egress properties for the activation target, which are applicable only for file-based activation targets. Since v63.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_capping_enabled, api_name: isCappingEnabled, type: BOOLEAN, description: "Indicates whether communication capping is enabled for the activation (`true`) or not (`false`). Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation target is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name of the latest audience DMO. Since v62.0."}
+      - {name: organization_id, api_name: organizationId, type: VARCHAR, description: "Organization ID of the activation target. Since v60.0."}
+      - {name: platform_name, api_name: platformName, type: VARCHAR, description: "Platform name for the activation target. Since v60.0."}
+      - {name: platform_privacy_type, api_name: platformPrivacyType, type: VARCHAR, description: "Platform privacy type for the activation target. Derived from Activation Platform. Since v60.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Platform type for the activation target. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Target status of the activation target. Since v60.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/activationTargets` in the response. Other response fields go to `_meta`: `batchSize`, `offset`, `orderByExpression`. Schema `ActivationTargetRepresentation`."
+    notes: |
+      **Paging:** `batch_size`, `offset` from 0 ([community, one org](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)). The response has no `total_size`.
+
+      **Notes:** There's no data space option, and [one org](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) found the endpoint doesn't support one, so filter on `dataspace_name` yourself (community). `status` can arrive in spellings the schema doesn't declare: [`sf-pi` accepts this as a known exception](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) based on a live response, and the spec's own example shows `ACTIVE` against a declared `Active`. The spec's list example leaves out `connector`, `egress_properties` and `is_enabled`, so use `activation_target_get` when you need those. The `filters` language here (`in`) differs from the `eq` and `contains` language of the `metadata` lists in this section.
+
+  - name: activation_target_get
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/{activationTargetId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D/get
+    tools: [d360_activation_target_get]
+    description: Get an activation target by ID or developer name. Since v60.0.
+    example: CALL cdp.activation_target_get (activation_target_id => '85UVF000000Dr4v2AC');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "ID or developer name, per the spec. One org found id only (community), see notes."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: connector, type: JSON, schema: DataConnectorRepresentation, description: "Details about the connector that is used for the activation target. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for this activation target. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation target. Since v60.0."}
+      - {name: egress_properties, api_name: egressProperties, type: JSON, schema: EgressPropertiesRepresentation, description: "Egress properties for the activation target, which are applicable only for file-based activation targets. Since v63.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_capping_enabled, api_name: isCappingEnabled, type: BOOLEAN, description: "Indicates whether communication capping is enabled for the activation (`true`) or not (`false`). Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation target is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name of the latest audience DMO. Since v62.0."}
+      - {name: organization_id, api_name: organizationId, type: VARCHAR, description: "Organization ID of the activation target. Since v60.0."}
+      - {name: platform_name, api_name: platformName, type: VARCHAR, description: "Platform name for the activation target. Since v60.0."}
+      - {name: platform_privacy_type, api_name: platformPrivacyType, type: VARCHAR, description: "Platform privacy type for the activation target. Derived from Activation Platform. Since v60.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Platform type for the activation target. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Target status of the activation target. Since v60.0."}
+      - {name: attribute_config, api_name: attributeConfig, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: key_prefix_name, api_name: keyPrefixName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: type, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ActivationTargetRepresentation`.
+    notes: "**Notes:** **Sources disagree on the key.** The spec accepts the id or the developer name. [One org](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) got 400 `INVALID_INPUT` or 404 `ITEM_NOT_FOUND` by name, on v67.0 (community). Use the id, which starts with `85U` in the spec's examples. `status` is declared as `Active`, `Processing`, `Error` or `Inactive`, but examples show upper case, so compare without case. `is_enabled` and `status` are separate columns, and no source explains how they relate."
+
+  - name: activation_target_ad_account_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/{activationTargetId}/available-ad-accounts
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D~1available-ad-accounts/get
+    description: Returns the ad accounts that aren't already assigned in the specified data space. Since v67.0.
+    example: CALL cdp.activation_target_ad_account_list (activation_target_id => '85UVF000000NaQz2AK', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space used to filter out already-assigned accounts. Since v67.0."}
+      - {name: platform_id_or_name, api_name: platformIdOrName, in: query, type: string, required: true, description: "Record ID (15- or 18-character) or API name of the activation platform. Since v67.0."}
+    rows: /adAccounts
+    columns:
+      - {name: account_name, api_name: accountName, type: VARCHAR, description: "Display name of the ad account. Since v67.0."}
+      - {name: account_number, api_name: accountNumber, type: VARCHAR, description: "Ad account number on the partner platform. Since v67.0."}
+      - {name: active, type: BOOLEAN, description: "Indicates whether the ad account is currently active (`true`) or not (`false`). Since v67.0."}
+      - {name: errors, type: JSON, array: 1, schema: CdpErrorRepresentation, description: "Validation errors for the account. Since v67.0."}
+      - {name: has_error, api_name: hasError, type: BOOLEAN, description: "Indicates whether validation errors exist for the account (`true`) or not (`false`). Since v67.0."}
+      - {name: manager_account_id, api_name: managerAccountId, type: VARCHAR, description: "Manager account ID, if the account is managed by another account. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/adAccounts` in the response. Schema `AdAccountRepresentation`.
+    notes: "**Notes:** The target must exist first, because its id is in the path. Accounts already assigned in `dataspace` are left out, so an empty result can mean they're all taken. `platform_id_or_name` takes `api_name` from [`activation_platform_metadata_list`](#activation_platform_metadata_list). Check `has_error` and `errors` before assigning an account."
+
+  - name: activation_target_partner_object_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/{activationTargetId}/partner-objects
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D~1partner-objects/get
+    description: "Returns partner-platform objects of the specified type. Results are cursor-paginated: follow `next_page_url` to retrieve each subsequent page instead of supplying an offset. Since v67.0."
+    example: CALL cdp.activation_target_partner_object_list (activation_target_id => '85UVF000000NaQz2AK', partner_object_type => 'ConversionRule');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
+      - {name: page_token, api_name: pageToken, in: query, type: string, description: "Cursor for the next page of results. Omit this value on the first request. The response's `next_page_url` includes the `page_token` to fetch the next page, so follow `next_page_url` rather than constructing this value. Since v67.0."}
+      - {name: partner_object_type, api_name: partnerObjectType, in: query, type: string, enum: [App, ConversionRule, CrmEventSet, MobileApp, OfflineEventSet, Pixel], required: true, description: "Type of partner object to retrieve. Since v67.0."}
+    rows: /partnerObjects
+    columns:
+      - {name: name, type: VARCHAR, description: "Display name on the external platform. Since v67.0."}
+      - {name: partner_object_id, api_name: partnerObjectId, type: VARCHAR, description: "Identifier on the external platform. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the partner object. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Partner-object type identifier. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/partnerObjects` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `PartnerObjectRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** To see which types a platform has, use [`activation_platform_partner_object_type_list`](activation_platforms.md#activation_platform_partner_object_type_list). The spec's example returns LinkedIn conversion rules with `status` null, so don't filter on `status`.
+
+  - name: activation_platform_metadata_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/metadata/activation-platforms
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1activation-platforms/get
+    description: Lists the platforms you can create a target on, including their `api_name`, category and whether they process in batch or streaming. Use it first when setting up a destination. Since v67.0.
+    example: CALL cdp.activation_platform_metadata_list (platform_type => 'Strategic', order_by => 'name asc');
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to scope the lookup. If unspecified, the request's data space context is used. Since v67.0."}
+      - {name: filters, in: query, type: string, description: "Filter expression used to narrow results, such as `field eq value AND name contains foo`. Supported operators are `eq`, `!=`, `contains`, `in`, `>`, `<`, `>=`, and `<=`. Since v67.0."}
+      - {name: name, in: query, type: string, description: "Filter results by activation platform name. Must be an exact match. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort expression in the form `field [asc|desc][, field [asc|desc]]*`. Since v67.0."}
+      - {name: platform_type, api_name: platformType, in: query, type: string, enum: [AzureBlob, DataCloud, External, GoogleCloudStorage, InteractionStudio, S3, S3V2, SfApp, Sfcc, Sfmc, Sftp, Strategic, StreamingFlow], description: "Filter results by platform type, such as `Sfmc`, `Sftp`, `External`, or `Strategic`. Since v67.0."}
+    rows: /activationTargetPlatforms
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Stable identifier for the activation platform. Since v67.0."}
+      - {name: category, type: VARCHAR, description: "Category of the activation platform. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation platform. Since v67.0."}
+      - {name: external_provider, api_name: externalProvider, type: VARCHAR, description: "External partner provider for the activation platform. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Display name of the activation platform. Since v67.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Type of the activation platform. Since v67.0."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "How the platform processes activations. Since v67.0."}
+      - {name: sort_order, api_name: sortOrder, type: BIGINT, description: "Sort order used to display platforms in pickers. Lower values appear first. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/activationTargetPlatforms` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ActivationTargetPlatformRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** **`platform_type` here isn't the target's `platform_type`.** This list uses `Sfmc`, `S3`, `External`, `Strategic` and so on, while `activation_target_create` uses `SalesforceMarketingCloud`, `AmazonS3`, `ExternalPlatform`. In the spec's examples, a `Strategic` platform such as Google Ads is created with `platform_type => 'ExternalPlatform'`. In those examples, `api_name` splits into two connector attributes: `cdpactvstrgptnr__PremiumPartnerGoogle` appears at create as `key_prefix_name = 'cdpactvstrgptnr'`, `name = 'PremiumPartnerGoogle'`. To administer platforms rather than pick one, see [Activation Platforms](activation_platforms.md).
+
+  - name: communication_capping_data_space_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/metadata/communication-capping-data-spaces
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1communication-capping-data-spaces/get
+    description: Returns all data spaces with communication capping definitions linked to activation targets. Since v67.0.
+    example: CALL cdp.communication_capping_data_space_list ();
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: filters, in: query, type: string, description: "Filter expression used to narrow results, such as `field eq value AND name contains foo`. Supported operators are `eq`, `!=`, `contains`, `in`, `>`, `<`, `>=`, and `<=`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort expression in the form `field [asc|desc][, field [asc|desc]]*`. Since v67.0."}
+    rows: /dataSpaces
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: VARCHAR, description: "Record ID (18-character) of the DataCommunicationCapDefinition record. Since v67.0."}
+      - {name: dataspace_id, api_name: dataSpaceId, type: VARCHAR}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataSpaces` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CommunicationCappingDataSpaceRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** **Result columns are unsettled.** The spec gives `api_name`, `data_communication_cap_def_id`, `dataspace_id` and `dataspace_name`. Its older copy and its response example have only `dataCommunicationCapDefId` and `dataSpace`, so expect a value in `_raw` if the known columns come back empty. No source explains how a capping definition relates to `is_capping_enabled` on a target.
+
+  - name: ad_account_availability_get
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/metadata/dataspace-account-validation
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1dataspace-account-validation/get
+    description: Indicates whether an ad account is available to assign to an activation target. Returns `true` when the account isn't already assigned. Since v67.0.
+    example: CALL cdp.ad_account_availability_get (account_id => '6586160339', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+    options:
+      - {name: account_id, api_name: accountId, in: query, type: string, required: true, description: "Identifier of the ad account on the partner platform. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space to check against. Since v67.0."}
+      - {name: platform_id_or_name, api_name: platformIdOrName, in: query, type: string, required: true, description: "Record ID (15- or 18-character) or API name of the activation platform. Since v67.0."}
+    columns:
+      - {name: available, type: BOOLEAN, description: "Indicates whether the ad account is available, meaning not already assigned (`true`) or not (`false`). Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataspaceAccountValidationRepresentation`.
+    notes: "**Notes:** The check is per platform and data space, not per target. `account_id` here is called `account_number` in `activation_target_ad_account_list` and `activation_target_ad_account_assign`. They're described alike, but no source says they're the same value."
+
+  - name: marketing_cloud_enterprise_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/metadata/mc-enterprises
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1mc-enterprises/get
+    description: Returns Marketing Cloud enterprises and their business units. Since v67.0.
+    example: CALL cdp.marketing_cloud_enterprise_list ();
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+    rows: /enterprises
+    columns:
+      - {name: business_units, api_name: businessUnits, type: JSON, array: 1, schema: McBusinessUnitRepresentation, description: "Business units belonging to the enterprise. Since v67.0."}
+      - {name: connector_id, api_name: connectorId, type: VARCHAR, description: "Connector ID linking the enterprise to Data Cloud. Since v67.0."}
+      - {name: enterprise_id, api_name: enterpriseId, type: VARCHAR, description: "Marketing Cloud enterprise ID (EID). Since v67.0."}
+      - {name: enterprise_name, api_name: enterpriseName, type: VARCHAR, description: "Display name of the enterprise. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/enterprises` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `McEnterpriseRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Use it to fill `connector.businessUnitConfig` on a Marketing Cloud target. **The ids don't line up in the spec.** `business_units[].id` is described as the MID, but its example shows `3khVF0000000MQLYA2`, with the numeric id only inside the name. The create example passes numeric values such as `524000668`. The spec's description of `activation_target_create` points to [`connection_list`](connections.md#connection_list) for connector details instead.
+
+  - name: activation_target_platform_field_list
+    method: GET
+    host: connect
+    path: /ssot/activation-targets/metadata/target-platform-fields
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1target-platform-fields/get
+    description: Returns the target-level configuration fields for an activation platform. Since v67.0.
+    example: CALL cdp.activation_target_platform_field_list (platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+    options:
+      - {name: platform_id_or_name, api_name: platformIdOrName, in: query, type: string, required: true, description: "Record ID (15- or 18-character) or API name of the activation platform. Since v67.0."}
+    rows: /platformFields
+    columns:
+      - {name: activation_platform_id, api_name: activationPlatformId, type: VARCHAR, description: "ID of the parent activation platform. Since v67.0."}
+      - {name: activation_platform_name, api_name: activationPlatformName, type: VARCHAR, description: "Name of the parent activation platform. Since v67.0."}
+      - {name: help_text, api_name: helpText, type: VARCHAR, description: "Help text for the field. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Field ID. Since v67.0."}
+      - {name: is_hidden, api_name: isHidden, type: BOOLEAN, description: "Indicates whether the field is hidden in the UI (`true`) or not (`false`). Since v67.0."}
+      - {name: is_required, api_name: isRequired, type: BOOLEAN, description: "Indicates whether the field is required (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Field display label. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Field API name. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Data type of the field. Since v67.0."}
+      - {name: values, type: JSON, array: 1, schema: ActivationPlatformFieldValueRepresentation, description: "Allowed values for picklist fields. Exactly one value must have `is_default` set to `true`. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/platformFields` in the response. Schema `ActivationPlatformFieldRepresentation`.
+    notes: "**Notes:** Lists what `connector.fieldConfig` needs on an external platform target. The spec's examples suggest matching on `label`, not `name`: a field with `label` `AccountId` and `name` `ISVWithEmailOnly1707182166910` is sent at create as `name = 'AccountId'`. Those examples may not come from the same platform, so check this against an org."
+
+  - name: activation_target_update
+    method: PATCH
+    host: connect
+    path: /ssot/activation-targets/{activationTargetId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D/patch
+    tools: [d360_activation_target_update]
+    description: Update a specific activation target by ID or developer name. Since v60.0.
+    example: CALL cdp.activation_target_update (activation_target_id => '85UVF000000Dr4v2AC', dataspace_name => 'default', name => 's3_target2', description => 'Nightly audience exports');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "ID or developer name, per the spec. See the conflict noted on `activation_target_get`."}
+      - {name: connector, in: body, schema: DataConnectorInputRepresentation, description: "Details of the connector used for the activation target. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, required: true, description: "Name of the data space for the activation target. Since v60.0."}
+      - {name: description, in: body, type: string, description: "Description for the activation target. Since v60.0."}
+      - {name: egress_properties, api_name: egressProperties, in: body, schema: EgressPropertiesInputRepresentation, description: "Egress properties for the activation target, which are applicable only for file-based activation targets. Since v60.0."}
+      - {name: is_capping_enabled, api_name: isCappingEnabled, in: body, type: boolean, description: "Indicates whether communication capping is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: name, in: body, type: string, required: true, description: "Name of the activation target. Since v60.0."}
+      - {name: platform_type, api_name: platformType, in: body, type: string, enum: [AccountEngagement, AmazonS3, AmazonS3V2, AwsKinesisDS, AzureBlob, BigQuery, ConnectorsFramework, ConversationStorage, CuratedEntity, DataCloud, ExternalPlatform, Generic, GoogleCloudStorage, Ibm, IngestApi, RedShift, S3Arn, SalesforceCommerceCloud, SalesforceDotCom, SalesforceInteractionStudio, SalesforceMarketingCloud, Sftp, Snowflake, StreamingApp, StreamingFlow, Upload], description: "Platform type for the activation target. Since v60.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: connector, type: JSON, schema: DataConnectorRepresentation, description: "Details about the connector that is used for the activation target. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for this activation target. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation target. Since v60.0."}
+      - {name: egress_properties, api_name: egressProperties, type: JSON, schema: EgressPropertiesRepresentation, description: "Egress properties for the activation target, which are applicable only for file-based activation targets. Since v63.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_capping_enabled, api_name: isCappingEnabled, type: BOOLEAN, description: "Indicates whether communication capping is enabled for the activation (`true`) or not (`false`). Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation target is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name of the latest audience DMO. Since v62.0."}
+      - {name: organization_id, api_name: organizationId, type: VARCHAR, description: "Organization ID of the activation target. Since v60.0."}
+      - {name: platform_name, api_name: platformName, type: VARCHAR, description: "Platform name for the activation target. Since v60.0."}
+      - {name: platform_privacy_type, api_name: platformPrivacyType, type: VARCHAR, description: "Platform privacy type for the activation target. Derived from Activation Platform. Since v60.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Platform type for the activation target. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Target status of the activation target. Since v60.0."}
+      - {name: attribute_config, api_name: attributeConfig, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: key_prefix_name, api_name: keyPrefixName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: type, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationTargetRepresentation`.
+    notes: "**Notes:** It's a `PATCH`, but the spec reuses the create schema, so `dataspace_name` and `name` are required, and its example sends both. [Salesforce's MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ActivationTargetUpdateRequest.java) treats every field as optional. Send both. `is_enabled` isn't an input, so use [`activation_target_enable`](#activation_target_enable) and [`activation_target_disable`](#activation_target_disable). Activations refer to a target by `activation_target_name`, and no source says what a rename does to them. The `connector` table on [`activation_target_create`](#activation_target_create) applies here too."
+
+  - name: activation_target_create
+    method: POST
+    host: connect
+    path: /ssot/activation-targets
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets/post
+    tools: [d360_activation_target_create]
+    description: Creates the destination that activations send segment data to. Call it after choosing a platform and before `activation_create`. Since v60.0.
+    example: CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key));
+    options:
+      - {name: connector, in: body, schema: DataConnectorInputRepresentation, description: "Details of the connector used for the activation target. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, required: true, description: "Name of the data space for the activation target. Since v60.0."}
+      - {name: description, in: body, type: string, description: "Description for the activation target. Since v60.0."}
+      - {name: egress_properties, api_name: egressProperties, in: body, schema: EgressPropertiesInputRepresentation, description: "Egress properties for the activation target, which are applicable only for file-based activation targets. Since v60.0."}
+      - {name: is_capping_enabled, api_name: isCappingEnabled, in: body, type: boolean, description: "Indicates whether communication capping is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: name, in: body, type: string, required: true, description: "Name of the activation target. Since v60.0."}
+      - {name: platform_type, api_name: platformType, in: body, type: string, enum: [AccountEngagement, AmazonS3, AmazonS3V2, AwsKinesisDS, AzureBlob, BigQuery, ConnectorsFramework, ConversationStorage, CuratedEntity, DataCloud, ExternalPlatform, Generic, GoogleCloudStorage, Ibm, IngestApi, RedShift, S3Arn, SalesforceCommerceCloud, SalesforceDotCom, SalesforceInteractionStudio, SalesforceMarketingCloud, Sftp, Snowflake, StreamingApp, StreamingFlow, Upload], description: "Platform type for the activation target. Since v60.0."}
+      - {name: target_type, api_name: targetType, in: body, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: connection_id, api_name: connectionId, in: body, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: config, in: body, schema: activation_target_create_config, description: "Not in the spec schema: from the MCP server's payload example."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: connector, type: JSON, schema: DataConnectorRepresentation, description: "Details about the connector that is used for the activation target. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for this activation target. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation target. Since v60.0."}
+      - {name: egress_properties, api_name: egressProperties, type: JSON, schema: EgressPropertiesRepresentation, description: "Egress properties for the activation target, which are applicable only for file-based activation targets. Since v63.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_capping_enabled, api_name: isCappingEnabled, type: BOOLEAN, description: "Indicates whether communication capping is enabled for the activation (`true`) or not (`false`). Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation target is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name of the latest audience DMO. Since v62.0."}
+      - {name: organization_id, api_name: organizationId, type: VARCHAR, description: "Organization ID of the activation target. Since v60.0."}
+      - {name: platform_name, api_name: platformName, type: VARCHAR, description: "Platform name for the activation target. Since v60.0."}
+      - {name: platform_privacy_type, api_name: platformPrivacyType, type: VARCHAR, description: "Platform privacy type for the activation target. Derived from Activation Platform. Since v60.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Platform type for the activation target. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Target status of the activation target. Since v60.0."}
+      - {name: attribute_config, api_name: attributeConfig, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: key_prefix_name, api_name: keyPrefixName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: type, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationTargetRepresentation`.
+    notes: |
+      **Done when:** `activation_target_get.status` is `Active`, compared without case. The spec's Data Cloud example returns `PROCESSING` from create, and its other examples return `ACTIVE`. The schema also declares `Error`.
+
+      **Notes:** **`connector` has more attributes than the schema table shows.** The spec's schema has only `name` and `output_format`. These come from the examples in its older copy, and agree with [Salesforce's MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ConnectorInput.java):
+
+      | `platform_type` | `connector` attributes |
+      |---|---|
+      | `AmazonS3` | `name`, `output_format`, `bucket_name`, `folder_name`, `access_key`, `secret_key` |
+      | `SalesforceMarketingCloud` | `name`, `target_sub_type` (`DE` in the example), `business_unit_config = (business_units = ['524000668'])` |
+      | `Sftp`, `GoogleCloudStorage`, `AzureBlob` | `name`, plus `egress_properties` |
+      | `DataCloud` | none: the example sends an empty object |
+      | `ExternalPlatform`, ecosystem | `name`, `key_prefix_name`, `field_config = (fields = [(name = 'AccountId', value = '...')])` |
+      | `ExternalPlatform`, strategic | `name`, `key_prefix_name` |
+
+      The MCP class types `business_unit_config` as a list of strings and `field_config` as a list of name and value pairs, without the `business_units` and `fields` wrappers in the spec's examples. Neither shape has been tested.
+
+      **Which `platform_type` values work.** The spec lists 26 values, but its older copy and the [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ActivationTargetCreateRequest.java) list seven: `AmazonS3`, `AzureBlob`, `DataCloud`, `ExternalPlatform`, `GoogleCloudStorage`, `SalesforceMarketingCloud`, `Sftp`. The MCP class also treats `platform_type` and `connector` as required, where the spec has them optional. Send both.
+
+      **Spelling in `egress_properties`.** The schema says `Gzip`, `Comma`, `SegmentActivation`, while the spec's SFTP example sends `GZIP`, `COMMA`, `SEGMENT_ACTIVATION` and `platform_type` `SFTP`. Responses and the MCP class also have `fileNameType` (`Custom`, `Predetermined`), which the spec's input schema omits. Its 400 error text calls the size limit `maxFileSize`, 1 to 500 MB.
+
+      **Other sources.**
+      - The [catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) says a target "must reference existing Connection", yet the S3 example passes credentials inline. Marketing Cloud connector details come from [`connection_list`](connections.md#connection_list).
+      - The [MCP payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) uses `target_type`, `connection_id` and `config`. None of them are in the spec or in the server's own request class, so ignore it.
+      - S3 activation needs [write and delete permission](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-awss3-bucket-policies-reference.md) on the bucket, on top of the ingestion permissions.
+      - The [Google Ads setup](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-googleadsadaudiences-setup.md) is documented only through the UI, with an OAuth redirect and an Enable click. No source shows the API covering that step.
+
+      No source says what a repeated name does, so after a timeout check `activation_target_list` before retrying.
+
+  - name: activation_target_ad_account_assign
+    method: POST
+    host: connect
+    path: /ssot/activation-targets/actions/{activationTargetId}/assign-ad-account
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1assign-ad-account/post
+    description: Assigns the specified ad account to the activation target. Since v67.0.
+    example: CALL cdp.activation_target_ad_account_assign (activation_target_id => '85UVF000000NaQz2AK', account_number => '6586160339', manager_account_id => '6586160339', dataspace => 'default');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
+      - {name: account_number, api_name: accountNumber, in: body, type: string, required: true, description: "Ad account number to assign. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, required: true, description: "Name of the data space to associate with the ad account. Since v67.0."}
+      - {name: manager_account_id, api_name: managerAccountId, in: body, type: string, description: "Manager account ID for the ad account. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** Before calling, take the account from [`activation_target_ad_account_list`](#activation_target_ad_account_list) or check it with [`ad_account_availability_get`](#ad_account_availability_get). Here `dataspace` is a body field, unlike the query option on those two. Read `success` and `message`: the spec doesn't say whether a failure can return 200 with `success` false. The spec's example sets `manager_account_id` equal to `account_number`."
+
+  - name: activation_target_disable
+    method: POST
+    host: connect
+    path: /ssot/activation-targets/actions/{activationTargetId}/disable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1disable/post
+    description: Disables an activation target. Since v67.0.
+    example: CALL cdp.activation_target_disable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation target to disable. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** The spec asks for the 18-character record id, not the name. It doesn't say what happens to activations that use the target. Read `success`, as the spec doesn't say whether a failure can return 200."
+
+  - name: activation_target_enable
+    method: POST
+    host: connect
+    path: /ssot/activation-targets/actions/{activationTargetId}/enable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1enable/post
+    description: Enables an activation target. Since v67.0.
+    example: CALL cdp.activation_target_enable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation target to enable. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** The spec asks for the 18-character record id, not the name. The [Google Ads setup](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-googleadsadaudiences-setup.md) ends with an Enable click after OAuth, and no source says whether this call replaces that step. Read `success`, as the spec doesn't say whether a failure can return 200."
+
+  - name: activation_target_sync_retry
+    method: POST
+    host: connect
+    path: /ssot/activation-targets/actions/{activationTargetId}/retry-sync
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1retry-sync/post
+    description: Retries the sync for an activation target. Since v67.0.
+    example: CALL cdp.activation_target_sync_retry (activation_target_id => '85USB000004LBZF2A4');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** The spec doesn't say which states this applies to, or how to tell that the sync finished. `status` on [`activation_target_get`](#activation_target_get) is the only visible signal. It accepts a 15- or 18-character id, unlike enable and disable."
+
+schemas:
+  DataConnectorInputRepresentation:
+    description: Represents the data connector details input.
+    attributes:
+      - {name: name, type: string, description: "Developer name of the connector ([MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ConnectorInput.java)). The spec's text says \"Name of the activation target\", but its examples use a connector name here."}
+      - {name: output_format, api_name: outputFormat, type: string, description: "Output file format. The MCP server lists this as S3 only, and the S3 example uses `CSV`."}
+      - {name: bucket_name, api_name: bucketName, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: folder_name, api_name: folderName, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: access_key, api_name: accessKey, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: secret_key, api_name: secretKey, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: target_sub_type, api_name: targetSubType, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: business_unit_config, api_name: businessUnitConfig, schema: DataConnectorInput_businessUnitConfig, description: "Not in the spec schema: from the spec's examples."}
+      - {name: key_prefix_name, api_name: keyPrefixName, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: field_config, api_name: fieldConfig, schema: DataConnectorInput_fieldConfig, description: "Not in the spec schema: from the spec's examples."}
+
+  DataConnectorInput_businessUnitConfig:
+    unknown: warning
+    attributes:
+      - {name: business_units, api_name: businessUnits, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  DataConnectorInput_fieldConfig:
+    unknown: warning
+    attributes:
+      - {name: fields, schema: DataConnectorInput_fieldConfig_fields, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  DataConnectorInput_fieldConfig_fields:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: value, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  EgressPropertiesInputRepresentation:
+    description: Represents the input details for egress properties of the activation target.
+    attributes:
+      - {name: child_folder, api_name: childFolder, type: string, description: "Path of the child folder. The child folder is created in the parent directory for copying activation files. Since v63.0."}
+      - {name: custom_filename, api_name: customFilename, type: string, description: "Custom name of the output file. Either `custom_filename` or `predetermined_filename` must be present. Since v63.0."}
+      - {name: filename_date_suffix_format, api_name: filenameDateSuffixFormat, type: string, required: true, description: "Date suffix format for the output file name. Use the format `yyyy-MM-dd-HH-mm-ss` or `yyyy-MM-dd-HH-mm-ss-SSS`. Since v63.0."}
+      - {name: is_subfolder_creation_enabled, api_name: isSubfolderCreationEnabled, type: boolean, description: "Indicates whether subfolder creation is enabled (`true`) or not (`false`). If `true`, a custom subfolder is created. The default is `false`. Since v63.0."}
+      - {name: output_compression_format, api_name: outputCompressionFormat, type: string, enum: [Bzip2, Gzip, "None"], required: true, description: "Compression format for the output file. Since v63.0."}
+      - {name: output_delimiter, api_name: outputDelimiter, type: string, enum: [BrokenPipe, Caret, Colon, Comma, Hash, Pipe, Semicolon, Slash, Tab, Tilde, Underscore], required: true, description: "Field delimiter to use in output files. Since v63.0."}
+      - {name: output_format, api_name: outputFormat, type: string, required: true, description: "Output format for the activation target. Since v63.0."}
+      - {name: output_max_file_size_mega_bytes, api_name: outputMaxFileSizeMegaBytes, type: integer, required: true, description: "Maximum size of the output file in megabytes from `1` through `500`. Since v63.0."}
+      - {name: output_max_records_per_file, api_name: outputMaxRecordsPerFile, type: integer, description: "Maximum number of records in the output file from `1` through `100000`. Since v63.0."}
+      - {name: predetermined_filename, api_name: predeterminedFilename, type: string, enum: [Activation, Segment, SegmentActivation], description: "Predetermined name of the output file. Either `custom_filename` or `predetermined_filename` must be present. Since v63.0."}
+
+  activation_target_create_config:
+    unknown: warning
+    attributes:
+      - {name: object, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: identifier_field, api_name: identifierField, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: field_mapping, api_name: fieldMapping, schema: activation_target_create_config_fieldMapping, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: upsert_behavior, api_name: upsertBehavior, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  activation_target_create_config_fieldMapping:
+    unknown: warning
+    attributes:
+      - {name: individual_id, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: email, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: phone, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: first_name, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: last_name, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: segment_tier, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}

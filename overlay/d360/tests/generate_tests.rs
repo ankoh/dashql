@@ -94,15 +94,11 @@ fn add_query(name: &str, value: &Value, style: Option<&str>, out: &mut Vec<(Stri
     }
 }
 
-/// Fill in a binding: `:name` and `secret(name)` are what EXPLAIN prints
+/// Fill in a binding: `:name` is what EXPLAIN prints
 fn bound_options(description: &Value) -> Value {
     let mut options = description["options"].clone();
     for binding in description["bindings"].as_array().into_iter().flatten() {
-        let text = match (binding["param"].as_str(), binding["secret"].as_str()) {
-            (Some(param), _) => format!(":{param}"),
-            (_, Some(secret)) => format!("secret({secret})"),
-            _ => continue,
-        };
+        let text = format!(":{}", binding["param"].as_str().unwrap());
         *options.pointer_mut(binding["pointer"].as_str().unwrap()).unwrap() = Value::String(text);
     }
     options

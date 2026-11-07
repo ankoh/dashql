@@ -1,7 +1,7 @@
 //! A made-up overlay for the tests of the core, so that they can't start to depend on a real service.
 
 /// A ticket service. It covers what the core reads: required and unknown options, nested schemas, recursion, free-form
-/// objects, unions, paging, pending results, sensitive values and the escape hatch.
+/// objects, unions, paging, pending results and the escape hatch.
 pub const TICKETS: &str = r#"{
   "format": 1,
   "namespace": "tickets",
@@ -129,10 +129,6 @@ pub const TICKETS: &str = r#"{
         { "name": "url", "api_name": "url", "in": "body", "type": "string" },
         { "name": "signing_key", "api_name": "signingKey", "in": "body", "type": "string" },
         { "name": "credentials", "api_name": "credentials", "in": "body", "type": "any" }
-      ],
-      "sensitive": [
-        { "pointer": "/signing_key" },
-        { "pointer": "/credentials/*/value", "public_when": { "param_name": ["user", "account"] } }
       ]
     },
     {

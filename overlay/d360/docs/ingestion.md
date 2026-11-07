@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/ingestion.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Ingestion
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -412,4 +414,3 @@ CALL cdp.ingest_job_delete (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
 No response body (HTTP 204). One row with only the standard columns.
 
 **Notes:** [The job must be in `UploadComplete`, `JobComplete`, `Aborted` or `Failed`](https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-delete-a-job.md). The list leaves out `Open` and `InProgress`, so abort an open job first. The page doesn't say what happens to processing when an `UploadComplete` job is deleted, or say anything about records already loaded.
-

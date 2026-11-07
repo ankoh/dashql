@@ -1,6 +1,6 @@
 # CDP SQL
 
-Status: the spec is generated in `overlay/d360/api/`, and the core and the runtime read it. It has no binding yet, so no call can run, and nothing has been tested against an org.
+Status: the spec is in `overlay/d360/api/`, and the core and the runtime read it. It has no binding yet, so no call can run, and nothing has been tested against an org.
 
 CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [overlay](../../../docs/design/overlay.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [overlay.md](../../../docs/design/overlay.md) describes them.
 
@@ -86,16 +86,20 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | 200 with errors (consent) | The `result` column on every row, which a script reads. No `error_if`, since no source gives a pointer that means failure |
 | Connect errors: an array whose `message` may be a JSON string | `errors` at the top level, with `message_is_json` |
 | CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../../docs/design/overlay.md#open-questions) |
-| Credentials, where `value` is secret depending on `param_name` | `sensitive` with `public_when` |
 | `agent_id`: a header on most agentic memory calls, a query parameter on one | `in` per function |
 | Data space filtering that the API doesn't support | Not handled. Values are API values, and the client adds no filtering |
 | Segment SQL rules, call order, readiness | Stay out of the spec. The server decides, and [the notes](api_notes.md) explain |
 
 Data 360's contract doesn't exercise the format much: it has no top-level array responses or form encoding, and it doesn't record response headers. [The survey](../../../docs/design/overlay/api_survey.md) measures the format against APIs that do.
 
-## Generating the spec
+## The spec is the source
 
-The overlay lives in `overlay/d360/`, while its namespace is `cdp`. `api/generate.py` reads the [reference documents](functions.md) and writes `api/spec.json`, which is checked in. This also generates [the fixtures](#the-fixtures):
+The overlay lives in `overlay/d360/`, while its namespace is `cdp`. `api/*.yaml` is edited by hand and holds everything, prose included: `overlay.yaml` the overlay itself, and every other file one family with its functions and schemas. `api/generate_spec.rs` generates two things from it and reads nothing back:
+
+- `spec.json`, the facts that the core and the runtime read. It's a build output, `//overlay/d360:spec`, and isn't checked in.
+- The family documents of [the reference](functions.md), which are checked in so that they can be read anywhere.
+
+This writes the documents and [the fixtures](#the-fixtures):
 
 ```
 bazel run //overlay/d360:update
@@ -108,21 +112,28 @@ bazel run //overlay/d360:update
 | Schemas | 466 |
 | Schema attributes | 1,889 |
 | Result columns | 4,700 |
-| Size | 915 KB, 60 KB gzipped |
+| Size of `spec.json` | 745 KB, 62 KB gzipped |
 
-**The reference is the source.** It already merges the contract with everything the contract leaves out, and its tables are regular, so changing the API means editing the reference and regenerating. Rules that are only prose in the reference are in `generate.py`: a few paging notes, and the `param_name` values of `credentials` that are plain settings.
+**Changing the API means editing the YAML.** Facts are plain fields, so a reworded sentence can't change what a call does. The prose sits next to them as block text: `description`, `example`, `result_description` and `notes` on a function, `description` on a schema, an attribute and a family. `spec_url`, `reference_url`, `tools` and `evidence` are for the documents too. None of this reaches `spec.json`. `overview.md`, `functions.md` and `api_notes.md` are written by hand, and the other documents here say at the top that they're generated.
 
-**Corrections go into the reference.** The contract marks some fields required that its own examples leave out, such as every body field of the `PATCH` of `ml_configured_model_update`. Those rows aren't required in the reference, with a note, so the two can't disagree.
+**YAML can't change a type silently.** It reads `1.0` or `true` as something other than a string, so the generator fails on a value that isn't a string where one belongs, such as `enum: [1.0]`, and on a key that isn't a string. Quote those. It also fails on a schema that two families define, and on one that nothing defines.
+
+**A family document lists** the schemas of its family and all that its functions and schemas reach, sorted. A schema is defined in one family, and other documents that reach it repeat its section.
+
+**The app bundles `spec.json`.** `//packages/dashql-app:overlays` stages it for the `@dashql/overlays` alias, and `loadOverlaySpec('d360')` in `overlay_specs.ts` loads it as a chunk of its own. No app page calls it until the binding exists. The `pages` deploy holds the chunk already, because it bundles the browser test dashboard, while a build without the tests, such as `reloc`, gets it with the binding.
+
+**Corrections go into the YAML.** The contract marks some fields required that its own examples leave out, such as every body field of the `PATCH` of `ml_configured_model_update`. Those attributes aren't required there, with a note.
 
 **The tests** in `//overlay/d360`:
-- `spec_up_to_date_test` fails if `spec.json` isn't what the reference generates.
+- `generate_spec_test` tests the generator.
+- `docs_up_to_date_test` fails if a family document isn't what the YAML generates.
 - `spec_test` loads the spec into the core. Every `CALL` example in the reference and every snippet has to parse and pass the checks, and completion has to offer exactly the functions, the options of every function and the attributes of every object option.
 
 Passing means an example has the shape the spec describes, not that the server accepts it.
 
 ## The fixtures
 
-`overlay/d360/tests/` has a JSON file per family, generated from the spec and the reference:
+`overlay/d360/tests/` has a JSON file per family, generated from the spec and the examples of the reference:
 
 ```json
 {
@@ -160,7 +171,7 @@ So the spec is the contract plus annotations, built mechanically and labeled per
 | Path templates | Placeholders the spec's parameters omit |
 | Review | A few corrections from reading the sources, such as `models = (models = [...])` in DBT segments |
 
-That merged knowledge is what [the reference](functions.md) records, so it's the source of the spec.
+That merged knowledge is in the YAML.
 
 **`unknown` follows the evidence:**
 
@@ -176,7 +187,7 @@ A schema inferred from examples can miss attributes. The prototype hit this with
 
 The contract has 10 request attributes that are one of several schemas, and these become [unions](../../../docs/design/overlay.md#the-spec). Each is named after its first use, such as `transform_create.definition`.
 
-The contract declares no discriminators, and all variants of a union list the same enum. So nothing official says which value selects which variant. `UNION_TAGS` in `api/generate.py` connects them where the value and the variant have the same name:
+The contract declares no discriminators: variants inherit the attribute from a shared base, with the same enum. So nothing official says which value selects which variant. The `tag` of a union connects them where the value and the variant have the same name:
 
 | Union | Tag | Values that select a variant | Values that select nothing |
 |---|---|---|---|
@@ -240,13 +251,13 @@ CALL cdp.connection_create (
   label => 'prod',
   connector_type => 'SNOWFLAKE',
   credentials => [
-    (param_name = 'user', value = secret(snowflake_user)),
-    (param_name = 'privateKey', value = secret(snowflake_private_key))
+    (param_name = 'user', value = :snowflake_user),
+    (param_name = 'privateKey', value = :snowflake_private_key)
   ]
 );
 ```
 
-Connection credentials are a list of `(param_name, value)` pairs, so whether `value` is secret depends on the `param_name` beside it. Every `value` must be `secret()` unless `public_when` lists that `param_name` as public (see [Secrets](../../../docs/design/overlay.md#secrets)). The spec's connector metadata may say which are public; that needs checking.
+Connection credentials are a list of `(param_name, value)` pairs, as the API has them. A `value` can be a literal or a parameter.
 
 ## The escape hatch
 
@@ -286,7 +297,7 @@ It's the only function with a `body` option.
 
 ## Roadmap
 
-The [overlay roadmap](../../../docs/design/overlay.md#roadmap) comes first. The spec is generated. For Data 360:
+The [overlay roadmap](../../../docs/design/overlay.md#roadmap) comes first. The spec exists. For Data 360:
 
 1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Needs a browser CORS check, since only `GET` on `/services/data` is exercised today.
 2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
@@ -297,6 +308,6 @@ The [overlay roadmap](../../../docs/design/overlay.md#roadmap) comes first. The 
 
 1. **SIDB.** Its descriptor spreads Salesforce's, so it would get the binding too. Does SIDB have this API?
 2. **CORS for writes.** If `POST`, `PATCH`, `PUT` and `DELETE` fail on `/services/data` from a browser, even with the org's allowlist, writes are Electron-only.
-3. **Which spec version.** The API has versions, and a spec is generated from one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
+3. **Which spec version.** The API has versions, and a spec describes one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
 4. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.
 5. **Unpublished endpoints.** Sources mention calls no function covers: `POST /personalization/decisions`, `/ssot/intelligent-context/{lens}/chunks`, `/ssot/metadata-entities/{nextBatchId}`, some semantic model endpoints, and community-reported agent calls. They work through `cdp.request` for now.

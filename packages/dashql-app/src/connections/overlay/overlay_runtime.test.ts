@@ -145,15 +145,14 @@ describe('overlay requests', () => {
         expect(initOf(csv.fetch, 0).body).toEqual('id,name');
     });
 
-    it('fills in parameters and secrets', async () => {
+    it('fills in parameters', async () => {
         const fn: OverlayFunction = { name: 'p', options: [{ name: 'a', in: 'query' }, { name: 'key', api_name: 'apiKey', in: 'header' }] };
-        const description = call('p', { a: null, key: null }, [{ pointer: '/a', param: 'x' }, { pointer: '/key', secret: 'k' }]);
-        const { fetch, environment } = env([json({})], { params: { x: 7 }, resolveSecret: async () => 'hidden' });
+        const description = call('p', { a: null, key: null }, [{ pointer: '/a', param: 'x' }, { pointer: '/key', param: 'k' }]);
+        const { fetch, environment } = env([json({})], { params: { x: 7, k: 'abc' } });
         await runOverlayCall(spec([fn]), description, environment);
         expect(new URL(urlOf(fetch, 0)).searchParams.get('a')).toEqual('7');
-        expect(new Headers(initOf(fetch, 0).headers).get('apiKey')).toEqual('hidden');
-        await expect(runOverlayCall(spec([fn]), description, env([], { params: { x: 7 } }).environment)).rejects.toThrow(/no secret store/);
-        await expect(runOverlayCall(spec([fn]), description, env([], { resolveSecret: async () => '' }).environment)).rejects.toThrow(/:x has no value/);
+        expect(new Headers(initOf(fetch, 0).headers).get('apiKey')).toEqual('abc');
+        await expect(runOverlayCall(spec([fn]), description, env([], { params: { k: 'abc' } }).environment)).rejects.toThrow(/:x has no value/);
     });
 
     it('refuses writes for now', async () => {
@@ -486,13 +485,13 @@ describe('overlay EXPLAIN', () => {
     };
 
     it('prints the request with API names and sends nothing, even for a write', async () => {
-        const description = call('create', { project: 'a', page_size: 5, signing_key: null, token: 'abc' }, [{ pointer: '/signing_key', secret: 'k' }]);
+        const description = call('create', { project: 'a', page_size: 5, signing_key: null, token: 'abc' }, [{ pointer: '/signing_key', param: 'k' }]);
         const result = await explainOverlayCall(spec([fn]), description, { variables: () => ({ version: '2' }) });
         expect(cell(result, 0, 'method')).toEqual('POST');
         expect(cell(result, 0, 'host')).toEqual('api');
         expect(cell(result, 0, 'path')).toEqual('/v2/projects/a');
         expect(cell(result, 0, 'query')).toEqual('pageSize=5');
-        expect(JSON.parse(cell(result, 0, 'body') as string)).toEqual({ signingKey: 'secret(k)' });
+        expect(JSON.parse(cell(result, 0, 'body') as string)).toEqual({ signingKey: ':k' });
         expect(JSON.parse(cell(result, 0, 'headers') as string)['X-Token']).toEqual('abc');
     });
 

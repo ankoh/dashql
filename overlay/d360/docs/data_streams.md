@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/data_streams.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Data Streams
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -552,10 +554,10 @@ Represents the input for a data lake object (DLO).
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `directory_and_files_details` | `directoryAndFilesDetails` | array of [DirectoryAndFilesDetailsInput](#directoryandfilesdetailsinputrepresentation) |  | Directories and file patterns to read (community). |
-| `source_config` | `sourceConfig` | map to string |  | Extra settings, for example `reservedPrefix = '$dcf_content$'` (community). |
+| `directory_and_files_details` | `directoryAndFilesDetails` | array of [DirectoryAndFilesDetailsInput](#directoryandfilesdetailsinputrepresentation) |  | Directories and files to read ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md)). |
+| `source_config` | `sourceConfig` | map to string |  | Seen with `reservedPrefix = '$dcf_content$'` in a SharePoint payload ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md)). |
 | `source_id` | `sourceId` | string |  | - |
-| `source_type` | `sourceType` | enum(SfDrive) |  | Spec value `SfDrive`. A community sample sends `SF_DRIVE`. |
+| `source_type` | `sourceType` | enum(SfDrive) |  | `SfDrive` in the spec, `SF_DRIVE` in a [community payload](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md). |
 
 ### DataModelObjectConfigInputRepresentation
 
@@ -570,11 +572,11 @@ Represents the input fields in the data object.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `is_primary_key` | `isPrimaryKey` | boolean | yes | Indicates whether this field is a primary key (`true`) or not (`false`). Since v60.0. |
-| `key_qualifier_field_name` | `keyQualifierFieldName` | string |  | Key qualifier field name. Since v60.0. |
+| `is_primary_key` | `isPrimaryKey` | boolean | yes | Indicates whether this field is a primary key (`true`) or not (`false`). A create needs at least one `true` (tool text). Since v60.0. |
+| `key_qualifier_field_name` | `keyQualifierFieldName` | string |  | Key qualifier field name. The MCP request class calls this `key_qualifier_field`. The spec's example omits it and gets a generated `KQ_<field>` back. Since v60.0. |
 | `label` | `label` | string | yes | Label of the field. Since v60.0. |
-| `name` | `name` | string | yes | Name of the field. Since v60.0. |
-| `type` | `type` | enum(Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url) |  | Data type of the field. Since v60.0. |
+| `name` | `name` | string | yes | Name of the field. The spec's example omits `__c` and gets it back with the suffix, while a community example passes `event_id__c`. Since v60.0. |
+| `type` | `type` | enum(Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url) |  | Data type of the field. **Conflict:** the spec's schema says `type`, while its examples, the [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dmo/DataObjectFieldInput.java) and two community clients send `data_type`, and a community template uses `type`. The MCP class takes `type` only as an input alias and sends `data_type`. The spec's 400 text rejects fields with no data type. |
 | `description` | `description` | string |  | Not in the spec schema: from the spec's examples. |
 | `is_dynamic_lookup` | `isDynamicLookup` | boolean |  | Not in the spec schema: from the spec's examples. |
 | `data_type` | `dataType` | string |  | Not in the spec schema: from the spec's examples. |
@@ -677,8 +679,8 @@ Represents the input for a data stream source field.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `dir_name` | `dirName` | string |  | For SharePoint, `SPUnstructuredDocument/<CONNECTION_ID>/<SITE_ID>` (community). |
-| `file_name` | `fileName` | string |  | File name or pattern, for example `*` (community). |
+| `dir_name` | `dirName` | string |  | Seen as `SPUnstructuredDocument/<CONNECTION_ID>/<SITE_ID>` for SharePoint ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md)). |
+| `file_name` | `fileName` | string |  | Seen as `*` ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md)). |
 
 ### ExistingDataLakeObjectInputRepresentation
 

@@ -1,0 +1,334 @@
+title: Data Spaces
+description: |
+  A data space is an [isolated workspace](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) inside one org. Create a space, add data lake objects (DLOs) as members, wait for member `status`, then name the space on later calls. Most calls that accept a space fall back to `default` when you omit it.
+
+  **Members are DLOs, not users.** User access comes from `dataspaceScopes` on a permission set, [deployed as metadata](https://github.com/forcedotcom/sf-skills/blob/main/skills/platform-dataspace-access-configure/SKILL.md). No function here grants it.
+
+  **Scoping has no single rule.** The option's name and position vary per call in the spec:
+
+  | Where | Calls |
+  |---|---|
+  | `dataspace` query | `metadata`, mappings, DMO relationships, `segment_list`, `segment_create`, the calculated insight list, data graphs, data actions |
+  | `dataspace` query | Activation and target enable, disable and metadata lookups |
+  | `dataspace_name` or `dataspace_id` query | Object access grants; capping dimensions |
+  | Body field | `dataspace_name` on `dmo_create`, `activation_create`; `dataspace_info` on `dlo_create`, `datastream_create` |
+  | None | `dlo_list`, `dmo_list`, `datastream_list`, `activation_list`, target and identity resolution lists |
+
+  For the last row, [filter the response yourself (community, one org with one space)](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md). That source also found `dlo_list` filters by space after paging, so short pages don't mean the end.
+
+  This family's own calls take `id_or_name`. Salesforce's [MCP tools](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataSpaceTools.java) call it `dataSpaceNameOrId`, and `dataSpaceNameOrID` on the member list only. Those are Java parameter names, not API names.
+
+  ```sql
+  CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
+  CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'NoneOperator', conditions = (conditions = [])))]));
+  CALL cdp.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll'); /* repeat until status is ACTIVE */
+  CALL cdp.segment_list (dataspace => 'nonDefault');
+  ```
+
+functions:
+  - name: dataspace_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-spaces/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D/delete
+    description: Deletes a data space by ID or API name.
+    example: CALL cdp.dataspace_delete (id_or_name => 'nonDefault');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID (`0vhSB000001bqwjYAA`) or API name (`nonDefault`) of the data space."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: "**Notes:** Only the newer spec has this call. It's absent from the older v68 copy, from the MCP tools and from the [community CLI](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/resources/dataSpace.ts). The spec lists 204, 403, 404 and 412 with no explanation of 412. No source says what happens to the members, or whether `default` can be deleted."
+
+  - name: dataspace_member_remove
+    method: DELETE
+    host: connect
+    path: /ssot/data-spaces/{idOrName}/members
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members/delete
+    tools: [d360_dataspace_member_remove]
+    description: Delete the specified data lake objects (DLOs) from a data space. Since v66.0.
+    example: CALL cdp.dataspace_member_remove (id_or_name => 'nonDefault', member_names => 'Orders__dll,Returns__dll');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space. Since v66.0."}
+      - {name: member_names, api_name: memberNames, in: query, type: string, required: true, description: "DLO names separated by commas, for example, `DataSpaceMember1__dll,DataSpaceMember2__dll`. Maximum 10 members per request. Since v66.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** A 200 doesn't mean the members were removed. The older spec copy says individual items may fail, each with a `success` boolean and an `errors` object holding `REFERENTIAL_INTEGRITY_VIOLATION` (dependencies found), `NOT_FOUND` or `NO_ACCESS`. Neither copy has a response schema, so the entries have no columns here. Confirm with `dataspace_member_list`."
+
+  - name: dataspace_list
+    method: GET
+    host: connect
+    path: /ssot/data-spaces
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces/get
+    tools: [d360_dataspace_list]
+    description: Get a collection of all data spaces that a user is assigned to. Since v62.0.
+    example: CALL cdp.dataspace_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "The maximum number of items to return in each response. Values are from `1` through `4999`. The default value is `50` if unspecified. Since v62.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v62.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v62.0."}
+    rows: /dataSpaces
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data space. Since v62.0."}
+      - {name: prefix, type: VARCHAR, description: "Three-character prefix of the data space. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status of the data space. Since v62.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataSpaces` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataSpaceInfoRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** This returns only the spaces the caller is assigned to, so a missing space may still exist. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataSpaceTools.java) sends `batch_size` and describes `order_by` as a field name. The spec says `limit`, and `ASC` or `DESC`. A [community skill](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud/references/feature-readiness.md) ties this call to the `CdpDataSpace` feature being provisioned (community).
+
+  - name: dataspace_get
+    method: GET
+    host: connect
+    path: /ssot/data-spaces/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D/get
+    tools: [d360_dataspace_get]
+    description: Get a data space by ID or API name. Since v62.0.
+    example: CALL cdp.dataspace_get (id_or_name => 'default');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID (`0vhSB000001bqwjYAA`) or API name (`default`) of the data space."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data space. Since v62.0."}
+      - {name: prefix, type: VARCHAR, description: "Three-character prefix of the data space. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status of the data space. Since v62.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataSpaceInfoRepresentation`.
+    notes: "**Notes:** The spec gives `status` the values `Active`, `Error` and `Processing`."
+
+  - name: dataspace_member_list
+    method: GET
+    host: connect
+    path: /ssot/data-spaces/{idOrName}/members
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members/get
+    tools: [d360_dataspace_member_list]
+    description: Get information about the objects that can access a data space. Currently, only data lake objects (DLOs) are supported. Since v61.0.
+    example: CALL cdp.dataspace_member_list (id_or_name => 'default', batch_size => 200);
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "The maximum number of items to return in each response. Values are from `1` through `2000`. The default value is `50` if unspecified. Since v61.0."}
+      - {name: continuation_token, api_name: continuationToken, in: query, type: string, description: "Token used to retrieve the next set of data space members. Returned when more results are available than can be returned in a single request. - **First request:** Omit the parameter or pass `null` to retrieve the first page. - **Subsequent requests:** Pass the token from the previous response to retrieve the next page. - **Expired tokens:** Tokens can expire after a period of time. If a token expires, restart pagination from the firstpage. - **Last page:** When the response returns no `continuation_token`, you've reached the last page. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Values are from `1` through '2000' If unspecified, no rows are skipped. Since v61.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v61.0."}
+    rows: /members
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: filter, type: JSON, schema: DataSpaceFilterRepresentation, description: "Filter on the object used for creating the data space member. Since v61.0."}
+      - {name: member_name, api_name: memberName, type: VARCHAR, description: "Developer name of the data space member. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status of the off-core sync of the data space member. Since v62.0."}
+    paging: {kind: token, from: /continuationToken, option: continuation_token}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/members` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `continuationToken`. Schema `DataSpaceMemberRepresentation`."
+    notes: |
+      **Paging:** `continuationToken` in `_meta`, since v67. No token means the last page. Tokens can expire, then restart from the first page. The schema also has `next_page_url`, but the spec's example response doesn't return it.
+
+      **Notes:** Rows are DLOs. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataSpaceTools.java) comments say "who has access", and its test uses users with roles, which contradicts the spec. That tool also doesn't send `continuation_token`. `offset` stops at 2000 in the spec, so use the token beyond that.
+
+      `status` is `Active`, `Error` or `Processing` in the spec's enum, but its examples show `ACTIVE`. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) records uppercase from a live response, so compare without case.
+
+  - name: dataspace_member_get
+    method: GET
+    host: connect
+    path: /ssot/data-spaces/{idOrName}/members/{dataSpaceMemberObjectName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members~1%7BdataSpaceMemberObjectName%7D/get
+    description: Get details about a data space member for a given data lake object (DLO). Since v62.0.
+    example: CALL cdp.dataspace_member_get (dataspace_member_object_name => 'Orders__dll', id_or_name => 'default');
+    options:
+      - {name: dataspace_member_object_name, api_name: dataSpaceMemberObjectName, in: path, type: string, required: true, description: "Developer name of the DLO that is the member, as in `member_name`."}
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: filter, type: JSON, schema: DataSpaceFilterRepresentation, description: "Filter on the object used for creating the data space member. Since v61.0."}
+      - {name: member_name, api_name: memberName, type: VARCHAR, description: "Developer name of the data space member. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status of the off-core sync of the data space member. Since v62.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataSpaceMemberRepresentation`.
+    notes: "**Notes:** The older spec copy gives `DLO_DloDeveloperName` as the name's form, while every member example uses `DeveloperName1__dll`. In the result, `filter.conditions` is a flat array and operators look like `EqualsOperator`, which differs from the input shape. `status` has the same [case mismatch](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) as `dataspace_member_list`."
+
+  - name: dataspace_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-spaces/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D/patch
+    tools: [d360_dataspace_update]
+    description: Update an existing data space. Since v62.0.
+    example: CALL cdp.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
+      - {name: description, in: body, type: string, required: true, description: "Description of the data space. Since v62.0."}
+      - {name: label, in: body, type: string, required: true, description: "Label of the data space. Since v62.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data space. Since v62.0."}
+      - {name: prefix, type: VARCHAR, description: "Three-character prefix of the data space. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status of the data space. Since v62.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataSpaceInfoRepresentation`.
+    notes: "**Notes:** The spec requires both `label` and `description`, so resend the one you aren't changing. `name`, `prefix` and `filter` aren't in the input, so this call can't change them."
+
+  - name: dataspace_create
+    method: POST
+    host: connect
+    path: /ssot/data-spaces
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces/post
+    tools: [d360_dataspace_create]
+    description: Create a new data space based on the input details provided. Since v62.0.
+    example: CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: filter, in: body, schema: DataSpaceFilterInputRepresentation, description: "Filter for the data space. Since v60.0."}
+      - {name: label, in: body, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: prefix, in: body, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: description, in: body, type: string, description: "Not in the spec schema: from the spec's examples."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data space. Since v62.0."}
+      - {name: prefix, type: VARCHAR, description: "Three-character prefix of the data space. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status of the data space. Since v62.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataSpaceInfoRepresentation`.
+    notes: |
+      **Done when:** `dataspace_get.status` is `Active`. `Processing` means still running, `Error` means failed. The spec's example returns `Active` from the create itself.
+
+      **Notes:** The spec contradicts itself on the body. Its schema lists `id`, `name`, `namespace` and `filter`, which is what the table shows. Its example and the [Postman collection](https://github.com/supanmaniar/salesforce-mcn-d360-agent/blob/main/catalog/endpoints.json) send `label`, `prefix` and `description`, so the example above uses options the table lacks. The [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dataspace/DataSpaceCreateRequest.java) sends `name`, `label` and `description`.
+
+      In the spec's example no `name` is sent, and the response's `name` equals `label`. The response schema calls `prefix` three characters. The spec also lists a 409 without describing it.
+
+  - name: dataspace_sync
+    method: POST
+    host: connect
+    path: /ssot/data-spaces/{idOrName}/actions/retry
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1actions~1retry/post
+    description: Retries the sync of a data space. The spec gives only the summary "Sync data space" and the path `actions/retry`.
+    example: CALL cdp.dataspace_sync (id_or_name => 'nonDefault');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: |
+      **Done when:** No source documents this. `dataspace_get.status` is the only progress field in the spec.
+
+      **Notes:** Only the newer spec has this call. It's absent from the older v68 copy and the MCP tools, and no source says when to call it. The spec lists 204 and 404.
+
+  - name: dataspace_member_sync
+    method: POST
+    host: connect
+    path: /ssot/data-spaces/{idOrName}/members/{dataSpaceMemberObjectName}/actions/retry
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members~1%7BdataSpaceMemberObjectName%7D~1actions~1retry/post
+    description: Retries the sync of one data space member. The spec gives only the summary "Sync data space member" and the path `actions/retry`.
+    example: CALL cdp.dataspace_member_sync (dataspace_member_object_name => 'Orders__dll', id_or_name => 'nonDefault');
+    options:
+      - {name: dataspace_member_object_name, api_name: dataSpaceMemberObjectName, in: path, type: string, required: true, description: "Developer name of the DLO that is the member, as in `member_name`."}
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: |
+      **Done when:** No source documents this. The member's `status`, from `dataspace_member_get`, is described as the status of its off-core sync.
+
+      **Notes:** Only the newer spec has this call. It's absent from the older v68 copy and the MCP tools, and no source says when to call it. The spec lists 204 and 404.
+
+  - name: dataspace_member_add
+    method: PUT
+    host: connect
+    path: /ssot/data-spaces/{idOrName}/members
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members/put
+    tools: [d360_dataspace_member_add]
+    description: Add members to a data space or update existing data space filters. Currently, only data lake objects (DLOs) are supported. Both create and update are acceptable methods. Since v61.0.
+    example: CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'OrOperator', condition_groups = [], conditions = (conditions = [(field_name = 'Region__c', filter_value = 'EMEA', operator = 'EqualsOperator', table_name = 'Orders__dll')])))]));
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
+      - {name: members, in: body, schema: DataSpaceMemberInputListRepresentation, array: 1, required: true, description: "A list of members to either create or update in the data space. Since v62.0."}
+    columns:
+      - {name: dataspace_members, api_name: dataSpaceMembers, type: JSON, schema: DataSpaceMemberCollectionRepresentation, description: "Details of the data space members that have been successfully created or updated. Since v62.0."}
+      - {name: errors, type: JSON, array: 1, schema: DataSpaceMemberErrorRepresentation, description: "Details of the data space members that have been ignored or failed during the operation. Since v62.0."}
+      - {name: success, type: VARCHAR, description: "Status of the operation (`true` or `false`). Value is `true` if some or all members have been created or updated. Value is `false` only if all members have failed to be created or updated. Since v62.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataSpaceMemberPutCollectionRepresentation`.
+    notes: |
+      **Done when:** `dataspace_member_get.status` or `dataspace_member_list.status` is `ACTIVE`. `PROCESSING` means still running, `ERROR` means failed. The spec's example returns `PROCESSING` from this call. Compare without case.
+
+      **Notes:** The sources give three body shapes:
+
+      - **Spec schema, shown in the tables:** `members` is an array of `(members = [...])`, `filter` is an array, and `conditions` is an array of `(conditions = [...])`.
+      - **Spec example, [Postman collection](https://github.com/supanmaniar/salesforce-mcn-d360-agent/blob/main/catalog/endpoints.json) and [community CLI](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/commands/data360/data-space/member/set.ts):** `members`, `filter` and `conditions` are each a single object. The example above uses this. The CLI's [coverage doc](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) claims live evidence for it (community).
+      - **[MCP classes](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dataspace/DataSpaceMemberRequest.java):** `members` is a flat array of members, and `filter` is an array.
+
+      The input enum says `Equals`, while the output enum and every example say `EqualsOperator`. `filter` is required. For no filter, the community CLI sends `conjunctive_operator = 'NoneOperator'` with empty conditions (community).
+
+      The MCP tool comments describe granting access to a user with a role, and its test passes `user-456`. The spec allows only DLOs. Sending an existing `member_name` updates its filter. `DataLakeObjectInput` also has `dataspace_info`, so `dlo_create` and `datastream_create` can name spaces at creation.
+
+schemas:
+  DataSpaceMemberInputListRepresentation:
+    description: Represents a list of data space members.
+    attributes:
+      - {name: members, schema: DataSpaceMemberInputRepresentation, array: 1, required: true, description: "Members of a data space. Since v62.0."}
+
+  DataSpaceMemberInputRepresentation:
+    description: Represents the member details for updating a data space.
+    attributes:
+      - {name: filter, schema: DataSpaceFilterInputRepresentation, array: 1, required: true, description: "Filter applied on the data space member. Since v62.0."}
+      - {name: member_name, api_name: memberName, type: string, required: true, description: "Developer name of the data space member. Since v62.0."}

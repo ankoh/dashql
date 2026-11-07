@@ -2,7 +2,7 @@
 
 Status: work in progress, part of the [CDP SQL](overview.md) spec. Nothing here is implemented, and nothing has been tested against an org.
 
-This is the reference for `CALL cdp.<function>(...)`: 534 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading.
+This is the reference for `CALL cdp.<function>(...)`: 534 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading. The family documents are generated from `overlay/d360/api/*.yaml`, so edit those.
 
 The overlay holds all of it, so completion offers exactly what a position takes and a misplaced attribute gets a diagnostic. See [the Data 360 doc](overview.md) and [overlays](../../../docs/design/overlay.md).
 

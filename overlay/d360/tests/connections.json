@@ -734,7 +734,7 @@
     },
     {
       "function": "connection_create",
-      "call": "CALL cdp.connection_create (\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = secret(snowflake_user)),\n    (param_name = 'privateKey', value = secret(snowflake_private_key))\n  ],\n  parameters => [\n    (param_name = 'accountUrl', value = 'https://my-account.snowflakecomputing.com'),\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'false')\n  ]\n)",
+      "call": "CALL cdp.connection_create (\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = :snowflake_user),\n    (param_name = 'privateKey', value = :snowflake_private_key)\n  ],\n  parameters => [\n    (param_name = 'accountUrl', value = 'https://my-account.snowflakecomputing.com'),\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'false')\n  ]\n)",
       "description": {
         "namespace": "cdp",
         "function": "connection_create",
@@ -781,11 +781,11 @@
         "bindings": [
           {
             "pointer": "/credentials/1/value",
-            "secret": "snowflake_user"
+            "param": "snowflake_user"
           },
           {
             "pointer": "/credentials/2/value",
-            "secret": "snowflake_private_key"
+            "param": "snowflake_private_key"
           }
         ]
       },
@@ -809,11 +809,11 @@
             },
             {
               "paramName": "user",
-              "value": "secret(snowflake_user)"
+              "value": ":snowflake_user"
             },
             {
               "paramName": "privateKey",
-              "value": "secret(snowflake_private_key)"
+              "value": ":snowflake_private_key"
             }
           ],
           "parameters": [
@@ -1232,7 +1232,7 @@
     },
     {
       "function": "connection_test",
-      "call": "CALL cdp.connection_test (\n  connector_type => 'AwsRdsSqlServer',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'username', value = secret(sales_db_user)),\n    (param_name = 'password', value = secret(sales_db_password))\n  ],\n  parameters => [\n    (param_name = 'jdbc_connection_url', value = 'sales-db.abc123.us-east-1.rds.amazonaws.com:1433'),\n    (param_name = 'DATABASE', value = 'sales'),\n    (param_name = 'SCHEMA', value = 'dbo')\n  ]\n)",
+      "call": "CALL cdp.connection_test (\n  connector_type => 'AwsRdsSqlServer',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'username', value = :sales_db_user),\n    (param_name = 'password', value = :sales_db_password)\n  ],\n  parameters => [\n    (param_name = 'jdbc_connection_url', value = 'sales-db.abc123.us-east-1.rds.amazonaws.com:1433'),\n    (param_name = 'DATABASE', value = 'sales'),\n    (param_name = 'SCHEMA', value = 'dbo')\n  ]\n)",
       "description": {
         "namespace": "cdp",
         "function": "connection_test",
@@ -1269,11 +1269,11 @@
         "bindings": [
           {
             "pointer": "/credentials/0/value",
-            "secret": "sales_db_user"
+            "param": "sales_db_user"
           },
           {
             "pointer": "/credentials/1/value",
-            "secret": "sales_db_password"
+            "param": "sales_db_password"
           }
         ]
       },
@@ -1291,11 +1291,11 @@
           "credentials": [
             {
               "paramName": "username",
-              "value": "secret(sales_db_user)"
+              "value": ":sales_db_user"
             },
             {
               "paramName": "password",
-              "value": "secret(sales_db_password)"
+              "value": ":sales_db_password"
             }
           ],
           "parameters": [
@@ -1317,7 +1317,7 @@
     },
     {
       "function": "connection_replace",
-      "call": "CALL cdp.connection_replace (\n  connection_id => '9cgaj0000012O5hAAE',\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = secret(snowflake_user)),\n    (param_name = 'privateKey', value = secret(snowflake_new_private_key))\n  ],\n  parameters => [\n    (param_name = 'accountUrl', value = 'https://my-account.snowflakecomputing.com'),\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'false')\n  ]\n)",
+      "call": "CALL cdp.connection_replace (\n  connection_id => '9cgaj0000012O5hAAE',\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = :snowflake_user),\n    (param_name = 'privateKey', value = :snowflake_new_private_key)\n  ],\n  parameters => [\n    (param_name = 'accountUrl', value = 'https://my-account.snowflakecomputing.com'),\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'false')\n  ]\n)",
       "description": {
         "namespace": "cdp",
         "function": "connection_replace",
@@ -1365,11 +1365,11 @@
         "bindings": [
           {
             "pointer": "/credentials/1/value",
-            "secret": "snowflake_user"
+            "param": "snowflake_user"
           },
           {
             "pointer": "/credentials/2/value",
-            "secret": "snowflake_new_private_key"
+            "param": "snowflake_new_private_key"
           }
         ]
       },
@@ -1393,11 +1393,11 @@
             },
             {
               "paramName": "user",
-              "value": "secret(snowflake_user)"
+              "value": ":snowflake_user"
             },
             {
               "paramName": "privateKey",
-              "value": "secret(snowflake_new_private_key)"
+              "value": ":snowflake_new_private_key"
             }
           ],
           "parameters": [

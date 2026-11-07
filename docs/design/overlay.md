@@ -1,6 +1,6 @@
 # Overlays
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../overlay/d360/docs/overview.md#generating-the-spec) implemented. The connector bindings don't exist yet, so an overlay call can't run in the app, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../overlay/d360/docs/overview.md#the-spec-is-the-source) implemented. The connector bindings don't exist yet, so an overlay call can't run in the app, and nothing has run against a real service.
 
 An **overlay** lets a DashQL script reach a remote REST service. `CALL <name>(<option> => <value>, ...)` is a generic statement, and an overlay lies on top of a connection and shadows one namespace: a call in that namespace runs as an HTTP request and never reaches the connection's SQL backend. **Any other `CALL` goes to the backend as written.**
 
@@ -64,7 +64,6 @@ EXPLAIN CALL tickets.ticket_delete (id => 7);
 | `[1, 2]`, `[]` | Array |
 | `(SELECT ...)` | String: the SQL text between the parentheses. The query isn't run |
 | `:name` | The bound value |
-| `secret(name)` | The stored secret, see [Secrets](#secrets) |
 
 - **`$$` strings are verbatim.** Nothing is trimmed, so `$$` followed by a line break starts the value with a line break. They're for text the grammar shouldn't touch: SQL it can't parse, CSV, formulas.
 - **`(SELECT ...)` keeps core parsing and completion.** It's analyzed like any other query, and the text is sent as written. A service's SQL dialect isn't enforced, which is what `$$` is for.
@@ -102,7 +101,7 @@ call_scalar:
 
 - **`call_value` is separate from `vararg_value`,** so `SET` doesn't change, and a bare column name isn't a value.
 - **`(select = 1)` and `(select 1)` need no scanner help.** LALR(1) decides on the token after `select`, so an attribute can be called `select`, `with`, `table` or `values`.
-- **`secret(name)` is an ordinary function call to the parser.** The check below rejects any other function in a value.
+- **A function is an ordinary call to the parser.** The check below rejects it in a value, with a better message than a syntax error.
 - **`DCONST` is the `$$` string,** a scanner state of its own. It's a `LITERAL_STRING` node, and its text tells it from a quoted string. Only `call_scalar` takes the token, so `SELECT $$x$$` stays a syntax error.
 - **`EXPLAIN`** gets its own production, so `EXPLAIN (analyze) CALL ...` doesn't parse.
 
@@ -128,10 +127,10 @@ One JSON document per namespace, in a folder named for the API, which needn't eq
 
 | Folder | Holds |
 |---|---|
-| `api/` | `spec.json` |
+| `api/` | The source of `spec.json`, or the file itself. Data 360 generates it from YAML, and the app bundles what Bazel generates |
 | `tests/` | A fixture per family: calls, the requests they should send, and responses with the tables they should give |
 | `snippets/` | Workflows for the snippet browser, whose steps build on each other |
-| `docs/` | The reference documents, when a spec is generated from them |
+| `docs/` | The reference documents |
 
 This is the whole shape of a spec, with one function:
 
@@ -204,7 +203,6 @@ This is the whole shape of a spec, with one function:
 | `paging` | See [Paging](#paging) |
 | `pending` | Overrides the top-level value, or `null` for none |
 | `errors` | Overrides, see [Results and errors](#results-and-errors) |
-| `sensitive` | Which values must be `secret()`, see [Secrets](#secrets) |
 | `effect` | `read` or `write`, see [Running calls](#running-calls) |
 | `billed` | Whether a call costs money. Recorded for run gating |
 | `raw` | Marks the [escape hatch](#the-escape-hatch) |
@@ -217,7 +215,9 @@ This is the whole shape of a spec, with one function:
 | `name` | The script's name. Names starting with `_` are reserved, see [Paging](#paging) |
 | `api_name` | The API's exact spelling |
 | `in` | Options only: `path`, `query`, `header`, `body`, or `body_root` when this option is the whole body. A `path` option fills the placeholder of its `api_name`, which isn't sent any other way, so the placeholder is the spelling |
-| `type` | `string`, `integer`, `number`, `boolean`, `sql` or `any` |
+| `type` | `string`, `integer`, `number`, `boolean`, `object`, `sql` or `any`. Values aren't checked against it |
+| `enum`, `format` | The values and the format of a scalar, such as `date-time`. Not checked either |
+| `array`, `map` | The nesting of a value: how many arrays, and whether it's a map |
 | `schema` | A name in `schemas`, in place of `type`, for an object |
 | `required` | Missing it is an error |
 | `style` | Query options holding arrays or objects: `repeat` (`a=1&a=2`, the default), `csv` (`a=1,2`) or `deep` (`created[gte]=1`) |
@@ -245,7 +245,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 **`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body_root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
 
-**Generating a spec.** A spec can be written by hand or generated, and [Data 360](../../overlay/d360/docs/overview.md#generating-the-spec) generates its spec from its reference documents. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
+**Generating a spec.** A spec can be written by hand or generated. [Data 360](../../overlay/d360/docs/overview.md#the-spec-is-the-source) edits YAML by hand and generates its spec and documents from it, so no fact has to be read back from prose. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
 - OpenAPI is an input and not the format. None of the Snowflake, GitHub or Stripe documents describe paging in a machine-readable way, and real contracts are often narrower than the payloads they describe.
 - The annotations use the [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) format, a standard list of updates applied in order. Despite the name, that format is unrelated to the overlays here.
 - A generator keeps schemas named. Stripe has 124 recursive references, so unfolding them doesn't terminate in practice.
@@ -293,8 +293,7 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 | An unlisted option or attribute | By the `unknown` setting of the function or schema, with the closest names |
 | The same name, quoted (`"new_field" => 1`) | Accepted and sent as written. Quoting is how a script says it means it |
 | A missing required option, or a duplicate | Error |
-| A literal or `:param` where `sensitive` requires `secret()` | Error |
-| A function other than `secret()` in a value | Error |
+| A function in a value | Error |
 | A standard option the function doesn't support | Error, see [Paging](#paging) and [Pending results](#pending-results) |
 
 | `unknown` | Unlisted, unquoted name |
@@ -354,7 +353,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 | `NodeType` | `OBJECT_SQL_CALL` |
 | `AttributeKey` | `SQL_CALL_NAME`, `SQL_CALL_ARGS` |
 | `StatementType` | `CALL` |
-| `AnalyzerErrorType` | `OVERLAY_UNKNOWN_FUNCTION`, `OVERLAY_UNKNOWN_OPTION`, `OVERLAY_MISSING_OPTION`, `OVERLAY_DUPLICATE_OPTION`, `OVERLAY_UNSUPPORTED_OPTION`, `OVERLAY_INVALID_VALUE`, `OVERLAY_SENSITIVE_VALUE` |
+| `AnalyzerErrorType` | `OVERLAY_UNKNOWN_FUNCTION`, `OVERLAY_UNKNOWN_OPTION`, `OVERLAY_MISSING_OPTION`, `OVERLAY_DUPLICATE_OPTION`, `OVERLAY_UNSUPPORTED_OPTION`, `OVERLAY_INVALID_VALUE` |
 
 **Reused:** `OBJECT_SQL_FUNCTION_ARG` for options, an `ARRAY` of `OBJECT_EXT_VARARG_FIELD` for objects, `OBJECT_EXT_VARARG_ARRAY` for arrays, `OBJECT_SQL_SELECT_EXPRESSION` for embedded SQL, `OBJECT_SQL_PARAMETER_REF` for `:param`, and `LITERAL_STRING` for `$$` strings.
 
@@ -382,14 +381,14 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
   "options": { "url": null, "signing_key": null, "retries": 3 },
   "bindings": [
     { "pointer": "/url", "param": "hook_url" },
-    { "pointer": "/signing_key", "secret": "hook_key" }
+    { "pointer": "/signing_key", "param": "hook_key" }
   ]
 }
 ```
 
 - **A known name has the spelling of the spec,** any other the spelling of the script, so free-form keys and quoted names stay as written.
 - **Strings are unescaped,** `$$` strings are verbatim, and a query is the text between its parentheses.
-- **`bindings` holds what core can't resolve:** a parameter or a secret is a null in `options` and an entry with its JSON pointer. A marker inside `options` could collide with a real key, such as OData's `$filter`.
+- **`bindings` holds what core can't resolve:** a parameter is a null in `options` and an entry with its JSON pointer. A marker inside `options` could collide with a real key, such as OData's `$filter`.
 
 **The planner** treats a call in a namespace with a spec as a barrier that the executor hands to the runtime. It stays in session order, and its text never reaches the backend. Until the runtime exists, that makes it a planner error, so it can't reach a backend by accident. Any other `CALL` is an ordinary barrier that runs as written.
 
@@ -539,25 +538,6 @@ CALL snowflake.warehouse_create (_poll => '/api/v2/results/01b66701');
 | `message` | Pointers to try, in place of the spec's |
 | `message_is_json` | The message is itself a JSON string |
 
-## Secrets
-
-```sql
-CALL tickets.webhook_create (url => 'https://example.com/hook', signing_key => secret(hook_key));
-```
-
-Scripts get shared, so a secret must never be in one. A literal in a field marked sensitive is an error. `:param` doesn't qualify either, because `@param` values live in script text and bound literals reach the logs. `EXPLAIN` prints `secret(name)`. The store behind `secret()` belongs to the host and comes with session integration, so calls that need it stay unusable until then.
-
-`sensitive` lists JSON pointers, with `*` for array items:
-
-```json
-"sensitive": [
-  { "pointer": "/signing_key" },
-  { "pointer": "/credentials/*/value", "public_when": { "param_name": ["user", "account"] } }
-]
-```
-
-`public_when` covers lists of name and value pairs, where sensitivity depends on the neighbor. The default stays safe: a value is sensitive unless the listed attribute has a listed value.
-
 ## Security
 
 A spec drives a client that holds credentials, so these hold for every spec:
@@ -617,6 +597,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | File | What it does |
 |---|---|
 | `overlay_spec.ts` | The types of the document and of the core's description |
+| `overlay_specs.ts` | `loadOverlaySpec` loads a bundled spec as a chunk of its own, for `loadSpec` of a binding |
 | `overlay_request.ts` | Builds a request from a description: API names, path encoding, query styles, body formats, followed URLs and the origin check |
 | `overlay_runtime.ts` | `runOverlayCall` sends it through an `HttpClient`, with paging, polling and errors, and returns the result table. `explainOverlayCall` returns the request and sends nothing |
 | `overlay_result_stream.ts` | The result as a `QueryExecutionResponseStream`, like every other query result |
@@ -629,7 +610,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 - **Grammar:** no conflicts, and precedence resolutions stay at 1,814, the same as without `CALL`. It adds 50 states and one token.
 - **Ordinary SQL:** every existing parser, formatter, analyzer, completion and planner snapshot is unchanged byte for byte.
-- **Examples:** every `CALL` in [the Data 360 reference](../../overlay/d360/docs/functions.md) parses on the real parser and passes the real checks against the generated spec, and completion offers exactly what the reference lists, see [its tests](../../overlay/d360/docs/overview.md#generating-the-spec).
+- **Examples:** every `CALL` in [the Data 360 reference](../../overlay/d360/docs/functions.md) parses on the real parser and passes the real checks against the spec, and completion offers exactly what the reference lists, see [its tests](../../overlay/d360/docs/overview.md#the-spec-is-the-source).
 - **The format:** [the survey](overlay/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
 
 **What this doesn't show:**
@@ -644,9 +625,9 @@ Each phase lands separately.
 
 1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
 2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
-3. **Generators:** the [Data 360 spec](../../overlay/d360/docs/overview.md#generating-the-spec), from its reference, which is done. Then OpenAPI plus annotations to a spec in `overlay/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
+3. **Generators:** OpenAPI plus annotations to a spec in `overlay/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](../../overlay/d360/docs/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
-5. **Writes:** mutating calls, the secret store, run gating and agent policy. To be designed; `effect` and `billed` are its input.
+5. **Writes:** mutating calls, run gating and agent policy. To be designed; `effect` and `billed` are its input. A [secret store](../wip/secret_store.md) is deferred.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 
 ## Open questions
@@ -654,7 +635,7 @@ Each phase lands separately.
 1. **Format stability.** `format` allows changes, but anything published has to keep working. This is why publishing comes last.
 2. **Specs from elsewhere.** This document covers bundled specs. Loading others needs a trust decision, even with the security rules above.
 3. **Tags beside an object.** A `tag` reads an attribute of the object itself. Some APIs select a variant with a sibling instead, such as `type` next to `config` in Data 360, so only the attributes of those objects decide. A `tag` that reads a sibling would close this, once a source says which value selects which variant.
-4. **Spec size.** The Data 360 spec is 915 KB, or 60 KB gzipped, for 535 functions and it loads lazily. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
+4. **Spec size.** The Data 360 spec is 745 KB, or 62 KB gzipped, for 535 functions and it loads lazily. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
 5. **`_next` on an empty page.** The one-row rule covers it, at the cost of `count(*)`. If that turns out to be wrong in practice, the alternative is carrying the value in result metadata, outside the table.
 6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a session attachment.
 7. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.

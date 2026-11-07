@@ -344,7 +344,6 @@ enum AnalyzerErrorType: uint8 {
     OVERLAY_DUPLICATE_OPTION,
     OVERLAY_UNSUPPORTED_OPTION,
     OVERLAY_INVALID_VALUE,
-    OVERLAY_SENSITIVE_VALUE,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a

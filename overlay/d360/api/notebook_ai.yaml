@@ -1,0 +1,966 @@
+title: Notebook AI
+description: |
+  Notebook AI keeps documents in searchable notebooks. The API calls a notebook a *knowledge space*. A space holds libraries, a library holds sources, and a source holds files. Deep research jobs produce reports that can be added back to a space as a source. Intelligent Context lenses and Agentforce Data Libraries (`1JD` IDs) are separate surfaces.
+
+  The order is: enable the feature and grant permissions, create the space, read its `PERSONAL` library, get upload URLs, upload, index, then poll. Almost all behavior below comes from one source, the [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md), validated in its authors' orgs.
+
+  The gotchas that matter most:
+
+  - Enabling Notebook AI has no public API. `knowledge_space_list` returns an empty list whether it's on or off, so `knowledge_space_create` is the real check.
+  - The upload is a plain S3 `PUT`, and no function here does it.
+  - `files_index` can return HTTP 500 after indexing has started. Check file status before you retry.
+  - The spec and the kit disagree on `file_path`. See [`files_index`](#files_index).
+  - The spec has no call that creates a deep research job.
+
+  ```sql
+  CALL cdp.knowledge_space_create (label => 'Diagnosis', developer_name => 'Diagnosis', dataspace => 'default');
+  CALL cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+  CALL cdp.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['report.pdf']);
+  /* PUT the file to the returned URL outside SQL */
+  CALL cdp.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
+  ```
+
+functions:
+  - name: knowledge_space_delete
+    method: DELETE
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D/delete
+    description: Delete a knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_space_delete (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** No source says what happens to the space's libraries, files or sessions."
+
+  - name: knowledge_space_configuration_delete
+    method: DELETE
+    host: connect
+    path: /ssot/knowledge-space/config/{knowledgeSpaceConfigApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config~1%7BknowledgeSpaceConfigApiNameOrId%7D/delete
+    description: Delete a knowledge space configuration. Since v65.0.
+    example: CALL cdp.knowledge_space_configuration_delete (knowledge_space_config_api_name_or_id => 'Default_Config');
+    options:
+      - {name: knowledge_space_config_api_name_or_id, api_name: knowledgeSpaceConfigApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space configuration."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) reports that `knowledge_space_create` fails with `No Knowledge Space Config Found For the DataSpace` when a data space has no configuration."
+
+  - name: knowledge_space_session_delete
+    method: DELETE
+    host: connect
+    path: /ssot/knowledge-space/session/{knowledgeSpaceSessionId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1session~1%7BknowledgeSpaceSessionId%7D/delete
+    description: Delete a knowledge space session. Since v65.0.
+    example: CALL cdp.knowledge_space_session_delete (knowledge_space_session_id => 'session-123');
+    options:
+      - {name: knowledge_space_session_id, api_name: knowledgeSpaceSessionId, in: path, type: string, required: true, description: "ID of the knowledge space session."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+
+  - name: knowledge_space_list
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space/get
+    description: Get all knowledge spaces in the current data space. Since v65.0.
+    example: CALL cdp.knowledge_space_list ();
+    rows: /knowledgeSpaces
+    columns:
+      - {name: client_context, api_name: clientContext, type: VARCHAR, description: "Client context of the knowledge space. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, type: VARCHAR, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the knowledge space. Since v65.0."}
+      - {name: libraries, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of libraries in the knowledge space. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/knowledgeSpaces` in the response. Schema `KnowledgeSpaceOutputRepresentation`.
+    notes: "**Notes:** An empty list doesn't mean Notebook AI is available: this returns `{\"knowledgeSpaces\":[]}` with HTTP 200 on both enabled and disabled orgs ([MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md), one org). The spec says \"current data space\", but this call has no data space option and no source says how the space is chosen. To find a space, match on `label`, because `developer_name` can come back with a suffix. See [`knowledge_space_create`](#knowledge_space_create)."
+
+  - name: knowledge_space_get
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D/get
+    description: Get a knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_space_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+    columns:
+      - {name: client_context, api_name: clientContext, type: VARCHAR, description: "Client context of the knowledge space. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, type: VARCHAR, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the knowledge space. Since v65.0."}
+      - {name: libraries, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of libraries in the knowledge space. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceOutputRepresentation`.
+    notes: "**Notes:** The spec's example for this call has no `libraries`, while the one for [`knowledge_space_details_get`](#knowledge_space_details_get) does, even though both use one schema. Use the details call when you need libraries or files."
+
+  - name: knowledge_space_details_get
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/details
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1details/get
+    description: Reads one knowledge space with its libraries, sources and files. Use it to find the library to upload into and to poll file indexing. Since v65.0.
+    example: CALL cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+    columns:
+      - {name: client_context, api_name: clientContext, type: VARCHAR, description: "Client context of the knowledge space. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, type: VARCHAR, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the knowledge space. Since v65.0."}
+      - {name: libraries, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of libraries in the knowledge space. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceOutputRepresentation`.
+    notes: |
+      **Notes:** This returns one row, not a list. The useful data is nested in the `libraries` JSON column, at `libraries[].sources[].files[]`.
+
+      The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) takes the upload target from the library with `knowledge_category` = `PERSONAL`. `sources` stays `[]` until indexing starts, so this call can't show whether a file already reached S3 (one org).
+
+  - name: session_conversation_list
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/session/{knowledgeSpaceSessionId}/conversation
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1session~1%7BknowledgeSpaceSessionId%7D~1conversation/get
+    description: Get conversation messages for a knowledge space session. Since v65.0.
+    example: CALL cdp.session_conversation_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_session_id => 'session-123');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+      - {name: knowledge_space_session_id, api_name: knowledgeSpaceSessionId, in: path, type: string, required: true, description: "ID of the knowledge space session."}
+    rows: /messages
+    columns:
+      - {name: cited_references, api_name: citedReferences, type: JSON, description: "List of cited references. Since v65.0."}
+      - {name: feedback_id, api_name: feedbackId, type: VARCHAR, description: "Feedback ID for the message. Since v65.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the message. Since v65.0."}
+      - {name: is_content_safe, api_name: isContentSafe, type: BOOLEAN, description: "Indicates whether the content is safe (`true`) or not (`false`). Since v65.0."}
+      - {name: message, type: VARCHAR, description: "Message content for the InformResponseMessage type. Since v65.0."}
+      - {name: message_type, api_name: messageType, type: VARCHAR, description: "Type of the message. Since v65.0."}
+      - {name: sequence_id, api_name: sequenceId, type: BIGINT, description: "Sequence ID of the message. Since v65.0."}
+      - {name: text, type: VARCHAR, description: "Text content of the message. Since v65.0."}
+      - {name: timestamp, type: BIGINT, description: "Timestamp of the message. Since v65.0."}
+      - {name: role, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: content, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/messages` in the response. Schema `KnowledgeSpaceConversationMsgOutputRepresentation`.
+    notes: "**Notes:** The spec contradicts itself here. The schema has `message`, `text`, `message_type` and a BIGINT `timestamp`. Its response example has `role`, `content` and an ISO 8601 string `timestamp`. If the example is right, the columns above stay empty and the data is only in `_raw`."
+
+  - name: knowledge_space_session_list
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/sessions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1sessions/get
+    description: Get all sessions for a knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_space_session_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', limit => 20);
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of sessions to return. Since v65.0."}
+    rows: /knowledgeSpaceSessions
+    columns:
+      - {name: agent_type, api_name: agentType, type: VARCHAR, description: "Agent type used when the session was created. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_session_entity_id, api_name: knowledgeSpaceSessionEntityId, type: VARCHAR, description: "Entity ID of the knowledge space session. Since v65.0."}
+      - {name: last_active_time, api_name: lastActiveTime, type: VARCHAR, description: "Last active time of the session. Since v65.0."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "ID of the knowledge space session. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/knowledgeSpaceSessions` in the response. Schema `KnowledgeSpaceSessionOutputRepresentation`.
+    notes: "**Notes:** `limit` is the only paging control in the spec, with no offset or token. The result has both `session_id` and `knowledge_space_session_entity_id`, and no source says which one the session calls expect as `knowledge_space_session_id`."
+
+  - name: knowledge_space_configuration_list
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/config
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config/get
+    description: Get all knowledge space configuration details. Since v65.0.
+    example: CALL cdp.knowledge_space_configuration_list ();
+    rows: /knowledgeSpaceConfigs
+    columns:
+      - {name: dataspace, type: VARCHAR, description: "Name of the data space that the knowledge space configuration belongs to. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the configuration. Since v65.0."}
+      - {name: instance_url, api_name: instanceUrl, type: VARCHAR, description: "Instance URL of the org. Since v65.0."}
+      - {name: knowledge_file_dlo, api_name: knowledgeFileDlo, type: VARCHAR, description: "Data lake object (DLO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_dmo, api_name: knowledgeFileDmo, type: VARCHAR, description: "Data model object (DMO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_ref_dmo, api_name: knowledgeFileRefDmo, type: VARCHAR, description: "DMO reference for the knowledge file stream. Since v65.0."}
+      - {name: knowledge_space_agent_active_version, api_name: knowledgeSpaceAgentActiveVersion, type: VARCHAR, description: "Active version of the knowledge space agent. Since v65.0."}
+      - {name: knowledge_space_agent_id, api_name: knowledgeSpaceAgentId, type: VARCHAR, description: "Knowledge space agent ID. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_file_based_agent, api_name: knowledgeSpaceFileBasedAgent, type: VARCHAR, description: "File-based agent identifier for NotebookAI. Since v65.0."}
+      - {name: knowledge_space_index, api_name: knowledgeSpaceIndex, type: VARCHAR, description: "Knowledge space search index. Since v65.0."}
+      - {name: knowledge_space_index_id, api_name: knowledgeSpaceIndexId, type: VARCHAR, description: "ID of the knowledge space search index. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the configuration. Since v65.0."}
+      - {name: provisioning_status, api_name: provisioningStatus, type: VARCHAR, description: "Provisioning status of the configuration. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/knowledgeSpaceConfigs` in the response. Schema `KnowledgeSpaceConfigOutputRepresentation`.
+    notes: "**Notes:** The spec doesn't list the `provisioning_status` values. This object spells the data space column `dataspace`, while knowledge spaces use `dataSpace`."
+
+  - name: knowledge_space_configuration_get
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/config/{knowledgeSpaceConfigApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config~1%7BknowledgeSpaceConfigApiNameOrId%7D/get
+    description: Get the details of a specific knowledge space configuration record. Since v65.0.
+    example: CALL cdp.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');
+    options:
+      - {name: knowledge_space_config_api_name_or_id, api_name: knowledgeSpaceConfigApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space configuration."}
+    columns:
+      - {name: dataspace, type: VARCHAR, description: "Name of the data space that the knowledge space configuration belongs to. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the configuration. Since v65.0."}
+      - {name: instance_url, api_name: instanceUrl, type: VARCHAR, description: "Instance URL of the org. Since v65.0."}
+      - {name: knowledge_file_dlo, api_name: knowledgeFileDlo, type: VARCHAR, description: "Data lake object (DLO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_dmo, api_name: knowledgeFileDmo, type: VARCHAR, description: "Data model object (DMO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_ref_dmo, api_name: knowledgeFileRefDmo, type: VARCHAR, description: "DMO reference for the knowledge file stream. Since v65.0."}
+      - {name: knowledge_space_agent_active_version, api_name: knowledgeSpaceAgentActiveVersion, type: VARCHAR, description: "Active version of the knowledge space agent. Since v65.0."}
+      - {name: knowledge_space_agent_id, api_name: knowledgeSpaceAgentId, type: VARCHAR, description: "Knowledge space agent ID. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_file_based_agent, api_name: knowledgeSpaceFileBasedAgent, type: VARCHAR, description: "File-based agent identifier for NotebookAI. Since v65.0."}
+      - {name: knowledge_space_index, api_name: knowledgeSpaceIndex, type: VARCHAR, description: "Knowledge space search index. Since v65.0."}
+      - {name: knowledge_space_index_id, api_name: knowledgeSpaceIndexId, type: VARCHAR, description: "ID of the knowledge space search index. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the configuration. Since v65.0."}
+      - {name: provisioning_status, api_name: provisioningStatus, type: VARCHAR, description: "Provisioning status of the configuration. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceConfigOutputRepresentation`.
+
+  - name: deep_research_status_get
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/deep-research/{researchId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D/get
+    description: Get the deep research status by research ID. Since v67.0.
+    example: CALL cdp.deep_research_status_get (research_id => 'research-abc123');
+    options:
+      - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job."}
+    columns:
+      - {name: config, type: JSON, description: "Deep research configuration. Since v67.0."}
+      - {name: error, type: JSON, description: "Error details if the job failed. Since v67.0."}
+      - {name: plan, type: JSON, schema: KnowledgeSpaceDeepResearchPlanOutputRepresentation, description: "Execution plan with steps. Since v67.0."}
+      - {name: query, type: VARCHAR, description: "Query text. Since v67.0."}
+      - {name: report, type: JSON, description: "Report content. Since v67.0."}
+      - {name: research_id, api_name: researchId, type: VARCHAR, description: "Deep research job identifier. Since v67.0."}
+      - {name: run_details, api_name: runDetails, type: JSON, description: "Execution details. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Job status. Valid values are PENDING, RUNNING, COMPLETED, FAILED, and CANCELLED. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceRunResearchOutputRepresentation`.
+    notes: "**Notes:** The JSON columns have no schema in the spec. Its examples show `run_details` with `start_time`, `currentStep` and `progress`, and `plan` with `title`, `estimatedDurationMinutes` and `steps`. `report` is an object here, while [`deep_research_report_get`](#deep_research_report_get) returns it as a string."
+
+  - name: knowledge_library_list
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/library
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library/get
+    description: Get all knowledge libraries. Since v65.0.
+    example: CALL cdp.knowledge_library_list ();
+    rows: /knowledgeSpaceLibraries
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_category, api_name: knowledgeCategory, type: VARCHAR, description: "Knowledge category. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, type: VARCHAR, description: "ID of the library. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the parent knowledge space. Since v65.0."}
+      - {name: knowledge_space_name, api_name: knowledgeSpaceName, type: VARCHAR, description: "Name of the parent knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the library. Since v65.0."}
+      - {name: sources, type: JSON, array: 1, schema: KnowledgeSourceOutputRepresentation, description: "List of knowledge sources in the library. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/knowledgeSpaceLibraries` in the response. Schema `KnowledgeSpaceLibraryOutputRepresentation`.
+    notes: "**Notes:** The spec says this gets all knowledge libraries, and it has no space filter. `knowledge_category` values seen in the spec's examples are `PERSONAL` and `ENTERPRISE`, and the spec doesn't list them all. Agentforce Data Libraries (`1JD` IDs) are [a different surface](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) under `/einstein/data-libraries`."
+
+  - name: knowledge_library_details_get
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/library/{libraryId}/details
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1%7BlibraryId%7D~1details/get
+    description: Get detailed information about a specific knowledge library. Since v65.0.
+    example: CALL cdp.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
+    options:
+      - {name: library_id, api_name: libraryId, in: path, type: string, required: true, description: "ID of the knowledge library."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_category, api_name: knowledgeCategory, type: VARCHAR, description: "Knowledge category. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, type: VARCHAR, description: "ID of the library. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the parent knowledge space. Since v65.0."}
+      - {name: knowledge_space_name, api_name: knowledgeSpaceName, type: VARCHAR, description: "Name of the parent knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the library. Since v65.0."}
+      - {name: sources, type: JSON, array: 1, schema: KnowledgeSourceOutputRepresentation, description: "List of knowledge sources in the library. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceLibraryOutputRepresentation`.
+    notes: "**Notes:** This returns one row, not a list. Files are nested in the `sources` JSON column."
+
+  - name: knowledge_space_session_get
+    method: GET
+    host: connect
+    path: /ssot/knowledge-space/session/{knowledgeSpaceSessionId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1session~1%7BknowledgeSpaceSessionId%7D/get
+    description: Get a knowledge space session. Since v65.0.
+    example: CALL cdp.knowledge_space_session_get (knowledge_space_session_id => 'session-123');
+    options:
+      - {name: knowledge_space_session_id, api_name: knowledgeSpaceSessionId, in: path, type: string, required: true, description: "ID of the knowledge space session."}
+    columns:
+      - {name: agent_type, api_name: agentType, type: VARCHAR, description: "Agent type used when the session was created. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_session_entity_id, api_name: knowledgeSpaceSessionEntityId, type: VARCHAR, description: "Entity ID of the knowledge space session. Since v65.0."}
+      - {name: last_active_time, api_name: lastActiveTime, type: VARCHAR, description: "Last active time of the session. Since v65.0."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "ID of the knowledge space session. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceSessionOutputRepresentation`.
+    notes: "**Notes:** The path has no knowledge space, unlike [`session_conversation_list`](#session_conversation_list), which needs both IDs."
+
+  - name: knowledge_space_update
+    method: PATCH
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D/patch
+    description: Update a knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_space_update (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', label => 'Updated Knowledge Space', description => 'Updated description');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: create_default_library, api_name: createDefaultLibrary, in: body, type: boolean, description: "Indicates whether to create a default library for the knowledge space (`true`) or not (`false`). If unspecified, the default value is `true`. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, in: body, type: string, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the knowledge space. Since v65.0."}
+    columns:
+      - {name: client_context, api_name: clientContext, type: VARCHAR, description: "Client context of the knowledge space. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, type: VARCHAR, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the knowledge space. Since v65.0."}
+      - {name: libraries, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of libraries in the knowledge space. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceOutputRepresentation`.
+    notes: "**Notes:** This shares its input schema with create, and no source says which fields can change. The spec's example sends only `label` and `description`."
+
+  - name: deep_research_plan_update
+    method: PATCH
+    host: connect
+    path: /ssot/knowledge-space/deep-research/{researchId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D/patch
+    description: Update the deep research plan (instructions and/or steps) before execution. Since v67.0.
+    example: CALL cdp.deep_research_plan_update (research_id => 'research-abc123', edit_instructions => 'Focus more on recent developments in the last 6 months', plan => (steps = [(title = 'Literature Review', description = 'Review recent publications and research papers'), (title = 'Data Analysis', description = 'Analyze trends and patterns in the collected data')]));
+    options:
+      - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: edit_instructions, api_name: editInstructions, in: body, type: string, description: "Natural-language instructions for modifying the research plan. Since v67.0."}
+      - {name: plan, in: body, schema: KnowledgeSpaceDeepResearchPlanPatchPlanInputRepresentation, description: "Direct plan update with explicit steps. Since v67.0."}
+      - {name: research_template_id, api_name: researchTemplateId, in: body, type: string, description: "ID of the research template to use for the research job. Since v67.0."}
+    columns:
+      - {name: config, type: JSON, description: "Deep research configuration. Since v67.0."}
+      - {name: error, type: JSON, description: "Error details if the job failed. Since v67.0."}
+      - {name: plan, type: JSON, schema: KnowledgeSpaceDeepResearchPlanOutputRepresentation, description: "Execution plan with steps. Since v67.0."}
+      - {name: query, type: VARCHAR, description: "Query text. Since v67.0."}
+      - {name: report, type: JSON, description: "Report content. Since v67.0."}
+      - {name: research_id, api_name: researchId, type: VARCHAR, description: "Deep research job identifier. Since v67.0."}
+      - {name: run_details, api_name: runDetails, type: JSON, description: "Execution details. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Job status. Valid values are PENDING, RUNNING, COMPLETED, FAILED, and CANCELLED. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceRunResearchOutputRepresentation`.
+    notes: "**Notes:** The spec says this applies before execution, and its response example shows `status` = `PENDING`. It doesn't say what happens after the job starts. Its example sends both `edit_instructions` and `plan`, without saying which one wins. No call in the spec lists research templates, so the source of `research_template_id` is unknown."
+
+  - name: knowledge_library_update
+    method: PATCH
+    host: connect
+    path: /ssot/knowledge-space/library/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1%7Bid%7D/patch
+    description: Update a knowledge library. Since v65.0.
+    example: CALL cdp.knowledge_library_update (id => '1aQxx00000000JNEAY', label => 'Updated Library Name', description => 'Updated description');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the knowledge library."}
+      - {name: body_id, api_name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: description, in: body, type: string, description: "Description of the library. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, in: body, type: string, description: "Knowledge library ID. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "ID of the knowledge space associated with the library. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the library. Since v65.0."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_category, api_name: knowledgeCategory, type: VARCHAR, description: "Knowledge category. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, type: VARCHAR, description: "ID of the library. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the parent knowledge space. Since v65.0."}
+      - {name: knowledge_space_name, api_name: knowledgeSpaceName, type: VARCHAR, description: "Name of the parent knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the library. Since v65.0."}
+      - {name: sources, type: JSON, array: 1, schema: KnowledgeSourceOutputRepresentation, description: "List of knowledge sources in the library. Since v65.0."}
+      - {name: description, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceLibraryOutputRepresentation`.
+    notes: "**Notes:** The path `id` is the library. `body_id` is the base `id` field that every input inherits, renamed to avoid the clash, and the spec's example doesn't send it."
+
+  - name: knowledge_space_create
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space/post
+    description: Create a knowledge space in the current data space. Since v65.0.
+    example: CALL cdp.knowledge_space_create (label => 'My Knowledge Space', developer_name => 'My_Knowledge_Space', description => 'This is my personal space', dataspace => 'default', create_default_library => true);
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: create_default_library, api_name: createDefaultLibrary, in: body, type: boolean, description: "Indicates whether to create a default library for the knowledge space (`true`) or not (`false`). If unspecified, the default value is `true`. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, in: body, type: string, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the knowledge space. Since v65.0."}
+    columns:
+      - {name: client_context, api_name: clientContext, type: VARCHAR, description: "Client context of the knowledge space. Since v65.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Name of the data space that the knowledge space belongs to. Since v65.0."}
+      - {name: description, type: VARCHAR, description: "Description of the knowledge space. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the knowledge space. Since v65.0."}
+      - {name: libraries, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of libraries in the knowledge space. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceOutputRepresentation`.
+    notes: |
+      **Notes:** Everything here is from the [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md), which ran against its authors' orgs.
+
+      **Prerequisites.** Notebook AI must be on. The kit flips it through an undocumented Aura action that [was already renamed once](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md#testing-history), or an admin can use Setup, Feature Manager, Notebook AI. The user needs the system permissions `Create, edit, and delete knowledge spaces` and `Grant users permission to sfDrive`, object access including `DataKnowledgeSpaceDef` and `DataKnowledgeLibrary`, and access to the `Notebook AI Agent`.
+
+      **Errors.** `400 INVALID_INPUT: No Knowledge Space Config Found For the DataSpace` means Notebook AI isn't provisioned for that data space. The kit says not to retry.
+
+      **Names.** `label` takes 1 to 255 characters. `developer_name` takes letters, digits and underscores, and Salesforce can add a suffix (`Diagnosis` became `Diagnosis_005d200000QTTqr`, one org). So the kit does find-or-create by matching `label`, case-insensitively, through [`knowledge_space_list`](#knowledge_space_list).
+
+      The kit says the personal library exists as soon as the space does, and it never sends `create_default_library`. It gives both 200 and 201 as the success status.
+
+  - name: knowledge_space_session_create
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/sessions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1sessions/post
+    description: Create a new session for a knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_space_session_create (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_id => '1T8xx0000004CYqCAM', session_id => 'session-123');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "Knowledge space ID. Since v65.0."}
+      - {name: last_active_time, api_name: lastActiveTime, in: body, type: string, description: "Last active time of the session. Since v65.0."}
+      - {name: session_id, api_name: sessionId, in: body, type: string, description: "Session ID. Since v65.0."}
+    columns:
+      - {name: agent_type, api_name: agentType, type: VARCHAR, description: "Agent type used when the session was created. Since v65.0."}
+      - {name: knowledge_space_def_id, api_name: knowledgeSpaceDefId, type: VARCHAR, description: "Definition ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the knowledge space. Since v65.0."}
+      - {name: knowledge_space_session_entity_id, api_name: knowledgeSpaceSessionEntityId, type: VARCHAR, description: "Entity ID of the knowledge space session. Since v65.0."}
+      - {name: last_active_time, api_name: lastActiveTime, type: VARCHAR, description: "Last active time of the session. Since v65.0."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "ID of the knowledge space session. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceSessionOutputRepresentation`.
+    notes: |
+      **Notes:** Sessions aren't needed to upload or index, and the [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) doesn't use them. No function in this section sends a prompt to a session. The spec's example repeats `knowledge_space_id` in the body and supplies its own `session_id`, and doesn't say what happens if you leave them out. Its response example shows `agent_type` = `FILE_BASED`.
+
+      The kit reports that the system `Notebook AI Agent` can have an inactive `BotVersion` even when Setup shows it as active. No source says whether sessions need it active.
+
+  - name: knowledge_space_configuration_create
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/config
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config/post
+    description: Create a knowledge space configuration. Since v65.0.
+    example: CALL cdp.knowledge_space_configuration_create (developer_name => 'My_Config', label => 'My Configuration', dataspace => 'default');
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: dataspace, in: body, type: string, description: "Name of the data space that the knowledge space configuration belongs to. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the configuration. Since v65.0."}
+      - {name: knowledge_file_dlo, api_name: knowledgeFileDlo, in: body, type: string, description: "Data lake object (DLO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_dmo, api_name: knowledgeFileDmo, in: body, type: string, description: "Data model object (DMO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_ref_dmo, api_name: knowledgeFileRefDmo, in: body, type: string, description: "DMO reference for the knowledge file stream. Since v65.0."}
+      - {name: knowledge_space_agent, api_name: knowledgeSpaceAgent, in: body, type: string, description: "Knowledge space agent ID. Since v65.0."}
+      - {name: knowledge_space_file_based_agent, api_name: knowledgeSpaceFileBasedAgent, in: body, type: string, description: "File-based agent identifier for NotebookAI. Since v65.0."}
+      - {name: knowledge_space_index, api_name: knowledgeSpaceIndex, in: body, type: string, description: "Knowledge space search index. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the configuration. Since v65.0."}
+      - {name: provisioning_status, api_name: provisioningStatus, in: body, type: string, description: "Provisioning status of the knowledge space. Since v65.0."}
+    columns:
+      - {name: dataspace, type: VARCHAR, description: "Name of the data space that the knowledge space configuration belongs to. Since v65.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the configuration. Since v65.0."}
+      - {name: instance_url, api_name: instanceUrl, type: VARCHAR, description: "Instance URL of the org. Since v65.0."}
+      - {name: knowledge_file_dlo, api_name: knowledgeFileDlo, type: VARCHAR, description: "Data lake object (DLO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_dmo, api_name: knowledgeFileDmo, type: VARCHAR, description: "Data model object (DMO) identifier for the knowledge file source. Since v65.0."}
+      - {name: knowledge_file_ref_dmo, api_name: knowledgeFileRefDmo, type: VARCHAR, description: "DMO reference for the knowledge file stream. Since v65.0."}
+      - {name: knowledge_space_agent_active_version, api_name: knowledgeSpaceAgentActiveVersion, type: VARCHAR, description: "Active version of the knowledge space agent. Since v65.0."}
+      - {name: knowledge_space_agent_id, api_name: knowledgeSpaceAgentId, type: VARCHAR, description: "Knowledge space agent ID. Since v65.0."}
+      - {name: knowledge_space_config_id, api_name: knowledgeSpaceConfigId, type: VARCHAR, description: "ID of the knowledge space configuration. Since v65.0."}
+      - {name: knowledge_space_file_based_agent, api_name: knowledgeSpaceFileBasedAgent, type: VARCHAR, description: "File-based agent identifier for NotebookAI. Since v65.0."}
+      - {name: knowledge_space_index, api_name: knowledgeSpaceIndex, type: VARCHAR, description: "Knowledge space search index. Since v65.0."}
+      - {name: knowledge_space_index_id, api_name: knowledgeSpaceIndexId, type: VARCHAR, description: "ID of the knowledge space search index. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the configuration. Since v65.0."}
+      - {name: provisioning_status, api_name: provisioningStatus, type: VARCHAR, description: "Provisioning status of the configuration. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceConfigOutputRepresentation`.
+    notes: |
+      **Notes:** Sources disagree on whether this is usable. The spec offers this call, while the [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) says a skill "CANNOT create the knowledge-space config" and that an admin must enable Notebook AI first. The kit never calls this function.
+
+      The option is `dataspace` here and `dataSpace` on knowledge spaces. The input is `knowledge_space_agent`, and the result column is `knowledge_space_agent_id`.
+
+  - name: deep_research_cancel
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/deep-research/{researchId}/cancel
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D~1cancel/post
+    description: Cancel a running deep research job, optionally requesting a partial report from completed steps. Since v67.0.
+    example: CALL cdp.deep_research_cancel (research_id => 'research-abc123', partial_report => true);
+    options:
+      - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job to cancel. Since v67.0."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: partial_report, api_name: partialReport, in: body, type: boolean, description: "Indicates whether to request a partial report from completed steps (`true`) or not (`false`). Since v67.0."}
+    columns:
+      - {name: config, type: JSON, description: "Deep research configuration. Since v67.0."}
+      - {name: error, type: JSON, description: "Error details if the job failed. Since v67.0."}
+      - {name: plan, type: JSON, schema: KnowledgeSpaceDeepResearchPlanOutputRepresentation, description: "Execution plan with steps. Since v67.0."}
+      - {name: query, type: VARCHAR, description: "Query text. Since v67.0."}
+      - {name: report, type: JSON, description: "Report content. Since v67.0."}
+      - {name: research_id, api_name: researchId, type: VARCHAR, description: "Deep research job identifier. Since v67.0."}
+      - {name: run_details, api_name: runDetails, type: JSON, description: "Execution details. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Job status. Valid values are PENDING, RUNNING, COMPLETED, FAILED, and CANCELLED. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceRunResearchOutputRepresentation`.
+    notes: |
+      **Done when:** `status` = `CANCELLED`, in this response or from [`deep_research_status_get`](#deep_research_status_get). The spec's example shows it in this response, and nothing says that's guaranteed.
+
+      **Notes:** With `partial_report => true`, the spec's example returns `report` as an object with `summary` and `sections[]`, each section having `title` and `content`.
+
+  - name: deep_research_report_get
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/deep-research/{researchId}/report
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D~1report/post
+    description: Get the deep research report for a research ID. Since v67.0.
+    example: CALL cdp.deep_research_report_get (research_id => 'research-abc123', output_format => 'markdown');
+    options:
+      - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job. Since v67.0."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: output_format, api_name: outputFormat, in: body, type: string, description: "Output format of the deep research report. `markdown` is the only value in the spec's examples. Since v67.0."}
+    columns:
+      - {name: report, type: VARCHAR, description: "Content of the deep research report. Since v67.0."}
+      - {name: research_id, api_name: researchId, type: VARCHAR, description: "Deep research job identifier. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceDeepResReportOutputRepresentation`.
+    notes: "**Notes:** This is a read that uses `POST`. `markdown` is the only `output_format` in any source. No source says what this returns before the job is `COMPLETED`."
+
+  - name: deep_research_run
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/deep-research/{researchId}/run
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D~1run/post
+    description: Run deep research for a research ID. Since v67.0.
+    example: CALL cdp.deep_research_run (research_id => 'research-abc123');
+    options:
+      - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "The unique identifier for the deep research job. Since v67.0."}
+    columns:
+      - {name: research_id, api_name: researchId, type: VARCHAR, description: "Deep research job identifier. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceDeepResRunResearchOutputRepresentation`.
+    notes: |
+      **Done when:** [`deep_research_status_get`](#deep_research_status_get)`.status` is `COMPLETED`, `FAILED` or `CANCELLED`. `PENDING` and `RUNNING` mean it isn't finished.
+
+      **Notes:** This needs an existing `research_id`, and the spec has no call that creates a job. `KnowledgeSpaceRunResearchInputRepresentation` exists in the spec, but no operation uses it, and no source I found says where the ID comes from. The spec's status example estimates 45 minutes for a plan.
+
+  - name: file_status_get
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/files/status
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1files~1status/post
+    description: Get the file status of a knowledge space for the specified file IDs. Since v65.0.
+    example: CALL cdp.file_status_get (knowledge_space_id => '1T8xx0000004CYqCAM', file_ids => ['1Utxx0000004DJcCAM', '1Utxx0000004DJdCAM']);
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: file_ids, api_name: fileIds, in: body, array: 1, type: string, description: "List of file IDs to retrieve status for. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "Knowledge space ID. Since v65.0."}
+    rows: /files
+    columns:
+      - {name: file_name, api_name: fileName, type: VARCHAR, description: "Name of the file. Since v65.0."}
+      - {name: file_path, api_name: filePath, type: VARCHAR, description: "Path of the file. Since v65.0."}
+      - {name: file_record_id, api_name: fileRecordId, type: VARCHAR, description: "Record ID of the file. Since v65.0."}
+      - {name: file_status, api_name: fileStatus, type: VARCHAR, description: "Status of the file. Since v65.0."}
+      - {name: file_type, api_name: fileType, type: VARCHAR, description: "Type of the file. Since v65.0."}
+      - {name: job_id, api_name: jobId, type: VARCHAR, description: "Job ID. Since v65.0."}
+      - {name: off_core_job_id, api_name: offCoreJobId, type: VARCHAR, description: "Off-core job ID from the search index API call. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/files` in the response. Schema `KnowledgeSourceFileOutputRepresentation`.
+    notes: "**Notes:** `file_ids` are `file_record_id` values, going by the spec's example. The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) polls [`knowledge_space_details_get`](#knowledge_space_details_get) instead, so its findings don't cover this call. It reports `file_status` values `INDEXED`, `IN_PROGRESS`, `PROCESSING` and `FAILED`, which the spec doesn't list."
+
+  - name: knowledge_import_get
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/getKnowledgeForImport
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1getKnowledgeForImport/post
+    description: Lists the libraries and search indexes that can be imported into a knowledge space, without changing anything. Use it to get the IDs for `knowledge_import`. Since v65.0.
+    example: CALL cdp.knowledge_import_get (knowledge_space_id => '1T8xx0000004CYqCAM');
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, description: "Name of the data space that the knowledge modal belongs to. Since v65.0."}
+      - {name: filter_list, api_name: filterList, in: body, type: object, description: "Knowledge select filters. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "Knowledge space ID. Since v65.0."}
+      - {name: selected_list, api_name: selectedList, in: body, schema: KnowledgeModalInput_selectedList, description: "List of knowledge select options. Since v65.0."}
+      - {name: type, in: body, type: string, description: "Type of knowledge source. Since v65.0."}
+    columns:
+      - {name: knowledge_list, api_name: knowledgeList, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of knowledge space libraries. Since v65.0."}
+      - {name: search_indexes, api_name: searchIndexes, type: JSON, array: 1, schema: SemanticSearchDefDetailRepresentation, description: "List of semantic search summaries. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeModalOutputRepresentation`.
+    notes: "**Notes:** This is a read that uses `POST`. No source documents `type`, `filter_list` or `selected_list` for this call, and the spec's example sends only `knowledge_space_id`."
+
+  - name: knowledge_import
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/importKnowledge
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1importKnowledge/post
+    description: Import selected knowledge libraries and search indexes into a target knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_import (knowledge_space_id => '1T8xx0000004CYqCAM', selected_list => (knowledge_ids = ['1aQxx000000003FEAQ'], search_indexes = ['18lxx0000004C92AAE']));
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, description: "Name of the data space that the knowledge modal belongs to. Since v65.0."}
+      - {name: filter_list, api_name: filterList, in: body, type: object, description: "Knowledge select filters. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "Knowledge space ID. Since v65.0."}
+      - {name: selected_list, api_name: selectedList, in: body, schema: KnowledgeModalInput_selectedList, description: "Object with `knowledge_ids` and `search_indexes`, both arrays of strings, from `KnowledgeSelectInputRepresentation`. The spec types it as a plain object. Since v65.0."}
+      - {name: type, in: body, type: string, description: "Type of knowledge source. Since v65.0."}
+    columns:
+      - {name: knowledge_list, api_name: knowledgeList, type: JSON, array: 1, schema: KnowledgeSpaceLibraryOutputRepresentation, description: "List of knowledge space libraries. Since v65.0."}
+      - {name: search_indexes, api_name: searchIndexes, type: JSON, array: 1, schema: SemanticSearchDefDetailRepresentation, description: "List of semantic search summaries. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeModalOutputRepresentation`.
+    notes: "**Notes:** In the spec's examples, `knowledge_ids` takes `knowledge_list[].knowledgeLibraryId` and `search_indexes` takes `search_indexes[].id` from [`knowledge_import_get`](#knowledge_import_get). The spec types `selected_list` as a plain object, so completion needs `KnowledgeSelectInputRepresentation` wired in by hand."
+
+  - name: files_index
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/index-files
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1index-files/post
+    description: Starts indexing files already uploaded to a library, or a website URL. It's the last step of the upload flow, after `presigned_urls_get` and the S3 `PUT`. Since v65.0.
+    example: CALL cdp.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: knowledge_artifact_id, api_name: knowledgeArtifactId, in: body, type: string, description: "ID of the library the files belong to: `knowledge_library_id`, not the knowledge space ID."}
+      - {name: knowledge_artifact_source, api_name: knowledgeArtifactSource, in: body, type: string, description: "`FILE_UPLOAD` or `URL`, the two values in the spec's examples."}
+      - {name: knowledge_source_files_list, api_name: knowledgeSourceFilesList, in: body, schema: KnowledgeSpaceIndexFilesInput_knowledgeSourceFilesList, array: 1, description: "Items take `file_name`, `file_path`, `file_type` and `fileIndexStatus`, from `KnowledgeSourceFileInputRepresentation`. The spec types the items as plain objects."}
+      - {name: knowledge_source_id, api_name: knowledgeSourceId, in: body, type: string, description: "Unique identifier of the knowledge source. Applies only to URL sources. Since v65.0."}
+      - {name: search_index_api_name, api_name: searchIndexApiName, in: body, type: string, description: "API name of the search index to use for knowledge indexing. Since v65.0."}
+      - {name: website_url, api_name: websiteUrl, in: body, type: string, description: "Website URL. Since v65.0."}
+    columns:
+      - {name: knowledge_artifact_id, api_name: knowledgeArtifactId, type: VARCHAR, description: "Unique identifier of the knowledge artifact. Since v65.0."}
+      - {name: knowledge_artifact_source, api_name: knowledgeArtifactSource, type: VARCHAR, description: "Source system or origin of the knowledge artifact. Since v65.0."}
+      - {name: knowledge_source_files_list, api_name: knowledgeSourceFilesList, type: JSON, array: 1, schema: KnowledgeSourceFileOutputRepresentation, description: "List of indexed knowledge source files. Since v65.0."}
+      - {name: knowledge_source_id, api_name: knowledgeSourceId, type: VARCHAR, description: "Unique identifier of the knowledge source. Since v65.0."}
+      - {name: off_core_job_id, api_name: offCoreJobId, type: VARCHAR, description: "Off-core job ID from the search index API call. Since v65.0."}
+      - {name: search_index_api_name, api_name: searchIndexApiName, type: VARCHAR, description: "API name of the search index. Since v65.0."}
+      - {name: website_url, api_name: websiteUrl, type: VARCHAR, description: "Website URL. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceIndexFilesOutputRepresentation`.
+    notes: |
+      **Done when:** [`knowledge_space_details_get`](#knowledge_space_details_get), at `libraries[].sources[].files[].fileStatus`: `INDEXED` or `FAILED`. `IN_PROGRESS` and `PROCESSING` mean it's still running. The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) polls every 10 seconds for about 5 minutes.
+
+      **Notes:** **`file_path` conflict.** The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) says it must be `collections/{knowledgeLibraryId}/{fileName}`, "NOT `knowledge_space/collections/...`". The spec's examples use `knowledge_space/collections/library/document.pdf`. The kit's form is the one it ran (one org), so the example above uses it.
+
+      **Not safely retryable.** This can take 60 to 180 seconds, and it has returned HTTP 500 after indexing began (one org). After a timeout or 5xx, the kit waits about 5 seconds and reads the file status first. It re-sends only if none of the files appear, and only once, because a re-send can start a duplicate job. It also never sends files that are already `INDEXED` or still running.
+
+      **Failures.** `FAILED` means the file never reached S3 or `file_path` is wrong, according to the kit, which stops rather than retrying. Accepted types are PDF, TXT and HTML, and other types fail with `Unsupported file type`. Small files can return `INDEXED` right away.
+
+      The URL form (`knowledge_artifact_source => 'URL'` with `website_url`) appears only in the spec's example, and the kit doesn't cover it. No example sends `search_index_api_name`.
+
+      For comparison, the [Retail kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/intelligent-context/SKILL.md) reports a 30 to 90 second wait between upload and processing for Intelligent Context. That's a different pipeline, and the MedTech kit has no such wait.
+
+  - name: knowledge_library_create
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/library
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library/post
+    description: Create a knowledge library in an existing knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_library_create (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'My_Library', label => 'My Knowledge Library', description => 'Library for technical documentation');
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: description, in: body, type: string, description: "Description of the library. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, in: body, type: string, description: "Knowledge library ID. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "ID of the knowledge space associated with the library. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the library. Since v65.0."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_category, api_name: knowledgeCategory, type: VARCHAR, description: "Knowledge category. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, type: VARCHAR, description: "ID of the library. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the parent knowledge space. Since v65.0."}
+      - {name: knowledge_space_name, api_name: knowledgeSpaceName, type: VARCHAR, description: "Name of the parent knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the library. Since v65.0."}
+      - {name: sources, type: JSON, array: 1, schema: KnowledgeSourceOutputRepresentation, description: "List of knowledge sources in the library. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceLibraryOutputRepresentation`.
+    notes: "**Notes:** You don't need this to upload files. The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) uploads into the personal library that comes with the space."
+
+  - name: knowledge_library_remove
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/library/remove-library
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1remove-library/post
+    description: Remove a knowledge library from a knowledge space. Since v65.0.
+    example: CALL cdp.knowledge_library_remove (knowledge_library_id => '1aQxx00000000G9EAI', knowledge_space_id => '1T8xx0000004CYqCAM');
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: description, in: body, type: string, description: "Description of the library. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, in: body, type: string, description: "Knowledge library ID. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "ID of the knowledge space associated with the library. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the library. Since v65.0."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_category, api_name: knowledgeCategory, type: VARCHAR, description: "Knowledge category. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, type: VARCHAR, description: "ID of the library. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the parent knowledge space. Since v65.0."}
+      - {name: knowledge_space_name, api_name: knowledgeSpaceName, type: VARCHAR, description: "Name of the parent knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the library. Since v65.0."}
+      - {name: sources, type: JSON, array: 1, schema: KnowledgeSourceOutputRepresentation, description: "List of knowledge sources in the library. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceLibraryOutputRepresentation`.
+    notes: "**Notes:** The spec says this removes a library from a knowledge space, and its example sends both IDs. No source says whether the library itself survives. The library-to-space link is its own object in the permission list of the [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) (`DataKnowledgeSpcLibRel`), so this may only unlink it, but that's my inference."
+
+  - name: knowledge_library_search
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/library/search
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1search/post
+    description: Search for a knowledge library. Since v65.0.
+    example: CALL cdp.knowledge_library_search (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'Search_Term');
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: description, in: body, type: string, description: "Description of the library. Since v65.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, in: body, type: string, description: "Knowledge library ID. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, in: body, type: string, description: "ID of the knowledge space associated with the library. Since v65.0."}
+      - {name: label, in: body, type: string, description: "Label of the library. Since v65.0."}
+    rows: /knowledgeSpaceLibraries
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
+      - {name: knowledge_category, api_name: knowledgeCategory, type: VARCHAR, description: "Knowledge category. Since v65.0."}
+      - {name: knowledge_library_id, api_name: knowledgeLibraryId, type: VARCHAR, description: "ID of the library. Since v65.0."}
+      - {name: knowledge_space_id, api_name: knowledgeSpaceId, type: VARCHAR, description: "ID of the parent knowledge space. Since v65.0."}
+      - {name: knowledge_space_name, api_name: knowledgeSpaceName, type: VARCHAR, description: "Name of the parent knowledge space. Since v65.0."}
+      - {name: label, type: VARCHAR, description: "Label of the library. Since v65.0."}
+      - {name: sources, type: JSON, array: 1, schema: KnowledgeSourceOutputRepresentation, description: "List of knowledge sources in the library. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/knowledgeSpaceLibraries` in the response. Schema `KnowledgeSpaceLibraryOutputRepresentation`.
+    notes: "**Notes:** This is a read that uses `POST`. The spec's example searches by `developer_name`, and no source says whether matching is exact or partial, or how the other fields apply."
+
+  - name: presigned_urls_get
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/presigned-urls
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1presigned-urls/post
+    description: Gets one S3 upload URL per file name for a library. Use it before the upload, then call `files_index`. Since v65.0.
+    example: CALL cdp.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['document1.pdf', 'document2.pdf']);
+    options:
+      - {name: file_names, api_name: fileNames, in: body, array: 1, type: string, description: "List of file names to upload. Since v65.0."}
+      - {name: library_id, api_name: libraryId, in: body, type: string, description: "ID of the knowledge space library. Since v65.0."}
+    columns:
+      - {name: presigned_urls, api_name: presignedUrls, type: JSON, description: "List of presigned URLs for uploading to a knowledge library. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceUploadPresignedURLOutputRepresentation`.
+    notes: |
+      **Notes:** All of this is from the [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md).
+
+      **Limits.** Five files per call (`Files uploaded cannot be more than: 5`), so batch larger sets. URLs come back in the order of `file_names`. This has returned a transient HTTP 500 (one org). The kit waits 2 seconds and retries once.
+
+      **The upload is outside `cdp.*`.** Send the raw bytes with `PUT`, and two details break it. The URLs contain `&amp;`, and leaving it unescaped returns S3 `403 AccessDenied: No AWSAccessKey was presented`. Any extra header, including `Content-Type`, returns `403 SignatureDoesNotMatch`.
+
+      **Treat the URLs as credentials.** The kit keeps them out of logs and durable state, and requests new ones rather than computing an expiry, which no source documents. Uploading the same file again overwrites the same key.
+
+      The heading marks this read-only, but [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-promotions.json) classes it as `confirmed`, not `safe_post`, and the kit sends it through its write tool.
+
+  - name: knowledge_space_provision
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/provision
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1provision/post
+    description: Provision a knowledge space for the specified data spaces. Since v65.0.
+    example: CALL cdp.knowledge_space_provision (dataspaces => ['default', 'analytics']);
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: dataspaces, api_name: dataSpaces, in: body, array: 1, type: string, description: "List of data space names to provision. Since v65.0."}
+    columns:
+      - {name: success, type: BOOLEAN, description: "Indicates whether the provisioning request succeeded (`true`) or not (`false`). Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceProvisionOutputRepresentation`.
+    notes: "**Notes:** No source explains how this relates to enabling Notebook AI. The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) never calls it, and it treats provisioning as an admin step. The result is only `success`, and the spec doesn't say whether provisioning continues after the response. [`knowledge_space_configuration_list`](#knowledge_space_configuration_list) has a `provisioning_status` column with undocumented values."
+
+  - name: files_remove
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/remove-files
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1remove-files/post
+    description: Remove files from a knowledge library. Since v65.0.
+    example: CALL cdp.files_remove (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'old-document.pdf', file_path = 'collections/1aQxx00000000JNEAY/old-document.pdf')]);
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: knowledge_artifact_id, api_name: knowledgeArtifactId, in: body, type: string, description: "ID of the library the files belong to: `knowledge_library_id`, not the knowledge space ID."}
+      - {name: knowledge_artifact_source, api_name: knowledgeArtifactSource, in: body, type: string, description: "`FILE_UPLOAD` or `URL`, the two values in the spec's examples."}
+      - {name: knowledge_source_files_list, api_name: knowledgeSourceFilesList, in: body, schema: KnowledgeSpaceIndexFilesInput_knowledgeSourceFilesList, array: 1, description: "Items take `file_name`, `file_path`, `file_type` and `fileIndexStatus`, from `KnowledgeSourceFileInputRepresentation`. The spec types the items as plain objects."}
+      - {name: knowledge_source_id, api_name: knowledgeSourceId, in: body, type: string, description: "Unique identifier of the knowledge source. Applies only to URL sources. Since v65.0."}
+      - {name: search_index_api_name, api_name: searchIndexApiName, in: body, type: string, description: "API name of the search index to use for knowledge indexing. Since v65.0."}
+      - {name: website_url, api_name: websiteUrl, in: body, type: string, description: "Website URL. Since v65.0."}
+    columns:
+      - {name: knowledge_artifact_id, api_name: knowledgeArtifactId, type: VARCHAR, description: "Unique identifier of the knowledge artifact. Since v65.0."}
+      - {name: knowledge_artifact_source, api_name: knowledgeArtifactSource, type: VARCHAR, description: "Source system or origin of the knowledge artifact. Since v65.0."}
+      - {name: knowledge_source_files_list, api_name: knowledgeSourceFilesList, type: JSON, array: 1, schema: KnowledgeSourceFileOutputRepresentation, description: "List of indexed knowledge source files. Since v65.0."}
+      - {name: knowledge_source_id, api_name: knowledgeSourceId, type: VARCHAR, description: "Unique identifier of the knowledge source. Since v65.0."}
+      - {name: off_core_job_id, api_name: offCoreJobId, type: VARCHAR, description: "Off-core job ID from the search index API call. Since v65.0."}
+      - {name: search_index_api_name, api_name: searchIndexApiName, type: VARCHAR, description: "API name of the search index. Since v65.0."}
+      - {name: website_url, api_name: websiteUrl, type: VARCHAR, description: "Website URL. Since v65.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceIndexFilesOutputRepresentation`.
+    notes: "**Notes:** The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/notebook-ai/SKILL.md) covers indexing but not this call, so its `file_path` rule isn't confirmed here. The spec's example uses the `knowledge_space/collections/library/...` form. Copying the `file_path` that [`knowledge_space_details_get`](#knowledge_space_details_get) reports for the file is my suggestion, and no source states it. The spec's response example has an empty `knowledge_source_files_list`, so an empty list doesn't mean nothing was removed."
+
+  - name: deep_research_as_knowledge_source_add
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/space/{knowledgeSpaceApiNameOrId}/deep-research/source
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1space~1%7BknowledgeSpaceApiNameOrId%7D~1deep-research~1source/post
+    description: Copy a completed deep research report into the knowledge space's GENERATED_RESOURCES library and trigger indexing. This causes the research findings to be available for future queries. Since v67.0.
+    example: CALL cdp.deep_research_as_knowledge_source_add (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', research_id => 'research-abc123', report_file_path => '/sfdrive/temp/research-abc123-report.md', file_name => 'AI_Research_Trends_Report.md');
+    options:
+      - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space. Since v67.0."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: file_name, api_name: fileName, in: body, type: string, description: "File name that overrides the default. If unspecified, the default value is the base name of `report_file_path`. Since v67.0."}
+      - {name: report_file_path, api_name: reportFilePath, in: body, type: string, description: "Short-lived sfdrive path where the report is stored. Since v67.0."}
+      - {name: research_id, api_name: researchId, in: body, type: string, description: "Deep research job identifier, used for logging. Since v67.0."}
+    columns:
+      - {name: knowledge_source_id, api_name: knowledgeSourceId, type: VARCHAR, description: "ID of the GENERATED_RESOURCES knowledge source in the library. Since v67.0."}
+      - {name: knowledge_src_file_ref_id, api_name: knowledgeSrcFileRefId, type: VARCHAR, description: "ID of the knowledge source file reference record. Since v67.0."}
+      - {name: persisted_file_path, api_name: persistedFilePath, type: VARCHAR, description: "Persistent sfdrive path of the copied report. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceDeepResearchAddSourceOutputRepresentation`.
+    notes: "**Notes:** No documented call returns `report_file_path`: [`deep_research_report_get`](#deep_research_report_get) returns only `research_id` and the report text. The spec calls the path short-lived, so don't store it for later. The spec says `research_id` is used for logging, which suggests the path decides which report is copied. The spec says this triggers indexing, and no source says how to watch that finish."
+
+  - name: file_chunks_summary_get
+    method: POST
+    host: connect
+    path: /ssot/knowledge-space/summary
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1summary/post
+    description: Get all chunks for files in a knowledge space. Since v65.0.
+    example: CALL cdp.file_chunks_summary_get (search_index_name => 'KnowledgeIndex', container_id => ['container-1', 'container-2']);
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: additional_filter, api_name: additionalFilter, in: body, map: true, type: object, description: "Additional filter parameters. Since v65.0."}
+      - {name: container_id, api_name: containerId, in: body, array: 1, type: string, description: "List of container IDs. Since v65.0."}
+      - {name: search_index_name, api_name: searchIndexName, in: body, type: string, description: "Name of the search index. Since v65.0."}
+    columns:
+      - {name: all_chunks, api_name: allChunks, type: VARCHAR, description: "Content of all chunks. Since v65.0."}
+      - {name: file_path, api_name: filepath, type: VARCHAR, description: "File path. Since v65.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `KnowledgeSpaceFileChunksOutputRepresentation`.
+    notes: |
+      **Notes:** The spec doesn't define `container_id` (its example uses `container-1`) or `additional_filter`. It returns one row even though `container_id` is a list, and `all_chunks` is one string with the chunk text run together. The column is `filepath` here and `filePath` elsewhere. Neither kit's skill calls this function.
+
+      This isn't the Intelligent Context chunks endpoint. The [Retail kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/intelligent-context/SKILL.md) reports that `POST /ssot/intelligent-context/{lens}/chunks` returns `UNKNOWN_EXCEPTION` indefinitely on `{"files":[]}`, and transiently for about the first 90 seconds. This call has no `files` option, and no source shows how it treats an empty `container_id`.
+
+schemas:
+  KnowledgeModalInput_selectedList:
+    unknown: warning
+    attributes:
+      - {name: knowledge_ids, api_name: knowledgeIds, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: search_indexes, api_name: searchIndexes, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  KnowledgeSpaceDeepResearchPlanPatchPlanInputRepresentation:
+    description: Represents the plan payload for deep research plan updates.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: steps, schema: KnowledgeSpaceDeepResearchPlanStepInputRepresentation, array: 1, description: "List of research plan steps to execute. Since v67.0."}
+
+  KnowledgeSpaceDeepResearchPlanStepInputRepresentation:
+    description: Represents a step in a deep research plan.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: description, type: string, description: "Description of what the step does. Since v67.0."}
+      - {name: title, type: string, description: "Title or name of the step. Since v67.0."}
+
+  KnowledgeSpaceIndexFilesInput_knowledgeSourceFilesList:
+    unknown: warning
+    attributes:
+      - {name: file_name, api_name: fileName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: file_path, api_name: filePath, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: file_type, api_name: fileType, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}

@@ -41,13 +41,13 @@ analyzer-snapshots:
         input: create table alerts (host text, level int);
     script:
       input: call tickets.ticket_create (project => 'a', title => 'b', affected => ((select host from alerts where level > 1)));
-  # Parameters and secrets are bindings, parameters are inputs of the session
+  # Parameters are bindings, and inputs of the session
   - name: call_bindings
     catalog:
       overlay: tickets
     script:
       input: |
-        call tickets.webhook_create (url => :hook_url, signing_key => secret(hook_key), credentials => [(param_name = 'pw', value = secret('stored'))]);
+        call tickets.webhook_create (url => :hook_url, signing_key => :hook_key, credentials => [(param_name = 'pw', value = :stored)]);
   # EXPLAIN of a call is checked like the call
   - name: call_explain
     catalog:
@@ -121,8 +121,8 @@ analyzer-snapshots:
       overlay: tickets
     script:
       input: call tickets.request (method => 'POST', path => '/x', body => (a = 1), someParam => 1);
-  # A literal or a parameter can't be a secret, a value can be public because of its sibling
-  - name: call_sensitive
+  # Nothing is classified as secret: a literal and a parameter both go anywhere
+  - name: call_credentials
     catalog:
       overlay: tickets
     script:
@@ -131,22 +131,15 @@ analyzer-snapshots:
           signing_key => 'literal',
           credentials => [
             (param_name = 'user', value = 'public'),
-            (param_name = 'password', value = :leaked),
-            (param_name = 'key', value = secret(stored))
+            (param_name = 'password', value = :stored)
           ]
         );
-  # One object where the pointer has an array is sensitive just the same
-  - name: call_sensitive_single_object
-    catalog:
-      overlay: tickets
-    script:
-      input: call tickets.webhook_create (credentials => (param_name = 'password', value = 'literal'));
-  # Only secret() is a function here
+  # No function is a value
   - name: call_invalid_functions
     catalog:
       overlay: tickets
     script:
-      input: call tickets.ticket_list (project => now(), page_size => secret(a, b), page_token => cast(1 as text));
+      input: call tickets.ticket_list (project => now(), page_size => secret(a), page_token => cast(1 as text));
   # The standard options of a paged function that reads
   - name: call_paging
     catalog:

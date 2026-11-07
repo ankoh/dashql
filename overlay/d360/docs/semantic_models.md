@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/semantic_models.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Semantic Models
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -150,17 +152,17 @@ Create a semantic model. The first step of every build: either an empty shell th
 | `query_unrelated_data_objects` | `queryUnrelatedDataObjects` | body | string |  | What a query does across data objects with no relationship. Sources disagree on the name and the values, see Notes. |
 | `agent_enabled` | `agentEnabled` | body | boolean |  | Enable agent features for the model. |
 | `business_preferences` | `businessPreferences` | body | string |  | Business-specific preferences or context from analysts. |
-| `base_models` | `baseModels` | body | JSON |  | Models this one extends: `api_name`, `label`. |
-| `external_connections` | `externalConnections` | body | JSON |  | External connections of the model. |
-| `fields_overrides` | `fieldsOverrides` | body | JSON |  | Field overrides. |
+| `base_models` | `baseModels` | body | any |  | Models this one extends: `api_name`, `label`. |
+| `external_connections` | `externalConnections` | body | any |  | External connections of the model. |
+| `fields_overrides` | `fieldsOverrides` | body | any |  | Field overrides. |
 | `semantic_data_objects` | `semanticDataObjects` | body | array of [SemanticDataObject](#semanticdataobject) |  | Data objects, for the one-call build. |
 | `semantic_relationships` | `semanticRelationships` | body | array of [SemanticRelationship](#semanticrelationship) |  | Relationships, for the one-call build. |
 | `semantic_calculated_dimensions` | `semanticCalculatedDimensions` | body | array of [SemanticCalculatedDimension](#semanticcalculateddimension) |  | Calculated dimensions, for the one-call build. |
 | `semantic_calculated_measurements` | `semanticCalculatedMeasurements` | body | array of [SemanticCalculatedMeasurement](#semanticcalculatedmeasurement) |  | Calculated measurements, for the one-call build. |
 | `semantic_metrics` | `semanticMetrics` | body | array of [SemanticMetricDefinition](#semanticmetricdefinition) |  | Metrics, for the one-call build. |
-| `semantic_parameters` | `semanticParameters` | body | JSON |  | Parameters that formulas and filters can reference. There is no separate function for these here. |
-| `semantic_logical_views` | `semanticLogicalViews` | body | JSON |  | Join, union or custom SQL views. There is no separate function for these here. |
-| `semantic_groupings` | `semanticGroupings` | body | JSON |  | Groupings. There is no separate function for these here. |
+| `semantic_parameters` | `semanticParameters` | body | any |  | Parameters that formulas and filters can reference. There is no separate function for these here. |
+| `semantic_logical_views` | `semanticLogicalViews` | body | any |  | Join, union or custom SQL views. There is no separate function for these here. |
+| `semantic_groupings` | `semanticGroupings` | body | any |  | Groupings. There is no separate function for these here. |
 | `allow_external_definitions` | `allowExternalDefinitions` | query | boolean |  | Flag to allow external definitions |
 | `allow_unmapped` | `allowUnmapped` | query | boolean |  | Flag to allow unmapped fields |
 | `inherit_dc_relationship` | `inheritDcRelationship` | query | boolean |  | Flag to inherit data cloud relationships |
@@ -1396,7 +1398,7 @@ Run a query against a semantic model. You name fields, filters and groupings, an
 | `structured_semantic_query` | `structuredSemanticQuery` | body | [StructuredSemanticQuery](#structuredsemanticquery) | yes | The query. |
 | `semantic_model_api_name` | `semanticModelApiName` | body | string |  | API name of a saved model. The guide's preferred way. Give exactly one of the three model options. |
 | `semantic_model_id` | `semanticModelId` | body | string |  | Record ID of a saved model. The guide calls it deprecated, Salesforce's tool uses it. |
-| `semantic_model` | `semanticModel` | body | JSON |  | A whole model inline, not saved. Has the attributes of the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md). See Notes. |
+| `semantic_model` | `semanticModel` | body | any |  | A whole model inline, not saved. Has the attributes of the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md). See Notes. |
 | `dataspace` | `dataspace` | body | string |  | Data space to run in. The default data space if omitted. |
 | `group_id` | `groupId` | body | string |  | Sends the query as part of this group of queries. |
 | `query_parameter` | `queryParameter` | body | string |  | Parameter name and value for parameterized queries. The guide's examples use `parameters` on the query instead. |
@@ -1421,9 +1423,7 @@ CALL cdp.sdm_query (
 
 One row per item of `/queryResults/queryData/rows` in the response. Other response fields go to `_meta`: `status`, `queryResults.queryMetadata`. Each row's `values` array is positional, and `queryMetadata.fields.<alias>.placeInOrder` gives each column's place ([v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/queries.yaml), [community fixture](https://github.com/javrrr/tableau-semantics-sdk/blob/main/tests/fixtures/semantic-query.response.json)).
 
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `<alias>` | `<alias>` | From `queryMetadata.fields.<alias>.type`: VARCHAR, or NUMERIC mapped to DOUBLE | One column per query field, named by its `alias`. |
+The columns come from the query: one per query field, named by its `alias` and typed from `queryMetadata.fields.<alias>.type`, which is VARCHAR, or NUMERIC mapped to DOUBLE. The spec can't list them, so they stay in `_raw`.
 
 **Notes:** This is a read despite the `POST`. The "changes org state" above comes from the verb. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) treats it as a safe `POST`.
 
@@ -1484,7 +1484,7 @@ Attribute names are keywords inside the object they belong to, so completion off
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
 | `measure_output_type` | `measureOutputType` | string | yes | A `SEMANTIC_MEASUREMENT_TYPE_*` value, such as `SEMANTIC_MEASUREMENT_TYPE_NUMBER`. |
-| `decimal_places_options` | `decimalPlacesOptions` | JSON |  | Holds `decimalPlaces`. |
+| `decimal_places_options` | `decimalPlacesOptions` | any |  | Holds `decimalPlaces`. |
 
 ### Expression
 
@@ -1501,19 +1501,19 @@ Attribute names are keywords inside the object they belong to, so completion off
 | `double_expression` | `doubleExpression` | number |  | Literal. |
 | `bytes_expression` | `bytesExpression` | string |  | Binary literal. |
 | `datetime_expression` | `datetimeExpression` | string |  | ISO 8601 datetime. |
-| `date_expression` | `dateExpression` | JSON |  | Date without time. |
-| `array_expression` | `arrayExpression` | JSON |  | Array of expressions. |
+| `date_expression` | `dateExpression` | any |  | Date without time. |
+| `array_expression` | `arrayExpression` | any |  | Array of expressions. |
 | `range_values` | `rangeValues` | [RangeValues](#rangevalues) |  | For `BINARY_OPERATOR_BETWEEN`. |
-| `relative_date_range` | `relativeDateRange` | JSON |  | Dynamic range: `datePart`, `startOffset`, `endOffset`, `anchorDate`, `useCurrentDateAsEndDate`. |
-| `null_value` | `nullValue` | JSON |  | Null. |
-| `forecast_field` | `forecastField` | JSON |  | Forecast field for predictive queries. |
+| `relative_date_range` | `relativeDateRange` | any |  | Dynamic range: `datePart`, `startOffset`, `endOffset`, `anchorDate`, `useCurrentDateAsEndDate`. |
+| `null_value` | `nullValue` | any |  | Null. |
+| `forecast_field` | `forecastField` | any |  | Forecast field for predictive queries. |
 | `relationship_formula` | `relationshipFormula` | string |  | Inline row-level join formula. |
 
 ### FlattenFilter
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `filters` | `filters` | JSON | yes | Items have `field_name`, a PascalCase `operator`, `value` or `values`, and optionally `fieldType`. |
+| `filters` | `filters` | any | yes | Items have `field_name`, a PascalCase `operator`, `value` or `values`, and optionally `fieldType`. |
 | `filter_logic` | `filterLogic` | string | yes | Combines `filters` by 1-based index, such as `(1 AND 2) OR 3`. |
 
 ### LimitOptions
@@ -1549,7 +1549,7 @@ Attribute names are keywords inside the object they belong to, so completion off
 | `row_grouping` | `rowGrouping` | boolean |  | Group by this field. Shorthand for `grouping => 'ROW_GROUPING'`. |
 | `grouping` | `grouping` | string |  | `ROW_GROUPING` or `COLUMN_GROUPING`. |
 | `semantic_aggregation_method` | `semanticAggregationMethod` | string |  | `SEMANTIC_AGGREGATION_METHOD_` plus AUTO, NONE, SUM, AVG, MIN, MAX, MEDIAN, COUNT, UNIQUE_COUNT, STDDEV, STDDEVP, VAR, VARP, FIRST, LAST, UNIQUE or USER_AGG. |
-| `show_missing_values` | `showMissingValues` | JSON |  | Data densification settings. |
+| `show_missing_values` | `showMissingValues` | any |  | Data densification settings. |
 
 ### QueryOptions
 
@@ -1557,7 +1557,7 @@ Attribute names are keywords inside the object they belong to, so completion off
 |---|---|---|---|---|
 | `sort_orders` | `sortOrders` | array of [SortOrder](#sortorder) |  | Applied in list order. |
 | `limit_options` | `limitOptions` | [LimitOptions](#limitoptions) |  | Maximum rows, after grouping. |
-| `offset_options` | `offsetOptions` | JSON |  | Offset of the results from a row. |
+| `offset_options` | `offsetOptions` | any |  | Offset of the results from a row. |
 | `detailed_rows` | `detailedRows` | boolean |  | Return individual rows. Disallows aggregates and aggregate filters. |
 | `subtotals` | `subtotals` | boolean |  | Add one summary row per grouped dimension. Needs a row-grouping field. |
 | `grand_total` | `grandTotal` | boolean |  | Add one summary row for the whole result. |
@@ -1625,9 +1625,9 @@ Attribute names are keywords inside the object they belong to, so completion off
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `time_zone` | `timezone` | JSON |  | Holds `id`, an IANA zone such as `America/Los_Angeles`. |
-| `locale` | `locale` | JSON |  | Holds `code`, such as `en_US`. |
-| `currency` | `currency` | JSON |  | Holds `id`, an ISO code. Takes precedence over model and org defaults. |
+| `time_zone` | `timezone` | any |  | Holds `id`, an IANA zone such as `America/Los_Angeles`. |
+| `locale` | `locale` | any |  | Holds `code`, such as `en_US`. |
+| `currency` | `currency` | any |  | Holds `id`, an ISO code. Takes precedence over model and org defaults. |
 | `context_filter` | `contextFilter` | [Predicate](#predicate) |  | Applies before all other query filters except model and data object filters. |
 
 ### SemanticDataObject
@@ -1712,7 +1712,7 @@ Attribute names are keywords inside the object they belong to, so completion off
 | `time_grains` | `timeGrains` | array of string | yes | Allowed grains: Day, Week, Month, Quarter, Year. |
 | `aggregation_type` | `aggregationType` | string |  | Such as `Sum`. |
 | `additional_dimensions` | `additionalDimensions` | array of [SemanticFieldReference](#semanticfieldreference) |  | Dimensions usable as filters. |
-| `insights_settings` | `insightsSettings` | JSON |  | Which insight types and dimensions to use when generating insights. |
+| `insights_settings` | `insightsSettings` | any |  | Which insight types and dimensions to use when generating insights. |
 | `filters` | `filters` | array of [SemanticFilter](#semanticfilter) |  | Filters on the metric. |
 | `filter_logic` | `filterLogic` | string |  | Combines `filters` by 1-based index. |
 | `is_cumulative` | `isCumulative` | boolean |  | Whether the metric is cumulative. |
@@ -1790,8 +1790,8 @@ Attribute names are keywords inside the object they belong to, so completion off
 | `options` | `options` | [QueryOptions](#queryoptions) |  | Sorting, limits, totals, join strategy. |
 | `semantic_context` | `semanticContext` | [SemanticContext](#semanticcontext) |  | Time zone, locale, currency and context filter for this query. |
 | `parameters` | `parameters` | array of [QueryParameter](#queryparameter) |  | Values for model parameters. An unknown name is ignored. |
-| `advanced_dimension_filters_v2` | `advancedDimensionFiltersV2` | JSON |  | Top-N and bottom-N filters on dimension values ranked by a measure. |
-| `unpivot` | `unpivot` | JSON |  | Rotates selected aggregated measures into name and value rows. |
+| `advanced_dimension_filters_v2` | `advancedDimensionFiltersV2` | any |  | Top-N and bottom-N filters on dimension values ranked by a measure. |
+| `unpivot` | `unpivot` | any |  | Rotates selected aggregated measures into name and value rows. |
 
 ### TableField
 

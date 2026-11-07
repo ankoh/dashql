@@ -1,0 +1,473 @@
+title: Communication Capping
+description: |
+  Communication capping limits how many messages a customer, lead or prospect receives, for regulation, message fatigue or budget ([Trailhead](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping)). You define dimensions, which the UI calls parameters, such as channel and line of business. You give each dimension values, then write rules that cap a combination of values over a date window. A capping activation target is mapped to the same values, and segments activated through it get filtered.
+
+  Trailhead's order is dimensions, rules, target mapping, then segment activation. The rule path needs a configuration id, so the configuration comes before its rules. The target itself comes from [`activation_target_create`](activation_targets.md#activation_target_create). No source says when to call enable, so the flow below puts it last.
+
+  The gotchas that matter most:
+
+  - The spec has no call that lists configurations, so keep the `id` from create.
+  - Results show up in DMOs, not in this API: `CG_Audience_Dropped` holds the excluded profiles and the rule that dropped them, and `CG_Audience_Qualified` holds the included ones.
+  - Capping [consumes Data 360 credits](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping).
+  - Availability varies: [one changelog](https://help.salesforce.com/s/articleView?id=sf.c360_a_changelog_usage_and_access.htm&language=en_US&type=5) lists capping as a pilot and the [release notes](https://help.salesforce.com/s/articleView?id=release-notes.rn_c360_truth.htm&language=en_US&release=252&type=5) as a beta.
+
+  The spec has no descriptions for this family. Field meanings below come from Trailhead and from search excerpts of the [API reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) and Salesforce Help, whose full text couldn't be downloaded.
+
+  ```sql
+  CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', hierarchy_order => 1, dimension_values => [(value = 'Email')]);
+  CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
+  CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Email_daily', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
+  CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
+  CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID');
+  ```
+
+functions:
+  - name: communication_capping_activation_target_metadata_delete
+    method: DELETE
+    host: connect
+    path: /ssot/communication-capping/activation-target-capping-metadata/{activationTargetId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1activation-target-capping-metadata~1%7BactivationTargetId%7D/delete
+    description: Removes the dimension mapping of a capping activation target. Use it to detach a target from its dimension values.
+    example: CALL cdp.communication_capping_activation_target_metadata_delete (activation_target_id => 'TARGET_ID');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "-"}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: "**Notes:** The sources don't say whether segments already activated through the target are affected."
+
+  - name: communication_capping_rule_delete
+    method: DELETE
+    host: connect
+    path: /ssot/communication-capping/rules/{ruleIdOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1rules~1%7BruleIdOrName%7D/delete
+    description: Deletes a capping rule. Use it to retire a cap before its end date passes.
+    example: CALL cdp.communication_capping_rule_delete (rule_id_or_name => 'Email_daily');
+    options:
+      - {name: rule_id_or_name, api_name: ruleIdOrName, in: path, type: string, required: true, description: "Rule `id`, or a name. The sources don't say which name; `api_name` is the only name in the rule schema."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: "**Notes:** This is the only rule call whose path has no configuration id: delete is `/rules/{ruleIdOrName}`, and update is `/{id}/rules/{ruleIdOrName}`."
+
+  - name: communication_capping_configuration_get
+    method: GET
+    host: connect
+    path: /ssot/communication-capping/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D/get
+    description: Returns one capping configuration with its data spaces, dimensions and status. Use it to check the state of a configuration after you create or change it.
+    example: CALL cdp.communication_capping_configuration_get (id => 'CONFIGURATION_ID');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+    columns:
+      - {name: dataspaces_info, api_name: dataspacesInfo, type: JSON}
+      - {name: description, type: VARCHAR}
+      - {name: dimensions, type: JSON}
+      - {name: id, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+      - {name: status, type: VARCHAR}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingRepresentation`.
+    notes: "**Notes:** The spec has no call that lists configurations. The nearest is [`communication_capping_data_space_list`](activation_targets.md#communication_capping_data_space_list), which returns `data_communication_cap_def_id` per data space, but no source says this call's `id` accepts that value. This result has `status`, while create and update call the same thing `data_communication_cap_status`."
+
+  - name: communication_capping_activation_target_list
+    method: GET
+    host: connect
+    path: /ssot/communication-capping/{id}/activation-targets
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1activation-targets/get
+    description: Lists the activation targets of a configuration, one row per target mapping with its dimension and dimension value. Use it to audit which targets a configuration governs.
+    example: CALL cdp.communication_capping_activation_target_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'Name', order_by_direction => 'ASC');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+      - {name: limit, in: query, type: integer, description: "-"}
+      - {name: offset, in: query, type: integer, description: "-"}
+      - {name: order_by_column, api_name: orderByColumn, in: query, type: string, enum: [Id, ActivationTargetId, Name, CreatedById, CreatedDate, LastModifiedById, LastModifiedDate, DataCommCapDimId, DataCommCapDimValueId], description: "-"}
+      - {name: order_by_direction, api_name: orderByDirection, in: query, type: string, enum: [ASC, DESC], description: "-"}
+    rows: /activationTargets
+    columns:
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR}
+      - {name: actv_target_name, api_name: actvTargetName, type: VARCHAR}
+      - {name: data_comm_cap_dim, api_name: dataCommCapDim, type: JSON, schema: CommunicationCappingDimRepresentation}
+      - {name: data_comm_cap_dim_value, api_name: dataCommCapDimValue, type: JSON, schema: CommunicationCappingDimValueRepresentation}
+      - {name: id, type: VARCHAR}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/activationTargets` in the response. Schema `CommunicationCappingActivationTargetRepresentation`.
+    notes: |
+      **Paging:** `limit`, `offset`.
+
+      **Notes:** The response has only `activationTargets`, with no total or next-page field, so a short page is the only end signal in the schema.
+
+  - name: communication_capping_rule_list
+    method: GET
+    host: connect
+    path: /ssot/communication-capping/{id}/rules
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1rules/get
+    description: Lists the rules of a configuration with their limits and date windows. Use it to review caps or find a rule's id.
+    example: CALL cdp.communication_capping_rule_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'StartDate', order_by_direction => 'DESC');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+      - {name: limit, in: query, type: integer, description: "-"}
+      - {name: offset, in: query, type: integer, description: "-"}
+      - {name: order_by_column, api_name: orderByColumn, in: query, type: string, enum: [Id, DeveloperName, MasterLabel, StartDate, EndDate, Limits, Source, CreatedById, CreatedDate, LastModifiedById, LastModifiedDate], description: "-"}
+      - {name: order_by_direction, api_name: orderByDirection, in: query, type: string, enum: [ASC, DESC], description: "-"}
+    rows: /rules
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: data_comm_cap_rule_dim, api_name: dataCommCapRuleDim, type: JSON, array: 1, schema: CommunicationCappingRuleDimRepresentation}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: VARCHAR}
+      - {name: end_date, api_name: endDate, type: TIMESTAMPTZ}
+      - {name: id, type: VARCHAR}
+      - {name: limits, type: BIGINT}
+      - {name: source, type: VARCHAR}
+      - {name: start_date, api_name: startDate, type: TIMESTAMPTZ}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/rules` in the response. Schema `CommunicationCappingRuleRepresentation`.
+    notes: |
+      **Paging:** `limit`, `offset`.
+
+      **Notes:** The response has only `rules`, with no total or next-page field, so a short page is the only end signal in the schema. The [reference's sample](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) shows `source` as `API`; no source lists the other values.
+
+  - name: communication_capping_activation_target_metadata_get
+    method: GET
+    host: connect
+    path: /ssot/communication-capping/activation-target-capping-metadata/{activationTargetId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1activation-target-capping-metadata~1%7BactivationTargetId%7D/get
+    description: Returns the dimensions and dimension values mapped to one activation target. Use it to check a mapping against the rule it should match.
+    example: CALL cdp.communication_capping_activation_target_metadata_get (activation_target_id => 'TARGET_ID');
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "-"}
+    rows: /activationTargets
+    columns:
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR}
+      - {name: actv_target_name, api_name: actvTargetName, type: VARCHAR}
+      - {name: data_comm_cap_dim, api_name: dataCommCapDim, type: JSON, schema: CommunicationCappingDimRepresentation}
+      - {name: data_comm_cap_dim_value, api_name: dataCommCapDimValue, type: JSON, schema: CommunicationCappingDimValueRepresentation}
+      - {name: id, type: VARCHAR}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/activationTargets` in the response. Schema `CommunicationCappingActivationTargetRepresentation`.
+
+  - name: communication_capping_dimension_list
+    method: GET
+    host: connect
+    path: /ssot/communication-capping/dimensions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions/get
+    description: Lists capping dimensions with their values and hierarchy order. Use it to find the dimension and value ids that rules and target mappings need.
+    example: CALL cdp.communication_capping_dimension_list ();
+    options:
+      - {name: cc_id, api_name: ccId, in: query, type: string, description: "-"}
+      - {name: dataspace_id, api_name: dataSpaceId, in: query, type: string, description: "-"}
+    rows: /dimensions
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: dimension_name, api_name: dimensionName, type: VARCHAR}
+      - {name: dimension_values, api_name: dimensionValues, type: JSON, array: 1, schema: CommunicationCappingDimValueRepresentation}
+      - {name: function_type, api_name: functionType, type: VARCHAR}
+      - {name: hierarchy_order, api_name: hierarchyOrder, type: BIGINT}
+      - {name: id, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/dimensions` in the response. Schema `CommunicationCappingDimRepresentation`.
+    notes: "**Notes:** The spec has no paging options for this call. Rules and target mappings need the ids in `dimension_values`, which this column returns as JSON."
+
+  - name: communication_capping_configuration_update
+    method: PATCH
+    host: connect
+    path: /ssot/communication-capping/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D/patch
+    description: Changes a configuration's name, description, data spaces or related dimensions.
+    example: CALL cdp.communication_capping_configuration_update (id => 'CONFIGURATION_ID', description => 'Caps for all marketing sends');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+      - {name: data_comm_cap_dataspaces, api_name: dataCommCapDataSpaces, in: body, schema: CommunicationCappingDataSpaceInputRepresentation, array: 1, description: "Data spaces associated with the configuration."}
+      - {name: data_comm_cap_related_dims, api_name: dataCommCapRelatedDims, in: body, schema: CommunicationCappingRelatedDimInputRepresentation, array: 1, description: "Dimensions related to the configuration."}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, in: body, type: string, description: "Capping definition id. Per the [reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping), it's null on create and set only on update."}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: body_id, api_name: id, in: body, type: string, description: "Instance id of the configuration, per the [reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping). It's the body field `id`, renamed because the path also has `id`."}
+      - {name: name, in: body, type: string, description: "-"}
+    columns:
+      - {name: data_comm_cap_dataspaces, api_name: dataCommCapDataSpaces, type: JSON, array: 1, schema: CommunicationCappingDataSpaceRepresentation}
+      - {name: data_comm_cap_related_dims, api_name: dataCommCapRelatedDims, type: JSON, array: 1, schema: CommunicationCappingRelatedDimRepresentation}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: VARCHAR}
+      - {name: data_communication_cap_status, api_name: dataCommunicationCapStatus, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: id, type: VARCHAR}
+      - {name: last_status_date_time, api_name: lastStatusDateTime, type: TIMESTAMPTZ}
+      - {name: last_status_error_code, api_name: lastStatusErrorCode, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingEntityRepresentation`.
+    notes: "**Notes:** The body has its own `id`, so this function has both `id` (path) and `body_id`. The sources don't say whether the arrays replace the existing entries or add to them. See [`communication_capping_configuration_create`](#communication_capping_configuration_create) for the status a write can return."
+
+  - name: communication_capping_rule_update
+    method: PATCH
+    host: connect
+    path: /ssot/communication-capping/{id}/rules/{ruleIdOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1rules~1%7BruleIdOrName%7D/patch
+    description: Changes a rule's limit, date window or dimension values. Use it to adjust a cap without recreating the rule.
+    example: CALL cdp.communication_capping_rule_update (id => 'CONFIGURATION_ID', rule_id_or_name => 'Email_daily', limits => 5);
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+      - {name: rule_id_or_name, api_name: ruleIdOrName, in: path, type: string, required: true, description: "Rule `id`, or a name. The sources don't say which name; `api_name` is the only name in the rule schema."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
+      - {name: data_comm_cap_rule_dim, api_name: dataCommCapRuleDim, in: body, schema: CommunicationCappingRuleDimInputRepresentation, array: 1, description: "Dimension associations for the rule."}
+      - {name: end_date, api_name: endDate, in: body, type: string, format: date-time, description: "End of the window when the rule is valid."}
+      - {name: limits, in: body, type: integer, description: "Capping limit value: the [maximum number of messages](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping)."}
+      - {name: start_date, api_name: startDate, in: body, type: string, format: date-time, description: "Start of the window when the rule is valid."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: data_comm_cap_rule_dim, api_name: dataCommCapRuleDim, type: JSON, array: 1, schema: CommunicationCappingRuleDimRepresentation}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: VARCHAR}
+      - {name: end_date, api_name: endDate, type: TIMESTAMPTZ}
+      - {name: id, type: VARCHAR}
+      - {name: limits, type: BIGINT}
+      - {name: source, type: VARCHAR}
+      - {name: start_date, api_name: startDate, type: TIMESTAMPTZ}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingRuleRepresentation`.
+    notes: "**Notes:** See [`communication_capping_rule_create`](#communication_capping_rule_create) for how the fields work."
+
+  - name: communication_capping_dimension_update
+    method: PATCH
+    host: connect
+    path: /ssot/communication-capping/dimensions/{dimensionId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions~1%7BdimensionId%7D/patch
+    description: Changes a dimension or its values. Use it when the possible values change, for example when a channel is added.
+    example: CALL cdp.communication_capping_dimension_update (dimension_id => '1CDxx0000000001GAA', dimension_values => [(value = 'WhatsApp')]);
+    options:
+      - {name: dimension_id, api_name: dimensionId, in: path, type: string, required: true, description: "Dimension `id` from `communication_capping_dimension_list`."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
+      - {name: dimension_name, api_name: dimensionName, in: body, type: string, description: "API name of the dimension object, such as `ssot__CommunicationChannel__dlm` in the [reference's sample](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping)."}
+      - {name: dimension_values, api_name: dimensionValues, in: body, schema: CommunicationCappingDimValueInputRepresentation, array: 1, description: "Values of the dimension."}
+      - {name: function_type, api_name: functionType, in: body, type: string, description: "Function type. The [reference's samples](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) show `FUNCTIONAL_TYPE` and `NON_FUNCTIONAL_TYPE`."}
+      - {name: hierarchy_order, api_name: hierarchyOrder, in: body, type: integer, description: "Position in the hierarchy. The reference's samples use 1 for Channel and 2 for Brand."}
+      - {name: id, in: body, type: string, description: "-"}
+      - {name: name, in: body, type: string, description: "-"}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: dimension_name, api_name: dimensionName, type: VARCHAR}
+      - {name: dimension_values, api_name: dimensionValues, type: JSON, array: 1, schema: CommunicationCappingDimValueRepresentation}
+      - {name: function_type, api_name: functionType, type: VARCHAR}
+      - {name: hierarchy_order, api_name: hierarchyOrder, type: BIGINT}
+      - {name: id, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingDimRepresentation`.
+    notes: "**Notes:** Trailhead calls parameters [master data](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping): the values might change, but the parameters themselves don't. The sources don't say whether `dimension_values` replaces the existing values or adds to them. Rules and mappings refer to value ids, so check them before removing a value."
+
+  - name: communication_capping_dimension_priority_update
+    method: PATCH
+    host: connect
+    path: /ssot/communication-capping/dimensions/actions/swap-priority
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions~1actions~1swap-priority/patch
+    description: Changes the hierarchy order of dimensions. Use it to swap which dimension comes first.
+    example: CALL cdp.communication_capping_dimension_priority_update (dimensions => [(id = '1CDxx0000000002GAA', hierarchy_order = 1), (id = '1CDxx0000000001GAA', hierarchy_order = 2)]);
+    options:
+      - {name: dimensions, in: body, schema: CommunicationCappingDimInputRepresentation, array: 1, description: "Dimensions whose priority changes, each with `id` and its new `hierarchy_order`."}
+    rows: /dimensions
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: dimension_name, api_name: dimensionName, type: VARCHAR}
+      - {name: dimension_values, api_name: dimensionValues, type: JSON, array: 1, schema: CommunicationCappingDimValueRepresentation}
+      - {name: function_type, api_name: functionType, type: VARCHAR}
+      - {name: hierarchy_order, api_name: hierarchyOrder, type: BIGINT}
+      - {name: id, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+    effect: write
+    evidence: O
+    result_description: One row per item of `/dimensions` in the response. Schema `CommunicationCappingDimRepresentation`.
+    notes: "**Notes:** The HTTP path is `swap-priority`. The [reference's sample](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) sends only `id` and `hierarchy_order` per dimension, and the reference marks `dimensions` required, while the spec doesn't. The response returns the full dimensions. The sources don't explain how the order affects evaluation."
+
+  - name: communication_capping_configuration_create
+    method: POST
+    host: connect
+    path: /ssot/communication-capping
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping/post
+    description: Creates a capping configuration, which ties dimensions to data spaces and holds the rules. Create the dimensions first, because the configuration refers to their ids.
+    example: CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', description => 'Caps for marketing sends', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
+    options:
+      - {name: data_comm_cap_dataspaces, api_name: dataCommCapDataSpaces, in: body, schema: CommunicationCappingDataSpaceInputRepresentation, array: 1, description: "Data spaces to associate with the configuration."}
+      - {name: data_comm_cap_related_dims, api_name: dataCommCapRelatedDims, in: body, schema: CommunicationCappingRelatedDimInputRepresentation, array: 1, description: "Dimensions related to the configuration."}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, in: body, type: string, description: "Capping definition id. Per the [reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping), it's null on create and set only on update."}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: id, in: body, type: string, description: "Instance id of the configuration."}
+      - {name: name, in: body, type: string, description: "-"}
+    columns:
+      - {name: data_comm_cap_dataspaces, api_name: dataCommCapDataSpaces, type: JSON, array: 1, schema: CommunicationCappingDataSpaceRepresentation}
+      - {name: data_comm_cap_related_dims, api_name: dataCommCapRelatedDims, type: JSON, array: 1, schema: CommunicationCappingRelatedDimRepresentation}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: VARCHAR}
+      - {name: data_communication_cap_status, api_name: dataCommunicationCapStatus, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: id, type: VARCHAR}
+      - {name: last_status_date_time, api_name: lastStatusDateTime, type: TIMESTAMPTZ}
+      - {name: last_status_error_code, api_name: lastStatusErrorCode, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingEntityRepresentation`.
+    notes: |
+      **Done when:** No source documents the lifecycle, but the [reference's sample](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) returns `data_communication_cap_status` = `PROCESSING`. Poll `communication_capping_configuration_get.status` until it changes. The reference's samples also show `ACTIVE`; no source gives the full list. `last_status_error_code` is the field for failures.
+
+      **Notes:** Keep the returned `id`: the spec has no call that lists configurations. The reference appears to mark `data_comm_cap_dataspaces` required, while the spec marks nothing required. Salesforce documents no idempotency for this POST, so don't retry it blindly. Trailhead says [Channels is a required parameter](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping), and up to two user-defined parameters can be added. A vendor blog reports a limit of [3 hierarchical dimensions](https://deselect.com/blog/smart-communication-capping/) when it was written (community, from a competing product).
+
+  - name: communication_capping_disable
+    method: POST
+    host: connect
+    path: /ssot/communication-capping/{id}/actions/disable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1actions~1disable/post
+    description: Turns off a capping configuration.
+    example: CALL cdp.communication_capping_disable (id => 'CONFIGURATION_ID');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+    columns:
+      - {name: errors, type: JSON}
+      - {name: success, type: BOOLEAN}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingActionResponseRepresentation`.
+    notes: "**Notes:** The response has its own `success` and `errors`, so check `success`, not only the HTTP status. The sources don't say what happens to segments activated through its targets while it's off."
+
+  - name: communication_capping_enable
+    method: POST
+    host: connect
+    path: /ssot/communication-capping/{id}/actions/enable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1actions~1enable/post
+    description: Turns on a capping configuration.
+    example: CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+    columns:
+      - {name: errors, type: JSON}
+      - {name: success, type: BOOLEAN}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingActionResponseRepresentation`.
+    notes: "**Notes:** The response has its own `success` and `errors`, so check `success`, not only the HTTP status. This is separate from `is_capping_enabled` on [`activation_target_update`](activation_targets.md#activation_target_update), which is per target. No source says at which step to call it. Trailhead only requires [parameters, rule and target](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping) before activating segments."
+
+  - name: communication_capping_rule_create
+    method: POST
+    host: connect
+    path: /ssot/communication-capping/{id}/rules
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1rules/post
+    description: "Adds a rule to a configuration: a maximum message count for a combination of dimension values, valid over a date window."
+    example: CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Sms_daily_hnw', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
+    options:
+      - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
+      - {name: data_comm_cap_rule_dim, api_name: dataCommCapRuleDim, in: body, schema: CommunicationCappingRuleDimInputRepresentation, array: 1, description: "Dimension associations for the rule."}
+      - {name: end_date, api_name: endDate, in: body, type: string, format: date-time, description: "End of the window when the rule is valid."}
+      - {name: limits, in: body, type: integer, description: "Capping limit value: the [maximum number of messages](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping)."}
+      - {name: start_date, api_name: startDate, in: body, type: string, format: date-time, description: "Start of the window when the rule is valid."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: data_comm_cap_rule_dim, api_name: dataCommCapRuleDim, type: JSON, array: 1, schema: CommunicationCappingRuleDimRepresentation}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: VARCHAR}
+      - {name: end_date, api_name: endDate, type: TIMESTAMPTZ}
+      - {name: id, type: VARCHAR}
+      - {name: limits, type: BIGINT}
+      - {name: source, type: VARCHAR}
+      - {name: start_date, api_name: startDate, type: TIMESTAMPTZ}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingRuleRepresentation`.
+    notes: "**Notes:** The rule schema has no frequency, limit type or channel field, though [Trailhead](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping) lists all three as rule settings: frequency is `Daily` or `Monthly`, and limit type is profile or dimension. No source says how the API sets them; Trailhead treats them as parameters, so they presumably go in `data_comm_cap_rule_dim`. Profile limits apply per person, and dimension limits apply across everyone matching the values. A [vendor blog](https://deselect.com/blog/smart-communication-capping/) says rules apply at activation, first come, first served, so a low-value send can use up a cap before a high-value one (community, from a competing product). The [reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) marks `api_name` and `data_comm_cap_rule_dim` required, while the spec doesn't. [Help](https://help.salesforce.com/s/articleView?id=sf.c360_a_create_communication_capping_rules.htm&language=en_US&type=5) requires the Data Cloud Architect or Data Cloud Activation Manager permission set to create rules. No idempotency is documented, so don't retry this POST blindly."
+
+  - name: communication_capping_activation_target_metadata_map
+    method: POST
+    host: connect
+    path: /ssot/communication-capping/activation-target-capping-metadata/{activationTargetId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1activation-target-capping-metadata~1%7BactivationTargetId%7D/post
+    description: Maps a capping activation target to dimension values. Segments activated through the target are then evaluated against the rules, so choose values that match the rule, such as Channel = SMS.
+    example: CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
+    options:
+      - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Capping activation target, from `activation_target_create`."}
+      - {name: activation_target_name, api_name: activationTargetName, in: body, type: string, description: "Name of the activation target."}
+      - {name: data_comm_cap_dim_info, api_name: dataCommCapDimInfo, in: body, schema: CommunicationCappingActivationTargetDimInputRepresentation, array: 1, description: "Dimension and dimension value pairs for the target."}
+    rows: /activationTargets
+    columns:
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR}
+      - {name: actv_target_name, api_name: actvTargetName, type: VARCHAR}
+      - {name: data_comm_cap_dim, api_name: dataCommCapDim, type: JSON, schema: CommunicationCappingDimRepresentation}
+      - {name: data_comm_cap_dim_value, api_name: dataCommCapDimValue, type: JSON, schema: CommunicationCappingDimValueRepresentation}
+      - {name: id, type: VARCHAR}
+    effect: write
+    evidence: O
+    result_description: One row per item of `/activationTargets` in the response. Schema `CommunicationCappingActivationTargetRepresentation`.
+    notes: "**Notes:** This needs a target of the capping type first. [Help](https://help.salesforce.com/apex/HTViewHelpDoc?id=data.c360_a_create_communication_capping_target.htm) says it can only be defined on data spaces already associated with the capping instance. The [reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) marks `activation_target_name` required, while the spec doesn't. [Capping-enabled targets](https://help.salesforce.com/s/articleView?id=data.c360_a_data_cloud_sandbox.htm&language=en_US&type=5) work in a sandbox but can't be deployed from it to production. Capping-enabled targets for Marketing Cloud, SFTP and Microsoft Azure [aren't supported in data kits](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360a-api-isv-readiness-data.html)."
+
+  - name: communication_capping_dimension_create
+    method: POST
+    host: connect
+    path: /ssot/communication-capping/dimensions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions/post
+    description: Creates a dimension and its possible values, such as Channel with Email and SMS. Dimensions come first, because configurations, rules and target mappings refer to their ids.
+    example: CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', function_type => 'NON_FUNCTIONAL_TYPE', hierarchy_order => 1, dimension_values => [(value = 'Email'), (value = 'SMS')]);
+    options:
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
+      - {name: dimension_name, api_name: dimensionName, in: body, type: string, description: "API name of the dimension object, such as `ssot__CommunicationChannel__dlm` in the [reference's sample](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping)."}
+      - {name: dimension_values, api_name: dimensionValues, in: body, schema: CommunicationCappingDimValueInputRepresentation, array: 1, description: "Values of the dimension."}
+      - {name: function_type, api_name: functionType, in: body, type: string, description: "Function type. The [reference's samples](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) show `FUNCTIONAL_TYPE` and `NON_FUNCTIONAL_TYPE`."}
+      - {name: hierarchy_order, api_name: hierarchyOrder, in: body, type: integer, description: "Position in the hierarchy. The reference's samples use 1 for Channel and 2 for Brand."}
+      - {name: id, in: body, type: string, description: "-"}
+      - {name: name, in: body, type: string, description: "-"}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: dimension_name, api_name: dimensionName, type: VARCHAR}
+      - {name: dimension_values, api_name: dimensionValues, type: JSON, array: 1, schema: CommunicationCappingDimValueRepresentation}
+      - {name: function_type, api_name: functionType, type: VARCHAR}
+      - {name: hierarchy_order, api_name: hierarchyOrder, type: BIGINT}
+      - {name: id, type: VARCHAR}
+      - {name: name, type: VARCHAR}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CommunicationCappingDimRepresentation`.
+    notes: "**Notes:** Trailhead calls these parameters. It splits them into [enterprise and functional](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping): Channels and up to two user-defined ones are enterprise, and Frequency and Limit Type are preset functional ones. The `FUNCTIONAL_TYPE` and `NON_FUNCTIONAL_TYPE` values suggest the same split, but no source says so. No idempotency is documented, so don't retry this POST blindly."
+
+schemas:
+  CommunicationCappingActivationTargetDimInputRepresentation:
+    attributes:
+      - {name: data_comm_cap_dim_id, api_name: dataCommCapDimId, type: string, description: "Dimension of the pair, such as Channel."}
+      - {name: data_comm_cap_dim_value_id, api_name: dataCommCapDimValueId, type: string, description: "Value of the pair, such as Email."}
+
+  CommunicationCappingDataSpaceInputRepresentation:
+    attributes:
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: string, description: "Capping definition this data space links to."}
+      - {name: dataspace_id, api_name: dataSpaceId, type: string, description: "Data space to associate with the configuration."}
+
+  CommunicationCappingDimInputRepresentation:
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "-"}
+      - {name: dimension_name, api_name: dimensionName, type: string, description: "API name of the dimension object, such as `ssot__CommunicationChannel__dlm`."}
+      - {name: dimension_values, api_name: dimensionValues, schema: CommunicationCappingDimValueInputRepresentation, array: 1, description: "Values of the dimension."}
+      - {name: function_type, api_name: functionType, type: string, description: "Function type. The reference's samples show `FUNCTIONAL_TYPE` and `NON_FUNCTIONAL_TYPE`."}
+      - {name: hierarchy_order, api_name: hierarchyOrder, type: integer, description: "Position in the hierarchy. The reference's samples use 1 for Channel and 2 for Brand."}
+      - {name: id, type: string, description: "-"}
+      - {name: name, type: string, description: "-"}
+
+  CommunicationCappingDimValueInputRepresentation:
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "-"}
+      - {name: data_comm_cap_dim_id, api_name: dataCommCapDimId, type: string, description: "Parent dimension, per the reference's response samples."}
+      - {name: id, type: string, description: "-"}
+      - {name: value, type: string, description: "The value, such as `Email` for a Channel dimension."}
+
+  CommunicationCappingRelatedDimInputRepresentation:
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "-"}
+      - {name: data_comm_cap_dim_id, api_name: dataCommCapDimId, type: string, description: "Dimension to relate to the configuration."}
+      - {name: data_communication_cap_def_id, api_name: dataCommunicationCapDefId, type: string, description: "-"}
+
+  CommunicationCappingRuleDimInputRepresentation:
+    attributes:
+      - {name: dim_id, api_name: dimId, type: string, description: "-"}
+      - {name: dim_value_ids, api_name: dimValueIds, array: 1, type: string, description: "-"}

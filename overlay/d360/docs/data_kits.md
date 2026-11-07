@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/data_kits.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Data Kits
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -362,7 +364,7 @@ Where the guide and the spec's attribute names differ, nothing shows which one t
 
 All of these except `Commerce` also take `dataspace_filter_criteria_api_config`, whose items are `field_name`, `operator`, `filter_value` and `target_object_name`.
 
-**Credentials.** `DataConnection` takes connection secrets in `new_credentials`, so write `(param_name = 'privateKey', value = secret(snowflake_key))`.
+**Credentials.** `DataConnection` takes credentials in `new_credentials`, such as `(param_name = 'privateKey', value = :snowflake_key)`.
 
 **Other traps:**
 
@@ -719,8 +721,8 @@ Key-value pair for credentials and parameters of a data connection.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `param_name` | `paramName` | string | yes | Name of the parameter. Each attribute of the connector metadata is a possible parameter name that you provide. Since v61.0. |
-| `value` | `value` | string | yes | Value of the parameter. Since v61.0. |
+| `param_name` | `paramName` | string | yes | Name of the parameter, from the `connection_attributes` of `connector_metadata`. Names vary by connector and aren't checked here. Since v61.0. |
+| `value` | `value` | string | yes | Value of the parameter, always a string. Since v61.0. |
 | `client_secret` | `clientSecret` | string |  | Not in the spec schema: from the MCP server's payload example. |
 | `environment` | `environment` | string |  | Not in the spec schema: from the MCP server's payload example. |
 | `client_id` | `clientId` | string |  | Not in the spec schema: from the MCP server's payload example. |

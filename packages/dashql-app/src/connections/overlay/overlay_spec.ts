@@ -115,10 +115,8 @@ export interface OverlaySpec {
 export interface OverlayCallBinding {
     /// A JSON pointer into the options
     pointer: string;
-    /// The name of a parameter
-    param?: string;
-    /// The name of a secret
-    secret?: string;
+    /// The name of the parameter
+    param: string;
 }
 
 /// A call as the core describes it, `OverlayCall.description` of the analyzed script

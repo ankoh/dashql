@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/data_shares.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Data Shares
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -514,4 +516,3 @@ One row. Schema `DataShareRepresentation`.
 **Notes:** [Salesforce's legacy Snowflake page](https://help.salesforce.com/s/articleView?language=en_US&id=data.c360_a_access_data_from_snowflake.htm&type=5) warns not to unlink a share from a legacy target until the new V2 connection is verified, because downstream Snowflake processes can refer to the database created through the legacy target. That page also says legacy targets can't be created anymore.
 
 Unlink before calling `data_share_delete` or `data_share_target_delete`. Since the call is idempotent per the spec, a retry is safe.
-

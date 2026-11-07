@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/consent.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Consent
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -75,8 +77,8 @@ Records a consent request on Data 360 profiles: restrict processing, export the 
 | `mode` | `mode` | query | string |  | Send `cdp` to write to the Data 360 profile. The API default is `normal`, which writes CRM consent records. |
 | `status` | `status` | query | string | yes | `optin` or `optout`. Use `optout` for `processing`, and `optin` for `portability` and `shouldforget`. |
 | `aws_s3_bucket_id` | `aws_s3_bucket_id` | body | string |  | S3 bucket location for the export. Required when `action` is `portability`. |
-| `aws_access_key_id` | `aws_access_key_id` | body | string |  | S3 bucket access key. Required when `action` is `portability`. Use `secret(name)`. |
-| `aws_secret_access_key` | `aws_secret_access_key` | body | string |  | S3 bucket secret access key. Required when `action` is `portability`. Use `secret(name)`. |
+| `aws_access_key_id` | `aws_access_key_id` | body | string |  | S3 bucket access key. Required when `action` is `portability`. |
+| `aws_secret_access_key` | `aws_secret_access_key` | body | string |  | S3 bucket secret access key. Required when `action` is `portability`. |
 | `aws_s3_folder` | `aws_s3_folder` | body | string |  | S3 bucket folder. Required when `action` is `portability`. |
 | `aws_region` | `aws_region` | body | string |  | AWS region of the S3 bucket. Required when `action` is `portability`. |
 
@@ -87,8 +89,8 @@ CALL cdp.consent_update (
   mode => 'cdp',
   status => 'optin',
   aws_s3_bucket_id => 'cdpgdprtest',
-  aws_access_key_id => secret(consent_s3_access_key),
-  aws_secret_access_key => secret(consent_s3_secret_key),
+  aws_access_key_id => :consent_s3_access_key,
+  aws_secret_access_key => :consent_s3_secret_key,
   aws_s3_folder => 'yyun/Person',
   aws_region => 'us-west-1'
 );
@@ -122,4 +124,3 @@ The sources disagree on a few points:
 - **ID limit:** the write page allows up to 1,000 IDs as a JSON array in the body, `{"ids": [...]}`. The Data 360 examples pass one ID in the query string, and no source gives a limit there.
 
 The write page's other options (`captureDate`, `captureContactPointType`, `captureSource`, `consentName`, `createIndividual`, `doubleOptIn`, `effectiveFrom`, `effectiveTo`, `individualName`, `purposeName`) are left out, since it says `mode=cdp` doesn't support them.
-

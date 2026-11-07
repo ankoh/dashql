@@ -188,6 +188,29 @@ fn unions_check_one_variant() {
     check(&target("api_contract = 'a', nope = 1"), &["no attribute nope here"]);
 }
 
+/// A tag can only select by a value that a variant of its union allows
+#[test]
+fn tags_select_by_values_of_their_enums() {
+    let spec: Value = serde_json::from_str(&spec_text()).unwrap();
+    let schemas = spec["schemas"].as_object().unwrap();
+    let mut tags = 0;
+    for (name, schema) in schemas {
+        let Some(tag) = schema.get("tag") else { continue };
+        let attribute = tag["attribute"].as_str().unwrap();
+        let mut allowed = BTreeSet::new();
+        for variant in schema["variants"].as_array().unwrap() {
+            let attributes = schemas[variant.as_str().unwrap()]["attributes"].as_array().unwrap();
+            let found = attributes.iter().find(|a| a["name"] == attribute).unwrap();
+            allowed.extend(found["enum"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()));
+        }
+        for value in tag["values"].as_object().unwrap().keys() {
+            assert!(allowed.contains(value.as_str()), "{name}: the tag value {value} is in no enum of {attribute}");
+        }
+        tags += 1;
+    }
+    assert_eq!(tags, 5);
+}
+
 #[test]
 fn unions_narrow_completion() {
     let catalog = catalog();

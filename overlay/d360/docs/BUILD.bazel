@@ -1,4 +1,4 @@
-# The Data 360 reference is the source of the overlay in //overlay/d360.
+# The Data 360 reference, its family documents are generated from overlay/d360/api/*.yaml.
 filegroup(
     name = "reference",
     srcs = glob(["*.md"]),

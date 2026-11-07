@@ -1,0 +1,786 @@
+title: Profiles, Insights and Metadata
+description: |
+  These calls read what exists in an org and fetch single records, without SQL. There are four groups: metadata (which objects and fields exist), profile reads, calculated insight reads and ID lookups. The docs [recommend these over custom SQL](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/obj-specific-apis.md) where one fits. For joins, aggregates or engagement data, use a `SELECT` over the connection.
+
+  **Order:** find a name with `metadata_search` or `metadata_entities`, describe it with `metadata`, then read records. Every read takes an API name such as `ssot__Individual__dlm`.
+
+  **Connect or `direct_*`:** the `/ssot` calls are the Connect API, which Salesforce calls its [preferred platform](https://developer.salesforce.com/docs/data/connectapi/guide/get-started.md). The `direct_*` calls are the `/api/v1` routes on the tenant host, and always need the token exchange. Start with Connect. It also has `dataspace` on metadata. Use `direct_*` for what only its reference documents, such as `fields` and `filters` on `direct_datagraph_lookup`. The twins aren't drop-in: `batch_size` becomes `limit`, `searchKey` becomes `searchkey`, and `order_by` on profile reads changes syntax.
+
+  The gotchas that matter most:
+
+  - `metadata` returns only the DMOs in use, while [`dmo_list`](data_model_objects.md#dmo_list) returns the whole catalog (community, one org).
+  - Pass `entity_name` to `metadata`, because unfiltered responses are large.
+  - Profile reads take Profile category DMOs only, and filters are equality joined by AND.
+  - Most record reads return one row, with the records in a `data` JSON column.
+
+  ```sql
+  /* Inventory, without fields */
+  CALL cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+  /* Fields, keys and relationships of one object */
+  CALL cdp.metadata (entity_name => 'ssot__Individual__dlm');
+  /* Records */
+  CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c');
+  ```
+
+functions:
+  - name: insights_query
+    method: GET
+    host: connect
+    path: /ssot/insight/calculated-insights/{ciName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Insights/paths/~1ssot~1insight~1calculated-insights~1%7BciName%7D/get
+    tools: [d360_insights_query]
+    description: Query a Calculated Insight object in Data 360. Since v52.0.
+    example: CALL cdp.insights_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', batch_size => 100);
+    options:
+      - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `4999`. Since v52.0."}
+      - {name: dimensions, in: query, type: string, description: "Comma-separated list of up to 10 dimensions, such as `GenderId__c`, to project. If unspecified, this parameter includes all of the available dimensions. Since v52.0."}
+      - {name: filters, in: query, type: string, description: "Filter the result set to a more narrow scope or specific type, such as `[GenderId__c=Male,FirstName__c=Angel]`. Since v52.0."}
+      - {name: measures, in: query, type: string, description: "Comma-separated list of up to five measures, such as `TotalSales__c,` to project. If unspecified, this parameter includes all of the available measures. Since v52.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
+      - {name: time_granularity, api_name: timeGranularity, in: query, type: string, description: "Time range for the measures. Values are `HOUR`, `DAY`, `MONTH`, `QUARTER`, or `YEAR`. If unspecified, no time range is applied. Since v54.0."}
+    columns:
+      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
+      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
+      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
+      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
+      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
+      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
+      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** Get the dimension and measure names from [`insights_metadata`](#insights_metadata). A query returns at most [4,999 rows](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-ci-call-overview.md), so page with `offset` for more. The [tenant host page](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-ci-ci-name.md) says filter values are case-sensitive. The spec has no `dataspace` here, while [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) accepts one. One community run saw an [eventual-consistency race](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) on an insight read (community).
+
+  - name: insights_metadata
+    method: GET
+    host: connect
+    path: /ssot/insight/metadata
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Insights/paths/~1ssot~1insight~1metadata/get
+    tools: [d360_insights_metadata]
+    description: Get Insight metadata, including Calculated Insight objects, their dimensions, and their measures in Data 360. Since v52.0.
+    example: CALL cdp.insights_metadata ();
+    columns:
+      - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryMetadataOutputRepresentation`.
+    notes: "**Notes:** This is how you discover insight names. The result is one row, with every insight in the `metadata` array. Each has `name`, `display_name`, `dimensions`, `measures`, `relationships` and `partition_by`, as shown on the [tenant host page](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-insight-metadata.md). The spec has no `dataspace` here."
+
+  - name: insights_metadata_get
+    method: GET
+    host: connect
+    path: /ssot/insight/metadata/{ciName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Insights/paths/~1ssot~1insight~1metadata~1%7BciName%7D/get
+    description: Get metadata for a Calculated Insight object in Data 360. Metadata includes dimensions and measures. Since v52.0.
+    example: CALL cdp.insights_metadata_get (ci_name => 'Avg_Spends__cio');
+    options:
+      - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`."}
+    columns:
+      - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryMetadataOutputRepresentation`.
+
+  - name: metadata
+    method: GET
+    host: connect
+    path: /ssot/metadata
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Metadata/paths/~1ssot~1metadata/get
+    tools: [d360_metadata]
+    description: Get all metadata, including Calculated Insights, Engagement, Profile, and other objects, as well as their relationships to other objects in Data 360. Since v52.0.
+    example: CALL cdp.metadata (entity_name => 'ssot__Individual__dlm');
+    options:
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v55.0."}
+      - {name: entity_category, api_name: entityCategory, in: query, type: string, description: "Category of the metadata entity. Valid values are `Profile`, `Engagement`, and `Related`. If unspecified, all category entities are returned. Since v54.0."}
+      - {name: entity_name, api_name: entityName, in: query, type: string, description: "Metadata name of the entity, for example `UnifiedIndividual__dlm`. If unspecified, a complete list of entities is returned. Since v54.0."}
+      - {name: entity_type, api_name: entityType, in: query, type: string, description: "Type of metadata entity requested. Valid values are `DataLakeObject`, `DataModelObject`, and `CalculatedInsight`. If unspecified, all types are returned. Since v54.0."}
+    columns:
+      - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryMetadataOutputRepresentation`.
+    notes: |
+      **Notes:** **`metadata` or [`dmo_list`](data_model_objects.md#dmo_list)?** Use this one for the model the org actually uses.
+
+      | | `metadata` | `dmo_list` |
+      |---|---|---|
+      | DMOs | Only those in use | The whole catalog, over 1,000 |
+      | Cost | One fast call | 20 to 40 s per page of 200 |
+      | Relationships | Active only, each listed twice, once at each end | Separate call, [`dmo_relationship_list`](data_model_objects.md#dmo_relationship_list), which also returns inactive ones |
+
+      These rows come from [one test on a Developer Edition org](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) (community, one org). A DMO missing here can still exist in the catalog. This call also covers DLOs and insights.
+
+      **Always filter.** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java) treats `entity_name` as required "to avoid massive responses", although the spec makes it optional.
+
+      **The result is one row**, with every entity in the `metadata` array. DMOs and DLOs have `fields`, `indexes`, `category`, `relationships` and `primary_keys`. Insights have `dimensions`, `measures` and `partition_by`. A field's `keyQualifier` names its key qualifier field.
+
+      **`entity_category` values disagree.** The spec says `Profile`, `Engagement` and `Related`. [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java) says `Profile`, `Engagement`, `Other` and `DirectoryTable`. The [tenant host page](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-metadata-api.md) says the filter doesn't apply to insights.
+
+      **Data graphs add system DMOs** here under `Profile` or `Related`, so a category filter doesn't remove them. One graph with 12 nodes [added 18 DMOs](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) (community, one org).
+
+  - name: metadata_entities
+    method: GET
+    host: connect
+    path: /ssot/metadata-entities
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Metadata/paths/~1ssot~1metadata-entities/get
+    tools: [d360_metadata_entities]
+    description: Get a list of metadata entities. This endpoint provides a high-performance way to retrieve metadata for Data 360 entities. By returning only essential fields like name, type, and category, it allows you to efficiently view entities at scale. Request detailed field and relationship data only for the specific objects you need. Since v66.0.
+    example: CALL cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+    options:
+      - {name: dataspace, in: query, type: string, description: "Name of the data space in which the metadata is requested. Since v66.0."}
+      - {name: entity_category, api_name: entityCategory, in: query, type: string, description: "Category of the metadata entity. If unspecified, all categories are returned. Supported values are: - `Activation_Audience` - `CG_Audience` - `Content` - `Directory_Table` - `Engagement` - `Profile` - `Related` - `Segment_Membership` - `Vector_Embedding` Since v66.0."}
+      - {name: entity_type, api_name: entityType, in: query, type: string, description: "Type of metadata entity. If unspecified, all types are returned. Supported values are: - `CalculatedInsight` - `DataLakeObject` - `DataModelObject` Since v66.0."}
+    rows: /metadata
+    columns:
+      - {name: category, type: VARCHAR, description: "Category of the metadata entity. Supported values are: - `Activation_Audience` - `CG_Audience` - `Content` - `Directory_Table` - `Engagement` - `Profile` - `Related` - `Segment_Membership` - `Vector_Embedding` Since v66.0."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the entity. Since v66.0."}
+      - {name: name, type: VARCHAR, description: "Name of the entity. Since v66.0."}
+      - {name: type, type: VARCHAR, description: "Type of metadata entity. Supported values are: - `CalculatedInsight` - `DataLakeObject` - `DataModelObject` Since v66.0."}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/metadata` in the response. Other response fields go to `_meta`: `done`, `nextBatchId`. Schema `CdpQueryMetadataEntityOutputRepresentation`."
+    notes: |
+      **Paging:** `nextBatchId`, but the spec has no way to send it, so this function can only read the first batch. [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java) fetches the next one from `GET /ssot/metadata-entities/{nextBatchId}`, a path the spec doesn't list.
+
+      **Notes:** Use this for an inventory: it returns names, types and categories, without fields. Then call [`metadata`](#metadata) with `entity_name` for details.
+
+      The spec makes `entity_type` optional, while the [catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) says "entity_type required". [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java) sends the call without it.
+
+      Category names vary. The spec has `Directory_Table`, and [the tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java) says `DirectoryTable` and `Other`. In [one test](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) this call used `Segment_Membership_Category` and `Activation_Audience_Category` (community, one org).
+
+  - name: profile_query
+    method: GET
+    host: connect
+    path: /ssot/profile/{dataModelName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D/get
+    tools: [d360_profile_query]
+    description: Query a profile data model object using filters in Data 360. Since v52.0.
+    example: CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c', batch_size => 100);
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "Name of the data model object. Since v52.0."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `100`. Since v52.0."}
+      - {name: fields, in: query, type: string, description: "Comma-separated list of up to 50 field names that you want to include in the result, for example, `Id__c,FirstName__c`, `GenderId__c,Occupation__c`. If unspecified, `Id__c` is returned. Since v52.0."}
+      - {name: filters, in: query, type: string, required: true, description: "Comma-separated list of equality expressions within square brackets, for example, `[FirstName__c=DON]`. Since v52.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
+    columns:
+      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
+      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
+      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
+      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
+      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
+      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
+      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** From the [Profile API overview](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-call-overview.md): this reads Profile category DMOs only, and Engagement DMOs aren't supported. Filters are equality only, joined by AND, with no limit on their number. Date and time values use `YYYY-MM-DD HH:MM:SS`. Unified objects filtered on an index column respond faster, and [`profile_metadata_get`](#profile_metadata_get) lists the indexes.
+
+      `data_model_name` is the [full API name with `__dlm`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md), although [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/QueryTools.java) gives `Individual` and `Account` as examples. The spec has no `dataspace` here, while the tool accepts one.
+
+      Records are in the `data` column as JSON.
+
+  - name: profile_get
+    method: GET
+    host: connect
+    path: /ssot/profile/{dataModelName}/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D~1%7Bid%7D/get
+    description: Get profile records by the value of a key. Without `search_key`, `id` matches the primary key. With it, `id` matches that field.
+    example: CALL cdp.profile_get (data_model_name => 'ssot__Individual__dlm', id => 'Jean', search_key => 'ssot__FirstName__c', fields => 'ssot__Id__c,ssot__LastName__c');
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
+      - {name: id, in: path, type: string, required: true, description: "Value to match: the primary key, or the field named in `search_key` if set."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `100`. Since v52.."}
+      - {name: fields, in: query, type: string, description: "Comma-separated list of up to 50 field names that you want to include in the result, for example, `Id__c,FirstName__c`, `GenderId__c,Occupation__c`. If unspecified, `Id__c` is returned. Since v52.0."}
+      - {name: filters, in: query, type: string, description: "Comma-separated list of equality expressions within square brackets, for example, `[FirstName__c=DON]`. Since v52.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
+      - {name: search_key, api_name: searchKey, in: query, type: string, description: "If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0."}
+    columns:
+      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
+      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
+      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
+      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
+      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
+      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
+      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** `offset` [needs `order_by`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md) on this route.
+
+  - name: profile_child
+    method: GET
+    host: connect
+    path: /ssot/profile/{dataModelName}/{id}/{childDataModelName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D~1%7Bid%7D~1%7BchildDataModelName%7D/get
+    description: Get the child records of a profile record, such as an Individual's email addresses. `filters` applies to the parent only, and `fields` to the child only.
+    example: CALL cdp.profile_child (data_model_name => 'ssot__Individual__dlm', id => '100005', child_data_model_name => 'ContactPointEmail__dlm');
+    options:
+      - {name: child_data_model_name, api_name: childDataModelName, in: path, type: string, required: true, description: "API name of the child DMO, such as `ContactPointEmail__dlm`."}
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the parent DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
+      - {name: id, in: path, type: string, required: true, description: "Value to match on the parent: the primary key, or the field named in `search_key` if set."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `100`. Since v52.0."}
+      - {name: fields, in: query, type: string, description: "Comma-separated list of child object field names that you want to include in the result, for example, `Id__c,EmailAddress__c`. If unspecified, the first 10 alphabetically sorted fields are returned. Since v52.0."}
+      - {name: filters, in: query, type: string, description: "Comma-separated list of equality expressions within square brackets, for example, `[FirstName__c=DON]`. Filters are applied to the parent object only. Since v52.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
+      - {name: search_key, api_name: searchKey, in: query, type: string, description: "If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0."}
+    columns:
+      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
+      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
+      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
+      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
+      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
+      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
+      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** The child [must have a relationship with the parent](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-child-dmname.md). Find it in `relationships` from [`profile_metadata_get`](#profile_metadata_get). `offset` [needs `order_by`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md) on this route.
+
+  - name: profile_insight
+    method: GET
+    host: connect
+    path: /ssot/profile/{dataModelName}/{id}/calculated-insights/{ciName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D~1%7Bid%7D~1calculated-insights~1%7BciName%7D/get
+    description: Get a calculated insight's values for one profile record.
+    example: CALL cdp.profile_insight (data_model_name => 'ssot__Individual__dlm', id => '100005', ci_name => 'Avg_Spends__cio', measures => 'Avg_Spend__c');
+    options:
+      - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`."}
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
+      - {name: id, in: path, type: string, required: true, description: "Value to match: the primary key, or the field named in `search_key` if set."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `100`. Since v52.0."}
+      - {name: dimensions, in: query, type: string, description: "Comma-separated list of up to 10 dimensions, such as `GenderId__c`, to project. If unspecified, this parameter returns all of the available dimensions. Since v52.0."}
+      - {name: fields, in: query, type: string, description: "Comma-separated list of up to 50 field names that you want to include in the result, for example, `Id__c,FirstName__c`, `GenderId__c,Occupation__c`. If unspecified, `Id__c` is returned. Since v52.0."}
+      - {name: filters, in: query, type: string, description: "Comma-separated list of equality expressions within square brackets, for example, `[FirstName__c=DON]`. Since v52.0."}
+      - {name: measures, in: query, type: string, description: "Comma-separated list of up to five measures, such as `TotalSales__c,` to project. If unspecified, this parameter returns all of the available measures. Since v52.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
+      - {name: search_key, api_name: searchKey, in: query, type: string, description: "If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0."}
+      - {name: time_granularity, api_name: timeGranularity, in: query, type: string, description: "Time range for the measures. Values are: `HOUR`, `DAY`, `MONTH`, `QUARTER`, or `YEAR`. If unspecified, no time range is applied. Since v54.0."}
+    columns:
+      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
+      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
+      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
+      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
+      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
+      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
+      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** The insight [must be associated with the DMO](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-ci-ci-name.md). `offset` [needs `order_by`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md) on this route.
+
+  - name: profile_metadata
+    method: GET
+    host: connect
+    path: /ssot/profile/metadata
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1metadata/get
+    tools: [d360_profile_metadata]
+    description: Get metadata for data model objects in the profile category, including Individual, Contact Point Email, Unified Individual, and Contact Point Address objects in Data 360. Metadata includes the objects, their fields, and their categories. Since v52.0.
+    example: CALL cdp.profile_metadata ();
+    columns:
+      - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryMetadataOutputRepresentation`.
+    notes: "**Notes:** Compared with [`metadata`](#metadata), this covers only the Profile category. The result is one row, with every DMO in the `metadata` array. The `indexes` show which fields [can be used for efficient lookups](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-meta.md). The spec has no `dataspace` here, while [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/QueryTools.java) accepts one."
+
+  - name: profile_metadata_get
+    method: GET
+    host: connect
+    path: /ssot/profile/metadata/{dataModelName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1metadata~1%7BdataModelName%7D/get
+    description: Get metadata for a data model object (DMO) in the profile category, such as Individual, Contact Point Email, Unified Individual, and Contact Point Address in Data 360. Metadata includes the list of fields, data types, and indexes available for lookup. Since v52.0.
+    example: CALL cdp.profile_metadata_get (data_model_name => 'ssot__Individual__dlm');
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
+    columns:
+      - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryMetadataOutputRepresentation`.
+
+  - name: universal_id_lookup
+    method: GET
+    host: connect
+    path: /ssot/universalIdLookup/{entityName}/{dataSourceId}/{dataSourceObjectId}/{sourceRecordId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Universal-ID-Lookup/paths/~1ssot~1universalIdLookup~1%7BentityName%7D~1%7BdataSourceId%7D~1%7BdataSourceObjectId%7D~1%7BsourceRecordId%7D/get
+    description: Starting from one source record, return the records from every source that are linked to the same unified record. Use it to find a person's IDs across systems.
+    example: CALL cdp.universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', data_source_id => 'SFMC1487860', data_source_object_id => 'SFMC1487860_EmailProfile', source_record_id => '100060522');
+    options:
+      - {name: data_source_id, api_name: dataSourceId, in: path, type: string, required: true, description: "Data source ID, such as `SFMC1487860`."}
+      - {name: data_source_object_id, api_name: dataSourceObjectId, in: path, type: string, required: true, description: "Data source object ID, such as `SFMC1487860_EmailProfile`."}
+      - {name: entity_name, api_name: entityName, in: path, type: string, required: true, description: "Name of the bridge table, such as `IndividualIdentityLink__dlm`."}
+      - {name: source_record_id, api_name: sourceRecordId, in: path, type: string, required: true, description: "Primary key of the source record, such as `100060522`. It maps to the Individual ID of the Individual DMO."}
+    columns:
+      - {name: data, type: JSON, description: "Result data set. Since v54.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpQueryDataOutputRepresentation`.
+    notes: "**Notes:** Each item of `data` has `SourceRecordId__c`, `UnifiedRecordId__c`, `ssot__DataSourceObjectId__c` and `ssot__DataSourceId__c`, per the [tenant host page](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-universalidlookup-entity-name-datasourceid.md). `*IdentityLink__dlm` objects are [identity resolution DMOs](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) (community, one org)."
+
+  - name: metadata_search
+    method: POST
+    host: connect
+    path: /connect/search/metadata/results
+    tools: [d360_metadata_search]
+    description: Search metadata in natural language, without listing every entity. Each result's `api_name` is what `metadata` takes as `entity_name`.
+    example: CALL cdp.metadata_search (query => 'AI Agent Interaction', pagination => (limit = 5), filters => [(field = 'metadataType', values = ['DataModelObject'])]);
+    options:
+      - {name: query, in: body, type: string, required: true, description: "Search text, such as `AI Agent Interaction`."}
+      - {name: pagination, in: body, schema: MetadataSearchPagination, description: "Page settings."}
+      - {name: filters, in: body, schema: MetadataSearchFilter, array: 1, description: "Filters on result attributes."}
+    rows: /data
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "API name of the entity. Pass it to `metadata` as `entity_name`."}
+      - {name: label, type: VARCHAR, description: "Label of the entity."}
+      - {name: metadata_type, api_name: metadataType, type: VARCHAR, description: "Type of the entity, such as `DataModelObject`."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: "One row per item of `/data` in the response. Other response fields go to `_meta`: `totalRecords`."
+    notes: |
+      **Notes:** It's a POST, but it only reads: [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) marks it `safe_post`.
+
+      **The call may not work in every org.** A `PRISM_RUNTIME_ERROR` mentioning `msr_metadata_index__dlm` [means the org's search plane is unindexed](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md). Fall back to [`metadata_entities`](#metadata_entities) or [`metadata`](#metadata).
+
+      **Which call to start with is disputed.** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java) calls this the preferred way to discover metadata. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/overrides.json) says to use it "when compact catalogs are not enough", and to add a `metadata_type` filter when possible.
+
+      **The sources are thin.** The spec has no entry for this call. The options come from the [tool's request classes](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MetadataTools.java). The result columns come from a [mock in Salesforce's unit test](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/MetadataToolsTest.java), not a documented response, so other fields would land in `_raw`. The filter fields seen are `metadata_type` and, in that test only, `tags`.
+
+  - name: direct_metadata
+    method: GET
+    host: tenant
+    path: /api/v1/metadata
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-metadata-api.md
+    description: "Get metadata about all entities on the tenant host: DMOs, DLOs and calculated insights, with their fields, keys and relationships. It's the tenant host form of `metadata`."
+    example: CALL cdp.direct_metadata (entity_name => 'ssot__Individual__dlm');
+    options:
+      - {name: entity_name, api_name: entityName, in: query, type: string, description: "Name of the entity, such as `UnifiedIndividual__dlm`. If unset, all entities are returned."}
+      - {name: entity_type, api_name: entityType, in: query, type: string, description: "`DataLakeObject`, `DataModelObject` or `CalculatedInsight`. If unset, all types are returned."}
+      - {name: entity_category, api_name: entityCategory, in: query, type: string, description: "`Profile`, `Engagement` or `Related`. If unset, all categories are returned. It doesn't apply to calculated insights."}
+    rows: /metadata
+    columns:
+      - {name: name, type: VARCHAR, description: "API name of the entity."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the entity."}
+      - {name: category, type: VARCHAR, description: "`Profile`, `Engagement` or `Related`. Not returned for calculated insights."}
+      - {name: fields, type: JSON, description: "Array of objects with `name`, `display_name`, `type` and, if the field has one, `keyQualifier`. Not returned for calculated insights."}
+      - {name: indexes, type: JSON, description: "Array of objects whose `fields` can be used for lookups. Not returned for calculated insights."}
+      - {name: relationships, type: JSON, description: "Array of objects with `fromEntity`, `toEntity`, `fromEntityAttribute`, `toEntityAttribute` and `cardinality`."}
+      - {name: primary_keys, api_name: primaryKeys, type: JSON, description: "Array of objects with `name`, `display_name` and `indexOrder`. Not returned for calculated insights."}
+      - {name: dimensions, type: JSON, description: "Array of objects with `name`, `display_name` and `type`."}
+      - {name: measures, type: JSON, description: "Array of objects with `name`, `display_name`, `type` and `rollupable`."}
+      - {name: partition_by, api_name: partitionBy, type: VARCHAR, description: "Field the data is partitioned by."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/metadata` in the response.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** Prefer [`metadata`](#metadata) unless you need the tenant host. The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-metadata-api.md) documents no `dataspace` here, and [`metadata`](#metadata) has one. The community findings listed under `metadata` were measured on `/ssot/metadata`, and no source checks them on this route.
+
+  - name: direct_profile_metadata
+    method: GET
+    host: tenant
+    path: /api/v1/profile/metadata
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-meta.md
+    description: List the Profile category DMOs with their fields, indexes and relationships. It's the tenant host form of `profile_metadata`.
+    example: CALL cdp.direct_profile_metadata ();
+    rows: /metadata
+    columns:
+      - {name: name, type: VARCHAR, description: "API name of the DMO."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the DMO."}
+      - {name: category, type: VARCHAR, description: "Category of the DMO, such as `Profile`."}
+      - {name: fields, type: JSON, description: "Array of objects with `name`, `display_name` and `type`."}
+      - {name: indexes, type: JSON, description: "Array of objects whose `fields` can be used for lookups."}
+      - {name: relationships, type: JSON, description: "Array of objects with `fromEntity`, `toEntity`, `fromEntityAttribute`, `toEntityAttribute` and `cardinality`."}
+      - {name: primary_keys, api_name: primaryKeys, type: JSON, description: "Array of objects with `name`, `display_name` and `indexOrder`."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/metadata` in the response.
+    notes: "**Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens)."
+
+  - name: direct_profile_metadata_get
+    method: GET
+    host: tenant
+    path: /api/v1/profile/metadata/{dataModelName}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-meta-dmname.md
+    description: Get the fields, indexes and relationships of one Profile category DMO. It's the tenant host form of `profile_metadata_get`.
+    example: CALL cdp.direct_profile_metadata_get (data_model_name => 'Individual__dlm');
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
+    rows: /metadata
+    columns:
+      - {name: name, type: VARCHAR, description: "API name of the DMO."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the DMO."}
+      - {name: category, type: VARCHAR, description: "Category of the DMO, such as `Profile`."}
+      - {name: fields, type: JSON, description: "Array of objects with `name`, `display_name` and `type`."}
+      - {name: indexes, type: JSON, description: "Array of objects whose `fields` can be used for lookups."}
+      - {name: relationships, type: JSON, description: "Array of objects with `fromEntity`, `toEntity`, `fromEntityAttribute`, `toEntityAttribute` and `cardinality`."}
+      - {name: primary_keys, api_name: primaryKeys, type: JSON, description: "Array of objects with `name`, `display_name` and `indexOrder`."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/metadata` in the response.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-meta-dmname.md) describes one object, but its example wraps it in a `metadata` array. The result follows the example.
+
+  - name: direct_profile_list
+    method: GET
+    host: tenant
+    path: /api/v1/profile/{dataModelName}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname.md
+    description: Query the records of a Profile category DMO using equality filters. It's the tenant host form of `profile_query`.
+    example: CALL cdp.direct_profile_list (data_model_name => 'Individual__dlm', fields => 'FirstName__c,LastName__c', filters => '[FirstName__c=John]', limit => 10);
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
+      - {name: fields, in: query, type: string, description: "Comma-separated fields, such as `FirstName__c,LastName__c`. If unset, up to 10 arbitrary fields are returned."}
+      - {name: filters, in: query, type: string, description: "Filter in the form `[field=value]`, such as `[FirstName__c=John]`."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of records. The reference gives a default of 49,999."}
+      - {name: offset, in: query, type: integer, description: "Number of records to skip."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort fields, with a `-` prefix for descending, such as `LastName__c,-FirstName__c`."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Paging:** `limit`, `offset`.
+
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The rules of [`profile_query`](#profile_query) apply: Profile category only, equality joined by AND, and [at most 50 fields](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-call-overview.md).
+
+      **Differences from `profile_query`:** the page size is `limit`, not `batch_size`. `order_by` uses a `-` prefix, not `ASC` and `DESC`. Without `fields` you get up to 10 arbitrary fields, not `Id__c`. The reference doesn't mark `filters` required, and the spec does on Connect.
+
+      **The row limit conflicts.** The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname.md) gives a default `limit` of 49,999 and also says a response has at most 4,999 records. The [overview](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-call-overview.md) gives a default of 4,999. Page rather than rely on either.
+
+  - name: direct_profile_get
+    method: GET
+    host: tenant
+    path: /api/v1/profile/{dataModelName}/{Id}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id.md
+    description: "Get profile records by a key: the primary key, or with `search_key`, another field. It's the tenant host form of `profile_get`."
+    example: CALL cdp.direct_profile_get (data_model_name => 'Individual__dlm', id => '123', fields => 'FirstName__c,LastName__c');
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
+      - {name: id, api_name: Id, in: path, type: string, required: true, description: "Value to match: the record's primary key, or the field named in `search_key` if set."}
+      - {name: fields, in: query, type: string, description: "Comma-separated fields. If unset, up to 10 fields are returned."}
+      - {name: search_key, api_name: searchkey, in: query, type: string, description: "Field to search by, such as `Email__c`."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id.md) spells it `searchkey`, all lowercase, while Connect has `searchKey`. It documents no `limit` or `offset` here.
+
+  - name: direct_profile_child
+    method: GET
+    host: tenant
+    path: /api/v1/profile/{dataModelName}/{Id}/{childDataModelName}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-child-dmname.md
+    description: Get the child records of a profile record through a parent-child relationship. It's the tenant host form of `profile_child`.
+    example: CALL cdp.direct_profile_child (data_model_name => 'Individual__dlm', id => '123', child_data_model_name => 'ContactPointEmail__dlm', fields => 'Email__c,IsPrimary__c');
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the parent DMO, such as `Individual__dlm`."}
+      - {name: id, api_name: Id, in: path, type: string, required: true, description: "Key of the parent record."}
+      - {name: child_data_model_name, api_name: childDataModelName, in: path, type: string, required: true, description: "API name of the child DMO, such as `ContactPointEmail__dlm`."}
+      - {name: fields, in: query, type: string, description: "Comma-separated child fields, such as `Email__c,IsPrimary__c`."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of records. The reference gives a default of 49,999."}
+      - {name: offset, in: query, type: integer, description: "Number of records to skip."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort fields, with a `-` prefix for descending, such as `Email__c,-IsPrimary__c`."}
+      - {name: search_key, api_name: searchkey, in: query, type: string, description: "Field to search by, such as `Email__c`."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Paging:** `limit`, `offset`.
+
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The child [must have a relationship with the parent](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-child-dmname.md). This page has the same row limit conflict as [`direct_profile_list`](#direct_profile_list). It documents no `filters`, while Connect has them.
+
+  - name: direct_profile_insight
+    method: GET
+    host: tenant
+    path: /api/v1/profile/{dataModelName}/{Id}/calculated-insights/{ci-name}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-ci-ci-name.md
+    description: Get a calculated insight's values for one profile record. It's the tenant host form of `profile_insight`, with far fewer options.
+    example: CALL cdp.direct_profile_insight (data_model_name => 'Individual__dlm', id => '123', ci_name => 'TotalSales__cio', fields => 'TotalAmount__c,LastPurchaseDate__c');
+    options:
+      - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
+      - {name: id, api_name: Id, in: path, type: string, required: true, description: "Key of the record."}
+      - {name: ci_name, api_name: ci-name, in: path, type: string, required: true, description: "API name of the insight, such as `TotalSales__cio`. It fills the `{ci-name}` path segment."}
+      - {name: fields, in: query, type: string, description: "Comma-separated fields, such as `TotalAmount__c,LastPurchaseDate__c`. If unset, up to 10 fields are returned."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The insight [must be associated with the DMO](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-ci-ci-name.md). The reference documents only `fields`. For `dimensions`, `measures` or `time_granularity`, use the Connect form.
+
+  - name: direct_insight_metadata
+    method: GET
+    host: tenant
+    path: /api/v1/insight/metadata
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-insight-metadata.md
+    description: List the calculated insights with their dimensions, measures and relationships. It's the tenant host form of `insights_metadata`.
+    example: CALL cdp.direct_insight_metadata ();
+    rows: /metadata
+    columns:
+      - {name: name, type: VARCHAR, description: "API name of the insight."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the insight."}
+      - {name: relationships, type: JSON, description: "Array of objects with `fromEntity` and `toEntity`."}
+      - {name: dimensions, type: JSON, description: "Array of objects with `name`, `display_name` and `type`."}
+      - {name: measures, type: JSON, description: "Array of objects with `name`, `display_name`, `type` and `rollupable`."}
+      - {name: partition_by, api_name: partitionBy, type: VARCHAR, description: "Field the data is partitioned by."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/metadata` in the response.
+    notes: "**Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens)."
+
+  - name: direct_insight_metadata_get
+    method: GET
+    host: tenant
+    path: /api/v1/insight/metadata/{ci-name}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-meta-ci-name.md
+    description: Get the dimensions, measures and relationships of one calculated insight. It's the tenant host form of `insights_metadata_get`.
+    example: CALL cdp.direct_insight_metadata_get (ci_name => 'Avg_Spends__cio');
+    options:
+      - {name: ci_name, api_name: ci-name, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`. It fills the `{ci-name}` path segment."}
+    rows: /metadata
+    columns:
+      - {name: name, type: VARCHAR, description: "API name of the insight."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the insight."}
+      - {name: relationships, type: JSON, description: "Array of objects with `fromEntity` and `toEntity`."}
+      - {name: dimensions, type: JSON, description: "Array of objects with `name`, `display_name` and `type`."}
+      - {name: measures, type: JSON, description: "Array of objects with `name`, `display_name`, `type` and `rollupable`."}
+      - {name: partition_by, api_name: partitionBy, type: VARCHAR, description: "Field the data is partitioned by."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/metadata` in the response.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-meta-ci-name.md) describes one object, but its example wraps it in a `metadata` array. The result follows the example.
+
+  - name: direct_insight_query
+    method: GET
+    host: tenant
+    path: /api/v1/insight/calculated-insights/{ci-name}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-ci-ci-name.md
+    description: Query a calculated insight with chosen dimensions, measures and filters. It's the tenant host form of `insights_query`.
+    example: CALL cdp.direct_insight_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', limit => 3);
+    options:
+      - {name: ci_name, api_name: ci-name, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`. It fills the `{ci-name}` path segment."}
+      - {name: dimensions, in: query, type: string, description: "Comma-separated dimensions. If unset, all are returned."}
+      - {name: measures, in: query, type: string, description: "Comma-separated measures. If unset, all are returned."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of rows. The default is 4,999."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip."}
+      - {name: filters, in: query, type: string, description: "Filter in the form `[field=value]`, such as `[GenderId__c=Male,FirstName__c=John]`. Values are case-sensitive."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Comma-separated sort fields with an optional direction, such as `GenderId__c ASC,Occupation__c DESC`."}
+      - {name: time_granularity, api_name: timeGranularity, in: query, type: string, description: "`HOUR`, `DAY`, `MONTH`, `QUARTER` or `YEAR`."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Paging:** `limit`, `offset`.
+
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-ci-ci-name.md) contradicts itself on the path: its syntax has `/api/v1/insight/...`, and its example `/api/v1/insights/...`. The [overview](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-ci-call-overview.md) agrees with the syntax. The reference also says `time_granularity` needs API v53.0, where the spec says v54.0 on Connect.
+
+  - name: direct_datagraph_metadata
+    method: GET
+    host: tenant
+    path: /api/v1/dataGraph/metadata
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-metadata.md
+    description: List the data graphs with their primary objects, related objects and fields. Use it to find the names `lookup_keys` needs. It's the tenant host form of `datagraph_metadata`.
+    example: CALL cdp.direct_datagraph_metadata (entity_name => 'UnifiedIndividual_DG');
+    options:
+      - {name: entity_name, api_name: entityName, in: query, type: string, description: "Name of one data graph, such as `UnifiedIndividual_DG`. The reference's example and the lookup page use this name."}
+      - {name: data_graph_name, api_name: dataGraphName, in: query, type: string, description: "Name of one data graph. The reference's parameter table uses this name."}
+    rows: /metadata
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Name of the data graph."}
+      - {name: description, type: VARCHAR, description: "Description of the data graph."}
+      - {name: dataspace_name, api_name: dataspaceName, type: VARCHAR, description: "Data space of the data graph."}
+      - {name: primary_object_name, api_name: primaryObjectName, type: VARCHAR, description: "Name of the primary DMO."}
+      - {name: primary_object_type, api_name: primaryObjectType, type: VARCHAR, description: "Type of the primary object, such as `DMO`."}
+      - {name: values_dmo_name, api_name: valuesDmoName, type: VARCHAR, description: "Name of the values DMO."}
+      - {name: id_dmo_name, api_name: idDmoName, type: VARCHAR, description: "Name of the ID DMO."}
+      - {name: version, type: VARCHAR, description: "Version of the data graph."}
+      - {name: status, type: VARCHAR, description: "Status of the data graph, such as `READY`."}
+      - {name: object, type: JSON, description: "Tree of the primary object, with `fields` and `related_objects`."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/metadata` in the response.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** **The filter's name conflicts.** The [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-metadata.md) lists `data_graph_name` in its table, but its own example and the [lookup page](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.md) use `entity_name`. Both are listed until one is checked.
+
+      **The shape differs from [`datagraph_metadata`](data_graphs.md#datagraph_metadata):** the array is `metadata` here and `dataGraphMetadata` on Connect, the tree is `object` here and `dg_object` there, and the filter is `data_graph_entity_name` there. This route documents no `dataspace` option.
+
+  - name: direct_datagraph_get
+    method: GET
+    host: tenant
+    path: /api/v1/dataGraph/{dataGraphEntityName}/{id}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-name-id.md
+    description: Get one data graph record by the primary key of the graph's primary DMO. It's the tenant host form of `datagraph_query`.
+    example: CALL cdp.direct_datagraph_get (data_graph_entity_name => 'individual_eng_dg', id => '100005');
+    options:
+      - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: path, type: string, required: true, description: "Name of the data graph, such as `UnifiedIndividual_DG`."}
+      - {name: id, in: path, type: string, required: true, description: "Primary key of the primary DMO, such as `100005`."}
+      - {name: live, in: query, type: boolean, description: "`true` retrieves the latest data. By default you get the precalculated data. It doesn't support real-time data graphs."}
+      - {name: dataspace, in: header, type: string, description: "Data space the query runs in."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** Each item of `data` holds `json_blob__c`, a JSON string with the nested record, so it needs parsing twice ([reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-name-id.md)). Live queries have [longer latency and higher credit use](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-data-graphs-overview.md). For any other key, use [`direct_datagraph_lookup`](#direct_datagraph_lookup).
+
+  - name: direct_datagraph_lookup
+    method: GET
+    host: tenant
+    path: /api/v1/dataGraph/{dataGraphEntityName}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.md
+    description: Get data graph records by lookup keys on any participating DMO, optionally with only some fields. It's the tenant host form of `datagraph_lookup`, and the best documented.
+    example: CALL cdp.direct_datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
+    options:
+      - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: path, type: string, required: true, description: "Name of the data graph, such as `UnifiedIndividual_DG`."}
+      - {name: lookup_keys, api_name: lookupKeys, in: query, type: string, required: true, description: "Keys in the form `[DMO__dlm.field__c=value]`, brackets included. Several keys must all match."}
+      - {name: live, in: query, type: boolean, description: "`true` retrieves the latest data. By default you get the precalculated data."}
+      - {name: fields, in: query, type: string, description: "Fully qualified field paths from the root DMO, such as `[UnifiedIndividual.ID,UnifiedIndividual.Case.CaseNumber]`. Rename with `path=alias`. By default you get the whole graph."}
+      - {name: filters, in: query, type: string, description: "Filters using `=`, `>=`, `<=`, `>` or `<`, such as `[Case.CreatedDate>='2024-01-01']`."}
+      - {name: dataspace, in: header, type: string, description: "Data space the query runs in."}
+    columns:
+      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
+      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** Everything here is from the [reference](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.md). Get DMO and field names from [`direct_datagraph_metadata`](#direct_datagraph_metadata) first.
+
+      **`lookup_keys`** is one string, and what you can search depends on the DMO:
+
+      | Search on | Primary key | Primary key and key qualifier | Other fields |
+      |---|---|---|---|
+      | Primary DMO | `[primaryDMO__dlm.PrimaryKeyField=value]` | `[primaryDMO__dlm.PrimaryKeyField=value, primaryDMO__dlm.key_qualifier_field=value]` | `[primaryDMO__dlm.anyField=value, primaryDMO__dlm.anyField2=value]` |
+      | Value DMO | `[valueDMO__dlm.PrimaryKeyField=value]` | `[valueDMO__dlm.PrimaryKeyField=value, valueDMO__dlm.key_qualifier_field=value]` | Not supported |
+      | Link table DMO | `[DMO__dlm.primaryKeyField=value]` | `[DMO__dlm.primaryKeyField=value, DMO__dlm.key_qualifier_field=value]` | `[linkTableDMO__dlm.anyField=value, linkTableDMO__dlm.anyField2=value]` |
+      | Participating DMO | `[Participating__dlm.primaryKey=value]` | Not supported | Not supported |
+
+      - A key can match several unified records, and then `data` holds several graphs.
+      - Contact-based lookup takes one contact key per request, an email address or a phone number.
+      - Real-time graphs search only by primary key and key qualifier.
+      - A cross table search combines the value DMO's primary key and key qualifier with fields of the primary DMO.
+
+      **`fields` and `filters` limits:** fields must exist in the graph, and you can't skip intermediate DMOs in a path. Filters apply per DMO, so you can't filter a parent on a grandchild. There are no aggregates, no custom ordering and no nested projections.
+
+      **The page's examples are loose.** Its projection examples drop the `__dlm` and `__c` suffixes. Its syntax section shows a filter inside `fields`, while its full requests use `filters`. Its "key qualifier" example request doesn't include the qualifier.
+
+      Each item of `data` holds `json_blob__c`, a JSON string with the nested record. With `fields`, the page doesn't show the response.
+
+  - name: direct_universal_id_lookup
+    method: GET
+    host: tenant
+    path: /api/v1/universalIdLookup/{entityName}/{DataSourceId__c}/{DataSourceObjectId__c}/{SourceRecordId__c}
+    reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-universalidlookup-entity-name-datasourceid.md
+    description: Starting from one source record, return the records from every source that are linked to the same unified record. It's the tenant host form of `universal_id_lookup`.
+    example: CALL cdp.direct_universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', DataSourceId__c => 'SFMC1487860', DataSourceObjectId__c => 'SFMC1487860_EmailProfile', SourceRecordId__c => '100060522');
+    options:
+      - {name: entity_name, api_name: entityName, in: path, type: string, required: true, description: "Name of the bridge table, such as `IndividualIdentityLink__dlm`."}
+      - {name: DataSourceId__c, in: path, type: string, required: true, description: "Data source ID, such as `SFMC1487860`."}
+      - {name: DataSourceObjectId__c, in: path, type: string, required: true, description: "Data source object ID, such as `SFMC1487860_EmailProfile`."}
+      - {name: SourceRecordId__c, in: path, type: string, required: true, description: "Primary key of the source record, such as `100060522`. It maps to the Individual ID of the Individual DMO."}
+    rows: /data
+    columns:
+      - {name: SourceRecordId__c, type: VARCHAR, description: "ID of the record in its source."}
+      - {name: UnifiedRecordId__c, type: VARCHAR, description: "Unified record ID, shared by all rows of one lookup in the reference's example."}
+      - {name: ssot__DataSourceObjectId__c, type: VARCHAR, description: "Data source object ID."}
+      - {name: ssot__DataSourceId__c, type: VARCHAR, description: "Data source ID."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/data` in the response.
+    notes: |
+      **Token:** Data 360 JWT on the tenant host (`dne_cdpInstanceUrl`), from the [token exchange](api_notes.md#hosts-and-tokens).
+
+      **Notes:** The [overview](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-universal-id-lookup.md) gives a default limit of 49,999 rows. It and the reference also say you must "explicitly specify fields" to get more than 10, yet neither documents a `fields` option here, so none is listed.
+
+schemas:
+  MetadataSearchFilter:
+    unknown: warning
+    attributes:
+      - {name: field, type: string, required: true, description: "Field to filter on, such as `metadata_type`."}
+      - {name: values, array: 1, type: string, required: true, description: "Values to match, such as `['DataModelObject']`."}
+
+  MetadataSearchPagination:
+    unknown: warning
+    attributes:
+      - {name: limit, type: integer, description: "Items per page, from 1 to 5000. The default is 300."}

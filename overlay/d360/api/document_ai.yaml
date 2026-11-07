@@ -1,0 +1,399 @@
+title: Document AI
+description: |
+  Document AI uses an LLM to read documents such as PDFs and images, and returns structured data that follows a JSON schema you define. The [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) calls Agentforce a hard prerequisite: all Document AI APIs are unavailable until it is active, and they stop if it or the chosen model is disabled.
+
+  There are two ways to use it:
+
+  - **Ad hoc:** `document_ai_data_extract` answers synchronously with JSON and stores nothing. Pass `ml_model` and `schema_config`, or name a saved configuration.
+  - **Batch:** a configuration bound to an unstructured DMO. `document_ai_process_run` starts it, and the results land in DLOs.
+
+  The usual order is to read the valid models and file types with `document_ai_global_configuration_get`, draft a schema with `document_ai_schema_generate`, test it with an extract, and save it with `document_ai_configuration_create`. `document_ai_schema_detect` picks among saved configurations when the document type is unknown.
+
+  The gotchas that matter most, per the guide: 10 MB per file, 50 extraction calls per minute per tenant, and credits spent on processing. Fields not found come back as null, and content past the model's context is dropped silently. The spec's schemas and examples also disagree in several places, noted per function.
+
+  ```sql
+  CALL cdp.document_ai_global_configuration_get ();
+  CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+  CALL cdp.document_ai_data_extract (idp_configuration_id_or_name => 'Vendor_Invoice', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+  ```
+
+functions:
+  - name: document_ai_configuration_delete
+    method: DELETE
+    host: connect
+    path: /ssot/document-processing/configurations/{idOrApiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D/delete
+    description: Delete a Document AI configuration. Since v63.0.
+    example: CALL cdp.document_ai_configuration_delete (id_or_api_name => 'Vendor_Invoice');
+    options:
+      - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The sources don't say whether the DLOs in `extracted_dlos` go with the configuration, so check them afterwards. Extract calls that still name it should fail: the [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) maps \"schema ID not found\" to HTTP 400."
+
+  - name: document_ai_configuration_list
+    method: GET
+    host: connect
+    path: /ssot/document-processing/configurations
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations/get
+    description: Get all Document AI configurations. Since v63.0.
+    example: CALL cdp.document_ai_configuration_list (activation_status => 'Activated', order_by => 'Label DESC', limit => 25);
+    options:
+      - {name: activation_status, api_name: activationStatus, in: query, type: string, description: "Filter by activation status, either `Activated` or `Deactivated`. Since v63.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of records to return. Since v63.0."}
+      - {name: offset, in: query, type: integer, description: "Number of records to skip. Since v63.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Return record sorted by a given field. Sort order is DESC by default. (for example, \"Label DESC\"). Since v63.0."}
+      - {name: search, in: query, type: string, description: "Return only records that contain a specific search term. Since v63.0."}
+    rows: /configurations
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_status, api_name: activationStatus, type: VARCHAR, description: "The configuration activation status. Since v63.0."}
+      - {name: config_metadata, api_name: configMetadata, type: JSON, description: "A collection of custom key-value pairs. Since v63.0."}
+      - {name: dataspace, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Data space of the configuration. Since v63.0."}
+      - {name: description, type: VARCHAR, description: "Description of the configuration. Since v63.0."}
+      - {name: last_run_on, api_name: lastRunOn, type: VARCHAR, description: "The last unstructured data-extraction job run. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, type: VARCHAR, description: "The ML model used to extract the unstructured data. Since v63.0."}
+      - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "The status of the last off-core unstructured data-extraction job run. Since v63.0."}
+      - {name: source_dmo, api_name: sourceDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "The unstructured DMO used as the input for the data extraction process. Since v63.0."}
+      - {name: status, type: VARCHAR, description: "The status of the latest configuration version that's been synced off-core. Since v63.0."}
+      - {name: version, type: VARCHAR, description: "The current version of the configuration. This is incremented automatically with each edit. Since v63.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/configurations` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `IdpConfigurationRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Empty collections return `current_page_url` and `next_page_url` as null, unlike the spec's declared string type ([sf-pi override](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json), from a live test). Items have no `schema_config`: use `document_ai_configuration_get` for that.
+
+  - name: document_ai_configuration_get
+    method: GET
+    host: connect
+    path: /ssot/document-processing/configurations/{idOrApiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D/get
+    description: Get the details of a Document AI configuration. Since v63.0.
+    example: CALL cdp.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');
+    options:
+      - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_status, api_name: activationStatus, type: VARCHAR, description: "The configuration activation status. Since v63.0."}
+      - {name: config_metadata, api_name: configMetadata, type: JSON, description: "A collection of custom key-value pairs. Since v63.0."}
+      - {name: dataspace, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Data space of the configuration. Since v63.0."}
+      - {name: description, type: VARCHAR, description: "Description of the configuration. Since v63.0."}
+      - {name: last_run_on, api_name: lastRunOn, type: VARCHAR, description: "The last unstructured data-extraction job run. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, type: VARCHAR, description: "The ML model used to extract the unstructured data. Since v63.0."}
+      - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "The status of the last off-core unstructured data-extraction job run. Since v63.0."}
+      - {name: source_dmo, api_name: sourceDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "The unstructured DMO used as the input for the data extraction process. Since v63.0."}
+      - {name: status, type: VARCHAR, description: "The status of the latest configuration version that's been synced off-core. Since v63.0."}
+      - {name: version, type: VARCHAR, description: "The current version of the configuration. This is incremented automatically with each edit. Since v63.0."}
+      - {name: extracted_dlo_config, api_name: extractedDloConfig, type: VARCHAR, description: "The configuration details of the DLOs to be extracted. Since v63.0."}
+      - {name: extracted_dlos, api_name: extractedDlos, type: JSON, array: 1, schema: IdpConfigExtractedDloRepresentation, description: "List of references for the output DLOs. Since v63.0."}
+      - {name: file_config, api_name: fileConfig, type: JSON, schema: IdpFileConfigRepresentation, description: "The specs for the file types supported by the Document AI process. Since v63.0."}
+      - {name: schema_config, api_name: schemaConfig, type: VARCHAR, description: "The schema of the data to be extracted. Since v63.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `IdpConfigurationDetailsRepresentation`.
+    notes: "**Notes:** The spec's example responses don't match its schema. `schema_config` and `extracted_dlo_config` are typed as strings but shown as JSON objects, `version` appears as both `3` and `\"1\"`, and `filterByDmo` and `externalServiceRegistrationId` appear with no schema entry. Example values also vary in case: `status` is `SYNCED` or `Synced`, and `activation_status` is `ACTIVATED` or `Activated`."
+
+  - name: document_ai_global_configuration_get
+    method: GET
+    host: connect
+    path: /ssot/document-processing/global-config
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1global-config/get
+    description: Reads which file types, size limits and models this org accepts for Document AI. Use it to find valid `ml_model` values before creating a configuration or extracting. Since v63.0.
+    example: CALL cdp.document_ai_global_configuration_get ();
+    columns:
+      - {name: supported_content_types, api_name: supportedContentTypes, type: JSON, array: 1, schema: IdpContentTypeRepresentation, description: "Content types supported for unstructured data extraction. Since v63.0."}
+      - {name: supported_models, api_name: supportedModels, type: JSON, array: 1, schema: IdpSupportedModelRepresentation, description: "Models supported for unstructured data extraction. Since v63.0."}
+      - {name: version, type: VARCHAR, description: "The version of the configuration schema. Since v63.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `IdpGlobalConfigRepresentation`.
+    notes: "**Notes:** Read `max_file_size_in_mb` here instead of assuming a limit, because the sources differ: the spec's example shows 20, a [live fixture](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/docai-describe.json) shows 10 (community, one org), and the [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) says 10 MB. That fixture also lists only PDF, PNG and JPG, while the spec's extract call allows Office files too. Model ids in the spec's examples look like `llmgateway__VertexAIGemini25Flash001`, but one also shows `VertexAIGemini25Flash`, so copy `id` from this result."
+
+  - name: document_ai_configuration_update
+    method: PATCH
+    host: connect
+    path: /ssot/document-processing/configurations/{idOrApiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D/patch
+    description: Update an existing Document AI configuration. Since v63.0.
+    example: CALL cdp.document_ai_configuration_update (id_or_api_name => 'Vendor_Invoice', description => 'Supplier invoices, EU and US', activation_status => 'Deactivated');
+    options:
+      - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
+      - {name: activation_status, api_name: activationStatus, in: body, type: string, enum: [Activated, Deactivated], description: "Activation status of the configuration. Since v63.0."}
+      - {name: description, in: body, type: string, description: "New description for the configuration. Since v63.0."}
+      - {name: label, in: body, type: string, description: "New display label for the configuration. Since v63.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_status, api_name: activationStatus, type: VARCHAR, description: "The configuration activation status. Since v63.0."}
+      - {name: config_metadata, api_name: configMetadata, type: JSON, description: "A collection of custom key-value pairs. Since v63.0."}
+      - {name: dataspace, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Data space of the configuration. Since v63.0."}
+      - {name: description, type: VARCHAR, description: "Description of the configuration. Since v63.0."}
+      - {name: last_run_on, api_name: lastRunOn, type: VARCHAR, description: "The last unstructured data-extraction job run. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, type: VARCHAR, description: "The ML model used to extract the unstructured data. Since v63.0."}
+      - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "The status of the last off-core unstructured data-extraction job run. Since v63.0."}
+      - {name: source_dmo, api_name: sourceDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "The unstructured DMO used as the input for the data extraction process. Since v63.0."}
+      - {name: status, type: VARCHAR, description: "The status of the latest configuration version that's been synced off-core. Since v63.0."}
+      - {name: version, type: VARCHAR, description: "The current version of the configuration. This is incremented automatically with each edit. Since v63.0."}
+      - {name: extracted_dlo_config, api_name: extractedDloConfig, type: VARCHAR, description: "The configuration details of the DLOs to be extracted. Since v63.0."}
+      - {name: extracted_dlos, api_name: extractedDlos, type: JSON, array: 1, schema: IdpConfigExtractedDloRepresentation, description: "List of references for the output DLOs. Since v63.0."}
+      - {name: file_config, api_name: fileConfig, type: JSON, schema: IdpFileConfigRepresentation, description: "The specs for the file types supported by the Document AI process. Since v63.0."}
+      - {name: schema_config, api_name: schemaConfig, type: VARCHAR, description: "The schema of the data to be extracted. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `IdpConfigurationDetailsRepresentation`.
+    notes: "**Notes:** Only `label`, `description` and `activation_status` can change. The spec has no way to edit `schema_config`, `ml_model` or `file_config` here, so through this API a schema change means creating a new configuration. The enum is `Activated` or `Deactivated`, but the spec's own example sends `ACTIVATED`. The [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) warns that in-flight batch documents keep using the previous version after a schema change, which breaks downstream mappings on renamed fields."
+
+  - name: document_ai_schema_detect
+    method: POST
+    host: connect
+    path: /ssot/document-processing/actions/detect-schema
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1actions~1detect-schema/post
+    description: Detects which extraction schema best matches a document using single or multi-schema mode. Since v67.0.
+    example: CALL cdp.document_ai_schema_detect (schema_configurations => ['Invoice_Schema_v1', 'Receipt_Schema_v2'], ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')], mode => 'Single', threshold => 0.9);
+    options:
+      - {name: threshold, in: query, type: number, format: double, description: "Minimum matching score (0-1) required for a schema to be returned in the response. If unspecified, the default value is `0.80`. Since v67.0."}
+      - {name: files, in: body, schema: IdpGenerateSchemaFileInputRepresentation, array: 1, description: "List of unstructured source files to detect the schema from. Supported file types are: PDF (`application/pdf`) and images (`image/png`, `image/jpg`, `image/jpeg`). Since v67.0."}
+      - {name: ml_model, api_name: mlModel, in: body, type: string, description: "ID of the model to use for schema detection. Since v67.0."}
+      - {name: mode, in: body, type: string, enum: [Multi, Single], description: "Schema detection mode. - `Single`: Detect one schema for the entire document. - `Multi`: Detect and map multiple schemas to different page ranges. Since v67.0."}
+      - {name: schema_configurations, api_name: schemaConfigurations, in: body, array: 1, type: string, description: "List of Document AI schema configuration IDs to match against. Since v67.0."}
+    rows: /data
+    columns:
+      - {name: matching_fields_in_schema, api_name: matchingFieldsInSchema, type: BIGINT, description: "Matching number of fields in the schema. Only returned for the `Single` schema detection mode. Since v67.0."}
+      - {name: matching_score, api_name: matchingScore, type: DOUBLE, description: "Matching score for the schema with the requested document. Only returned for the `Single` schema detection mode. Since v67.0."}
+      - {name: pages, type: JSON, array: 1, schema: IdpSchemaDetectionPagesRepresentation, description: "Page details and the matching score for the schema with the requested page. Only returned for the `Multi` schema detection mode. Since v67.0."}
+      - {name: schema_configuration, api_name: schemaConfiguration, type: VARCHAR, description: "Name of the schema configuration. Since v67.0."}
+      - {name: total_fields_in_schema, api_name: totalFieldsInSchema, type: BIGINT, description: "Total number of fields in the schema. Only returned for the `Single` schema detection mode. Since v67.0."}
+      - {name: subdocuments, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row per item of `/data` in the response. Schema `IdpSchemaDetectionInnerRepresentation`.
+    notes: |
+      **Notes:** A schema scoring under `threshold` isn't returned, so zero rows can mean no match rather than a failure. PDF and images only, a narrower list than extract. The spec marks nothing as required and gives no default for `mode`, so pass all four body options.
+
+      `schema_configurations` is described as IDs, but the examples pass names such as `Invoice_Schema_v1`. **Multi mode disagrees with itself:** the schema has `pages` with `pageNumber` and `matching_score`, while the spec's example returns `subdocuments` with `start_page`, `end_page` and `matching_score`.
+
+  - name: document_ai_data_extract
+    method: POST
+    host: connect
+    path: /ssot/document-processing/actions/extract-data
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1actions~1extract-data/post
+    description: Extracts structured data from a file and returns it synchronously as JSON, without storing anything. Use a saved configuration or pass `ml_model` and `schema_config` inline. Supports PDF, images, .docx, .pptx and .xlsx. Since v63.0.
+    example: |
+      CALL cdp.document_ai_data_extract (
+        ml_model => 'llmgateway__VertexAIGemini25Flash001',
+        files => [(file_id = '068xxxxxxxxxxxxxxx')],
+        extract_data_with_confidence_score => true,
+        schema_config => $$
+          {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "Invoice",
+            "description": "Ignore the terms and conditions pages.",
+            "type": "object",
+            "properties": {
+              "invoice_number": { "type": "string", "description": "The legal invoice identifier." },
+              "invoice_date": { "type": "string", "format": "date" },
+              "total": { "type": "number" }
+            },
+            "required": ["invoice_number"]
+          }
+        $$
+      );
+    options:
+      - {name: end_page, api_name: endPage, in: query, type: integer, description: "Ending page number for data extraction. Since v66.0."}
+      - {name: extract_data_with_confidence_score, api_name: extractDataWithConfidenceScore, in: query, type: boolean, description: "Indicates whether to assign a confidence score to each field in the extracted data (`true`) or not (`false`). Since v64.0."}
+      - {name: start_page, api_name: startPage, in: query, type: integer, description: "Starting page number for data extraction. Since v66.0."}
+      - {name: files, in: body, schema: IdpGenerateSchemaFileInputRepresentation, array: 1, required: true, description: "The list of unstructured data source files to extract data from. Supported file types: PDF, image (PNG, JPG, JPEG), Microsoft Word (.docx), PowerPoint (.pptx), and Excel (.xlsx). Since v63.0."}
+      - {name: idp_configuration_id_or_name, api_name: idpConfigurationIdOrName, in: body, type: string, description: "ID of the Document AI configuration to use. Either idp_configuration_id_or_name or ml_model and schema_config must be present. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, in: body, type: string, description: "The ID of the ML model to use for schema extraction. Use the [get Document AI global configuration](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1global-config/get) endpoint to retrieve the list of acceptable values. Since v63.0."}
+      - {name: schema_config, api_name: schemaConfig, in: body, type: string, description: "The schema of the data to be extracted in JSON format. Use the root `description` field to provide a schema-level prompt for global instructions, such as setting the extraction language or sections to ignore. This document-wide guidance works with field-level prompts to enhance extraction accuracy across complex documents. Since v63.0."}
+    rows: /data
+    columns:
+      - {name: data, type: VARCHAR, description: "Extracted JSON data. The JSON includes metadata for each extracted field, such as `type`, `value`, and `confidence_score`. The `confidence_score` value ranges from `0` to `1.0`. Since v63.0."}
+      - {name: error, type: VARCHAR, description: "Error message if the data extraction fails. Since v63.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/data` in the response. Schema `IdpExtractedFileDataRepresenation`.
+    notes: |
+      **Token:** The [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) lists OAuth scopes `cdp_ingest_api` and `api` for this pipeline.
+
+      **Notes:** **Config or inline:** pass `idp_configuration_id_or_name`, or both `ml_model` and `schema_config`. The spec can't express this rule, so none of the three shows as required. The architect guide says a stored schema must exist first, while the spec and the [developer blog](https://developer.salesforce.com/blogs/2025/08/process-unstructured-data-with-document-ai) allow inline schemas.
+
+      **Files:** set `data` with `mime_type`, or `file_id`. The guide describes this pipeline as single-document, although `files` is an array. Excel needs `additional_params = (sheet_name = '...')` (v67).
+
+      **Schema:** `schema_config` is typed as a string, yet one spec example passes an object, so use a `$$` string. The guide limits schemas to 50 root fields and says nested objects (up to 3 levels) are for batch with a source object only. The spec's inline example nests an array of objects anyway. The root `description` is a document-wide prompt, and field descriptions act as field prompts.
+
+      **Reading results:** `data` is a JSON string, not an object. Each field holds `type`, `value` and `confidence_score`. The spec doesn't say what it looks like without `extract_data_with_confidence_score`. Check `error` on each row. The guide's status codes are 200 (including partial nulls), 400 (malformed, or schema not found), 413 (over 10 MB) and 5xx.
+
+      **Limits, per the [guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai):** 50 calls per minute per tenant, typically 5 to 15 seconds each, so set timeouts to at least 30 s. Password-protected and permission-restricted PDFs aren't processed. Content past the model's context is dropped silently, so split long documents with `start_page` and `end_page`. Scans under 150 DPI lose accuracy with no error.
+
+      **PII:** the guide says Trust Layer masking doesn't apply to document content, so it reaches the model as is and comes back in results.
+
+  - name: document_ai_schema_generate
+    method: POST
+    host: connect
+    path: /ssot/document-processing/actions/generate-schema
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1actions~1generate-schema/post
+    description: Asks a model to propose a JSON extraction schema from sample files. Use it to draft a `schema_config` instead of writing one by hand. Nothing is saved. Since v63.0.
+    example: CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+    options:
+      - {name: files, in: body, schema: IdpGenerateSchemaFileInputRepresentation, array: 1, required: true, description: "The list of unstructured data source files to extract the schema from. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, in: body, type: string, required: true, description: "The ID of the ML model to use for schema extraction. Use the [get Document AI global configuration](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1global-config/get) endpoint to retrieve the list of acceptable values. Since v63.0."}
+    columns:
+      - {name: error, type: VARCHAR, description: "Error message if the schema generation fails. Since v63.0."}
+      - {name: schema, type: VARCHAR, description: "JSON schema definition. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `IdpGeneratedSchemaRepresentation`.
+    notes: "**Notes:** The result is a draft, and the [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) advises designing schemas from a diverse set of documents rather than a single example. `schema` is a JSON string, and the spec's example wraps it again as `{\"schema\": {...}}`, unlike the draft-07 root its extract example passes as `schema_config`. The sources don't say whether `schema_config` accepts the wrapper, so unwrap it. Check `error` too, since the response carries it in its success shape. \"Nothing is saved\" is inferred: the spec documents no stored object."
+
+  - name: document_ai_configuration_create
+    method: POST
+    host: connect
+    path: /ssot/document-processing/configurations
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations/post
+    description: Create a new Document AI configuration. Since v63.0.
+    example: |
+      CALL cdp.document_ai_configuration_create (
+        name => 'Vendor_Invoice',
+        label => 'Vendor Invoice',
+        ml_model => 'llmgateway__VertexAIGemini25Flash001',
+        activation_status => 'Activated',
+        file_config => (file_types = ['application/pdf', 'image/png', 'image/jpeg']),
+        schema_config => $$
+          {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "Vendor Invoice",
+            "type": "object",
+            "properties": {
+              "invoice_number": { "type": "string", "description": "The legal invoice identifier." },
+              "total": { "type": "number" }
+            }
+          }
+        $$
+      );
+    options:
+      - {name: activation_status, api_name: activationStatus, in: body, type: string, enum: [Activated, Deactivated], required: true, description: "Status of the configuration. Since v63.0."}
+      - {name: config_metadata, api_name: configMetadata, in: body, type: object, description: "A custom collection of key-value attributes. Since v63.0."}
+      - {name: description, in: body, type: string, description: "Description of the configuration. Since v63.0."}
+      - {name: extracted_dlo_config, api_name: extractedDloConfig, in: body, schema: IdpConfigExtractedDloInputRepresentation, map: true, description: "The configuration details for the DLOs to be extracted. Since v63.0."}
+      - {name: file_config, api_name: fileConfig, in: body, schema: IdpFileConfigInputRepresentation, required: true, description: "The specs for the file types supported by the Document AI process to be created. Since v63.0."}
+      - {name: label, in: body, type: string, required: true, description: "Display label of the configuration. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, in: body, type: string, required: true, description: "The API name of the model used to extract the unstructured data. Since v63.0."}
+      - {name: name, in: body, type: string, required: true, description: "Name of the configuration. Since v63.0."}
+      - {name: schema_config, api_name: schemaConfig, in: body, type: string, required: true, description: "The schema of the data to be extracted. Since v63.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, in: body, type: string, description: "The API name of the unstructured DMO used as input to the data extraction process. Since v63.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_status, api_name: activationStatus, type: VARCHAR, description: "The configuration activation status. Since v63.0."}
+      - {name: config_metadata, api_name: configMetadata, type: JSON, description: "A collection of custom key-value pairs. Since v63.0."}
+      - {name: dataspace, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Data space of the configuration. Since v63.0."}
+      - {name: description, type: VARCHAR, description: "Description of the configuration. Since v63.0."}
+      - {name: last_run_on, api_name: lastRunOn, type: VARCHAR, description: "The last unstructured data-extraction job run. Since v63.0."}
+      - {name: ml_model, api_name: mlModel, type: VARCHAR, description: "The ML model used to extract the unstructured data. Since v63.0."}
+      - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "The status of the last off-core unstructured data-extraction job run. Since v63.0."}
+      - {name: source_dmo, api_name: sourceDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "The unstructured DMO used as the input for the data extraction process. Since v63.0."}
+      - {name: status, type: VARCHAR, description: "The status of the latest configuration version that's been synced off-core. Since v63.0."}
+      - {name: version, type: VARCHAR, description: "The current version of the configuration. This is incremented automatically with each edit. Since v63.0."}
+      - {name: extracted_dlo_config, api_name: extractedDloConfig, type: VARCHAR, description: "The configuration details of the DLOs to be extracted. Since v63.0."}
+      - {name: extracted_dlos, api_name: extractedDlos, type: JSON, array: 1, schema: IdpConfigExtractedDloRepresentation, description: "List of references for the output DLOs. Since v63.0."}
+      - {name: file_config, api_name: fileConfig, type: JSON, schema: IdpFileConfigRepresentation, description: "The specs for the file types supported by the Document AI process. Since v63.0."}
+      - {name: schema_config, api_name: schemaConfig, type: VARCHAR, description: "The schema of the data to be extracted. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `IdpConfigurationDetailsRepresentation`.
+    notes: |
+      **Done when:** No documented wait. `document_ai_configuration_get.status` reports the off-core sync of the latest version. Spec examples show `SYNCED` and `Synced`, with no full list.
+
+      **Notes:** **Which pipeline:** the [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) says to choose first. Omit `source_dmo_developer_name` for ad hoc extraction. For batch, set it to an unstructured DMO and describe the output with `extracted_dlo_config`.
+
+      **`extracted_dlo_config` disagrees with itself.** The schema gives each DLO a `fields` array of objects with `data_type` in `STRING`, `NUMBER`, `DATE`, `BOOLEAN`. The spec's examples make `fields` a map keyed by field, add `name`, `label`, `category` and `eventDateFieldName` on the DLO, and use `data_type` values `Date`, `Text` and null. The example below leaves it out for that reason.
+
+      **Values:** `activation_status` is `Activated` or `Deactivated`, though the spec's example sends `ACTIVATED`. That example's `My_Document AI_Config` also has a space, unlike the `Vendor_Invoice` shape of another example. Field limits are under `document_ai_data_extract`.
+
+      The guide advises one schema per document type, with field names matching the target columns.
+
+  - name: document_ai_process_run
+    method: POST
+    host: connect
+    path: /ssot/document-processing/configurations/{idOrApiName}/actions/run
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D~1actions~1run/post
+    description: Starts a batch run of a saved configuration over the documents in its source DMO, writing results to its output DLOs. Returns as soon as the run is triggered. Since v63.0.
+    example: CALL cdp.document_ai_process_run (id_or_api_name => 'Vendor_Invoice');
+    options:
+      - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: |
+      **Done when:** Poll `document_ai_configuration_get.runtime_status` and `last_run_on`. The spec gives no enum: its examples show `SUCCESS` and `Ready`, so `Ready` may not mean the run finished.
+
+      **Notes:** The sources don't say what happens for a configuration with no source DMO, or whether it must be `Activated` first. Don't retry blindly: they also don't say whether a repeat run reprocesses documents, and batch runs spend credits. The [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) warns that credits can run out mid-run, leaving incomplete DLOs that look complete, and that batch failures are silent without monitoring. It advises wallet alerts at 75% and 90%. Check the DLOs in `extracted_dlos` to confirm the output.
+
+schemas:
+  IdpConfigExtractedDloFieldInputRepresentation:
+    description: This type contains the fields required to configure an extracted field.
+    attributes:
+      - {name: data_type, api_name: dataType, type: string, enum: [STRING, NUMBER, DATE, BOOLEAN], required: true, description: "Data type of the extracted field. Specifies how the field data should be interpreted. Since v63.0."}
+      - {name: label, type: string, required: true, description: "Display label for the extracted field. This is the human-readable name for the field. Since v63.0."}
+      - {name: name, type: string, required: true, description: "Name of the extracted field. This is the identifier for the field in the extracted data. Since v63.0."}
+      - {name: required, type: boolean, required: true, description: "Whether the field is required. Indicates if this field must have a value in the extracted data. Since v63.0."}
+      - {name: validation_rules, api_name: validationRules, type: object, description: "Validation rules for the extracted field. Defines additional validation criteria for the field data. Since v63.0."}
+
+  IdpConfigExtractedDloInputRepresentation:
+    description: This type contains the fields required to configure DLO extraction settings.
+    attributes:
+      - {name: fields, schema: IdpConfigExtractedDloFieldInputRepresentation, array: 1, required: true, description: "List of extracted DLO fields. Since v63.0."}
+      - {name: mapping_rules, api_name: mappingRules, type: object, description: "Mapping rules for extracted data. Defines how extracted data should be mapped to target fields. Since v63.0."}
+
+  IdpFileAdditionalParamsInputRepresentation:
+    description: Represents the additional parameters for file processing in IDP.
+    attributes:
+      - {name: sheet_name, api_name: sheetName, type: string, description: "Name of the sheet to extract data from, for Excel and Google Sheets files. Since v67.0."}
+
+  IdpFileConfigInputRepresentation:
+    description: This type contains the fields required to configure file processing settings.
+    attributes:
+      - {name: file_types, api_name: fileTypes, array: 1, type: string, required: true, description: "List of allowed file formats for processing. Specifies which file types can be processed by this configuration. Since v63.0."}
+
+  IdpGenerateSchemaFileInputRepresentation:
+    description: This type contains the fields required to generate a schema from a file.
+    attributes:
+      - {name: additional_params, api_name: additionalParams, schema: IdpFileAdditionalParamsInputRepresentation, description: "Additional parameters for file processing, for example, `sheet_name` for Excel and Google Sheets. Since v67.0."}
+      - {name: data, type: string, description: "Base64-encoded content of the file. The actual file data in base64 format. Since v63.0."}
+      - {name: file_id, api_name: fileId, type: string, description: "Either a Salesforce file Id or a URI to SF Drive. Spec examples: `068xxxxxxxxxxxxxxx`, `sfdrive://$dc_file_upload$/path-to-file`. Since v63.0."}
+      - {name: mime_type, api_name: mimeType, type: string, description: "The file type. Since v63.0."}

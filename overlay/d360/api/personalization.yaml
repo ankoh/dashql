@@ -1,0 +1,788 @@
+title: Personalization
+description: |
+  This family configures Salesforce Personalization: which content a website or mobile app shows, to whom, and how it renders. It's setup only. The runtime call that asks for a decision is the [Decisioning API](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-reference.md), which has no function here.
+
+  None of these paths is in the spec. [sf-pi's parity report](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/connect-openapi-parity.md) lists all 21 as outside the contract. Options come from [Salesforce's MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java), whose [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock HTTP, and no source shows a real response.
+
+  Two chains meet in the experience config:
+
+  - **What to show:** data space and profile data graph, content DMO, schema, then point. Point decisions name personalizers, which no function here creates.
+  - **How and where:** Streaming App data connector (the site or app), transformer, experience config, then a mobile preview to test it.
+
+  Gotchas:
+
+  - Keys differ. Experience configs need the connector plus a unique name. Transformers take `id_or_name` as a query parameter on a singular `/transformer` path.
+  - Points update with a full `PUT`, schemas with `PATCH`. The tool text calls the transformer and experience config `PUT`s partial.
+  - Schemas and points have no list call.
+  - The data space option is `dataspace_name`, `dataspace`, `dataspace_value`, `dataspace_id_or_name` or `dataspace_id`, depending on the object.
+  - Deletes can't be undone, and no source says the server checks for references.
+
+  ```sql
+  CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+  CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
+  CALL cdp.p13n_experience_config_create (
+      id_or_app_source_id_or_name => 'my_website_connector',
+      name => 'homepage_hero_banner',
+      label => 'Homepage Hero Banner',
+      data_provider => (type = 'PersonalizationPoint', reference_type = 'ApiName', value = 'home_page_experience'),
+      source_matchers => [(type = 'ContentZone', value = 'hero_section')],
+      transformation_config => (when = 'Immediately', method = 'ReplaceContentZoneContent', transformations = [(transformer_name = 'promo_banner_transformer')])
+  );
+  ```
+
+functions:
+  - name: p13n_engagement_signals_list
+    method: GET
+    host: connect
+    path: /personalization/engagement-signals
+    tools: [d360_p13n_engagement_signals_list]
+    description: Lists the engagement signals configured for a personalization data graph, such as click, view, purchase or add-to-cart. They feed recommender attribution and objective optimization, so read them before configuring a recommender.
+    example: CALL cdp.p13n_engagement_signals_list (dataspace_id => 'default', data_graph_id => 'user_profile_graph');
+    options:
+      - {name: dataspace_id, api_name: dataSpaceId, in: query, type: string, required: true, description: "Data Space ID — the isolated workspace the recommender operates in"}
+      - {name: data_graph_id, api_name: dataGraphId, in: query, type: string, required: true, description: "Data Graph ID — the profile or item data graph to query signals for"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Despite the names, the [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) passes names here: `default` and `user_profile_graph`. It says both options are required, while [sf-pi's overrides](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/overrides.json) mark both optional and add `limit` and `offset`. The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `engagementSignals` with `id`, `name` and `type`, plus `total_size`, but that's fixture data."
+
+  - name: p13n_org_info_get
+    method: GET
+    host: connect
+    path: /personalization/external-apps/org
+    tools: [d360_p13n_org_info_get]
+    description: Returns the org's Data Cloud Tenant Specific Endpoint. Use it to confirm the endpoint before configuring personalization.
+    example: CALL cdp.p13n_org_info_get ();
+    columns:
+      - {name: dc_tse, api_name: dcTse, type: VARCHAR, description: "Data Cloud Tenant Specific Endpoint."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row, from the output class [`CurrentOrgInfoRepresentation`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/CurrentOrgInfoRepresentation.java). Other response fields go to `_meta`.
+    notes: "**Notes:** [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/lib/readiness.ts) probes this path to report whether personalization is available in an org, so it can serve as a feature check."
+
+  - name: p13n_mobile_preview_create
+    method: POST
+    host: connect
+    path: /personalization/external-apps/mobile/live-preview-link
+    tools: [d360_p13n_mobile_preview_create]
+    description: Generates a time-limited link for previewing an experience config or transformer in a mobile app, before deploying it.
+    example: |
+      CALL cdp.p13n_mobile_preview_create (
+          data_connector_id => 'mobile_app_connector_123',
+          experience_config => (
+              name = 'test_experience',
+              label = 'Test Experience',
+              data_provider = (type = 'PersonalizationPoint', reference_type = 'ApiName', value = 'product_recs'),
+              source_matchers = [(type = 'ContentZone', value = 'product_list')],
+              transformation_config = (when = 'Immediately', method = 'ReplaceContentZoneContent', transformations = [(transformer_name = 'product_card_transformer')])
+          ),
+          decision_request_body => (
+              p = (decision_id = 'rec_decision_001', cohort_id = 'cohort_A', experiment_id = 'exp_123'),
+              c = (individual_id = 'ind_456', anchor_id = 'anchor_789')
+          )
+      );
+    options:
+      - {name: data_connector_id, api_name: dataConnectorId, in: body, type: string, required: true, description: "Streaming App data connector id. Required to resolve the preview base URL."}
+      - {name: experience_config, api_name: experienceConfig, in: body, schema: PersonalizationExperienceConfig, description: "Experience config to preview. Send this or `transformer`, not both."}
+      - {name: transformer, in: body, schema: PersonalizationTransformer, description: "Transformer to preview. Send this or `experience_config`, not both."}
+      - {name: decision_request_body, api_name: decisionRequestBody, in: body, schema: PersonalizationDecisionRequestBody, description: "Decision request used to generate the preview."}
+    columns:
+      - {name: preview_url, api_name: previewUrl, type: VARCHAR, description: "Preview link. It's time-limited."}
+      - {name: expires_at, api_name: expiresAt, type: TIMESTAMPTZ, description: "When the link expires. The class types it as a string, and the test mock is ISO 8601."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row, from the output class [`ExtAppPreviewAuthRepresentation`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/ExtAppPreviewAuthRepresentation.java). Other response fields go to `_meta`.
+    notes: "**Notes:** The [low-code mobile guide](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalize-mobile-experiences-lowcode.md) says live previews need a custom URL schema configured in the app. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/overrides.json) requires confirmation for this call until it's verified as ephemeral."
+
+  - name: p13n_experience_config_list
+    method: GET
+    host: connect
+    path: /personalization/external-apps/{id}/personalization-experience-configs
+    tools: [d360_p13n_experience_config_list]
+    description: Lists a data connector's experience configs, optionally filtered by point, transformer or data space. An experience config defines what personalized content to show and where.
+    example: CALL cdp.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website_connector', transformer_name_or_id => 'promo_banner_transformer', limit => 50);
+    options:
+      - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
+      - {name: limit, in: query, type: integer, description: "Limits the number returned (1-299, default 50)"}
+      - {name: offset, in: query, type: integer, description: "Number to skip (default 0)"}
+      - {name: personalization_point_name_or_id, api_name: personalizationPointNameOrId, in: query, type: string, description: "Filter by personalization point name or ID"}
+      - {name: transformer_name_or_id, api_name: transformerNameOrId, in: query, type: string, description: "Filter by transformer name or ID"}
+      - {name: dataspace_id_or_name, api_name: dataSpaceIdOrName, in: query, type: string, description: "Filter by data space ID or name"}
+      - {name: is_wpm_url_required, api_name: isWpmUrlRequired, in: query, type: boolean, description: "Include Web Personalization Manager URLs in response (default false)"}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Paging:** `limit` (1-299, default 50) and `offset` (default 0).
+
+      **Notes:** The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `personalizationExperienceConfigs` with `total_size`, but that's fixture data. No source gives the field that holds the Web Personalization Manager URL from `is_wpm_url_required`.
+
+  - name: p13n_experience_config_get
+    method: GET
+    host: connect
+    path: /personalization/external-apps/{id}/personalization-experience-configs/{name}
+    tools: [d360_p13n_experience_config_get]
+    description: Returns one experience config by name, with its data provider, source matchers and transformation configuration.
+    example: CALL cdp.p13n_experience_config_get (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_wpm_url_required => true);
+    options:
+      - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
+      - {name: name_param, api_name: name, in: path, type: string, required: true, description: "Unique name of Personalization Experience Config to retrieve"}
+      - {name: is_wpm_url_required, api_name: isWpmUrlRequired, in: query, type: boolean, description: "Include Web Personalization Manager URL in response (default false)"}
+    columns:
+      - {name: id, type: VARCHAR, description: "Config id. Read-only."}
+      - {name: name, type: VARCHAR, description: "Unique name."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: data_provider, api_name: dataProvider, type: JSON, description: "[PersonalizationDataProvider](#personalizationdataprovider)."}
+      - {name: source_matchers, api_name: sourceMatchers, type: JSON, description: "Array of [PersonalizationSourceMatcher](#personalizationsourcematcher)."}
+      - {name: transformation_config, api_name: transformationConfig, type: JSON, description: "[PersonalizationTransformationConfig](#personalizationtransformationconfig)."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Whether this configuration is enabled."}
+      - {name: display_url, api_name: displayUrl, type: VARCHAR, description: "Page to display the config on when editing."}
+      - {name: published_date, api_name: publishedDate, type: TIMESTAMPTZ, description: "When the config was last published."}
+      - {name: created_by_id, api_name: createdById, type: VARCHAR, description: "User who created it."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "When it was created."}
+      - {name: last_modified_by_id, api_name: lastModifiedById, type: VARCHAR, description: "User who last modified it."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "When it was last modified."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. No source shows a real response. These columns are the attributes of the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/PersonalizationExperienceConfigInputRepresentation.java), which marks the audit fields read-only, and the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) says the call returns the complete config. Other response fields go to `_meta`.
+    notes: "**Notes:** The key is the name only: `name_param` isn't documented as accepting an id. No source gives the field that holds the Web Personalization Manager URL from `is_wpm_url_required`."
+
+  - name: p13n_experience_config_create
+    method: POST
+    host: connect
+    path: /personalization/external-apps/{id}/personalization-experience-configs
+    tools: [d360_p13n_experience_config_create]
+    description: "Creates an experience config on a data connector: what content to show (`data_provider`), where to show it (`source_matchers`) and how to render it (`transformation_config`). The connector, transformer and point must exist."
+    example: |
+      CALL cdp.p13n_experience_config_create (
+          id_or_app_source_id_or_name => 'my_website_connector',
+          name => 'homepage_hero_banner',
+          label => 'Homepage Hero Banner Personalization',
+          is_enabled => true,
+          data_provider => (
+              type = 'PersonalizationPoint',
+              reference_type = 'ApiName',
+              value = 'hero_banner_recommendations',
+              dataspace_reference_type = 'ApiName',
+              dataspace_value = 'default',
+              group_by_type = 'DataGraph',
+              group_by_reference_type = 'ApiName',
+              group_by_value = 'user_profile_graph'
+          ),
+          source_matchers => [(type = 'PageUrlMatcher', value = '/home'), (type = 'ContentZone', value = 'hero_section')],
+          transformation_config => (
+              render_if_empty = false,
+              when = 'Immediately',
+              method = 'ReplaceContentZoneContent',
+              engagement_destination = 'banner_click_destination',
+              transformations = [(
+                  transformer_name = 'promo_banner_transformer',
+                  substitutions = (bannerTitle = '{{data.title}}', bannerImage = '{{data.image}}', ctaText = 'Learn More')
+              )]
+          ),
+          display_url => '/home'
+      );
+    options:
+      - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
+      - {name: name, in: body, type: string, description: "Unique name of the config. Other calls address it by this name through `name_param`."}
+      - {name: label, in: body, type: string, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: data_provider, api_name: dataProvider, in: body, schema: PersonalizationDataProvider, description: "What is supplying the data for this experience."}
+      - {name: source_matchers, api_name: sourceMatchers, in: body, schema: PersonalizationSourceMatcher, array: 1, description: "How to find where this personalization occurs. For web, which pages."}
+      - {name: transformation_config, api_name: transformationConfig, in: body, schema: PersonalizationTransformationConfig, description: "How the provider's data is transformed and when."}
+      - {name: is_enabled, api_name: isEnabled, in: body, type: boolean, description: "Whether this configuration is enabled."}
+      - {name: display_url, api_name: displayUrl, in: body, type: string, description: "When editing this configuration on the website, which page to display it on if not the current page."}
+      - {name: disable_related_experiences, api_name: disableRelatedExperiences, in: query, type: boolean, description: "Disable other experiences in the same content zone (default false)"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Notes:** No source says which attributes the server enforces, so none is marked required. The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) names `name`, `label`, `data_provider`, `source_matchers` and `transformation_config`. The [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/PersonalizationExperienceConfigInputRepresentation.java) also has `id`, `published_date`, `created_by_id`, `created_date`, `last_modified_by_id` and `last_modified_date`, marked read-only and ignored on input, so they aren't options.
+
+      The [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) mixes a URL matcher and a content zone in one `source_matchers` list, and no source says whether they combine as AND or OR. It also writes substitution values as `{{data.title}}`, while the transformer example uses `{{recommendation.title}}`, and no source defines either root. Web content zones are defined in the [Interactions SDK Sitemap](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-content-zones.md).
+
+  - name: p13n_experience_config_update
+    method: PUT
+    host: connect
+    path: /personalization/external-apps/{id}/personalization-experience-configs/{name}
+    tools: [d360_p13n_experience_config_update]
+    description: Changes an experience config, for example to turn it on or off with `is_enabled`. The connector and name identify it.
+    example: CALL cdp.p13n_experience_config_update (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_enabled => false);
+    options:
+      - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
+      - {name: name_param, api_name: name, in: path, type: string, required: true, description: "Unique name of Personalization Experience Config to update"}
+      - {name: name, in: body, type: string, description: "Unique name of the config. Other calls address it by this name through `name_param`."}
+      - {name: label, in: body, type: string, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: data_provider, api_name: dataProvider, in: body, schema: PersonalizationDataProvider, description: "What is supplying the data for this experience."}
+      - {name: source_matchers, api_name: sourceMatchers, in: body, schema: PersonalizationSourceMatcher, array: 1, description: "How to find where this personalization occurs. For web, which pages."}
+      - {name: transformation_config, api_name: transformationConfig, in: body, schema: PersonalizationTransformationConfig, description: "How the provider's data is transformed and when."}
+      - {name: is_enabled, api_name: isEnabled, in: body, type: boolean, description: "Whether this configuration is enabled."}
+      - {name: display_url, api_name: displayUrl, in: body, type: string, description: "When editing this configuration on the website, which page to display it on if not the current page."}
+      - {name: disable_related_experiences, api_name: disableRelatedExperiences, in: query, type: boolean, description: "Disable other experiences in the same content zone (default false)"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The verb is `PUT`, but the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) and [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) call it a partial update where every field is optional. Check that on an org before relying on omitted fields staying as they are."
+
+  - name: p13n_experience_config_delete
+    method: DELETE
+    host: connect
+    path: /personalization/external-apps/{id}/personalization-experience-configs/{name}
+    tools: [d360_p13n_experience_config_delete]
+    description: Deletes an experience config, which stops its delivery to the app. This can't be undone.
+    example: CALL cdp.p13n_experience_config_delete (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner');
+    options:
+      - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
+      - {name: name_param, api_name: name, in: path, type: string, required: true, description: "Unique name of Personalization Experience Config to delete"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) drops the HTTP response and returns its own `status` JSON, so that shape isn't the API's."
+
+  - name: p13n_transformer_list
+    method: GET
+    host: connect
+    path: /personalization/external-apps/transformers
+    tools: [d360_p13n_transformer_list]
+    description: Lists transformers, which define how content renders through HTML templates, scripts or mobile components. Filter by source, schema, category, channel, type, enabled status, connector, data space or attachment.
+    example: CALL cdp.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'Handlebars', is_enabled => true);
+    options:
+      - {name: limit, in: query, type: integer, description: "Limits the number returned (1-299, default 50)"}
+      - {name: offset, in: query, type: integer, description: "Number to skip (default 0)"}
+      - {name: source, in: query, type: string, description: "Source: Global or Organization (default Organization)"}
+      - {name: schema_reference, api_name: schemaReference, in: query, type: string, description: "Filter by personalization schema reference"}
+      - {name: transformer_category, api_name: transformerCategory, in: query, type: string, description: "Filter by category: EmbeddedContent or Agent"}
+      - {name: channel_type, api_name: channelType, in: query, type: string, description: "Filter by channel: MobileApp or WebApp"}
+      - {name: transformer_type, api_name: transformerType, in: query, type: string, description: "Filter by type: Handlebars, HtmlElementModifier, AgentScript, or Component"}
+      - {name: is_enabled, api_name: isEnabled, in: query, type: boolean, description: "Filter by enabled status"}
+      - {name: connector_name_or_id, api_name: connectorNameOrId, in: query, type: string, description: "Filter by data connector name or ID"}
+      - {name: dataspace_id_or_name, api_name: dataSpaceIdOrName, in: query, type: string, description: "Filter by data space ID or name"}
+      - {name: is_data_connector_attached, api_name: isDataConnectorAttached, in: query, type: boolean, description: "Filter by attachment status. When false, returns unattached transformers. Combine with connector_name_or_id to get transformers matching that connector OR unattached"}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Paging:** `limit` (1-299, default 50) and `offset` (default 0).
+
+      **Notes:** `source` defaults to `Organization`, so Global transformers need `source => 'Global'`. The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `transformers` with `total_size`, but that's fixture data.
+
+  - name: p13n_transformer_get
+    method: GET
+    host: connect
+    path: /personalization/external-apps/transformer
+    tools: [d360_p13n_transformer_get]
+    description: Returns one transformer by id or name, with its substitution definitions, type details and data connectors.
+    example: CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: query, type: string, required: true, description: "Unique id or name of Personalization Transformer to retrieve"}
+    columns:
+      - {name: id, type: VARCHAR, description: "Transformer id. Only the test mock shows this field."}
+      - {name: name, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: data_connectors, api_name: dataConnectors, type: JSON, description: "Array of associated data connectors."}
+      - {name: channel, type: VARCHAR, description: "`MobileApp` or `WebApp`."}
+      - {name: substitution_definitions, api_name: substitutionDefinitions, type: JSON, description: "Map of variable name to [PersonalizationSubstitution](#personalizationsubstitution)."}
+      - {name: schema_reference, api_name: schemaReference, type: VARCHAR, description: "Name of the schema the definitions were created from."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Name of the data space."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Whether it's enabled when delivered."}
+      - {name: transformer_type, api_name: transformerType, type: VARCHAR, description: "`Handlebars`, `HtmlElementModifier`, `AgentScript` or `Component`."}
+      - {name: thumbnail_image, api_name: thumbnailImage, type: VARCHAR, description: "URL or base64-encoded image."}
+      - {name: transformer_type_details, api_name: transformerTypeDetails, type: JSON, description: "[PersonalizationTransformerDetails](#personalizationtransformerdetails)."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. No source shows a real response. These columns are the attributes of the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/TransformerInputRepresentation.java), and the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) says the call returns the complete transformer. Other response fields go to `_meta`.
+
+  - name: p13n_transformer_create
+    method: POST
+    host: connect
+    path: /personalization/external-apps/transformers
+    tools: [d360_p13n_transformer_create]
+    description: "Creates a transformer: a template, script, HTML modifier or mobile component that renders personalized content, with substitution variables that each experience can customize."
+    example: |
+      CALL cdp.p13n_transformer_create (
+          name => 'promo_banner_transformer',
+          label => 'Promotional Banner Transformer',
+          channel => 'WebApp',
+          transformer_type => 'Handlebars',
+          is_enabled => true,
+          data_connectors => ['my_website_connector'],
+          dataspace => 'default',
+          substitution_definitions => (
+              bannerTitle = (label = 'Banner Title', configType = 'SchemaPath', defaultValue = '{{recommendation.title}}', overridable = true, required = true),
+              ctaText = (label = 'Call to Action Text', configType = 'Static', defaultValue = 'Shop Now', overridable = true, required = true)
+          ),
+          transformer_type_details => (
+              html = $$<div class="promo-banner"><h2>{{bannerTitle}}</h2><button class="cta-button">{{ctaText}}</button></div>$$,
+              disable_auto_injection_of_engagement_attributes = false
+          )
+      );
+    options:
+      - {name: name, in: body, type: string, description: "Experience configs reference it through `transformer_name`."}
+      - {name: label, in: body, type: string, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: data_connectors, api_name: dataConnectors, in: body, array: 1, type: string, description: "Websites or mobile apps this transformer belongs to: id, name or appSourceId of a Streaming App data connector."}
+      - {name: channel, in: body, type: string, enum: [MobileApp, WebApp], description: "Whether the transformer is for a website or a mobile app."}
+      - {name: substitution_definitions, api_name: substitutionDefinitions, in: body, schema: PersonalizationSubstitution, map: true, description: "Substitution variables that experiences can customize. The key is the variable name."}
+      - {name: schema_reference, api_name: schemaReference, in: body, type: string, description: "Name of the schema the substitution definitions were created from. It lets UIs offer an optional guardrail when selecting points for an experience."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, description: "Name of the data space the transformer belongs to."}
+      - {name: is_enabled, api_name: isEnabled, in: body, type: boolean, description: "Whether the transformer is enabled when delivered to the app or website."}
+      - {name: transformer_type, api_name: transformerType, in: body, type: string, enum: [Handlebars, HtmlElementModifier, AgentScript, Component], description: "Tells the SDK how the transformer works and what code renders it."}
+      - {name: thumbnail_image, api_name: thumbnailImage, in: body, type: string, description: "Thumbnail image, as a URL or base64-encoded data."}
+      - {name: transformer_type_details, api_name: transformerTypeDetails, in: body, schema: PersonalizationTransformerDetails, description: "Data specific to `transformer_type`."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** No source says which attributes the server enforces, so none is marked required. The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) names `name`, `label`, `description`, `channel`, `transformer_type`, `substitution_definitions` and `transformer_type_details`. For a `Component`, the [low-code mobile guide](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalize-mobile-experiences-lowcode.md) says the SDK matches the backend's component name against the components allowed in the app's `ContentZone`."
+
+  - name: p13n_transformer_update
+    method: PUT
+    host: connect
+    path: /personalization/external-apps/transformer
+    tools: [d360_p13n_transformer_update]
+    description: Changes a transformer, identified by id or name.
+    example: CALL cdp.p13n_transformer_update (id_or_name => 'promo_banner_transformer', is_enabled => true, label => 'Updated Banner Transformer');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: query, type: string, required: true, description: "Unique id or name of Personalization Transformer to update"}
+      - {name: name, in: body, type: string, description: "Experience configs reference it through `transformer_name`."}
+      - {name: label, in: body, type: string, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: data_connectors, api_name: dataConnectors, in: body, array: 1, type: string, description: "Websites or mobile apps this transformer belongs to: id, name or appSourceId of a Streaming App data connector."}
+      - {name: channel, in: body, type: string, enum: [MobileApp, WebApp], description: "Whether the transformer is for a website or a mobile app."}
+      - {name: substitution_definitions, api_name: substitutionDefinitions, in: body, schema: PersonalizationSubstitution, map: true, description: "Substitution variables that experiences can customize. The key is the variable name."}
+      - {name: schema_reference, api_name: schemaReference, in: body, type: string, description: "Name of the schema the substitution definitions were created from. It lets UIs offer an optional guardrail when selecting points for an experience."}
+      - {name: dataspace, api_name: dataSpace, in: body, type: string, description: "Name of the data space the transformer belongs to."}
+      - {name: is_enabled, api_name: isEnabled, in: body, type: boolean, description: "Whether the transformer is enabled when delivered to the app or website."}
+      - {name: transformer_type, api_name: transformerType, in: body, type: string, enum: [Handlebars, HtmlElementModifier, AgentScript, Component], description: "Tells the SDK how the transformer works and what code renders it."}
+      - {name: thumbnail_image, api_name: thumbnailImage, in: body, type: string, description: "Thumbnail image, as a URL or base64-encoded data."}
+      - {name: transformer_type_details, api_name: transformerTypeDetails, in: body, schema: PersonalizationTransformerDetails, description: "Data specific to `transformer_type`."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The verb is `PUT`, but the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) calls it a partial update where every field is optional. Changing `transformer_type` may require changing `transformer_type_details` to match."
+
+  - name: p13n_transformer_delete
+    method: DELETE
+    host: connect
+    path: /personalization/external-apps/transformer
+    tools: [d360_p13n_transformer_delete]
+    description: Deletes a transformer. Experience configs that reference it break, and this can't be undone, so check for active experiences first.
+    example: CALL cdp.p13n_transformer_delete (id_or_name => 'promo_banner_transformer');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: query, type: string, required: true, description: "Unique id or name of Personalization Transformer to delete"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** To find references, use [`p13n_experience_config_list`](#p13n_experience_config_list) with `transformer_name_or_id`, once per connector. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) drops the HTTP response and returns its own `status` JSON, so that shape isn't the API's."
+
+  - name: p13n_schema_create
+    method: POST
+    host: connect
+    path: /personalization/personalization-schemas
+    tools: [d360_p13n_schema_create]
+    description: "Creates a personalization schema, which defines the structure of personalized content: its attributes, content object and related objects. The data space and content DMO must exist."
+    example: |
+      CALL cdp.p13n_schema_create (
+          name => 'product_recommendations_schema',
+          label => 'Product Recommendations Schema',
+          dataspace_name => 'default',
+          personalization_type => 'Recommendations',
+          attributes => [
+              (name = 'recommendation_type', label = 'Recommendation Type', default_value = 'similar_items'),
+              (name = 'priority_score', label = 'Priority Score')
+          ],
+          content_object => (name = 'Product__dll', field_names = ['name', 'description', 'price', 'image_url', 'category']),
+          related_content_objects => [(content_object_name = 'ProductReviews__dll', field_names = ['rating', 'review_count'])]
+      );
+    options:
+      - {name: name, in: body, type: string, description: "Points reference it through `schema_name`, transformers through `schema_reference`."}
+      - {name: label, in: body, type: string, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "API name of the data space associated with the schema."}
+      - {name: personalization_type, api_name: personalizationType, in: body, type: string, enum: [ExperienceVariation, FlowPath, ManualContent, Recommendations], description: "`ExperienceVariation` is for A/B test variations, `FlowPath` for flow branches, `ManualContent` for curated content, `Recommendations` for ML-driven content."}
+      - {name: attributes, in: body, schema: PersonalizationAttribute, array: 1, description: "Custom variables that point decisions set through `attribute_values`."}
+      - {name: content_object, api_name: contentObject, in: body, schema: PersonalizationContentObject, description: "The content object (DMO) to personalize with, and its fields."}
+      - {name: related_content_objects, api_name: relatedContentObjects, in: body, schema: PersonalizationRelatedContentObject, array: 1, description: "Related content objects, which can nest."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Notes:** The MCP tool takes this body as a raw JSON string. The attributes come from an unused [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/PersonalizationSchemaInputRepresentation.java) and the [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json). No source says which attributes the server enforces, so none is marked required. The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) names `name`, `label`, `description`, `dataspace_name`, `personalization_type`, `attributes` and `content_object`.
+
+      The tool text and class say `content_object` is a DMO, but the payload example and tests use `Product__dll`. `__dll` is the DLO suffix, and DMOs end in `__dlm`. The [Schema DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationschemadmo-dmo.md) reference says the type is usually `Recommendation`, singular, against `Recommendations` here.
+
+  - name: p13n_schema_get
+    method: GET
+    host: connect
+    path: /personalization/personalization-schemas/{idOrName}
+    tools: [d360_p13n_schema_get]
+    description: Returns one schema by id or name, with its attributes, content object and related content objects. Use it to inspect a schema before creating points.
+    example: CALL cdp.p13n_schema_get (id_or_name => 'product_recommendations_schema');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Schema to retrieve"}
+    columns:
+      - {name: id, type: VARCHAR, description: "Schema id. Only the test mock shows this field."}
+      - {name: name, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "API name of the data space."}
+      - {name: personalization_type, api_name: personalizationType, type: VARCHAR, description: "`ExperienceVariation`, `FlowPath`, `ManualContent` or `Recommendations`."}
+      - {name: attributes, type: JSON, description: "Array of [PersonalizationAttribute](#personalizationattribute)."}
+      - {name: content_object, api_name: contentObject, type: JSON, description: "[PersonalizationContentObject](#personalizationcontentobject)."}
+      - {name: related_content_objects, api_name: relatedContentObjects, type: JSON, description: "Array of [PersonalizationRelatedContentObject](#personalizationrelatedcontentobject)."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. No source shows a real response. These columns are the attributes of the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/personalization/PersonalizationSchemaInputRepresentation.java), and the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) says the call returns the complete schema. Other response fields go to `_meta`.
+    notes: "**Notes:** No source has a list call for schemas. The docs describe a [`ssot__PersonalizationSchema__dlm`](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationschemadmo-dmo.md) DMO with `Name`, `PersonalizationType` and `IsActive`, which a `SELECT` over the connection could read, but they don't say it holds every schema created here."
+
+  - name: p13n_schema_update
+    method: PATCH
+    host: connect
+    path: /personalization/personalization-schemas/{idOrName}
+    tools: [d360_p13n_schema_update]
+    description: Changes a schema's attributes, content object or related objects. Points that use the schema may be affected.
+    example: CALL cdp.p13n_schema_update (id_or_name => 'product_recommendations_schema', label => 'Updated Product Recommendations', attributes => [(name = 'new_attribute', label = 'New Attribute', default_value = 'default_value')]);
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Schema to update"}
+      - {name: name, in: body, type: string, description: "Points reference it through `schema_name`, transformers through `schema_reference`."}
+      - {name: label, in: body, type: string, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "API name of the data space associated with the schema."}
+      - {name: personalization_type, api_name: personalizationType, in: body, type: string, enum: [ExperienceVariation, FlowPath, ManualContent, Recommendations], description: "`ExperienceVariation` is for A/B test variations, `FlowPath` for flow branches, `ManualContent` for curated content, `Recommendations` for ML-driven content."}
+      - {name: attributes, in: body, schema: PersonalizationAttribute, array: 1, description: "Custom variables that point decisions set through `attribute_values`."}
+      - {name: content_object, api_name: contentObject, in: body, schema: PersonalizationContentObject, description: "The content object (DMO) to personalize with, and its fields."}
+      - {name: related_content_objects, api_name: relatedContentObjects, in: body, schema: PersonalizationRelatedContentObject, array: 1, description: "Related content objects, which can nest."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) says this can add attributes, but no source says whether `attributes` merges with or replaces the existing list."
+
+  - name: p13n_schema_delete
+    method: DELETE
+    host: connect
+    path: /personalization/personalization-schemas/{idOrName}
+    tools: [d360_p13n_schema_delete]
+    description: Deletes a schema. Points that reference it break, and this can't be undone, so check for active points first.
+    example: CALL cdp.p13n_schema_delete (id_or_name => 'product_recommendations_schema');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Schema to delete"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) drops the HTTP response and returns its own `status` JSON, so that shape isn't the API's."
+
+  - name: p13n_point_create
+    method: POST
+    host: connect
+    path: /personalization/personalization-points
+    tools: [d360_p13n_point_create]
+    description: "Creates a personalization point: a set of prioritized decision rules whose attribute values determine the content or experience at that point. The data space, profile data graph and schema must exist."
+    example: |
+      CALL cdp.p13n_point_create (
+          name => 'home_page_experience',
+          label => 'Home Page Experience Point',
+          dataspace_name => 'default',
+          profile_data_graph_name => 'individual_profile',
+          source => 'PersonalizationApp',
+          is_authentication_required => true,
+          schema_name => 'product_recommendations_schema',
+          max_items_count => 10,
+          decisions => [
+              (
+                  name = 'premium_decision',
+                  label = 'Premium User Decision',
+                  criteria = $${"type":"Criteria","operator":"AND","filters":[{"type":"Filter","operator":"EQUALS","subject":{"fieldApiName":"Segment__c","objectApiName":"Individual__dll"},"values":["Premium"]}]}$$,
+                  attribute_values = [(attribute_name = 'recommendation_type', value = 'premium_products')],
+                  personalizer_name = 'premium_recommender',
+                  state = 'Live'
+              ),
+              (
+                  name = 'default_decision',
+                  label = 'Default Decision',
+                  criteria = $${"type":"Criteria","operator":"AND","filters":[]}$$,
+                  attribute_values = [(attribute_name = 'recommendation_type', value = 'popular_items')],
+                  personalizer_name = 'default_recommender',
+                  state = 'Live'
+              )
+          ]
+      );
+    options:
+      - {name: name, in: body, type: string, required: true, description: "API name. It can't change after creation."}
+      - {name: label, in: body, type: string, required: true, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, required: true, description: "API name of the data space."}
+      - {name: profile_data_graph_name, api_name: profileDataGraphName, in: body, type: string, required: true, description: "Profile data graph the point targets. It must exist."}
+      - {name: source, in: body, type: string, enum: [BlockBuilder, ExperienceBuilder, FlowBuilder, PersonalizationApp], required: true, description: "Where the point is defined: Email Builder blocks, Digital Experiences, Flow decisions or the Personalization app."}
+      - {name: is_authentication_required, api_name: isAuthenticationRequired, in: body, type: boolean, required: true, description: "Whether API calls require user authentication."}
+      - {name: schema_name, api_name: schemaName, in: body, type: string, description: "A custom schema. Use `schema_enum` for a standard one."}
+      - {name: schema_enum, api_name: schemaEnum, in: body, type: string, enum: [DecisionDefined, ExperienceVariation, FlowPath], description: "A standard schema, in place of `schema_name`."}
+      - {name: max_items_count, api_name: maxItemsCount, in: body, type: integer, description: "The maximum number of items for this point."}
+      - {name: decisions, in: body, schema: PersonalizationDecision, array: 1, required: true, description: "Prioritized rules with criteria and attribute values."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Done when:** `p13n_point_get.status` is `Active`, or `Error` on failure. The field name comes from a [test mock](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) and the tool's mention of a "current sync status". The values come from the [Point DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md), which lists `Processing`, `Active`, `Error` and `Deleting` as the pipeline's status.
+
+      **Notes:** The MCP tool takes this body as a raw JSON string, and no request class exists. The attributes come from the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java), the [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) and the [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java). The required marks follow the tool text, which calls only `schema_name` and `schema_enum` optional, even though it also says a schema must exist.
+
+      **Decision order:** the [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) says "first matching criteria wins". The [Decision DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationdecisiondmo-dmo.md) says the decision with the highest priority value is used, and the lowest priority is 1. No source here has a priority attribute, so test which rule applies.
+
+      **Spelling:** the DMO docs write `source` as `PERSONALIZATION_APP` and `EXPERIENCE_BUILDER`, and the state as `Draft` and `LIVE`. The tool text and example use `PersonalizationApp`, `ExperienceBuilder` and `Live`.
+
+      **Personalizers:** no function here creates what `personalizer_name` refers to. The spec's [`datakit_deploy`](data_kits.md#datakit_deploy) has `PersonalizationRecommender`, `PersonalizationObjective`, `PersonalizationPoint` and `PersonalizationSchema` component types.
+
+      The [Decisioning API](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.md) requires all points in one request to use the same profile data graph, so `profile_data_graph_name` limits which points can be requested together.
+
+  - name: p13n_point_get
+    method: GET
+    host: connect
+    path: /personalization/personalization-points/{idOrName}
+    tools: [d360_p13n_point_get]
+    description: Returns one point by id or name, with its decisions, schema configuration, authentication settings and current sync status.
+    example: CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Point to retrieve"}
+    columns:
+      - {name: id, type: VARCHAR, description: "Point id. Only the test mock shows this field."}
+      - {name: name, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "API name of the data space."}
+      - {name: profile_data_graph_name, api_name: profileDataGraphName, type: VARCHAR, description: "Profile data graph the point targets."}
+      - {name: source, type: VARCHAR, description: "`BlockBuilder`, `ExperienceBuilder`, `FlowBuilder` or `PersonalizationApp`."}
+      - {name: is_authentication_required, api_name: isAuthenticationRequired, type: BOOLEAN, description: "Whether API calls require user authentication."}
+      - {name: schema_name, api_name: schemaName, type: VARCHAR, description: "Custom schema, if any."}
+      - {name: schema_enum, api_name: schemaEnum, type: VARCHAR, description: "Standard schema, if any."}
+      - {name: max_items_count, api_name: maxItemsCount, type: INTEGER, description: "Maximum number of items."}
+      - {name: decisions, type: JSON, description: "Array of [PersonalizationDecision](#personalizationdecision)."}
+      - {name: status, type: VARCHAR, description: "Current sync status. Only the test mock shows this name, with `Active`. The [Point DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md) lists `Processing`, `Active`, `Error` and `Deleting`."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. No source shows a real response. These columns are the request attributes from the [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json), and the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) says the call returns the complete point. Other response fields go to `_meta`.
+    notes: "**Notes:** No source has a list call for points. The docs describe a [`ssot__PersonalizationPoint__dlm`](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md) DMO with `Name` and `PersonalizationPointStatus`, which a `SELECT` over the connection could read, but they don't say it holds every point created here."
+
+  - name: p13n_point_update
+    method: PUT
+    host: connect
+    path: /personalization/personalization-points/{idOrName}
+    tools: [d360_p13n_point_update]
+    description: Replaces a point. It's a full `PUT`, so send the complete object with all required fields, including the unchanged `name`.
+    example: |
+      CALL cdp.p13n_point_update (
+          id_or_name => 'home_page_experience',
+          name => 'home_page_experience',
+          label => 'Updated Home Page Experience',
+          dataspace_name => 'default',
+          profile_data_graph_name => 'individual_profile',
+          source => 'PersonalizationApp',
+          is_authentication_required => false,
+          schema_name => 'product_recommendations_schema',
+          max_items_count => 15,
+          decisions => [(
+              name = 'default_decision',
+              label = 'Default Decision',
+              criteria = $${"type":"Criteria","operator":"AND","filters":[]}$$,
+              attribute_values = [],
+              personalizer_name = 'default_recommender',
+              state = 'Live'
+          )]
+      );
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Point to update"}
+      - {name: name, in: body, type: string, required: true, description: "API name. It can't change after creation, but the payload example still sends it."}
+      - {name: label, in: body, type: string, required: true, description: "-"}
+      - {name: description, in: body, type: string, description: "-"}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, required: true, description: "API name of the data space."}
+      - {name: profile_data_graph_name, api_name: profileDataGraphName, in: body, type: string, required: true, description: "Profile data graph the point targets. It must exist."}
+      - {name: source, in: body, type: string, enum: [BlockBuilder, ExperienceBuilder, FlowBuilder, PersonalizationApp], required: true, description: "Where the point is defined: Email Builder blocks, Digital Experiences, Flow decisions or the Personalization app."}
+      - {name: is_authentication_required, api_name: isAuthenticationRequired, in: body, type: boolean, required: true, description: "Whether API calls require user authentication."}
+      - {name: schema_name, api_name: schemaName, in: body, type: string, description: "A custom schema. Use `schema_enum` for a standard one."}
+      - {name: schema_enum, api_name: schemaEnum, in: body, type: string, enum: [DecisionDefined, ExperienceVariation, FlowPath], description: "A standard schema, in place of `schema_name`."}
+      - {name: max_items_count, api_name: maxItemsCount, in: body, type: integer, description: "The maximum number of items for this point."}
+      - {name: decisions, in: body, schema: PersonalizationDecision, array: 1, required: true, description: "Prioritized rules with criteria and attribute values."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) says changes take effect immediately for runtime execution, while the [Point DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md) describes a status for pipeline processing. No source connects the two, so read `p13n_point_get.status` afterwards. See [`p13n_point_create`](#p13n_point_create) for where the attributes come from and for the decision order conflict."
+
+  - name: p13n_point_delete
+    method: DELETE
+    host: connect
+    path: /personalization/personalization-points/{idOrName}
+    tools: [d360_p13n_point_delete]
+    description: Deletes a point, which immediately stops personalization at that point in experience or flow execution. References from experiments or batch decisions break, and this can't be undone.
+    example: CALL cdp.p13n_point_delete (id_or_name => 'home_page_experience');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Point to delete"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Experience configs that use the point can be found with [`p13n_experience_config_list`](#p13n_experience_config_list) and `personalization_point_name_or_id`, once per connector. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/PersonalizationTools.java) drops the HTTP response and returns its own `status` JSON, so that shape isn't the API's."
+
+schemas:
+  PersonalizationAttribute:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "API name of the attribute."}
+      - {name: label, type: string, description: "-"}
+      - {name: default_value, api_name: defaultValue, type: string, description: "Optional default value."}
+
+  PersonalizationAttributeValue:
+    unknown: warning
+    attributes:
+      - {name: attribute_name, api_name: attributeName, type: string, description: "Name of an attribute in the schema."}
+      - {name: value, type: string, description: "-"}
+
+  PersonalizationContentObject:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "API name of the content object."}
+      - {name: field_names, api_name: fieldNames, array: 1, type: string, description: "DMO field API names."}
+
+  PersonalizationDataProvider:
+    unknown: warning
+    attributes:
+      - {name: type, type: string, enum: [PersonalizationPoint], description: "The kind of data provider, which also describes how the data is provided."}
+      - {name: reference_type, api_name: referenceType, type: string, enum: [ApiName], description: "Kind of identifier in `value`."}
+      - {name: value, type: string, description: "Identifier of the provider. With `ApiName`, the provider's API name."}
+      - {name: dataspace_reference_type, api_name: dataSpaceReferenceType, type: string, enum: [ApiName], description: "Kind of identifier in `dataspace_value`."}
+      - {name: dataspace_value, api_name: dataSpaceValue, type: string, description: "Identifier of the data space. Optional, to override the default."}
+      - {name: group_by_type, api_name: groupByType, type: string, enum: [DataGraph], description: "If requests to this provider should be grouped, the type of the grouping value."}
+      - {name: group_by_reference_type, api_name: groupByReferenceType, type: string, enum: [ApiName], description: "Kind of identifier in `group_by_value`."}
+      - {name: group_by_value, api_name: groupByValue, type: string, description: "Identifier of the grouping value. Optional, to override the default."}
+
+  PersonalizationDecision:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "-"}
+      - {name: label, type: string, description: "-"}
+      - {name: description, type: string, description: "-"}
+      - {name: criteria, type: string, description: "Filter rule as a JSON string, such as `{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}`. The example shape is the only documentation."}
+      - {name: attribute_values, api_name: attributeValues, schema: PersonalizationAttributeValue, array: 1, description: "Values for the schema's attributes."}
+      - {name: personalizer_name, api_name: personalizerName, type: string, description: "The personalizer that generates the response for this decision."}
+      - {name: state, type: string, description: "The examples use `Live`. The [Decision DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationdecisiondmo-dmo.md) lists `Draft` and `LIVE`."}
+
+  PersonalizationDecisionContext:
+    unknown: warning
+    attributes:
+      - {name: individual_id, api_name: individualId, type: string, description: "The individual id associated with a profile."}
+      - {name: anchor_id, api_name: anchorId, type: string, description: "The anchor id used by the personalizer."}
+
+  PersonalizationDecisionRequestBody:
+    unknown: warning
+    attributes:
+      - {name: p, schema: PersonalizationDecisionRequestItems, description: "Decision, cohort and experiment ids for the preview."}
+      - {name: c, schema: PersonalizationDecisionContext, description: "Individual and anchor ids for the preview."}
+
+  PersonalizationDecisionRequestItems:
+    unknown: warning
+    attributes:
+      - {name: decision_id, api_name: decisionId, type: string, description: "-"}
+      - {name: cohort_id, api_name: cohortId, type: string, description: "The experiment cohort id."}
+      - {name: experiment_id, api_name: experimentId, type: string, description: "-"}
+
+  PersonalizationExperienceConfig:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "Unique name of the config."}
+      - {name: label, type: string, description: "-"}
+      - {name: description, type: string, description: "-"}
+      - {name: data_provider, api_name: dataProvider, schema: PersonalizationDataProvider, description: "What is supplying the data for this experience."}
+      - {name: source_matchers, api_name: sourceMatchers, schema: PersonalizationSourceMatcher, array: 1, description: "How to find where this personalization occurs. For web, which pages."}
+      - {name: transformation_config, api_name: transformationConfig, schema: PersonalizationTransformationConfig, description: "How the provider's data is transformed and when."}
+      - {name: is_enabled, api_name: isEnabled, type: boolean, description: "Whether this configuration is enabled."}
+      - {name: display_url, api_name: displayUrl, type: string, description: "When editing this configuration on the website, which page to display it on if not the current page."}
+
+  PersonalizationRelatedContentObject:
+    unknown: warning
+    attributes:
+      - {name: content_object_name, api_name: contentObjectName, type: string, description: "API name of the related content object."}
+      - {name: field_names, api_name: fieldNames, array: 1, type: string, description: "DMO field API names."}
+      - {name: related_content_objects, api_name: relatedContentObjects, schema: PersonalizationRelatedContentObject, array: 1, description: "Nested related content objects."}
+
+  PersonalizationSourceMatcher:
+    unknown: warning
+    attributes:
+      - {name: type, type: string, enum: [PageType, PageUrlMatcher, ContentZone], description: "How to match the source."}
+      - {name: value, type: string, description: "For `PageType`, a page type from the Sitemap. For `PageUrlMatcher`, a page URL, which supports wildcards. The example passes a zone name for `ContentZone`."}
+
+  PersonalizationSubstitution:
+    unknown: warning
+    attributes:
+      - {name: label, type: string, description: "Shown in a UI when configuring this variable."}
+      - {name: description, type: string, description: "Shown in a UI when configuring this variable."}
+      - {name: config_type, api_name: configType, type: string, enum: [SchemaPath, Static], description: "`SchemaPath` takes data from the personalization point, `Static` is a hardcoded value."}
+      - {name: default_value, api_name: defaultValue, type: string, description: "Used if the experience config doesn't override the value."}
+      - {name: overridable, type: boolean, description: "Whether an experience can override the default."}
+      - {name: required, type: boolean, description: "Whether a value, default or from the experience, must be provided."}
+
+  PersonalizationTransformation:
+    unknown: warning
+    attributes:
+      - {name: transformer_name, api_name: transformerName, type: string, description: "Name of the transformer to use."}
+      - {name: substitutions, map: true, type: any, description: "Keys are substitution variables defined in the transformer, values are the values to use."}
+
+  PersonalizationTransformationConfig:
+    unknown: warning
+    attributes:
+      - {name: render_if_empty, api_name: renderIfEmpty, type: boolean, description: "Whether to render the content if it couldn't be transformed. Not rendering is the default."}
+      - {name: when, type: string, enum: [Immediately, ExitIntent, ElementClick, ScrollPercent], description: "When the transformation occurs relative to its target being available."}
+      - {name: when_values, api_name: whenValues, schema: PersonalizationWhenValues, description: "Extra data that `ElementClick` and `ScrollPercent` need."}
+      - {name: method, type: string, enum: [ReplaceContentZoneContent, ReplaceElementContent, AddAfterElement, AddBeforeElement, AddOverlay, ContentZoneHandler], description: "How the transformed content interacts with the config's target."}
+      - {name: engagement_destination, api_name: engagementDestination, type: string, description: "Maps to a destination entry in the Engagement config, which determines the event attributes needed to land the data in the target engagement DMO."}
+      - {name: transformations, schema: PersonalizationTransformation, array: 1, description: "How the provider's response is transformed into content."}
+
+  PersonalizationTransformer:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "-"}
+      - {name: label, type: string, description: "-"}
+      - {name: description, type: string, description: "-"}
+      - {name: data_connectors, api_name: dataConnectors, array: 1, type: string, description: "Websites or mobile apps this transformer belongs to: id, name or appSourceId of a Streaming App data connector."}
+      - {name: channel, type: string, enum: [MobileApp, WebApp], description: "Whether the transformer is for a website or a mobile app."}
+      - {name: substitution_definitions, api_name: substitutionDefinitions, schema: PersonalizationSubstitution, map: true, description: "The key is the variable name."}
+      - {name: schema_reference, api_name: schemaReference, type: string, description: "Name of the schema the substitution definitions were created from."}
+      - {name: dataspace, api_name: dataSpace, type: string, description: "Name of the data space the transformer belongs to."}
+      - {name: is_enabled, api_name: isEnabled, type: boolean, description: "Whether the transformer is enabled when delivered to the app or website."}
+      - {name: transformer_type, api_name: transformerType, type: string, enum: [Handlebars, HtmlElementModifier, AgentScript, Component], description: "Tells the SDK how the transformer works and what code renders it."}
+      - {name: thumbnail_image, api_name: thumbnailImage, type: string, description: "Thumbnail image, as a URL or base64-encoded data."}
+      - {name: transformer_type_details, api_name: transformerTypeDetails, schema: PersonalizationTransformerDetails, description: "Data specific to `transformer_type`."}
+
+  PersonalizationTransformerDetails:
+    unknown: warning
+    attributes:
+      - {name: html, type: string, description: "Handlebars HTML template."}
+      - {name: script, type: string, description: "Handlebars script template."}
+      - {name: component_name, api_name: componentName, type: string, description: "Component class in the app that does the rendering. For now that means mobile."}
+      - {name: disable_auto_injection_of_engagement_attributes, api_name: disableAutoInjectionOfEngagementAttributes, type: boolean, description: "If true, the HTML must provide engagement attributes through substitution values. Auto-injection is the default."}
+
+  PersonalizationWhenValues:
+    unknown: warning
+    attributes:
+      - {name: value, type: string, description: "CSS selector for `ElementClick`, or a percentage for `ScrollPercent`."}

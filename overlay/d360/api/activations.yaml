@@ -1,0 +1,1118 @@
+title: Activations
+description: |
+  An activation delivers an audience to an activation target. It says which rows to send (a segment or a DMO), what to send about each one (`attributes_config`), how to reach them (`contact_points_config`), and which records to keep (`direct_dmo_filters_config`, `related_dmo_filters_config`).
+
+  The segment and target come first. The [catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) says "Requires active segment + target", and the [removed official skill](https://github.com/forcedotcom/sf-skills/blob/2476476dda1b671762c6e963b9d10c4a7056f1c4/skills/data360-activate/SKILL.md) says the destination usually comes before the activation. The v67 metadata calls (`activation_channel_list`, `activation_channel_preference_list`, `activation_data_source_list`, the limit calls) help you fill in the create call. After it, watch `activation_get.last_publish_status` and `activation_history_list`.
+
+  Gotchas:
+
+  - **Enums:** the values in the spec's enums aren't what its own examples send. `activation_create` has the table. Nothing here has been tested, so check against an org.
+  - **Keys:** use the record ID (`85R...` in the spec's samples). The spec allows developer names on some paths, a [community test](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) found they fail (one org), and the v67 action paths take IDs only.
+  - **Required fields:** the spec requires only `refresh_type`. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/ActivationTools.java) requires much more.
+  - **`activation_list`:** it omits attributes, contact points and filters, and takes no data space ([community](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)).
+
+  ```sql
+  CALL cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+  CALL cdp.activation_create (
+    name => 'high_value_s3', dataspace_name => 'default', segment_api_name => 'High_Value',
+    activation_target_name => 's3_target', refresh_type => 'INCREMENTAL',
+    activation_target_subject_config => (developer_name = 'ssot__Individual__dlm'),
+    attributes_config => (attributes = [(name = 'ssot__Id__c', label = 'Individual Id', entity_name = 'ssot__Individual__dlm', data_source_type = 'Text', reference_attribute_name = 'Id', source = 'DIRECT', type = 'MODEL')]));
+  CALL cdp.activation_get (activation_id => '85RVF000000CEf72AG');
+  CALL cdp.activation_history_list (activation_id => '85RVF000000CEf72AG');
+  ```
+
+functions:
+  - name: activation_delete
+    method: DELETE
+    host: connect
+    path: /ssot/activations/{activationId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D/delete
+    tools: [d360_activation_delete]
+    description: "Delete an activation. Because there are no dependency checks, ensure that there are no downstream systems that expect data from this activation before deleting it. After you delete an activation, Data 360 stops sending data to any downstream systems that are associated with the deleted activation. To identify the downstream system (activation target) that is associated with the activation, use the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. The get activation endpoint provides the activation target details needed to evaluate the impact before deleting the activation. In the case of an invalid activation ID, the error message “Activation not found for Id: *activation_id*” is returned. Since v61.0."
+    example: CALL cdp.activation_delete (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+
+  - name: activation_list
+    method: GET
+    host: connect
+    path: /ssot/activations
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations/get
+    tools: [d360_activation_list]
+    description: Get a list of activations with selected filters. Since v60.0.
+    example: CALL cdp.activation_list (filters => 'activationStatus in active AND activationRefreshType in incremental', order_by => 'createdDate desc', batch_size => 200);
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of results to return. Values are from `1` through `200`. If unspecified, the default value is `20`. Since v60.0."}
+      - {name: filters, in: query, type: string, description: "Filter the result set to a more narrow scope or specific type. These filters are supported: - name (field name: name; description: name of the activation) - market_segment_id (field name: segment_id; description: segment ID of the activation) - activation_target_id (field name: activation_target.id; description: activation target ID of the activation) - activationRefreshType (field name: refresh_type; description: refresh type of the activation; example: incremental) - activation_status (field name: status; description: status of the activation, which accepts only the values in the `status` response field; example: active). **Example requests with filters:** - GET `https://{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = name in Activation001` - GET `https://{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = marketsegmentid in 00sgxx0001AAA` - GET `https//{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = activationRefreshType in incremental` - GET `https//{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = activationrefreshtype in incremental AND activationstatus in active` - GET `https//{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = activationtargetid in 85Uxx0000004CKKEA2 AND activationstatus in active&orderby = createddate desc&offset=0&batchsize=20` Since v60.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be greater than or equal to `0`. If unspecified, no rows are skipped. Since v60.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set by `created_date`. If unspecified, items are returned by ID in ascending order. Since v60.0."}
+    rows: /activations
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_definition_id, api_name: activationDefinitionId, type: VARCHAR, description: "ID of the activation definition. Since v60.0."}
+      - {name: activation_mapping_schema, api_name: activationMappingSchema, type: VARCHAR, description: "Type of identifier to use for activation audience matching, such as `PII` or `ANON`. Since v63.0."}
+      - {name: activation_record_schema, api_name: activationRecordSchema, type: VARCHAR, description: "JSON schema representing the activation JSON payload in the activation_record field of the AudienceDMO. Since v62.0."}
+      - {name: activation_target, api_name: activationTarget, type: JSON, schema: ActivationTargetRepresentation, description: "Activation target details. Since v60.0."}
+      - {name: activation_target_subject_config, api_name: activationTargetSubjectConfig, type: JSON, schema: ActivationTargetSubjectRepresentation, description: "Activation target subject for the activation. Since v60.0."}
+      - {name: activation_type, api_name: activationType, type: VARCHAR, description: "Type of activation. Since v66.0."}
+      - {name: attribute_limiting_expression_config, api_name: attributeLimitingExpressionConfig, type: JSON, schema: AttributeLimitingExpressionConfigRepresentation, description: "Limiting expression configuration for the activation. Since v63.0."}
+      - {name: attributes_config, api_name: attributesConfig, type: JSON, schema: ActivationAttributesConfigRepresentation, description: "Attributes for the activation. Since v60.0."}
+      - {name: contact_points_config, api_name: contactPointsConfig, type: JSON, schema: ContactPointsConfigRepresentation, description: "Contact points for the activation. Since v60.0."}
+      - {name: curated_entity, api_name: curatedEntity, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Curated entity object details for the activation. Since v63.0."}
+      - {name: customer_file_source, api_name: customerFileSource, type: VARCHAR, description: "Customer file source of the activation platform. Since v60.0."}
+      - {name: data_sources_config, api_name: dataSourcesConfig, type: JSON, schema: ActivationDataSourcesRepresentation, description: "Data sources for the activation. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for the activation. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation. Since v60.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name for the activation. Since v60.0."}
+      - {name: direct_dmo_filters_config, api_name: directDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "Direct DMO filters for the activation. Since v60.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: last_publish_date, api_name: lastPublishDate, type: VARCHAR, description: "Last publish timestamp of the activation. Use the format `yyyy-mm-dd`. Since v60.0."}
+      - {name: last_publish_status, api_name: lastPublishStatus, type: VARCHAR, description: "Last publish status of the activation. Since v60.0."}
+      - {name: last_publish_status_error_msg, api_name: lastPublishStatusErrorMsg, type: VARCHAR, description: "Error message encountered during last publish. Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_last_run_timestamp, api_name: latestAudienceDmoLastRunTimestamp, type: VARCHAR, description: "Timestamp of the last run for the latest audience DMO. Use the format `yyyy-mm-dd`. Since v62.0."}
+      - {name: limit_value, api_name: limitValue, type: BIGINT, description: "Audience limit value for the activation. Since v63.0."}
+      - {name: market_segment_id, api_name: marketSegmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: membership_name, api_name: membershipName, type: VARCHAR, description: "Membership name of the activation. Since v60.0."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "Processing type for DMO activations. Since v67.0."}
+      - {name: query_path_config, api_name: queryPathConfig, type: JSON, schema: QueryPathConfigListRepresentation, description: "Query path for the activation target. Since v63.0."}
+      - {name: refresh_type, api_name: refreshType, type: VARCHAR, description: "Refresh type of the activation. Since v60.0."}
+      - {name: related_dmo_filters_config, api_name: relatedDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "DMO filters on related attributes for the activation. Since v60.0."}
+      - {name: segment_api_name, api_name: segmentApiName, type: VARCHAR, description: "Segment API name. Returned for `Segment` type activations. Since v60.0."}
+      - {name: segment_id, api_name: segmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: should_exclude_deletes, api_name: shouldExcludeDeletes, type: BOOLEAN, description: "Indicates whether to exclude records removed since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: should_exclude_updates, api_name: shouldExcludeUpdates, type: BOOLEAN, description: "Indicates whether to exclude records modified since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, type: VARCHAR, description: "Developer name of the source DMO. Since v66.0."}
+      - {name: static_data_config, api_name: staticDataConfig, type: JSON, schema: StaticDataConfigRepresentation, description: "Campaign data attributes configuration for an activation, which includes both standard attributes (system-defined) and custom attributes (user-defined). Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation. Since v60.0."}
+      - {name: waterfall_selected_child_segments_config, api_name: waterfallSelectedChildSegmentsConfig, type: JSON, schema: WaterfallSelectedChildSegmentsConfigRepresentation, description: "Details about the selected Waterfall child segments. Required when segment_api_name references a Waterfall segment type; must not be present otherwise. Since v67.0."}
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: activation_target_name, api_name: activationTargetName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/activations` in the response. Other response fields go to `_meta`: `batchSize`, `offset`, `orderByExpression`. Schema `ActivationRepresentation`."
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** The spec types `activations` as one object, but a live response returns an array ([sf-pi override](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json)). List items have no attributes, contact points or filters, so those need one `activation_get` each ([quirk T2](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community).
+
+      The response has no `total_size`. Its `offset` is the next offset, counted from 0, and `batch_size` is the number returned ([quirk P7](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community). There's no data space option, so filter on `dataspace_name` yourself ([community](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)).
+
+      The `filters` syntax differs from `activation_channel_list`: here it's `name in value`, joined with `AND`.
+
+  - name: activation_get
+    method: GET
+    host: connect
+    path: /ssot/activations/{activationId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D/get
+    tools: [d360_activation_get]
+    description: Get an activation by ID. Since v60.0.
+    example: CALL cdp.activation_get (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_definition_id, api_name: activationDefinitionId, type: VARCHAR, description: "ID of the activation definition. Since v60.0."}
+      - {name: activation_mapping_schema, api_name: activationMappingSchema, type: VARCHAR, description: "Type of identifier to use for activation audience matching, such as `PII` or `ANON`. Since v63.0."}
+      - {name: activation_record_schema, api_name: activationRecordSchema, type: VARCHAR, description: "JSON schema representing the activation JSON payload in the activation_record field of the AudienceDMO. Since v62.0."}
+      - {name: activation_target, api_name: activationTarget, type: JSON, schema: ActivationTargetRepresentation, description: "Activation target details. Since v60.0."}
+      - {name: activation_target_subject_config, api_name: activationTargetSubjectConfig, type: JSON, schema: ActivationTargetSubjectRepresentation, description: "Activation target subject for the activation. Since v60.0."}
+      - {name: activation_type, api_name: activationType, type: VARCHAR, description: "Type of activation. Since v66.0."}
+      - {name: attribute_limiting_expression_config, api_name: attributeLimitingExpressionConfig, type: JSON, schema: AttributeLimitingExpressionConfigRepresentation, description: "Limiting expression configuration for the activation. Since v63.0."}
+      - {name: attributes_config, api_name: attributesConfig, type: JSON, schema: ActivationAttributesConfigRepresentation, description: "Attributes for the activation. Since v60.0."}
+      - {name: contact_points_config, api_name: contactPointsConfig, type: JSON, schema: ContactPointsConfigRepresentation, description: "Contact points for the activation. Since v60.0."}
+      - {name: curated_entity, api_name: curatedEntity, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Curated entity object details for the activation. Since v63.0."}
+      - {name: customer_file_source, api_name: customerFileSource, type: VARCHAR, description: "Customer file source of the activation platform. Since v60.0."}
+      - {name: data_sources_config, api_name: dataSourcesConfig, type: JSON, schema: ActivationDataSourcesRepresentation, description: "Data sources for the activation. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for the activation. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation. Since v60.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name for the activation. Since v60.0."}
+      - {name: direct_dmo_filters_config, api_name: directDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "Direct DMO filters for the activation. Since v60.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: last_publish_date, api_name: lastPublishDate, type: VARCHAR, description: "Last publish timestamp of the activation. Use the format `yyyy-mm-dd`. Since v60.0."}
+      - {name: last_publish_status, api_name: lastPublishStatus, type: VARCHAR, description: "Last publish status of the activation. Since v60.0."}
+      - {name: last_publish_status_error_msg, api_name: lastPublishStatusErrorMsg, type: VARCHAR, description: "Error message encountered during last publish. Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_last_run_timestamp, api_name: latestAudienceDmoLastRunTimestamp, type: VARCHAR, description: "Timestamp of the last run for the latest audience DMO. Use the format `yyyy-mm-dd`. Since v62.0."}
+      - {name: limit_value, api_name: limitValue, type: BIGINT, description: "Audience limit value for the activation. Since v63.0."}
+      - {name: market_segment_id, api_name: marketSegmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: membership_name, api_name: membershipName, type: VARCHAR, description: "Membership name of the activation. Since v60.0."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "Processing type for DMO activations. Since v67.0."}
+      - {name: query_path_config, api_name: queryPathConfig, type: JSON, schema: QueryPathConfigListRepresentation, description: "Query path for the activation target. Since v63.0."}
+      - {name: refresh_type, api_name: refreshType, type: VARCHAR, description: "Refresh type of the activation. Since v60.0."}
+      - {name: related_dmo_filters_config, api_name: relatedDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "DMO filters on related attributes for the activation. Since v60.0."}
+      - {name: segment_api_name, api_name: segmentApiName, type: VARCHAR, description: "Segment API name. Returned for `Segment` type activations. Since v60.0."}
+      - {name: segment_id, api_name: segmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: should_exclude_deletes, api_name: shouldExcludeDeletes, type: BOOLEAN, description: "Indicates whether to exclude records removed since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: should_exclude_updates, api_name: shouldExcludeUpdates, type: BOOLEAN, description: "Indicates whether to exclude records modified since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, type: VARCHAR, description: "Developer name of the source DMO. Since v66.0."}
+      - {name: static_data_config, api_name: staticDataConfig, type: JSON, schema: StaticDataConfigRepresentation, description: "Campaign data attributes configuration for an activation, which includes both standard attributes (system-defined) and custom attributes (user-defined). Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation. Since v60.0."}
+      - {name: waterfall_selected_child_segments_config, api_name: waterfallSelectedChildSegmentsConfig, type: JSON, schema: WaterfallSelectedChildSegmentsConfigRepresentation, description: "Details about the selected Waterfall child segments. Required when segment_api_name references a Waterfall segment type; must not be present otherwise. Since v67.0."}
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: activation_target_name, api_name: activationTargetName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ActivationRepresentation`.
+    notes: |
+      **Notes:** **State.** `status` and `last_publish_status` are in upper case in the spec's samples (`ACTIVE`, `SUCCESS`), though its enums use `Active` and `Success`. The `status` enum is `Active`, `Processing`, `Error`, `Inactive`. `enabled` and `is_enabled` have the same description.
+
+      **Not reusable as input.** The output differs from what `activation_create` takes. In the sample, a contact point has `contactPointEntityName` and `field_config.contactPointFields` where the input has `entity_name` and `attributes_config.attributes`.
+
+      **Encoded strings.** `contactPointPath` is JSON in a string with HTML entities, as the spec's sample shows ([quirk T4](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community). `activation_record_schema` is the same and repeats `attributes_config` ([quirk T6](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community). Paths there use `object_api_name`, unlike `query_path_config`.
+
+  - name: activation_record_list
+    method: GET
+    host: connect
+    path: /ssot/activations/{activationId}/data
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D~1data/get
+    description: Query activation data. Get a list of all activation records from Audience data model objects (DMOs). Since v61.0.
+    example: CALL cdp.activation_record_list ("X-Chatter-Entity-Encoding" => 'false', activation_id => '85RVF000000CEf72AG', filters => 'delta_type__c in ''A''', batch_size => 1000);
+    options:
+      - {name: X-Chatter-Entity-Encoding, in: header, type: string, required: true, description: "Required. Value must be `false`."}
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of results to return. Values are from `1` through `4999`. If unspecified, the default value is `10000`. Since v61.0."}
+      - {name: filters, in: query, type: string, description: "Filter the result set to a more narrow scope or specific type. This filter is supported: - `delta_type__c` (field name: delta_type; type: string; description: delta type of activation records) **Example request with filter:** - GET `https://{dne_cdpInstanceUrl}/services/data/v61.0/ssot/activations/{activationId}/data?filters = delta_type__c in 'A'` Since v61.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be greater than or equal to `0`. If unspecified, no rows are skipped. Maximum value is 10 million. Since v61.0."}
+    rows: /data
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activated_entity_fqk, api_name: activatedEntityFqk, type: VARCHAR, description: "Fully Qualified Key (FQK) of the activated entity. Since v61.0."}
+      - {name: activated_on_id, api_name: activatedOnId, type: VARCHAR, description: "ActivateOn entity ID, such as Individual.Id or Unified Individual.Id. Since v61.0."}
+      - {name: activation_record, api_name: activationRecord, type: VARCHAR, description: "Activated attributes payload as JSON BLOB Since v61.0."}
+      - {name: delta_type, api_name: deltaType, type: VARCHAR, description: "Activation delta type Since v61.0."}
+      - {name: publish_date, api_name: publishDate, type: VARCHAR, description: "Date that the activation was published. Since v61.0."}
+      - {name: segment_id, api_name: segmentId, type: VARCHAR, description: "Unique ID for each segment. Since v61.0."}
+      - {name: segment_on_id, api_name: segmentOnId, type: VARCHAR, description: "Key identifier based on the SegmentOn entity. Same as Activated-entity-id when ActivateOn = SegmentOn. Since v61.0."}
+      - {name: segmented_entity_fqk, api_name: segmentedEntityFqk, type: VARCHAR, description: "Fully Qualified Key of the segmented entity. Since v61.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/data` in the response. Other response fields go to `_meta`: `batchSize`, `offset`. Schema `ActivationDataRepresentation`."
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** The spec says `batch_size` runs from 1 to 4999 but defaults to 10000, so set it. `activation_record` is a JSON string. `id` isn't a row key: in the sample every row repeats the activation's ID. `activated_on_id` differs per row.
+
+      The only documented `delta_type` value is `A`, in the samples. The [removed official skill](https://github.com/forcedotcom/sf-skills/blob/2476476dda1b671762c6e963b9d10c4a7056f1c4/skills/data360-activate/SKILL.md) uses this call to verify delivery setup.
+
+  - name: activation_history_list
+    method: GET
+    host: connect
+    path: /ssot/activations/{activationId}/history
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D~1history/get
+    description: Returns a paginated list of publish-history records. With a market segment activation ID, returns the history for that single activation. With a market segment ID, returns the history for all activations under that segment. Routing is determined automatically based on the record ID. For paginated results, set `offset` to `0` in the initial request, then follow the `next_page_url` value in each response to retrieve subsequent pages. Since v67.0.
+    example: CALL cdp.activation_history_list (activation_id => '1sgVF000000LfbFYAS', limit => 50);
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of a market segment activation or a market segment. Routing to single-activation or segment-wide history is determined automatically based on the record ID. Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of history records to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort expression. If unspecified, the default value is `publishEndTime desc`. Since v67.0."}
+      - {name: page_token, api_name: pageToken, in: query, type: string, description: "Snapshot anchor for consistent pagination. Omit this value on the first request. The response's `next_page_url` includes the `page_token` for subsequent pages, which keeps the result set stable as new activations are published. Follow `next_page_url` rather than constructing this value. Since v67.0."}
+    columns:
+      - {name: current_page_url, api_name: currentPageUrl, type: VARCHAR, description: "URL of the current page request, suitable for re-fetching the same page. Since v67.0."}
+      - {name: next_page_url, api_name: nextPageUrl, type: VARCHAR, description: "URL of the next page when more records are available. Absent on the last page. Since v67.0."}
+      - {name: records, type: JSON, array: 1, schema: ActivationHistoryRecordRepresentation, description: "Publish-history records in the page. Most-recent-first by default. Since v67.0."}
+      - {name: total_pages, api_name: totalPages, type: BIGINT, description: "Total number of pages available for the query at the current page size. A next page exists while the current page index, derived from offset and limit, is below this value. Since v67.0."}
+      - {name: total_size, api_name: totalSize, type: BIGINT, description: "Number of publish-history records returned in the page. Because a grand total record count isn't returned, this value reflects the current page only. Use `total_pages` for the full pagination extent, and follow `next_page_url` to page through results. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ActivationHistoryCollectionRepresentation`.
+    notes: |
+      **Paging:** Follow `next_page_url`, which carries `page_token`, until it's absent. Start with `offset` 0.
+
+      **Notes:** `activation_id` can also be a segment ID (`1sg...`), which returns the history of every activation on that segment. `records[].publishStatus` is `Created`, `Pending`, `Queued`, `Started`, `Running`, `Restarting`, `PartnerProcessing`, `Completed`, `Error`, `PartnerError`, `SegmentError` or `Skipped`, which differs from `last_publish_status`. `publishType` is `Manual` or `Scheduled`. Each record also has population counts and error fields.
+
+      `total_size` counts the current page only. The spec's sample `next_page_url` spells the page size `page_size`, while the option is `limit`, which is one more reason not to build the URL yourself.
+
+  - name: activation_data_object_category_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/activatable-data-object-categories
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1activatable-data-object-categories/get
+    description: Returns the data object category types that are available for activation, optionally scoped to a data space. Since v67.0.
+    example: CALL cdp.activation_data_object_category_list (dataspace => 'default');
+    options:
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to scope the lookup. If unspecified, the request's data space context is used. Since v67.0."}
+    columns:
+      - {name: categories, type: JSON, description: "List of category type identifiers that are available for activation, such as Profile, Engagement, and Other. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ActivatableDataObjectCategoriesRepresentation`.
+    notes: "**Notes:** The column description names `Profile`, `Engagement` and `Other`, while the spec's sample returns `Engagement`, `Profile` and `Related`."
+
+  - name: activation_channel_preference_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/channel-preferences
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1channel-preferences/get
+    description: Returns the channel preference options for a channel and data model object (DMO) pair, such as Primary phone or Secondary phone. Since v67.0.
+    example: CALL cdp.activation_channel_preference_list (channel => 'Email', data_model_object_api_name => 'ssot__ContactPointEmail__dlm');
+    options:
+      - {name: channel, in: query, type: string, enum: [DigitalId, Email, Phone, Push, Whatsapp], required: true, description: "Contact point channel, such as `Email`, `Phone`, `Push`, `Whatsapp`, or `DigitalId`. Since v67.0."}
+      - {name: data_model_object_api_name, api_name: dataModelObjectApiName, in: query, type: string, required: true, description: "API name of the contact point data model object (DMO). Since v67.0."}
+    rows: /preferences
+    columns:
+      - {name: label, type: VARCHAR, description: "Localized display label for the preference, such as `Primary` or `Secondary`. Since v67.0."}
+      - {name: option, type: VARCHAR, description: "Machine-readable preference option value. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/preferences` in the response. Schema `ChannelPreferenceRepresentation`.
+    notes: "**Notes:** The description mentions Primary and Secondary, but the spec's sample returns `ANY`, `PERSONAL`, `BUSINESS` and `PRIMARY`. Those match `data_source_preference = 'ANY'` in the `activation_create` examples, not the `ContactPointPref...` enum on that attribute. `channel` spells `Whatsapp` here, while contact point `type` has `WhatsApp`."
+
+  - name: activation_channel_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/channels
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1channels/get
+    description: Returns the available activation channels for a data space. Since v67.0.
+    example: CALL cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+    options:
+      - {name: activate_on, api_name: activateOn, in: query, type: string, required: true, description: "API name of the data model object (DMO) to activate on, such as `ssot__Individual__dlm`. The namespace prefix of the DMO resolves the contact point DMOs (Email, Phone, Push, and so on) for the data space. Since v67.0."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space to scope channel mapping checks. Since v67.0."}
+      - {name: filters, in: query, type: string, description: "Filter expression used to narrow results, such as `field eq value AND name contains foo`. Supported operators are `eq`, `!=`, `contains`, `in`, `>`, `<`, `>=`, and `<=`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort expression in the form `field [asc|desc][, field [asc|desc]]*`. Since v67.0."}
+    rows: /channels
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "API name of the underlying contact-point data model object (DMO), such as `ssot__ContactPointEmail__dlm`. Since v67.0."}
+      - {name: channel_type, api_name: channelType, type: VARCHAR, description: "Type of delivery channel. Since v67.0."}
+      - {name: is_mapped, api_name: isMapped, type: BOOLEAN, description: "Indicates whether the org has data mapped to the channel's data model object (DMO) in the requested data space (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label for the channel's underlying data model object (DMO). Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/channels` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ChannelRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Check `is_mapped`: `false` means the org has no data mapped to that channel's DMO in this data space. `api_name` values look like the contact point `entity_name` in `activation_create`, though the spec doesn't link them. `filters` takes `field eq value` here, unlike `activation_list`.
+
+  - name: activation_consent_dmo_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/consent-data-model-objects
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1consent-data-model-objects/get
+    description: Returns the standard consent data model objects (DMOs) for a data space. Since v67.0.
+    example: CALL cdp.activation_consent_dmo_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+    options:
+      - {name: activate_on, api_name: activateOn, in: query, type: string, required: true, description: "API name of the data model object (DMO) to activate on, such as `ssot__Individual__dlm`. The namespace prefix of the DMO resolves the standard consent DMOs (ContactPointConsent, CommunicationSubscriptionConsent) for the data space. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space to scope the consent data model object lookup. Since v67.0."}
+    columns:
+      - {name: data_model_objects, api_name: dataModelObjects, type: JSON, description: "Consent data model object (DMO) developer names. Currently always two entries: `contactPointConsent` and `communicationSubscriptionConsent`. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ConsentDataModelObjectsRepresentation`.
+    notes: "**Notes:** The column description says the entries are `contactPointConsent` and `communicationSubscriptionConsent`. The spec's sample returns `ssot__ContactPointConsent__dlm` and `ssot__CommunicationSubscriptionConsent__dlm`."
+
+  - name: activation_data_source_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/data-sources
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1data-sources/get
+    description: Returns the data sources for a data model object (DMO). When you provide a channel, results are filtered to data sources compatible with that channel. The data space context is derived from the DMO. Since v67.0.
+    example: CALL cdp.activation_data_source_list (data_model_object_api_name => 'ssot__ContactPointEmail__dlm', channel => 'Email');
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: channel, in: query, type: string, enum: [DigitalId, Email, Phone, Push, Whatsapp], description: "Contact point channel. If unspecified, data sources are returned for all channels compatible with the data model object (DMO). Since v67.0."}
+      - {name: data_model_object_api_name, api_name: dataModelObjectApiName, in: query, type: string, required: true, description: "API name of the data model object (DMO) used as the activation target. The data space context is derived from this value. Since v67.0."}
+      - {name: filters, in: query, type: string, description: "Filter expression used to narrow results, such as `field eq value AND name contains foo`. Supported operators are `eq`, `!=`, `contains`, `in`, `>`, `<`, `>=`, and `<=`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort expression in the form `field [asc|desc][, field [asc|desc]]*`. Since v67.0."}
+    rows: /dataSources
+    columns:
+      - {name: data_source_objects, api_name: dataSourceObjects, type: JSON, description: "API names of the data-source objects backing the data source. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Record ID (18-character) of the data source. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Display name of the data source. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataSources` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataSourceRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** These are data sources for one DMO, not a general list, and despite the option text, "activation target" here means a DMO, not an `activation_target`. There's no data space option. The spec calls `name` a display name, but sample values look like API names (`Salesforce_Home`). `data_source_objects` is empty in every sample row.
+
+  - name: activation_related_attribute_quota_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/limits/related-attribute-activation-quota
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1limits~1related-attribute-activation-quota/get
+    description: Returns the related-attribute activation quota for the org. When you supply an activation ID, that activation is excluded from the current count, which supports edit flows. Since v67.0.
+    example: CALL cdp.activation_related_attribute_quota_list (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: query, type: string, description: "Record ID of an activation to exclude from the current count. Used during edit flows so that the activation being edited doesn't count against itself. Since v67.0."}
+    columns:
+      - {name: current_activations, api_name: currentActivations, type: BIGINT, description: "Number of related-attribute activations currently in use. Since v67.0."}
+      - {name: has_met_limit, api_name: hasMetLimit, type: BOOLEAN, description: "Indicates whether `current_activations` has reached `max_activations` (`true`) or not (`false`). Since v67.0."}
+      - {name: max_activations, api_name: maxActivations, type: BIGINT, description: "Maximum number of related-attribute activations allowed for the org. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `RelatedAttributeActivationQuotaRepresentation`.
+    notes: "**Notes:** Returns one row, not a list. The spec's sample shows 49 of 20000."
+
+  - name: activation_related_attribute_limit_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/limits/related-attribute-configuration-limits
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1limits~1related-attribute-configuration-limits/get
+    description: Returns the static configuration limits for related-attribute activations, such as maximum hops and attributes per activation. Since v67.0.
+    example: CALL cdp.activation_related_attribute_limit_list ();
+    columns:
+      - {name: attributes_per_activation, api_name: attributesPerActivation, type: BIGINT, description: "Maximum number of related attributes allowed per activation. Since v67.0."}
+      - {name: data_model_objects_per_activation, api_name: dataModelObjectsPerActivation, type: BIGINT, description: "Maximum number of data model objects (DMOs) referenced by a single activation. Since v67.0."}
+      - {name: data_model_objects_per_hop, api_name: dataModelObjectsPerHop, type: BIGINT, description: "Maximum number of data model objects (DMOs) that can be joined through per relationship hop. Since v67.0."}
+      - {name: max_hops, api_name: maxHops, type: BIGINT, description: "Maximum number of relationship hops allowed in a single related-attribute path. Since v67.0."}
+      - {name: max_segment_size, api_name: maxSegmentSize, type: BIGINT, description: "Maximum allowed segment size. Since v67.0."}
+      - {name: values_per_attribute, api_name: valuesPerAttribute, type: BIGINT, description: "Maximum number of distinct values allowed per attribute. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `RelatedAttributeConfigurationLimitsRepresentation`.
+    notes: "**Notes:** Returns one row, not a list. The spec's sample shows 300 attributes per activation, 8 DMOs per activation, 1 DMO per hop, 5 hops, a segment size of 150,000,000 and 25 values per attribute."
+
+  - name: match_boost_identity_provider_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/match-boost-identity-providers
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1match-boost-identity-providers/get
+    description: Returns the identity providers for an activation target and data model object (DMO). Since v67.0.
+    example: CALL cdp.match_boost_identity_provider_list (activate_on => 'ssot__Individual__dlm', activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+    options:
+      - {name: activate_on, api_name: activateOn, in: query, type: string, required: true, description: "API name of the data model object (DMO), such as `ssot__Individual__dlm`. Since v67.0."}
+      - {name: activation_target_id, api_name: activationTargetId, in: query, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space to scope the provider lookup. Since v67.0."}
+      - {name: selected_provider_id, api_name: selectedProviderId, in: query, type: string, description: "Record ID of the previously saved identity provider. Used in edit mode only. Since v67.0."}
+    rows: /providers
+    columns:
+      - {name: provider_id, api_name: providerId, type: VARCHAR, description: "Partner-issued provider ID. Since v67.0."}
+      - {name: provider_name, api_name: providerName, type: VARCHAR, description: "Display name of the identity provider. Since v67.0."}
+      - {name: supported_contact_points, api_name: supportedContactPoints, type: JSON, description: "Contact-point types that the provider can augment. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/providers` in the response. Schema `MatchBoostProviderRepresentation`.
+    notes: "**Notes:** The spec has no option that sends a provider back. The [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ActivationCreateRequest.java) has `identity_provider_config` with [`id` and `name`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/IdentityMatchBoostProviderInput.java), which is missing from the spec. `supported_contact_points` shows `Email` and `PhoneNumber` in the sample."
+
+  - name: activation_streaming_eligibility_list
+    method: GET
+    host: connect
+    path: /ssot/activations/metadata/streaming-eligibility
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1streaming-eligibility/get
+    description: Indicates whether streaming activation is allowed for a data model object (DMO), and provides the reason when it isn't. Since v67.0.
+    example: CALL cdp.activation_streaming_eligibility_list (data_model_object_api_name => 'ssot__Individual__dlm');
+    options:
+      - {name: data_model_object_api_name, api_name: dataModelObjectApiName, in: query, type: string, required: true, description: "API name of the data model object (DMO) to check streaming eligibility for. Since v67.0."}
+    columns:
+      - {name: allowed, type: BOOLEAN, description: "Indicates whether streaming activation is allowed for the requested data model object (DMO) (`true`) or not (`false`). Since v67.0."}
+      - {name: reason, type: VARCHAR, description: "Human-readable explanation when `allowed` is `false`. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `StreamingEligibilityRepresentation`.
+    notes: "**Notes:** Returns one row, not a list. In the spec, `activation_create` accepts only `Batch` for `processing_type`, so it shows no way to request a streaming activation."
+
+  - name: activation_create
+    method: POST
+    host: connect
+    path: /ssot/activations
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations/post
+    tools: [d360_activation_create]
+    description: Create an activation. Since v60.0.
+    example: |
+      CALL cdp.activation_create (
+        name => 'test_1234',
+        dataspace_name => 'default',
+        segment_api_name => 'seg_test',
+        activation_target_name => 'S3_activation_target_test1',
+        refresh_type => 'FULL_REFRESH',
+        activation_target_subject_config => (developer_name = 'ssot__Individual__dlm'),
+        attributes_config => (attributes = [
+          (name = 'ssot__Id__c', label = 'Individual Id', entity_name = 'ssot__Individual__dlm', data_source_type = 'Text',
+           reference_attribute_name = 'Id', preferred_name = 'attribute individual id', source = 'DIRECT', type = 'MODEL',
+           query_path_config = (configs = [])),
+          (name = 'ssot__Name__c', label = 'Account Name', entity_name = 'ssot__Account__dlm', data_source_type = 'Text',
+           reference_attribute_name = 'Name', source = 'RELATED', type = 'MODELRELATED',
+           query_path_config = (configs = [(query_paths = (query_path = [
+             (field_name = 'ssot__Id__c', object_name = 'ssot__Individual__dlm'),
+             (field_name = 'ssot__PartyId__c', object_name = 'ssot__Account__dlm')]))]))]),
+        contact_points_config => (contact_points = [(
+          type = 'EMAIL',
+          entity_name = 'ssot__ContactPointEmail__dlm',
+          attributes_config = (attributes = [(label = 'Email Address', name = 'ssot__EmailAddress__c')]),
+          query_path_config = (configs = [(query_paths = (query_path = [
+            (field_name = 'ssot__Id__c', object_name = 'ssot__Individual__dlm'),
+            (field_name = 'ssot__PartyId__c', object_name = 'ssot__ContactPointEmail__dlm')]))]),
+          sources_config = (contact_point_sources = [(data_source_preference = 'ANY', data_source_priority = 1, name = 'Any')]))]));
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: activation_mapping_schema, api_name: activationMappingSchema, in: body, type: string, description: "Type of identifier to use for activation audience matching, such as `PII` or `ANON`. Since v65.0."}
+      - {name: activation_target_name, api_name: activationTargetName, in: body, type: string, description: "Name for the activation target. Either activation_target_name or data_export_definition_id must be present. Since v60.0."}
+      - {name: activation_target_subject_config, api_name: activationTargetSubjectConfig, in: body, schema: ActivationTargetSubjectConfigInputRepresentation, description: "Subject configuration for the activation target. Since v60.0."}
+      - {name: activation_type, api_name: activationType, in: body, type: string, enum: [ApiTriggered, Dmo, Segment], description: "Type of activation. If unspecified, defaults to `Segment`. Since v66.0."}
+      - {name: attribute_limiting_expression_config, api_name: attributeLimitingExpressionConfig, in: body, schema: AttributeLimitingExpressionInputConfigRepresentation, description: "Limiting expression configuration for the activation. Since v63.0."}
+      - {name: attributes_config, api_name: attributesConfig, in: body, schema: AttributesConfigInputRepresentation, array: 1, description: "Additional attributes for the activation. The `activate_on` attribute must be present. Since v60.0."}
+      - {name: contact_points_config, api_name: contactPointsConfig, in: body, schema: ContactPointConfigInputRepresentation, array: 1, description: "Contact points configuration for the activation target. Since v60.0."}
+      - {name: curated_entity, api_name: curatedEntity, in: body, schema: CuratedEntityInputRepresentation, description: "Curated entity details for the activation. Since v63.0."}
+      - {name: customer_file_source, api_name: customerFileSource, in: body, type: string, enum: [FirstAndThirdParty, FirstParty, ThirdParty], description: "Customer file source for the activation target. Since v60.0."}
+      - {name: data_export_definition_id, api_name: dataExportDefinitionId, in: body, type: string, description: "Activation target ID for the activation. Either activation_target_name or data_export_definition_id must be present. Since v60.0."}
+      - {name: data_sources_config, api_name: dataSourcesConfig, in: body, schema: ActivationDataSourceConfigInputRepresentation, array: 1, description: "Data source configuration for the activation. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space for the activation. Since v60.0."}
+      - {name: description, in: body, type: string, description: "Description of the activation. Since v60.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the activation. Must be unique. The request fails if an activation with the same developer name already exists. Since v67.0."}
+      - {name: direct_dmo_filters_config, api_name: directDmoFiltersConfig, in: body, schema: DMOFilterConfigInputRepresentation, array: 1, description: "Direct DMO filters. Since v60.0."}
+      - {name: limit_value, api_name: limitValue, in: body, type: integer, description: "Audience limit value for the activation. Since v63.0."}
+      - {name: market_segment_id, api_name: marketSegmentId, in: body, type: string, description: "Segment ID of the segment the activation needs to be created against. Either market_segment_id or segment_api_name must be present. Exclude this property for `ApiTriggered` activation types. Since v60.0."}
+      - {name: processing_type, api_name: processingType, in: body, type: string, enum: [Batch], description: "Processing type for DMO activations. Required when activation_type is `DMO`. Since v67.0."}
+      - {name: refresh_type, api_name: refreshType, in: body, type: string, required: true, description: "Indicates the refresh type for the activation, (`Full` or `Incremental`). Since v60.0."}
+      - {name: related_dmo_filters_config, api_name: relatedDmoFiltersConfig, in: body, schema: DMOFilterConfigInputRepresentation, array: 1, description: "DMO filters on related attributes for the activation. Since v60.0."}
+      - {name: segment_api_name, api_name: segmentApiName, in: body, type: string, description: "Developer name of the segment. Either market_segment_id or segment_api_name must be present. Exclude this property for `ApiTriggered` activation types. Since v60.0."}
+      - {name: should_exclude_deletes, api_name: shouldExcludeDeletes, in: body, type: boolean, description: "Indicates whether to exclude records removed since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: should_exclude_updates, api_name: shouldExcludeUpdates, in: body, type: boolean, description: "Indicates whether to exclude records modified since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, in: body, type: string, description: "Developer name of the source DMO. Required for `ApiTriggered` activation types. Exclude this property for `Segment` activation types. Since v66.0."}
+      - {name: static_data_config, api_name: staticDataConfig, in: body, schema: StaticDataConfigInputRepresentation, array: 1, description: "Configuration of campaign data attributes for an activation, which are name-value pairs including standard attributes (system-defined) and custom attributes (user-defined). Standard attributes are resolved by the system at activation run time and added as separate columns in the activation output. The available standard attributes are Activation Name, Activation ID, Segment Name, Segment ID, Activation Publish Start Time, and Activation Run ID. Standard attributes improve traceability, reconciliation, auditability, time-based processing, and disambiguation when multiple activations write to overlapping destinations. To use a standard attribute, select the exact standard attribute name and its corresponding value in the name-value pair. Since v60.0."}
+      - {name: waterfall_selected_child_segments_config, api_name: waterfallSelectedChildSegmentsConfig, in: body, schema: WaterfallSelectedChildSegmentsConfigInputRepresentation, description: "Details about the selected Waterfall child segments. Required when segment_api_name references a Waterfall segment type; must not be present otherwise. Since v67.0."}
+      - {name: segment_id, api_name: segmentId, in: body, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: target_id, api_name: targetId, in: body, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: schedule, in: body, schema: activation_create_schedule, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: mappings, in: body, schema: activation_create_mappings, array: 1, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: activation_template_id, api_name: activationTemplateId, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: platform_name, api_name: platformName, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: identity_provider_config, api_name: identityProviderConfig, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_definition_id, api_name: activationDefinitionId, type: VARCHAR, description: "ID of the activation definition. Since v60.0."}
+      - {name: activation_mapping_schema, api_name: activationMappingSchema, type: VARCHAR, description: "Type of identifier to use for activation audience matching, such as `PII` or `ANON`. Since v63.0."}
+      - {name: activation_record_schema, api_name: activationRecordSchema, type: VARCHAR, description: "JSON schema representing the activation JSON payload in the activation_record field of the AudienceDMO. Since v62.0."}
+      - {name: activation_target, api_name: activationTarget, type: JSON, schema: ActivationTargetRepresentation, description: "Activation target details. Since v60.0."}
+      - {name: activation_target_subject_config, api_name: activationTargetSubjectConfig, type: JSON, schema: ActivationTargetSubjectRepresentation, description: "Activation target subject for the activation. Since v60.0."}
+      - {name: activation_type, api_name: activationType, type: VARCHAR, description: "Type of activation. Since v66.0."}
+      - {name: attribute_limiting_expression_config, api_name: attributeLimitingExpressionConfig, type: JSON, schema: AttributeLimitingExpressionConfigRepresentation, description: "Limiting expression configuration for the activation. Since v63.0."}
+      - {name: attributes_config, api_name: attributesConfig, type: JSON, schema: ActivationAttributesConfigRepresentation, description: "Attributes for the activation. Since v60.0."}
+      - {name: contact_points_config, api_name: contactPointsConfig, type: JSON, schema: ContactPointsConfigRepresentation, description: "Contact points for the activation. Since v60.0."}
+      - {name: curated_entity, api_name: curatedEntity, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Curated entity object details for the activation. Since v63.0."}
+      - {name: customer_file_source, api_name: customerFileSource, type: VARCHAR, description: "Customer file source of the activation platform. Since v60.0."}
+      - {name: data_sources_config, api_name: dataSourcesConfig, type: JSON, schema: ActivationDataSourcesRepresentation, description: "Data sources for the activation. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for the activation. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation. Since v60.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name for the activation. Since v60.0."}
+      - {name: direct_dmo_filters_config, api_name: directDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "Direct DMO filters for the activation. Since v60.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: last_publish_date, api_name: lastPublishDate, type: VARCHAR, description: "Last publish timestamp of the activation. Use the format `yyyy-mm-dd`. Since v60.0."}
+      - {name: last_publish_status, api_name: lastPublishStatus, type: VARCHAR, description: "Last publish status of the activation. Since v60.0."}
+      - {name: last_publish_status_error_msg, api_name: lastPublishStatusErrorMsg, type: VARCHAR, description: "Error message encountered during last publish. Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_last_run_timestamp, api_name: latestAudienceDmoLastRunTimestamp, type: VARCHAR, description: "Timestamp of the last run for the latest audience DMO. Use the format `yyyy-mm-dd`. Since v62.0."}
+      - {name: limit_value, api_name: limitValue, type: BIGINT, description: "Audience limit value for the activation. Since v63.0."}
+      - {name: market_segment_id, api_name: marketSegmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: membership_name, api_name: membershipName, type: VARCHAR, description: "Membership name of the activation. Since v60.0."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "Processing type for DMO activations. Since v67.0."}
+      - {name: query_path_config, api_name: queryPathConfig, type: JSON, schema: QueryPathConfigListRepresentation, description: "Query path for the activation target. Since v63.0."}
+      - {name: refresh_type, api_name: refreshType, type: VARCHAR, description: "Refresh type of the activation. Since v60.0."}
+      - {name: related_dmo_filters_config, api_name: relatedDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "DMO filters on related attributes for the activation. Since v60.0."}
+      - {name: segment_api_name, api_name: segmentApiName, type: VARCHAR, description: "Segment API name. Returned for `Segment` type activations. Since v60.0."}
+      - {name: segment_id, api_name: segmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: should_exclude_deletes, api_name: shouldExcludeDeletes, type: BOOLEAN, description: "Indicates whether to exclude records removed since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: should_exclude_updates, api_name: shouldExcludeUpdates, type: BOOLEAN, description: "Indicates whether to exclude records modified since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, type: VARCHAR, description: "Developer name of the source DMO. Since v66.0."}
+      - {name: static_data_config, api_name: staticDataConfig, type: JSON, schema: StaticDataConfigRepresentation, description: "Campaign data attributes configuration for an activation, which includes both standard attributes (system-defined) and custom attributes (user-defined). Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation. Since v60.0."}
+      - {name: waterfall_selected_child_segments_config, api_name: waterfallSelectedChildSegmentsConfig, type: JSON, schema: WaterfallSelectedChildSegmentsConfigRepresentation, description: "Details about the selected Waterfall child segments. Required when segment_api_name references a Waterfall segment type; must not be present otherwise. Since v67.0."}
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: activation_target_name, api_name: activationTargetName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationRepresentation`.
+    notes: |
+      **Notes:** **Required fields.** The spec marks only `refresh_type`. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/ActivationTools.java) also requires `name`, `dataspace_name`, `activation_target_subject_config` with `developer_name`, one of `activation_target_name` or `data_export_definition_id`, and one of `segment_api_name` or `market_segment_id`. It adds `attributes_config` with at least the primary entity's ID attribute. The [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ActivationCreateRequest.java) says "exactly one" of each pair.
+
+      **What feeds the activation** depends on `activation_type`:
+
+      | Type | Source of rows | Evidence |
+      |---|---|---|
+      | `Segment` (default) | `segment_api_name` or `market_segment_id`. Add `waterfall_selected_child_segments_config` for a Waterfall segment | Spec |
+      | `ApiTriggered` | `source_dmo_name`, no segment | Spec |
+      | `Dmo` | `processing_type` = `Batch`. The spec's DMO example sets no segment and no `source_dmo_name`, and names the DMO only in `activation_target_subject_config`, though the option text says a segment is needed unless `ApiTriggered` | Spec, conflicting |
+
+      **Attributes.** In the spec's S3 example, `activation_target_subject_config.developerName` is the DMO you activate on, and `attributes_config` includes its ID (`ssot__Id__c` on `ssot__Individual__dlm`). A field on that DMO uses `source = 'DIRECT'`, `type = 'MODEL'` and an empty path. A field on another DMO uses `source = 'RELATED'`, `type = 'MODELRELATED'` and a `query_path_config` listing each hop from the subject. Paths use `object_name` and `field_name`, not `object_api_name` and `field_api_name` as segments do ([quirk T5](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community). `activation_related_attribute_limit_list` and `activation_related_attribute_quota_list` give the limits.
+
+      **Contact points.** Each entry names a contact point DMO in `entity_name`, such as `ssot__ContactPointEmail__dlm`, the kind of value in `activation_channel_list.api_name`. It also has the fields to send, the path from the subject, a filter and a source preference. The spec marks all seven attributes required, including `external_platform_hash_method`, but no spec example sends that one, and its Google Ads example has no contact points at all. The [MCP class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ContactPointConfigInput.java) marks all of them optional.
+
+      **Enums.** The spec's enums don't match the values its examples send:
+
+      | Attribute | Spec | Spec examples |
+      |---|---|---|
+      | `refresh_type` | Text: `Full`, `Incremental`. Response enum: `Full_Refresh`, `Incremental` | `FULL_REFRESH`, `INCREMENTAL` |
+      | `activation_type` | `ApiTriggered`, `Dmo`, `Segment` | `DMO` |
+      | attribute `source` | `Direct`, `Related` | `DIRECT`, `RELATED` |
+      | attribute `type` | `Model`, `Model_Related` and others | `MODEL`, `MODELRELATED` |
+      | contact point `type` | `Email` and others | `EMAIL` |
+      | `data_source_preference` | `ContactPointPrefAny` and others | `ANY` |
+      | `filter_limit.order` | `Asc`, `Desc` | `ASC`, `DESC` |
+      | `attribute_limiting_expressions[].order` | `FilterSortOrderAsc`, `FilterSortOrderDesc` | `ASC`, `DESC` |
+
+      For `refresh_type`, the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ActivationCreateRequest.java) says `FULL_REFRESH/INCREMENTAL`, while the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/ActivationTools.java) says `INCREMENTAL or Full`. Responses show `SEGMENT`, `DMO` and `API_TRIGGERED` for the type ([quirk T3](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community).
+
+      **Shapes.** The spec types `attributes_config`, `contact_points_config`, `direct_dmo_filters_config` and `related_dmo_filters_config` as arrays of a wrapper. Its examples send one wrapper object, `(attributes = [...])`, as shown here. Nested `query_path_config`, `query_paths`, `sources_config`, `filter_expression` and `entity_filter` differ in the same way. The MCP classes send a bare list with no wrapper.
+
+      **Attributes outside the spec.** The MCP request class also has `identity_provider_config`, `activation_template_id` and `platform_name`. The [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) (`segment_id`, `target_id`, `schedule`, `mappings`) uses attributes found nowhere else, so don't follow it.
+
+      **Retries.** A repeat with the same `developer_name` fails, per the spec. No source covers a repeat without one, so don't retry this POST blindly.
+
+  - name: activation_publish
+    method: POST
+    host: connect
+    path: /ssot/activations/{activationId}/actions/publish
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D~1actions~1publish/post
+    description: Initiate an on-demand publish job for a Batch data model object (DMO) activation. Since v66.0.
+    example: CALL cdp.activation_publish (activation_id => '85RVF000000CEf72AG', full_refresh => true);
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Unique identifier of a specific activation, such as the market segment activation ID or developer name. Since v66.0."}
+      - {name: full_refresh, api_name: fullRefresh, in: body, type: boolean, description: "Indicates whether the activation publish type is a full refresh (`true`) or incremental (`false`). **Note:** Execution behavior varies by DMO configuration. >**For Full Refresh DMOs**: Always performs a full refresh, regardless of this value. >**For Incremental DMOs**: - *Initial publish (day 0)*: Always performs a full refresh, regardless of this value. - *Subsequent publishes*: Defaults to incremental if `false` or omitted. Set to `true` to force a full refresh. Since v66.0."}
+    columns:
+      - {name: errors, type: JSON, array: 1, schema: CdpErrorRepresentation, description: "List of errors that resulted from the action. Since v57.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action was initiated successfully (`true`) or not (`false`). Since v57.0."}
+      - {name: publish_status, api_name: publishStatus, type: VARCHAR, description: "Publish status of the activation. Since v66.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationPublishActionRepresentation`.
+    notes: |
+      **Done when:** Poll `activation_get.last_publish_status`. The spec's enum is `Queued`, `Publishing`, `Partner_Processing`, `Success`, `Error`, `Partner_Error`, `Segment_Error`, `Skipped`, and its samples send `SUCCESS`, so compare case-insensitively. It doesn't say which values are final. `activation_history_list.records[].publishStatus` reports each run with another enum (`Completed` in samples).
+
+      **Notes:** For DMO activations only. In the spec's sample, `errors` holds one empty object while `success` is `true`, so read `success`. The spec documents `publish_status` values `Queued`, `Publishing`, `PartnerProcessing`, `Success`, `Error`, `PartnerError`, `SegmentError`, `Skipped` and `NotSupported`, and the sample returns `Publishing`.
+
+  - name: activation_disable
+    method: POST
+    host: connect
+    path: /ssot/activations/actions/{activationId}/disable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1disable/post
+    description: Disables a market segment activation. Since v67.0.
+    example: CALL cdp.activation_disable (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation to disable. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** The spec describes this for market segment activations and doesn't cover DMO activations. No source says what happens to data already delivered."
+
+  - name: activation_enable
+    method: POST
+    host: connect
+    path: /ssot/activations/actions/{activationId}/enable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1enable/post
+    description: Enables a market segment activation. Since v67.0.
+    example: CALL cdp.activation_enable (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation to enable. Since v67.0."}
+      - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** The spec describes this for market segment activations and doesn't cover DMO activations."
+
+  - name: activation_full_refresh_run
+    method: POST
+    host: connect
+    path: /ssot/activations/actions/{activationId}/full-refresh
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1full-refresh/post
+    description: Triggers a full-refresh publish for an activation. Since v67.0.
+    example: CALL cdp.activation_full_refresh_run (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the market segment activation. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: |
+      **Done when:** The spec documents no status for this call. `activation_get.last_publish_status` and `activation_history_list` are the available signals.
+
+      **Notes:** For market segment activations. DMO activations use `activation_publish` with `full_refresh`. `success` is about the action; the spec gives no job ID.
+
+  - name: activation_sync_retry
+    method: POST
+    host: connect
+    path: /ssot/activations/actions/{activationId}/retry-sync
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1retry-sync/post
+    description: Retries the sync for an activation. Since v67.0.
+    example: CALL cdp.activation_sync_retry (activation_id => '85RVF000000CEf72AG');
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the market segment activation. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: |
+      **Done when:** The spec documents no status for this call. `activation_get.last_publish_status` and `activation_history_list` are the available signals.
+
+      **Notes:** No source says what a retry resends or which states allow it.
+
+  - name: activation_update
+    method: PUT
+    host: connect
+    path: /ssot/activations/{activationId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D/put
+    tools: [d360_activation_update]
+    description: Update a specific activation by ID. Since v60.0.
+    example: CALL cdp.activation_update (activation_id => '85RVF000000CEf72AG', refresh_type => 'INCREMENTAL', should_exclude_deletes => true, should_exclude_updates => true, static_data_config => (static_data = [(name = 'Test_1', value = 'TestValue_1')]));
+    options:
+      - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: activation_mapping_schema, api_name: activationMappingSchema, in: body, type: string, description: "Type of identifier to use for activation audience matching, such as `PII` or `ANON`. Since v65.0."}
+      - {name: activation_target_name, api_name: activationTargetName, in: body, type: string, description: "Name for the activation target. Either activation_target_name or data_export_definition_id must be present. Since v60.0."}
+      - {name: activation_target_subject_config, api_name: activationTargetSubjectConfig, in: body, schema: ActivationTargetSubjectConfigInputRepresentation, description: "Subject configuration for the activation target. Since v60.0."}
+      - {name: activation_type, api_name: activationType, in: body, type: string, enum: [ApiTriggered, Dmo, Segment], description: "Type of activation. If unspecified, defaults to `Segment`. Since v66.0."}
+      - {name: attribute_limiting_expression_config, api_name: attributeLimitingExpressionConfig, in: body, schema: AttributeLimitingExpressionInputConfigRepresentation, description: "Limiting expression configuration for the activation. Since v63.0."}
+      - {name: attributes_config, api_name: attributesConfig, in: body, schema: AttributesConfigInputRepresentation, array: 1, description: "Additional attributes for the activation. The `activate_on` attribute must be present. Since v60.0."}
+      - {name: contact_points_config, api_name: contactPointsConfig, in: body, schema: ContactPointConfigInputRepresentation, array: 1, description: "Contact points configuration for the activation target. Since v60.0."}
+      - {name: curated_entity, api_name: curatedEntity, in: body, schema: CuratedEntityInputRepresentation, description: "Curated entity details for the activation. Since v63.0."}
+      - {name: customer_file_source, api_name: customerFileSource, in: body, type: string, enum: [FirstAndThirdParty, FirstParty, ThirdParty], description: "Customer file source for the activation target. Since v60.0."}
+      - {name: data_export_definition_id, api_name: dataExportDefinitionId, in: body, type: string, description: "Activation target ID for the activation. Either activation_target_name or data_export_definition_id must be present. Since v60.0."}
+      - {name: data_sources_config, api_name: dataSourcesConfig, in: body, schema: ActivationDataSourceConfigInputRepresentation, array: 1, description: "Data source configuration for the activation. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space for the activation. Since v60.0."}
+      - {name: description, in: body, type: string, description: "Description of the activation. Since v60.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, description: "Developer name of the activation. Must be unique. The request fails if an activation with the same developer name already exists. Since v67.0."}
+      - {name: direct_dmo_filters_config, api_name: directDmoFiltersConfig, in: body, schema: DMOFilterConfigInputRepresentation, array: 1, description: "Direct DMO filters. Since v60.0."}
+      - {name: limit_value, api_name: limitValue, in: body, type: integer, description: "Audience limit value for the activation. Since v63.0."}
+      - {name: market_segment_id, api_name: marketSegmentId, in: body, type: string, description: "Segment ID of the segment the activation needs to be created against. Either market_segment_id or segment_api_name must be present. Exclude this property for `ApiTriggered` activation types. Since v60.0."}
+      - {name: processing_type, api_name: processingType, in: body, type: string, enum: [Batch], description: "Processing type for DMO activations. Required when activation_type is `DMO`. Since v67.0."}
+      - {name: refresh_type, api_name: refreshType, in: body, type: string, required: true, description: "Indicates the refresh type for the activation, (`Full` or `Incremental`). Since v60.0."}
+      - {name: related_dmo_filters_config, api_name: relatedDmoFiltersConfig, in: body, schema: DMOFilterConfigInputRepresentation, array: 1, description: "DMO filters on related attributes for the activation. Since v60.0."}
+      - {name: segment_api_name, api_name: segmentApiName, in: body, type: string, description: "Developer name of the segment. Either market_segment_id or segment_api_name must be present. Exclude this property for `ApiTriggered` activation types. Since v60.0."}
+      - {name: should_exclude_deletes, api_name: shouldExcludeDeletes, in: body, type: boolean, description: "Indicates whether to exclude records removed since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: should_exclude_updates, api_name: shouldExcludeUpdates, in: body, type: boolean, description: "Indicates whether to exclude records modified since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, in: body, type: string, description: "Developer name of the source DMO. Required for `ApiTriggered` activation types. Exclude this property for `Segment` activation types. Since v66.0."}
+      - {name: static_data_config, api_name: staticDataConfig, in: body, schema: StaticDataConfigInputRepresentation, array: 1, description: "Configuration of campaign data attributes for an activation, which are name-value pairs including standard attributes (system-defined) and custom attributes (user-defined). Standard attributes are resolved by the system at activation run time and added as separate columns in the activation output. The available standard attributes are Activation Name, Activation ID, Segment Name, Segment ID, Activation Publish Start Time, and Activation Run ID. Standard attributes improve traceability, reconciliation, auditability, time-based processing, and disambiguation when multiple activations write to overlapping destinations. To use a standard attribute, select the exact standard attribute name and its corresponding value in the name-value pair. Since v60.0."}
+      - {name: waterfall_selected_child_segments_config, api_name: waterfallSelectedChildSegmentsConfig, in: body, schema: WaterfallSelectedChildSegmentsConfigInputRepresentation, description: "Details about the selected Waterfall child segments. Required when segment_api_name references a Waterfall segment type; must not be present otherwise. Since v67.0."}
+      - {name: activation_template_id, api_name: activationTemplateId, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: platform_name, api_name: platformName, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: identity_provider_config, api_name: identityProviderConfig, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: activation_definition_id, api_name: activationDefinitionId, type: VARCHAR, description: "ID of the activation definition. Since v60.0."}
+      - {name: activation_mapping_schema, api_name: activationMappingSchema, type: VARCHAR, description: "Type of identifier to use for activation audience matching, such as `PII` or `ANON`. Since v63.0."}
+      - {name: activation_record_schema, api_name: activationRecordSchema, type: VARCHAR, description: "JSON schema representing the activation JSON payload in the activation_record field of the AudienceDMO. Since v62.0."}
+      - {name: activation_target, api_name: activationTarget, type: JSON, schema: ActivationTargetRepresentation, description: "Activation target details. Since v60.0."}
+      - {name: activation_target_subject_config, api_name: activationTargetSubjectConfig, type: JSON, schema: ActivationTargetSubjectRepresentation, description: "Activation target subject for the activation. Since v60.0."}
+      - {name: activation_type, api_name: activationType, type: VARCHAR, description: "Type of activation. Since v66.0."}
+      - {name: attribute_limiting_expression_config, api_name: attributeLimitingExpressionConfig, type: JSON, schema: AttributeLimitingExpressionConfigRepresentation, description: "Limiting expression configuration for the activation. Since v63.0."}
+      - {name: attributes_config, api_name: attributesConfig, type: JSON, schema: ActivationAttributesConfigRepresentation, description: "Attributes for the activation. Since v60.0."}
+      - {name: contact_points_config, api_name: contactPointsConfig, type: JSON, schema: ContactPointsConfigRepresentation, description: "Contact points for the activation. Since v60.0."}
+      - {name: curated_entity, api_name: curatedEntity, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Curated entity object details for the activation. Since v63.0."}
+      - {name: customer_file_source, api_name: customerFileSource, type: VARCHAR, description: "Customer file source of the activation platform. Since v60.0."}
+      - {name: data_sources_config, api_name: dataSourcesConfig, type: JSON, schema: ActivationDataSourcesRepresentation, description: "Data sources for the activation. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space name for the activation. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation. Since v60.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name for the activation. Since v60.0."}
+      - {name: direct_dmo_filters_config, api_name: directDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "Direct DMO filters for the activation. Since v60.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: history_audience_dmo_api_name, api_name: historyAudienceDmoApiName, type: VARCHAR, description: "API name for the history audience DMO. Since v60.0."}
+      - {name: history_audience_dmo_label, api_name: historyAudienceDmoLabel, type: VARCHAR, description: "Name of the history audience DMO. Since v60.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Indicates whether the activation is enabled (`true`) or not (`false`). Since v60.0."}
+      - {name: last_publish_date, api_name: lastPublishDate, type: VARCHAR, description: "Last publish timestamp of the activation. Use the format `yyyy-mm-dd`. Since v60.0."}
+      - {name: last_publish_status, api_name: lastPublishStatus, type: VARCHAR, description: "Last publish status of the activation. Since v60.0."}
+      - {name: last_publish_status_error_msg, api_name: lastPublishStatusErrorMsg, type: VARCHAR, description: "Error message encountered during last publish. Since v60.0."}
+      - {name: latest_audience_dmo_api_name, api_name: latestAudienceDmoApiName, type: VARCHAR, description: "API name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_label, api_name: latestAudienceDmoLabel, type: VARCHAR, description: "Name for the latest audience DMO. Since v62.0."}
+      - {name: latest_audience_dmo_last_run_timestamp, api_name: latestAudienceDmoLastRunTimestamp, type: VARCHAR, description: "Timestamp of the last run for the latest audience DMO. Use the format `yyyy-mm-dd`. Since v62.0."}
+      - {name: limit_value, api_name: limitValue, type: BIGINT, description: "Audience limit value for the activation. Since v63.0."}
+      - {name: market_segment_id, api_name: marketSegmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: membership_name, api_name: membershipName, type: VARCHAR, description: "Membership name of the activation. Since v60.0."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "Processing type for DMO activations. Since v67.0."}
+      - {name: query_path_config, api_name: queryPathConfig, type: JSON, schema: QueryPathConfigListRepresentation, description: "Query path for the activation target. Since v63.0."}
+      - {name: refresh_type, api_name: refreshType, type: VARCHAR, description: "Refresh type of the activation. Since v60.0."}
+      - {name: related_dmo_filters_config, api_name: relatedDmoFiltersConfig, type: JSON, schema: DmoFiltersConfigRepresentation, description: "DMO filters on related attributes for the activation. Since v60.0."}
+      - {name: segment_api_name, api_name: segmentApiName, type: VARCHAR, description: "Segment API name. Returned for `Segment` type activations. Since v60.0."}
+      - {name: segment_id, api_name: segmentId, type: VARCHAR, description: "Segment ID of the activation. Returned for `Segment` type activations. Since v60.0."}
+      - {name: should_exclude_deletes, api_name: shouldExcludeDeletes, type: BOOLEAN, description: "Indicates whether to exclude records removed since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: should_exclude_updates, api_name: shouldExcludeUpdates, type: BOOLEAN, description: "Indicates whether to exclude records modified since the last refresh (`true`) or not (`false`). Since v60.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, type: VARCHAR, description: "Developer name of the source DMO. Since v66.0."}
+      - {name: static_data_config, api_name: staticDataConfig, type: JSON, schema: StaticDataConfigRepresentation, description: "Campaign data attributes configuration for an activation, which includes both standard attributes (system-defined) and custom attributes (user-defined). Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation. Since v60.0."}
+      - {name: waterfall_selected_child_segments_config, api_name: waterfallSelectedChildSegmentsConfig, type: JSON, schema: WaterfallSelectedChildSegmentsConfigRepresentation, description: "Details about the selected Waterfall child segments. Required when segment_api_name references a Waterfall segment type; must not be present otherwise. Since v67.0."}
+      - {name: activation_target_id, api_name: activationTargetId, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: activation_target_name, api_name: activationTargetName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationRepresentation`.
+    notes: |
+      **Notes:** This is a `PUT`, and the spec still requires `refresh_type`. The spec's example sends only a few fields, and the [MCP class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ActivationUpdateRequest.java) says "populate only what you want to change". No source says whether omitted fields keep their values, so compare with `activation_get` afterwards. The enum and shape conflicts under `activation_create` apply here too, and the output of `activation_get` can't be sent back as input.
+
+      No source lists the fields that can't change.
+
+schemas:
+  ActivationAdditionalAttributesConfigInputRepresentation:
+    description: Represents the additional attributes configuration for the market segment activation input.
+    attributes:
+      - {name: activation_platform_attr_id, api_name: activationPlatformAttrId, type: string, description: "Activation platform attribute ID. Since v60.0."}
+      - {name: data_source_type, api_name: dataSourceType, type: string, description: "Type of the data source. Since v60.0."}
+      - {name: entity_name, api_name: entityName, type: string, description: "List of records in an Audience DMO. Since v60.0."}
+      - {name: external_platform_attribute_name, api_name: externalPlatformAttributeName, type: string, description: "Attribute destination name for an external platform. Since v64.0."}
+      - {name: filter_expression, api_name: filterExpression, schema: AttributeFilterExpressionInputRepresentation, description: "Attribute filter expression. Since v60.0."}
+      - {name: is_rolluppable, api_name: isRolluppable, type: boolean, description: "Indicates whether the attribute can roll up (`true`) or not (`false`). Since v60.0."}
+      - {name: label, type: string, description: "Label of the attribute. Since v60.0."}
+      - {name: name, type: string, description: "Name of the attribute. Since v60.0."}
+      - {name: preferred_name, api_name: preferredName, type: string, description: "Preferred name of the attribute. Since v60.0."}
+      - {name: query_path_config, api_name: queryPathConfig, schema: QueryPathConfigListInputRepresentation, array: 1, description: "Query path from the `activate_on` entity to the additional attribute entity. Since v60.0."}
+      - {name: reference_attribute_name, api_name: referenceAttributeName, type: string, description: "Developer name of the reference attribute. Since v60.0."}
+      - {name: source, type: string, enum: [Direct, Related], description: "Data export source type. Since v60.0."}
+      - {name: type, type: string, enum: [Computed_Dimension, Computed_Measure, Model, Model_Related, Non_Aggregatable_Computed_Measure], description: "Data export attribute type. Since v60.0."}
+
+  ActivationContactPointInputRepresentation:
+    description: Represents the activation contact point input.
+    attributes:
+      - {name: attributes_config, api_name: attributesConfig, schema: ContactPointAttributesConfigInputRepresentation, array: 1, required: true, description: "Attributes for the contact point. Since v60.0."}
+      - {name: entity_name, api_name: entityName, type: string, required: true, description: "Entity name for the contact point. Since v60.0."}
+      - {name: external_platform_hash_method, api_name: externalPlatformHashMethod, type: string, description: "The spec marks this required, but the example here leaves it out. External platform hash method for the contact point. Since v60.0."}
+      - {name: filter_expression, api_name: filterExpression, schema: ContactPointFilterExpressionInputRepresentation, array: 1, description: "The spec marks this required, but the example here leaves it out. Filter expression for the contact point. Since v60.0."}
+      - {name: query_path_config, api_name: queryPathConfig, schema: QueryPathConfigListInputRepresentation, array: 1, required: true, description: "Query path configuration list. Since v63.0."}
+      - {name: sources_config, api_name: sourcesConfig, schema: ContactPointSourcesConfigInputRepresentation, array: 1, required: true, description: "Source configurations for the contact point. Since v60.0."}
+      - {name: type, type: string, enum: [Email, Maid, Ott, Phone, Push, SubscriberKeyEmail, SubscriberKeyPhone, WhatsApp], required: true, description: "Type of contact point. Since v60.0."}
+
+  ActivationDataSourceConfigInputRepresentation:
+    description: Represents the configuration input for an activation data source.
+    attributes:
+      - {name: data_sources, api_name: dataSources, schema: DataSourceNameConfigInputRepresentation, array: 1, required: true, description: "List of data sources for the activation. Since v63.0."}
+
+  ActivationTargetSubjectConfigInputRepresentation:
+    description: Represents the activation target subject configuration input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: developer_name, api_name: developerName, type: string, description: "Developer name of activation target subject configuration. Since v60.0."}
+      - {name: query_path_config, api_name: queryPathConfig, schema: QueryPathConfigListInputRepresentation, array: 1, description: "Path of the activation target subject configuration. Since v60.0."}
+
+  AttributeFilterExpressionInputRepresentation:
+    description: Represents the attribute filter expression input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: conjunction, type: string, enum: [FilterConjunctionAnd, FilterConjunctionOr], description: "Filter conjunction. Since v60.0."}
+      - {name: filters, schema: AttributeFilterInputRepresentation, array: 1, description: "Attribute filters. Since v60.0."}
+
+  AttributeFilterInputRepresentation:
+    description: Represents the attribute filter input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: attribute_id, api_name: attributeId, type: string, description: "ID of the attribute. Since v60.0."}
+      - {name: attribute_name, api_name: attributeName, type: string, description: "Name of the attribute. Since v60.0."}
+      - {name: date_units, api_name: dateUnits, type: string, enum: [Days, Months, Years], description: "Date unit filter. Since v60.0."}
+      - {name: operator, type: string, description: "Operator of the attribute. Since v60.0."}
+      - {name: type, type: string, enum: [FilterOperatorDataTypeBoolean, FilterOperatorDataTypeDate, FilterOperatorDataTypeDateOnly, FilterOperatorDataTypeExactlyRelativeDate, FilterOperatorDataTypeNumber, FilterOperatorDataTypeRelateToNowDate, FilterOperatorDataTypeText], description: "Filter operator type. Since v60.0."}
+      - {name: value, schema: FilterValuesInputRepresentation, array: 1, description: "Filter values. Since v60.0."}
+
+  AttributeLimitingExpressionInputConfigRepresentation:
+    description: Represents the limiting expression configuration input for an activation.
+    attributes:
+      - {name: attribute_limiting_expressions, api_name: attributeLimitingExpressions, schema: AttributeLimitingExpressionInputRepresentation, array: 1, required: true, description: "Input list of an attribute's limiting expressions. Since v63.0."}
+
+  AttributeLimitingExpressionInputRepresentation:
+    description: Represents the limiting expression input for an activation.
+    attributes:
+      - {name: attribute_name, api_name: attributeName, type: string, required: true, description: "Name of the attribute. Since v63.0."}
+      - {name: entity_name, api_name: entityName, type: string, required: true, description: "Name of the entity. Since v63.0."}
+      - {name: order, type: string, enum: [FilterSortOrderAsc, FilterSortOrderDesc], required: true, description: "Sort order for the filter. Since v63.0."}
+      - {name: query_path_config, api_name: queryPathConfig, schema: QueryPathConfigListInputRepresentation, array: 1, required: true, description: "Query path configuration input. Since v63.0."}
+      - {name: type, type: string, required: true, description: "Type of attribute. Since v63.0."}
+
+  AttributesConfigInputRepresentation:
+    description: Represents the configuration input for attributes.
+    attributes:
+      - {name: attributes, schema: ActivationAdditionalAttributesConfigInputRepresentation, array: 1, required: true, description: "Additional attributes for the activation. Since v63.0."}
+
+  BaseComparisonInputRepresentation:
+    description: "Represents the base comparison input. Abstract parent of: - [Entity Scoped Group Input](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=type%3AEntity%2BScoped%2BGroup%2BInput) - [Logical Comparison Input](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=type%3ALogical%2BComparison%2BInput) - [Primitive Comparison Input](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=type%3APrimitive%2BComparison%2BInput)"
+    attributes:
+      - {name: filters_config, api_name: filtersConfig, schema: TypeAndFilterInputRepresentationConfig, array: 1, required: true, description: "Logical comparison input list wrapper. Since v60.0."}
+      - {name: operator, type: string, required: true, description: "Operator of the comparison. Since v60.0."}
+      - {name: attribute_source, api_name: attributeSource, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: condition, schema: BaseComparisonInput_condition, description: "Not in the spec schema: from the spec's examples."}
+      - {name: type, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: object_name, api_name: objectName, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: query_path_config_from_activate_on_to_entity, api_name: queryPathConfigFromActivateOnToEntity, schema: BaseComparisonInput_queryPathConfigFromActivateOnToEntity, description: "Not in the spec schema: from the spec's examples."}
+
+  BaseComparisonInput_condition:
+    unknown: warning
+    attributes:
+      - {name: filters_config, api_name: filtersConfig, schema: BaseComparisonInput_condition_filtersConfig, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: operator, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: self_reference, api_name: selfReference, type: boolean, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: subject, schema: BaseComparisonInput_condition_subject, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: filter_config, api_name: filterConfig, schema: BaseComparisonInput_condition_filterConfig, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_condition_filterConfig:
+    unknown: warning
+    attributes:
+      - {name: values, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_condition_filtersConfig:
+    unknown: warning
+    attributes:
+      - {name: filters, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_condition_subject:
+    unknown: warning
+    attributes:
+      - {name: field_name, api_name: fieldName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: object_name, api_name: objectName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_queryPathConfigFromActivateOnToEntity:
+    unknown: warning
+    attributes:
+      - {name: configs, schema: BaseComparisonInput_queryPathConfigFromActivateOnToEntity_configs, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_queryPathConfigFromActivateOnToEntity_configs:
+    unknown: warning
+    attributes:
+      - {name: query_paths, api_name: queryPaths, schema: BaseComparisonInput_queryPathConfigFromActivateOnToEntity_configs_queryPaths, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_queryPathConfigFromActivateOnToEntity_configs_queryPaths:
+    unknown: warning
+    attributes:
+      - {name: query_path, api_name: queryPath, schema: BaseComparisonInput_queryPathConfigFromActivateOnToEntity_configs_queryPaths_queryPath, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  BaseComparisonInput_queryPathConfigFromActivateOnToEntity_configs_queryPaths_queryPath:
+    unknown: warning
+    attributes:
+      - {name: field_name, api_name: fieldName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: object_name, api_name: objectName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  ContactPointAttributeInputRepresentation:
+    description: Represents the attribute of an activation contact point.
+    attributes:
+      - {name: label, type: string, required: true, description: "Label of the attribute. Since v63.0."}
+      - {name: name, type: string, required: true, description: "Name of the attribute. Since v63.0."}
+      - {name: preferred_name, api_name: preferredName, type: string, description: "The spec marks this required, but the example here leaves it out. Preferred name of the attribute. Since v63.0."}
+
+  ContactPointAttributesConfigInputRepresentation:
+    description: Represents the configuration input for the attributes of an activation contact point.
+    attributes:
+      - {name: attributes, schema: ContactPointAttributeInputRepresentation, array: 1, required: true, description: "List of attributes for the activations. Since v63.0."}
+
+  ContactPointConfigInputRepresentation:
+    description: Represents the activation contact point configuration input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: contact_points, api_name: contactPoints, schema: ActivationContactPointInputRepresentation, array: 1, description: "List of contact points."}
+
+  ContactPointFilterExpressionInputRepresentation:
+    description: Represents the input for an activation contact point filter expression.
+    attributes:
+      - {name: contact_point_dmo_filters, api_name: contactPointDmoFilters, schema: DMOFilterInputRepresentation, array: 1, required: true, description: "List of contact point DMO filters. Since v63.0."}
+
+  ContactPointSourceInputRepresentation:
+    description: Represents the contact point source input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: data_source_id, api_name: dataSourceId, type: string, description: "Record ID for the data source. Since v60.0."}
+      - {name: data_source_preference, api_name: dataSourcePreference, type: string, enum: [ContactPointPrefAny, ContactPointPrefBusiness, ContactPointPrefPersonal, ContactPointPrefPrimary], description: "Preference for the data source. Since v60.0."}
+      - {name: data_source_priority, api_name: dataSourcePriority, type: integer, description: "Priority for the data source. Since v60.0."}
+
+  ContactPointSourcesConfigInputRepresentation:
+    description: Represents the configuration input for contact point sources.
+    attributes:
+      - {name: contact_point_sources, api_name: contactPointSources, schema: ContactPointSourceInputRepresentation, array: 1, required: true, description: "List of contact point sources. Since v63.0."}
+
+  CuratedEntityInputRepresentation:
+    description: Represents the input details for a curated entity.
+    attributes:
+      - {name: label, type: string, required: true, description: "DMO label of the curated entity. Since v63.0."}
+      - {name: name, type: string, required: true, description: "DMO API name of the curated entity. Since v63.0."}
+
+  DMOFilterConfigInputRepresentation:
+    description: Represents DMO filter configuration input.
+    attributes:
+      - {name: filters, schema: DMOFilterInputRepresentation, array: 1, description: "Filters for the DMO filter configuration."}
+
+  DMOFilterInputRepresentation:
+    description: Represents the DMO filter input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: entity_filter, api_name: entityFilter, schema: BaseComparisonInputRepresentation, array: 1, description: "Entity filter. Since v60.0."}
+      - {name: entity_filter_type, api_name: entityFilterType, type: string, description: "Type of the entity filter. Since v60.0."}
+      - {name: entity_name, api_name: entityName, type: string, description: "Name of the entity. Since v60.0."}
+      - {name: filter_limit, api_name: filterLimit, schema: DmoFilterLimitInputRepresentation, description: "Filter limit. Since v60.0."}
+      - {name: inherited_filter, api_name: inheritedFilter, schema: BaseComparisonInputRepresentation, array: 1, description: "Inherited filter. Since v60.0."}
+      - {name: inherited_filter_type, api_name: inheritedFilterType, type: string, description: "Type of the inherited filter. Since v60.0."}
+      - {name: query_path_config_for_activate_on_to_container, api_name: queryPathConfigForActivateOnToContainer, schema: QueryPathConfigListInputRepresentation, array: 1, description: "Path from the activation to the container. *Type:** Query Config List Input Since v60.0."}
+      - {name: query_path_config_from_container_to_entity, api_name: queryPathConfigFromContainerToEntity, schema: QueryPathConfigListInputRepresentation, array: 1, description: "Path from the container to the entity. Since v60.0."}
+
+  DataSourceNameConfigInputRepresentation:
+    description: Represents the data source name configuration input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: data_source_name, api_name: dataSourceName, type: string, required: true, description: "Data source API name for the activation. Since v60.0."}
+
+  DmoFilterLimitInputRepresentation:
+    description: Represents the DMO filter limit input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: attribute_name, api_name: attributeName, type: string, description: "Name of the attribute. Since v60.0."}
+      - {name: max_number_of_values, api_name: maxNumberOfValues, type: integer, description: "Max number of values. Since v60.0."}
+      - {name: order, type: string, enum: [Asc, Desc], description: "Filter sort order. Since v60.0."}
+
+  FilterValuesInputRepresentation:
+    description: Represents the input for filter values.
+    attributes:
+      - {name: values, array: 1, type: string, required: true, description: "List of values. Since v60.0."}
+
+  QueryPathConfigInputRepresentation:
+    description: Represents the query path configuration input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: query_paths, api_name: queryPaths, schema: QueryPathInputRepresentationConfig, array: 1, description: "List of query path configurations. Since v60.0."}
+
+  QueryPathConfigListInputRepresentation:
+    description: Represents the query path configuration list input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: configs, schema: QueryPathConfigInputRepresentation, array: 1, description: "Query path configuration."}
+
+  QueryPathInputRepresentation:
+    description: Represents the query path input.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: field_label, api_name: fieldLabel, type: string, description: "Field label. Since v60.0."}
+      - {name: field_name, api_name: fieldName, type: string, description: "Field name. Since v60.0."}
+      - {name: object_label, api_name: objectLabel, type: string, description: "Object label. Since v60.0."}
+      - {name: object_name, api_name: objectName, type: string, description: "Object name. Since v60.0."}
+
+  QueryPathInputRepresentationConfig:
+    description: Represents the input for a list of query paths.
+    attributes:
+      - {name: query_path, api_name: queryPath, schema: QueryPathInputRepresentation, array: 1, required: true, description: "List of query paths. Since v60.0."}
+
+  StaticDataConfigInputRepresentation:
+    description: Represents the configuration input for static data.
+    attributes:
+      - {name: static_data, api_name: staticData, schema: StaticDataInputRepresentation, array: 1, required: true, description: "List of standard attributes. Since v60.0."}
+
+  StaticDataInputRepresentation:
+    description: Represents the input for static data.
+    attributes:
+      - {name: name, type: string, required: true, description: "Name of the campaign data attribute. For custom attributes, provide any user-defined name-value pair. For standard attributes, use one of these name-value pairs: - Activation Name: `ACTIVATION_NAME` - Activation ID: `ACTIVATION_ID` - Segment Name: `SEGMENT_NAME` - Segment ID: `SEGMENT_ID` - Activation Publish Start Time: `PUBLISH_TIMESTAMP` - Activation Run ID: `ACTIVATION_RUN_ID` Since v60.0."}
+      - {name: value, type: string, required: true, description: "Value of the campaign data attribute. For custom attributes, provide the constant value to include in the activation output. For standard attributes, provide the exact value associated with the selected standard attribute name. The system replaces this value with the actual metadata value at activation run time. Since v60.0."}
+
+  TypeAndFilterInputRepresentation:
+    description: Represents a wrapper for logical comparison filters.
+    attributes:
+      - {name: filter, schema: BaseComparisonInputRepresentation, array: 1, required: true, description: "Filter for the entity. Since v60.0."}
+      - {name: type, type: string, required: true, description: "Name of the entity. Since v60.0."}
+
+  TypeAndFilterInputRepresentationConfig:
+    description: Represents logical comparison input for a filter configuration.
+    attributes:
+      - {name: filters, schema: TypeAndFilterInputRepresentation, array: 1, required: true, description: "List of filters. Since v60.0."}
+
+  WaterfallChildSegmentNamesInputRepresentation:
+    description: Represents a list of child segments input for a Waterfall activation.
+    attributes:
+      - {name: child_segments, api_name: childSegments, array: 1, type: string, description: "List of child segment developer names. Since v67.0."}
+
+  WaterfallSelectedChildSegmentsConfigInputRepresentation:
+    description: Represents the input configuration of the selected child segments for a Waterfall activation.
+    attributes:
+      - {name: child_segments_config, api_name: childSegmentsConfig, schema: WaterfallChildSegmentNamesInputRepresentation, description: "List of child segment developer names selected for the Waterfall activation. Since v67.0."}
+      - {name: selected_all_segments, api_name: selectedAllSegments, type: boolean, description: "Indicates whether all child segments of the Waterfall segment are selected (`true`) or not (`false`). Since v67.0."}
+
+  activation_create_mappings:
+    unknown: warning
+    attributes:
+      - {name: segment_field, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: target_field, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  activation_create_schedule:
+    unknown: warning
+    attributes:
+      - {name: frequency, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: time, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}

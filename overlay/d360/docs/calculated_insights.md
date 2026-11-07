@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/calculated_insights.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Calculated Insights
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -495,4 +497,3 @@ The public sources don't document this response. One row, with the response in `
 
 - Attributes come from the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/calculatedinsight/CalculatedInsightValidateRequest.java). Only `expression` is required, so an insight doesn't need to exist yet.
 - [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) rates this a safe POST, to use "before creating or updating". No source says which [insight SQL rules](#ci_create) it enforces, or how it reports a failure.
-

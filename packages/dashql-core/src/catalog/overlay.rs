@@ -7,7 +7,6 @@
 use crate::error::{Error, Result};
 use crate::hash::HashMap;
 use serde::{Deserialize, Deserializer};
-use std::sync::Arc;
 
 /// The version of the format that the core reads
 pub const OVERLAY_FORMAT: u32 = 1;
@@ -139,28 +138,6 @@ pub struct OverlayColumn {
     pub column_type: Option<String>,
 }
 
-/// A value that must be a `secret()`
-#[derive(Clone, Debug, Default, Deserialize)]
-#[serde(default)]
-pub struct OverlaySensitive {
-    /// A JSON pointer over the names in a script, `*` stands for the items of an array
-    pub pointer: String,
-    /// The sibling attributes whose listed values make the value public
-    pub public_when: HashMap<String, Vec<String>>,
-}
-
-impl OverlaySensitive {
-    /// The path of the pointer without array items. An object and an array of them are interchangeable in a script.
-    fn segments(&self) -> impl Iterator<Item = &str> {
-        self.pointer.split('/').filter(|s| !s.is_empty() && *s != "*")
-    }
-
-    /// Does the pointer select a value at a path? Array items don't count, see `segments`.
-    pub fn matches(&self, path: &[Arc<str>]) -> bool {
-        self.segments().eq(path.iter().map(|s| &**s).filter(|s| *s != "*"))
-    }
-}
-
 /// The paging of a function, as far as checks need it
 #[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default)]
@@ -192,8 +169,6 @@ pub struct OverlayFunction {
     /// Absent takes the default of the spec, null means none
     #[serde(deserialize_with = "present")]
     pub pending: Option<serde_json::Value>,
-    /// The values that must be a `secret()`
-    pub sensitive: Vec<OverlaySensitive>,
     /// The declared effect
     pub effect: Option<OverlayEffect>,
     /// The escape hatch: any option goes
@@ -572,16 +547,6 @@ mod tests {
         .unwrap();
         assert!(spec.has_pending(spec.function("a").unwrap()));
         assert!(!spec.has_pending(spec.function("b").unwrap()));
-    }
-
-    #[test]
-    fn sensitive_pointers_ignore_array_items() {
-        let sensitive = OverlaySensitive { pointer: "/credentials/*/value".to_string(), ..Default::default() };
-        let path = |p: &[&str]| p.iter().map(|s| Arc::<str>::from(*s)).collect::<Vec<_>>();
-        assert!(sensitive.matches(&path(&["credentials", "*", "value"])));
-        assert!(sensitive.matches(&path(&["credentials", "value"])));
-        assert!(!sensitive.matches(&path(&["credentials"])));
-        assert!(!sensitive.matches(&path(&["credentials", "*", "name"])));
     }
 
     #[test]

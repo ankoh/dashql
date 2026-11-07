@@ -1,0 +1,576 @@
+title: Data Model Objects
+description: |
+  A data lake object (DLO, `__dll`) holds ingested rows as they arrived. A data model object (DMO, `__dlm`) is the shared schema that identity resolution, insights and segments read. This family defines DMOs, maps DLO fields onto them, and declares relationships between DMOs.
+
+  The order is: a stream creates the DLO, you pick or create a DMO, you map one onto the other, then you add relationships. Read the exact field names with `dlo_get` and `dmo_get` first. The [DMO guide](https://developer.salesforce.com/docs/data/connectapi/guide/dmo-use-case.md) walks through the mapping calls.
+
+  The traps:
+
+  - Pass a custom DMO name without `__dlm` on create. Every later call uses the full name. Sources disagree, see [`dmo_create`](#dmo_create).
+  - Each `dmo_mapping_create` covers one DLO and one DMO, and must include the DLO's primary key.
+  - For Engagement data, the event date field must be mapped to a field of exactly the same type.
+  - Mapping create returns `CREATING`, so poll `dmo_mapping_get`.
+  - Relationships need mappings on both DMOs (community).
+  - Empty results vary: a DMO with no relationships returns 204, and one with no mappings returns 404 (community).
+
+  ```sql
+  CALL cdp.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
+  CALL cdp.dmo_mapping_create (
+    dataspace => 'default',
+    label => 'S3_Subscribers_Individual',
+    source_entity_developer_name => 'S3_Subscribers__dll',
+    target_entity_developer_name => 'ssot__Individual__dlm',
+    field_mapping => [
+      (source_field_developer_name = 'Subscriber_ID__c', target_field_developer_name = 'ssot__SourceSystemId__c'),
+      (source_field_developer_name = 'LastName__c', target_field_developer_name = 'ssot__LastName__c')
+    ]
+  );
+  /* Repeat until status is ACTIVE */
+  CALL cdp.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+  ```
+
+functions:
+  - name: dmo_mapping_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-model-object-mappings/{objectSourceTargetMapDeveloperName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D/delete
+    tools: [d360_dmo_mapping_delete]
+    description: Delete a mapping between a data lake object (DLO) source and a data model object (DMO) target. Since v61.0.
+    example: CALL cdp.dmo_mapping_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+    options:
+      - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object mapping. Retrieve it from `dmo_mapping_list`, or from the `developer_name` that `dmo_mapping_create` returns."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The [tool source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MappingTools.java) says the stream and the DMO stay, but data stops flowing into the DMO from that source. Sources disagree on whether this call works: the spec and the MCP server offer it, and a [community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/mapping-delete.json) ran a mapping delete live (community, one org), while [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/mapping.ts) says a mapping can't be deleted directly and relies on deleting the DMO (community, one org)."
+
+  - name: dmo_field_mappings_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-model-object-mappings/{objectSourceTargetMapDeveloperName}/field-mappings
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D~1field-mappings/delete
+    description: Delete a field mapping between a data lake object (DLO) source and a data model object (DMO) target. Since v61.0.
+    example: CALL cdp.dmo_field_mappings_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+    options:
+      - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object source target mapping between a DLO and a DMO. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The spec's path names no field mapping and defines no body, so nothing says which field this removes, or whether it removes all of them. The [DMO guide](https://developer.salesforce.com/docs/data/connectapi/guide/dmo-use-case.md) doesn't show the request. Prefer [`dmo_field_mapping_delete`](#dmo_field_mapping_delete), whose path names the field."
+
+  - name: dmo_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-model-objects/{dataModelObjectName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D/delete
+    tools: [d360_dmo_delete]
+    description: Delete a standard or custom data model object (DMO). Since v61.0.
+    example: CALL cdp.dmo_delete (data_model_object_name => 'CustomDMO__dlm');
+    options:
+      - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: "**Notes:** The [catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) says this \"Cascades to dependent objects\". The [tool source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DmoTools.java) says to make sure no streams, mappings, insights or segments reference the DMO first. [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/dmo.ts) reports both behaviors (community, one org): mappings cascade, while other references return 412 \"referenced in other features\". It retries for about a minute, because a reference can linger after its dependent is deleted. It also reports that deleting a DMO that is already gone returns 500 `INTERNAL_ERROR`, not the spec's 404."
+
+  - name: dmo_relationship_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-model-objects/relationships/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1relationships~1%7Bname%7D/delete
+    description: Delete a data model object (DMO) relationship between a field in the source DMO and a field in the target DMO. Since v64.0.
+    example: CALL cdp.dmo_relationship_delete (name => 'ds1_Individual_Id_map_ds1_DataSpace1Dmo_Id_1726382174104');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "ID or developer name of the field source target relationship. Since v64.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v64.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+
+  - name: dmo_mapping_list
+    method: GET
+    host: connect
+    path: /ssot/data-model-object-mappings
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings/get
+    tools: [d360_dmo_mapping_list]
+    description: Get the details of all mappings associated with a data model object (DMO). Since v61.0.
+    example: CALL cdp.dmo_mapping_list (dmo_developer_name => 'ssot__Individual__dlm');
+    options:
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
+      - {name: dlo_developer_name, api_name: dloDeveloperName, in: query, type: string, description: "Developer name of the data lake object (DLO) source object. Since v61.0."}
+      - {name: dmo_developer_name, api_name: dmoDeveloperName, in: query, type: string, required: true, description: "Developer name of the DMO target object. Since v61.0."}
+    rows: /objectSourceTargetMaps
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the object source target map. Since v61.0."}
+      - {name: field_mappings, api_name: fieldMappings, type: JSON, array: 1, schema: CdpFieldSourceTargetMapRepresentation, description: "List of field mappings from the object source target map. Since v61.0."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, type: VARCHAR, description: "Source DLO entity developer name of the object source target map. Since v61.0."}
+      - {name: status, type: VARCHAR, description: "Status of the object source target map. Since v61.0."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, type: VARCHAR, description: "Target DMO entity developer name of the object source target map. Since v61.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    errors: {empty_on: [404]}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/objectSourceTargetMaps` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CdpObjectSourceTargetMapRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** A 404 here can mean "no mappings", not a failure. The spec lists `Object source target map not found for the given target object developer name` under 404, and two community sources treat it as an empty list ([API quirks](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org, and [data-360-sdk](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/data-model-objects.ts), which matches the message prefix `Object Source Target Map not found`). A 404 saying the DLO wasn't found is a real error, so check the message. Identity resolution DMOs (`Unified*`, `*IdentityLink__dlm`) have no mappings (community).
+
+      There's no call for all mappings, so loop over DMOs (community). The spec requires `dmo_developer_name`, yet its 400 text reads "DMO or source object (CRM) developer name is missing", and the [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MappingTools.java) also sends `source_object_name` (for example `Account`) as an alternative. The spec doesn't list that parameter.
+
+  - name: dmo_mapping_get
+    method: GET
+    host: connect
+    path: /ssot/data-model-object-mappings/{objectSourceTargetMapDeveloperName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D/get
+    tools: [d360_dmo_mapping_get]
+    description: Get one DLO-to-DMO mapping by developer name, with its field mappings and status. Use it to check that a new or changed mapping became active.
+    example: CALL cdp.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+    options:
+      - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object mapping. Retrieve it from `dmo_mapping_list`, or from the `developer_name` that `dmo_mapping_create` returns."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the object source target map. Since v61.0."}
+      - {name: field_mappings, api_name: fieldMappings, type: JSON, array: 1, schema: CdpFieldSourceTargetMapRepresentation, description: "List of field mappings from the object source target map. Since v61.0."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, type: VARCHAR, description: "Source DLO entity developer name of the object source target map. Since v61.0."}
+      - {name: status, type: VARCHAR, description: "Status of the object source target map. Since v61.0."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, type: VARCHAR, description: "Target DMO entity developer name of the object source target map. Since v61.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpObjectSourceTargetMapRepresentation`.
+    notes: "**Notes:** The spec's `status` enum is Title Case (`Active`, `Creating`), while the [DMO guide](https://developer.salesforce.com/docs/data/connectapi/guide/dmo-use-case.md) and spec examples show `ACTIVE` and `CREATING`. [sf-pi overrides](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) also record live spellings outside the enum. Compare without regard to case. `field_mappings` also holds system fields the server added."
+
+  - name: dmo_list
+    method: GET
+    host: connect
+    path: /ssot/data-model-objects
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects/get
+    tools: [d360_dmo_list]
+    description: Get a paginated list of all data model objects (DMOs). Since v61.0.
+    example: CALL cdp.dmo_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of DMOs to return. If unspecified, the default value is `50`. Since v61.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v61.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v61.0."}
+    rows: /dataModelObject
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, type: JSON, array: 1, schema: DataObjectFieldRepresentation, description: "List of fields. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Record modified field. Since v60.0."}
+      - {name: type, type: VARCHAR, description: "Type of data object. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DMO. Since v60.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: has_external_data_lake_object_mappings, api_name: hasExternalDataLakeObjectMappings, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_editable, api_name: isEditable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_segmentable, api_name: isSegmentable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataModelObject` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataModelObjectRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** This returns the whole catalog, including DMOs the org doesn't use: over 1,000, at 20 to 40 s per page of 200 ([API quirks](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community, one org). For the ones in use, [`metadata`](profiles_and_metadata.md#metadata) with `entity_type = 'DataModelObject'` is one fast call, but it lists each active relationship twice (same source). The spec's 400 text caps `offset` at 2000.
+
+      The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DmoTools.java) sends filters the spec omits: `dataObjectCategory`, `dataspace_name`, `creation_type`, `dataModelObjectStatus`, `includeFields`, `includeStatus`, `is_enabled`, `mktDataConnectionId`, `search`. It also limits `limit` to 1 to 50, which the 200-per-page report above contradicts.
+
+      `category` comes back in upper case (`PROFILE`, `UNASSIGNED`), and [sf-pi overrides](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) record live values outside the spec's enum. The MCP server names `DirectoryTable` for unstructured file DMOs, and the community names `Segment_Membership`, `Activation_Audience` and `Vector_Embedding`. The tool text says `is_enabled = false` doesn't mean disabled: the DMO can still be mapped.
+
+  - name: dmo_get
+    method: GET
+    host: connect
+    path: /ssot/data-model-objects/{dataModelObjectName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D/get
+    tools: [d360_dmo_get]
+    description: Get a data model object (DMO). Since v61.0.
+    example: CALL cdp.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
+    options:
+      - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, type: JSON, array: 1, schema: DataObjectFieldRepresentation, description: "List of fields. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Record modified field. Since v60.0."}
+      - {name: type, type: VARCHAR, description: "Type of data object. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DMO. Since v60.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: has_external_data_lake_object_mappings, api_name: hasExternalDataLakeObjectMappings, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_editable, api_name: isEditable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_segmentable, api_name: isSegmentable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataModelObjectRepresentation`.
+    notes: "**Notes:** A 404 can also mean you lack access to the DMO (spec). The spec's examples and [live fixtures](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/dmo-create.json) (community) show fields the schema omits, so they land in `_raw`: `dataSpaceName`, `creationType`, `isEnabled`, `isEditable`, `isSegmentable` and `hasExternalDataLakeObjectMappings`. The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DmoTools.java) also sends `includeActiveFieldsOnly` and `includeStatus`, which the spec doesn't list."
+
+  - name: dmo_relationship_list
+    method: GET
+    host: connect
+    path: /ssot/data-model-objects/{dataModelObjectName}/relationships
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D~1relationships/get
+    description: Get the details of all data model object (DMO) relationships between fields in the source DMO and fields in the target DMO. Since v64.0.
+    example: CALL cdp.dmo_relationship_list (data_model_object_name => 'ssot__Individual__dlm', status => 'Active');
+    options:
+      - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
+      - {name: creation_type, api_name: creationType, in: query, type: string, enum: [CalculatedInsight, Curated, Custom, SegmentMembership, Standard, System], description: "Filter the returned results based on relationship creation type. Since v64.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v64.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of relationships to return. If unspecified, the default value is `20`. Since v64.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v64.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, enum: [FilterSortOrderAsc, FilterSortOrderDesc], description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v64.0."}
+      - {name: sort_by, api_name: sortBy, in: query, type: string, description: "The field on which the results are to be sorted. Since v64.0."}
+      - {name: status, in: query, type: string, enum: [Active, Creating, DeactivateByUser, Deleting, Error, Inactive, Updating], description: "Filter the returned results based on relationship status. Since v64.0."}
+    rows: /relationships
+    columns:
+      - {name: cardinality, type: VARCHAR, description: "Cardinality between the fields involved in the relationship. Since v64.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the relationship. Since v64.0."}
+      - {name: id, type: VARCHAR, description: "ID of the relationship. Since v64.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the relationship. Since v64.0."}
+      - {name: owner, type: VARCHAR, description: "Owner of the relationship. Since v64.0."}
+      - {name: source_field, api_name: sourceField, type: JSON, schema: RelationshipFieldRepresentation, description: "Details about the source field involved in the relationship. Since v64.0."}
+      - {name: source_object, api_name: sourceObject, type: JSON, schema: RelationshipObjectRepresentation, description: "Details about the source object involved in the relationship. Since v64.0."}
+      - {name: status, type: VARCHAR, description: "Status of the relationship. Since v64.0."}
+      - {name: target_field, api_name: targetField, type: JSON, schema: RelationshipFieldRepresentation, description: "Details about the target field involved in the relationship. Since v64.0."}
+      - {name: target_object, api_name: targetObject, type: JSON, schema: RelationshipObjectRepresentation, description: "Details about the target object involved in the relationship. Since v64.0."}
+      - {name: source_entity, api_name: sourceEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: target_entity, api_name: targetEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/relationships` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `FieldSrcTrgtRelationshipRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** A DMO with no relationships returns 204 with no body, so expect zero rows rather than a JSON result ([API quirks](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), community, one org). The spec documents only 200.
+
+      Page through results: the default `limit` is 20, and the same source saw 326 relationships on `ssot__Account__dlm`. This call also returns inactive relationships, while [`metadata`](profiles_and_metadata.md#metadata) returns only active ones, each listed twice (same source).
+
+      The spec's enums and examples disagree. `status` is `Active` in the enum, but the example and [live fixtures](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/dmo-relationship-list.json) (community) show `ACTIVE` and `INACTIVE`. `creation_type` is `CalculatedInsight` in the enum and `Calculated_Insight` in the example. `order_by` is `FilterSortOrderAsc` in the enum, while its description and the example use `ASC`. The example shows `source_entity` and `target_entity`, where the schema and the live fixtures have `source_object` and `target_object`.
+
+  - name: dmo_field_mapping_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-model-object-mappings/{objectSourceTargetMapDeveloperName}/field-mappings/{fieldSourceTargetMapDeveloperName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D~1field-mappings~1%7BfieldSourceTargetMapDeveloperName%7D/patch
+    description: Add or update field mappings on an existing mapping, with one field mapping named in the path. To add fields without naming one, see `dmo_field_mapping_add`.
+    example: CALL cdp.dmo_field_mapping_update (object_source_target_map_developer_name => 'StaticCurrencyRates_Home_map_StaticCurrencyRates_Home_1754427001213', field_source_target_map_developer_name => 'InternalOrganization__c_fieldmap_InternalOrganizationId__c', source_entity_developer_name => 'StaticCurrencyRates_Home__dll', target_entity_developer_name => 'StaticCurrencyRates_Home__dlm', field_mapping => [(source_field_developer_name = 'InternalOrganization__c', target_field_developer_name = 'InternalOrganizationId__c')]);
+    options:
+      - {name: field_source_target_map_developer_name, api_name: fieldSourceTargetMapDeveloperName, in: path, type: string, description: "Developer name of the field source target mapping between a DLO and a DMO. Required when adding new field mappings. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0."}
+      - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object source target mapping between a DLO and a DMO. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
+      - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
+      - {name: label, in: body, type: string, description: "Label of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: name, in: body, type: string, description: "API name of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: field_mapping, api_name: fieldMapping, in: body, schema: CdpFieldSourceTargetMapInputRepresentation, array: 1, description: "Details about the fields mappings between the DLO source and the DMO target. Since v61.0."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, in: body, type: string, description: "Source DLO entity developer name. Since v61.0."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, in: body, type: string, description: "Target DMO entity developer name. Since v61.0."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the object source target map. Since v61.0."}
+      - {name: field_mappings, api_name: fieldMappings, type: JSON, array: 1, schema: CdpFieldSourceTargetMapRepresentation, description: "List of field mappings from the object source target map. Since v61.0."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, type: VARCHAR, description: "Source DLO entity developer name of the object source target map. Since v61.0."}
+      - {name: status, type: VARCHAR, description: "Status of the object source target map. Since v61.0."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, type: VARCHAR, description: "Target DMO entity developer name of the object source target map. Since v61.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpObjectSourceTargetMapRepresentation`.
+    notes: |
+      **Done when:** `dmo_mapping_get.status` returns to `ACTIVE`. The guide shows `UPDATING` in the response.
+
+      **Notes:** The spec's facts conflict here. It titles this PATCH "Delete data model object field mapping". It marks `field_source_target_map_developer_name` optional although it's in the path, and says it's required "when adding", yet a new field mapping has no developer name to pass. The [DMO guide](https://developer.salesforce.com/docs/data/connectapi/guide/dmo-use-case.md) adds fields with a PATCH to `/field-mappings`, without that segment, which is [`dmo_field_mapping_add`](#dmo_field_mapping_add).
+
+      The body repeats the entity names: the spec's 400 text covers a missing source entity and missing field mappings. A [community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/mapping/client.ts) sends both entity names with a one-item `field_mapping`. Its [fixtures](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/mapping-update.json) record a success, and an [earlier failure](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/p4-mapping-update-field-error.json) with `Unrecognized field "sourceFieldDeveloperName"` (community, one org). The body shape of the failed call isn't recorded.
+
+  - name: dmo_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-model-objects/{dataModelObjectName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D/patch
+    tools: [d360_dmo_update]
+    description: Update a custom data model object (DMO). The state of the DMO prior to the patch update is returned. To view the latest updates, send this request again or use the [get data model object](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObject) endpoint. Since v61.0.
+    example: CALL cdp.dmo_update (data_model_object_name => 'CustomDMO__dlm', label => 'Custom DMO', fields => [(name = 'CustomDMO789', label = 'CustomDMO789', is_primary_key = false, data_type = 'DateTime')]);
+    options:
+      - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
+      - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
+      - {name: label, in: body, type: string, description: "Label of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: name, in: body, type: string, description: "API name of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: category, in: body, type: string, enum: [Engagement, Other, Profile], description: "Category of the data object. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, in: body, type: string, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, in: body, schema: DataObjectFieldInputRepresentation, array: 1, description: "Fields in the data object. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, in: body, type: string, description: "Record modified field name. Since v60.0."}
+      - {name: type, in: body, type: string, enum: [DataLakeObject, DataModelObject], description: "Type of data object. Since v60.0."}
+      - {name: status, in: body, type: string, enum: [Active, Error, Inactive, Processing], description: "Status of DMO. Since v60.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, type: JSON, array: 1, schema: DataObjectFieldRepresentation, description: "List of fields. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Record modified field. Since v60.0."}
+      - {name: type, type: VARCHAR, description: "Type of data object. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DMO. Since v60.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: description, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: has_external_data_lake_object_mappings, api_name: hasExternalDataLakeObjectMappings, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_editable, api_name: isEditable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_segmentable, api_name: isSegmentable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataModelObjectRepresentation`.
+    notes: "**Notes:** The result shows the state before the patch, so read back with `dmo_get`. The developer name can't change, and fields without a data type are rejected (spec 400 text). The [`data_type` vs `type`](#dataobjectfieldinputrepresentation) conflict applies here too. [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/dmo.ts) calls the shape for adding fields undocumented and deletes and recreates instead (community)."
+
+  - name: dmo_mapping_create
+    method: POST
+    host: connect
+    path: /ssot/data-model-object-mappings
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings/post
+    tools: [d360_dmo_mapping_create, d360_standard_mapping_create]
+    description: Create one mapping from a DLO to a DMO, with its field pairs. Call it once per source and target pair.
+    example: CALL cdp.dmo_mapping_create (dataspace => 'default', label => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'Subscriber_ID__c', target_field_developer_name = 'ssot__SourceSystemId__c'), (source_field_developer_name = 'LastName__c', target_field_developer_name = 'ssot__LastName__c'), (source_field_developer_name = 'FirstName__c', target_field_developer_name = 'ssot__FirstName__c')]);
+    options:
+      - {name: dataspace, in: query, type: string, required: true, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
+      - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
+      - {name: label, in: body, type: string, description: "Label of the mapping. In the guide, this value becomes `developer_name`."}
+      - {name: name, in: body, type: string, description: "Name of the mapping. The spec calls this the API name, but the guide sends free text here and gets `label` back as `developer_name`."}
+      - {name: field_mapping, api_name: fieldMapping, in: body, schema: CdpFieldSourceTargetMapInputRepresentation, array: 1, description: "Details about the fields mappings between the DLO source and the DMO target. Since v61.0."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, in: body, type: string, description: "Source DLO developer name, with the `__dll` suffix."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, in: body, type: string, description: "Target DMO developer name, with the `__dlm` suffix."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the object source target map. Since v61.0."}
+      - {name: field_mappings, api_name: fieldMappings, type: JSON, array: 1, schema: CdpFieldSourceTargetMapRepresentation, description: "List of field mappings from the object source target map. Since v61.0."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, type: VARCHAR, description: "Source DLO entity developer name of the object source target map. Since v61.0."}
+      - {name: status, type: VARCHAR, description: "Status of the object source target map. Since v61.0."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, type: VARCHAR, description: "Target DMO entity developer name of the object source target map. Since v61.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpObjectSourceTargetMapRepresentation`.
+    notes: |
+      **Done when:** `dmo_mapping_get.status` is `ACTIVE`, after `CREATING`. The spec's enum also has `Error`. No source documents a typical wait.
+
+      **Notes:** **One pair per call.** Each call covers one DLO and one DMO ([tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MappingTools.java)). [`d360_standard_mapping_create`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/StandardMappingTools.java) looks like a bulk call, but it loops over definitions bundled in the MCP server and sends one POST per DMO, so the API has no bulk form.
+
+      **Required pairs:**
+      - The DLO's primary key must be mapped. Otherwise the spec lists a 400, `Unable to find the primary key of the DLO`. [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/mapping.ts) reports this as `MISSING_ARGUMENT` (community).
+      - For Engagement DLOs, the event date field must be mapped, and the source and target types must match exactly (`Date` to `Date`, `DateTime` to `DateTime`). If the DMO has no matching field, create a custom DMO that does ([tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MappingTools.java)).
+      - `ContactPointEmail` needs the person id mapped to both `ssot__Id__c` and `ssot__PartyId__c`, which links the email to the Individual ([payload examples](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json)).
+
+      **Names:** DLO fields include `__c` (`customer_id__c`), so read them from `dlo_get`. Don't map `DataSource__c`, `DataSourceObject__c` or `KQ_*`: the server adds them ([payload examples](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json)). Read the mapping's name from `developer_name`. The [DMO guide](https://developer.salesforce.com/docs/data/connectapi/guide/dmo-use-case.md) sends `label` and `name` and gets the label back as the name. The spec's example sends neither and gets a generated `test1_map_AcademicYear_1756753400979`.
+
+      **Prerequisites:** a custom DMO must be created with an explicit `dataspace_name`, or this returns `DMO not found` ([payload examples](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json)). `is_enabled = false` on a DMO doesn't block mapping ([tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DmoTools.java)). A new DLO can take 5 to 60 s to expose its fields ([afd360](https://github.com/javrrr/afd360/blob/main/src/resources/mapping.ts), community), and a DMO of the wrong category fails with `Cannot map DLO to DMO` ([afd360](https://github.com/javrrr/afd360/blob/main/src/resources/dmo.ts), community).
+
+      **Retries:** repeating a call for the same DLO, DMO and data space returns `DUPLICATE_DLO_TO_DMO_MAPPING` ([afd360](https://github.com/javrrr/afd360/blob/main/src/resources/mapping.ts), community).
+
+      **`dataspace`:** the spec marks it required, while its description gives a default and the guide's request omits it. The payload notes call it required. The [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/MappingTools.java) also sends `ignoreSystemFieldValidations`, which the spec doesn't list.
+
+  - name: dmo_create
+    method: POST
+    host: connect
+    path: /ssot/data-model-objects
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects/post
+    tools: [d360_dmo_create]
+    description: Create a custom data model object (DMO). Since v61.0.
+    example: CALL cdp.dmo_create (name => 'CustomDMO', label => 'Custom DMO', dataspace_name => 'default', category => 'Profile', fields => [(name = 'CustomId', label = 'Custom Id', is_primary_key = true, data_type = 'Text'), (name = 'SignupDate', label = 'Signup Date', is_primary_key = false, data_type = 'DateTime')]);
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Set it explicitly: mapping a custom DMO created without it returns `DMO not found` (payload examples)."}
+      - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
+      - {name: label, in: body, type: string, description: "Label of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: name, in: body, type: string, description: "DMO name without `__dlm`, see the notes. Letters, digits and underscores. Starts with a letter, has no trailing or consecutive underscores, and doesn't start with `SSOT`."}
+      - {name: category, in: body, type: string, enum: [Engagement, Other, Profile], description: "Category of the data object. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, in: body, type: string, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, in: body, schema: DataObjectFieldInputRepresentation, array: 1, description: "Fields in the data object. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, in: body, type: string, description: "Record modified field name. Since v60.0."}
+      - {name: type, in: body, type: string, enum: [DataLakeObject, DataModelObject], description: "Type of data object. Since v60.0."}
+      - {name: status, in: body, type: string, enum: [Active, Error, Inactive, Processing], description: "Status of DMO. Since v60.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, type: JSON, array: 1, schema: DataObjectFieldRepresentation, description: "List of fields. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Record modified field. Since v60.0."}
+      - {name: type, type: VARCHAR, description: "Type of data object. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DMO. Since v60.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: description, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: has_external_data_lake_object_mappings, api_name: hasExternalDataLakeObjectMappings, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_editable, api_name: isEditable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_segmentable, api_name: isSegmentable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataModelObjectRepresentation`.
+    notes: |
+      **Done when:** `dmo_get` returns a populated `dataSpaceName`, found in `_raw`. It may return incomplete fields before that ([afd360](https://github.com/javrrr/afd360/blob/main/src/resources/dmo.ts), community). Waits of 60 to 90 s are reported (community).
+
+      **Notes:** **The `__dlm` conflict.** Sources disagree on whether `name` takes the suffix.
+
+      | Source | Says |
+      |---|---|
+      | The spec's example | Sends `CustomDMO`, returns `CustomDMO__dlm` |
+      | MCP [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DmoTools.java) and [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dmo/DmoCreateRequest.java) | Don't include it, "the API appends it" |
+      | [afd360](https://github.com/javrrr/afd360/blob/main/skills/afd360/SKILL.md) (community) | "The platform appends these" |
+      | MCP [catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) | "API name must end with `__dlm`" |
+      | MCP [payload examples](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) | Send `CustomMetric__dlm`, and also `objectType` and `objectCategory`, which the spec lacks |
+
+      Pass the bare name. The spec's 400 text forbids two consecutive underscores, which a suffixed name would break, though that's my inference. This hasn't been tested. Field names behave the same way: the spec's `CustomDMO123` returns as `CustomDMO123__c`, with `KQ_CustomDMO123__c` added.
+
+      **Rules:** at least one field needs `is_primary_key = true` for the create to succeed, and Engagement DMOs need `event_date_time_field_name` ([tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DmoTools.java)). No source documents whether that value takes `__c`. A name that "has been previously used" is also rejected (spec 400 text), so a deleted DMO's name may not be reusable.
+
+      **`category`:** the enum is `Profile`, while the spec's example sends `PROFILE`. [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/dmo.ts) sends title case and reads back upper case (community, one org). The tool text also accepts `Segment_Membership`, while the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dmo/DmoCreateRequest.java) lists only the three spec values.
+
+      **`is_dynamic_lookup`** appears in the spec's example but not its schema, and the field-level `data_type` conflict is under [the schema](#dataobjectfieldinputrepresentation).
+
+  - name: dmo_relationship_create
+    method: POST
+    host: connect
+    path: /ssot/data-model-objects/{dataModelObjectName}/relationships
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D~1relationships/post
+    description: Create bulk data model object (DMO) relationships between fields in the source DMO and fields in the target DMO. If a relationship already exists, it is skipped. Since v64.0.
+    example: CALL cdp.dmo_relationship_create (data_model_object_name => 'SalesOrder__dlm', dataspace => 'default', relationships => [(source_object_name = 'SalesOrder__dlm', target_object_name = 'ssot__Individual__dlm', source_field_name = 'CustomerId__c', target_field_name = 'ssot__Id__c', cardinality = 'ManyToOne', relationship_owner = 'DataCloud')]);
+    options:
+      - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the source DMO, with the `__dlm` suffix. The spec doesn't say which end goes here, but afd360 passes the source (community)."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v64.0."}
+      - {name: relationships, in: body, schema: FieldSrcTrgtRelationshipInputRepresentation, array: 1, required: true, description: "List of relationships to be created. Since v64.0."}
+    rows: /relationships
+    columns:
+      - {name: cardinality, type: VARCHAR, description: "Cardinality between the fields involved in the relationship. Since v64.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the relationship. Since v64.0."}
+      - {name: id, type: VARCHAR, description: "ID of the relationship. Since v64.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the relationship. Since v64.0."}
+      - {name: owner, type: VARCHAR, description: "Owner of the relationship. Since v64.0."}
+      - {name: source_field, api_name: sourceField, type: JSON, schema: RelationshipFieldRepresentation, description: "Details about the source field involved in the relationship. Since v64.0."}
+      - {name: source_object, api_name: sourceObject, type: JSON, schema: RelationshipObjectRepresentation, description: "Details about the source object involved in the relationship. Since v64.0."}
+      - {name: status, type: VARCHAR, description: "Status of the relationship. Since v64.0."}
+      - {name: target_field, api_name: targetField, type: JSON, schema: RelationshipFieldRepresentation, description: "Details about the target field involved in the relationship. Since v64.0."}
+      - {name: target_object, api_name: targetObject, type: JSON, schema: RelationshipObjectRepresentation, description: "Details about the target object involved in the relationship. Since v64.0."}
+      - {name: source_entity, api_name: sourceEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: target_entity, api_name: targetEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: write
+    evidence: O
+    result_description: "One row per item of `/relationships` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `FieldSrcTrgtRelationshipRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Done when:** `dmo_relationship_list.status` is `ACTIVE`, found by `name`. Live responses start at `CREATING` (community). The spec's enum also has `Error`.
+
+      **Notes:** **Both DMOs need mappings first.** Otherwise this returns 400 `INVALID_INPUT` with `No ObjectSourceTargetMaps were found` ([afd360](https://github.com/javrrr/afd360/blob/main/src/resources/relationship.ts), community, one org). The same source says this works for any mapped pair, not only custom DMOs.
+
+      **The spec's example is wrong on two names.** It sends `owner` and `creation_type`, but the schema has `relationship_owner` and no creation type. The same source reports the API rejects both as unrecognized (community, one org). A [community template](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud/assets/definitions/relationship.template.json) also uses `relationship_owner`.
+
+      The spec says existing relationships are skipped, but not whether they appear in the response. [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/relationship.ts) falls back to `dmo_relationship_list` when the response has none (community). Segment joins need a declared relationship ([notes](api_notes.md)).
+
+  - name: dmo_field_mapping_add
+    method: PATCH
+    host: connect
+    path: /ssot/data-model-object-mappings/{mappingName}/field-mappings
+    tools: [d360_dmo_field_mapping_add]
+    description: Add field mappings to an existing DLO-to-DMO mapping without recreating it. Use it when the source gains a field or a mapping missed one.
+    example: CALL cdp.dmo_field_mapping_add (mapping_name => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'DateOfBirth__c', target_field_developer_name = 'ssot__BirthDate__c')]);
+    options:
+      - {name: mapping_name, api_name: mappingName, in: path, type: string, required: true, description: "Developer name of the object mapping, for example `Contact_00D000000000000_map_ContactPointAddress_1714460254874`."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
+      - {name: field_mapping, api_name: fieldMapping, in: body, schema: CdpFieldSourceTargetMapInputRepresentation, array: 1, required: true, description: "Field mappings to add. See the notes for the `field_mappings` conflict."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, in: body, type: string, required: true, description: "Source DLO developer name. The guide sends it, and the spec's 400 text for the sibling PATCH treats it as required."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, in: body, type: string, description: "Target DMO developer name. The guide sends it."}
+      - {name: description, in: body, type: string, description: "Description of the mapping. The guide sends it."}
+      - {name: label, in: body, type: string, description: "Label of the mapping. The guide sends it."}
+      - {name: name, in: body, type: string, description: "Name of the mapping. The guide sends it."}
+    columns:
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the object mapping."}
+      - {name: field_mappings, api_name: fieldMappings, type: JSON, description: "Field mappings, each with `developer_name`, `source_field_developer_name` and `target_field_developer_name`."}
+      - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, type: VARCHAR, description: "Source DLO developer name."}
+      - {name: status, type: VARCHAR, description: "Mapping status. The guide shows `UPDATING` here."}
+      - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, type: VARCHAR, description: "Target DMO developer name."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row.
+    notes: |
+      **Done when:** `dmo_mapping_get.status` returns to `ACTIVE`. The guide shows `UPDATING` in the response.
+
+      **Notes:** This path isn't in the spec, and it's the `dmo_field_mapping_update` path without the last segment. The options follow Step 4 of the [DMO guide](https://developer.salesforce.com/docs/data/connectapi/guide/dmo-use-case.md), the only source showing a full request. The MCP [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/mapping/FieldMappingAddRequest.java) differs: it sends only `field_mappings`, plural, with no entity names. Check which one the server accepts.
+
+  - name: dmo_field_mapping_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-model-object-mappings/{mappingName}/field-mappings/{fieldMappingName}
+    tools: [d360_dmo_field_mapping_delete]
+    description: Delete one field mapping and keep the rest of the DLO-to-DMO mapping. Use it to remove a field for governance or cleanup.
+    example: CALL cdp.dmo_field_mapping_delete (mapping_name => 'S3_Subscribers_Individual', field_mapping_name => 'DateOfBirth__c_fieldmap_ssot__BirthDate__c');
+    options:
+      - {name: mapping_name, api_name: mappingName, in: path, type: string, required: true, description: "Developer name of the object mapping"}
+      - {name: field_mapping_name, api_name: fieldMappingName, in: path, type: string, required: true, description: "Developer name of the field mapping to delete (e.g. MailingCity__c_fieldmap_ssot__CityId__c)"}
+      - {name: dataspace, in: query, type: string, description: "Dataspace name"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This path isn't in the spec, which has only [`dmo_field_mappings_delete`](#dmo_field_mappings_delete) with no field name. The MCP server and a [community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/mapping/client.ts) use this one, and the plugin's [fixture](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/mapping-delete.json) records a live success (community, one org). Field mapping names follow `<source>_fieldmap_<target>`, as `dmo_mapping_get` shows."
+
+schemas:
+  CdpFieldSourceTargetMapInputRepresentation:
+    description: Represents the input for creating a field source target map.
+    attributes:
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
+      - {name: description, type: string, description: "Description of the object to create. Since v59.0."}
+      - {name: label, type: string, description: "Label of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: name, type: string, description: "API name of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: source_field_developer_name, api_name: sourceFieldDeveloperName, type: string, description: "Source DLO field developer name, with `__c` (`customer_id__c`). Since v61.0."}
+      - {name: target_field_developer_name, api_name: targetFieldDeveloperName, type: string, description: "Target DMO field developer name, for example `ssot__FirstName__c`. Since v61.0."}
+
+  FieldSrcTrgtRelationshipInputRepresentation:
+    description: Represents the input to create a field source target relationship between data model objects (DMOs).
+    attributes:
+      - {name: cardinality, type: string, enum: [ManyToOne, OneToOne], required: true, description: "Cardinality between the fields involved in the relationship. Since v64.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space for the relationship creation. Since v64.0."}
+      - {name: relationship_owner, api_name: relationshipOwner, type: string, enum: [DataCloud, Sobject], description: "Owner of the relationship. The spec's example sends `owner`, which a community source reports the API rejects (one org). Since v64.0."}
+      - {name: source_field_name, api_name: sourceFieldName, type: string, required: true, description: "Developer name of the source field in the relationship. Since v64.0."}
+      - {name: source_object_name, api_name: sourceObjectName, type: string, description: "Developer name of the source object in the relationship. Optional in the spec, though its example and community clients send it. Since v64.0."}
+      - {name: target_field_name, api_name: targetFieldName, type: string, required: true, description: "Developer name of the target field in the relationship. Since v64.0."}
+      - {name: target_object_name, api_name: targetObjectName, type: string, description: "Developer name of target object in the relationship. Optional in the spec, though its example and community clients send it. Since v64.0."}
+      - {name: creation_type, api_name: creationType, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: owner, type: string, description: "Not in the spec schema: from the spec's examples."}

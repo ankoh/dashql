@@ -1,0 +1,313 @@
+title: Data Lake Objects
+description: |
+  A data lake object (DLO) is a table of raw ingested data, named `<Name>__dll`. It sits between a data stream and a data model object (DMO): stream, then DLO, then mapping, then DMO. Salesforce's server describes DLOs as ["usually auto-created by data streams"](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java), so `datastream_create` is the normal way to get one, and `dlo_create` is for custom cases. Most people use this family to read: `dlo_list` to find names, then `dlo_get` to get the exact field names a mapping needs.
+
+  Three things matter most:
+
+  - **Paging.** To get every DLO, follow `next_page_url`. A short page isn't the end, and `limit` above 20 doesn't help (community). See [`dlo_list`](#dlo_list).
+  - **Names.** You create `Foo` and read back `Foo__dll`. A field `Bar` comes back as `Bar__c`, alongside system fields you didn't ask for. See [`dlo_create`](#dlo_create).
+  - **The spec disagrees with itself on request bodies.** Which key holds the fields, and whether a data space goes in `dataspace_name` or `dataspace_info`, varies by source. The notes on `dlo_create` and `dlo_update` list the conflicts.
+
+  ```sql
+  CALL cdp.dlo_list ();
+  CALL cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+  CALL cdp.dlo_update (record_id_or_developer_name => 'Account_Home__dll', label => 'Account Home');
+  ```
+
+functions:
+  - name: dlo_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-lake-objects/{recordIdOrDeveloperName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/delete
+    tools: [d360_dlo_delete]
+    description: Delete a data lake object (DLO). Since v60.0.
+    example: CALL cdp.dlo_delete (record_id_or_developer_name => 'Loyalty_Member__dll');
+    options:
+      - {name: record_id_or_developer_name, api_name: recordIdOrDeveloperName, in: path, type: string, required: true, description: "ID or developer name of the DLO. Since v60.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: "**Notes:** Salesforce's tool text says this removes the DLO [\"and its data\"](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DloTools.java), and to check that no mappings or data streams reference it first. No source says what happens if one does. `datastream_delete` can also remove a stream's DLOs with `should_delete_data_lake_object`, which defaults to `false`. The spec's `status` values include `Deleting`, but no source says whether a 204 means the DLO is already gone."
+
+  - name: dlo_list
+    method: GET
+    host: connect
+    path: /ssot/data-lake-objects
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects/get
+    tools: [d360_dlo_list]
+    description: Get a collection of all data lake objects (DLOs). Since v60.0.
+    example: CALL cdp.dlo_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of DLOs per page. The default is `20`. The spec's text says \"relationships\". Values above 20 are reported to be cut to 20 (community). Since v60.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v60.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v60.0."}
+    rows: /dataLakeObjects
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category of the DLO. Since v60.0."}
+      - {name: data_lake_field_info_representation, api_name: dataLakeFieldInfoRepresentation, type: JSON, array: 1, schema: DataLakeFieldRepresentation, description: "Information about the `DataLake` field of the DLO. Since v60.0."}
+      - {name: dataspace_info, api_name: dataSpaceInfo, type: JSON, array: 1, schema: DataSpaceRepresentation, description: "Information about the data space. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: org_unit_identifier_field_name, api_name: orgUnitIdentifierFieldName, type: VARCHAR, description: "Name of the org unity identifier field. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Name of the record modified field. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DLO. Since v60.0."}
+      - {name: capabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: fields, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataLakeObjects` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataLakeObjectRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`. Follow it until it's absent, because a short page doesn't mean the end (community).
+
+      **Notes:** A loop that stops on a short page gets at most the first 20 DLOs. [One community tool](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) reports all of this (community):
+
+      - `limit` is capped at 20. `current_page_url` showed `limit=20` when 200 was requested.
+      - DLOs of other data spaces are removed after paging, so a page in the middle can be short, such as 3 of 5.
+      - `total_size` counts every row, and it and `metadata` with `entity_type => 'DataLakeObject'` include more than the list does, such as system DLOs like `EngagementAggregation__dll`. Don't use `total_size` to detect missing DLOs.
+      - There's no data space option. Filter on the `dataspace_info` column yourself.
+      - Not every DLO has a stream. Examples are `<Object>_chunk__dll`, `<Object>_index__dll` and CRM currency rates.
+
+      `order_by` is `ASC` or `DESC` in the spec, but [Salesforce's MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DloTools.java) describes it as a field name, and its test sends `order_by=name`. The same tool's text mentions filtering by category, yet neither it nor the spec has such an option.
+
+      Values can fall outside the spec's enums. `sf-pi` [records live responses](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) with other spellings of `category`, `status` and field `data_type` (one org), and the spec's own example has `status` `ACTIVE` where the enum has `Active`.
+
+  - name: dlo_get
+    method: GET
+    host: connect
+    path: /ssot/data-lake-objects/{recordIdOrDeveloperName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/get
+    tools: [d360_dlo_get]
+    description: Get a data lake object (DLO). Since v60.0.
+    example: CALL cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+    options:
+      - {name: record_id_or_developer_name, api_name: recordIdOrDeveloperName, in: path, type: string, required: true, description: "ID or developer name of the DLO. Since v60.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of relationships to return. If unspecified, the default value is `20`. Since v60.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v60.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v60.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category of the DLO. Since v60.0."}
+      - {name: data_lake_field_info_representation, api_name: dataLakeFieldInfoRepresentation, type: JSON, array: 1, schema: DataLakeFieldRepresentation, description: "Information about the `DataLake` field of the DLO. Since v60.0."}
+      - {name: dataspace_info, api_name: dataSpaceInfo, type: JSON, array: 1, schema: DataSpaceRepresentation, description: "Information about the data space. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: org_unit_identifier_field_name, api_name: orgUnitIdentifierFieldName, type: VARCHAR, description: "Name of the org unity identifier field. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Name of the record modified field. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DLO. Since v60.0."}
+      - {name: capabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: fields, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataLakeObjectRepresentation`.
+    notes: |
+      **Paging:** The spec lists `limit`, `offset` and `order_by` here, but no source says what they page in a single-object response, and Salesforce's MCP tool doesn't send them.
+
+      **Notes:** The developer name includes the suffix, such as `Account_Home__dll`. This is the call to make before `dmo_mapping_create`: Salesforce's [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DloTools.java) says it returns the exact field names needed for `source_field_name`. They're in `data_lake_field_info_representation`. Stream mappings name the same fields without `__c`, such as `MailingStreet` for `MailingStreet__c` ([community](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)).
+
+      The spec declares a single object. `sf-pi` [records a live response](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) wrapped in a `dataLakeObjects` array (one org), so the one-row result may not hold.
+
+  - name: dlo_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-lake-objects/{recordIdOrDeveloperName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/patch
+    tools: [d360_dlo_update]
+    description: Update a data lake object (DLO) by adding new fields or changing the label. Since v60.0.
+    example: CALL cdp.dlo_update (record_id_or_developer_name => 'Loyalty_Member__dll', label => 'Loyalty Member', fields => [(name = 'Tier', label = 'Tier', data_type = 'Text', is_primary_key = false)]);
+    options:
+      - {name: record_id_or_developer_name, api_name: recordIdOrDeveloperName, in: path, type: string, required: true, description: "ID or developer name of the DLO. Since v60.0."}
+      - {name: fields, in: body, schema: DataLakeFieldInputRepresentation, array: 1, description: "Fields of the DLO. Since v60.0."}
+      - {name: label, in: body, type: string, required: true, description: "Label of the DLO. Since v60.0."}
+      - {name: data_lake_field_input_representations, api_name: dataLakeFieldInputRepresentations, in: body, schema: dlo_update_dataLakeFieldInputRepresentations, array: 1, description: "Not in the spec schema: from the spec's examples."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category of the DLO. Since v60.0."}
+      - {name: data_lake_field_info_representation, api_name: dataLakeFieldInfoRepresentation, type: JSON, array: 1, schema: DataLakeFieldRepresentation, description: "Information about the `DataLake` field of the DLO. Since v60.0."}
+      - {name: dataspace_info, api_name: dataSpaceInfo, type: JSON, array: 1, schema: DataSpaceRepresentation, description: "Information about the data space. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: org_unit_identifier_field_name, api_name: orgUnitIdentifierFieldName, type: VARCHAR, description: "Name of the org unity identifier field. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Name of the record modified field. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DLO. Since v60.0."}
+      - {name: capabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: fields, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataLakeObjectRepresentation`.
+    notes: |
+      **Notes:** **The field key is in conflict.** The spec's schema calls it `fields`, which is why that's the option here. The spec's [own example](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/patch) and Salesforce's [`DloPatchRequest`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dlo/DloPatchRequest.java) both send `data_lake_field_input_representations` instead.
+
+      The spec requires `label`, so send the current label when you only add fields. Salesforce's MCP request makes it optional, and its test sends fields alone.
+
+      The spec says this adds fields or changes the label. Salesforce's [tool text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DloTools.java) also claims it can change fields and adjust field types. Nothing else confirms that. Name new fields as on [`dlo_create`](#dlo_create), without `__c`.
+
+  - name: dlo_create
+    method: POST
+    host: connect
+    path: /ssot/data-lake-objects
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects/post
+    tools: [d360_dlo_create]
+    description: Create a data lake object (DLO). Since v60.0.
+    example: CALL cdp.dlo_create (name => 'Loyalty_Member', label => 'Loyalty Member', category => 'Profile', dataspace_info => [(name = 'default')], data_lake_field_input_representations => [(name = 'Member_Id', label = 'Member Id', data_type = 'Text', is_primary_key = true), (name = 'Joined_On', label = 'Joined On', data_type = 'DateTime', is_primary_key = false)]);
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
+      - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
+      - {name: label, in: body, type: string, required: true, description: "Label of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: name, in: body, type: string, required: true, description: "API name of the object to create. This property is required for data graph resources. Since v59.0."}
+      - {name: category, in: body, type: string, enum: [Directory_Table, Engagement, Insights, Other, Profile], required: true, description: "Category of the data object. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, in: body, type: string, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: fields, in: body, schema: DataObjectFieldInputRepresentation, array: 1, description: "Fields in the data object. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, in: body, type: string, description: "Record modified field name. Since v60.0."}
+      - {name: type, in: body, type: string, enum: [DataLakeObject, DataModelObject], description: "Type of data object. Since v60.0."}
+      - {name: data_lake_field_input_representations, api_name: dataLakeFieldInputRepresentations, in: body, schema: DataLakeFieldInputRepresentation, array: 1, description: "Information about DLO fields. For Ingestion API data streams, include only the primary key field. Since v60.0."}
+      - {name: data_model_object_config, api_name: dataModelObjectConfig, in: body, schema: DataModelObjectConfigInputRepresentation, description: "-"}
+      - {name: data_source, api_name: dataSource, in: body, schema: DataLakeSourceInputRepresentation, description: "Where an unstructured DLO reads files, for `category => 'Directory_Table'` ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md))."}
+      - {name: dataspace_info, api_name: dataspaceInfo, in: body, schema: DataSpaceInputRepresentation, array: 1, required: true, description: "Information about the data space. Since v60.0."}
+      - {name: org_unit_identifier_field_name, api_name: orgUnitIdentifierFieldName, in: body, type: string, description: "Name of the org unit identifier field. Since v60.0."}
+      - {name: status, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: category, type: VARCHAR, description: "Category of the DLO. Since v60.0."}
+      - {name: data_lake_field_info_representation, api_name: dataLakeFieldInfoRepresentation, type: JSON, array: 1, schema: DataLakeFieldRepresentation, description: "Information about the `DataLake` field of the DLO. Since v60.0."}
+      - {name: dataspace_info, api_name: dataSpaceInfo, type: JSON, array: 1, schema: DataSpaceRepresentation, description: "Information about the data space. Since v60.0."}
+      - {name: event_date_time_field_name, api_name: eventDateTimeFieldName, type: VARCHAR, description: "Name of the event date and time field. This property is required when the value of the category property is `Engagement`. Since v60.0."}
+      - {name: org_unit_identifier_field_name, api_name: orgUnitIdentifierFieldName, type: VARCHAR, description: "Name of the org unity identifier field. Since v60.0."}
+      - {name: record_modified_field_name, api_name: recordModifiedFieldName, type: VARCHAR, description: "Name of the record modified field. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "Status of the DLO. Since v60.0."}
+      - {name: capabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: fields, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataLakeObjectRepresentation`.
+    notes: |
+      **Done when:** `dlo_get.status` is `ACTIVE`. The spec's example returns `PROCESSING` right after the POST. Its enum spells these `Active` and `Processing`, and no source describes the transition.
+
+      **Notes:** Check first whether you need this. Streams usually create the DLO, and `datastream_create` takes `data_lake_object_info` or `existing_data_lake_object_info`.
+
+      **Object name.** The spec's example sends `DataLakeObjectTwo` and gets `DataLakeObjectTwo__dll` back. [A community tool](https://github.com/javrrr/afd360/blob/main/skills/afd360/SKILL.md) says the same: don't add the suffix (community). Salesforce's MCP test and its S3 stream payload example do send `__dll`, so sources disagree on whether that's accepted. `record_id_or_developer_name` on other calls takes the suffixed name.
+
+      **Field names.** The spec's example sends `FieldOne` and gets `FieldOne__c`. The response also holds fields nobody sent: `KQ_FieldOne__c`, `cdp_sys_SourceVersion__c`, `DataSource__c`, `DataSourceObject__c` and `InternalOrganization__c`. A filter's `field_name` and `table_name` use the suffixed forms.
+
+      Character rules vary by source:
+
+      - The [Ingestion API schema rules](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-ingestion-api-schema-req.md) allow `a-z`, `A-Z`, `0-9`, `_` and `-`, at most 39 characters for a field and 79 for an object. A field name can't contain `__` or be a reserved word such as `version` or `row_count`. These cover schema files, and no source applies them to this call.
+      - Official docs, seen only through a search excerpt, want names that start with a letter, with no trailing or consecutive underscores, and 40 characters or fewer for data kits ([API notes](api_notes.md#naming)).
+      - A CRM custom field `Foo__c` becomes `Foo_c__c` in the DLO ([API notes](api_notes.md#naming), [community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md)).
+
+      **Which field list.** The spec has both `data_lake_field_input_representations` (attribute `data_type`) and `fields` (attribute `type`, and `DateOnly` instead of `Currency`). The spec's example uses the first. Salesforce's [`DloCreateRequest`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dlo/DloCreateRequest.java) uses `fields`, but [serializes `type` as `data_type`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dlo/DataObjectFieldInput.java) and names the qualifier `key_qualifier_field`, not `key_qualifier_field_name`. For Ingestion API streams, send only the primary key field.
+
+      **Data space.** The spec lists `dataspace_name`, but `DloCreateRequest` leaves it out because the endpoint rejects it with `Unrecognized field 'dataSpaceName'`. The spec requires `dataspace_info`, but the same class omits it and says the endpoint falls back to `default`.
+
+      **Filter shape.** Under `dataspace_info`, the spec's schema has `conditions` as an array and `operator` as `Equals`. The spec's example has `conditions` as a single object and `operator` as `EqualsOperator`. The example below avoids filters. The spec's example also quotes `is_primary_key` as a string, while the schema says boolean.
+
+      **Category.** `Engagement` needs `event_date_time_field_name`. Salesforce's MCP request offers only `Engagement`, `Other` and `Profile`. `Directory_Table` is for unstructured files with `data_source`. A [community guide](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md) has a payload for it, and warns that the first setup in the UI can create more than this call does (community). It spells `source_type` as `SF_DRIVE` where the spec has `SfDrive`.
+
+      The POST isn't documented as idempotent, so check with `dlo_get` before retrying.
+
+schemas:
+  DataLakeFieldInputRepresentation:
+    description: Represents the input for a data lake object (DLO) field.
+    attributes:
+      - {name: data_type, api_name: dataType, type: string, enum: [Boolean, Currency, Date, DateTime, Email, Number, Percent, Phone, Text, Unsupported, Url], required: true, description: "Data type of the field. Since v62.0."}
+      - {name: is_primary_key, api_name: isPrimaryKey, type: boolean, required: true, description: "Indicates whether the field is a primary key field (`true`) or not (`false`). Since v62.0."}
+      - {name: label, type: string, required: true, description: "Label of the field. Since v60.0."}
+      - {name: name, type: string, required: true, description: "API name of the field. Since v60.0."}
+
+  DataLakeSourceInputRepresentation:
+    attributes:
+      - {name: directory_and_files_details, api_name: directoryAndFilesDetails, schema: DirectoryAndFilesDetailsInputRepresentation, array: 1, description: "Directories and files to read ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md))."}
+      - {name: source_config, api_name: sourceConfig, map: true, type: string, description: "Seen with `reservedPrefix = '$dcf_content$'` in a SharePoint payload ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md))."}
+      - {name: source_id, api_name: sourceId, type: string, description: "-"}
+      - {name: source_type, api_name: sourceType, type: string, enum: [SfDrive], description: "`SfDrive` in the spec, `SF_DRIVE` in a [community payload](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md)."}
+
+  DataModelObjectConfigInputRepresentation:
+    attributes:
+      - {name: label, type: string, description: "-"}
+      - {name: name, type: string, description: "-"}
+
+  DataObjectFieldInputRepresentation:
+    description: Represents the input fields in the data object.
+    attributes:
+      - {name: is_primary_key, api_name: isPrimaryKey, type: boolean, required: true, description: "Indicates whether this field is a primary key (`true`) or not (`false`). A create needs at least one `true` (tool text). Since v60.0."}
+      - {name: key_qualifier_field_name, api_name: keyQualifierFieldName, type: string, description: "Key qualifier field name. The MCP request class calls this `key_qualifier_field`. The spec's example omits it and gets a generated `KQ_<field>` back. Since v60.0."}
+      - {name: label, type: string, required: true, description: "Label of the field. Since v60.0."}
+      - {name: name, type: string, required: true, description: "Name of the field. The spec's example omits `__c` and gets it back with the suffix, while a community example passes `event_id__c`. Since v60.0."}
+      - {name: type, type: string, enum: [Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url], description: "Data type of the field. **Conflict:** the spec's schema says `type`, while its examples, the [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dmo/DataObjectFieldInput.java) and two community clients send `data_type`, and a community template uses `type`. The MCP class takes `type` only as an input alias and sends `data_type`. The spec's 400 text rejects fields with no data type."}
+      - {name: description, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: is_dynamic_lookup, api_name: isDynamicLookup, type: boolean, description: "Not in the spec schema: from the spec's examples."}
+      - {name: data_type, api_name: dataType, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: key_qualifier_field, api_name: keyQualifierField, type: string, description: "Not in the spec schema: from the spec's examples."}
+
+  DataSpaceFilterConditionCollectionRepresentation:
+    description: Represents a data space input filter on a data lake object (DLO).
+    attributes:
+      - {name: conditions, schema: DataSpaceFilterConditionInputRepresentation, array: 1, required: true, description: "Conditions for the filter. Since v62.0."}
+
+  DataSpaceFilterConditionInputRepresentation:
+    description: Represents the input for a data space filter condition.
+    attributes:
+      - {name: field_name, api_name: fieldName, type: string, required: true, description: "Name of the field. Since v62.0."}
+      - {name: filter_value, api_name: filterValue, type: string, required: true, description: "Value of the filter. Since v62.0."}
+      - {name: operator, type: string, enum: [ContainsAny, Equals, GreaterThan, In, LastNumberOfDays, LessThan, NotEquals, NotIn], required: true, description: "Operator of the filter condition. These are compatible with the following data types: - `ContainsAny`: text - `Equals`: text, number, date, dateTime, boolean - `GreaterThan`: number, date, dateTime - `In`: text, number - `LastNumberOfDays`: date, dateTime - `LessThan`: number, date, dateTime - `NotEquals`: text, number, date, dateTime, boolean - `NotIn`: text, number Since v62.0."}
+      - {name: table_name, api_name: tableName, type: string, required: true, description: "Name of the table to apply the filter. Since v62.0."}
+
+  DataSpaceFilterInputRepresentation:
+    description: Represents the input filter for a data space on a data lake object (DLO).
+    attributes:
+      - {name: condition_groups, api_name: conditionGroups, schema: DataSpaceFilterInputRepresentation, array: 1, description: "List of filter groups. Since v67.0."}
+      - {name: conditions, schema: DataSpaceFilterConditionCollectionRepresentation, array: 1, required: true, description: "Conditions for the filter. Since v62.0."}
+      - {name: conjunctive_operator, api_name: conjunctiveOperator, type: string, enum: [AndOperator, NoneOperator, OrOperator], required: true, description: "Operator of the filter. Since v62.0."}
+      - {name: filter_creation_type, api_name: filterCreationType, type: string, description: "Type of filter creation type, such as `CUSTOM` or `SYSTEM`. Since v66.0."}
+
+  DataSpaceInputRepresentation:
+    description: Represents the input for a data space.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: filter, schema: DataSpaceFilterInputRepresentation, description: "Filter for the data space. Since v60.0."}
+
+  DirectoryAndFilesDetailsInputRepresentation:
+    attributes:
+      - {name: dir_name, api_name: dirName, type: string, description: "Seen as `SPUnstructuredDocument/<CONNECTION_ID>/<SITE_ID>` for SharePoint ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md))."}
+      - {name: file_name, api_name: fileName, type: string, description: "Seen as `*` ([community](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-prepare/SKILL.md))."}
+
+  dlo_update_dataLakeFieldInputRepresentations:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: label, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: data_type, api_name: dataType, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: is_primary_key, api_name: isPrimaryKey, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}

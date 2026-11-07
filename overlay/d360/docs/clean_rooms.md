@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/clean_rooms.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Clean Rooms
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -502,7 +504,7 @@ Create a new clean room collaboration. Since v63.0.
 | `description` | `description` | body | string |  | Description of the collaboration. Since v59.0. |
 | `label` | `label` | body | string | yes | Label of the clean room. Since v63.0. |
 | `name` | `name` | body | string |  | API name of the collaboration. When omitted, the spec's example returns a generated name, such as `collab21_00DSB00000eMue3`. Since v59.0. |
-| `api_key` | `apiKey` | body | string |  | **Sensitive:** use `secret()`. API key of the clean room. Since v63.0. |
+| `api_key` | `apiKey` | body | string |  | API key of the clean room. Since v63.0. |
 | `data_cloud_org_id` | `dataCloudOrgId` | body | string | yes | Core org ID where the Data 360 clean room is enabled. Since v63.0. |
 | `provider_dev_name` | `providerDevName` | body | string | yes | Developer name of the provider definition for the clean room. Since v63.0. |
 | `specification_dev_name` | `specificationDevName` | body | string | yes | Developer Name of the clean room specification. Since v63.0. |
@@ -539,7 +541,7 @@ One row. Schema `DataCleanRoomCollaborationRepresentation`.
 
 `provider_dev_name` and `specification_dev_name` are the `name` values from `clean_room_provider_list` and `clean_room_specification_list`, not IDs. The spec lists a 500 for `Multiple records found for the given provider_dev_name`.
 
-The spec's example sends `template_name` `OVERLAP`, while its template list example has `Overlap`. If you set `api_key`, use `secret(name)`; the spec doesn't say what the key is for.
+The spec's example sends `template_name` `OVERLAP`, while its template list example has `Overlap`. The spec doesn't say what `api_key` is for.
 
 The spec documents no idempotency, and has no delete for collaborations. Check `clean_room_collaboration_list` before retrying a failed call.
 
@@ -1052,7 +1054,7 @@ Represents the input for a custom use case template for a clean room.
 | `name` | `name` | string |  | Name of the custom use case template. Since v63.0. |
 | `queries` | `queries` | array of [CustomUseCaseTemplateQueryInput](#customusecasetemplatequeryinputrepresentation) |  | List of queries defined in the custom use case template. Since v63.0. |
 | `tables` | `tables` | array of [CustomUseCaseTemplateTableInput](#customusecasetemplatetableinputrepresentation) |  | List of tables referenced in the template queries. Since v63.0. |
-| `use_case_configs` | `useCaseConfigs` | map to one of [MatchBoostUsecaseConfigInput](#matchboostusecaseconfiginputrepresentation) |  | Configuration of use case template types. Only applies to the `MatchBoost` use case type. Since v66.0. |
+| `use_case_configs` | `useCaseConfigs` | map to [MatchBoostUsecaseConfigInput](#matchboostusecaseconfiginputrepresentation) |  | Configuration of use case template types. Only applies to the `MatchBoost` use case type. Since v66.0. |
 | `version` | `version` | string |  | Version of the custom use case template. Since v63.0. |
 
 ### CustomUseCaseTemplateQueryConfig

@@ -114,37 +114,6 @@ fn resolve_callee<'a>(parsed: &ParsedScript, specs: &'a CatalogSnapshot, call: &
     Some(Callee { namespace, spec, path: path.collect() })
 }
 
-/// Is a function expression a `secret(<name>)`? Returns the name.
-fn read_secret(parsed: &ParsedScript, function: &Node) -> Option<String> {
-    let [name, args] = attrs!(parsed.children(function), [K::SQL_FUNCTION_NAME, K::SQL_FUNCTION_ARGUMENTS]);
-    let path = read_name_path(parsed, name.filter(|n| n.node_type() == NodeType::ARRAY)?);
-    if path.len() != 1 || path[0] != "secret" {
-        return None;
-    }
-    let args = parsed.children(args?);
-    let [arg] = args else { return None };
-    // A named argument is no secret name
-    let value = if arg.node_type() == NodeType::OBJECT_SQL_FUNCTION_ARG {
-        let [name, value] = attrs!(parsed.children(arg), [K::SQL_FUNCTION_ARG_NAME, K::SQL_FUNCTION_ARG_VALUE]);
-        if name.is_some() {
-            return None;
-        }
-        value?
-    } else {
-        arg
-    };
-    match value.node_type() {
-        NodeType::LITERAL_STRING => unquote_string_literal(source(parsed, value)),
-        NodeType::OBJECT_SQL_COLUMN_REF => {
-            let [path] = attrs!(parsed.children(value), [K::SQL_COLUMN_REF_PATH]);
-            let path = path?;
-            let [name] = parsed.children(path) else { return None };
-            Some(read_key(parsed, name).text)
-        }
-        _ => None,
-    }
-}
-
 /// The fields of an object: the key and value of every field
 fn fields_of<'p>(parsed: &'p ParsedScript, object: &Node) -> Vec<(&'p Node, &'p Node)> {
     parsed
@@ -261,14 +230,13 @@ impl Checker<'_, '_, '_> {
             if seen.contains(&canonical) {
                 self.error(AnalyzerErrorType::OVERLAY_DUPLICATE_OPTION, key, format!("duplicate option {canonical}"));
             }
-            seen.push(canonical.clone());
+            seen.push(canonical);
             if attribute.is_none() && !name.quoted {
                 let suggestion = closest_name(&name.text, function.options.iter().map(|o| o.name.as_str()));
                 let message = format!("{}.{} has no option {}", self.spec.namespace, function.name, name.text);
                 self.report_unknown(function.unknown_options(), key, with_suggestion(message, suggestion));
             }
-            let mut path = vec![canonical];
-            self.check_value(value, attribute, &mut path, &[]);
+            self.check_value(value, attribute);
         }
         // `_next` sets an option of the function
         let paging = function.paging.as_ref();
@@ -321,52 +289,20 @@ impl Checker<'_, '_, '_> {
         self.state.add_error(AnalyzerErrorType::OVERLAY_UNKNOWN_OPTION, severity, id, message);
     }
 
-    /// Is the value public because of a sibling?
-    fn is_public(&self, sensitive: &OverlaySensitive, siblings: &[(&Node, &Node)]) -> bool {
+    /// Check a value
+    fn check_value(&mut self, value: &Node, attribute: Option<&OverlayAttribute>) {
         let parsed = self.state.parsed;
-        sensitive.public_when.iter().any(|(attribute, values)| {
-            siblings.iter().any(|(key, value)| {
-                read_key(parsed, key).text.eq_ignore_ascii_case(attribute)
-                    && value.node_type() == NodeType::LITERAL_STRING
-                    && unquote_string_literal(source(parsed, value)).is_some_and(|v| values.contains(&v))
-            })
-        })
-    }
-
-    /// Check a value at a path
-    fn check_value(&mut self, value: &Node, attribute: Option<&OverlayAttribute>, path: &mut Vec<Arc<str>>, siblings: &[(&Node, &Node)]) {
-        let parsed = self.state.parsed;
-        let secret = (value.node_type() == NodeType::OBJECT_SQL_FUNCTION_EXPRESSION).then(|| read_secret(parsed, value)).flatten();
-        let function = self.function;
-        if secret.is_none() {
-            if let Some(sensitive) = function.sensitive.iter().find(|s| s.matches(path)) {
-                if !self.is_public(sensitive, siblings) {
-                    let pointer: Vec<&str> = path.iter().map(|s| &**s).filter(|s| *s != "*").collect();
-                    let message = format!("{} is sensitive, it must be a secret()", pointer.join("."));
-                    self.error(AnalyzerErrorType::OVERLAY_SENSITIVE_VALUE, value, message);
-                    return;
-                }
-            }
-        }
         match value.node_type() {
             // An object
             NodeType::ARRAY => {
                 let spec = self.spec;
                 let schema = attribute.and_then(|a| a.schema.as_ref()).and_then(|s| spec.schema(s));
-                self.check_fields(value, schema, path);
+                self.check_fields(value, schema);
             }
             NodeType::OBJECT_EXT_VARARG_ARRAY => {
                 let [values] = attrs!(parsed.children(value), [K::EXT_VARARG_ARRAY_VALUES]);
-                path.push(Arc::from("*"));
                 for item in values.map(|v| parsed.children(v)).unwrap_or(&[]) {
-                    self.check_value(item, attribute, path, &[]);
-                }
-                path.pop();
-            }
-            NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
-                if secret.is_none() {
-                    let message = "a value can only call secret(<name>)".to_string();
-                    self.error(AnalyzerErrorType::OVERLAY_INVALID_VALUE, value, message);
+                    self.check_value(item, attribute);
                 }
             }
             NodeType::LITERAL_NULL
@@ -377,9 +313,9 @@ impl Checker<'_, '_, '_> {
             | NodeType::OBJECT_SQL_NARY_EXPRESSION
             | NodeType::OBJECT_SQL_PARAMETER_REF
             | NodeType::OBJECT_SQL_SELECT_EXPRESSION => {}
-            // The other function syntaxes, such as cast(...)
+            // A function, such as now() or cast(...)
             _ => {
-                let message = "a value can only call secret(<name>)".to_string();
+                let message = "a value can't call a function".to_string();
                 self.error(AnalyzerErrorType::OVERLAY_INVALID_VALUE, value, message);
             }
         }
@@ -387,7 +323,7 @@ impl Checker<'_, '_, '_> {
 
     /// Check the fields of an object against its schema. Without a schema any key goes. An object of a union has to fit
     /// one variant.
-    fn check_fields(&mut self, object: &Node, schema: Option<&OverlaySchema>, path: &mut Vec<Arc<str>>) {
+    fn check_fields(&mut self, object: &Node, schema: Option<&OverlaySchema>) {
         let parsed = self.state.parsed;
         let spec = self.spec;
         let fields = fields_of(parsed, object);
@@ -401,7 +337,7 @@ impl Checker<'_, '_, '_> {
             if seen.contains(&canonical) {
                 self.error(AnalyzerErrorType::OVERLAY_DUPLICATE_OPTION, key, format!("duplicate attribute {canonical}"));
             }
-            seen.push(canonical.clone());
+            seen.push(canonical);
             if let Some(fit) = fit.as_ref() {
                 if attribute.is_none() && !name.quoted {
                     let candidates = fit.variants.iter().flat_map(|v| v.attributes.iter()).map(|a| a.name.as_str());
@@ -415,9 +351,7 @@ impl Checker<'_, '_, '_> {
                     self.report_unknown(fit.unknown(), key, message);
                 }
             }
-            path.push(canonical);
-            self.check_value(value, attribute, path, &fields);
-            path.pop();
+            self.check_value(value, attribute);
         }
         // An object only has to satisfy one variant, the closest ones say what is missing
         let missing: Vec<Vec<&str>> = fit
@@ -452,9 +386,9 @@ impl Checker<'_, '_, '_> {
 // The description of a call
 // -------------------------------------------------------------------------------------------------
 
-/// A value that the runtime fills in: a JSON pointer into the options, and a parameter or a secret
-fn binding(pointer: String, kind: &str, name: String) -> Value {
-    json!({ "pointer": pointer, kind: name })
+/// A value that the runtime fills in: a JSON pointer into the options and a parameter
+fn binding(pointer: String, name: String) -> Value {
+    json!({ "pointer": pointer, "param": name })
 }
 
 /// A segment of a JSON pointer
@@ -498,7 +432,7 @@ struct Describer<'a> {
 }
 
 impl Describer<'_> {
-    /// The value of a node, parameters and secrets leave a null and a binding
+    /// The value of a node, a parameter leaves a null and a binding
     fn value(&mut self, node: &Node, attribute: Option<&OverlayAttribute>, pointer: &str) -> Value {
         let parsed = self.analyzed.parsed.clone();
         let text = source(&parsed, node);
@@ -511,29 +445,19 @@ impl Describer<'_> {
             NodeType::OBJECT_SQL_PARAMETER_REF => {
                 let id = node_id(&parsed, node);
                 let name = self.analyzed.parameters.iter().find(|p| p.ast_node_id == id).and_then(|p| p.name.clone());
-                self.bindings.push(binding(pointer.to_string(), "param", name.as_deref().unwrap_or("").to_string()));
-                Value::Null
-            }
-            NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
-                if let Some(name) = read_secret(&parsed, node) {
-                    self.bindings.push(binding(pointer.to_string(), "secret", name));
-                }
+                self.bindings.push(binding(pointer.to_string(), name.as_deref().unwrap_or("").to_string()));
                 Value::Null
             }
             NodeType::OBJECT_EXT_VARARG_ARRAY => {
                 let [values] = attrs!(parsed.children(node), [K::EXT_VARARG_ARRAY_VALUES]);
                 let items = values.map(|v| parsed.children(v)).unwrap_or(&[]);
-                Value::Array(
-                    items.iter().enumerate().map(|(i, item)| self.value(item, attribute, &format!("{pointer}/{i}"))).collect(),
-                )
+                Value::Array(items.iter().enumerate().map(|(i, item)| self.value(item, attribute, &format!("{pointer}/{i}"))).collect())
             }
             NodeType::ARRAY => {
                 let spec = self.spec;
                 let schema = attribute.and_then(|a| a.schema.as_ref()).and_then(|s| spec.schema(s));
                 let mut object = Map::new();
-                for field in parsed.children(node) {
-                    let [key, value] = attrs!(parsed.children(field), [K::EXT_VARARG_FIELD_KEY, K::EXT_VARARG_FIELD_VALUE]);
-                    let (Some(key), Some(value)) = (key, value) else { continue };
+                for (key, value) in fields_of(&parsed, node) {
                     let name = read_key(&parsed, key);
                     let field_attribute = schema.and_then(|s| spec.attribute_of(s, &name.text, name.quoted));
                     let field_name = field_attribute.map_or(name.text, |a| a.name.clone());
@@ -551,7 +475,7 @@ impl Describer<'_> {
 impl AnalyzedScript {
     /// Describe a `CALL` of a function of a spec for the runtime of the host: plain JSON over the names of the spec.
     /// A known name has the spelling of the spec, any other the spelling of the script. Strings are unescaped, and a
-    /// parameter or a secret is a null with an entry in `bindings`. None for any other statement.
+    /// parameter is a null with an entry in `bindings`. None for any other statement.
     pub fn describe_overlay_call(&self, statement_id: u32) -> Option<Value> {
         let record = self.overlay_calls.iter().find(|c| c.ast_statement_id == statement_id)?;
         let function_name = record.function.as_ref()?;

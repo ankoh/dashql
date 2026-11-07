@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/connections.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Connections
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -10,7 +12,7 @@ What matters most:
 
 - `connection_list` requires `connector_type`. There is no list-all call, and the token's casing varies by connector (`IngestApi`, `SNOWFLAKE`).
 - The option tables for `connection_create`, `connection_replace` and `connection_update` show only the fields common to all types. Their notes list the rest.
-- `credentials` is a list of `(param_name = ..., value = ...)` pairs. Write secret values as `secret(name)`, never as literals.
+- `credentials` is a list of `(param_name = ..., value = ...)` pairs.
 - `advanced_attributes` keys vary by connector, and sources disagree on names and form.
 - `connection_databases_list`, `connection_db_schemas_list`, `connection_preview_get` and the test calls work only for JDBC-shaped connectors, according to Salesforce's own [troubleshooting notes](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md).
 
@@ -341,7 +343,7 @@ One row. Schema `ConnectorMetadataRepresentation`.
 
 **Notes:** Pass the catalog `name` from `connector_list`, not a connection's `connector_type`, or expect `NOT_FOUND`. For CRM it's `SalesforceCRM`, not `SalesforceDotCom` ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md)).
 
-This is the only API source for a connector's attribute names. Entries of `connection_attributes` in the spec's example have `name`, `label`, `type`, `data_type`, `required`, `editable`, `ingress`, `placeholder`, `pattern`, `minLength`, `maxLength` and **`secure`**. There, `username` and `password` have `secure: true`: write those with `secret(name)`. A live response used scalar and nullable attribute fields where the spec declares nested objects ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json)).
+This is the only API source for a connector's attribute names. Entries of `connection_attributes` in the spec's example have `name`, `label`, `type`, `data_type`, `required`, `editable`, `ingress`, `placeholder`, `pattern`, `minLength`, `maxLength` and **`secure`**. There, `username` and `password` have `secure: true`: write those with `:name`. A live response used scalar and nullable attribute fields where the spec declares nested objects ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json)).
 
 `required` isn't the whole story: Snowflake's `region` and `unloadData` are marked optional but streams need them ([recipe](https://github.com/javrrr/afd360/blob/main/skills/afd360/references/connector-snowflake.md), community). The spec's example also returns `ingressDescription` and `releaseLevel`, which land in `_raw`.
 
@@ -476,8 +478,8 @@ CALL cdp.connection_create (
   method => 'Ingress',
   credentials => [
     (param_name = 'authenticationOption', value = 'KeyPair'),
-    (param_name = 'user', value = secret(snowflake_user)),
-    (param_name = 'privateKey', value = secret(snowflake_private_key))
+    (param_name = 'user', value = :snowflake_user),
+    (param_name = 'privateKey', value = :snowflake_private_key)
   ],
   parameters => [
     (param_name = 'accountUrl', value = 'https://my-account.snowflakecomputing.com'),
@@ -535,7 +537,7 @@ One row. Schema `ConnectionRepresentation`.
 
 Salesforce's [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/metadata/ConnectionCreateRequest.java) also has `capabilities`, `data_stream_type`, `pardot_tenant_id`, `additional_attributes`, `container_id`, `file_paths` and `search_index_api_name`. The spec doesn't list them.
 
-**Sensitive values.** The spec says credential values are masked, and the same `param_name`/`value` shape carries both secrets and plain settings. Sensitivity depends on the `param_name`:
+**Names seen in `credentials`.** The spec says credential values are masked, and these names come up:
 
 | `param_name` in `credentials` | Source |
 |---|---|
@@ -544,7 +546,7 @@ Salesforce's [request class](https://github.com/forcedotcom/d360-mcp-server/blob
 | `access_key`, `accessSecret` | [S3 recipe](https://github.com/javrrr/afd360/blob/main/skills/afd360/references/connector-s3.md) (community) |
 | `client_id`, `client_secret` | [SharePoint example](https://github.com/Jaganpro/sf-skills/tree/main/skills/sf-datacloud-connect/examples/connections) (community) |
 
-Selectors such as `authenticationOption` aren't secrets. The other way to tell is `connector_metadata`, where `secure: true` marks an attribute in the spec's example. No source states that `secure` decides between `credentials` and `parameters`.
+`connector_metadata` marks an attribute `secure: true` in the spec's example. No source states that `secure` decides between `credentials` and `parameters`.
 
 **Traps:**
 
@@ -825,7 +827,7 @@ One row. Schema `ConnectionCommandActionRepresentation`.
 | `errors` | `errors` | JSON (array of CdpErrorRepresentation) | List of errors that resulted from the action. Since v57.0. |
 | `success` | `success` | BOOLEAN | Indicates whether the action was initiated successfully (`true`) or not (`false`). Since v57.0. |
 
-**Notes:** This has no `credentials` or `parameters`, unlike `connection_test`. No source says how a command reaches the system without them, or which keys `command_attributes` takes. Anything secret in `command_attributes` must use `secret(name)`. See [`existing_connection_action_run`](#existing_connection_action_run) for the command names.
+**Notes:** This has no `credentials` or `parameters`, unlike `connection_test`. No source says how a command reaches the system without them, or which keys `command_attributes` takes. See [`existing_connection_action_run`](#existing_connection_action_run) for the command names.
 
 ## connection_test
 
@@ -838,7 +840,7 @@ Test a connection without creating it. Since v62.0.
 | Option | API name | In | Type | Required | Description |
 |---|---|---|---|---|---|
 | `connector_type` | `connectorType` | body | string | yes | Type of the connector. For example, `AwsRdsPostgres`, `AzureBlob`, `Databricks`, `Gcs`, `IngestApi`, `SalesforceDotCom`, `SalesforceMarketingCloud`, `Sftp`, `StreamingApp`, and so forth. Since v62.0. |
-| `credentials` | `credentials` | body | array of [DataConnectionParameterInput](#dataconnectionparameterinputrepresentation) |  | **Sensitive.** List of `(param_name = ..., value = ...)` pairs. Write secret values as `secret(name)`, see [`connection_create`](#connection_create). Since v62.0. |
+| `credentials` | `credentials` | body | array of [DataConnectionParameterInput](#dataconnectionparameterinputrepresentation) |  | List of `(param_name = ..., value = ...)` pairs, see [`connection_create`](#connection_create). Since v62.0. |
 | `method` | `method` | body | enum(Egress, Ingress) |  | Type of the data connection. The spec marks this optional, but [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md) says the test requires it. Since v62.0. |
 | `parameters` | `parameters` | body | array of [DataConnectionParameterInput](#dataconnectionparameterinputrepresentation) |  | List of key-value pairs that provide parameters for the data connection. Since v62.0. |
 
@@ -847,8 +849,8 @@ CALL cdp.connection_test (
   connector_type => 'AwsRdsSqlServer',
   method => 'Ingress',
   credentials => [
-    (param_name = 'username', value = secret(sales_db_user)),
-    (param_name = 'password', value = secret(sales_db_password))
+    (param_name = 'username', value = :sales_db_user),
+    (param_name = 'password', value = :sales_db_password)
   ],
   parameters => [
     (param_name = 'jdbc_connection_url', value = 'sales-db.abc123.us-east-1.rds.amazonaws.com:1433'),
@@ -911,8 +913,8 @@ CALL cdp.connection_replace (
   method => 'Ingress',
   credentials => [
     (param_name = 'authenticationOption', value = 'KeyPair'),
-    (param_name = 'user', value = secret(snowflake_user)),
-    (param_name = 'privateKey', value = secret(snowflake_new_private_key))
+    (param_name = 'user', value = :snowflake_user),
+    (param_name = 'privateKey', value = :snowflake_new_private_key)
   ],
   parameters => [
     (param_name = 'accountUrl', value = 'https://my-account.snowflakecomputing.com'),
@@ -1094,7 +1096,7 @@ Key-value pair for credentials and parameters of a data connection.
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
 | `param_name` | `paramName` | string | yes | Name of the parameter, from the `connection_attributes` of `connector_metadata`. Names vary by connector and aren't checked here. Since v61.0. |
-| `value` | `value` | string | yes | Value of the parameter, always a string. **Sensitive when this pair is in `credentials`:** write secrets as `secret(name)`. Since v61.0. |
+| `value` | `value` | string | yes | Value of the parameter, always a string. Since v61.0. |
 | `client_secret` | `clientSecret` | string |  | Not in the spec schema: from the MCP server's payload example. |
 | `environment` | `environment` | string |  | Not in the spec schema: from the MCP server's payload example. |
 | `client_id` | `clientId` | string |  | Not in the spec schema: from the MCP server's payload example. |

@@ -820,7 +820,7 @@
     },
     {
       "function": "activation_target_create",
-      "call": "CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = secret(s3_access_key), secret_key = secret(s3_secret_key)))",
+      "call": "CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key))",
       "description": {
         "namespace": "cdp",
         "function": "activation_target_create",
@@ -842,11 +842,11 @@
         "bindings": [
           {
             "pointer": "/connector/access_key",
-            "secret": "s3_access_key"
+            "param": "s3_access_key"
           },
           {
             "pointer": "/connector/secret_key",
-            "secret": "s3_secret_key"
+            "param": "s3_secret_key"
           }
         ]
       },
@@ -867,8 +867,8 @@
             "outputFormat": "CSV",
             "bucketName": "audience-exports",
             "folderName": "nightly",
-            "accessKey": "secret(s3_access_key)",
-            "secretKey": "secret(s3_secret_key)"
+            "accessKey": ":s3_access_key",
+            "secretKey": ":s3_secret_key"
           }
         }
       }

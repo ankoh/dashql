@@ -1,0 +1,444 @@
+title: Data Actions
+description: |
+  A data action watches a source object, usually a data model object (`__dlm`), for created, updated or deleted rows. When a change passes its conditions, Data 360 sends an event to one or more targets in [near real time](https://developer.salesforce.com/blogs/2024/01/unleashing-the-power-of-data-actions-using-a-webhook-as-a-target). These targets are separate from [activation targets](activation_targets.md), which receive segments.
+
+  The target comes first: the action names it in `data_action_target_names`. The source object must also exist with its fields materialized. Target types are `WebHook`, `Core` (a Platform Event in a connected Salesforce org) and `MarketingCloud`, plus `Internal_WebHook`, which no source explains. There is no Flow type. A Flow subscribes to the Platform Event of a `Core` target.
+
+  Gotchas:
+
+  - A webhook target without a signing key [receives no payloads](https://developer.salesforce.com/docs/data/data-cloud-int/references/webhook-data-action-targets/c360a-api-webhook-data-action-targets-in-customer-data-platform.md). Calls are marked `Signing Key Not Found`.
+  - Targets and actions provision asynchronously. Both return `Processing` first, then reach `Active` or `Error`.
+  - Spellings change between request and response: `WebHook` comes back as `WEBHOOK`, and `source_name` as `objectDevName`.
+  - The spec has only list and create for actions, and no update for targets. The other calls here rest on weaker sources, shown per function.
+
+  ```sql
+  CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
+  CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
+  CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
+  CALL cdp.dataaction_create (data_action_target_names => ['contact_webhook'], body_dataspace => 'default', data_action_name => 'Rate changed', developer_name => 'Rate_Changed', description => 'Notify on rate changes', master_label => 'Rate changed', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '', action_conditions => [], data_action_enrichment_properties => [], data_action_projected_fields => []);
+  CALL cdp.dataaction_list (dataspace => 'default');
+  ```
+
+functions:
+  - name: dataaction_target_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-action-targets/{apiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets~1%7BapiName%7D/delete
+    tools: [d360_dataaction_target_delete]
+    description: Delete a data action target. Since v58.0.
+    example: CALL cdp.dataaction_target_delete (api_name => 'contact_webhook');
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "Developer name of the target, not a record id."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** Salesforce's MCP source says to [ensure no data actions reference the target first](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataActionTools.java). The spec has no call to delete an action; see [`dataaction_delete`](#dataaction_delete) for the community-only path. `status_error_code` has a `DeleteFailed` value, so check the target afterwards if the delete doesn't take effect."
+
+  - name: dataaction_target_list
+    method: GET
+    host: connect
+    path: /ssot/data-action-targets
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets/get
+    tools: [d360_dataaction_target_list]
+    description: Get a paginated list of data action targets. Since v58.0.
+    example: CALL cdp.dataaction_target_list ();
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items returned. Since v58.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v58.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,\\u200BOccupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v58.0."}
+    rows: /dataActionTargets
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Developer name of the data action target. Since v62.0."}
+      - {name: config, type: JSON, description: "Configuration for the data action target. The endpoint returns the config output object that corresponds to the type of data action target. For example, the Data Action Target Core Config Output is returned for the `Core` type. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "External record ID. Since v62.0."}
+      - {name: label, type: VARCHAR, description: "Data action target name. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status Since v62.0."}
+      - {name: status_error_code, api_name: statusErrorCode, type: VARCHAR, description: "Status error code. Since v62.0."}
+      - {name: sub_type, api_name: subType, type: VARCHAR, description: "Sub type Since v62.0."}
+      - {name: type, type: VARCHAR, description: "Data action target type. Since v62.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataActionTargets` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`. Schema `CdpDataActionTargetOutputRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Returns data action targets only, not activation targets. Spec examples return `type` and `status` in upper case (`WEBHOOK`, `ACTIVE`), while the spec's enums say `WebHook` and `Active`. Compare them case-insensitively. A community implementation [saw both spellings of `status`](https://github.com/javrrr/afd360/blob/main/src/resources/data-action-target.ts) (community).
+
+  - name: dataaction_target_get
+    method: GET
+    host: connect
+    path: /ssot/data-action-targets/{apiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets~1%7BapiName%7D/get
+    tools: [d360_dataaction_target_get]
+    description: Get a data action target. Since v58.0.
+    example: CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "Developer name of the target, not a record id."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Developer name of the data action target. Since v62.0."}
+      - {name: config, type: JSON, description: "Configuration for the data action target. The endpoint returns the config output object that corresponds to the type of data action target. For example, the Data Action Target Core Config Output is returned for the `Core` type. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "External record ID. Since v62.0."}
+      - {name: label, type: VARCHAR, description: "Data action target name. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status Since v62.0."}
+      - {name: status_error_code, api_name: statusErrorCode, type: VARCHAR, description: "Status error code. Since v62.0."}
+      - {name: sub_type, api_name: subType, type: VARCHAR, description: "Sub type Since v62.0."}
+      - {name: type, type: VARCHAR, description: "Data action target type. Since v62.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpDataActionTargetOutputRepresentation`.
+    notes: "**Notes:** This is the readiness check after [`dataaction_target_create`](#dataaction_target_create). The shape of `config` depends on `type`: a `WebHook` target returns `target_endpoint`, and a `Core` target returns `label` and `org_id`. Note `label` here, where the request says `org_label`. A community implementation found that a `Core` target [doesn't store `target_endpoint`](https://github.com/javrrr/afd360/blob/main/src/resources/data-action-target.ts), so don't diff it against what you sent (community). The output schema has no signing key field."
+
+  - name: dataaction_list
+    method: GET
+    host: connect
+    path: /ssot/data-actions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Actions/paths/~1ssot~1data-actions/get
+    tools: [d360_dataaction_list]
+    description: Get a paginated list of data actions in the org. Since v58.0.
+    example: CALL cdp.dataaction_list (dataspace => 'default', batch_size => 50);
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items returned. Since v62.0."}
+      - {name: dataspace, in: query, type: string, description: "The Data 360 data space from which to return data actions. Since v62.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v62.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Name of the field to order the results by. Since v62.0."}
+    rows: /dataActions
+    columns:
+      - {name: action_condition_expression, api_name: actionConditionExpression, type: VARCHAR, description: "The action's condition expression. Since v62.0."}
+      - {name: action_conditions, api_name: actionConditions, type: JSON, array: 1, schema: DataActionConditionOutputRepresentation, description: "The action conditions. Since v62.0."}
+      - {name: data_action_enrichment_properties, api_name: dataActionEnrichmentProperties, type: JSON, array: 1, schema: DataActionEnrichmentOutputRepresentation, description: "The data action enrichment properties. Since v62.0."}
+      - {name: data_action_name, api_name: dataActionName, type: VARCHAR, description: "Data action's name. Since v62.0."}
+      - {name: data_action_projected_fields, api_name: dataActionProjectedFields, type: JSON, array: 1, schema: DataActionProjectedFieldOutputRepresentation, description: "The data action's projected fields. Since v62.0."}
+      - {name: data_action_sources, api_name: dataActionSources, type: JSON, array: 1, schema: DataActionSourceOutputRepresentation, description: "Data action sources. Since v62.0."}
+      - {name: data_action_status, api_name: dataActionStatus, type: VARCHAR, description: "Data action's status. Since v62.0."}
+      - {name: data_action_targets, api_name: dataActionTargets, type: JSON, description: "Data action targets. Since v62.0."}
+      - {name: dataspace_dev_name, api_name: dataSpaceDevName, type: VARCHAR, description: "Developer name of the data space. Since v62.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data action. Since v62.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the data action. Since v62.0."}
+      - {name: event_trigger_condition, api_name: eventTriggerCondition, type: VARCHAR, description: "Event trigger condition for the data action. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "Data action's external record identifier. Since v62.0."}
+      - {name: is_real_time_action, api_name: isRealTimeAction, type: BOOLEAN, description: "Indicates whether the data action is a real-time action (`true`) or not (`false`). Since v62.0."}
+      - {name: last_action_status_date_time, api_name: lastActionStatusDateTime, type: VARCHAR, description: "Date and time that the most recent data action status was set. Since v62.0."}
+      - {name: last_action_status_error_code, api_name: lastActionStatusErrorCode, type: VARCHAR, description: "Status of the data action's error code. Since v62.0."}
+      - {name: master_label, api_name: masterLabel, type: VARCHAR, description: "Data action's master label. Since v62.0."}
+      - {name: should_trigger_event_only_first_time, api_name: shouldTriggerEventOnlyFirstTime, type: BOOLEAN, description: "If `true`, the related event is triggered only the first time that the data action is used. If `false`, the event is triggered each time the data action is used. Since v62.0."}
+      - {name: subscriber_key, api_name: subscriberKey, type: VARCHAR, description: "Data action subscriber key. Since v62.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/dataActions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`. Schema `CdpDataActionOutputRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** This is the only spec-documented way to read an action's status. To find one action, filter on `developer_name`, which is its stable key, and pass `dataspace` because a community implementation [treats the list as scoped to a data space](https://github.com/javrrr/afd360/blob/main/docs/resources.md) (community). `data_action_targets` holds target API names in the spec examples. Inside `data_action_sources`, the spec examples return `objectDevName`, `objectType` and `subscriptionModes`, not the attribute names used on create. Spec examples show upper-case `data_action_status` (`ACTIVE`) and `last_action_status_error_code` (`CREATE_FAILED`).
+
+  - name: dataaction_target_create
+    method: POST
+    host: connect
+    path: /ssot/data-action-targets
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets/post
+    tools: [d360_dataaction_target_create]
+    description: Create a new data action target. Since v58.0.
+    example: CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
+    options:
+      - {name: api_name, api_name: apiName, in: body, type: string, required: true, description: "Data action target API name. Since v62.0."}
+      - {name: config, in: body, schema: dataaction_target_create.config, required: true, description: "Configuration for the data action target. Use the config input object that corresponds to the type of data action target. For example, use the Data Action Target Internal Web Config Input for the `Internal_WebHook` type. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, in: body, type: string, description: "External record ID. Since v62.0."}
+      - {name: label, in: body, type: string, required: true, description: "Data action target name. Since v62.0."}
+      - {name: sub_type, api_name: subType, in: body, type: string, enum: [Grpc, Rest], description: "Data action target sub type. Since v62.0."}
+      - {name: type, in: body, type: string, enum: [Core, Internal_WebHook, MarketingCloud, WebHook], required: true, description: "Data action target type. Since v62.0."}
+      - {name: name, in: body, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Developer name of the data action target. Since v62.0."}
+      - {name: config, type: JSON, description: "Configuration for the data action target. The endpoint returns the config output object that corresponds to the type of data action target. For example, the Data Action Target Core Config Output is returned for the `Core` type. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "External record ID. Since v62.0."}
+      - {name: label, type: VARCHAR, description: "Data action target name. Since v62.0."}
+      - {name: status, type: VARCHAR, description: "Status Since v62.0."}
+      - {name: status_error_code, api_name: statusErrorCode, type: VARCHAR, description: "Status error code. Since v62.0."}
+      - {name: sub_type, api_name: subType, type: VARCHAR, description: "Sub type Since v62.0."}
+      - {name: type, type: VARCHAR, description: "Data action target type. Since v62.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpDataActionTargetOutputRepresentation`.
+    notes: |
+      **Done when:** `dataaction_target_get.status` is `Active`. `Error` is terminal, with the reason in `status_error_code`. The create response itself shows `PROCESSING`. Compare case-insensitively.
+
+      **Notes:** The spec types `config` as `any`. Its attributes depend on `type` and are listed in [DataActionTargetConfig](#dataactiontargetconfig).
+
+      - **Webhook:** set `target_endpoint`, then call [`dataaction_target_signing_key_generate`](#dataaction_target_signing_key_generate). Without a key the target [gets no payloads](https://developer.salesforce.com/docs/data/data-cloud-int/references/webhook-data-action-targets/c360a-api-generate-secret-key-for-signature-validation.md).
+      - **Platform Event and Flow:** use `type => 'Core'` with `config => (org_id = '00DX2000001ZUi5', org_label = 'MyCompany Org')`. Help says these events use the standard [`DataObjectDataChgEvent`](https://help.salesforce.com/s/articleView?id=sf.c360_a_data_actions_CDP.htm&language=en_US&type=5). That event's [channel is `/event/DataObjectDataChgEvent`](https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/sforce_api_objects_dataobjectdatachgevent.htm), and Flows, Apex triggers and the Pub/Sub API can subscribe. Its payload fields hold up to 125,000 characters. A [community article](https://www.salesforceben.com/unleashing-apex-with-salesforce-data-cloud-segments/) filters events on `ActionDeveloperName` in the subscriber (community).
+      - **Source conflict on `Core`:** afd360 [passes a custom event name such as `AccountInsightIngested__e` as `target_endpoint`](https://github.com/javrrr/afd360/blob/main/src/resources/data-action-target.ts) and reports that the platform drops it (community). The spec's `Core` example omits it.
+      - **`Core` prerequisite:** the org needs a Salesforce CRM connection. Otherwise the target goes from `Processing` to `Error` after about 4 to 5 minutes, and the POST doesn't report it (community, same source).
+      - **Marketing Cloud:** the spec example also sends `data_action_destination_type = 'API_EVENT'`, which the spec's config schema doesn't list.
+      - **`sub_type`:** the spec has it optional and its examples omit it. The MCP class [lists gRPC config attributes](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dataaction/DataActionTargetConfig.java) that the spec lacks.
+      - **Limit:** [100 targets per tenant](https://help.salesforce.com/s/articleView?language=en_US&id=sf.c360_a_limits_and_guidelines.htm). An [older Customer Data Platform page](https://help.salesforce.com/s/articleView?language=en_US&id=sf.c360_a_limits_and_guidelines_cdp.htm&type=5) says 3.
+
+  - name: dataaction_target_signing_key_generate
+    method: POST
+    host: connect
+    path: /ssot/data-action-targets/{apiName}/signing-key
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets~1%7BapiName%7D~1signing-key/post
+    description: Generate the signing key for a data action target. Since v62.0.
+    example: CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "Developer name of the target, not a record id."}
+    columns:
+      - {name: signing_algorithm, api_name: signingAlgorithm, type: VARCHAR, description: "Signing algorithm. Since v62.0."}
+      - {name: signing_key, api_name: signingKey, type: VARCHAR, description: "Signing key. Since v62.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpDataActionTargetSigningKeyOutputRepresentation`.
+    notes: |
+      **Notes:** The result holds the key in clear text. Copy it to the webhook receiver and don't keep the row around. The docs describe keys only for webhook targets, and [recommend regenerating at least every 12 months](https://developer.salesforce.com/docs/data/data-cloud-int/references/webhook-data-action-targets/c360a-api-regenerate-secret-key.md).
+
+      **Don't retry blindly.** A community SDK [treats a second POST as a reset](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/data-action-targets.ts) (community). A regenerated key takes up to 15 minutes to take effect, and validation at the target fails until then. That SDK also has a `GET` on this path, which the spec doesn't list.
+
+      **Receiver side:** each request has the signature in the [`x-signature` header](https://developer.salesforce.com/docs/data/data-cloud-int/references/webhook-data-action-targets/c360a-api-payload-signature.md). It is the [Base64 of an HMAC-SHA256](https://developer.salesforce.com/docs/data/data-cloud-int/references/webhook-data-action-targets/c360a-api-validating-the-signature.md) over the UTF-8 payload, keyed with the UTF-8 bytes of `signing_key`. The docs say to perform JSON escaping on the received payload first. The [body has `creationDateTime`, `count`, `schemas` and `events`](https://developer.salesforce.com/docs/data/data-cloud-int/references/webhook-data-action-targets/c360a-api-webhook-data-action-targets-in-customer-data-platform.md), with events in `DataObjectDataChgEvent` format. A 2024 blog says [events are retained for four days](https://developer.salesforce.com/blogs/2024/01/unleashing-the-power-of-data-actions-using-a-webhook-as-a-target), so it recommends a queue in front of the consumer.
+
+  - name: dataaction_create
+    method: POST
+    host: connect
+    path: /ssot/data-actions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Actions/paths/~1ssot~1data-actions/post
+    tools: [d360_dataaction_create]
+    description: Create a new data action. Since v58.0.
+    example: CALL cdp.dataaction_create (dataspace => 'default', body_dataspace => 'default', data_action_target_names => ['contact_webhook'], data_action_name => 'High rate', developer_name => 'High_Rate', description => 'Notify when a rate crosses the threshold', master_label => 'High rate', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '(1 AND 2)', action_conditions => [(objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateDenominatorNumber__c', operator = 'GreaterThan', order = '1', value = '0.3'), (objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateNumeratorNumber__c', operator = 'LessThanOrEqualTo', order = '2', value = '100')], data_action_enrichment_properties => [], data_action_projected_fields => [(objectApiName = 'StaticCurrencyRates_Home__dlm', fieldApiName = 'RateNumeratorNumber__c', fieldAliasName = 'Rate__c')]);
+    options:
+      - {name: dataspace, in: query, type: string, description: "The Data 360 data space fromm which to return the data action. Since v62.0."}
+      - {name: action_condition_expression, api_name: actionConditionExpression, in: body, type: string, required: true, description: "The action's condition expression. Since v62.0."}
+      - {name: action_conditions, api_name: actionConditions, in: body, array: 1, type: object, required: true, description: "The action conditions. Since v62.0."}
+      - {name: data_action_enrichment_properties, api_name: dataActionEnrichmentProperties, in: body, array: 1, type: object, required: true, description: "The data action enrichment properties. Since v62.0."}
+      - {name: data_action_name, api_name: dataActionName, in: body, type: string, required: true, description: "Name of the data action. Since v62.0."}
+      - {name: data_action_projected_fields, api_name: dataActionProjectedFields, in: body, array: 1, type: object, required: true, description: "Projected fields for the data action. Since v62.0."}
+      - {name: data_action_sources, api_name: dataActionSources, in: body, schema: CdpDataActionInput_dataActionSources, array: 1, required: true, description: "Data action sources. Since v62.0."}
+      - {name: data_action_target_names, api_name: dataActionTargetNames, in: body, array: 1, type: string, required: true, description: "List of names of the data action targets. Since v62.0."}
+      - {name: body_dataspace, api_name: dataspace, in: body, type: string, required: true, description: "Name of the data space to use for the request. Since v62.0."}
+      - {name: description, in: body, type: string, required: true, description: "Data action's description. Since v62.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, required: true, description: "Data action developer name. Since v62.0."}
+      - {name: event_trigger_condition, api_name: eventTriggerCondition, in: body, type: string, description: "Data action's event trigger condition. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, in: body, type: string, description: "Data action's external record identifier. Since v62.0."}
+      - {name: is_real_time_action, api_name: isRealTimeAction, in: body, type: boolean, description: "`true` if the data action is a real time action, otherwise `false`. Since v62.0."}
+      - {name: master_label, api_name: masterLabel, in: body, type: string, required: true, description: "Data action's master label. Since v62.0."}
+      - {name: should_process_day_zero, api_name: shouldProcessDayZero, in: body, type: boolean, description: "`true` if the data action should be processed immediately, otherwise `false`. Since v62.0."}
+      - {name: should_trigger_event_only_first_time, api_name: shouldTriggerEventOnlyFirstTime, in: body, type: boolean, description: "If `true`, the related event is triggered only the first time that the data action is used. If `false`, the event is triggered each time the data action is used. Since v62.0."}
+      - {name: subscriber_key, api_name: subscriberKey, in: body, type: string, description: "Data action subscriber key. Since v62.0."}
+      - {name: name, in: body, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: config, in: body, schema: dataaction_create_config, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: data_action_status, api_name: dataActionStatus, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: search_config, api_name: searchConfig, in: body, type: object, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: action_condition_expression, api_name: actionConditionExpression, type: VARCHAR, description: "The action's condition expression. Since v62.0."}
+      - {name: action_conditions, api_name: actionConditions, type: JSON, array: 1, schema: DataActionConditionOutputRepresentation, description: "The action conditions. Since v62.0."}
+      - {name: data_action_enrichment_properties, api_name: dataActionEnrichmentProperties, type: JSON, array: 1, schema: DataActionEnrichmentOutputRepresentation, description: "The data action enrichment properties. Since v62.0."}
+      - {name: data_action_name, api_name: dataActionName, type: VARCHAR, description: "Data action's name. Since v62.0."}
+      - {name: data_action_projected_fields, api_name: dataActionProjectedFields, type: JSON, array: 1, schema: DataActionProjectedFieldOutputRepresentation, description: "The data action's projected fields. Since v62.0."}
+      - {name: data_action_sources, api_name: dataActionSources, type: JSON, array: 1, schema: DataActionSourceOutputRepresentation, description: "Data action sources. Since v62.0."}
+      - {name: data_action_status, api_name: dataActionStatus, type: VARCHAR, description: "Data action's status. Since v62.0."}
+      - {name: data_action_targets, api_name: dataActionTargets, type: JSON, description: "Data action targets. Since v62.0."}
+      - {name: dataspace_dev_name, api_name: dataSpaceDevName, type: VARCHAR, description: "Developer name of the data space. Since v62.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data action. Since v62.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the data action. Since v62.0."}
+      - {name: event_trigger_condition, api_name: eventTriggerCondition, type: VARCHAR, description: "Event trigger condition for the data action. Since v62.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "Data action's external record identifier. Since v62.0."}
+      - {name: is_real_time_action, api_name: isRealTimeAction, type: BOOLEAN, description: "Indicates whether the data action is a real-time action (`true`) or not (`false`). Since v62.0."}
+      - {name: last_action_status_date_time, api_name: lastActionStatusDateTime, type: VARCHAR, description: "Date and time that the most recent data action status was set. Since v62.0."}
+      - {name: last_action_status_error_code, api_name: lastActionStatusErrorCode, type: VARCHAR, description: "Status of the data action's error code. Since v62.0."}
+      - {name: master_label, api_name: masterLabel, type: VARCHAR, description: "Data action's master label. Since v62.0."}
+      - {name: should_trigger_event_only_first_time, api_name: shouldTriggerEventOnlyFirstTime, type: BOOLEAN, description: "If `true`, the related event is triggered only the first time that the data action is used. If `false`, the event is triggered each time the data action is used. Since v62.0."}
+      - {name: subscriber_key, api_name: subscriberKey, type: VARCHAR, description: "Data action subscriber key. Since v62.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpDataActionOutputRepresentation`.
+    notes: |
+      **Done when:** `dataaction_list.data_action_status` is `Active` for the row with this `developer_name`. `Error` is terminal, with the reason in `last_action_status_error_code`. The create response itself shows `PROCESSING`. Compare case-insensitively.
+
+      **Notes:** Salesforce's catalog says it [must have a target configured](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java). afd360 [waits for the target to reach `Active`](https://github.com/javrrr/afd360/blob/main/docs/resources.md) first (community).
+
+      - **Nested attributes:** the spec types the four arrays as plain `object`. Their attributes come from the MCP request classes and spec examples: [DataActionSource](#dataactionsource), [DataActionCondition](#dataactioncondition), [DataActionProjectedField](#dataactionprojectedfield), [DataActionEnrichment](#dataactionenrichment).
+      - **Required flags disagree:** the spec requires all four arrays, `action_condition_expression`, `description` and `master_label`. The MCP class has `description` and `master_label` optional. afd360's [body omits most of these](https://github.com/javrrr/afd360/blob/main/src/resources/data-action.ts) and reports it works (community). Sending them empty, as the spec example does, satisfies both.
+      - **Two data spaces:** `dataspace` is the query parameter and `body_dataspace` the body attribute. afd360 says [create needs both](https://github.com/javrrr/afd360/blob/main/docs/resources.md) (community).
+      - **Conditions:** in the spec examples `action_condition_expression` is `(1 AND 2)`, where the numbers refer to each condition's `order`. afd360 documents a filter such as `Score__c != null` instead (community).
+      - **Timing:** projected fields exist only once the source DMO's fact table has materialized, up to about 90 seconds after the mapping. afd360 [retries on that error](https://github.com/javrrr/afd360/blob/main/src/resources/data-action.ts) (community).
+      - **Attributes outside the spec:** the [MCP class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dataaction/DataActionCreateRequest.java) also has `data_action_status` and `search_config`, which the spec lacks.
+      - **Limits:** [200 actions per tenant](https://help.salesforce.com/s/articleView?language=en_US&id=sf.c360_a_limits_and_guidelines.htm), and an [older page](https://help.salesforce.com/s/articleView?language=en_US&id=sf.c360_a_limits_and_guidelines_cdp.htm&type=5) says 10. The UI allows [up to 10 related attributes](https://developer.salesforce.com/blogs/2024/01/unleashing-the-power-of-data-actions-using-a-webhook-as-a-target) for enrichment (2024 blog).
+      - **Calculated insights:** the same blog says the UI accepts them as a source. No source gives the `source_type` value.
+
+  - name: dataaction_get
+    method: GET
+    host: connect
+    path: /ssot/data-actions/{id}
+    tools: [d360_dataaction_get]
+    description: Reads one data action by developer name, to inspect its conditions, sources and targets.
+    example: CALL cdp.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');
+    options:
+      - {name: action_developer_name, api_name: id, in: path, type: string, required: true, description: "The data action developer name"}
+      - {name: dataspace, in: query, type: string, description: "Dataspace name"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This path isn't in the spec. It comes from [Salesforce's MCP source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataActionTools.java), which puts the developer name in the path despite the `{id}` placeholder in its annotation. The list and create calls return `CdpDataActionOutputRepresentation`, but no source says this one does. afd360 [avoids this call](https://github.com/javrrr/afd360/blob/main/src/resources/data-action.ts) and pages [`dataaction_list`](#dataaction_list) instead (community)."
+
+  - name: dataaction_target_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-action-targets/{id}
+    tools: [d360_dataaction_target_update]
+    description: Changes an existing data action target, such as its endpoint URL. All body attributes are optional.
+    example: CALL cdp.dataaction_target_update (target_api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360/v2'));
+    options:
+      - {name: target_api_name, api_name: id, in: path, type: string, required: true, description: "Developer name of the target to change."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "API name of the target."}
+      - {name: label, in: body, type: string, description: "Display name of the target."}
+      - {name: type, in: body, type: string, enum: [Core, Internal_WebHook, MarketingCloud, WebHook], description: "Target type."}
+      - {name: sub_type, api_name: subType, in: body, type: string, enum: [Grpc, Rest], description: "Target sub type."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, in: body, type: string, description: "External record ID."}
+      - {name: config, in: body, schema: DataActionTargetConfig, description: "Target configuration. Set only the attributes that apply to `type`."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The spec has no `PATCH` at this path, and neither does the Postman catalog. The only source is [Salesforce's MCP source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataActionTools.java), whose [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dataaction/DataActionTargetUpdateRequest.java) gives these attributes. Its description also mentions credentials, but the class has no credential attribute. afd360 [deletes and recreates instead](https://github.com/javrrr/afd360/blob/main/src/resources/data-action-target.ts), because a `PATCH` on a target that an action references could leave a half-rebound endpoint (community)."
+
+  - name: dataaction_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-actions/{name}
+    description: Meant to change an existing data action. No public source documents this call or its body, so it has no body options here.
+    example: CALL cdp.dataaction_update (action_developer_name => 'High_Rate');
+    options:
+      - {name: action_developer_name, api_name: name, in: path, type: string, required: true, description: "Developer name of the data action."}
+    effect: write
+    unknown: warning
+    evidence: C
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** No source found supports this call. It isn't in the spec, the Postman catalog, Salesforce's MCP source or the community SDK and CLI plugin. afd360 [doesn't implement it and deletes and recreates instead](https://github.com/javrrr/afd360/blob/main/src/resources/data-action.ts) (community). Use [`dataaction_delete`](#dataaction_delete) and [`dataaction_create`](#dataaction_create) if the delete path works in your org."
+
+  - name: dataaction_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-actions/{name}
+    description: Deletes a data action by developer name. Use it before deleting the action's target, or to recreate an action with new settings.
+    example: CALL cdp.dataaction_delete (action_developer_name => 'High_Rate', dataspace => 'default');
+    options:
+      - {name: action_developer_name, api_name: name, in: path, type: string, required: true, description: "Developer name of the data action."}
+      - {name: dataspace, in: query, type: string, description: "Data space that holds the action. The community source always sends it."}
+    effect: write
+    unknown: warning
+    evidence: C
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This path isn't in the spec. The only source is [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/data-action.ts), which calls `DELETE /ssot/data-actions/{developerName}?dataspace=...` and treats a 404 as already deleted (community)."
+
+schemas:
+  CdpDataActionInput_dataActionSources:
+    unknown: warning
+    attributes:
+      - {name: source_name, api_name: sourceName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: source_type, api_name: sourceType, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: source_cdc_subscriptions, api_name: sourceCdcSubscriptions, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  CdpDataActionTargetCRMConfig:
+    description: Represents the config input for CRM data action targets.
+    attributes:
+      - {name: api_contract, api_name: apiContract, type: string, description: "API contract for the data action target. Since v58.0."}
+      - {name: target_endpoint, api_name: targetEndpoint, type: string, description: "Target endpoint. Since v58.0."}
+      - {name: org_id, api_name: orgId, type: string, description: "ID for the target CRM org. Since v58.0."}
+      - {name: org_label, api_name: orgLabel, type: string, description: "Label for the target CRM org. Since v58.0."}
+
+  CdpDataActionTargetInternalWebConfig:
+    description: Represents the config input for internal web data action targets.
+    attributes:
+      - {name: api_contract, api_name: apiContract, type: string, description: "API contract for the data action target. Since v58.0."}
+      - {name: target_endpoint, api_name: targetEndpoint, type: string, description: "Target endpoint. Since v58.0."}
+
+  CdpDataActionTargetMCConfig:
+    description: Represents the config input for Marketing Cloud data action targets.
+    attributes:
+      - {name: api_contract, api_name: apiContract, type: string, description: "API contract for the data action target. Since v58.0."}
+      - {name: target_endpoint, api_name: targetEndpoint, type: string, description: "Target endpoint. Since v58.0."}
+      - {name: content_key, api_name: contentKey, type: string, description: "Content key for Marketing Cloud. Since v58.0."}
+      - {name: content_template, api_name: contentTemplate, type: string, description: "Content template. Since v58.0."}
+
+  CdpDataActionTargetWebConfig:
+    description: Represents the config input for web data hook action targets.
+    attributes:
+      - {name: api_contract, api_name: apiContract, type: string, description: "API contract for the data action target. Since v58.0."}
+      - {name: target_endpoint, api_name: targetEndpoint, type: string, description: "Target endpoint. Since v58.0."}
+
+  DataActionCondition:
+    attributes:
+      - {name: object_name, api_name: objectName, type: string, description: "Object the condition reads, such as a `__dlm` name."}
+      - {name: field_name, api_name: fieldName, type: string, description: "Field the condition reads."}
+      - {name: operator, type: string, description: "Spec examples show `Equal`, `GreaterThan` and `LessThanOrEqualTo`. No source gives the full list."}
+      - {name: value, type: string, description: "Value to compare against, as a string."}
+      - {name: order, type: string, description: "Sequence number of the rule, as a string. `action_condition_expression` refers to it, as in `(1 AND 2)`."}
+      - {name: condition_source_type, api_name: conditionSourceType, type: string, description: "Condition source type. The sources give no values."}
+      - {name: condition_type, api_name: conditionType, type: string, description: "Separates regular conditions from additional ones."}
+      - {name: data_graph_name, api_name: dataGraphName, type: string, description: "Data graph name, for conditions on a data graph."}
+      - {name: object_data_graph_name, api_name: objectDataGraphName, type: string, description: "Unique object name in the data graph."}
+
+  DataActionEnrichment:
+    attributes:
+      - {name: enrichment_name, api_name: enrichmentName, type: string, description: "Enrichment name."}
+      - {name: data_graph_api_name, api_name: dataGraphApiName, type: string, description: "API name of the data graph."}
+      - {name: data_action_projected_fields, api_name: dataActionProjectedFields, schema: DataActionProjectedField, array: 1, description: "Fields the enrichment adds to the event."}
+      - {name: data_action_relationship_edges, api_name: dataActionRelationshipEdges, schema: DataActionRelationshipEdge, array: 1, description: "How the related object joins to the source."}
+
+  DataActionProjectedField:
+    attributes:
+      - {name: object_api_name, api_name: objectApiName, type: string, description: "Object the field belongs to."}
+      - {name: field_api_name, api_name: fieldApiName, type: string, description: "Source field to carry onto the event."}
+      - {name: field_alias_name, api_name: fieldAliasName, type: string, description: "Field name on the event. afd360 uses it as the Platform Event field name (community)."}
+      - {name: object_data_graph_name, api_name: objectDataGraphName, type: string, description: "Object name in the data graph."}
+
+  DataActionRelationshipEdge:
+    attributes:
+      - {name: source_object_api_name, api_name: sourceObjectApiName, type: string, description: "Object on the source side."}
+      - {name: source_field_api_name, api_name: sourceFieldApiName, type: string, description: "Join field on the source side."}
+      - {name: target_object_api_name, api_name: targetObjectApiName, type: string, description: "Object on the target side."}
+      - {name: target_field_api_name, api_name: targetFieldApiName, type: string, description: "Join field on the target side."}
+      - {name: target_object_data_graph_name, api_name: targetObjectDataGraphName, type: string, description: "Target object's name in the data graph."}
+
+  DataActionSource:
+    attributes:
+      - {name: source_name, api_name: sourceName, type: string, description: "Source object. A `DataModelEntity` source is the full DMO name ending in `__dlm` (community). Returned as `objectDevName`."}
+      - {name: source_type, api_name: sourceType, type: string, description: "`DataModelEntity` for a DMO in the spec example. afd360 also names `DataGraph` (community). Returned as `objectType`."}
+      - {name: source_cdc_subscriptions, api_name: sourceCdcSubscriptions, array: 1, type: string, description: "Changes that fire the action. The spec example uses `CREATE`, `UPDATE`, `DELETE`. The MCP class and afd360 use `Create`, `Update`, `Delete`. Returned as `subscriptionModes`."}
+      - {name: actions_source_object, api_name: actionsSourceObject, type: string, description: "Source object for the action. For `DataGraph` sources only (community)."}
+      - {name: actions_source_object_path, api_name: actionsSourceObjectPath, type: string, description: "Path to the source object. For `DataGraph` sources only (community)."}
+      - {name: actions_source_object_type, api_name: actionsSourceObjectType, type: string, description: "Source object type. For `DataGraph` sources only (community)."}
+
+  DataActionTargetConfig:
+    unknown: warning
+    attributes:
+      - {name: target_endpoint, api_name: targetEndpoint, type: string, description: "`WebHook`: the URL that receives events. `MarketingCloud`: the events endpoint in the spec example. `Core`: see the source conflict under [`dataaction_target_create`](#dataaction_target_create)."}
+      - {name: api_contract, api_name: apiContract, type: string, description: "API contract for the target."}
+      - {name: org_id, api_name: orgId, type: string, description: "`Core` only. ID of the target CRM org."}
+      - {name: org_label, api_name: orgLabel, type: string, description: "`Core` only. Label of the target CRM org. Returned as `label`."}
+      - {name: content_key, api_name: contentKey, type: string, description: "`MarketingCloud` only. Content key."}
+      - {name: content_template, api_name: contentTemplate, type: string, description: "`MarketingCloud` only. Content template. The spec example passes an API event name."}
+      - {name: data_action_destination_type, api_name: dataActionDestinationType, type: string, description: "`MarketingCloud`. Appears only in the spec example, with the value `API_EVENT`."}
+      - {name: service_name, api_name: serviceName, type: string, description: "`WebHook` with `sub_type` `Grpc` only. Name of the gRPC service (MCP source only)."}
+      - {name: method_name, api_name: methodName, type: string, description: "`WebHook` with `sub_type` `Grpc` only. gRPC method to invoke (MCP source only)."}
+      - {name: proto_buffer_content, api_name: protoBufferContent, type: string, description: "`WebHook` with `sub_type` `Grpc` only. Contents of the proto definition (MCP source only)."}
+      - {name: mapping_config, api_name: mappingConfig, schema: DataActionTargetGrpcMappingConfig, description: "`WebHook` with `sub_type` `Grpc` only. Maps the event payload to the gRPC message (MCP source only)."}
+      - {name: custom_metadata, api_name: customMetadata, type: object, description: "`WebHook` with `sub_type` `Grpc` only. String map of metadata sent with the gRPC request (MCP source only)."}
+
+  DataActionTargetGrpcMappingConfig:
+    unknown: warning
+    attributes:
+      - {name: array_field, api_name: arrayField, type: string, description: "Array field. The MCP source says no more."}
+      - {name: event_mappings, api_name: eventMappings, type: object, description: "String map of the event payload mapping."}
+
+  dataaction_create_config:
+    unknown: warning
+    attributes:
+      - {name: type, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: template, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: target_audience, api_name: targetAudience, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: recipient_field, api_name: recipientField, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: personalization_fields, api_name: personalizationFields, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  dataaction_target_create.config:
+    variants: [CdpDataActionTargetCRMConfig, CdpDataActionTargetInternalWebConfig, CdpDataActionTargetMCConfig, CdpDataActionTargetWebConfig]

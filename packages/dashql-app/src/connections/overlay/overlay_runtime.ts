@@ -26,8 +26,6 @@ export interface OverlayEnvironment {
     variables?(): Record<string, string>;
     /// The values of the parameters of the script
     params?: Record<string, unknown>;
-    /// Read a stored secret
-    resolveSecret?(name: string): Promise<string>;
     /// Sleep while a pending result polls, for tests
     sleep?(ms: number, abort?: AbortSignal): Promise<void>;
     /// The current time in milliseconds, for tests
@@ -480,13 +478,7 @@ function abortableSleep(ms: number, abort?: AbortSignal): Promise<void> {
 /// Run a read-only call. Writes wait for run gating and the agent policy, see docs/design/overlay.md.
 export async function runOverlayCall(spec: OverlaySpec, description: OverlayCallDescription, env: OverlayEnvironment, abort?: AbortSignal): Promise<OverlayResult> {
     const options = await bindCallOptions(description, async binding => {
-        if (binding.secret !== undefined) {
-            if (env.resolveSecret === undefined) {
-                throw new OverlayError(`the call needs the secret ${binding.secret}, but there is no secret store`);
-            }
-            return env.resolveSecret(binding.secret);
-        }
-        const name = binding.param ?? '';
+        const name = binding.param;
         if (env.params === undefined || !(name in env.params)) {
             throw new OverlayError(`the parameter :${name} has no value`);
         }
@@ -500,14 +492,11 @@ export async function runOverlayCall(spec: OverlaySpec, description: OverlayCall
 }
 
 /// The result of `EXPLAIN CALL`: the resolved request. It sends nothing, needs no credentials, and shows the name of the
-/// host. Secrets print as `secret(name)`, parameters without a value as `:name`.
+/// host. A parameter without a value prints as `:name`.
 export async function explainOverlayCall(spec: OverlaySpec, description: OverlayCallDescription, env: Pick<OverlayEnvironment, 'variables' | 'params'> = {}): Promise<OverlayResult> {
     const fn = findOverlayFunction(spec, description.function);
     const options = await bindCallOptions(description, binding => {
-        if (binding.secret !== undefined) {
-            return `secret(${binding.secret})`;
-        }
-        const name = binding.param ?? '';
+        const name = binding.param;
         return env.params !== undefined && name in env.params ? env.params[name] : `:${name}`;
     });
     // A base path shows its variables if the binding isn't there to fill them

@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/identity_resolutions.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Identity Resolutions
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).

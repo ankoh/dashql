@@ -1,0 +1,494 @@
+title: Search Index
+description: |
+  A search index makes the text in a data model object (DMO) searchable by meaning. Data 360 splits the text into chunks, embeds them, and generates two DMOs: `<name>_chunk__dlm` holds the chunk text and `<name>_index__dlm` holds the searchable index. You query them with SQL, and [retrievers](machine_learning.md) build on them.
+
+  The order is: map data into the source DMO, read `search_index_config`, run `search_index_create`, poll `search_index_get` until `runtime_status` is `READY`, then search with a `SELECT` over the connection.
+
+  Gotchas that matter most:
+
+  - **The source DMO must be ready.** Create can fail on a new DMO, and an index without mapped data may never leave a null status (community). See [`search_index_create`](#search_index_create).
+  - **`runtime_status` isn't in the spec's schema**, only in its examples. See [`search_index_get`](#search_index_get).
+  - **`vector_embedding_related_fields` is disputed.** Salesforce says an empty list is fine, and one community tool reports a null pointer error.
+  - **Join on `RecordId__c`.** Salesforce's templates join index and chunk on `RecordId__c`. `vector_search` returns `score__c`, and `hybrid_search` returns `hybrid_score__c`, `keyword_score__c` and `vector_score__c`.
+
+  ```sql
+  CALL cdp.search_index_config ();
+  /* search_index_create goes here, see its example */
+  CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+  SELECT v."hybrid_score__c", c."Chunk__c", c."SourceRecordId__c"
+  FROM hybrid_search(TABLE("Articles_Search_index__dlm"), 'reset password', '', 5) AS v
+  INNER JOIN "Articles_Search_chunk__dlm" AS c ON c."RecordId__c" = v."RecordId__c"
+  ORDER BY v."hybrid_score__c" DESC
+  LIMIT 5;
+  ```
+
+functions:
+  - name: search_index_delete
+    method: DELETE
+    host: connect
+    path: /ssot/search-index/{searchIndexApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1%7BsearchIndexApiNameOrId%7D/delete
+    tools: [d360_search_index_delete]
+    description: Delete a search index definition and the DMOs generated for it. Since v60.0.
+    example: CALL cdp.search_index_delete (search_index_api_name_or_id => '18lTC0000001qPZYAY');
+    options:
+      - {name: search_index_api_name_or_id, api_name: searchIndexApiNameOrId, in: path, type: string, required: true, description: "Id of the index, such as `18lTC0000001qPZYAY`. A developer name is reported to return 404 (community)."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: |
+      **Notes:** **Use the id.** The spec's parameter allows a name, and [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) says id or name, but [a community SDK](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/search-index.ts) and afd360, by the same author, report that a name returns 404 even when the index exists (community). Take `id` from `search_index_list`.
+
+      [Deleting also removes the chunk and index DMOs](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts), and it can outlast a 30 s client timeout while the request still goes through (one org). A GET during teardown returned 500 (one org), so a timeout doesn't mean the delete failed. afd360 uses a 120 s timeout. No source says what happens to retrievers that use the index, so check `retriever_list` first.
+
+  - name: search_index_list
+    method: GET
+    host: connect
+    path: /ssot/search-index
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index/get
+    tools: [d360_search_index_list]
+    description: Get all search index definition details. Since v60.0.
+    example: CALL cdp.search_index_list ();
+    rows: /semanticSearchDefinitionDetails
+    columns:
+      - {name: attachment_dmo_id, api_name: attachmentDmoId, type: VARCHAR, description: "Attachment data model object's (DMO's) ID. Since v60.0."}
+      - {name: attachment_dmo_name, api_name: attachmentDmoName, type: VARCHAR, description: "Attachment DMO's name. Since v60.0."}
+      - {name: chunk_dmo_developer_name, api_name: chunkDmoDeveloperName, type: VARCHAR, description: "Chunk DMO's developer name. Since v60.0."}
+      - {name: chunk_dmo_id, api_name: chunkDmoId, type: VARCHAR, description: "Chunk DMO's ID. Since v60.0."}
+      - {name: chunk_dmo_name, api_name: chunkDmoName, type: VARCHAR, description: "Chunk DMO's label. Since v60.0."}
+      - {name: chunking_configuration, api_name: chunkingConfiguration, type: JSON, schema: ChunkingConfigurationRepresentation, description: "Chunking configuration. Since v60.0."}
+      - {name: dataspace, type: VARCHAR, description: "Name of the data space. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description. Since v60.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "ID of the record. Since v60.0."}
+      - {name: index_configuration, api_name: indexConfiguration, type: JSON, schema: IndexConfigurationRepresentation, description: "Index configuration for the semantic search record. Since v64.0."}
+      - {name: index_refreshed_on, api_name: indexRefreshedOn, type: VARCHAR, description: "Date and time of the search index's last update. Since v64.0."}
+      - {name: label, type: VARCHAR, description: "Label. Since v60.0."}
+      - {name: ranking_configurations, api_name: rankingConfigurations, type: JSON, array: 1, schema: RankingFieldsDetailsRepresentation, description: "List of ranking configuration object IDs that were created for hybrid search. Since v60.0."}
+      - {name: search_type, api_name: searchType, type: VARCHAR, description: "Type of the search index (`HYBRID` or `VECTOR`). Since v60.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, type: VARCHAR, description: "Source DMO's developer name. Since v60.0."}
+      - {name: source_dmo_id, api_name: sourceDmoId, type: VARCHAR, description: "Source DMO's ID. Since v60.0."}
+      - {name: transcribe_dmo_developer_name, api_name: transcribeDmoDeveloperName, type: VARCHAR, description: "Transcribe DMO's developer name. Since v60.0."}
+      - {name: transcribe_dmo_name, api_name: transcribeDmoName, type: VARCHAR, description: "Transcribe DMO's label. Since v60.0."}
+      - {name: transform_configurations, api_name: transformConfigurations, type: JSON, array: 1, schema: TransformConfigurationRepresentation, description: "Transform configurations. Since v60.0."}
+      - {name: vector_dmo_developer_name, api_name: vectorDmoDeveloperName, type: VARCHAR, description: "Vector DMO's developer name. Since v60.0."}
+      - {name: vector_dmo_id, api_name: vectorDmoId, type: VARCHAR, description: "Vector DMO's ID. Since v60.0."}
+      - {name: vector_dmo_name, api_name: vectorDmoName, type: VARCHAR, description: "Vector DMO's label. Since v60.0."}
+      - {name: vector_embedding, api_name: vectorEmbedding, type: JSON, schema: VectorEmbeddingDetailsRepresentation, description: "Vector embedding. Since v60.0."}
+      - {name: vector_embedding_configuration, api_name: vectorEmbeddingConfiguration, type: JSON, schema: VectorConfigurationRepresentation, description: "Vector embedding configuration. Since v60.0."}
+      - {name: version, type: VARCHAR, description: "Version of the record. Since v60.0."}
+      - {name: attachment_dmo_developer_name, api_name: attachmentDmoDeveloperName, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: semantic_search_ranking_configurations, api_name: semanticSearchRankingConfigurations, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: transcribe_dmo_id, api_name: transcribeDmoId, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/semanticSearchDefinitionDetails` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `SemanticSearchDefDetailRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The spec's examples show `runtime_status` on each item, but the schema omits it, so it's missing from the columns above. See [`search_index_get`](#search_index_get). [Salesforce's kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/create-individual-retrievers/SKILL.md) reads it from this call to check readiness. There's no data space option, so filter on `dataspace` yourself.
+
+  - name: search_index_get
+    method: GET
+    host: connect
+    path: /ssot/search-index/{searchIndexApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1%7BsearchIndexApiNameOrId%7D/get
+    tools: [d360_search_index_get]
+    description: Get one search index definition, including the names of its generated chunk and index DMOs. Poll this after create or update to see whether the index is ready. Since v60.0.
+    example: CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+    options:
+      - {name: search_index_api_name_or_id, api_name: searchIndexApiNameOrId, in: path, type: string, required: true, description: "Id or developer name of the index. The developer name has no `__dlm` suffix."}
+    columns:
+      - {name: attachment_dmo_id, api_name: attachmentDmoId, type: VARCHAR, description: "Attachment data model object's (DMO's) ID. Since v60.0."}
+      - {name: attachment_dmo_name, api_name: attachmentDmoName, type: VARCHAR, description: "Attachment DMO's name. Since v60.0."}
+      - {name: chunk_dmo_developer_name, api_name: chunkDmoDeveloperName, type: VARCHAR, description: "Chunk DMO's developer name. Since v60.0."}
+      - {name: chunk_dmo_id, api_name: chunkDmoId, type: VARCHAR, description: "Chunk DMO's ID. Since v60.0."}
+      - {name: chunk_dmo_name, api_name: chunkDmoName, type: VARCHAR, description: "Chunk DMO's label. Since v60.0."}
+      - {name: chunking_configuration, api_name: chunkingConfiguration, type: JSON, schema: ChunkingConfigurationRepresentation, description: "Chunking configuration. Since v60.0."}
+      - {name: dataspace, type: VARCHAR, description: "Name of the data space. Since v60.0."}
+      - {name: description, type: VARCHAR, description: "Description. Since v60.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "ID of the record. Since v60.0."}
+      - {name: index_configuration, api_name: indexConfiguration, type: JSON, schema: IndexConfigurationRepresentation, description: "Index configuration for the semantic search record. Since v64.0."}
+      - {name: index_refreshed_on, api_name: indexRefreshedOn, type: VARCHAR, description: "Date and time of the search index's last update. Since v64.0."}
+      - {name: label, type: VARCHAR, description: "Label. Since v60.0."}
+      - {name: ranking_configurations, api_name: rankingConfigurations, type: JSON, array: 1, schema: RankingFieldsDetailsRepresentation, description: "List of ranking configuration object IDs that were created for hybrid search. Since v60.0."}
+      - {name: search_type, api_name: searchType, type: VARCHAR, description: "Type of the search index (`HYBRID` or `VECTOR`). Since v60.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, type: VARCHAR, description: "Source DMO's developer name. Since v60.0."}
+      - {name: source_dmo_id, api_name: sourceDmoId, type: VARCHAR, description: "Source DMO's ID. Since v60.0."}
+      - {name: transcribe_dmo_developer_name, api_name: transcribeDmoDeveloperName, type: VARCHAR, description: "Transcribe DMO's developer name. Since v60.0."}
+      - {name: transcribe_dmo_name, api_name: transcribeDmoName, type: VARCHAR, description: "Transcribe DMO's label. Since v60.0."}
+      - {name: transform_configurations, api_name: transformConfigurations, type: JSON, array: 1, schema: TransformConfigurationRepresentation, description: "Transform configurations. Since v60.0."}
+      - {name: vector_dmo_developer_name, api_name: vectorDmoDeveloperName, type: VARCHAR, description: "Vector DMO's developer name. Since v60.0."}
+      - {name: vector_dmo_id, api_name: vectorDmoId, type: VARCHAR, description: "Vector DMO's ID. Since v60.0."}
+      - {name: vector_dmo_name, api_name: vectorDmoName, type: VARCHAR, description: "Vector DMO's label. Since v60.0."}
+      - {name: vector_embedding, api_name: vectorEmbedding, type: JSON, schema: VectorEmbeddingDetailsRepresentation, description: "Vector embedding. Since v60.0."}
+      - {name: vector_embedding_configuration, api_name: vectorEmbeddingConfiguration, type: JSON, schema: VectorConfigurationRepresentation, description: "Vector embedding configuration. Since v60.0."}
+      - {name: version, type: VARCHAR, description: "Version of the record. Since v60.0."}
+      - {name: attachment_dmo_developer_name, api_name: attachmentDmoDeveloperName, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: semantic_search_ranking_configurations, api_name: semanticSearchRankingConfigurations, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: transcribe_dmo_id, api_name: transcribeDmoId, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: processing_type, api_name: processingType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `SemanticSearchDefDetailRepresentation`.
+    notes: |
+      **Notes:** **`runtime_status` is missing from the columns above.** The spec's schema leaves it out, but the spec's response examples return it, with `READY` and `FAILED`. The same goes for `processing_type`, `attachment_dmo_developer_name`, `transcribe_dmo_id` and `semantic_search_ranking_configurations`. Expect them in `_raw` until the schema catches up.
+
+      **Status values.** It's uppercase [`READY`, not `Ready`](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/create-individual-retrievers/SKILL.md), according to Salesforce's kit. afd360 [gives the path](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts) null, `SUBMITTED`, `IN_PROGRESS`, `READY`, with `FAILED` as the terminal failure (community). It also treats `SUBMITTED` and `IN_PROGRESS` as usable, while Salesforce's kit requires `READY` before creating retrievers. Wait for `READY`.
+
+      **Wait times.** Salesforce's docs say [several minutes](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/use-chunking-in-search-index.md). afd360 saw 10 to 12 minutes, and sometimes over 15, on newly mapped Snowflake DMOs (one org). `index_refreshed_on` shows the last update.
+
+      **Not found.** An unknown name is [reported to return `400 INVALID_INPUT`](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts) with "was not found" in the body, not a 404 (community), and a 500 was seen during a delete (one org).
+
+  - name: search_index_config
+    method: GET
+    host: connect
+    path: /ssot/search-index/config
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1config/get
+    tools: [d360_search_index_config]
+    description: "Get the valid options for search indexes: chunking strategies, embedding models, index types, similarity metrics and transcription models. Since v60.0."
+    example: CALL cdp.search_index_config ();
+    columns:
+      - {name: config, type: VARCHAR, description: "The semantic search configuration. Since v60.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `SemanticSearchConfigRepresentation`.
+    notes: |
+      **Notes:** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) says to take the ids for `search_index_create` from this call.
+
+      `config` is one string holding JSON, and the spec's example encodes its quotes as `&quot;`. Decode the entities, then parse it. The example has these top-level keys:
+
+      - `chunkingConfigurations`: strategies `passage_extraction` (`strip_html`, `max_tokens` up to 512) and `conversation_based`, plus allowed strategies and citations per file extension.
+      - `vectorEmbeddingConfigurations`: models `e5_large_v2` (the default) and `multilingual-e5-large`, both 1024 dimensions and read-only settings. Index `HNSW` with read-only values. Metrics per index: `HNSW` allows `COSINE`, and `DISKANN` allows `L2`.
+      - `transcribeConfigurations`: `whisper_large_v3` for audio and video.
+
+      The example isn't the full list. [Salesforce's kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/intelligent-context/SKILL.md) uses `section_aware_chunking` with `overlap_tokens`, and Salesforce's tool says the config also covers image processing models and parsing stages. One community test run [got "not found" from this call](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) (one org). No source explains why.
+
+  - name: search_index_update
+    method: PATCH
+    host: connect
+    path: /ssot/search-index/{searchIndexApiNameOrId}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1%7BsearchIndexApiNameOrId%7D/patch
+    tools: [d360_search_index_update]
+    description: Update a search index. The spec requires the full definition in the body, not only the fields that change. Since v60.0.
+    example: CALL cdp.search_index_update (search_index_api_name_or_id => 'Articles_Search', label => 'Articles Search v2', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
+    options:
+      - {name: search_index_api_name_or_id, api_name: searchIndexApiNameOrId, in: path, type: string, required: true, description: "Id or developer name of the index, according to Salesforce's tool."}
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: activation_status, api_name: activationStatus, in: body, type: string, description: "Activation status of the semantic search record. Since v60.0."}
+      - {name: attachment_dmo_developer_name, api_name: attachmentDmoDeveloperName, in: body, type: string, description: "Developer name of the attachment `MktDataModelObject`. For example, `loanAgreement__dlm`. Since v62.0."}
+      - {name: chunk_dmo_developer_name, api_name: chunkDmoDeveloperName, in: body, type: string, required: true, description: "Developer name of the data model object (DMO) used for chunking, excluding the `__dlm` suffix. Since v60.0."}
+      - {name: chunk_dmo_name, api_name: chunkDmoName, in: body, type: string, required: true, description: "Name of the DMO used for chunking. Since v60.0."}
+      - {name: chunking_configuration, api_name: chunkingConfiguration, in: body, schema: ChunkingConfigInputRepresentation, required: true, description: "Chunking configuration. Since v60.0."}
+      - {name: description, in: body, type: string, description: "Description of semantic search record to be created. Since v60.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, required: true, description: "Developer name of the semantic search record to be created. Since v60.0."}
+      - {name: index_configuration, api_name: indexConfiguration, in: body, schema: IndexConfigInputRepresentation, description: "Index configuration for the semantic search record. Since v64.0."}
+      - {name: label, in: body, type: string, required: true, description: "Label of semantic search record to be created. Since v60.0."}
+      - {name: processing_type, api_name: processingType, in: body, type: string, description: "Processing type of the search index, such as `NEAR_REALTIME` or `REALTIME`. Since v63.0."}
+      - {name: ranking_configurations, api_name: rankingConfigurations, in: body, schema: SearchRankingFieldInputRepresentation, array: 1, description: "List of ranking configurations for hybrid search. Selecting fields for a ranking configuration is optional. Since v60.0."}
+      - {name: search_type, api_name: searchType, in: body, type: string, required: true, description: "Type of the search index (`HYBRID` or `VECTOR`). Since v60.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, in: body, type: string, required: true, description: "Developer name of the source (parent) `MktDataModelObject`. For example, `loanAgreement__dlm`. Since v60.0."}
+      - {name: transcribe_dmo_developer_name, api_name: transcribeDmoDeveloperName, in: body, type: string, description: "Transcribe output DMO developer name. Since v60.0."}
+      - {name: transcribe_dmo_id, api_name: transcribeDmoId, in: body, type: string, description: "Transcribe output DMO ID. Since v60.0."}
+      - {name: transcribe_dmo_name, api_name: transcribeDmoName, in: body, type: string, description: "Transcribe output DMO name. Since v60.0."}
+      - {name: transform_configurations, api_name: transformConfigurations, in: body, schema: TransformConfigInputRepresentation, array: 1, description: "Transform configuration. Since v60.0."}
+      - {name: vector_dmo_developer_name, api_name: vectorDmoDeveloperName, in: body, type: string, required: true, description: "Developer name of the vector DMO, excluding the `__dlm` suffix. Since v60.0."}
+      - {name: vector_dmo_name, api_name: vectorDmoName, in: body, type: string, required: true, description: "Name of the vector DMO. Since v60.0."}
+      - {name: vector_embedding, api_name: vectorEmbedding, in: body, schema: VectorEmbeddingInputRepresentation, required: true, description: "Vector embedding objects. Since v60.0."}
+      - {name: vector_embedding_configuration, api_name: vectorEmbeddingConfiguration, in: body, schema: VectorEmbeddingConfigInputRepresentation, required: true, description: "Vector embedding configuration. Since v60.0."}
+      - {name: parsing_configurations, api_name: parsingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: post_processing_configurations, api_name: postProcessingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: pre_processing_configurations, api_name: preProcessingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: rule_configuration, api_name: ruleConfiguration, in: body, type: object, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: semantic_search_ranking_configurations, api_name: semanticSearchRankingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: source_app, api_name: sourceApp, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: source_app_developer_name, api_name: sourceAppDeveloperName, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: current_page_url, api_name: currentPageUrl, type: VARCHAR, description: "Current page URL. Since v60.0."}
+      - {name: next_page_url, api_name: nextPageUrl, type: VARCHAR, description: "Next page URL, if it exists. Since v60.0."}
+      - {name: total_size, api_name: totalSize, type: BIGINT, description: "Total size of the collection. Since v60.0."}
+      - {name: chunking_strategies, api_name: chunkingStrategies, type: JSON, description: "List of chunking strategy object IDs. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "ID of the semantic search definition that was updated or created. Since v60.0."}
+      - {name: ranking_configurations, api_name: rankingConfigurations, type: JSON, description: "List of ranking configuration object IDs that were created for hybrid search. Since v60.0."}
+      - {name: transformations, type: JSON, description: "The list of transformation IDs. Since v60.0."}
+      - {name: vector_embedding, api_name: vectorEmbedding, type: JSON, schema: VectorEmbeddingRepresentation, description: "The structure for vector embeddings, including any extra fields. Since v60.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `SemanticSearchRepresentation`.
+    notes: |
+      **Done when:** `search_index_get.runtime_status` = `READY`; `FAILED` is terminal. No source says whether an update resets the status.
+
+      **Notes:** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) says to read `search_index_config` and `search_index_get` first and build the body from them. The spec requires the same fields as create, so a label change still sends the whole definition.
+
+      A GET response can't be sent back as is. GET returns `chunk_dmo_developer_name` and `vector_dmo_developer_name` with `__dlm` in the spec's examples, while this call takes them without it. GET also returns display-name fields that are [reported to return a 500 on input](https://github.com/javrrr/afd360/blob/main/docs/resources.md#searchindex) (community), per [`search_index_create`](#search_index_create).
+
+      No source says which fields can change or whether an update rebuilds the index. afd360 [avoids PATCH](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts) and deletes and recreates the index instead (community). The `vector_embedding_related_fields` conflict on create applies here too.
+
+  - name: search_index_create
+    method: POST
+    host: connect
+    path: /ssot/search-index
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index/post
+    tools: [d360_search_index_create]
+    description: Create a search index over a DMO. The platform generates the chunk and index DMOs, then chunks and embeds the data in the background. Since v60.0.
+    example: CALL cdp.search_index_create (label => 'Articles Search', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
+    options:
+      - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, in: body, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: activation_status, api_name: activationStatus, in: body, type: string, description: "Activation status of the semantic search record. Since v60.0."}
+      - {name: attachment_dmo_developer_name, api_name: attachmentDmoDeveloperName, in: body, type: string, description: "Developer name of the attachment `MktDataModelObject`. For example, `loanAgreement__dlm`. Since v62.0."}
+      - {name: chunk_dmo_developer_name, api_name: chunkDmoDeveloperName, in: body, type: string, required: true, description: "Developer name of the data model object (DMO) used for chunking, excluding the `__dlm` suffix. Since v60.0."}
+      - {name: chunk_dmo_name, api_name: chunkDmoName, in: body, type: string, required: true, description: "Name of the DMO used for chunking. Since v60.0."}
+      - {name: chunking_configuration, api_name: chunkingConfiguration, in: body, schema: ChunkingConfigInputRepresentation, required: true, description: "Chunking configuration. Since v60.0."}
+      - {name: description, in: body, type: string, description: "Description of semantic search record to be created. Since v60.0."}
+      - {name: developer_name, api_name: developerName, in: body, type: string, required: true, description: "Developer name of the semantic search record to be created. Since v60.0."}
+      - {name: index_configuration, api_name: indexConfiguration, in: body, schema: IndexConfigInputRepresentation, description: "Index configuration for the semantic search record. Since v64.0."}
+      - {name: label, in: body, type: string, required: true, description: "Label of semantic search record to be created. Since v60.0."}
+      - {name: processing_type, api_name: processingType, in: body, type: string, description: "Processing type of the search index, such as `NEAR_REALTIME` or `REALTIME`. Only `NEAR_REALTIME` is reported to work (community). Since v63.0."}
+      - {name: ranking_configurations, api_name: rankingConfigurations, in: body, schema: SearchRankingFieldInputRepresentation, array: 1, description: "List of ranking configurations for hybrid search. Selecting fields for a ranking configuration is optional. Since v60.0."}
+      - {name: search_type, api_name: searchType, in: body, type: string, required: true, description: "Type of the search index (`HYBRID` or `VECTOR`). Since v60.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, in: body, type: string, required: true, description: "Developer name of the source (parent) `MktDataModelObject`. For example, `loanAgreement__dlm`. Since v60.0."}
+      - {name: transcribe_dmo_developer_name, api_name: transcribeDmoDeveloperName, in: body, type: string, description: "Transcribe output DMO developer name. Since v60.0."}
+      - {name: transcribe_dmo_id, api_name: transcribeDmoId, in: body, type: string, description: "Transcribe output DMO ID. Since v60.0."}
+      - {name: transcribe_dmo_name, api_name: transcribeDmoName, in: body, type: string, description: "Transcribe output DMO name. Since v60.0."}
+      - {name: transform_configurations, api_name: transformConfigurations, in: body, schema: TransformConfigInputRepresentation, array: 1, description: "Transform configuration, used for transcribing audio and video. Salesforce's tool calls it required, but the spec doesn't. Since v60.0."}
+      - {name: vector_dmo_developer_name, api_name: vectorDmoDeveloperName, in: body, type: string, required: true, description: "Developer name of the vector DMO, excluding the `__dlm` suffix. Since v60.0."}
+      - {name: vector_dmo_name, api_name: vectorDmoName, in: body, type: string, required: true, description: "Name of the vector DMO. Since v60.0."}
+      - {name: vector_embedding, api_name: vectorEmbedding, in: body, schema: VectorEmbeddingInputRepresentation, required: true, description: "Vector embedding objects. Since v60.0."}
+      - {name: vector_embedding_configuration, api_name: vectorEmbeddingConfiguration, in: body, schema: VectorEmbeddingConfigInputRepresentation, required: true, description: "Vector embedding configuration. Since v60.0."}
+      - {name: parsing_configurations, api_name: parsingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: post_processing_configurations, api_name: postProcessingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: pre_processing_configurations, api_name: preProcessingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: rule_configuration, api_name: ruleConfiguration, in: body, type: object, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: semantic_search_ranking_configurations, api_name: semanticSearchRankingConfigurations, in: body, array: 1, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: source_app, api_name: sourceApp, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: source_app_developer_name, api_name: sourceAppDeveloperName, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: current_page_url, api_name: currentPageUrl, type: VARCHAR, description: "Current page URL. Since v60.0."}
+      - {name: next_page_url, api_name: nextPageUrl, type: VARCHAR, description: "Next page URL, if it exists. Since v60.0."}
+      - {name: total_size, api_name: totalSize, type: BIGINT, description: "Total size of the collection. Since v60.0."}
+      - {name: chunking_strategies, api_name: chunkingStrategies, type: JSON, description: "List of chunking strategy object IDs. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "ID of the semantic search definition that was updated or created. Since v60.0."}
+      - {name: ranking_configurations, api_name: rankingConfigurations, type: JSON, description: "List of ranking configuration object IDs that were created for hybrid search. Since v60.0."}
+      - {name: transformations, type: JSON, description: "The list of transformation IDs. Since v60.0."}
+      - {name: vector_embedding, api_name: vectorEmbedding, type: JSON, schema: VectorEmbeddingRepresentation, description: "The structure for vector embeddings, including any extra fields. Since v60.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `SemanticSearchRepresentation`.
+    notes: |
+      **Done when:** `search_index_get.runtime_status` = `READY`; `FAILED` is terminal. Allow several minutes, and over 15 on a newly mapped source DMO (one org).
+
+      **Notes:** **Before you call it.** Salesforce's tool says to [read `search_index_config` first](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) and take ids from there. The source DMO has to be ready, and these reports come from one community tool, [afd360](https://github.com/javrrr/afd360/blob/main/docs/resources.md#searchindex) (community):
+
+      - A custom DMO needs `dataspace_name` populated, about 90 s after creation, or create returns 400.
+      - A 400, sometimes a 500, saying the DMO is "not fully materialized" can last about 90 s longer. afd360 retries 6 times, 15 s apart.
+      - Create the mapping first. [Without mapped data](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts), the index can sit at a null `runtime_status` indefinitely.
+
+      Salesforce's docs agree on the cause: [chunking runs only on content that exists in the source](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/use-chunking-in-search-index.md).
+
+      **`vector_embedding_related_fields` conflict.** Salesforce's [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/searchindex/SearchIndexCreateRequest.java) says to "use empty list" when no related fields are needed, and the spec's examples and [Salesforce's kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/intelligent-context/SKILL.md) send `[]`. afd360 reports that [an empty list makes the server throw a null pointer error](https://github.com/javrrr/afd360/blob/main/docs/resources.md#searchindex) and sends the source DMO's primary key instead (community). No source settles it, so the example sends the key, which fits both. The spec also ties these fields to filtering: a NoCode retriever's filter field must be one of them. A [community skill](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-retrieve/SKILL.md) says `hybrid_search` prefilters work only on fields configured at creation (community).
+
+      **Names.** `source_dmo_developer_name` includes `__dlm`. `chunk_dmo_developer_name` and `vector_dmo_developer_name` must not, because the platform appends it. The chunk and index names you choose become the tables you query. They [also show up as DLOs](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) ending `_chunk__dll` and `_index__dll`, with no data stream (community). Sending the display-name inputs `source_dmo_name`, `source_dmo_field_name`, `related_dmo_name` or `related_dmo_field_name` is [reported to return an opaque 500](https://github.com/javrrr/afd360/blob/main/docs/resources.md#searchindex) (community), although the spec lists them as input.
+
+      **Don't retry blindly.** An error doesn't prove the index wasn't created. afd360 [saw the index land while the POST failed](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts), so it reads the index by name before giving up (community). It also uses a 120 s timeout. The response carries only ids, so call `search_index_get` afterward.
+
+      **What the sources disagree on:**
+
+      - `transform_configurations`: [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) lists it as required, but the spec doesn't, and community examples omit it.
+      - `processing_type`: [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/search-index.ts) says only `NEAR_REALTIME` is accepted through the API and `REALTIME` is reserved (community). The spec lists both.
+      - HNSW `user_values`: the spec's config example marks `hnswEfConstruction` and `M` read-only, at 2000 and 64. Salesforce's examples send those values, and a [community skill](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-retrieve/SKILL.md) says to send `[]` (community).
+      - The body: Salesforce's request class also has `parsing_configurations`, `pre_processing_configurations`, `post_processing_configurations`, `rule_configuration`, `semantic_search_ranking_configurations`, `source_app` and `source_app_developer_name`, which the spec lacks.
+      - Data space: the spec has no data space option, but [Salesforce's kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/intelligent-context/SKILL.md) posts with `?dataspace=default`.
+
+      **Reading the index.** Run `vector_search` or `hybrid_search` in a `SELECT` over the connection. The arguments are `TABLE("<name>_index__dlm")`, the search text, a prefilter string (`''` if none) and the number of results. The spec's retriever examples join `c."RecordId__c" = v."RecordId__c"`, then `c."SourceRecordId__c"` to the source DMO's key. Some also read `Chunk__c`, `DataSource__c` and `DataSourceObject__c` from the chunk DMO. A prefilter is a string, so its quotes double: `'Language__c = ''en_US'''`. [One community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/query/searchSql.ts) joins `v."SourceRecordId__c" = c."RecordId__c"` instead, but it labels that SQL unverified, so prefer the spec's form. [Another community example](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-ai-agentforce-observability/references/query-patterns.md) uses the spec's join. Salesforce's [published SQL reference doesn't cover these functions](https://developer.salesforce.com/docs/llms-data-cloud.txt), going by its index. No source says whether `hybrid_search` works on a `VECTOR` index.
+
+  - name: search_index_process_history
+    method: GET
+    host: connect
+    path: /ssot/search-index/{id}/process-history
+    tools: [d360_search_index_process_history]
+    description: Get the processing runs of one search index. Use it to see why an index isn't ready or when it last ran.
+    example: CALL cdp.search_index_process_history (search_index_api_name_or_id => 'Articles_Search', limit => 20);
+    options:
+      - {name: search_index_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "ID or API Name of the search index"}
+      - {name: limit, in: query, type: integer, description: "Maximum number of records to return (default 50)"}
+      - {name: offset, in: query, type: integer, description: "1-based offset for pagination (default 1). Must be >= 1."}
+    paging: {kind: offset, option: offset, size: limit, start: 1}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Paging:** `limit` and 1-based `offset`. Salesforce's tool says pagination "is currently unreliable" and fetches only the first page.
+
+      **Notes:** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) says the response is a list of process history records "with status, timestamps, and details", but no source names the fields. There is no spec entry, and [one community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) leaves this call out as unverified.
+
+schemas:
+  ChunkingConfigInputRepresentation:
+    description: Represents the input for chunking structured/unstructured configurations.
+    attributes:
+      - {name: field_level_configurations, api_name: fieldLevelConfigurations, schema: FieldLevelConfigurationInputRepresentation, array: 1, description: "The field level configurations used in structured flows. Send this alone for a structured DMO, and with `file_level_configuration` only when `attachment_dmo_developer_name` is set, according to Salesforce's tool. Since v65.0."}
+      - {name: file_level_configuration, api_name: fileLevelConfiguration, schema: ChunkingConfigInput_fileLevelConfiguration, description: "The file level configurations used in unstructured flows. In the spec's examples it holds `per_file_extensions`: items with `file_extension`, `config` and `citations`. Send this alone for an unstructured DMO, according to Salesforce's tool. Since v65.0."}
+
+  ChunkingConfigInput_fileLevelConfiguration:
+    unknown: warning
+    attributes:
+      - {name: per_file_extensions, api_name: perFileExtensions, schema: ChunkingConfigInput_fileLevelConfiguration_perFileExtensions, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  ChunkingConfigInput_fileLevelConfiguration_perFileExtensions:
+    unknown: warning
+    attributes:
+      - {name: file_extension, api_name: fileExtension, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: config, schema: ChunkingConfigInput_fileLevelConfiguration_perFileExtensions_config, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: citations, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  ChunkingConfigInput_fileLevelConfiguration_perFileExtensions_config:
+    unknown: warning
+    attributes:
+      - {name: id, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: user_values, api_name: userValues, schema: ChunkingConfigInput_fileLevelConfiguration_perFileExtensions_config_userValues, array: 1, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  ChunkingConfigInput_fileLevelConfiguration_perFileExtensions_config_userValues:
+    unknown: warning
+    attributes:
+      - {name: id, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: value, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  ConfigInputRepresentation:
+    description: Represents the input for the general configuration shared across chunking and vector configurations.
+    attributes:
+      - {name: id, type: string, description: "ID of the configuration. Since v60.0."}
+      - {name: user_values, api_name: userValues, schema: UserValueInputRepresentation, array: 1, description: "User input values. Since v60.0."}
+
+  ContextFieldConfigurationInputRepresentation:
+    description: Represents the input for context field configurations.
+    attributes:
+      - {name: alias_name, api_name: aliasName, type: string, description: "Alias of the index field. Since v64.0."}
+      - {name: dmo_developer_name, api_name: dmoDeveloperName, type: string, description: "Developer name of the DMO. Since v64.0."}
+      - {name: dmo_field_developer_name, api_name: dmoFieldDeveloperName, type: string, description: "Developer name of the DMO field. Since v64.0."}
+      - {name: relationships, schema: SourceTargetRelationshipInputRepresentation, array: 1, description: "Field relationship paths between the source DMO fields and target DMO fields. Since v64.0."}
+
+  DecoratorInputRepresentation:
+    description: Represents the input for the field-level chunking decorator.
+    attributes:
+      - {name: decorator_id, api_name: decoratorId, type: string, description: "Decorator ID: `prepend` or `append`, which add another field's value to each chunk (community). Since v61.0."}
+      - {name: dmo_developer_name, api_name: dmoDeveloperName, type: string, description: "DMO developer name. Since v61.0."}
+      - {name: dmo_field_developer_name, api_name: dmoFieldDeveloperName, type: string, description: "DMO field developer name. Since v61.0."}
+
+  FieldLevelConfigurationInputRepresentation:
+    description: Represents the input for field-level configurations.
+    attributes:
+      - {name: config, schema: ConfigInputRepresentation, description: "Field-level configuration. Since v60.0."}
+      - {name: decorators, schema: DecoratorInputRepresentation, array: 1, description: "Chunking decorators. Since v60.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, type: string, description: "Source DMO developer name. Since v60.0."}
+      - {name: source_dmo_field_developer_name, api_name: sourceDmoFieldDeveloperName, type: string, description: "Source DMO field developer name. Since v60.0."}
+      - {name: source_dmo_field_name, api_name: sourceDmoFieldName, type: string, description: "Source DMO field name. Reported to return a 500 on input (community). Since v61.0."}
+      - {name: source_dmo_name, api_name: sourceDmoName, type: string, description: "Source DMO name. Reported to return a 500 on input (community). Since v61.0."}
+      - {name: version, type: string, description: "Version of the chunking configuration. Since v60.0."}
+
+  IndexConfigInputRepresentation:
+    description: Represents the input for a semantic search index configuration.
+    attributes:
+      - {name: context_field_configuration, api_name: contextFieldConfiguration, schema: ContextFieldConfigurationInputRepresentation, array: 1, description: "Configuration of the fields for the `ContextFields__c` column of the Index DMO. Fields can come from source or related DMOs. Since v64.0."}
+      - {name: record_field_configuration, api_name: recordFieldConfiguration, schema: RecordFieldConfigurationInputRepresentation, array: 1, description: "Configuration for the fields to be indexed as records. This configuration includes storage optimization, such as `TYPEAHEAD` or `STANDARD`. Fields can come from source or related DMOs. Since v64.0."}
+      - {name: should_vectorize_searchable_fields, api_name: shouldVectorizeSearchableFields, type: boolean, description: "Indicates whether the searchable fields are vectorized (`true`) or not (`false`). Since v64.0."}
+
+  RecordFieldConfigurationInputRepresentation:
+    description: Represents the input for record field configurations.
+    attributes:
+      - {name: alias_name, api_name: aliasName, type: string, description: "Alias of the index field. Since v64.0."}
+      - {name: dmo_developer_name, api_name: dmoDeveloperName, type: string, description: "Developer name of the DMO. Since v64.0."}
+      - {name: dmo_field_developer_name, api_name: dmoFieldDeveloperName, type: string, description: "Developer name of the DMO field. Since v64.0."}
+      - {name: relationships, schema: SourceTargetRelationshipInputRepresentation, array: 1, description: "Field relationship paths between the source DMO fields and target DMO fields. Since v64.0."}
+      - {name: tokenizations, schema: TokenizationInputRepresentation, array: 1, description: "List of tokenizations. Since v58.0."}
+
+  SearchRankingFieldInputRepresentation:
+    description: Represents the input for ranking search fields.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: alias_name, api_name: aliasName, type: string, description: "Alias of the field. Since v64.0."}
+      - {name: developer_name, api_name: developerName, type: string, description: "Developer name of the rank field. Since v61.0."}
+      - {name: rank_type, api_name: rankType, type: string, description: "Ranking factor used to influence the ranking of search result field types, `POPULARITY` or `RECENCY`, for hybrid search. Since v61.0."}
+      - {name: related_dmo_developer_name, api_name: relatedDmoDeveloperName, type: string, description: "API name of the related data model object (DMO). Since v61.0."}
+      - {name: related_dmo_field_developer_name, api_name: relatedDmoFieldDeveloperName, type: string, description: "API name of the related DMO field chosen for ranking factor. Since v61.0."}
+      - {name: related_dmo_field_name, api_name: relatedDmoFieldName, type: string, description: "Name of the related DMO field chosen for ranking factor. Since v61.0."}
+      - {name: related_dmo_name, api_name: relatedDmoName, type: string, description: "Name of the related DMO. Since v61.0."}
+      - {name: relationships, schema: SourceTargetRelationshipInputRepresentation, array: 1, description: "Field relationship paths. Since v61.0."}
+
+  SourceTargetRelationshipInputRepresentation:
+    description: Represents the input for the relationship to a source search index data model object (DMO).
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: source_dmo_developer_name, api_name: sourceDmoDeveloperName, type: string, required: true, description: "Source DMO developer name. Since v60.0."}
+      - {name: source_dmo_field_developer_name, api_name: sourceDmoFieldDeveloperName, type: string, required: true, description: "Source DMO field developer name. Since v60.0."}
+      - {name: source_dmo_label, api_name: sourceDmoLabel, type: string, description: "Source DMO label. Since v61.0."}
+      - {name: source_field_label, api_name: sourceFieldLabel, type: string, description: "Source DMO field label. Since v61.0."}
+      - {name: target_dmo_developer_name, api_name: targetDmoDeveloperName, type: string, required: true, description: "Target DMO developer name. Since v60.0."}
+      - {name: target_dmo_field_developer_name, api_name: targetDmoFieldDeveloperName, type: string, required: true, description: "Target DMO field developer name. Since v60.0."}
+      - {name: target_dmo_label, api_name: targetDmoLabel, type: string, description: "Target DMO label. Since v61.0."}
+      - {name: target_field_label, api_name: targetFieldLabel, type: string, description: "Target DMO field label. Since v61.0."}
+
+  TokenizationInputRepresentation:
+    description: Represents the input for record field configuration tokenizations.
+    attributes:
+      - {name: name, type: string, description: "Name of the tokenization, such as `TYPEAHEAD` or `STANDARD`. Since v64.0."}
+
+  TransformConfigInputRepresentation:
+    description: Represents the input for transforming an unstructured configuration.
+    attributes:
+      - {name: file_level_configuration, api_name: fileLevelConfiguration, schema: TransformFileLevelConfigurationInputRepresentation, array: 1, description: "File-level configurations used in the transform. Since v61.0."}
+      - {name: transform_type, api_name: transformType, type: string, description: "Type of the transformation. Only transcribe is currently supported. Since v61.0."}
+
+  TransformFileLevelConfigurationInputRepresentation:
+    description: Represents the input for a file transform configuration.
+    attributes:
+      - {name: config, schema: ConfigInputRepresentation, description: "Transform configuration. Since v61.0."}
+      - {name: file_extensions, api_name: fileExtensions, array: 1, type: string, description: "File extensions list, for example, `<mp4, mp3>`. Since v61.0."}
+
+  UserValueInputRepresentation:
+    description: Represents the input for a user value.
+    attributes:
+      - {name: id, type: string, description: "ID, such as `strip_html` or `max_tokens`. Since v60.0."}
+      - {name: value, type: string, description: "Value, such as `false`, `100`, or `COSINE`. Since v60.0."}
+
+  VectorEmbeddingConfigInputRepresentation:
+    description: Represents the input for a vector-embedding configuration.
+    attributes:
+      - {name: embedding_model, api_name: embeddingModel, schema: ConfigInputRepresentation, description: "Deployed ML model that creates embeddings, for example, `e5-large`. Since v60.0."}
+      - {name: index, schema: ConfigInputRepresentation, description: "Type used in vector indexing, such as `HNSW` or `FLAT`. Since v60.0."}
+      - {name: similarity_metric, api_name: similarityMetric, type: string, description: "Similarity metric used to calculate distance between vectors, for example, `COSINE`. Since v60.0."}
+      - {name: version, type: string, description: "Version of the record. Since v60.0."}
+
+  VectorEmbeddingInputRepresentation:
+    description: Represents the input for vector embedding.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: einstein_studio_model_id, api_name: einsteinStudioModelId, type: string, description: "Einstein Studio AI model ID. Since v60.0."}
+      - {name: vector_embedding_related_fields, api_name: vectorEmbeddingRelatedFields, schema: VectorEmbeddingRelatedFieldsInputRepresentation, array: 1, description: "Extra fields for vector embedding, which NoCode retrievers filter on. Salesforce allows an empty list, and one community tool reports a server error on it. Since v60.0."}
+
+  VectorEmbeddingRelatedFieldsInputRepresentation:
+    description: Represents the input for vector-embedding extra fields.
+    attributes:
+      - {name: id, type: string, description: "ID of the asset. Since v58.0."}
+      - {name: name, type: string, description: "Name of the asset. Since v58.0."}
+      - {name: namespace, type: string, description: "Namespace of the asset. Since v58.0."}
+      - {name: related_dmo_developer_name, api_name: relatedDmoDeveloperName, type: string, description: "Related data model object (DMO) developer name. Since v60.0."}
+      - {name: related_dmo_field_developer_name, api_name: relatedDmoFieldDeveloperName, type: string, description: "Related DMO field developer name. Since v60.0."}
+      - {name: related_dmo_field_name, api_name: relatedDmoFieldName, type: string, description: "Related DMO field name. Reported to return a 500 on input (community). Since v61.0."}
+      - {name: related_dmo_name, api_name: relatedDmoName, type: string, description: "Related DMO name. Reported to return a 500 on input (community). Since v61.0."}
+      - {name: relationship_cardinality, api_name: relationshipCardinality, type: string, description: "Relationship cardinality between the source DMO field and target DMO field. For example, `OneToOne`, `ManyToOne`, or `OneToMany`. Since v64.0."}
+      - {name: relationships, schema: SourceTargetRelationshipInputRepresentation, array: 1, description: "Field relationship paths. Since v60.0."}

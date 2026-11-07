@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/machine_learning.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Machine Learning
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -2218,6 +2220,14 @@ The public sources don't document this response. One row, with the response in `
 
 Attribute names are keywords inside the object they belong to, so completion offers exactly these.
 
+### BucketingStrategyInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string |  | Bucketing strategy. One of: EvenWidth, Manual, Percentile. EvenWidth/Percentile use number_of_buckets; Manual uses explicit buckets[]. |
+| `number_of_buckets` | `numberOfBuckets` | integer |  | Number of buckets (EvenWidth / Percentile strategies). |
+| `buckets` | `buckets` | array of number |  | Explicit bucket boundaries (Manual strategy only). Each entry is a numeric upper-bound for one bucket. |
+
 ### CdpAssetReferenceInputRepresentation
 
 Input representation for an asset reference.
@@ -2263,6 +2273,103 @@ Represents the input for a filter value.
 |---|---|---|---|---|
 | `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
 
+### CustomizableFieldInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `name` | `name` | string | yes | Field name on the artifact's input/output schema. |
+| `type` | `type` | string | yes | Customizable field type. One of: ActionableVariable, TopFactor. |
+
+### FieldConfigInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string | yes | Field type. One of: Text, Date, Number. Per-type fields: Text uses includeOther/balanced/ordering/dataType/values; Date uses min/max (ISO date strings); Number uses min/max (doubles) plus optional bucketing_strategy. |
+| `name` | `name` | string | yes | Field API name (must exist on the input source). |
+| `label` | `label` | string |  | Display label. |
+| `source` | `source` | string |  | Owning data source name (multi-source only). |
+| `ignored` | `ignored` | boolean |  | Mark field as ignored (excluded from training). |
+| `include_other` | `includeOther` | boolean |  | Text fields only: group rare values into an "Other" bucket. |
+| `balanced` | `balanced` | boolean |  | Text fields only: balance class frequencies during training. |
+| `ordering` | `ordering` | string |  | Text fields only: value ordering. One of: Occurrence, Alphabetical, Numeric. |
+| `data_type` | `dataType` | string |  | Text fields only: data type. One of: Categorical, Boolean. |
+| `values` | `values` | array of [TextFieldValueInput](#textfieldvalueinput) |  | Text fields only: distinct value configurations. |
+| `min` | `min` | any |  | A string or a number. Date fields: ISO-8601 minimum (e.g. 2024-01-01). Number fields: numeric minimum. |
+| `max` | `max` | any |  | A string or a number. Date fields: ISO-8601 maximum. Number fields: numeric maximum. |
+| `bucketing_strategy` | `bucketingStrategy` | [BucketingStrategyInput](#bucketingstrategyinput) |  | Number fields only: bucketing strategy. |
+
+### FieldRelationshipInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `source` | `source` | string |  | Source dataset (DMO/CIO/SDM) name owning the related field. |
+| `name` | `name` | string |  | Field API name on the source dataset. |
+| `joins` | `joins` | array of [JoinCriteriaInput](#joincriteriainput) |  | Join clauses linking the primary dataset to this related field. |
+
+### FieldSourceInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `name` | `name` | string | yes | Field API name (e.g. Amount__c). |
+| `source` | `source` | string |  | API name of the source object that owns this field (e.g. Sales__dlm). |
+| `type` | `type` | string |  | Source kind for the owning object. One of: DataModelObject, CalculatedInsightObject, SdmObject. |
+
+### FilterCriterionInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `values` | `values` | array of [FilterValueInput](#filtervalueinput) |  | Values compared against the field (interpreted by operator). |
+| `operator` | `operator` | string |  | Comparison operator. One of: In, NotIn, EqualTo, NotEqualTo, Contains, StartsWith, EndsWith, IsNull, IsNotNull, LessThan, LessThanOrEqualTo, GreaterThan, GreaterThanOrEqualTo, Like. |
+| `filter_field` | `filterField` | [FieldSourceInput](#fieldsourceinput) |  | Reference to the field this criterion filters on. |
+
+### FilterInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `criteria` | `criteria` | array of [FilterCriterionInput](#filtercriterioninput) |  | Filter conditions (each is a field/operator/values triple). |
+| `conjunctive_operator` | `conjunctiveOperator` | string |  | How criteria combine. One of: And, Or, Custom. Required when there are 2+ criteria. With Custom, pair with custom_boolean_expression. |
+| `custom_boolean_expression` | `customBooleanExpression` | string |  | Boolean expression over criterion indices (e.g. "(1 AND 2) OR 3"). Honored only when conjunctive_operator=Custom. |
+
+### FilterValueInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `value` | `value` | string |  | Literal value (for type=Constant) or placeholder name (for type=Placeholder). |
+| `type` | `type` | string |  | Value type. One of: Constant, Placeholder. |
+
+### InputSourceInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string | yes | Source kind. One of: DataModelObject, CalculatedInsightObject, SdmObject, MultiSourceObjects. For the first three, set 'source' (required) and 'dataspace' and leave 'sources' empty. For MultiSourceObjects, set 'sources' (a list of single-source entries) and leave 'source'/'dataspace'/'primary' empty. |
+| `source` | `source` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Single-source only. Reference to the DMO/CIO/SDM entity (by name or id). |
+| `dataspace` | `dataSpace` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Single-source only. Dataspace the source lives in. |
+| `primary` | `primary` | boolean |  | Marks this entry as the primary source (relevant for MultiSourceObjects). |
+| `sources` | `sources` | array of [InputSourceInput](#inputsourceinput) |  | MultiSourceObjects only. List of single-source entries (each with its own type/source/dataSpace; mark exactly one as primary=true). |
+
+### JoinCriteriaInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `fields` | `fields` | array of [JoinFieldsInput](#joinfieldsinput) |  | Field-pair conditions that make up the join key. |
+| `operator` | `operator` | string |  | How field-pair conditions combine within this join. One of: And, Or. |
+| `type` | `type` | string |  | Join type. One of: Inner, Left, Right, Outer. |
+| `left` | `left` | string |  | API name of the primary (left) dataset. |
+| `right` | `right` | string |  | API name of the related (right) dataset. |
+
+### JoinFieldsInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `left_field` | `leftField` | string |  | Field API name on the left (primary) dataset. |
+| `right_field` | `rightField` | string |  | Field API name on the right (related) dataset. |
+
+### JoinInput
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `criteria` | `criteria` | array of [JoinCriteriaInput](#joincriteriainput) |  | Join clauses, each linking the primary dataset to one related dataset. |
+
 ### MlBinaryClassificationJobDefSettingsInputRepresentation
 
 Represents the settings configuration for a binary classification prediction job definition.
@@ -2283,6 +2390,15 @@ Represents the settings configuration for a clustering prediction job definition
 | `cluster_id_field_label` | `clusterIdFieldLabel` | string |  | Label for the cluster ID output field. Since v68.0. |
 | `cluster_label_field_label` | `clusterLabelFieldLabel` | string |  | Label for the cluster label output field. Since v68.0. |
 | `max_top_contributors` | `maxTopContributors` | integer |  | Maximum number of top contributors for clustering. Since v68.0. |
+
+### MlDmoFieldSourceTargetRelationshipInputRepresentation
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `relation_source_dmo_field_name` | `relationSourceDmoFieldName` | string | yes | Developer name of the source DMO field. Since v67.0. |
+| `relation_source_dmo_name` | `relationSourceDmoName` | string | yes | Developer name of the source DMO. Since v67.0. |
+| `relation_target_dmo_field_name` | `relationTargetDmoFieldName` | string | yes | Developer name of the target DMO field. Since v67.0. |
+| `relation_target_dmo_name` | `relationTargetDmoName` | string | yes | Developer name of the target DMO. Since v67.0. |
 
 ### MlFilterFieldAssetInputRepresentation
 
@@ -2405,6 +2521,13 @@ Represents a join relationship between two data model object (DMO) fields.
 | `source_field` | `sourceField` | [MlPredictionJobDefDataFieldInput](#mlpredictionjobdefdatafieldinputrepresentation) |  | Source field on the left side of the join. Since v59.0. |
 | `target_field` | `targetField` | [MlPredictionJobDefDataFieldInput](#mlpredictionjobdefdatafieldinputrepresentation) |  | Target field on the right side of the join. Since v59.0. |
 
+### MlPredictionJobDefInputFieldInputRepresentation
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `mapped_field` | `mappedField` | [MlPredictionJobDefMappedFieldInput](#mlpredictionjobdefmappedfieldinputrepresentation) |  | Mapped data model object (DMO) field. Since v66.0. |
+| `update_score` | `updateScore` | boolean |  | Indicates whether a prediction is rescored when this field updates (`true`) or not (`false`). Since v66.0. |
+
 ### MlPredictionJobDefMappedFieldInputRepresentation
 
 Represents a data model object (DMO) field with an optional relationship path.
@@ -2478,6 +2601,46 @@ Represents the input for creating a retriever configuration.
 | `is_enriched_index_supported` | `isEnrichedIndexSupported` | boolean |  | - |
 | `retriever_query_template_definition` | `retrieverQueryTemplateDefinition` | [MlRetrieverQueryTemplateDefinitionInput](#mlretrieverquerytemplatedefinitioninputrepresentation) |  | - |
 
+### MlRetrieverConfigurationCustomSqlInputRepresentation
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `is_active` | `isActive` | boolean |  | Indicates whether to activate the configuration on creation (`true`) or not (`false`). Since v61.0. |
+| `is_advanced_mode_supported` | `isAdvancedModeSupported` | boolean |  | Indicates whether advanced retrieval mode is supported (`true`) or not (`false`). If unspecified, the default value is `false`. Since v67.0. |
+| `is_citation_enabled` | `isCitationEnabled` | boolean |  | Indicates whether to include citation fields (source record ID, label, URL) in results (`true`) or not (`false`). For CustomSql, `is_citation_supported` must be `true`. Since v61.0. |
+| `is_citation_supported` | `isCitationSupported` | boolean |  | Indicates whether citation is supported (`true`) or not (`false`). If unspecified, the default value is `false`. When `true`, `query_citation_definition` is required. Since v67.0. |
+| `is_enriched_index_supported` | `isEnrichedIndexSupported` | boolean |  | Indicates whether enriched index chunk resolution is supported (`true`) or not (`false`). If unspecified, the default value is `false`. When `true`, `enriched_search_index_definition` is required. Since v67.0. |
+| `number_of_results` | `numberOfResults` | integer |  | Maximum number of results to return. Must be a positive integer. If unspecified, the default value is `10`. Since v61.0. |
+| `query_type` | `queryType` | enum(CustomSql, Ensemble, NoCode) | yes | Type of query. Since v61.0. |
+| `retrieval_mode` | `retrievalMode` | enum(Advanced, Basic) |  | Retrieval mode. Since v61.0. |
+| `retriever_query_template_definition` | `retrieverQueryTemplateDefinition` | [MlRetrieverQueryTemplateDefinitionInput](#mlretrieverquerytemplatedefinitioninputrepresentation) | yes | SQL query template definition including query template, parameters, citation definition, and enriched index definition. Since v67.0. |
+
+### MlRetrieverConfigurationEnsembleInputRepresentation
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `is_active` | `isActive` | boolean |  | Indicates whether to activate the configuration on creation (`true`) or not (`false`). Since v61.0. |
+| `is_citation_enabled` | `isCitationEnabled` | boolean |  | Indicates whether to include citation fields (source record ID, label, URL) in results (`true`) or not (`false`). For CustomSql, `is_citation_supported` must be `true`. Since v61.0. |
+| `number_of_results` | `numberOfResults` | integer |  | Maximum number of results to return. Must be a positive integer. If unspecified, the default value is `10`. Since v61.0. |
+| `output_fields` | `outputFields` | array of string |  | List of output field labels (display names) to project from the ensemble results. These must match field labels defined in the active configuration of the referenced sub-retrievers. If unspecified, the default value is the union of output field labels from the referenced retrievers' active configurations. Since v67.0. |
+| `query_type` | `queryType` | enum(CustomSql, Ensemble, NoCode) | yes | Type of query. Since v61.0. |
+| `referenced_retrievers` | `referencedRetrievers` | array of [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) | yes | List of sub-retrievers to fan out to. Each entry is a reference (ID or API name) pointing to an existing NoCode retriever. Since v67.0. |
+| `retrieval_mode` | `retrievalMode` | enum(Advanced, Basic) |  | Retrieval mode. Since v61.0. |
+
+### MlRetrieverConfigurationNoCodeInputRepresentation
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `citation_configuration` | `citationConfiguration` | [MlRetrieverCitationConfigurationInput](#mlretrievercitationconfigurationinputrepresentation) |  | Citation configuration. Applies only to `NoCode`. Since v67.0. |
+| `input` | `input` | [MlRetrieverSourceInput](#mlretrieversourceinputrepresentation) | yes | ID or API name of the search index that the retriever is associated with. Applies only to `NoCode`. Since v67.0. |
+| `is_active` | `isActive` | boolean |  | Indicates whether to activate the configuration on creation (`true`) or not (`false`). Since v61.0. |
+| `is_citation_enabled` | `isCitationEnabled` | boolean |  | Indicates whether to include citation fields (source record ID, label, URL) in results (`true`) or not (`false`). For CustomSql, `is_citation_supported` must be `true`. Since v61.0. |
+| `number_of_results` | `numberOfResults` | integer |  | Maximum number of results to return. Must be a positive integer. If unspecified, the default value is `10`. Since v61.0. |
+| `output_fields` | `outputFields` | array of [MlRetrieverOutputFieldInput](#mlretrieveroutputfieldinputrepresentation) | yes | List of data model object (DMO) fields to include in retriever results. Since v67.0. |
+| `query_filter` | `queryFilter` | [CdpMlFilterInput](#cdpmlfilterinputrepresentation) |  | Pre-filter applied to available prefilter fields on the search index. Since v67.0. |
+| `query_type` | `queryType` | enum(CustomSql, Ensemble, NoCode) | yes | Type of query. Since v61.0. |
+| `retrieval_mode` | `retrievalMode` | enum(Advanced, Basic) |  | Retrieval mode. Since v61.0. |
+
 ### MlRetrieverInputRepresentation
 
 Represents the input for creating a retriever.
@@ -2489,6 +2652,16 @@ Represents the input for creating a retriever.
 | `description` | `description` | string |  | Description of the retriever. Since v61.0. |
 | `label` | `label` | string | yes | Label of the retriever. Since v61.0. |
 | `owner_type` | `ownerType` | enum(AiAgent, Api) | yes | Type of owner. Since v61.0. |
+
+### MlRetrieverOutputFieldInputRepresentation
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `data_source_type` | `dataSourceType` | enum(DataModelObject, SearchFunction) |  | Type of data source. Since v67.0. |
+| `label` | `label` | string | yes | Display label for the output field. Must be unique within the retriever. Since v67.0. |
+| `related_dmo_field_name` | `relatedDmoFieldName` | string |  | Name of the related data model object (DMO) field. Since v61.0. |
+| `related_dmo_name` | `relatedDmoName` | string |  | Name of the related DMO. Since v61.0. |
+| `relationships` | `relationships` | array of [MlDmoFieldSourceTargetRelationshipInput](#mldmofieldsourcetargetrelationshipinputrepresentation) |  | List of relationships forming a path from the DMO of this output field to the source DMO of the search index. The cardinality must be 1-to-1 or 1-to-many from this DMO to the source DMO. Maximum path length is 2. Empty when the field is on the source DMO itself. Applies only to `NoCode`. Since v67.0. |
 
 ### MlRetrieverQueryEnrichedSearchIndexDefinitionInputRepresentation
 
@@ -2552,412 +2725,6 @@ Represents the input for a query template parameter or placeholder in the format
 ### MlRetrieverSourceInputRepresentation
 
 Represents the input for a search index reference.
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `id` | `id` | string |  | ID of the asset. Since v58.0. |
-| `name` | `name` | string |  | Name of the asset. Since v58.0. |
-| `namespace` | `namespace` | string |  | Namespace of the asset. Since v58.0. |
-| `type` | `type` | enum(SearchIndex, SearchIndexConfiguration) |  | Type of search index source. Since v61.0. |
-
-### ml_model_artifact_update_outputFields
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `id` | `id` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `feature_override_values` | `featureOverrideValues` | array of [ml_model_artifact_update_outputFields_featureOverrideValues](#ml_model_artifact_update_outputfields_featureoverridevalues) |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_model_artifact_update_outputFields_featureOverrideValues
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `source_value` | `sourceValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `override_value` | `overrideValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_fields
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `label` | `label` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `min` | `min` | number |  | Seen in examples: the spec types the parent as a free-form object. |
-| `max` | `max` | number |  | Seen in examples: the spec types the parent as a free-form object. |
-| `bucketing_strategy` | `bucketingStrategy` | [ml_setup_version_create_fields_bucketingStrategy](#ml_setup_version_create_fields_bucketingstrategy) |  | Seen in examples: the spec types the parent as a free-form object. |
-| `data_type` | `dataType` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `ordering` | `ordering` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `include_other` | `includeOther` | boolean |  | Seen in examples: the spec types the parent as a free-form object. |
-| `balanced` | `balanced` | boolean |  | Seen in examples: the spec types the parent as a free-form object. |
-| `values` | `values` | array of [ml_setup_version_create_fields_values](#ml_setup_version_create_fields_values) |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_fields_bucketingStrategy
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `number_of_buckets` | `numberOfBuckets` | integer |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_fields_values
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `label` | `label` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `count` | `count` | integer |  | Seen in examples: the spec types the parent as a free-form object. |
-| `ignored` | `ignored` | boolean |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_input
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `source` | `source` | [ml_setup_version_create_input_source](#ml_setup_version_create_input_source) |  | Seen in examples: the spec types the parent as a free-form object. |
-| `dataspace` | `dataSpace` | [ml_setup_version_create_input_dataSpace](#ml_setup_version_create_input_dataspace) |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_input_dataSpace
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_input_source
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### ml_setup_version_create_outcomes
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `label` | `label` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `goal` | `goal` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `success_value` | `successValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-| `failure_value` | `failureValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
-
-### BucketingStrategyInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string |  | Bucketing strategy. One of: EvenWidth, Manual, Percentile. EvenWidth/Percentile use number_of_buckets; Manual uses explicit buckets[]. |
-| `number_of_buckets` | `numberOfBuckets` | integer |  | Number of buckets (EvenWidth / Percentile strategies). |
-| `buckets` | `buckets` | array of number |  | Explicit bucket boundaries (Manual strategy only). Each entry is a numeric upper-bound for one bucket. |
-
-### CdpMlFilterCriterionInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `field` | `field` | [MlFilterFieldAssetInput](#mlfilterfieldassetinputrepresentation) | yes | Filter field. For `NoCode` retriever configuration, this is the reference ID, alias name, or related data model object (DMO) field developer name in `vector_embedding_related_fields` of the search index. Since v67.0. |
-| `operator` | `operator` | enum(EqualTo, GreaterThan, GreaterThanOrEqualTo, In, LessThan, LessThanOrEqualTo, Like, NotEqualTo, NotIn) | yes | Operator applied to the filter criterion. Since v67.0. |
-| `values` | `values` | array of [CdpMlFilterValueInput](#cdpmlfiltervalueinputrepresentation) | yes | List of values to apply in the filter. Since v67.0. |
-
-### CdpMlFilterInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `conjunctive_operator` | `conjunctiveOperator` | enum(And, Custom, Or) | yes | Operator used to join filter criteria. Since v67.0. |
-| `criteria` | `criteria` | array of [CdpMlFilterCriterionInput](#cdpmlfiltercriterioninputrepresentation) | yes | List of filter criteria. Since v67.0. |
-| `custom_boolean_expression` | `customBooleanExpression` | string |  | Custom boolean expression in the format "{!$0} AND {!$1} AND ({!$2} OR {!$3}) AND (NOT {!$4})". Each number is the index of a criterion in the criteria list. Used when `conjunctive_operator` is `Custom`. Since v67.0. |
-
-### CdpMlFilterValueInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | enum(Constant, Placeholder) | yes | Type of value. Since v67.0. |
-| `value` | `value` | string | yes | Value content. When `type` is `Constant`, this property contains the constant value. When `type` is `Placeholder`, this property contains the placeholder name in the format "{!$parameter}". Since v67.0. |
-
-### CustomizableFieldInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `name` | `name` | string | yes | Field name on the artifact's input/output schema. |
-| `type` | `type` | string | yes | Customizable field type. One of: ActionableVariable, TopFactor. |
-
-### FieldConfigInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string | yes | Field type. One of: Text, Date, Number. Per-type fields: Text uses includeOther/balanced/ordering/dataType/values; Date uses min/max (ISO date strings); Number uses min/max (doubles) plus optional bucketing_strategy. |
-| `name` | `name` | string | yes | Field API name (must exist on the input source). |
-| `label` | `label` | string |  | Display label. |
-| `source` | `source` | string |  | Owning data source name (multi-source only). |
-| `ignored` | `ignored` | boolean |  | Mark field as ignored (excluded from training). |
-| `include_other` | `includeOther` | boolean |  | Text fields only: group rare values into an "Other" bucket. |
-| `balanced` | `balanced` | boolean |  | Text fields only: balance class frequencies during training. |
-| `ordering` | `ordering` | string |  | Text fields only: value ordering. One of: Occurrence, Alphabetical, Numeric. |
-| `data_type` | `dataType` | string |  | Text fields only: data type. One of: Categorical, Boolean. |
-| `values` | `values` | array of [TextFieldValueInput](#textfieldvalueinput) |  | Text fields only: distinct value configurations. |
-| `min` | `min` | string or number |  | Date fields: ISO-8601 minimum (e.g. 2024-01-01). Number fields: numeric minimum. |
-| `max` | `max` | string or number |  | Date fields: ISO-8601 maximum. Number fields: numeric maximum. |
-| `bucketing_strategy` | `bucketingStrategy` | [BucketingStrategyInput](#bucketingstrategyinput) |  | Number fields only: bucketing strategy. |
-
-### FieldRelationshipInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `source` | `source` | string |  | Source dataset (DMO/CIO/SDM) name owning the related field. |
-| `name` | `name` | string |  | Field API name on the source dataset. |
-| `joins` | `joins` | array of [JoinCriteriaInput](#joincriteriainput) |  | Join clauses linking the primary dataset to this related field. |
-
-### FieldSourceInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `name` | `name` | string | yes | Field API name (e.g. Amount__c). |
-| `source` | `source` | string |  | API name of the source object that owns this field (e.g. Sales__dlm). |
-| `type` | `type` | string |  | Source kind for the owning object. One of: DataModelObject, CalculatedInsightObject, SdmObject. |
-
-### FilterCriterionInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `values` | `values` | array of [FilterValueInput](#filtervalueinput) |  | Values compared against the field (interpreted by operator). |
-| `operator` | `operator` | string |  | Comparison operator. One of: In, NotIn, EqualTo, NotEqualTo, Contains, StartsWith, EndsWith, IsNull, IsNotNull, LessThan, LessThanOrEqualTo, GreaterThan, GreaterThanOrEqualTo, Like. |
-| `filter_field` | `filterField` | [FieldSourceInput](#fieldsourceinput) |  | Reference to the field this criterion filters on. |
-
-### FilterInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `criteria` | `criteria` | array of [FilterCriterionInput](#filtercriterioninput) |  | Filter conditions (each is a field/operator/values triple). |
-| `conjunctive_operator` | `conjunctiveOperator` | string |  | How criteria combine. One of: And, Or, Custom. Required when there are 2+ criteria. With Custom, pair with custom_boolean_expression. |
-| `custom_boolean_expression` | `customBooleanExpression` | string |  | Boolean expression over criterion indices (e.g. "(1 AND 2) OR 3"). Honored only when conjunctive_operator=Custom. |
-
-### FilterValueInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `value` | `value` | string |  | Literal value (for type=Constant) or placeholder name (for type=Placeholder). |
-| `type` | `type` | string |  | Value type. One of: Constant, Placeholder. |
-
-### InputSourceInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `type` | `type` | string | yes | Source kind. One of: DataModelObject, CalculatedInsightObject, SdmObject, MultiSourceObjects. For the first three, set 'source' (required) and 'dataspace' and leave 'sources' empty. For MultiSourceObjects, set 'sources' (a list of single-source entries) and leave 'source'/'dataspace'/'primary' empty. |
-| `source` | `source` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Single-source only. Reference to the DMO/CIO/SDM entity (by name or id). |
-| `dataspace` | `dataSpace` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Single-source only. Dataspace the source lives in. |
-| `primary` | `primary` | boolean |  | Marks this entry as the primary source (relevant for MultiSourceObjects). |
-| `sources` | `sources` | array of [InputSourceInput](#inputsourceinput) |  | MultiSourceObjects only. List of single-source entries (each with its own type/source/dataSpace; mark exactly one as primary=true). |
-
-### JoinCriteriaInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `fields` | `fields` | array of [JoinFieldsInput](#joinfieldsinput) |  | Field-pair conditions that make up the join key. |
-| `operator` | `operator` | string |  | How field-pair conditions combine within this join. One of: And, Or. |
-| `type` | `type` | string |  | Join type. One of: Inner, Left, Right, Outer. |
-| `left` | `left` | string |  | API name of the primary (left) dataset. |
-| `right` | `right` | string |  | API name of the related (right) dataset. |
-
-### JoinFieldsInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `left_field` | `leftField` | string |  | Field API name on the left (primary) dataset. |
-| `right_field` | `rightField` | string |  | Field API name on the right (related) dataset. |
-
-### JoinInput
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `criteria` | `criteria` | array of [JoinCriteriaInput](#joincriteriainput) |  | Join clauses, each linking the primary dataset to one related dataset. |
-
-### MlBinaryClassificationJobDefSettingsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `max_prescriptions` | `maxPrescriptions` | integer |  | Maximum number of prescriptions to generate. Since v66.0. |
-| `max_top_contributors` | `maxTopContributors` | integer |  | Maximum number of top contributors to generate. Since v66.0. |
-| `prescription_threshold` | `prescriptionThreshold` | integer |  | Prescription threshold value. Since v66.0. |
-| `show_class_probabilities` | `showClassProbabilities` | boolean |  | Indicates whether the outcome columns show class probabilities for both positive and negative classes (`true`) or not (`false`). If unspecified, the default value is `true`. Since v66.0. |
-
-### MlClusteringJobDefSettingsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `cluster_id_field_label` | `clusterIdFieldLabel` | string |  | Label for the cluster ID output field. Since v68.0. |
-| `cluster_label_field_label` | `clusterLabelFieldLabel` | string |  | Label for the cluster label output field. Since v68.0. |
-| `max_top_contributors` | `maxTopContributors` | integer |  | Maximum number of top contributors for clustering. Since v68.0. |
-
-### MlDmoFieldSourceTargetRelationshipInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `relation_source_dmo_field_name` | `relationSourceDmoFieldName` | string | yes | Developer name of the source DMO field. Since v67.0. |
-| `relation_source_dmo_name` | `relationSourceDmoName` | string | yes | Developer name of the source DMO. Since v67.0. |
-| `relation_target_dmo_field_name` | `relationTargetDmoFieldName` | string | yes | Developer name of the target DMO field. Since v67.0. |
-| `relation_target_dmo_name` | `relationTargetDmoName` | string | yes | Developer name of the target DMO. Since v67.0. |
-
-### MlFilterFieldAssetInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `id` | `id` | string |  | ID of the asset. Since v58.0. |
-| `name` | `name` | string |  | Name of the asset. Since v58.0. |
-| `namespace` | `namespace` | string |  | Namespace of the asset. Since v58.0. |
-
-### MlMulticlassClassificationJobDefSettingsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `max_top_contributors` | `maxTopContributors` | integer |  | Maximum number of top contributors to generate. Since v66.0. |
-| `number_of_classes` | `numberOfClasses` | integer |  | Number of classes to include in the output. If unspecified, the default value is all classes in the outcome. Since v66.0. |
-
-### MlPredictionJobDefDataFieldInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `data_object` | `dataObject` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Data model object (DMO) that contains the field. Since v67.0. |
-| `id` | `id` | string |  | ID of the asset. Since v58.0. |
-| `name` | `name` | string |  | Name of the asset. Since v58.0. |
-| `namespace` | `namespace` | string |  | Namespace of the asset. Since v58.0. |
-
-### MlPredictionJobDefFeatureMappingInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `mapped_field` | `mappedField` | [MlPredictionJobDefMappedFieldInput](#mlpredictionjobdefmappedfieldinputrepresentation) |  | Mapped data model object (DMO) field. Since v59.0. |
-| `model_field` | `modelField` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Model feature field. Since v59.0. |
-| `update_score` | `updateScore` | boolean |  | Indicates whether an update to this field triggers a prediction update for streaming jobs (`true`) or not (`false`). Since v59.0. |
-
-### MlPredictionJobDefFeaturesConfigInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `data_object` | `dataObject` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Input data model object (DMO). Since v59.0. |
-| `fields` | `fields` | array of [MlPredictionJobDefFeatureMappingInput](#mlpredictionjobdeffeaturemappinginputrepresentation) |  | List of field mappings between model features and DMO fields. Since v59.0. |
-
-### MlPredictionJobDefFieldRelationshipInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `source_field` | `sourceField` | [MlPredictionJobDefDataFieldInput](#mlpredictionjobdefdatafieldinputrepresentation) |  | Source field on the left side of the join. Since v59.0. |
-| `target_field` | `targetField` | [MlPredictionJobDefDataFieldInput](#mlpredictionjobdefdatafieldinputrepresentation) |  | Target field on the right side of the join. Since v59.0. |
-
-### MlPredictionJobDefInputFieldInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `mapped_field` | `mappedField` | [MlPredictionJobDefMappedFieldInput](#mlpredictionjobdefmappedfieldinputrepresentation) |  | Mapped data model object (DMO) field. Since v66.0. |
-| `update_score` | `updateScore` | boolean |  | Indicates whether a prediction is rescored when this field updates (`true`) or not (`false`). Since v66.0. |
-
-### MlPredictionJobDefMappedFieldInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `data_object` | `dataObject` | [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) |  | Data model object (DMO) that contains the field. Since v59.0. |
-| `id` | `id` | string |  | ID of the asset. Since v58.0. |
-| `name` | `name` | string |  | Name of the asset. Since v58.0. |
-| `namespace` | `namespace` | string |  | Namespace of the asset. Since v58.0. |
-| `relationship_path` | `relationshipPath` | array of [MlPredictionJobDefFieldRelationshipInput](#mlpredictionjobdeffieldrelationshipinputrepresentation) |  | List of join relationships for accessing the field from a related DMO. Since v59.0. |
-
-### MlRegressionJobDefSettingsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `max_prescriptions` | `maxPrescriptions` | integer |  | Maximum number of prescriptions to generate. Since v66.0. |
-| `max_top_contributors` | `maxTopContributors` | integer |  | Maximum number of top contributors to generate. Since v66.0. |
-| `prescription_threshold` | `prescriptionThreshold` | integer |  | Improvement threshold for prescriptions. Since v66.0. |
-
-### MlRetrieverCitationConfigurationInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `base_url` | `baseUrl` | string |  | Base URL that the `mapped_url_field` value is appended to. For example, if `base_url` is "https://example.com" and the data model object (DMO) field contains "/docs/article-123", the resulting URL is "https://example.com/docs/article-123". Since v61.0. |
-| `mapped_label_field` | `mappedLabelField` | [MlRetrieverCitationFieldInput](#mlretrievercitationfieldinputrepresentation) |  | Name of the mapped DMO field containing the citation label. Since v61.0. |
-| `mapped_url_field` | `mappedUrlField` | [MlRetrieverCitationFieldInput](#mlretrievercitationfieldinputrepresentation) |  | Name of the mapped data model object (DMO) field containing the URL or URL path. When `base_url` is provided, this field's value is appended to it to construct the complete URL. Since v61.0. |
-| `type` | `type` | enum(Custom, Default) | yes | Type of citation. Since v61.0. |
-
-### MlRetrieverCitationFieldInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `related_dmo_field_name` | `relatedDmoFieldName` | string |  | Name of the related data model object (DMO) field. Since v61.0. |
-| `related_dmo_name` | `relatedDmoName` | string |  | Name of the related DMO. Since v61.0. |
-
-### MlRetrieverConfigurationCustomSqlInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `is_active` | `isActive` | boolean |  | Indicates whether to activate the configuration on creation (`true`) or not (`false`). Since v61.0. |
-| `is_advanced_mode_supported` | `isAdvancedModeSupported` | boolean |  | Indicates whether advanced retrieval mode is supported (`true`) or not (`false`). If unspecified, the default value is `false`. Since v67.0. |
-| `is_citation_enabled` | `isCitationEnabled` | boolean |  | Indicates whether to include citation fields (source record ID, label, URL) in results (`true`) or not (`false`). For CustomSql, `is_citation_supported` must be `true`. Since v61.0. |
-| `is_citation_supported` | `isCitationSupported` | boolean |  | Indicates whether citation is supported (`true`) or not (`false`). If unspecified, the default value is `false`. When `true`, `query_citation_definition` is required. Since v67.0. |
-| `is_enriched_index_supported` | `isEnrichedIndexSupported` | boolean |  | Indicates whether enriched index chunk resolution is supported (`true`) or not (`false`). If unspecified, the default value is `false`. When `true`, `enriched_search_index_definition` is required. Since v67.0. |
-| `number_of_results` | `numberOfResults` | integer |  | Maximum number of results to return. Must be a positive integer. If unspecified, the default value is `10`. Since v61.0. |
-| `query_type` | `queryType` | enum(CustomSql, Ensemble, NoCode) | yes | Type of query. Since v61.0. |
-| `retrieval_mode` | `retrievalMode` | enum(Advanced, Basic) |  | Retrieval mode. Since v61.0. |
-| `retriever_query_template_definition` | `retrieverQueryTemplateDefinition` | [MlRetrieverQueryTemplateDefinitionInput](#mlretrieverquerytemplatedefinitioninputrepresentation) | yes | SQL query template definition including query template, parameters, citation definition, and enriched index definition. Since v67.0. |
-
-### MlRetrieverConfigurationEnsembleInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `is_active` | `isActive` | boolean |  | Indicates whether to activate the configuration on creation (`true`) or not (`false`). Since v61.0. |
-| `is_citation_enabled` | `isCitationEnabled` | boolean |  | Indicates whether to include citation fields (source record ID, label, URL) in results (`true`) or not (`false`). For CustomSql, `is_citation_supported` must be `true`. Since v61.0. |
-| `number_of_results` | `numberOfResults` | integer |  | Maximum number of results to return. Must be a positive integer. If unspecified, the default value is `10`. Since v61.0. |
-| `output_fields` | `outputFields` | array of string |  | List of output field labels (display names) to project from the ensemble results. These must match field labels defined in the active configuration of the referenced sub-retrievers. If unspecified, the default value is the union of output field labels from the referenced retrievers' active configurations. Since v67.0. |
-| `query_type` | `queryType` | enum(CustomSql, Ensemble, NoCode) | yes | Type of query. Since v61.0. |
-| `referenced_retrievers` | `referencedRetrievers` | array of [CdpAssetReferenceInput](#cdpassetreferenceinputrepresentation) | yes | List of sub-retrievers to fan out to. Each entry is a reference (ID or API name) pointing to an existing NoCode retriever. Since v67.0. |
-| `retrieval_mode` | `retrievalMode` | enum(Advanced, Basic) |  | Retrieval mode. Since v61.0. |
-
-### MlRetrieverConfigurationNoCodeInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `citation_configuration` | `citationConfiguration` | [MlRetrieverCitationConfigurationInput](#mlretrievercitationconfigurationinputrepresentation) |  | Citation configuration. Applies only to `NoCode`. Since v67.0. |
-| `input` | `input` | [MlRetrieverSourceInput](#mlretrieversourceinputrepresentation) | yes | ID or API name of the search index that the retriever is associated with. Applies only to `NoCode`. Since v67.0. |
-| `is_active` | `isActive` | boolean |  | Indicates whether to activate the configuration on creation (`true`) or not (`false`). Since v61.0. |
-| `is_citation_enabled` | `isCitationEnabled` | boolean |  | Indicates whether to include citation fields (source record ID, label, URL) in results (`true`) or not (`false`). For CustomSql, `is_citation_supported` must be `true`. Since v61.0. |
-| `number_of_results` | `numberOfResults` | integer |  | Maximum number of results to return. Must be a positive integer. If unspecified, the default value is `10`. Since v61.0. |
-| `output_fields` | `outputFields` | array of [MlRetrieverOutputFieldInput](#mlretrieveroutputfieldinputrepresentation) | yes | List of data model object (DMO) fields to include in retriever results. Since v67.0. |
-| `query_filter` | `queryFilter` | [CdpMlFilterInput](#cdpmlfilterinputrepresentation) |  | Pre-filter applied to available prefilter fields on the search index. Since v67.0. |
-| `query_type` | `queryType` | enum(CustomSql, Ensemble, NoCode) | yes | Type of query. Since v61.0. |
-| `retrieval_mode` | `retrievalMode` | enum(Advanced, Basic) |  | Retrieval mode. Since v61.0. |
-
-### MlRetrieverOutputFieldInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `data_source_type` | `dataSourceType` | enum(DataModelObject, SearchFunction) |  | Type of data source. Since v67.0. |
-| `label` | `label` | string | yes | Display label for the output field. Must be unique within the retriever. Since v67.0. |
-| `related_dmo_field_name` | `relatedDmoFieldName` | string |  | Name of the related data model object (DMO) field. Since v61.0. |
-| `related_dmo_name` | `relatedDmoName` | string |  | Name of the related DMO. Since v61.0. |
-| `relationships` | `relationships` | array of [MlDmoFieldSourceTargetRelationshipInput](#mldmofieldsourcetargetrelationshipinputrepresentation) |  | List of relationships forming a path from the DMO of this output field to the source DMO of the search index. The cardinality must be 1-to-1 or 1-to-many from this DMO to the source DMO. Maximum path length is 2. Empty when the field is on the source DMO itself. Applies only to `NoCode`. Since v67.0. |
-
-### MlRetrieverQueryEnrichedSearchIndexDefinitionInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `chunk_column_name` | `chunkColumnName` | string | yes | Name or alias of the SELECT column containing the chunk content. Since v67.0. |
-| `chunk_record_id_column_name` | `chunkRecordIdColumnName` | string | yes | Name or alias of the SELECT column containing the chunk record ID. Since v67.0. |
-| `search_index_api_name` | `searchIndexApiName` | string | yes | API name of the enriched search index. Since v67.0. |
-
-### MlRetrieverQueryTemplateDefinitionInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `enriched_search_index_definition` | `enrichedSearchIndexDefinition` | [MlRetrieverQueryEnrichedSearchIndexDefinitionInput](#mlretrieverqueryenrichedsearchindexdefinitioninputrepresentation) |  | Enriched search index definition to resolve enriched chunks to plain chunks. Required when `is_enriched_index_supported` is `true`. Since v67.0. |
-| `main_user_query_parameter_name` | `mainUserQueryParameterName` | string |  | Name of the parameter carrying the user query text in the format `":\"parameter\""`. Must match a parameter in `query_template_placeholders`. Recommended to help monitor the quality of search results from `vector_search()` or `hybrid_search()` functions. Required when `is_advanced_mode_supported` or `is_enriched_index_supported` is `true`. Since v67.0. |
-| `query_citation_definition` | `queryCitationDefinition` | object |  | Citation definition (Default or Custom). Required when `is_citation_supported` is `true`. Use the citation definition input object that corresponds to the type of citation. For example, use the Ml Retriever Query Template Citation Definition Custom Input for custom citation types. Since v67.0. |
-| `query_template_placeholders` | `queryTemplatePlaceholders` | array of [MlRetrieverQueryTemplatePlaceholderInput](#mlretrieverquerytemplateplaceholderinputrepresentation) |  | List of parameters used in the SQL query template. Each parameter specifies name, data type, placeholder type, optional default value, label, and description. Since v67.0. |
-| `retriever_query_template` | `retrieverQueryTemplate` | string | yes | Data 360 SQL query template. Can contain parameters in the format `:"parameter"`. Since v67.0. |
-| `search_overall_score_column_name` | `searchOverallScoreColumnName` | string |  | Name or alias of the SELECT column containing the overall search relevance score from `vector_search()` or `hybrid_search()` functions. Recommended to help monitor the quality of search results. Since v67.0. |
-
-### MlRetrieverQueryTemplatePlaceholderInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `placeholder_data_type` | `placeholderDataType` | enum(ArrayOfText, Boolean, Date, DateTime, Number, Text) | yes | Data type of the parameter value. Since v67.0. |
-| `placeholder_description` | `placeholderDescription` | string |  | Description of the parameter purpose. Required for `CustomSql`. Not applicable to `NoCode`. Since v67.0. |
-| `placeholder_label` | `placeholderLabel` | string |  | Display label for the parameter. Since v67.0. |
-| `placeholder_name` | `placeholderName` | string | yes | Name of the parameter in the format `":\"parameter\""`. Must be unique in the SQL query template. Must be a valid developer name (begin with a letter, contain only alphanumeric characters and underscores, no spaces, and cannot end with or contain consecutive underscores). Since v67.0. |
-| `placeholder_value` | `placeholderValue` | string |  | Default value for the parameter. Since v67.0. |
-
-### MlRetrieverSourceInputRepresentation
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
@@ -3039,3 +2806,80 @@ Represents the input for a search index reference.
 | `source_field_source` | `sourceFieldSource` | string |  | Multi-source inputs only: source dataset name. |
 | `impute_method` | `imputeMethod` | string |  | NumericalImputation only: imputation method. One of: Mean, Median, Mode. Defaults to Mean. |
 | `candidates` | `candidates` | array of string |  | TopicClassification only: list of candidate topics for the classifier. |
+
+### ml_model_artifact_update_outputFields
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | `id` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `feature_override_values` | `featureOverrideValues` | array of [ml_model_artifact_update_outputFields_featureOverrideValues](#ml_model_artifact_update_outputfields_featureoverridevalues) |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_model_artifact_update_outputFields_featureOverrideValues
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `source_value` | `sourceValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `override_value` | `overrideValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_fields
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `label` | `label` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `min` | `min` | number |  | Seen in examples: the spec types the parent as a free-form object. |
+| `max` | `max` | number |  | Seen in examples: the spec types the parent as a free-form object. |
+| `bucketing_strategy` | `bucketingStrategy` | [ml_setup_version_create_fields_bucketingStrategy](#ml_setup_version_create_fields_bucketingstrategy) |  | Seen in examples: the spec types the parent as a free-form object. |
+| `data_type` | `dataType` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `ordering` | `ordering` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `include_other` | `includeOther` | boolean |  | Seen in examples: the spec types the parent as a free-form object. |
+| `balanced` | `balanced` | boolean |  | Seen in examples: the spec types the parent as a free-form object. |
+| `values` | `values` | array of [ml_setup_version_create_fields_values](#ml_setup_version_create_fields_values) |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_fields_bucketingStrategy
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `number_of_buckets` | `numberOfBuckets` | integer |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_fields_values
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `label` | `label` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `count` | `count` | integer |  | Seen in examples: the spec types the parent as a free-form object. |
+| `ignored` | `ignored` | boolean |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_input
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `source` | `source` | [ml_setup_version_create_input_source](#ml_setup_version_create_input_source) |  | Seen in examples: the spec types the parent as a free-form object. |
+| `dataspace` | `dataSpace` | [ml_setup_version_create_input_dataSpace](#ml_setup_version_create_input_dataspace) |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_input_dataSpace
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_input_source
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+
+### ml_setup_version_create_outcomes
+
+| Attribute | API name | Type | Required | Description |
+|---|---|---|---|---|
+| `type` | `type` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `name` | `name` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `label` | `label` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `goal` | `goal` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `success_value` | `successValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |
+| `failure_value` | `failureValue` | string |  | Seen in examples: the spec types the parent as a free-form object. |

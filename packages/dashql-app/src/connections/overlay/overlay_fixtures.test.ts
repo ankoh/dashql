@@ -19,9 +19,9 @@ interface FixtureCase {
 const spec = Object.values(SPEC)[0];
 const API_VERSION = '68.0';
 
-/// The parameters and secrets of a call print like in EXPLAIN
+/// The parameters of a call print like in EXPLAIN
 function bindingValues(description: OverlayCallDescription): Record<string, unknown> {
-    return Object.fromEntries((description.bindings ?? []).filter(b => b.param !== undefined).map(b => [b.param!, `:${b.param}`]));
+    return Object.fromEntries((description.bindings ?? []).map(b => [b.param, `:${b.param}`]));
 }
 
 describe('The Data 360 overlay', () => {
@@ -71,7 +71,6 @@ describe('The Data 360 overlay', () => {
                         resolveHost: async () => ({ baseUrl: new URL('https://org.example.com'), headers: {} }),
                         variables: () => ({ api_version: API_VERSION }),
                         params: bindingValues(fixtureCase.description),
-                        resolveSecret: async name => `secret(${name})`,
                     };
                     const result = await runOverlayCall(spec, fixtureCase.description, env);
                     const names = result.schema.fields.map(f => f.name);

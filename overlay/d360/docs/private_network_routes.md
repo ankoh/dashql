@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/private_network_routes.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Private Network Routes
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -29,8 +31,8 @@ CALL cdp.connection_create (
   method => 'Ingress',
   credentials => [
     (param_name = 'authenticationOption', value = 'KeyPair'),
-    (param_name = 'user', value = secret(snowflake_user)),
-    (param_name = 'privateKey', value = secret(snowflake_private_key))
+    (param_name = 'user', value = :snowflake_user),
+    (param_name = 'privateKey', value = :snowflake_private_key)
   ],
   parameters => [
     (param_name = 'region', value = 'us-west-2'),
@@ -267,34 +269,3 @@ Input representation of route details for the cloud service used by the Private 
 | `service_name` | `serviceName` | string | yes | Service name of the endpoint for the Private Network Route. Since v65.0. |
 | `type` | `type` | enum(Databricks, DatabricksInternalStage, AmazonMsk, Redshift, Snowflake, SnowflakeInternalStage) | yes | Type of the Private Network Route. Since v65.0. |
 | `account_url` | `accountUrl` | string | yes | URL of the Snowflake account. Since v65.0. |
-
-### AmazonMSKRouteDetailsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `broker_endpoints` | `brokerEndpoints` | array of string | yes | Endpoint of the Amazon MSK broker. Since v65.0. |
-| `service_name` | `serviceName` | string | yes | Service name of the endpoint for the Private Network Route. Since v65.0. |
-| `type` | `type` | enum(AmazonMsk) | yes | Type of the Private Network Route. Since v65.0. |
-
-### DatabricksRouteDetailsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `account_url` | `accountUrl` | string | yes | URL of the Databricks workspace. Since v66.0. |
-| `service_name` | `serviceName` | string | yes | Service name of the endpoint for the Private Network Route. Since v65.0. |
-| `type` | `type` | enum(Databricks) | yes | Type of the Private Network Route. Since v65.0. |
-
-### RedshiftRouteDetailsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `service_name` | `serviceName` | string | yes | Service name of the endpoint for the Private Network Route. Since v65.0. |
-| `type` | `type` | enum(Redshift) | yes | Type of the Private Network Route. Since v65.0. |
-
-### SnowflakeRouteDetailsInputRepresentation
-
-| Attribute | API name | Type | Required | Description |
-|---|---|---|---|---|
-| `account_url` | `accountUrl` | string | yes | URL of the Snowflake account. Since v65.0. |
-| `service_name` | `serviceName` | string | yes | Service name of the endpoint for the Private Network Route. Since v65.0. |
-| `type` | `type` | enum(Snowflake) | yes | Type of the Private Network Route. Since v65.0. |

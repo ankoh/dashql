@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/activation_targets.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Activation Targets
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -475,7 +477,7 @@ Creates the destination that activations send segment data to. Call it after cho
 | `config` | `config` | body | [activation_target_create_config](#activation_target_create_config) |  | Not in the spec schema: from the MCP server's payload example. |
 
 ```sql
-CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = secret(s3_access_key), secret_key = secret(s3_secret_key)));
+CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key));
 ```
 
 **Result**

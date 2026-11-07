@@ -116,7 +116,7 @@
     },
     {
       "function": "connection_create",
-      "call": "CALL cdp.connection_create (\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = secret(snowflake_user)),\n    (param_name = 'privateKey', value = secret(snowflake_private_key))\n  ],\n  parameters => [\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'true'),\n    (param_name = 'outboundnetworkconnection', value = '...') /* id from the route */\n  ]\n)",
+      "call": "CALL cdp.connection_create (\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = :snowflake_user),\n    (param_name = 'privateKey', value = :snowflake_private_key)\n  ],\n  parameters => [\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'true'),\n    (param_name = 'outboundnetworkconnection', value = '...') /* id from the route */\n  ]\n)",
       "description": {
         "namespace": "cdp",
         "function": "connection_create",
@@ -163,11 +163,11 @@
         "bindings": [
           {
             "pointer": "/credentials/1/value",
-            "secret": "snowflake_user"
+            "param": "snowflake_user"
           },
           {
             "pointer": "/credentials/2/value",
-            "secret": "snowflake_private_key"
+            "param": "snowflake_private_key"
           }
         ]
       },
@@ -191,11 +191,11 @@
             },
             {
               "paramName": "user",
-              "value": "secret(snowflake_user)"
+              "value": ":snowflake_user"
             },
             {
               "paramName": "privateKey",
-              "value": "secret(snowflake_private_key)"
+              "value": ":snowflake_private_key"
             }
           ],
           "parameters": [

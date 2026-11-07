@@ -1,0 +1,726 @@
+title: Data Kits
+description: |
+  A data kit packages Data 360 definitions, such as streams, DLOs and insights, so that they can move to another org. It carries [metadata, not data](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/packages-data-kits.md).
+
+  The order is: build the kit in the source org with `datakit_create`, add it to a package outside this API, and install the package in the target org. Then `datakit_deploy` in the target org creates the components there, and `datakit_deploy_status` tracks the job.
+
+  The gotchas that matter most:
+
+  - `async_mode` must be `true` on deploy and undeploy.
+  - A deploy took 25 to 45 minutes in Salesforce's sample kits. Poll about every 5 minutes.
+  - A failed job can report `Error`, not `Failed`. A poller that only checks `Failed` keeps waiting for a dead job.
+  - `datakit_deploy_status` isn't in the spec, and sources disagree on its path.
+  - The shape of `config` depends on the component `type`. See [`datakit_deploy`](#datakit_deploy).
+  - `datakit_components_update` replaces the whole component list.
+
+  ```sql
+  /* In the source org */
+  CALL cdp.datakit_create (data_kit_dev_name => 'Customer_Kit', label => 'Customer Kit', data_kit_type => 'None', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer'))]);
+
+  /* In the target org, after installing the package */
+  CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, components => []);
+  CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+  ```
+
+functions:
+  - name: datakit_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-kits/{dataKitDevName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitDevName%7D/delete
+    description: Delete a data kit. Since v64.0.
+    example: CALL cdp.datakit_delete (data_kit_dev_name => 'Customer_Kit');
+    options:
+      - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The spec documents a 200 with no body, while [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) says 204. A second delete returns [`INTERNAL_SERVER_ERROR: PackageKitDefinition does not exist`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md), which means the kit is already gone. No source says whether deleting a kit affects components already deployed from it."
+
+  - name: datakit_list
+    method: GET
+    host: connect
+    path: /ssot/data-kits
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits/get
+    tools: [d360_datakit_list]
+    description: Get a list of data kits by namespace. Since v63.0.
+    example: CALL cdp.datakit_list (namespace => 'acme');
+    options:
+      - {name: namespace, in: query, type: string, description: "Namespace prefix of the data kit package. Since v63.0."}
+    rows: /dataKitDetails
+    columns:
+      - {name: components, type: JSON, array: 1, schema: DataKitComponentInfo, description: "List of data kit components. Since v63.0."}
+      - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the data kit. Since v63.0."}
+      - {name: label, type: VARCHAR, description: "Label of the data kit. Since v63.0."}
+      - {name: publishing_sequence, api_name: publishingSequence, type: JSON, array: 1, schema: DataKitDefaultComponentInfo, description: "Publishing sequence for the data kit components. Since v63.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/dataKitDetails` in the response. Schema `DataKitDetails`.
+    notes: |
+      **Notes:** This call can be slow or fail:
+
+      - It can take over 60 s or time out on orgs with many kits, and `DataPackageKitDefinition` metadata is a suggested alternative ([community](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/data-kits.ts)).
+      - It returned a 500 in [one org](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) (community).
+      - A new kit [may not appear right away](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md). Confirm it from the create response.
+
+      A recorded response also has `data_kit_type` with the value `FILEBASED`, and `connector_type` on bundle components, neither of which is in the spec ([community, one org](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/data-kit-list.json)).
+
+  - name: datakit_component_deps
+    method: GET
+    host: connect
+    path: /ssot/data-kits/{dataKitName}/components/{componentName}/dependencies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitName%7D~1components~1%7BcomponentName%7D~1dependencies/get
+    tools: [d360_datakit_component_deps]
+    description: Get the dependencies for components deployed from a data kit. Since v63.0.
+    example: CALL cdp.datakit_component_deps (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll', component_type => 'DataLakeObject');
+    options:
+      - {name: component_name, api_name: componentName, in: path, type: string, required: true, description: "Name of the component, for example `Customer__dll` for a DLO."}
+      - {name: data_kit_name, api_name: dataKitName, in: path, type: string, required: true, description: "Developer name of the data kit."}
+      - {name: component_type, api_name: componentType, in: query, type: string, required: true, description: "Type of component. Valid values are: - `ActivationTarget` - `CalculatedInsight` - `DataAction` - `DataActionTarget` - `DataConnection` - `DataGraph` - `DataLakeObject` - `DataSemanticSearch` - `DataShare` - `DataStreamBundle` - `DataTransform` - `IdentityResolution` - `MarketSegment` - `MarketSegmentActivation` - `MlConfiguredModel` - `MlPredictionJob` - `MlRetriever` - `SemanticModel` Since v63.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v63.0."}
+    rows: /componentDependencies
+    columns:
+      - {name: id, type: VARCHAR, description: "ID of the dependent object. Since v62.0."}
+      - {name: name, type: VARCHAR, description: "API name of the dependent object. Since v62.0."}
+      - {name: type, type: VARCHAR, description: "Type of the dependent object. Since v62.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/componentDependencies` in the response. Schema `DataKitComponentDependencyRepresentation`.
+    notes: "**Notes:** The spec requires `component_type`, though the [MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) treats it as optional. The MCP server also sends `dataspace`. A live call reached a platform error, so this call has no recorded success ([community, one org](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md))."
+
+  - name: datakit_component_status
+    method: GET
+    host: connect
+    path: /ssot/data-kits/{dataKitName}/components/{componentName}/deployment-status
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitName%7D~1components~1%7BcomponentName%7D~1deployment-status/get
+    tools: [d360_datakit_component_status]
+    description: Get the status of a component deployed from a data kit. Since v62.0.
+    example: CALL cdp.datakit_component_status (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll');
+    options:
+      - {name: component_name, api_name: componentName, in: path, type: string, required: true, description: "Name of the component, for example `Customer__dll` for a DLO."}
+      - {name: data_kit_name, api_name: dataKitName, in: path, type: string, required: true, description: "Developer name of the data kit."}
+    columns:
+      - {name: component_details, api_name: componentDetails, type: JSON, array: 1, schema: DatakitComponentDetails, description: "List of components and their status. Since v62.0."}
+      - {name: status, type: JSON, schema: DataKitComponentDeploymentStatus, description: "Current status of the component. Since v62.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataKitComponentDeploymentStatusRepresentation`.
+    notes: "**Notes:** The spec's example has `status.code` = `ACTIVE`, and `component_details[].status` is one of `Active`, `Deleting`, `Error`, `Processing`. A recorded response had an empty `component_details` and no `status` ([community, one org](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/live/data-kit-component-status.json)), so handle an empty list and a missing `status`. The [MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) also sends `dataspace`, which the spec doesn't list. This reports one component. For a whole deploy, use `datakit_deploy_status`."
+
+  - name: datakit_components
+    method: GET
+    host: connect
+    path: /ssot/data-kits/available-components
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1available-components/get
+    tools: [d360_datakit_components]
+    description: List components in the org that can be added to a data kit, optionally by component type. Use it to find names for `datakit_create`. Since v63.0.
+    example: CALL cdp.datakit_components (component_type => 'DataLakeObject', limit => 50);
+    options:
+      - {name: component_type, api_name: componentType, in: query, type: string, description: "Type of components to return. These values are supported: - `DataStreamBundle` - `CalculatedInsight` - `DataLakeObject` - `DataTransform` - `EngagementSignal` - `PersonalizationObjective` - `PersonalizationRecommender` - `PersonalizationPoint` - `PersonalizationSchema` Since v63.0."}
+      - {name: data_kit_dev_name, api_name: dataKitDevName, in: query, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of available components to return from `1` through `200`. By default, `200` components are returned. Since v63.0."}
+      - {name: offset, in: query, type: integer, description: "Number of records to skip before returning results. If unspecified, no rows are skipped. Since v63.0."}
+    columns:
+      - {name: components, type: JSON, array: 1, schema: DataKitComponentRepresentation, description: "List of data kit components. Since v63.0."}
+      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "External record ID for `DataStreamBundle` component types. Since v62.0."}
+    paging: {kind: offset, option: offset, size: limit, start: 0}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataKitComponentCollectionRepresentation`.
+    notes: |
+      **Paging:** `limit`, `offset`.
+
+      **Notes:** It has returned a 500 on orgs with large kit inventories, with `DataKitObjectTemplate` metadata as a suggested alternative ([community](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/data-kits.ts)). The spec's `component_type` list is shorter than the `type` values that `datakit_create` accepts. The [MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) describes this call as org-wide, while the spec says "within data kits".
+
+  - name: datakit_manifest
+    method: GET
+    host: connect
+    path: /ssot/datakit/{dataKitDevName}/manifest
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1datakit~1%7BdataKitDevName%7D~1manifest/get
+    tools: [d360_datakit_manifest]
+    description: Get a list of all member components and dependencies for a data kit. Since v63.0.
+    example: CALL cdp.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
+    options:
+      - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit or name of the `DataPackageKitDefinition`. Since v63.0."}
+    rows: /dataKitMembers
+    columns:
+      - {name: developer_name, api_name: developerName, type: JSON, description: "List of component developer names. Since v63.0."}
+      - {name: entity_name, api_name: entityName, type: VARCHAR, description: "List of component entity names. Since v63.0."}
+      - {name: id, type: JSON, description: "List of component entity IDs. Since v63.0."}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/dataKitMembers` in the response. Schema `CdpDataKitMembers`.
+    notes: |
+      **Notes:** The path uses singular `/ssot/datakit/`, unlike the rest of this family. The spec's own endpoint table and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md) write `/ssot/data-kits/.../manifest`.
+
+      [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md) also says a `developer_name` from `datakit_list` isn't always accepted, and that this path [can return `NOT_FOUND`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md) in healthy orgs.
+
+      `entity_name` names a metadata type such as `DataPackageKitDefinition`, `DataPackageKitObject` or `DataSource`. The [CLI guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy_data_kit_using_cli.md) describes the manifest as a `package.xml` for retrieving a DevOps kit and points here for a programmatic version, but the spec returns JSON.
+
+  - name: datakit_components_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-kits/{dataKitDevName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitDevName%7D/patch
+    description: "Update the components of an existing data kit. Updating components is a destructive sync: newly provided components replace the existing set, and any omitted components are removed. Since v64.0."
+    example: CALL cdp.datakit_components_update (data_kit_dev_name => 'Customer_Kit', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')), (type = 'DataLakeObject', info = (name = 'Order__dll', label = 'Order'))]);
+    options:
+      - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
+      - {name: components, in: body, schema: DataKitComponentInputRepresentation, array: 1, required: true, description: "List of data kit components. Since v63.0."}
+    columns:
+      - {name: components, type: JSON, array: 1, schema: DataKitComponentRepresentation, description: "List of components in the data kit. Since v63.0."}
+      - {name: dev_name, api_name: devName, type: VARCHAR, description: "Developer name of the data kit. Since v63.0."}
+      - {name: label, type: VARCHAR, description: "Label of the data kit. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataKitRepresentation`.
+    notes: "**Notes:** Always send the complete list, since anything left out is removed. The call [rejects `data_kit_dev_name` and `label` in the body](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md), so recreate the kit to change its label or type. [sf-pi's patch example](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) uses `name`, `type = 'CI'` and `action`, which doesn't match the spec's `type` and `info`."
+
+  - name: datakit_create
+    method: POST
+    host: connect
+    path: /ssot/data-kits
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits/post
+    description: Create a standard data kit. Since v63.0.
+    example: CALL cdp.datakit_create (data_kit_dev_name => 'NewDataKit', label => 'New Data Kit From API', data_kit_type => 'None', components => [(type = 'DataStreamBundle', info = (name = 'CRMBundle', connector_type = 'CRM', streams = [(dev_name = 'Lead_Home__dll', label = 'Lead_Home'), (dev_name = 'User_Home__dll', label = 'User_Home')]))]);
+    options:
+      - {name: components, in: body, schema: DataKitComponentInputRepresentation, array: 1, required: true, description: "List of components to be included in the data kit. Since v63.0."}
+      - {name: data_kit_dev_name, api_name: dataKitDevName, in: body, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
+      - {name: data_kit_type, api_name: dataKitType, in: body, type: string, enum: ["None", Sandbox], description: "Type of data kit. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space for the data kit creation. Since v63.0."}
+      - {name: label, in: body, type: string, required: true, description: "Label of the data kit. Since v63.0."}
+    columns:
+      - {name: components, type: JSON, array: 1, schema: DataKitComponentRepresentation, description: "List of components in the data kit. Since v63.0."}
+      - {name: dev_name, api_name: devName, type: VARCHAR, description: "Developer name of the data kit. Since v63.0."}
+      - {name: label, type: VARCHAR, description: "Label of the data kit. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataKitRepresentation`.
+    notes: |
+      **Notes:** - **`data_kit_type` is effectively required.** The spec's required list misspells it `DataKitType`, which is why the table shows it as optional. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) lists it as required.
+      - **Type values.** The spec allows `None` and `Sandbox`, while the [setup UI](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy_data_kit_using_cli.md) offers `DevOps`. No source maps one to the other.
+      - **`components`** [may be empty](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) on an initial create.
+      - **`connector_type`** in `info` has the same problem as on deploy: the enum says `Crm`, the spec's example says `CRM`.
+      - **This doesn't deploy anything.** The kit still has to reach the target org in a package. See the [packaging guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/packages-data-kits.md).
+
+  - name: datakit_deploy
+    method: POST
+    host: connect
+    path: /ssot/data-kits/{dataKitDevName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitDevName%7D/post
+    tools: [d360_datakit_deploy]
+    description: Deploy multiple components from a specific data kit. Since v64.0. **Note:** See [Supported Component Types for Data Kit Deployment](https://developer.salesforce.com/docs/data/connectapi/guide/deploy-data-kit-payloads.html) for the complete list of component types and their corresponding payload configurations.
+    example: CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, dataspace => 'default', components => [(type = 'DataLakeObject', config = (data_source_object_dev_name = 'Namespace__Customer', api_name = 'Customer', label = 'Customer', dataspace_name = 'default')), (type = 'CalculatedInsight', config = (api_name = 'Namespace__Revenue', api_name_override = 'Revenue', label = 'Revenue', publish_interval = 'NotScheduled'))]);
+    options:
+      - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v64.0."}
+      - {name: async_mode, api_name: asyncMode, in: query, type: boolean, required: true, description: "Specifies asynchronous data kit deployment. Must be set to `true`; other values are not currently supported. Since v64.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space to which to deploy the data kit components. If unspecified, the `default` data space is used. Since v64.0."}
+      - {name: components, in: body, schema: CdpDataKitDeployComponentRepresentation, array: 1, required: true, description: "List of components to deploy. Since v57.0."}
+    columns:
+      - {name: job_id, api_name: jobId, type: VARCHAR, description: "The queued job ID. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataKitAsyncRepresentation`.
+    notes: |
+      **Done when:** `datakit_deploy_status.job_status` is `Complete` or `Completed`, with `errors` empty. It failed on `Error`, `Failed`, `Cancelled`, `Canceled` or `Aborted`. Expect 25 to 45 minutes. See [`datakit_deploy_status`](#datakit_deploy_status).
+
+      **Notes:** **Prerequisites.** The [official guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md) requires the package to be installed in the target org and the Data 360 Architect permission set. A deploy in the org that created the kit was rejected ([community, one org](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md)).
+
+      **`async_mode`.** It's a query option and must be `true`. Without it the call [can time out](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md), [after 60 s](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/datakit-install/SKILL.md) in the MedTech kit. The [MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) makes it optional, the spec doesn't.
+
+      **What to send.** Sources disagree, and these shapes aren't in the table above:
+
+      | Goal | Body | Source |
+      |---|---|---|
+      | Deploy selected components | `components` with `type` and `config` | The spec, and the [payload guide](https://developer.salesforce.com/docs/data/connectapi/guide/deploy-data-kit-payloads.md) |
+      | Deploy the whole kit | `components => []` | [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/datakit-install/SKILL.md), which says listing components installs only part of the kit |
+      | Deploy the whole kit | Empty body `{}` | [Retail kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/datakit-api-deploy/SKILL.md), which says `data_kit_name` in the body causes `JSON_PARSER_ERROR` |
+      | Deploy a DevOps kit | Only `developer_name` | [Official guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md). This attribute isn't in the spec, so it has no option here |
+
+      **`config` by `type`.** The spec types `config` as an open object and says to use "the input object that corresponds". This table pairs types with the spec's input objects by their titles, and the [payload guide](https://developer.salesforce.com/docs/data/connectapi/guide/deploy-data-kit-payloads.md) shows examples for most. All attributes are optional in the spec.
+
+      | `type` | `config` attributes |
+      |---|---|
+      | `ActivationTarget` | `component_name`, `target_display_name` |
+      | `AnalyticsDashboard`, `AnalyticsVisualization`, `AnalyticsWorkspace` | `template_name`, `name`, `label`, `dataspace_name`. The guide also sends `component_type` |
+      | `CalculatedInsight` | `api_name`, `api_name_override`, `label`, `publish_interval` (`ExternallyManaged`, `NotScheduled`, `One`, `Six`, `Streaming`, `SystemManaged`, `Twelve`, `TwentyFour`), `publish_schedule_end_date`, `publish_schedule_start_date_time` |
+      | `CopyFieldEnrichment` | `template_dev_name` |
+      | `DataAction` | `developer_name`, `developer_name_override`, `label`, `dataspace_name` |
+      | `DataActionTarget` | `api_name`, `api_name_override`, `label`, `end_point_url_override` |
+      | `DataCleanRoomDataSpecDef` | `component_name`, `dataspace_name` |
+      | `DataCleanRoomProvider` | `package_name`, `component_name` |
+      | `DataConnection` | `name`, `new_credentials`, `override_label`, `override_parameters`. Parameters are `(param_name = ..., value = ...)` |
+      | `DataGraph` | `name`, `label`, `template_dev_name`, `primary_dmo`, `dataspace_name` |
+      | `DataLakeObject` | `data_source_object_dev_name`, `api_name`, `label`, `dataspace_name`, `dataspace_filter_criteria_api_config` |
+      | `DataSemanticSearch` | `search_index_name`, `data_kit_name`, `dataspace_name`, `name`, `api_name`, `label` |
+      | `DataShare` | `template_dev_name`, `data_share_developer_name`, `api_name`, `label`, `description`, `dataspace_name`, `dlos`, `dmos`, `cios` |
+      | `DataStreamBundle` | `connector_type`, `bundle_name`, `force_no_refresh`, `kq_config`, `bundle_config` (next table). `kq_config` items are `data_source_object`, `data_source_field`, `value` |
+      | `DataTransform` | `data_transform_type` (`BATCH` or `STREAMING` in the guide), `data_transform_dev_name`, `api_name`, `label`, `dataspace_name`, `connection`, `currency_iso_code`, `component_properties`, `data_object_overrides`, `definition_overrides` |
+      | `IdentityResolution` | The spec has `identity_resolution_dev_name`, `label`, `data_kit_dev_name`, `dataspace_name`. The guide sends `template_dev_name`, `data_kit_dev_name`, `dataspace_name` |
+      | `IdpConfiguration` | `template_dev_name` |
+      | `IrRelatedListEnrichment` | `developer_name`, `label` |
+      | `MarketSegment` | `name`, `data_kit_name`, `dataspace_name`, `label`, `target_display_name`, `target_segment_developer_name` |
+      | `MarketSegmentActivation` | `component_name`, `data_kit_name`, `target_display_name` |
+      | `MlConfiguredModel` | `api_name`, `label`, `connector_type`, `model_type` |
+      | `MlPredictionJob` | The spec has `prediction_job_name`, `data_kit_name`, `api_name`, `label`, `dataspace_name`. The guide uses `predictionJobDevName` and `data_kit_dev_name` instead of the first two |
+      | `MlRetriever` | `api_name`, `label`, `dataspace_name`, `retriever_query_type` (`Ensemble`, `NoCode`, `ProCode`) |
+      | `PersonalizationObjective`, `PersonalizationPoint`, `PersonalizationRecommender`, `PersonalizationSchema` | `api_name`, `label`, `template_developer_name`, `dataspace_name` |
+      | `SemanticModel` | `api_name`, `display_name`, `base_sdms`, `dataspace_name` |
+      | `TuaTemplatedObject` | `developer_name`, `label`, `data_kit_dev_name`, `dataspace_name`, `component_type`, `change_set_identifier` |
+
+      No source gives a payload for `CurrencyConfigObject`, `DataCustomCode`, `EngagementSignal`, `FiscalCalendarConfigObject`, `InternalDataConnector`, `PersnlBatchDecision` or `SecondaryIndex`. The spec says to use its generic input (`template_name`, `name`, `label`, `dataspace_name`) for "all others", but it also names a custom code input for which it has no schema. The guide confirms that `DataCustomCode` and `EngagementSignal` are supported.
+
+      Where the guide and the spec's attribute names differ, nothing shows which one the API accepts.
+
+      **`bundle_config` by `connector_type`.** The spec's enum and its own examples disagree on spelling. The guide and the spec's examples use upper case.
+
+      | Examples | Spec enum | `bundle_config` attributes |
+      |---|---|---|
+      | `CRM` | `Crm` | `org_id` |
+      | `COMMERCE` | `Commerce` | `instance_id` |
+      | `EXTERNAL` | `External` | `connection_name`. The guide calls this a BYOL bundle |
+      | `MORECONNECTORS` | `MoreConnectors`, `S3` | `connection_name` |
+      | `INGESTAPI` | `IngestApi` | `connector_name` |
+      | `STREAMINGAPP` | `StreamingApp` | `connector_name`, `streaming_app_data_connector_type` (`MobileApp`, `WebApp`) |
+      | None | `AccountEngagement` | `pardot_tenant_id`, `data_stream_type` (`EmailActivity`, `FormActivity`, `WebPageActivity`) |
+
+      All of these except `Commerce` also take `dataspace_filter_criteria_api_config`, whose items are `field_name`, `operator`, `filter_value` and `target_object_name`.
+
+      **Credentials.** `DataConnection` takes credentials in `new_credentials`, such as `(param_name = 'privateKey', value = :snowflake_key)`.
+
+      **Other traps:**
+
+      - The guide says the response is `202 Accepted`, the spec says `200`.
+      - A redeploy [overwrites changes](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/packages-data-kits.md) made to deployed components. Components from a managed package are locked.
+      - Common failures in the [official guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md): inactive connectors that need reauthorizing in the target org, duplicate API names in the target data space, and a target data space name that differs from the one used to create the kit.
+      - The MCP server's [`d360_datakit_deploy` example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) uses `name`, `action` and `type = 'CI'`, which doesn't match the spec or the guide.
+
+  - name: datakit_undeploy
+    method: POST
+    host: connect
+    path: /ssot/data-kits/{dataKitName}/undeploy
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitName%7D~1undeploy/post
+    tools: [d360_datakit_undeploy]
+    description: Undeploy a component previously deployed from a data kit. The undeployment occurs in the sequential order of components specified in the request body. Since v63.0.
+    example: CALL cdp.datakit_undeploy (data_kit_name => 'Customer_Kit', async_mode => true, components => [(type = 'DataTransform', name = 'Customer_Transform'), (type = 'DataLakeObject', name = 'Customer__dll')]);
+    options:
+      - {name: data_kit_name, api_name: dataKitName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
+      - {name: async_mode, api_name: asyncMode, in: query, type: boolean, required: true, description: "Indicates whether the deployment is asynchronous. Only the `true` value is accepted. Since v63.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v63.0."}
+      - {name: components, in: body, schema: DataKitUnDeployComponentDetails, array: 1, required: true, description: "Components from the data kit. Since v63.0."}
+    columns:
+      - {name: job_id, api_name: jobId, type: VARCHAR, description: "The queued job ID. Since v63.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataKitAsyncRepresentation`.
+    notes: |
+      **Done when:** No source documents a job status for undeploy. A [community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) checks each component with `datakit_component_status`, whose `component_details[].status` includes `Deleting` and `Error`. No source says what a fully removed component returns.
+
+      **Notes:** Components are removed in the order given, so list dependents first. The spec's example removes a transform before its DLO. `datakit_component_deps` shows what depends on what.
+
+      The spec allows 18 `type` values here, and the [MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) lists 38. Types outside the spec's list are unconfirmed.
+
+      A successful call returned a `job_id` ([community, one org](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md)). The [packaging guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/packages-data-kits.md) says subscribers can't delete components deployed from a managed package, and doesn't say whether undeploy is an exception.
+
+  - name: datakit_get
+    method: GET
+    host: connect
+    path: /ssot/data-kits/{id}
+    tools: [d360_datakit_get]
+    description: Get one data kit by developer name. This comes from Salesforce's MCP server, not the spec, so prefer `datakit_list` or `datakit_manifest` when you need a documented response.
+    example: CALL cdp.datakit_get (data_kit_dev_name => 'Customer_Kit');
+    options:
+      - {name: data_kit_dev_name, api_name: id, in: path, type: string, required: true, description: "The data kit developer name"}
+      - {name: fbdk_accessible_in_lob, api_name: fbdkAccessibleInLob, in: query, type: boolean, description: "Filter by FBDK accessible in LOB flag"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Notes:** The spec defines `DELETE`, `PATCH` and `POST` on this path, but no `GET`. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/connect-openapi-parity.md) lists the read as SDK-only, and a [community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) says it doesn't exist in v67.
+
+      The evidence that it works is the [MCP server's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) and a remark in the [Retail kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/datakit-api-deploy/SKILL.md) that this path "returns Data Kit definition". The header shows `{id}`, but the tool sends the developer name.
+
+      `fbdk_accessible_in_lob` appears only in the MCP server, and no source defines it.
+
+  - name: datakit_deploy_status
+    method: GET
+    host: connect
+    path: /ssot/data-kits/deployment-jobs/{jobId}
+    tools: [d360_datakit_deploy_status]
+    description: Get the state of a data kit deployment job started by `datakit_deploy`. Poll it until the job reaches a final status. It isn't in the spec.
+    example: CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+    options:
+      - {name: job_id, api_name: jobId, in: path, type: string, required: true, description: "The deployment job ID"}
+    columns:
+      - {name: job_id, api_name: jobId, type: VARCHAR, description: "The job ID returned by `datakit_deploy`."}
+      - {name: job_status, api_name: jobStatus, type: VARCHAR, description: "State of the job. See the notes for values."}
+      - {name: job_results, api_name: jobResults, type: JSON, description: "Array. The Retail kit shows component IDs."}
+      - {name: errors, type: JSON, description: "Array of errors. The [official guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md) says to read it when `job_status` is `Error`."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. The spec doesn't have this response. These columns come from the [Retail](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/datakit-api-deploy/SKILL.md) and [MedTech](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/datakit-install/SKILL.md) kits, and the Retail kit names the schema `CdpDataKitDeployJobOutputRepresentation`.
+    notes: |
+      **Done when:** `job_status` is `Complete` or `Completed` with `errors` empty, or it's `Error`, `Failed`, `Cancelled`, `Canceled` or `Aborted`.
+
+      **Notes:** **The path is disputed.** The header shows the [MCP server's](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataKitTools.java) `/ssot/data-kits/deployment-jobs/{jobId}`. The [official guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md) links to `/ssot/datakit-deployment-job/{jobId}`, and the [Retail kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/datakit-api-deploy/SKILL.md) polls that path and calls it the correct one. The spec has neither, and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/connect-openapi-parity.md) lists the MCP path as SDK-only. The [MedTech kit](https://github.com/salesforce-misc/Data360MedTechSolutionKit/blob/main/.claude/skills/datakit-install/SKILL.md) records a run through the hosted server's tool, which doesn't reveal the path. Prefer `/ssot/datakit-deployment-job/{jobId}`, since it has both the official guide and a kit that polls it.
+
+      **`job_status` values:**
+
+      | Meaning | Values | Source |
+      |---|---|---|
+      | Success | `Complete` | Retail and MedTech kits, from observed runs |
+      | Success | `Completed` | [Official guide](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/dc-deploy-data-kits-using-connect-api.md) |
+      | Still running | `Queued`, `Running`, `InProgress` | Retail and MedTech kits. MedTech also has `Pending` |
+      | Failed | `Error` | Official guide and both kits |
+      | Failed | `Failed`, `Cancelled`, `Canceled`, `Aborted` | Both kits |
+
+      Accept both spellings of success. Treat any unknown value as still running, up to a time limit. The Retail kit says `Error` is what the API returns for "platform-contention failures, lock conflicts, and partial-component failures", and that a loop handling only `Failed` wasted up to 45 minutes per attempt. It also requires `errors` to be empty on `Complete`.
+
+      **Timing.** The Retail kit, at 612 metadata components, says 25 to 35 minutes in one place and 30 to 45 in another. The MedTech kit says 30 to 45. Both poll every 5 minutes, 9 times, and stop at 45 minutes. A timeout isn't a failure, and they report it without retrying.
+
+      **Retrying.** Sending `datakit_deploy` again starts a new job with a new `job_id`. The [Retail kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/datakit-api-deploy/SKILL.md) retries terminal failures up to 5 attempts in total, waiting 30 to 60 s, because locks from a failed run can take time to clear. It stops at once on `INSUFFICIENT_ACCESS`, `LICENSE_LIMIT_EXCEEDED`, `FEATURE_NOT_ENABLED`, `INVALID_TYPE`, or a message mentioning `permission` or `not licensed`. In [one org](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/base-metadata-deploy/SKILL.md), a metadata deploy stuck in `InProgress` blocked the kit deploy until it was cancelled.
+
+      Whether this call also tracks jobs from `datakit_undeploy` isn't documented.
+
+schemas:
+  CdpDataKitDeployBundleConfigForAccountEngagement:
+    description: Represents the bundle configuration for an account engagement connector type.
+    attributes:
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "API configuration for the data space filer criteria. Since v63.0."}
+      - {name: data_stream_type, api_name: dataStreamType, type: string, enum: [EmailActivity, FormActivity, WebPageActivity], description: "Type of data stream. Since v63.0."}
+      - {name: pardot_tenant_id, api_name: pardotTenantId, type: string, description: "Pardot tenant ID of the connector. Since v63.0."}
+
+  CdpDataKitDeployBundleConfigForCommerce:
+    description: Represents the bundle configuration for a Commerce Cloud connector type.
+    attributes:
+      - {name: instance_id, api_name: instanceId, type: string, description: "Instance ID of the B2C Commerce Instance Since v63.0."}
+
+  CdpDataKitDeployBundleConfigForConnectorsFramework:
+    description: Represents the bundle configuration for a connector framework connector type.
+    attributes:
+      - {name: connection_name, api_name: connectionName, type: string, description: "APi name of the connection. Since v60.0."}
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "API configuration for the data space filter criteria. Since v61.0."}
+
+  CdpDataKitDeployBundleConfigForCrm:
+    description: Represents a bundle configuration for a CRM connector type.
+    attributes:
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "API configuration for the data space filter criteria. Since v61.0."}
+      - {name: org_id, api_name: orgId, type: string, description: "Org ID for the source CRM. Since v57.0."}
+
+  CdpDataKitDeployBundleConfigForExternal:
+    description: Represents the bundle configuration for an external connector type.
+    attributes:
+      - {name: connection_name, api_name: connectionName, type: string, description: "API name of the connection. Since v63.0."}
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "API configuration for the data space filter criteria. Since v63.0."}
+
+  CdpDataKitDeployBundleConfigForIngestApi:
+    description: Represents the bundle configuration for an ingest API connector type.
+    attributes:
+      - {name: connector_name, api_name: connectorName, type: string, description: "Connector API name For the ingest API connector. Since v60.0."}
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "API configuration for the data space filter criteria. Since v61.0."}
+
+  CdpDataKitDeployBundleConfigForStreamingApp:
+    description: Represents the bundle configuration for a streaming app connector type.
+    attributes:
+      - {name: connector_name, api_name: connectorName, type: string, description: "API name of the streaming app connector. Since v60.0."}
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "API configuration for the data space filter criteria. Since v61.0."}
+      - {name: streaming_app_data_connector_type, api_name: streamingAppDataConnectorType, type: string, enum: [MobileApp, WebApp], description: "Type of streaming app connector. Since v60.0."}
+
+  CdpDataKitDeployComponentConfigCalculatedInsight:
+    description: Represents the input component configuration for calculated insights.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the calculated insight in the data kit to be deployed. Since v59.0."}
+      - {name: api_name_override, api_name: apiNameOverride, type: string, description: "Name of the new calculated insight deployed using the template. Since v59.0."}
+      - {name: label, type: string, description: "Master label of the calculated insight. Since v59.0."}
+      - {name: publish_interval, api_name: publishInterval, type: string, enum: [ExternallyManaged, NotScheduled, One, Six, Streaming, SystemManaged, Twelve, TwentyFour], description: "Publish interval for the calculated insight. Since v59.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, type: string, description: "Calculated insight publish schedule end date. The expected format is `yyyy-MM-dd`. Since v62.0."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, type: string, description: "Calculated insight publish schedule start date. The expected format is `yyyy-MM-dd`. Since v62.0."}
+
+  CdpDataKitDeployComponentConfigForBundle:
+    description: Represents the input component configuration for data kit bundles.
+    attributes:
+      - {name: bundle_config, api_name: bundleConfig, schema: CdpDataKitDeployComponentConfigForBundle.bundle_config, description: "Configuration for the bundle. Use the bundle config input object that corresponds to the connector type. For example, use the Data Kit Deploy Bundle Config For Account Engagement Input for the `AccountEngagement` connector type. - Use the Data Kit Deploy Bundle Config For Connectors Framework Input for the `MoreConnectors` and `S3` connector types. Since v57.0."}
+      - {name: bundle_name, api_name: bundleName, type: string, description: "Name of the bundle. Since v57.0."}
+      - {name: connector_type, api_name: connectorType, type: string, enum: [AccountEngagement, Commerce, Crm, External, IngestApi, MoreConnectors, S3, StreamingApp], description: "Connector type for the bundle. Since v57.0."}
+      - {name: force_no_refresh, api_name: forceNoRefresh, type: boolean, description: "Indicates whether to force a no refresh configuration on the data stream (`true`) or not (`false`). Since v57.0."}
+      - {name: kq_config, api_name: kqConfig, schema: DataKitKQConfigRepresentation, array: 1, description: "List of key qualifier configurations applied on data stream templates of the bundle. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForBundle.bundle_config:
+    variants: [CdpDataKitDeployBundleConfigForAccountEngagement, CdpDataKitDeployBundleConfigForCommerce, CdpDataKitDeployBundleConfigForConnectorsFramework, CdpDataKitDeployBundleConfigForCrm, CdpDataKitDeployBundleConfigForExternal, CdpDataKitDeployBundleConfigForIngestApi, CdpDataKitDeployBundleConfigForStreamingApp]
+
+  CdpDataKitDeployComponentConfigForDLO:
+    description: Represents the input component configuration for DLOs.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the DLO. Since v60.0."}
+      - {name: data_source_object_dev_name, api_name: dataSourceObjectDevName, type: string, description: "Developer name of the DLO. Since v60.0."}
+      - {name: dataspace_filter_criteria_api_config, api_name: dataSpaceFilterCriteriaApiConfig, schema: DataSpaceFilterConditionApiConfig, array: 1, description: "Data space filter criteria for adding filters while deploying a DLO. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v60.0."}
+      - {name: label, type: string, description: "Label name of the DLO. Since v60.0."}
+
+  CdpDataKitDeployComponentConfigForDataAction:
+    description: Represents the input component configuration for data actions.
+    attributes:
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: developer_name, api_name: developerName, type: string, description: "Developer name of the data action. Since v63.0."}
+      - {name: developer_name_override, api_name: developerNameOverride, type: string, description: "Developer name of the data action override. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data action object. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForDataActionTarget:
+    description: Represents the input component configuration for data action targets.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the data action target. Since v63.0."}
+      - {name: api_name_override, api_name: apiNameOverride, type: string, description: "API name of the data action target override. Since v63.0."}
+      - {name: end_point_url_override, api_name: endPointUrlOverride, type: string, description: "API name of the data action target endpoint URL override. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data action target object. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForDataSemanticSearch:
+    description: Represents the input component configuration for data semantic search.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the semantic search object. Since v63.0."}
+      - {name: data_kit_name, api_name: dataKitName, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the semantic search object. Since v63.0."}
+      - {name: name, type: string, description: "Name of the specific semantic search instance. Since v63.0."}
+      - {name: search_index_name, api_name: searchIndexName, type: string, description: "Developer name of the underlying search index used by this component. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForDataShare:
+    description: Represents the input component configuration for data shares.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "Definition name of the target data share. Since v63.0."}
+      - {name: cios, array: 1, type: string, description: "Developer names of the calculated insight objects. Since v63.0."}
+      - {name: data_share_developer_name, api_name: dataShareDeveloperName, type: string, description: "Definition name of the source data share. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: description, type: string, description: "Description for the data share. Since v63.0."}
+      - {name: dlos, array: 1, type: string, description: "Developer names of the DLOs. Since v63.0."}
+      - {name: dmos, array: 1, type: string, description: "Developer names of the DMOs. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data share. Since v63.0."}
+      - {name: template_dev_name, api_name: templateDevName, type: string, description: "Template developer name of the data share template that's used for creating the share in the data kit. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForIdpConfiguration:
+    description: Represents the input component configuration for Document AI.
+    attributes:
+      - {name: template_dev_name, api_name: templateDevName, type: string, description: "Developer name of the Document AI template. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForPredictionJob:
+    description: Represents the input component configuration for ML prediction jobs.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the ML prediction job object. Since v63.0."}
+      - {name: data_kit_name, api_name: dataKitName, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the ML prediction job object. Since v63.0."}
+      - {name: prediction_job_name, api_name: predictionJobName, type: string, description: "Developer name of the specific prediction job. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigForTuaFramework:
+    description: Represents the input component configuration for TUA objects.
+    attributes:
+      - {name: change_set_identifier, api_name: changeSetIdentifier, type: string, description: "Unique ID for the change set. Since v63.0."}
+      - {name: component_type, api_name: componentType, type: string, enum: [ActivationTarget, AnalyticsDashboard, AnalyticsVisualization, AnalyticsWorkspace, CalculatedInsight, CopyFieldEnrichment, CurrencyConfigObject, DataAction, DataActionTarget, DataCleanRoomDataSpecDef, DataCleanRoomProvider, DataConnection, DataCustomCode, DataGraph, DataLakeObject, DataModelObject, DataSemanticSearch, DataShare, DataStreamBundle, DataTransform, EngagementSignal, FiscalCalendarConfigObject, IdentityResolution, IdpConfiguration, InternalDataConnector, IrRelatedListEnrichment, MarketSegment, MarketSegmentActivation, MlConfiguredModel, MlPredictionJob, MlRetriever, PersnlBatchDecision, PersonalizationObjective, PersonalizationPoint, PersonalizationRecommender, PersonalizationSchema, SecondaryIndex, SemanticModel, TuaTemplatedObject], description: "Type of TUA object component. Since v63.0."}
+      - {name: data_kit_dev_name, api_name: dataKitDevName, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: developer_name, api_name: developerName, type: string, description: "Developer name of the TUA object. Since v63.0."}
+      - {name: label, type: string, description: "Label of the TUA object. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigMlConfiguredModel:
+    description: Represents the input component configuration for ML configured models.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the ML configured model. Since v63.0."}
+      - {name: connector_type, api_name: connectorType, type: string, enum: [Anthropic, AzureOpenAI, Bedrock, Databricks, Generic, InternalEmbedding, OpenAI, OpenConnector, SageMaker, Salesforce, VertexAI], description: "Type of ML configured model connector. Since v63.0."}
+      - {name: label, type: string, description: "Label of the ML configured model. Since v63.0."}
+      - {name: model_type, api_name: modelType, type: string, enum: [Generative, Predictive, SpeechSynthesis, Summarization, Transcribe, Unknown], description: "Type of ML configured model. Since v63.0."}
+
+  CdpDataKitDeployComponentConfigMlRetriever:
+    description: Represents the input component configuration for ML retrievers.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the retriever. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the retriever. Since v63.0."}
+      - {name: retriever_query_type, api_name: retrieverQueryType, type: string, enum: [Ensemble, NoCode, ProCode], description: "Query type of the retriever. Since v63.0."}
+
+  CdpDataKitDeployComponentRepresentation:
+    description: Represents a single component for a data kit deployment.
+    attributes:
+      - {name: config, schema: CdpDataKitDeployComponentRepresentation.config, required: true, description: "Configuration of the component. Use the input object that corresponds to the component type. For example, use the Data Kit Deploy Component Config For DLO Input for the `DataLakeObject` component type. - Use the Data Kit Deploy Personalization Input for all personalization-related component types, such as `PersonalizationObjective`, `PersonalizationPoint`, `PersonalizationRecommender`, and `PersonalizationSchema`. - Use the Data Kit Deploy Input for all others. See [Supported Component Types for Data Kit Deployment](https://developer.salesforce.com/docs/data/connectapi/guide/deploy-data-kit-payloads.html) for the complete list of component types and their corresponding payload configurations. Since v57.0."}
+      - {name: type, type: string, enum: [ActivationTarget, AnalyticsDashboard, AnalyticsVisualization, AnalyticsWorkspace, CalculatedInsight, CopyFieldEnrichment, CurrencyConfigObject, DataAction, DataActionTarget, DataCleanRoomDataSpecDef, DataCleanRoomProvider, DataConnection, DataCustomCode, DataGraph, DataLakeObject, DataSemanticSearch, DataShare, DataStreamBundle, DataTransform, EngagementSignal, FiscalCalendarConfigObject, IdentityResolution, IdpConfiguration, InternalDataConnector, IrRelatedListEnrichment, MarketSegment, MarketSegmentActivation, MlConfiguredModel, MlPredictionJob, MlRetriever, PersnlBatchDecision, PersonalizationObjective, PersonalizationPoint, PersonalizationRecommender, PersonalizationSchema, SecondaryIndex, SemanticModel, TuaTemplatedObject], required: true, description: "Type of component. Since v57.0."}
+      - {name: name, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+      - {name: action, type: string, description: "Not in the spec schema: from the MCP server's payload example."}
+
+  CdpDataKitDeployComponentRepresentation.config:
+    variants: [CdpDataKitDeployComponentConfigForBundle, CdpDataKitDeployComponentConfigForDLO, CdpDataKitDeployComponentConfigCalculatedInsight, CdpDataKitDeployComponentConfigForDataAction, CdpDataKitDeployComponentConfigForDataActionTarget, CdpDataKitDeployComponentConfigForDataSemanticSearch, CdpDataKitDeployComponentConfigForDataShare, CdpDataKitDeployComponentConfigForIdpConfiguration, CdpDataKitDeployComponentConfigForPredictionJob, CdpDataKitDeployComponentConfigForTuaFramework, CdpDataKitDeployComponentConfigMlConfiguredModel, CdpDataKitDeployComponentConfigMlRetriever, DataCustomCodeInputRep, DataKitDeployActivationTargetRepresentation, DataKitDeployComponentConfigCopyField, DataKitDeployComponentConfigForIRRelatedList, DataKitDeployComponentConfigIdentityResolutionInput, DataKitDeployComponentConfigSemanticModelInputRepresentation, DataKitDeployDataCleanRoomMappingRepresentation, DataKitDeployDataCleanRoomProviderRepresentation, DataKitDeployDataConnectionRepresentation, DataKitDeployDataGraphInputRepresentation, DataKitDeployDataTransformRepresentation, DataKitDeployMarketActivationRepresentation, DataKitDeployMarketSegmentRepresentation, DataKitDeployPersonalizationInputRepresentation, DataKitDeployInputRepresentation]
+
+  CdpDataKitStream:
+    description: Represents a single stream in a data kit data stream bundle.
+    attributes:
+      - {name: dev_name, api_name: devName, type: string, required: true, description: "Developer name of the stream. Since v57.0."}
+      - {name: label, type: string, required: true, description: "Label of the stream. Since v57.0."}
+
+  DataCustomCodeInputRep:
+    description: Represents the input component configuration for data custom code.
+    attributes:
+      - {name: template_dev_name, api_name: templateDevName, type: string, description: "Developer name of the custom code template. Since v63.0."}
+
+  DataKitComponentInfoBaseInputRepresentation:
+    description: Represents the input for data kit component information.
+    attributes:
+      - {name: name, type: string, description: "Name of the data kit component. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data kit component. Since v63.0."}
+
+  DataKitComponentInfoBundleInputRepresentation:
+    description: Represents the input for bundle-specific component information.
+    attributes:
+      - {name: name, type: string, description: "Name of the data kit component. Since v63.0."}
+      - {name: connector_type, api_name: connectorType, type: string, enum: [AccountEngagement, Commerce, Crm, External, IngestApi, Mc, MoreConnectors, S3, StreamingApp], description: "Type of data kit bundle connector. Since v63.0."}
+      - {name: streams, schema: CdpDataKitStream, array: 1, description: "List of data streams. Since v63.0."}
+
+  DataKitComponentInputRepresentation:
+    description: Represents the input for a data kit component.
+    attributes:
+      - {name: info, schema: DataKitComponentInputRepresentation.info, description: "Information about the data kit component. Use the component info input object that corresponds to the component type: - `DataStreamBundle`: Data Kit Component Info Bundle Input - All others: Data Kit Component Info Base Input Since v63.0."}
+      - {name: type, type: string, enum: [ActivationTarget, AnalyticsDashboard, AnalyticsVisualization, AnalyticsWorkspace, CalculatedInsight, CopyFieldEnrichment, CurrencyConfigObject, DataAction, DataActionTarget, DataCleanRoomDataSpecDef, DataCleanRoomProvider, DataConnection, DataCustomCode, DataGraph, DataLakeObject, DataModelObject, DataSemanticSearch, DataShare, DataStreamBundle, DataTransform, EngagementSignal, FiscalCalendarConfigObject, IdentityResolution, IdpConfiguration, InternalDataConnector, IrRelatedListEnrichment, MarketSegment, MarketSegmentActivation, MlConfiguredModel, MlPredictionJob, MlRetriever, PersnlBatchDecision, PersonalizationObjective, PersonalizationPoint, PersonalizationRecommender, PersonalizationSchema, SecondaryIndex, SemanticModel, TuaTemplatedObject], description: "Type of the data kit component. Since v63.0."}
+
+  DataKitComponentInputRepresentation.info:
+    variants: [DataKitComponentInfoBundleInputRepresentation, DataKitComponentInfoBaseInputRepresentation]
+
+  DataKitDeployActivationTargetRepresentation:
+    description: Represents the input component configuration for activation targets.
+    attributes:
+      - {name: component_name, api_name: componentName, type: string, description: "Developer name of the activation target. Since v63.0."}
+      - {name: target_display_name, api_name: targetDisplayName, type: string, description: "Label of the activation target. Since v63.0."}
+
+  DataKitDeployComponentConfigCopyField:
+    description: Represents the input component configuration for copy field enrichments.
+    attributes:
+      - {name: template_dev_name, api_name: templateDevName, type: string, description: "Developer name of the copy field enrichment template. Since v63.0."}
+
+  DataKitDeployComponentConfigForIRRelatedList:
+    description: Represents the input component configuration for IR-related lists.
+    attributes:
+      - {name: developer_name, api_name: developerName, type: string, description: "Developer name of the IR-related list. Since v63.0."}
+      - {name: label, type: string, description: "Label of the IR-related list. Since v63.0."}
+
+  DataKitDeployComponentConfigIdentityResolutionInput:
+    description: Represents the input component configuration for identity resolutions.
+    attributes:
+      - {name: data_kit_dev_name, api_name: dataKitDevName, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: identity_resolution_dev_name, api_name: identityResolutionDevName, type: string, description: "Developer name of the identity resolution. Since v63.0."}
+      - {name: label, type: string, description: "Label of the identity resolution. Since v63.0."}
+
+  DataKitDeployComponentConfigSemanticModelInputRepresentation:
+    description: Represents the input component configuration for semantic search models.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the semantic search model. Since v63.0."}
+      - {name: base_sdms, api_name: baseSDMs, array: 1, type: string, description: "Base SDM API names of the semantic search model. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: display_name, api_name: displayName, type: string, description: "Label of the semantic search model. Since v63.0."}
+
+  DataKitDeployDataCleanRoomMappingRepresentation:
+    description: Represents the input component configuration for clean room specification mapping.
+    attributes:
+      - {name: component_name, api_name: componentName, type: string, description: "Name of the data kit component. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+
+  DataKitDeployDataCleanRoomProviderRepresentation:
+    description: Represents the input component configuration for clean room providers.
+    attributes:
+      - {name: component_name, api_name: componentName, type: string, description: "Developer name of the clean room provider. Since v63.0."}
+      - {name: package_name, api_name: packageName, type: string, description: "Label of the clean room provider. Since v63.0."}
+
+  DataKitDeployDataConnectionRepresentation:
+    description: Represents the input component configuration for data connections.
+    attributes:
+      - {name: name, type: string, description: "Developer name of the connection. Since v63.0."}
+      - {name: new_credentials, api_name: newCredentials, schema: DataConnectionParameterInputRepresentation, array: 1, description: "Connection credentials to use in the target org. Since v63.0."}
+      - {name: override_label, api_name: overrideLabel, type: string, description: "Override label to use in the target org. Since v63.0."}
+      - {name: override_parameters, api_name: overrideParameters, schema: DataConnectionParameterInputRepresentation, array: 1, description: "Connection parameters to override in the target org. Since v63.0."}
+
+  DataKitDeployDataGraphInputRepresentation:
+    description: Represents the input component configuration for data graphs.
+    attributes:
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data graph. Since v63.0."}
+      - {name: name, type: string, description: "Developer name of the data graph. Since v63.0."}
+      - {name: primary_dmo, api_name: primaryDMO, type: string, description: "Developer name of the primary DMO. Since v63.0."}
+      - {name: template_dev_name, api_name: templateDevName, type: string, description: "Developer name of the data graph template. Since v63.0."}
+
+  DataKitDeployDataTransformRepresentation:
+    description: Represents the input component configuration for data transforms.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API Name of the data transform. Since v63.0."}
+      - {name: component_properties, api_name: componentProperties, map: true, type: string, description: "Component properties for different data transform types. Since v63.0."}
+      - {name: connection, type: string, description: "Specific connection utilized for DLO-based transforms. Since v63.0."}
+      - {name: currency_iso_code, api_name: currencyIsoCode, type: string, description: "Currency ISO code for data transform creation. Since v63.0."}
+      - {name: data_object_overrides, api_name: dataObjectOverrides, schema: DataTransformDataObjectOverride, array: 1, description: "Overrides for specific input and output data object names defined in the transform. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: data_transform_dev_name, api_name: dataTransformDevName, type: string, description: "Developer name of the data transform. Since v63.0."}
+      - {name: data_transform_type, api_name: dataTransformType, type: string, description: "Type of data transform. Since v63.0."}
+      - {name: definition_overrides, api_name: definitionOverrides, schema: DataTransformDefinitionOverride, array: 1, description: "Specific name or label overrides for data definitions sourced from the origin organization. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data transform. Since v63.0."}
+
+  DataKitDeployInputRepresentation:
+    description: Represents the basic input component configuration for data kit objects.
+    attributes:
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the data kit component. Since v63.0."}
+      - {name: name, type: string, description: "API name of the data kit component. Since v63.0."}
+      - {name: template_name, api_name: templateName, type: string, description: "Developer name of the template. Since v63.0."}
+
+  DataKitDeployMarketActivationRepresentation:
+    description: Represents the input component configuration for market activations.
+    attributes:
+      - {name: component_name, api_name: componentName, type: string, description: "Developer name of the activation. Since v63.0."}
+      - {name: data_kit_name, api_name: dataKitName, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: target_display_name, api_name: targetDisplayName, type: string, description: "Label of the activation. Since v63.0."}
+
+  DataKitDeployMarketSegmentRepresentation:
+    description: Represents the input component configuration for market segments.
+    attributes:
+      - {name: data_kit_name, api_name: dataKitName, type: string, description: "Developer name of the data kit. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the market segment. Since v63.0."}
+      - {name: name, type: string, description: "Developer name of the market segment. Since v63.0."}
+      - {name: target_display_name, api_name: targetDisplayName, type: string, description: "Target label for the market segment. Since v63.0."}
+      - {name: target_segment_developer_name, api_name: targetSegmentDeveloperName, type: string, description: "Target developer name for the market segment. Since v63.0."}
+
+  DataKitDeployPersonalizationInputRepresentation:
+    description: Represents the input component configuration for personalization objects.
+    attributes:
+      - {name: api_name, api_name: apiName, type: string, description: "API name of the personalization object. Since v63.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: string, description: "Name of the data space to deploy the data kit component in. Since v63.0."}
+      - {name: label, type: string, description: "Label of the personalization object. Since v63.0."}
+      - {name: template_developer_name, api_name: templateDeveloperName, type: string, description: "Developer name of the personalization object template. Since v63.0."}
+
+  DataKitKQConfigRepresentation:
+    description: Represents the input for key qualifier (KQ) configurations.
+    attributes:
+      - {name: data_source_field, api_name: dataSourceField, type: string, description: "Name of the data source object field on which the KQ field is defined. Since v63.0."}
+      - {name: data_source_object, api_name: dataSourceObject, type: string, description: "Name of the data source object on which the KQ field is defined. Since v63.0."}
+      - {name: value, type: string, description: "Value of the KQ field. Since v63.0."}
+
+  DataKitUnDeployComponentDetails:
+    description: The details of a component to be un-deployed from a data kit.
+    attributes:
+      - {name: name, type: string, required: true, description: "Name of the component to un-deploy. Since v63.0."}
+      - {name: type, type: string, enum: [ActivationTarget, CalculatedInsight, DataAction, DataActionTarget, DataConnection, DataGraph, DataLakeObject, DataSemanticSearch, DataShare, DataStreamBundle, DataTransform, IdentityResolution, MarketSegment, MarketSegmentActivation, MlConfiguredModel, MlPredictionJob, MlRetriever, SemanticModel], required: true, description: "Data kit component type. Since v63.0."}
+
+  DataSpaceFilterConditionApiConfig:
+    description: Represents the component configuration for a data lake object (DLO).
+    attributes:
+      - {name: field_name, api_name: fieldName, type: string, required: true, description: "Field name for the filter condition . **Available Version: 61.0**"}
+      - {name: filter_value, api_name: filterValue, type: string, required: true, description: "Filter value for the filter condition. **Available Version: 61.0**"}
+      - {name: operator, type: string, required: true, description: "Operator for the filter condition. **Available Version: 61.0**"}
+      - {name: target_object_name, api_name: targetObjectName, type: string, required: true, description: "Target object name for the filter condition. **Available Version: 61.0**"}
+
+  DataTransformDataObjectOverride:
+    description: Represents the input for data transform object overrides.
+    attributes:
+      - {name: name_of_obj_in_publishing_org, api_name: nameOfObjInPublishingOrg, type: string, description: "Name of the data transform object in the publishing org. Since v63.0."}
+      - {name: name_of_obj_in_subscriber_org, api_name: nameOfObjInSubscriberOrg, type: string, description: "Name of the data transform object in the subscriber org. Since v63.0."}
+
+  DataTransformDefinitionOverride:
+    description: Represents the input for data transform definition overrides.
+    attributes:
+      - {name: dev_name, api_name: devName, type: string, description: "Updated or replaced definition developer name. Since v63.0."}
+      - {name: label, type: string, description: "Updated or replaced definition label. Since v63.0."}
+      - {name: template_dev_name, api_name: templateDevName, type: string, description: "Definition developer name in the data kit template. Since v63.0."}

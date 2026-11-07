@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/data_lake_objects.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Data Lake Objects
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -313,11 +315,11 @@ Represents the input fields in the data object.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `is_primary_key` | `isPrimaryKey` | boolean | yes | Indicates whether this field is a primary key (`true`) or not (`false`). Since v60.0. |
-| `key_qualifier_field_name` | `keyQualifierFieldName` | string |  | Key qualifier field name. Since v60.0. |
+| `is_primary_key` | `isPrimaryKey` | boolean | yes | Indicates whether this field is a primary key (`true`) or not (`false`). A create needs at least one `true` (tool text). Since v60.0. |
+| `key_qualifier_field_name` | `keyQualifierFieldName` | string |  | Key qualifier field name. The MCP request class calls this `key_qualifier_field`. The spec's example omits it and gets a generated `KQ_<field>` back. Since v60.0. |
 | `label` | `label` | string | yes | Label of the field. Since v60.0. |
-| `name` | `name` | string | yes | Name of the field. Since v60.0. |
-| `type` | `type` | enum(Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url) |  | Data type of the field. Since v60.0. |
+| `name` | `name` | string | yes | Name of the field. The spec's example omits `__c` and gets it back with the suffix, while a community example passes `event_id__c`. Since v60.0. |
+| `type` | `type` | enum(Boolean, Date, DateOnly, DateTime, Email, Number, Percent, Phone, Text, Url) |  | Data type of the field. **Conflict:** the spec's schema says `type`, while its examples, the [MCP request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/dmo/DataObjectFieldInput.java) and two community clients send `data_type`, and a community template uses `type`. The MCP class takes `type` only as an input alias and sends `data_type`. The spec's 400 text rejects fields with no data type. |
 | `description` | `description` | string |  | Not in the spec schema: from the spec's examples. |
 | `is_dynamic_lookup` | `isDynamicLookup` | boolean |  | Not in the spec schema: from the spec's examples. |
 | `data_type` | `dataType` | string |  | Not in the spec schema: from the spec's examples. |

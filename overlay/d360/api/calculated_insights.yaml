@@ -1,0 +1,428 @@
+title: Calculated Insights
+description: |
+  A calculated insight is a SQL aggregate over data model objects. Data 360 keeps the result as its own object, named `<name>__cio`, and recomputes it on a schedule or on demand. Segments can filter on insights, so insights come [after identity resolution and before segments](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md).
+
+  You create an insight, wait for it to compile, run it, wait for the run, then read rows with [`insights_query`](profiles_and_metadata.md#insights_query).
+
+  The gotchas that matter most:
+
+  - **Two statuses.** `calculated_insight_status` = `ACTIVE` means the definition is usable, and [segments require it](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SegmentTools.java). `last_run_status` = `SUCCESS` means a run finished. An `ACTIVE` insight with a null `last_run_status` is normal before the first run.
+  - **Restricted SQL.** The [tool rules](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) ban `COUNT(DISTINCT)`, subqueries and date arithmetic, and Salesforce's own [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) breaks them. See [`ci_create`](#ci_create).
+  - **One run at a time.** A [Salesforce kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md) never runs insights in parallel and waits for each to succeed.
+  - **Listing.** [`ci_list`](#ci_list) needs `definition_type` to return anything (community, one org).
+  - **Spec gaps.** `ci_enable`, `ci_disable`, `ci_run_status` and `ci_validate` aren't in the spec. Poll with `ci_get`.
+
+  ```sql
+  CALL cdp.ci_create (
+      api_name => 'Customer_Order_Summary__cio',
+      display_name => 'Customer Order Summary',
+      definition_type => 'CALCULATED_METRIC',
+      publish_schedule_interval => 'Six',
+      publish_schedule_start_date_time => '2027-01-01T06:00',
+      expression => $$
+          SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c
+          FROM Order__dlm
+          GROUP BY Order__dlm.CustomerId__c
+      $$
+  );
+  /* Repeat until calculated_insight_status = 'ACTIVE'. */
+  CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
+  CALL cdp.ci_run (api_name => 'Customer_Order_Summary__cio');
+  /* Repeat until last_run_status = 'SUCCESS', then start the next insight. */
+  CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
+  CALL cdp.insights_query (ci_name => 'Customer_Order_Summary__cio', batch_size => 10);
+  ```
+
+functions:
+  - name: ci_delete
+    method: DELETE
+    host: connect
+    path: /ssot/calculated-insights/{apiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Calculated-Insights/paths/~1ssot~1calculated-insights~1%7BapiName%7D/delete
+    tools: [d360_ci_delete]
+    description: Delete a calculated insight in Data 360. Since v57.0.
+    example: CALL cdp.ci_delete (api_name => 'Customer_Order_Summary__cio');
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "API name of the insight, ending in `__cio`."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: |
+      **Done when:** `ci_get` returns `ITEM_NOT_FOUND`. `ci_get.calculated_insight_status` = `DELETING` means the delete is still running.
+
+      **Notes:** Deletion is asynchronous. The 204 comes back at once, then `ci_get` shows `calculated_insight_status` = `DELETING` before it returns `ITEM_NOT_FOUND`. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) says that takes a moment. [data-360-sdk](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/calculated-insights.ts) says several minutes (community).
+
+      - While it's `DELETING`, creating the same name fails with `DUPLICATES_DETECTED` ([community](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/calculated-insights.ts)).
+      - The catalog says deleting ["breaks dependent segments"](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java).
+      - A semantic model that references the insight blocks the delete with 412 or `DELETE_FAILED`. The block can last a few seconds after the model is gone ([community](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts)).
+      - The [tool source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) says this stops future runs and doesn't delete historical data.
+
+  - name: ci_list
+    method: GET
+    host: connect
+    path: /ssot/calculated-insights
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Calculated-Insights/paths/~1ssot~1calculated-insights/get
+    tools: [d360_ci_list]
+    description: Get calculated insights in Data 360. Since v57.0.
+    example: CALL cdp.ci_list (offset => 0, definition_type => 'CALCULATED_METRIC', batch_size => 100);
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `200`. If unspecified, the default value is `25`. Since v57.0."}
+      - {name: dataspace, in: query, type: string, description: "Name of the data space. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, in: query, type: string, description: "Definition type of the calculated insight. Values are: - `CALCULATED_METRIC` - `EXTERNAL_METRIC` - `STREAMING_METRIC` Since v57.0."}
+      - {name: offset, in: query, type: integer, required: true, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v57.0."}
+      - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c.ASC, Occupation__c.DESC`. If unspecified, items are returned in the order they are retrieved. Since v57.0."}
+      - {name: page_token, api_name: pageToken, in: query, type: string, description: "Specifies the page token to use to view a page of information. Page tokens are returned as part of the response, such as `currentPageToken` or `nextPageToken`. If unspecified, the first page is returned. Since v57.0."}
+    rows: /collection/items
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "API name of the calculated insight. Since v57.0."}
+      - {name: calculated_insight_status, api_name: calculatedInsightStatus, type: VARCHAR, description: "Status of the calculated insight. Since v57.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the calculated insight. Since v57.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Data space of the calculated insight. Since v57.0."}
+      - {name: definition_status, api_name: definitionStatus, type: VARCHAR, description: "Definition status of the calculated insight. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, type: VARCHAR, description: "Definition type of the calculated insight. Since v57.0."}
+      - {name: description, type: VARCHAR, description: "Description of the calculated insight. Since v57.0."}
+      - {name: dimensions, type: JSON, array: 1, schema: CdpCalculatedInsightDimensionRepresentation, description: "Dimensions of the calculated insight. Since v57.0."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the calculated insight. Since v57.0."}
+      - {name: expression, type: VARCHAR, description: "Expression of the calculated insight. Since v57.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Specifies whether the calculated insight is enabled (`true`) or not (`false`). Since v57.0."}
+      - {name: last_calc_insight_status_date_time, api_name: lastCalcInsightStatusDateTime, type: VARCHAR, description: "Last calculated insight status date and time. Since v57.0."}
+      - {name: last_calc_insight_status_error_code, api_name: lastCalcInsightStatusErrorCode, type: VARCHAR, description: "Last calculated insight status error code. Since v57.0."}
+      - {name: last_run_date_time, api_name: lastRunDateTime, type: VARCHAR, description: "Last run date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status, api_name: lastRunStatus, type: VARCHAR, description: "Last run status of the calculated insight. Since v57.0."}
+      - {name: last_run_status_date_time, api_name: lastRunStatusDateTime, type: VARCHAR, description: "Last run status date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status_error_code, api_name: lastRunStatusErrorCode, type: VARCHAR, description: "Last run status error code of the calculated insight. Since v57.0."}
+      - {name: measures, type: JSON, array: 1, schema: CdpCalculatedInsightMeasureRepresentation, description: "Measures of the calculated insight. Since v57.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_interval, api_name: publishScheduleInterval, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    paging: {kind: token, from: /collection/nextPageToken, option: page_token}
+    effect: read
+    evidence: O
+    result_description: One row per item of `/collection/items` in the response. Schema `CdpCalculatedInsightRepresentation`.
+    notes: |
+      **Paging:** `page_token`, taken from `collection.nextPageToken`, which is null on the last page. `offset` is still required.
+
+      **Notes:** - Without `definition_type` the list returned 0 items although insights existed, so one project [calls once per type](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) (community, one org). The spec doesn't mention this.
+      - The spec requires `offset`, while the [tool source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) treats it as optional. A community project [found it still required](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) alongside `page_token`. Pass `0`.
+      - Items are under `collection.items`, each with the full definition including `expression`, `dimensions` and `measures`. You don't need a `ci_get` per item.
+      - Field data types are only in [`metadata`](profiles_and_metadata.md#metadata) with `entity_type => 'CalculatedInsight'` ([community](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)).
+      - Spelling varies: the filter is `dataspace`, the response field `dataSpace`, the create option `dataspace_name`.
+
+  - name: ci_get
+    method: GET
+    host: connect
+    path: /ssot/calculated-insights/{apiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Calculated-Insights/paths/~1ssot~1calculated-insights~1%7BapiName%7D/get
+    tools: [d360_ci_get]
+    description: Get a calculated insight in Data 360. Since v57.0.
+    example: CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "API name of the insight, ending in `__cio`."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "API name of the calculated insight. Since v57.0."}
+      - {name: calculated_insight_status, api_name: calculatedInsightStatus, type: VARCHAR, description: "Status of the calculated insight. Since v57.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the calculated insight. Since v57.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Data space of the calculated insight. Since v57.0."}
+      - {name: definition_status, api_name: definitionStatus, type: VARCHAR, description: "Definition status of the calculated insight. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, type: VARCHAR, description: "Definition type of the calculated insight. Since v57.0."}
+      - {name: description, type: VARCHAR, description: "Description of the calculated insight. Since v57.0."}
+      - {name: dimensions, type: JSON, array: 1, schema: CdpCalculatedInsightDimensionRepresentation, description: "Dimensions of the calculated insight. Since v57.0."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the calculated insight. Since v57.0."}
+      - {name: expression, type: VARCHAR, description: "Expression of the calculated insight. Since v57.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Specifies whether the calculated insight is enabled (`true`) or not (`false`). Since v57.0."}
+      - {name: last_calc_insight_status_date_time, api_name: lastCalcInsightStatusDateTime, type: VARCHAR, description: "Last calculated insight status date and time. Since v57.0."}
+      - {name: last_calc_insight_status_error_code, api_name: lastCalcInsightStatusErrorCode, type: VARCHAR, description: "Last calculated insight status error code. Since v57.0."}
+      - {name: last_run_date_time, api_name: lastRunDateTime, type: VARCHAR, description: "Last run date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status, api_name: lastRunStatus, type: VARCHAR, description: "Last run status of the calculated insight. Since v57.0."}
+      - {name: last_run_status_date_time, api_name: lastRunStatusDateTime, type: VARCHAR, description: "Last run status date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status_error_code, api_name: lastRunStatusErrorCode, type: VARCHAR, description: "Last run status error code of the calculated insight. Since v57.0."}
+      - {name: measures, type: JSON, array: 1, schema: CdpCalculatedInsightMeasureRepresentation, description: "Measures of the calculated insight. Since v57.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_interval, api_name: publishScheduleInterval, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `CdpCalculatedInsightRepresentation`.
+    notes: |
+      **Notes:** The two statuses answer different questions:
+
+      - `calculated_insight_status` says whether the definition is usable. Values seen: `PROCESSING`, `ACTIVE`, `DELETING` ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md)), and `FAILED` when the SQL doesn't compile ([community](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts)). The spec lists no values. [Segments need `ACTIVE`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SegmentTools.java).
+      - `last_run_status` says how the last run went. Values: `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED` ([kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md), one org), and null before the first run (spec example). The kit warns that Title Case comparisons never match in that org.
+
+      Also:
+
+      - `ACTIVE` doesn't mean data exists. A semantic model created on a just-`ACTIVE` insight failed with `SEMANTIC_ENTITY_NOT_EXIST` until the first compute finished ([community](https://github.com/javrrr/afd360/blob/main/src/client/retry.ts)).
+      - `last_calc_insight_status_error_code` holds the reason for a `FAILED` definition ([community](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts)).
+      - A name without the suffix fails with [`api_name must end in __cio`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md).
+      - The spec's schema has no schedule fields, yet its list example returns `publish_schedule_interval`, `publish_schedule_start_date_time` and `publish_schedule_end_date`. There the interval reads `SIX` or `NOT_SCHEDULED`, not the input spelling. The same example shows `definition_status` = `IN_USE` and `creation_type` = `Custom`.
+
+  - name: ci_update
+    method: PATCH
+    host: connect
+    path: /ssot/calculated-insights/{apiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Calculated-Insights/paths/~1ssot~1calculated-insights~1%7BapiName%7D/patch
+    tools: [d360_ci_update]
+    description: Update a calculated insight in Data 360. Since v57.0. **Root XML tag:** `<cdpCalculatedInsightInput>`
+    example: |
+      CALL cdp.ci_update (
+          api_name => 'Customer_Order_Summary__cio',
+          description => 'Total order amount per customer, refreshed twice a day.',
+          publish_schedule_interval => 'Twelve',
+          publish_schedule_start_date_time => '2027-01-01T06:00'
+      );
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "API name of the insight, ending in `__cio`."}
+      - {name: body_api_name, api_name: apiName, in: body, type: string, description: "API name of the calculated insight with suffix __cio. Required for POST. Optional for PATCH. Since v57.0."}
+      - {name: created_from_package, api_name: createdFromPackage, in: body, type: boolean, description: "Specifies whether the calculated insight was created from an installed package (`true`) or not (`false`). Since v57.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, in: body, type: string, enum: [CALCULATED_METRIC, EXTERNAL_METRIC, STREAMING_METRIC], description: "Definition type of the calculated insight. Required for POST. Optional for PATCH. Since v57.0."}
+      - {name: description, in: body, type: string, description: "Calculated insight description. Since v57.0."}
+      - {name: display_name, api_name: displayName, in: body, type: string, description: "Calculated insight display name. Required for POST. Optional for PATCH. **Available Version:*** 57.0"}
+      - {name: draft, in: body, type: boolean, description: "Specifies whether to save the calculated insight as draft (`true`) or not (`false`). Since v57.0."}
+      - {name: expression, in: body, type: string, description: "Calculated insight ANSI SQL expression. Required for POST. Optional for PATCH. Since v57.0."}
+      - {name: packaged_calculated_insight_api_name, api_name: packagedCalculatedInsightApiName, in: body, type: string, description: "API name of the packaged calculated insight. Since v57.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, in: body, type: string, description: "The date and time after which the calculated insight is no longer run. - Use the format `yyyy-mm-dd`. - Must be a date later than `publish_schedule_start_date_time`. - Don't use with streaming insights. - Don't use if the `publish_schedule_interval` is `No Schedule`. Since v62.0."}
+      - {name: publish_schedule_interval, api_name: publishScheduleInterval, in: body, type: string, enum: [ExternallyManaged, NotScheduled, One, Six, Streaming, SystemManaged, Twelve, TwentyFour], required: true, description: "Indicates how frequently the calculated insight is processed. Required for calculated insights. Don't use with streaming insights. Since v62.0."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, in: body, type: string, required: true, description: "The date and time when the calculated insight is evaluated to be run. - Use the format `yyyy-mm-dd`. - The specified date and time must be in the future. - Required if `publish_schedule_interval` is any value other than `No Schedule`. - Don't use with streaming insights. Since v62.0."}
+      - {name: history_publish_schedule_interval, api_name: historyPublishScheduleInterval, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: history_publish_time, api_name: historyPublishTime, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: source_developer_name, api_name: sourceDeveloperName, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "API name of the calculated insight. Since v57.0."}
+      - {name: calculated_insight_status, api_name: calculatedInsightStatus, type: VARCHAR, description: "Status of the calculated insight. Since v57.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the calculated insight. Since v57.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Data space of the calculated insight. Since v57.0."}
+      - {name: definition_status, api_name: definitionStatus, type: VARCHAR, description: "Definition status of the calculated insight. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, type: VARCHAR, description: "Definition type of the calculated insight. Since v57.0."}
+      - {name: description, type: VARCHAR, description: "Description of the calculated insight. Since v57.0."}
+      - {name: dimensions, type: JSON, array: 1, schema: CdpCalculatedInsightDimensionRepresentation, description: "Dimensions of the calculated insight. Since v57.0."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the calculated insight. Since v57.0."}
+      - {name: expression, type: VARCHAR, description: "Expression of the calculated insight. Since v57.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Specifies whether the calculated insight is enabled (`true`) or not (`false`). Since v57.0."}
+      - {name: last_calc_insight_status_date_time, api_name: lastCalcInsightStatusDateTime, type: VARCHAR, description: "Last calculated insight status date and time. Since v57.0."}
+      - {name: last_calc_insight_status_error_code, api_name: lastCalcInsightStatusErrorCode, type: VARCHAR, description: "Last calculated insight status error code. Since v57.0."}
+      - {name: last_run_date_time, api_name: lastRunDateTime, type: VARCHAR, description: "Last run date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status, api_name: lastRunStatus, type: VARCHAR, description: "Last run status of the calculated insight. Since v57.0."}
+      - {name: last_run_status_date_time, api_name: lastRunStatusDateTime, type: VARCHAR, description: "Last run status date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status_error_code, api_name: lastRunStatusErrorCode, type: VARCHAR, description: "Last run status error code of the calculated insight. Since v57.0."}
+      - {name: measures, type: JSON, array: 1, schema: CdpCalculatedInsightMeasureRepresentation, description: "Measures of the calculated insight. Since v57.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_interval, api_name: publishScheduleInterval, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpCalculatedInsightRepresentation`.
+    notes: |
+      **Notes:** Expression, name and schedule rules are the same as for [`ci_create`](#ci_create).
+
+      - The catalog says an update ["triggers recompilation"](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java). No source gives a duration or status sequence.
+      - The spec shares one input schema with create, so it marks `publish_schedule_interval` and `publish_schedule_start_date_time` as required here. The [tool source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) calls PATCH partial ("Only include fields you want to change"), and its [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/calculatedinsight/CalculatedInsightUpdateRequest.java) makes every field optional.
+      - `body_api_name` is the `api_name` body field. No source says whether changing it renames the insight.
+      - [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts) doesn't use PATCH and deletes and recreates on any change, because `expression` and `definition_type` are coupled (community).
+
+  - name: ci_create
+    method: POST
+    host: connect
+    path: /ssot/calculated-insights
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Calculated-Insights/paths/~1ssot~1calculated-insights/post
+    tools: [d360_ci_create]
+    description: Create a calculated insight in Data 360. Since v57.0. **Root XML tag:** `<cdpCalculatedInsightInput>`
+    example: |
+      CALL cdp.ci_create (
+          api_name => 'Customer_Order_Summary__cio',
+          display_name => 'Customer Order Summary',
+          description => 'Total order amount per customer.',
+          definition_type => 'CALCULATED_METRIC',
+          dataspace_name => 'default',
+          publish_schedule_interval => 'Six',
+          publish_schedule_start_date_time => '2027-01-01T06:00',
+          expression => $$
+              SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c
+              FROM Order__dlm
+              GROUP BY Order__dlm.CustomerId__c
+          $$
+      );
+    options:
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "API name of the calculated insight with suffix __cio. Required for POST. Optional for PATCH. Since v57.0."}
+      - {name: created_from_package, api_name: createdFromPackage, in: body, type: boolean, description: "Specifies whether the calculated insight was created from an installed package (`true`) or not (`false`). Since v57.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, in: body, type: string, enum: [CALCULATED_METRIC, EXTERNAL_METRIC, STREAMING_METRIC], description: "Definition type of the calculated insight. Required for POST. Optional for PATCH. Since v57.0."}
+      - {name: description, in: body, type: string, description: "Calculated insight description. Since v57.0."}
+      - {name: display_name, api_name: displayName, in: body, type: string, description: "Calculated insight display name. Required for POST. Optional for PATCH. **Available Version:*** 57.0"}
+      - {name: draft, in: body, type: boolean, description: "Specifies whether to save the calculated insight as draft (`true`) or not (`false`). Since v57.0."}
+      - {name: expression, in: body, type: string, description: "Calculated insight ANSI SQL expression. Required for POST. Optional for PATCH. Since v57.0."}
+      - {name: packaged_calculated_insight_api_name, api_name: packagedCalculatedInsightApiName, in: body, type: string, description: "API name of the packaged calculated insight. Since v57.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, in: body, type: string, description: "The date and time after which the calculated insight is no longer run. - Use the format `yyyy-mm-dd`. - Must be a date later than `publish_schedule_start_date_time`. - Don't use with streaming insights. - Don't use if the `publish_schedule_interval` is `No Schedule`. Since v62.0."}
+      - {name: publish_schedule_interval, api_name: publishScheduleInterval, in: body, type: string, enum: [ExternallyManaged, NotScheduled, One, Six, Streaming, SystemManaged, Twelve, TwentyFour], required: true, description: "Indicates how frequently the calculated insight is processed. Required for calculated insights. Don't use with streaming insights. Since v62.0."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, in: body, type: string, required: true, description: "The date and time when the calculated insight is evaluated to be run. - Use the format `yyyy-mm-dd`. - The specified date and time must be in the future. - Required if `publish_schedule_interval` is any value other than `No Schedule`. - Don't use with streaming insights. Since v62.0."}
+      - {name: history_publish_schedule_interval, api_name: historyPublishScheduleInterval, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: history_publish_time, api_name: historyPublishTime, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+      - {name: source_developer_name, api_name: sourceDeveloperName, in: body, type: string, description: "Not in the spec schema: from the MCP server's request class."}
+    columns:
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "API name of the calculated insight. Since v57.0."}
+      - {name: calculated_insight_status, api_name: calculatedInsightStatus, type: VARCHAR, description: "Status of the calculated insight. Since v57.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the calculated insight. Since v57.0."}
+      - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Data space of the calculated insight. Since v57.0."}
+      - {name: definition_status, api_name: definitionStatus, type: VARCHAR, description: "Definition status of the calculated insight. Since v57.0."}
+      - {name: definition_type, api_name: definitionType, type: VARCHAR, description: "Definition type of the calculated insight. Since v57.0."}
+      - {name: description, type: VARCHAR, description: "Description of the calculated insight. Since v57.0."}
+      - {name: dimensions, type: JSON, array: 1, schema: CdpCalculatedInsightDimensionRepresentation, description: "Dimensions of the calculated insight. Since v57.0."}
+      - {name: display_name, api_name: displayName, type: VARCHAR, description: "Display name of the calculated insight. Since v57.0."}
+      - {name: expression, type: VARCHAR, description: "Expression of the calculated insight. Since v57.0."}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Specifies whether the calculated insight is enabled (`true`) or not (`false`). Since v57.0."}
+      - {name: last_calc_insight_status_date_time, api_name: lastCalcInsightStatusDateTime, type: VARCHAR, description: "Last calculated insight status date and time. Since v57.0."}
+      - {name: last_calc_insight_status_error_code, api_name: lastCalcInsightStatusErrorCode, type: VARCHAR, description: "Last calculated insight status error code. Since v57.0."}
+      - {name: last_run_date_time, api_name: lastRunDateTime, type: VARCHAR, description: "Last run date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status, api_name: lastRunStatus, type: VARCHAR, description: "Last run status of the calculated insight. Since v57.0."}
+      - {name: last_run_status_date_time, api_name: lastRunStatusDateTime, type: VARCHAR, description: "Last run status date and time of the calculated insight. Since v57.0."}
+      - {name: last_run_status_error_code, api_name: lastRunStatusErrorCode, type: VARCHAR, description: "Last run status error code of the calculated insight. Since v57.0."}
+      - {name: measures, type: JSON, array: 1, schema: CdpCalculatedInsightMeasureRepresentation, description: "Measures of the calculated insight. Since v57.0."}
+      - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, type: JSON, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_interval, api_name: publishScheduleInterval, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+      - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpCalculatedInsightRepresentation`.
+    notes: |
+      **Done when:** `ci_get.calculated_insight_status` = `ACTIVE`. `PROCESSING` means wait ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md)). `FAILED` is terminal ([community](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts)).
+
+      **Notes:** **Insight SQL.** The [tool rules](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java):
+
+      - Columns use `table.column`, such as `ssot__Individual__dlm.ssot__Id__c`.
+      - `GROUP BY` uses fully qualified names, not aliases.
+      - No `COUNT(DISTINCT ...)`. Use `APPROX_COUNT_DISTINCT()`.
+      - No subqueries or subquery aliases.
+      - No `CAST(... AS FLOAT)`. Compute raw counts and divide downstream.
+      - No `CURRENT_DATE - INTERVAL`, or any other date arithmetic.
+      - No `dimensions` or `measures` arrays. The API derives them from the expression.
+
+      **Salesforce's sources disagree on these rules:**
+
+      - The [payload example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) for the same tool uses `COUNT(DISTINCT ...)` and `CURRENT_DATE - INTERVAL 365 DAY`.
+      - The spec's own examples use `GROUP BY unified_individual__c`, an alias.
+      - The spec and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) end every alias in `__c`, and the spec's response uses those aliases as dimension and measure `api_name`s. The payload example uses `region` and `total_revenue`.
+
+      Nothing here is tested. A query that qualifies `GROUP BY`, uses `APPROX_COUNT_DISTINCT`, avoids date arithmetic and aliases to `__c` matches every source above.
+
+      **Other traps:**
+
+      - **Name.** The spec's text and the [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) need the `__cio` suffix. Yet the spec's create example sends `unified_individual_case_counts_test`, and its list example shows that insight with `__cio`. [afd360's skill](https://github.com/javrrr/afd360/blob/main/skills/afd360/SKILL.md) says the platform appends it (community), though [its code](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts) sends it. Always send it.
+      - **Required.** The spec's text says `api_name`, `display_name`, `definition_type` and `expression` are required for POST, but its flags don't mark them.
+      - **Start date.** The spec's flags always require `publish_schedule_start_date_time`. Its text requires it unless the interval is `No Schedule`, which is `NotScheduled` in the enum. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) omits it with `SYSTEM_MANAGED`, and [afd360](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts) omits it for `NotScheduled` and `SystemManaged` (community). The start must be in the future.
+      - **Interval spelling.** The spec and the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/calculatedinsight/CalculatedInsightCreateRequest.java) say `SystemManaged`. The tool text, payload example and sf-pi say `SYSTEM_MANAGED`. `Six` is every 6 hours ([community](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts)). The spec says not to use the interval with streaming insights, though the enum has `Streaming`.
+      - **Date format.** The spec's text says `yyyy-mm-dd` for both dates. Its create example sends `2025-12-11T12:00` and its update example `2025-10-20T22:00:00.000Z`. The [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/calculatedinsight/CalculatedInsightCreateRequest.java) says `yyyy-MM-ddTHH:mm` for the start and `yyyy-MM-dd` for the end.
+      - **Not in the spec.** The [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/calculatedinsight/CalculatedInsightCreateRequest.java) adds `history_publish_schedule_interval`, `history_publish_time`, `source_developer_name` and the `definition_type` values `GRAPH_METRIC` and `HISTORY_METRIC`. The [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) adds a `shouldCommitTransaction` query parameter on create, update and delete. They aren't options here.
+      - **Timing.** The POST runs SQL validation and schedule setup synchronously and commonly takes 30 to 60 s ([community](https://github.com/javrrr/data-360-sdk/blob/main/src/resources/calculated-insights.ts)). After a 30 s client timeout, a retry can hit the partially created insight ([community](https://github.com/javrrr/afd360/blob/main/src/resources/calculated-insight.ts)).
+      - **Mappings first.** The SQL is checked against each DMO's fact table, which appears after its mapping has processed data. Until then the call fails with `ENTITY_SAVE_ERROR` and `Error getting FactTable`. The same call succeeded about 90 s later ([community, one org](https://github.com/javrrr/afd360/blob/main/src/client/retry.ts)).
+      - **Existing names.** The [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) does a GET first and returns the existing insight with `_alreadyExisted`. That is wrapper behavior, not the API's.
+
+  - name: ci_run
+    method: POST
+    host: connect
+    path: /ssot/calculated-insights/{apiName}/actions/run
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Calculated-Insights/paths/~1ssot~1calculated-insights~1%7BapiName%7D~1actions~1run/post
+    tools: [d360_ci_run]
+    description: Trigger a run on a calculated insight in Data 360. This `POST` endpoint doesn't accept request parameters or a request body. Since v57.0.
+    example: CALL cdp.ci_run (api_name => 'Customer_Order_Summary__cio');
+    options:
+      - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "API name of the insight, ending in `__cio`."}
+    columns:
+      - {name: errors, type: JSON, array: 1, schema: CdpErrorRepresentation, description: "List of errors that resulted from the action. Since v57.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action was initiated successfully (`true`) or not (`false`). Since v57.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `CdpCalculatedInsightStandardActionResponseRepresentation`.
+    notes: |
+      **Done when:** `ci_get.last_run_status` = `SUCCESS`. `PENDING` and `PROCESSING` mean wait, and `FAILED` means the run failed ([kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md), one org).
+
+      **Notes:** `success = true` only means the run was initiated. Poll [`ci_get`](#ci_get), not this result. The [tool source](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java) comment says the call returns a job or run id, but the spec and the [kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md) show only `success` and `errors`.
+
+      - **One at a time.** The [kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md) says "NEVER trigger multiple CIs in parallel" and waits for `SUCCESS` before the next insight, after identity resolution has finished. Its stated reason is that "downstream depends on this one". No source says the server rejects parallel runs.
+      - **Polling.** The [kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md) waits 30 s, because a run stays `PENDING` about that long, then polls every 30 s for up to 10 min (one org). No source says whether `last_run_status` still holds the previous value right after the POST.
+      - **Retries.** On `FAILED` the kit sends the POST again, up to 3 attempts in total with 30 s between them. It doesn't retry a timeout.
+      - **Cost.** [sf-plugin-data360](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/resources/calculatedInsight.ts) marks runs as billable (community).
+      - **Body.** The spec says the call takes no body. The tool and the kit send `{}`.
+
+  - name: ci_enable
+    method: POST
+    host: connect
+    path: /ssot/calculated-insights/{ciName}/actions/enable
+    tools: [d360_ci_enable]
+    description: Enable a calculated insight. Per sf-pi, this can make it available to downstream segments and activations.
+    example: CALL cdp.ci_enable (ci_name => 'Customer_Order_Summary__cio');
+    options:
+      - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "The calculated insight API name"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Notes:** It isn't in the v68 spec. The path comes from [Salesforce's MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java), whose [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/CalculatedInsightToolsTest.java) mock HTTP, and [sf-pi's registry](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) copies it from there. [sf-pi's parity report](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/connect-openapi-parity.md) lists it as outside the OpenAPI contract. The docs index and the [Postman catalog](https://github.com/supanmaniar/salesforce-mcn-d360-agent/blob/main/catalog/endpoints.json) (community) don't list it, and no source shows a live call. [sf-plugin-data360](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) leaves it out of its supported commands (community).
+
+      No source says whether the change is immediate or how this relates to `calculated_insight_status`. `ci_get.is_enabled` is the spec's field for the enabled state.
+
+  - name: ci_disable
+    method: POST
+    host: connect
+    path: /ssot/calculated-insights/{ciName}/actions/disable
+    tools: [d360_ci_disable]
+    description: Disable a calculated insight. Per sf-pi, this can affect dependent segments and activations.
+    example: CALL cdp.ci_disable (ci_name => 'Customer_Order_Summary__cio');
+    options:
+      - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "The calculated insight API name"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Same evidence as [`ci_enable`](#ci_enable): not in the v68 spec, and no source shows a live call. No source says what happens to a segment that filters on a disabled insight."
+
+  - name: ci_run_status
+    method: POST
+    host: connect
+    path: /ssot/calculated-insights/{ciName}/actions/refresh-status
+    tools: [d360_ci_run_status]
+    description: Ask Data 360 to refresh and report a calculated insight's run status after `ci_run`.
+    example: CALL cdp.ci_run_status (ci_name => 'Customer_Order_Summary__cio');
+    options:
+      - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "The calculated insight API name"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Notes:** It isn't in the v68 spec. The path comes from [Salesforce's MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java), whose [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/CalculatedInsightToolsTest.java) mock HTTP, and [sf-pi's registry](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) copies it from there. [sf-pi's parity report](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/connect-openapi-parity.md) lists it as outside the OpenAPI contract. The docs index and the [Postman catalog](https://github.com/supanmaniar/salesforce-mcn-d360-agent/blob/main/catalog/endpoints.json) (community) don't list it, and no source shows a live call.
+
+      Prefer [`ci_get`](#ci_get) and `last_run_status`, the polling path the [kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md) uses.
+
+      [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) says this call "refreshes and returns" the run status and rates it as a safe POST, but shows no response. The spec's only sibling, `POST /ssot/data-transforms/{dataTransformNameOrId}/actions/refresh-status`, is described as refreshing the status, and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) records `{ "success": true, "errors": [] }` for it. If this endpoint matches, it returns no status at all, though no source confirms that.
+
+  - name: ci_validate
+    method: POST
+    host: connect
+    path: /ssot/calculated-insights/actions/validate
+    tools: [d360_ci_validate]
+    description: Check an insight expression before creating or updating an insight.
+    example: |
+      CALL cdp.ci_validate (
+          definition_type => 'CALCULATED_METRIC',
+          dataspace_name => 'default',
+          expression => $$
+              SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c
+              FROM Order__dlm
+              GROUP BY Order__dlm.CustomerId__c
+          $$
+      );
+    options:
+      - {name: expression, in: body, type: string, required: true, description: "Insight SQL to validate."}
+      - {name: definition_type, api_name: definitionType, in: body, type: string, enum: [CALCULATED_METRIC, EXTERNAL_METRIC, STREAMING_METRIC, GRAPH_METRIC, HISTORY_METRIC], description: "Definition type of the insight."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space."}
+      - {name: created_from_package, api_name: createdFromPackage, in: body, type: boolean, description: "Whether the insight is created from an installed package (`true`)."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: |
+      **Notes:** It isn't in the v68 spec. The path comes from [Salesforce's MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/CalculatedInsightTools.java), whose [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/CalculatedInsightToolsTest.java) mock HTTP, and [sf-pi's registry](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) copies it from there. [sf-pi's parity report](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/connect-openapi-parity.md) lists it as outside the OpenAPI contract. The docs index and the [Postman catalog](https://github.com/supanmaniar/salesforce-mcn-d360-agent/blob/main/catalog/endpoints.json) (community) don't list it, and no source shows a live call. [sf-plugin-data360](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) leaves it out of its supported commands (community).
+
+      - Attributes come from the [request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/calculatedinsight/CalculatedInsightValidateRequest.java). Only `expression` is required, so an insight doesn't need to exist yet.
+      - [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) rates this a safe POST, to use "before creating or updating". No source says which [insight SQL rules](#ci_create) it enforces, or how it reports a failure.

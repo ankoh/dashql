@@ -327,7 +327,7 @@ Run these once an org is available, read-only first. Each settles something this
 3. Do the agentic memory paths work on the tenant host? Are Create and Update Memories really the same call?
 
 **The spec:**
-4. Download the current Connect YAML in a browser and regenerate the [function reference](functions.md) from it. Check the deep links.
+4. Download the current Connect YAML in a browser and update `overlay/d360/api/` from it. Check the deep links.
 5. Run the hosted server's `search` to list its tools and fill the gap with the catalog. Read `payload_examples` for body schemas.
 6. Verify the functions outside the contract: evidence `S`, `D` and `C`, and the attributes labeled as beyond the spec, especially schemas inferred from examples.
 

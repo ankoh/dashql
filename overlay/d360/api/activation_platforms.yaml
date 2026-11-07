@@ -1,0 +1,690 @@
+title: Activation Platforms
+description: |
+  An activation platform defines a destination: its output format, attributes, identifiers and connector. An [activation target](activation_targets.md) is a configured use of a platform in a data space, and an [activation](activations.md) sends a segment to a target. So the order is platform, target, activation.
+
+  Packaged partner platforms, such as Google Ads and Meta, carry the prefix `cdpactvstrgptnr` in the spec's examples. You read those and point a target at them. You create a platform only for your own destination, such as an S3 bucket.
+
+  Things to watch:
+
+  - **Three read views.** `activation_external_platform_list` (since v64) returns destination attributes. `activation_platform_list` (since v67) returns summaries. [`activation_platform_metadata_list`](activation_targets.md#activation_platform_metadata_list) also covers built-in destinations such as Commerce Cloud. Everything else here needs v67, and DashQL calls v64 today.
+  - **Three name forms.** For Meta's platform, the spec's examples show `name` `Meta_Conversions_API`, `key_prefix_name` `cdpactvstrgptnr`, and the path form `cdpactvstrgptnr__Meta_Conversions_API`. A target's `platform_name` holds the label, such as `Google Ads Platform`.
+  - **Enum case differs.** The external family returns `ACTIVE` and `ADVERTISING`; `activation_platform_*` returns `Active` and `Advertising`.
+  - **Feature gating.** A disabled org can return 403 ([one org](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json)).
+
+  ```sql
+  /* A packaged platform: find it, then point a target at it. */
+  CALL cdp.activation_external_platform_list ();
+  CALL cdp.activation_target_create (name => 'google_ads_target', dataspace_name => 'default', platform_type => 'ExternalPlatform', connector => (name = 'PremiumPartnerGoogle', key_prefix_name = 'cdpactvstrgptnr'));
+
+  /* Your own platform, after activation_platform_create: */
+  CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+  CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+  ```
+
+functions:
+  - name: activation_platform_delete
+    method: DELETE
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D/delete
+    description: Deletes an activation platform. Returns a 412 error if the platform is referenced by activation targets or market segment activations. Since v67.0.
+    example: CALL cdp.activation_platform_delete (id_or_name => 'abc_user_identifiers');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID or API name of the activation platform."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 200). One row with only the standard columns.
+    notes: "**Notes:** The spec's description gives the 412, but its response list doesn't include it. To find blockers first, filter `activation_target_list` by `platform_name`. That column holds the platform's label, not its API name (for example `filters => 'platformName in Google Ads Platform'`)."
+
+  - name: activation_external_platform_list
+    method: GET
+    host: connect
+    path: /ssot/activation-external-platforms
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-External-Platforms/paths/~1ssot~1activation-external-platforms/get
+    description: Lists the org's activation external platforms with their status, type, namespace prefix and destination attributes. Use it to find the name and prefix that a target's connector needs.
+    example: CALL cdp.activation_external_platform_list ();
+    options:
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of external platforms to return. Values are from `1` through `20`. If unspecified, the default value is `20`. Since v64.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of external platforms to return. If unspecified, the default value is `20`. Since v64.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be greater than or equal to `0`. If unspecified, no rows are skipped. Since v64.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Order in which to sort the results based on the `created_date` field. Specify the field name followed by `asc` for ascending order or `desc` for descending order. If you specify only the field name or omit the parameter, results are sorted in ascending order. For example, `created_date asc` and `created_date` yield the same results. Since v64.0."}
+    rows: /platforms
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: attribute_config, api_name: attributeConfig, type: JSON, schema: ActivationExternalPlatformAttributeConfigRepresentation, description: "Configuration of the external platform attributes. Since v64.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type for the external platform. Since v64.0."}
+      - {name: key_prefix_name, api_name: keyPrefixName, type: VARCHAR, description: "Namespace prefix of the external platform. Since v64.0."}
+      - {name: privacy_type, api_name: privacyType, type: VARCHAR, description: "Privacy type for the external platform. Since v64.0."}
+      - {name: status, type: VARCHAR, description: "Status of the external platform. Since v64.0."}
+      - {name: type, type: VARCHAR, description: "Platform type for the external platform. Since v64.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/platforms` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ActivationExternalPlatformRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Values are uppercase here: the spec's examples show `status` `ACTIVE`, `type` `ADVERTISING`, `privacy_type` `THIRDPARTY` and `creation_type` `MANUAL` or `JSON`. Salesforce's sf-pi repo [relaxed its schema](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) because live responses used uppercase values outside the published enum (one org).
+
+      The spec's list example has no `id` in its items, so key on `name` and `key_prefix_name`. `creation_type` is absent on the packaged platform in that example, and `privacy_type` is absent on the two others. `order_by` sorts on `created_date` only.
+
+      A community guide reads the error text `CdpActivationExternalPlatform` as [the feature being gated](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud/references/feature-readiness.md) for the org or user, and advises against [retrying blindly](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-act/SKILL.md) (community). Platform connections have a [Setup page](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-browser/docs/data-cloud-destinations.md) at `/lightning/setup/ExternalActivationPlatform/home`.
+
+      A target's `connector` takes `name` and `key_prefix_name`, and `field_config` for platform fields. These appear in the spec's target examples and in the [MCP server's request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/activation/ConnectorInput.java), but `key_prefix_name` and `field_config` are missing from the spec's connector schema.
+
+  - name: activation_external_platform_get
+    method: GET
+    host: connect
+    path: /ssot/activation-external-platforms/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-External-Platforms/paths/~1ssot~1activation-external-platforms~1%7BidOrName%7D/get
+    description: Returns one external platform with its attribute configuration. Pass an event name and action source to scope the attributes to that event.
+    example: CALL cdp.activation_external_platform_get (id_or_name => '1sqxx0000000087AAA', event_name => 'Purchase', action_source => 'Website');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique identifier of a specific activation external platform, such as the ID or developer name. Since v67.0."}
+      - {name: action_source, api_name: actionSource, in: query, type: string, description: "Action source used, together with `event_name`, to scope the returned attribute configuration. Since v67.0."}
+      - {name: event_name, api_name: eventName, in: query, type: string, description: "Standard event name used, together with `action_source`, to scope the returned attribute configuration. For example, the platform's standard event. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: attribute_config, api_name: attributeConfig, type: JSON, schema: ActivationExternalPlatformAttributeConfigRepresentation, description: "Configuration of the external platform attributes. Since v64.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type for the external platform. Since v64.0."}
+      - {name: key_prefix_name, api_name: keyPrefixName, type: VARCHAR, description: "Namespace prefix of the external platform. Since v64.0."}
+      - {name: privacy_type, api_name: privacyType, type: VARCHAR, description: "Privacy type for the external platform. Since v64.0."}
+      - {name: status, type: VARCHAR, description: "Status of the external platform. Since v64.0."}
+      - {name: type, type: VARCHAR, description: "Platform type for the external platform. Since v64.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ActivationExternalPlatformRepresentation`.
+    notes: |
+      **Notes:** This is since v67, while the list is since v64. In an org with this detail disabled it [returned 403 with an error array](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json), which the spec doesn't declare (one org).
+
+      `attribute_config.attributes[].destinationName` is what an activation's `external_platform_attribute_name` refers to, going by that option's description. The scoped example also carries `valueSource` (`CONSTANT` with `values`, or `MAPPED`), which the attribute schema omits.
+
+      **Event spelling is unclear.** The scoped example shows `event_name` `AddToCart` and `action_source` `website`, while `activation_platform_event_list` returns `Add to Cart` and `activation_platform_action_source_list` returns `Website`. No source says which spelling `event_name` and `action_source` expect. The spec's `activation_platform_action_source_list` example uses `Purchase`, which avoids the question.
+
+  - name: activation_platform_list
+    method: GET
+    host: connect
+    path: /ssot/activation-platforms
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms/get
+    description: Returns a paginated list of activation platforms. Since v67.0.
+    example: CALL cdp.activation_platform_list ();
+    options:
+      - {name: activation_platform_view, api_name: activationPlatformView, in: query, type: string, enum: [All, Developer, Subscriber], description: "Set of platforms to return. If unspecified, the default value is `All`. Since v67.0."}
+      - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort expression in the form `<field_name> <ASC|DESC>`. Since v67.0."}
+    rows: /activationPlatforms
+    columns:
+      - {name: activation_platform_creation_type, api_name: activationPlatformCreationType, type: VARCHAR, description: "How the platform was created. Since v67.0."}
+      - {name: can_publish_now, api_name: canPublishNow, type: BOOLEAN, description: "Indicates whether the platform is ready to be published (`true`) or not (`false`). Since v67.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation platform is enabled (`true`) or not (`false`). Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Salesforce ID of the activation platform. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the activation platform. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "API name of the activation platform. Since v67.0."}
+      - {name: platform_processing_type, api_name: platformProcessingType, type: VARCHAR, description: "How the platform processes activations. Since v67.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Category of the activation platform. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation platform. Since v67.0."}
+    paging: {kind: offset, option: offset, size: batch_size, start: 0}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/activationPlatforms` in the response. Other response fields go to `_meta`: `batchSize`, `offset`, `totalSize`. Schema `ActivationPlatformSummaryRepresentation`."
+    notes: |
+      **Paging:** `batch_size`, `offset`.
+
+      **Notes:** `enabled` and `status` are separate: the spec's example has platforms that are enabled with status `Error`. No source defines the `Developer` and `Subscriber` views. Summaries have no `privacy_type` or `description`, so call `activation_platform_get` for those.
+
+  - name: activation_platform_get
+    method: GET
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D/get
+    description: Returns an activation platform by record ID or API name. Since v67.0.
+    example: CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID or API name of the activation platform."}
+    columns:
+      - {name: activation_flow_type, api_name: activationFlowType, type: VARCHAR, description: "Type of activation flow. Since v67.0."}
+      - {name: activation_platform_attributes, api_name: activationPlatformAttributes, type: JSON, array: 1, schema: ActivationPlatformAttributeRepresentation, description: "Activation attributes for data mapping. Since v67.0."}
+      - {name: activation_platform_creation_type, api_name: activationPlatformCreationType, type: VARCHAR, description: "How the platform was created. Since v67.0."}
+      - {name: additional_metadata, api_name: additionalMetadata, type: JSON, schema: ActivationPlatformAdditionalMetadataRepresentation, description: "Additional platform metadata, such as event configuration, mappings, and output properties. Since v67.0."}
+      - {name: can_publish_now, api_name: canPublishNow, type: BOOLEAN, description: "Indicates whether the platform is ready to be published (`true`) or not (`false`). Since v67.0."}
+      - {name: connector, type: JSON, description: "Connector configuration for S3 or OAuth. Since v67.0."}
+      - {name: connector_type, api_name: connectorType, type: VARCHAR, description: "Type of connector. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: ActivationPlatformUserRepresentation, description: "User who created the platform. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the platform was created. Since v67.0."}
+      - {name: customer_id_type_mapping, api_name: customerIdTypeMapping, type: JSON, schema: ActivationPlatformCustomerIdTypeMappingRepresentation, description: "Customer ID type mapping configuration. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation platform. Since v67.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation platform is enabled (`true`) or not (`false`). Since v67.0."}
+      - {name: error_code, api_name: errorCode, type: VARCHAR, description: "Error code returned when the status is `Error`. Since v67.0."}
+      - {name: event_parameter_hierarchy_map, api_name: eventParameterHierarchyMap, type: JSON, description: "Map of valid parameter value pairings keyed by hierarchy combination, such as `Event__ActionSource`. Since v67.0."}
+      - {name: event_parameters, api_name: eventParameters, type: JSON, array: 1, schema: ActivationEventParameterValuesRepresentation, description: "Event parameter definitions with hierarchy and allowed values. Since v67.0."}
+      - {name: external_provider, api_name: externalProvider, type: VARCHAR, description: "External provider associated with the platform. Since v67.0."}
+      - {name: fields, type: JSON, array: 1, schema: ActivationPlatformFieldRepresentation, description: "Configuration fields for the platform. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Salesforce ID of the activation platform. Since v67.0."}
+      - {name: identifiers, type: JSON, array: 1, schema: ActivationPlatformIdentifierRepresentation, description: "Platform audience identifiers. Since v67.0."}
+      - {name: include_segment_names, api_name: includeSegmentNames, type: BOOLEAN, description: "Indicates whether segment names are included in output files (`true`) or not (`false`). Since v67.0."}
+      - {name: is_strategic_partner, api_name: isStrategicPartner, type: BOOLEAN, description: "Indicates whether the platform is a strategic partner platform (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the activation platform. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: ActivationPlatformUserRepresentation, description: "User who last modified the platform. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the platform was last modified. Since v67.0."}
+      - {name: logo_url, api_name: logoUrl, type: VARCHAR, description: "URL to the platform logo for UI display. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "API name of the activation platform. Since v67.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace prefix for managed packages. Null for unmanaged. Since v67.0."}
+      - {name: notes, type: VARCHAR, description: "Additional notes or admin commentary. Since v67.0."}
+      - {name: output_format, api_name: outputFormat, type: VARCHAR, description: "Format of the output files. Since v67.0."}
+      - {name: output_grouping, api_name: outputGrouping, type: VARCHAR, description: "How output files are grouped. Since v67.0."}
+      - {name: platform_processing_type, api_name: platformProcessingType, type: VARCHAR, description: "How the platform processes activations. Since v67.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Category of the activation platform. Since v67.0."}
+      - {name: privacy_type, api_name: privacyType, type: VARCHAR, description: "Privacy classification of the platform. Since v67.0."}
+      - {name: refresh_settings, api_name: refreshSettings, type: JSON, schema: RefreshSettingsRepresentation, description: "Refresh configuration for the platform. Since v67.0."}
+      - {name: show_event_source_annotations, api_name: showEventSourceAnnotations, type: BOOLEAN, description: "Indicates whether event source annotations are shown in the UI (`true`) or not (`false`). Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation platform. Since v67.0."}
+      - {name: supported_event_types, api_name: supportedEventTypes, type: JSON, description: "Supported event types for streaming platforms. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ActivationPlatformRepresentation`.
+    notes: "**Notes:** Enum values, from the spec: `status` is `Active`, `Error` or `Processing`; `privacy_type` is `NotApplicable`, `ServiceProvider`, `ThirdParty` or `UpdateFailed`, and null after create in the examples; `connector_type` is `Oauth` or `S3`. The response has no `custom_metadata`, and the example `connector` holds only `bucket_name`, `exportDirectory` and `id`, so credentials don't come back."
+
+  - name: activation_platform_action_source_list
+    method: GET
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/metadata/action-sources
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1metadata~1action-sources/get
+    description: Returns the action sources valid for an event on the platform. Use it after activation_platform_event_list, to pick the pairing that scopes activation_external_platform_get.
+    example: CALL cdp.activation_platform_action_source_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API', event_name => 'Purchase');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "15- or 18-character ID or API name of the activation platform. Since v67.0."}
+      - {name: event_name, api_name: eventName, in: query, type: string, required: true, description: "Name of the event whose action sources to return. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: page_size, api_name: pageSize, in: query, type: integer, description: "Maximum number of action sources to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+    rows: /actionSources
+    columns:
+      - {name: name, type: VARCHAR, description: "Name of the action source, such as Website, App, or Offline. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/actionSources` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ActionSourceRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Names are display text, not codes. The spec's example returns `Business Messaging - WhatsApp`, `Phone Call`, `Physical Store` and `Website`, not the `App` and `Offline` its description mentions. Its path uses the prefixed name.
+
+  - name: activation_platform_event_list
+    method: GET
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/metadata/events
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1metadata~1events/get
+    description: Returns the standard event names configured for the activation platform's streaming metadata, such as Purchase or AddToCart. Since v67.0.
+    example: CALL cdp.activation_platform_event_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "15- or 18-character ID or API name of the activation platform. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: page_size, api_name: pageSize, in: query, type: integer, description: "Maximum number of events to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+    rows: /events
+    columns:
+      - {name: name, type: VARCHAR, description: "Name of the event, such as Purchase or AddToCart. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/events` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `EventRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The description says `AddToCart`, but the spec's example returns `Add to Cart` and `CRM - Lead Record Change Events`, so names can contain spaces. This reads streaming metadata. No source says what a batch platform returns.
+
+  - name: activation_platform_partner_object_type_list
+    method: GET
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/metadata/partner-object-types
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1metadata~1partner-object-types/get
+    description: Returns the partner-object types valid for the activation platform, such as Pixel, App, or ConversionRule, each with a display label. Since v67.0.
+    example: CALL cdp.activation_platform_partner_object_type_list (id_or_name => 'cdpactvstrgptnr__LinkedInPlatform');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "15- or 18-character ID or API name of the activation platform. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: page_size, api_name: pageSize, in: query, type: integer, description: "Maximum number of partner-object types to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
+    rows: /partnerObjectTypes
+    columns:
+      - {name: label, type: VARCHAR, description: "Display label for the partner-object type. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Partner-object type identifier, such as Pixel, App, or ConversionRule. Values are partner-defined. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/partnerObjectTypes` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `PartnerObjectTypeRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** `type` is the value to pass to `activation_target_partner_object_list.partner_object_type`. The spec calls the values partner-defined here but gives that option a closed enum: `App`, `ConversionRule`, `CrmEventSet`, `MobileApp`, `OfflineEventSet`, `Pixel`.
+
+  - name: activation_platform_update
+    method: PATCH
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D/patch
+    description: Updates an activation platform by record ID or API name. Only the fields you provide are modified. Since v67.0.
+    example: CALL cdp.activation_platform_update (id_or_name => 'abc_user_identifiers', description => 'Activates only user identifiers', refresh_settings => (mode = 'Incremental', frequency = 'TwentyFourHours', periodic_full_refresh = 'Every30Days'));
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID or API name of the activation platform."}
+      - {name: activation_platform_attributes, api_name: activationPlatformAttributes, in: body, schema: ActivationPlatformAttributeInputRepresentation, array: 1, description: "Activation attributes for data mapping. Replaces the full set. Any existing attributes not included are removed. Since v67.0."}
+      - {name: additional_metadata, api_name: additionalMetadata, in: body, schema: ActivationPlatformAdditionalMetadataInputRepresentation, description: "Additional platform metadata, such as event configuration, mappings, and output properties. Since v67.0."}
+      - {name: connector, in: body, map: true, type: string, description: "Connector configuration as key-value string pairs. Since v67.0."}
+      - {name: custom_metadata, api_name: customMetadata, in: body, schema: ActivationPlatformCustomMetadataInputRepresentation, description: "Connector credentials for toolkit-created platforms. Since v67.0."}
+      - {name: description, in: body, type: string, description: "Description of the activation platform. Since v67.0."}
+      - {name: fields, in: body, schema: ActivationPlatformFieldInputRepresentation, array: 1, description: "Configuration fields for the platform. Replaces the full set. Any existing fields not included are removed. Since v67.0."}
+      - {name: identifiers, in: body, schema: ActivationPlatformIdentifierInputRepresentation, array: 1, description: "Platform audience identifiers. Replaces the full set. Any existing identifiers not included are removed. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Display label of the activation platform. Since v67.0."}
+      - {name: logo_url, api_name: logoUrl, in: body, type: string, description: "URL to the platform logo. Since v67.0."}
+      - {name: output_format, api_name: outputFormat, in: body, type: string, enum: [Csv, Json, Parquet], description: "Format of the output files. Since v67.0."}
+      - {name: output_grouping, api_name: outputGrouping, in: body, type: string, enum: [PerAccount, PerSegment], description: "How output files are grouped. Since v67.0."}
+      - {name: platform_processing_type, api_name: platformProcessingType, in: body, type: string, enum: [Batch, Streaming], description: "How the platform processes activations. Since v67.0."}
+      - {name: refresh_settings, api_name: refreshSettings, in: body, schema: RefreshSettingsInputRepresentation, description: "Refresh configuration for the platform. Since v67.0."}
+    columns:
+      - {name: activation_flow_type, api_name: activationFlowType, type: VARCHAR, description: "Type of activation flow. Since v67.0."}
+      - {name: activation_platform_attributes, api_name: activationPlatformAttributes, type: JSON, array: 1, schema: ActivationPlatformAttributeRepresentation, description: "Activation attributes for data mapping. Since v67.0."}
+      - {name: activation_platform_creation_type, api_name: activationPlatformCreationType, type: VARCHAR, description: "How the platform was created. Since v67.0."}
+      - {name: additional_metadata, api_name: additionalMetadata, type: JSON, schema: ActivationPlatformAdditionalMetadataRepresentation, description: "Additional platform metadata, such as event configuration, mappings, and output properties. Since v67.0."}
+      - {name: can_publish_now, api_name: canPublishNow, type: BOOLEAN, description: "Indicates whether the platform is ready to be published (`true`) or not (`false`). Since v67.0."}
+      - {name: connector, type: JSON, description: "Connector configuration for S3 or OAuth. Since v67.0."}
+      - {name: connector_type, api_name: connectorType, type: VARCHAR, description: "Type of connector. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: ActivationPlatformUserRepresentation, description: "User who created the platform. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the platform was created. Since v67.0."}
+      - {name: customer_id_type_mapping, api_name: customerIdTypeMapping, type: JSON, schema: ActivationPlatformCustomerIdTypeMappingRepresentation, description: "Customer ID type mapping configuration. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation platform. Since v67.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation platform is enabled (`true`) or not (`false`). Since v67.0."}
+      - {name: error_code, api_name: errorCode, type: VARCHAR, description: "Error code returned when the status is `Error`. Since v67.0."}
+      - {name: event_parameter_hierarchy_map, api_name: eventParameterHierarchyMap, type: JSON, description: "Map of valid parameter value pairings keyed by hierarchy combination, such as `Event__ActionSource`. Since v67.0."}
+      - {name: event_parameters, api_name: eventParameters, type: JSON, array: 1, schema: ActivationEventParameterValuesRepresentation, description: "Event parameter definitions with hierarchy and allowed values. Since v67.0."}
+      - {name: external_provider, api_name: externalProvider, type: VARCHAR, description: "External provider associated with the platform. Since v67.0."}
+      - {name: fields, type: JSON, array: 1, schema: ActivationPlatformFieldRepresentation, description: "Configuration fields for the platform. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Salesforce ID of the activation platform. Since v67.0."}
+      - {name: identifiers, type: JSON, array: 1, schema: ActivationPlatformIdentifierRepresentation, description: "Platform audience identifiers. Since v67.0."}
+      - {name: include_segment_names, api_name: includeSegmentNames, type: BOOLEAN, description: "Indicates whether segment names are included in output files (`true`) or not (`false`). Since v67.0."}
+      - {name: is_strategic_partner, api_name: isStrategicPartner, type: BOOLEAN, description: "Indicates whether the platform is a strategic partner platform (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the activation platform. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: ActivationPlatformUserRepresentation, description: "User who last modified the platform. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the platform was last modified. Since v67.0."}
+      - {name: logo_url, api_name: logoUrl, type: VARCHAR, description: "URL to the platform logo for UI display. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "API name of the activation platform. Since v67.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace prefix for managed packages. Null for unmanaged. Since v67.0."}
+      - {name: notes, type: VARCHAR, description: "Additional notes or admin commentary. Since v67.0."}
+      - {name: output_format, api_name: outputFormat, type: VARCHAR, description: "Format of the output files. Since v67.0."}
+      - {name: output_grouping, api_name: outputGrouping, type: VARCHAR, description: "How output files are grouped. Since v67.0."}
+      - {name: platform_processing_type, api_name: platformProcessingType, type: VARCHAR, description: "How the platform processes activations. Since v67.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Category of the activation platform. Since v67.0."}
+      - {name: privacy_type, api_name: privacyType, type: VARCHAR, description: "Privacy classification of the platform. Since v67.0."}
+      - {name: refresh_settings, api_name: refreshSettings, type: JSON, schema: RefreshSettingsRepresentation, description: "Refresh configuration for the platform. Since v67.0."}
+      - {name: show_event_source_annotations, api_name: showEventSourceAnnotations, type: BOOLEAN, description: "Indicates whether event source annotations are shown in the UI (`true`) or not (`false`). Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation platform. Since v67.0."}
+      - {name: supported_event_types, api_name: supportedEventTypes, type: JSON, description: "Supported event types for streaming platforms. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationPlatformRepresentation`.
+    notes: |
+      **Done when:** `activation_platform_get.status` leaves `Processing` for `Active` or `Error`. This is read from the status enum and the spec's example responses; no source documents the timing.
+
+      **Notes:** `activation_platform_attributes`, `fields` and `identifiers` replace the full set, so read with `activation_platform_get` and send everything back, or the rest is removed. There are no options for `name`, `platform_type` or `activation_flow_type`. `platform_processing_type` can be set here but not on create. The spec's example response keeps the attribute names it was sent, and shows `status` `Processing` and `enabled` `false`.
+
+  - name: activation_platform_create
+    method: POST
+    host: connect
+    path: /ssot/activation-platforms
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms/post
+    description: Creates an activation platform. Since v67.0.
+    example: |
+      CALL cdp.activation_platform_create (
+        name => 'abc_user_identifiers',
+        label => 'abc-user-identifiers',
+        description => 'Activates only user identifiers',
+        platform_type => 'Advertising',
+        output_format => 'Csv',
+        output_grouping => 'PerAccount',
+        refresh_settings => (mode = 'Full', frequency = 'TwentyFourHours'),
+        connector => (bucketName = 'example-bucket', exportDirectory = 'datacloud-activations'),
+        custom_metadata => (connector_type = 'S3', access_key = :s3_access_key, secret_key = :s3_secret_key),
+        activation_platform_attributes => [(name = 'EmailAddress', label = 'Hashed Email', destination_name = 'EmailAddress', object_name = 'ContactPointEmail', field_name = 'Email', is_required = true, apply_hash = true, is_identifier = true)],
+        fields => [(name = 'AccountId', is_required = true, is_hidden = false, type = 'Text')],
+        additional_metadata => (hash_method = 'SHA256')
+      );
+    options:
+      - {name: activation_flow_type, api_name: activationFlowType, in: body, type: string, enum: [Dmo, Segment], description: "Type of activation flow. Since v67.0."}
+      - {name: activation_platform_attributes, api_name: activationPlatformAttributes, in: body, schema: ActivationPlatformAttributeInputRepresentation, array: 1, description: "Activation attributes for data mapping. Since v67.0."}
+      - {name: additional_metadata, api_name: additionalMetadata, in: body, schema: ActivationPlatformAdditionalMetadataInputRepresentation, description: "Additional platform metadata, such as event configuration, mappings, and output properties. Since v67.0."}
+      - {name: connector, in: body, map: true, type: string, description: "Connector configuration as key-value string pairs, such as `bucket_name` and `exportDirectory`. Since v67.0."}
+      - {name: custom_metadata, api_name: customMetadata, in: body, schema: ActivationPlatformCustomMetadataInputRepresentation, description: "Connector credentials for toolkit-created platforms. Since v67.0."}
+      - {name: description, in: body, type: string, required: true, description: "Description of the activation platform. Since v67.0."}
+      - {name: fields, in: body, schema: ActivationPlatformFieldInputRepresentation, array: 1, description: "Configuration fields for the platform. Since v67.0."}
+      - {name: identifiers, in: body, schema: ActivationPlatformIdentifierInputRepresentation, array: 1, description: "Platform audience identifiers. Since v67.0."}
+      - {name: label, in: body, type: string, required: true, description: "Display label of the activation platform. Since v67.0."}
+      - {name: logo_url, api_name: logoUrl, in: body, type: string, description: "URL to the platform logo. Since v67.0."}
+      - {name: name, in: body, type: string, required: true, description: "API name of the activation platform. Since v67.0."}
+      - {name: output_format, api_name: outputFormat, in: body, type: string, enum: [Csv, Json, Parquet], required: true, description: "Format of the output files. Since v67.0."}
+      - {name: output_grouping, api_name: outputGrouping, in: body, type: string, enum: [PerAccount, PerSegment], required: true, description: "How output files are grouped. Since v67.0."}
+      - {name: platform_type, api_name: platformType, in: body, type: string, enum: [Advertising, Analytics, Marketing, Publishing, Technology], required: true, description: "Category of the activation platform. Since v67.0."}
+      - {name: refresh_settings, api_name: refreshSettings, in: body, schema: RefreshSettingsInputRepresentation, required: true, description: "Refresh configuration for the platform. Since v67.0."}
+    columns:
+      - {name: activation_flow_type, api_name: activationFlowType, type: VARCHAR, description: "Type of activation flow. Since v67.0."}
+      - {name: activation_platform_attributes, api_name: activationPlatformAttributes, type: JSON, array: 1, schema: ActivationPlatformAttributeRepresentation, description: "Activation attributes for data mapping. Since v67.0."}
+      - {name: activation_platform_creation_type, api_name: activationPlatformCreationType, type: VARCHAR, description: "How the platform was created. Since v67.0."}
+      - {name: additional_metadata, api_name: additionalMetadata, type: JSON, schema: ActivationPlatformAdditionalMetadataRepresentation, description: "Additional platform metadata, such as event configuration, mappings, and output properties. Since v67.0."}
+      - {name: can_publish_now, api_name: canPublishNow, type: BOOLEAN, description: "Indicates whether the platform is ready to be published (`true`) or not (`false`). Since v67.0."}
+      - {name: connector, type: JSON, description: "Connector configuration for S3 or OAuth. Since v67.0."}
+      - {name: connector_type, api_name: connectorType, type: VARCHAR, description: "Type of connector. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: ActivationPlatformUserRepresentation, description: "User who created the platform. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the platform was created. Since v67.0."}
+      - {name: customer_id_type_mapping, api_name: customerIdTypeMapping, type: JSON, schema: ActivationPlatformCustomerIdTypeMappingRepresentation, description: "Customer ID type mapping configuration. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the activation platform. Since v67.0."}
+      - {name: enabled, type: BOOLEAN, description: "Indicates whether the activation platform is enabled (`true`) or not (`false`). Since v67.0."}
+      - {name: error_code, api_name: errorCode, type: VARCHAR, description: "Error code returned when the status is `Error`. Since v67.0."}
+      - {name: event_parameter_hierarchy_map, api_name: eventParameterHierarchyMap, type: JSON, description: "Map of valid parameter value pairings keyed by hierarchy combination, such as `Event__ActionSource`. Since v67.0."}
+      - {name: event_parameters, api_name: eventParameters, type: JSON, array: 1, schema: ActivationEventParameterValuesRepresentation, description: "Event parameter definitions with hierarchy and allowed values. Since v67.0."}
+      - {name: external_provider, api_name: externalProvider, type: VARCHAR, description: "External provider associated with the platform. Since v67.0."}
+      - {name: fields, type: JSON, array: 1, schema: ActivationPlatformFieldRepresentation, description: "Configuration fields for the platform. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Salesforce ID of the activation platform. Since v67.0."}
+      - {name: identifiers, type: JSON, array: 1, schema: ActivationPlatformIdentifierRepresentation, description: "Platform audience identifiers. Since v67.0."}
+      - {name: include_segment_names, api_name: includeSegmentNames, type: BOOLEAN, description: "Indicates whether segment names are included in output files (`true`) or not (`false`). Since v67.0."}
+      - {name: is_strategic_partner, api_name: isStrategicPartner, type: BOOLEAN, description: "Indicates whether the platform is a strategic partner platform (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the activation platform. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: ActivationPlatformUserRepresentation, description: "User who last modified the platform. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the platform was last modified. Since v67.0."}
+      - {name: logo_url, api_name: logoUrl, type: VARCHAR, description: "URL to the platform logo for UI display. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "API name of the activation platform. Since v67.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace prefix for managed packages. Null for unmanaged. Since v67.0."}
+      - {name: notes, type: VARCHAR, description: "Additional notes or admin commentary. Since v67.0."}
+      - {name: output_format, api_name: outputFormat, type: VARCHAR, description: "Format of the output files. Since v67.0."}
+      - {name: output_grouping, api_name: outputGrouping, type: VARCHAR, description: "How output files are grouped. Since v67.0."}
+      - {name: platform_processing_type, api_name: platformProcessingType, type: VARCHAR, description: "How the platform processes activations. Since v67.0."}
+      - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Category of the activation platform. Since v67.0."}
+      - {name: privacy_type, api_name: privacyType, type: VARCHAR, description: "Privacy classification of the platform. Since v67.0."}
+      - {name: refresh_settings, api_name: refreshSettings, type: JSON, schema: RefreshSettingsRepresentation, description: "Refresh configuration for the platform. Since v67.0."}
+      - {name: show_event_source_annotations, api_name: showEventSourceAnnotations, type: BOOLEAN, description: "Indicates whether event source annotations are shown in the UI (`true`) or not (`false`). Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the activation platform. Since v67.0."}
+      - {name: supported_event_types, api_name: supportedEventTypes, type: JSON, description: "Supported event types for streaming platforms. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActivationPlatformRepresentation`.
+    notes: |
+      **Done when:** `activation_platform_get.status` leaves `Processing` for `Active` or `Error`. This is read from the status enum and the spec's example responses; no source documents the timing. Publish once `can_publish_now` is `true`.
+
+      **Notes:** **The spec's example has literal credentials.**
+
+      The server renames children. The spec's example sends attribute `EmailAddress` and field `AccountId`, and gets back generated names such as `abc_user_identifiers1786035439839`, with `AccountId` kept as the `label`. Read the names back before an update.
+
+      The new platform comes back with `status` `Processing`, `enabled` `false` and `can_publish_now` `false`. Publish sets it active. No source gives the order of publish and enable. There's no privacy option: use `activation_platform_privacy_type_set`.
+
+      A platform's `fields` are the configuration a target fills in through `connector.fieldConfig.fields`, and `activation_target_platform_field_list` lists them. The spec's target example sends `AccountId`; no source says if it matches the label or the generated name.
+
+      The [Metadata API `ActivationPlatform` type](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_activationplatform.htm), another way to ship a platform, disagrees with the spec. It lists a `PER_USER` grouping that the spec lacks, and only `TWENTY_FOUR` for refresh frequency, where the spec also has `FourHours` and `TwelveHours`.
+
+  - name: activation_platform_disable
+    method: POST
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/actions/disable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1disable/post
+    description: Disables an activation platform. Since v67.0.
+    example: CALL cdp.activation_platform_disable (id_or_name => 'abc_user_identifiers');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** The spec doesn't say what this does to existing targets and activations."
+
+  - name: activation_platform_enable
+    method: POST
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/actions/enable
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1enable/post
+    description: Enables an activation platform. Since v67.0.
+    example: CALL cdp.activation_platform_enable (id_or_name => 'abc_user_identifiers');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+
+  - name: activation_platform_publish
+    method: POST
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/actions/publish
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1publish/post
+    description: Publishes an activation platform and sets its status to active. Since v67.0.
+    example: CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID (18-character) or API name of the activation platform to publish. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: |
+      **Done when:** `activation_platform_get.status` is `Active`, which the spec says publish sets. `success` and `message` report the call itself.
+
+      **Notes:** Check `activation_platform_get.can_publish_now` first. The spec doesn't say what publishing a platform with `can_publish_now` `false` returns.
+
+  - name: activation_platform_sync_retry
+    method: POST
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/actions/retry-sync
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1retry-sync/post
+    description: Retries the sync operation for an activation platform that previously failed. Since v67.0.
+    example: CALL cdp.activation_platform_sync_retry (id_or_name => 'abc_user_identifiers');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: |
+      **Done when:** `activation_platform_get.status` leaves `Processing` for `Active` or `Error`. This is read from the status enum and the spec's example responses; no source documents the timing.
+
+      **Notes:** Use it when `activation_platform_get.status` is `Error`; `error_code` holds the cause. The spec's example platform `PremiumPartnerGoogle` is in this state while `enabled` is `true`.
+
+  - name: activation_platform_privacy_type_set
+    method: POST
+    host: connect
+    path: /ssot/activation-platforms/{idOrName}/actions/set-privacy-type
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1set-privacy-type/post
+    description: Sets the privacy type classification for an activation platform. Since v67.0.
+    example: CALL cdp.activation_platform_privacy_type_set (id_or_name => 'abc_user_identifiers', privacy_type => 'NotApplicable');
+    options:
+      - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
+      - {name: privacy_type, api_name: privacyType, in: body, type: string, enum: [ThirdParty, ServiceProvider, UpdateFailed, NotApplicable], required: true, description: "Privacy type classification for the platform. Since v67.0."}
+    columns:
+      - {name: message, type: VARCHAR, description: "Human-readable status or warning message. Can be null on success. Since v67.0."}
+      - {name: success, type: BOOLEAN, description: "Indicates whether the action completed successfully (`true`) or not (`false`). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ActionResultRepresentation`.
+    notes: "**Notes:** A target's `platform_privacy_type` is derived from this value (spec). `UpdateFailed` is in the accepted enum, and no source says what setting it means. The external family returns the same concept in uppercase (`THIRDPARTY`)."
+
+schemas:
+  ActivationEventParameterHierarchyCombinationInputRepresentation:
+    description: Represents the input for a key-values pair within a hierarchy combination.
+    attributes:
+      - {name: key, type: string, required: true, description: "Parameter value key, such as `Purchase`. Since v67.0."}
+      - {name: values, array: 1, type: string, description: "Valid child parameter values for the key. Since v67.0."}
+
+  ActivationEventParameterHierarchyInputRepresentation:
+    description: Represents the input for a hierarchy combination.
+    attributes:
+      - {name: hierarchy_combination, api_name: hierarchyCombination, type: string, required: true, description: "Combination key, such as `Event__ActionSource`. Since v67.0."}
+      - {name: hierarchy_combination_data, api_name: hierarchyCombinationData, schema: ActivationEventParameterHierarchyCombinationInputRepresentation, array: 1, description: "Valid value pairings for the combination. Since v67.0."}
+
+  ActivationEventParameterInputRepresentation:
+    description: Represents the input for an event parameter reference.
+    attributes:
+      - {name: name, type: string, required: true, description: "Parameter value name, such as `Purchase` or `Website`. Since v67.0."}
+      - {name: sub_event_parameter, api_name: subEventParameter, schema: ActivationEventParameterInputRepresentation, description: "Nested event parameter reference for the next level in the hierarchy. Since v67.0."}
+      - {name: type, type: string, enum: [ActionSource, Event], required: true, description: "Type of event parameter. Since v67.0."}
+
+  ActivationEventParameterValuesInputRepresentation:
+    description: Represents the input for an event parameter definition.
+    attributes:
+      - {name: hierarchy, type: integer, description: "Hierarchy level, starting at 1. Since v67.0."}
+      - {name: name, type: string, required: true, description: "Parameter name, such as `Event` or `Action Source`. Since v67.0."}
+      - {name: type, type: string, enum: [ActionSource, Event], required: true, description: "Type of event parameter. Since v67.0."}
+      - {name: values, array: 1, type: string, description: "Allowed values for the parameter. Since v67.0."}
+
+  ActivationMappingSchemaInputRepresentation:
+    description: Represents the input for a mapping schema.
+    attributes:
+      - {name: description, type: string, description: "Description of the mapping schema. Since v67.0."}
+      - {name: icon, type: string, description: "Icon identifier. Since v67.0."}
+      - {name: is_default, api_name: isDefault, type: boolean, description: "Indicates whether the schema is the default mapping schema (`true`) or not (`false`). Since v67.0."}
+      - {name: name, type: string, required: true, description: "Name of the mapping schema. Since v67.0."}
+      - {name: title, type: string, description: "Display title. Since v67.0."}
+
+  ActivationPlatformAdditionalMetadataInputRepresentation:
+    description: Represents the input for additional platform metadata, such as event configuration, mappings, and output properties.
+    attributes:
+      - {name: activation_platform_event_metadata, api_name: activationPlatformEventMetadata, schema: ActivationPlatformEventMetadataInputRepresentation, description: "Event metadata configuration. Since v67.0."}
+      - {name: custom_attribute_prefix, api_name: customAttributePrefix, type: string, description: "Prefix for custom attributes, such as `custom__`. Since v67.0."}
+      - {name: customer_file_sources, api_name: customerFileSources, array: 1, type: string, description: "Customer file source types, such as `FirstParty`, `ThirdParty`, or `FirstPartyAndThirdParty`. Since v67.0."}
+      - {name: hash_method, api_name: hashMethod, type: string, description: "Hash method applied to identifiers. Since v67.0."}
+      - {name: mapping_schemas, api_name: mappingSchemas, schema: ActivationMappingSchemaInputRepresentation, array: 1, description: "Available mapping schemas for the platform. Since v67.0."}
+      - {name: output_properties, api_name: outputProperties, schema: ActivationPlatformOutputPropertiesInputRepresentation, description: "File output configuration properties. Since v67.0."}
+      - {name: partner_supported_ids, api_name: partnerSupportedIds, schema: ActivationPlatformPartnerSupportedIdInputRepresentation, array: 1, description: "Partner-supported identifier types per destination. Since v67.0."}
+
+  ActivationPlatformAttributeInputRepresentation:
+    description: Represents the input for an activation attribute.
+    attributes:
+      - {name: apply_hash, api_name: applyHash, type: boolean, description: "Indicates whether hashing is applied to the attribute (`true`) or not (`false`). Since v67.0."}
+      - {name: destination_name, api_name: destinationName, type: string, description: "Destination name for the attribute. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: string, description: "Source field name. Since v67.0."}
+      - {name: is_identifier, api_name: isIdentifier, type: boolean, description: "Indicates whether the attribute is an identifier (`true`) or not (`false`). Since v67.0."}
+      - {name: is_required, api_name: isRequired, type: boolean, required: true, description: "Indicates whether the attribute is required (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: string, description: "Attribute display label. Since v67.0."}
+      - {name: name, type: string, required: true, description: "Attribute name. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: string, description: "Source object name. Since v67.0."}
+      - {name: value, type: string, description: "Constant value for the attribute. Since v67.0."}
+
+  ActivationPlatformAttributeSystemMapCriteriaInputRepresentation:
+    description: Represents the input for system-mapped attribute criteria.
+    attributes:
+      - {name: data_type, api_name: dataType, type: string, required: true, description: "Data type of the mapped field. Since v67.0."}
+      - {name: destination_name, api_name: destinationName, type: string, required: true, description: "Destination attribute name. Since v67.0."}
+      - {name: source_mapping_field, api_name: sourceMappingField, type: string, required: true, description: "Source field to auto-map from, such as `commit_timestamp`. Since v67.0."}
+      - {name: supported_dmo_types, api_name: supportedDMOTypes, array: 1, type: string, description: "Data model object (DMO) types that support the system mapping, such as `Profile`. Since v67.0."}
+
+  ActivationPlatformCustomEventInputRepresentation:
+    description: Represents the input for custom event details.
+    attributes:
+      - {name: attribute_mapping_info, api_name: attributeMappingInfo, schema: ActivationPlatformEventAttributeMappingInputRepresentation, array: 1, description: "Attribute mapping rules for custom events. Since v67.0."}
+      - {name: attributes_override, api_name: attributesOverride, schema: ActivationPlatformEventAttributeOverrideInputRepresentation, description: "Attribute override categorization for custom events. Since v67.0."}
+
+  ActivationPlatformCustomMetadataInputRepresentation:
+    description: Represents the connector credentials for toolkit-created activation platforms. The required fields depend on the connector type. For example, S3 requires `access_key` and `secret_key`.
+    attributes:
+      - {name: access_key, api_name: accessKey, type: string, description: "Access key for the connector. Required for S3. Since v67.0."}
+      - {name: connector_type, api_name: connectorType, type: string, required: true, description: "Connector type, such as `S3`, `Sftp`, or `AzureBlob`. Since v67.0."}
+      - {name: secret_key, api_name: secretKey, type: string, description: "Secret key for the connector. Required for S3. Since v67.0."}
+
+  ActivationPlatformEventAttributeInputRepresentation:
+    description: Represents the input for a destination attribute with an optional constant value.
+    attributes:
+      - {name: destination_name, api_name: destinationName, type: string, required: true, description: "Destination attribute name. Since v67.0."}
+      - {name: value, type: string, description: "Constant value. Null if mapped dynamically. Since v67.0."}
+
+  ActivationPlatformEventAttributeMappingInputRepresentation:
+    description: Represents the input for an attribute mapping rule.
+    attributes:
+      - {name: attributes_override, api_name: attributesOverride, schema: ActivationPlatformEventAttributeOverrideInputRepresentation, description: "Attribute override categorization for the mapping. Since v67.0."}
+      - {name: event_parameter, api_name: eventParameter, schema: ActivationEventParameterInputRepresentation, description: "Event parameter reference for the mapping. Since v67.0."}
+      - {name: key, type: string, required: true, description: "Mapping key, such as `Purchase__Website` or `Global`. Since v67.0."}
+      - {name: reference_attributes, api_name: referenceAttributes, array: 1, type: string, description: "Keys of parent mappings whose attributes are inherited. Since v67.0."}
+
+  ActivationPlatformEventAttributeOverrideInputRepresentation:
+    description: Represents the input for attribute override categorization.
+    attributes:
+      - {name: exclude, schema: ActivationPlatformEventAttributeInputRepresentation, array: 1, description: "Excluded attributes for this context. Since v67.0."}
+      - {name: identifiers, schema: ActivationPlatformEventAttributeInputRepresentation, array: 1, description: "Identifier attributes for this context. Since v67.0."}
+      - {name: optional, schema: ActivationPlatformEventAttributeInputRepresentation, array: 1, description: "Optional attributes for this context. Since v67.0."}
+      - {name: required, schema: ActivationPlatformEventAttributeInputRepresentation, array: 1, description: "Required attributes for this context. Since v67.0."}
+      - {name: system_mapping_attributes, api_name: systemMappingAttributes, schema: ActivationPlatformAttributeSystemMapCriteriaInputRepresentation, array: 1, description: "System-mapped attributes with auto-population criteria. Since v67.0."}
+
+  ActivationPlatformEventMetadataInputRepresentation:
+    description: Represents the input for event metadata configuration.
+    attributes:
+      - {name: custom_event_details, api_name: customEventDetails, schema: ActivationPlatformCustomEventInputRepresentation, description: "Custom event details with attribute overrides. Since v67.0."}
+      - {name: show_event_source_annotations, api_name: showEventSourceAnnotations, type: boolean, description: "Indicates whether event source annotations are shown in the UI (`true`) or not (`false`). Since v67.0."}
+      - {name: standard_event_details, api_name: standardEventDetails, schema: ActivationPlatformStandardEventInputRepresentation, description: "Standard event details, including event parameters, hierarchy, and attribute mapping info. Since v67.0."}
+      - {name: supported_event_types, api_name: supportedEventTypes, array: 1, type: string, description: "Supported event types, such as `Standard` and `Custom`. Since v67.0."}
+
+  ActivationPlatformFieldInputRepresentation:
+    description: Represents the input for a configuration field.
+    attributes:
+      - {name: help_text, api_name: helpText, type: string, description: "Help text for the field. Since v67.0."}
+      - {name: is_hidden, api_name: isHidden, type: boolean, description: "Indicates whether the field is hidden in the UI (`true`) or not (`false`). Since v67.0."}
+      - {name: is_required, api_name: isRequired, type: boolean, required: true, description: "Indicates whether the field is required (`true`) or not (`false`). Since v67.0."}
+      - {name: label, type: string, description: "Field display label. Since v67.0."}
+      - {name: name, type: string, required: true, description: "Field API name. Since v67.0."}
+      - {name: type, type: string, enum: [Date, Number, Text], required: true, description: "Data type of the field. Since v67.0."}
+      - {name: values, schema: ActivationPlatformFieldValueInputRepresentation, array: 1, description: "Allowed values for picklist fields. The spec's output schema says exactly one value must have `is_default` set to `true`. Since v67.0."}
+
+  ActivationPlatformFieldValueInputRepresentation:
+    description: Represents the input for a field picklist value.
+    attributes:
+      - {name: is_default, api_name: isDefault, type: boolean, description: "Indicates whether the value is the default value (`true`) or not (`false`). Since v67.0."}
+      - {name: value, type: string, description: "Picklist value. Since v67.0."}
+
+  ActivationPlatformIdentifierInputRepresentation:
+    description: Represents the input for a platform audience identifier.
+    attributes:
+      - {name: identifier_hash_method, api_name: identifierHashMethod, type: string, enum: [Md5, "None", Sha1, Sha256], description: "Hash method applied to the identifier. Since v67.0."}
+      - {name: identifier_type, api_name: identifierType, type: string, enum: [Email, Maid, Ott, Phone], description: "Type of audience identifier. Since v67.0."}
+
+  ActivationPlatformOutputPropertiesInputRepresentation:
+    description: Represents the input for file output configuration properties.
+    attributes:
+      - {name: compression, type: string, enum: [Bzip2, Gzip, "None"], description: "Compression method applied to output files. Since v67.0."}
+      - {name: delimiter, type: string, enum: [BrokenPipe, Caret, Colon, Comma, Hash, Pipe, Semicolon, Slash, Tab, Tilde, Underscore], description: "Field delimiter used in output files. Since v67.0."}
+      - {name: max_file_size_in_mb, api_name: maxFileSizeInMB, type: integer, description: "Maximum file size in megabytes. Since v67.0."}
+      - {name: max_records_per_file, api_name: maxRecordsPerFile, type: number, format: int64, description: "Maximum records per output file. Since v67.0."}
+      - {name: min_records_per_file, api_name: minRecordsPerFile, type: number, format: int64, description: "Minimum records per output file. Since v67.0."}
+      - {name: output_format, api_name: outputFormat, type: string, enum: [Csv, Json, Parquet], description: "Format of the output files. Since v67.0."}
+      - {name: output_partitions, api_name: outputPartitions, type: number, format: int64, description: "Number of output partitions. Since v67.0."}
+
+  ActivationPlatformPartnerSupportedIdInputRepresentation:
+    description: Represents the input for partner-supported identifier types.
+    attributes:
+      - {name: destination_name, api_name: destinationName, type: string, required: true, description: "Destination attribute that accepts these ID types. Since v67.0."}
+      - {name: supported_id_types, api_name: supportedIdTypes, array: 1, type: string, description: "Supported identifier type values. Since v67.0."}
+
+  ActivationPlatformStandardEventInputRepresentation:
+    description: Represents the input for standard event details.
+    attributes:
+      - {name: attribute_mapping_info, api_name: attributeMappingInfo, schema: ActivationPlatformEventAttributeMappingInputRepresentation, array: 1, description: "Attribute mapping rules per event/action-source combination. Since v67.0."}
+      - {name: event_parameter_hierarchy, api_name: eventParameterHierarchy, schema: ActivationEventParameterHierarchyInputRepresentation, array: 1, description: "Hierarchy combinations defining valid parameter value pairings. Since v67.0."}
+      - {name: event_parameters, api_name: eventParameters, schema: ActivationEventParameterValuesInputRepresentation, array: 1, description: "Event parameter definitions with hierarchy and allowed values. Since v67.0."}
+
+  RefreshSettingsInputRepresentation:
+    description: Represents the refresh configuration input for creating or updating an activation platform.
+    attributes:
+      - {name: frequency, type: string, enum: [FourHours, TwelveHours, TwentyFourHours], description: "How often the activation platform refreshes. Since v67.0."}
+      - {name: mode, type: string, enum: [Full, Incremental], description: "Refresh mode for the activation platform. Since v67.0."}
+      - {name: periodic_full_refresh, api_name: periodicFullRefresh, type: string, enum: [Every30Days, Every60Days], description: "How often a periodic full refresh runs. Applies [with incremental refresh mode](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_activationplatform.htm). Since v67.0."}

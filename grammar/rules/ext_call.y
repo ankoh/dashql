@@ -81,8 +81,8 @@ call_member:
     }
     ;
 
-// A function is an ordinary call to the parser, the analyzer rejects everything except secret() of a call that has a
-// signature. A bare name is no value.
+// A function is an ordinary call to the parser, the analyzer rejects it in a call that has a signature, with a better
+// message than a syntax error. A bare name is no value.
 call_scalar:
     SCONST        { const_node(@1, AConstType::STRING) }
   | DCONST        { const_node(@1, AConstType::STRING) }

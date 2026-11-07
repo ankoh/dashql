@@ -1,0 +1,1491 @@
+title: Semantic Models
+description: |
+  A semantic model (SDM) is a named layer over existing DMOs, DLOs and calculated insights. It gives their columns business names and adds joins, formulas and metrics, so a query names fields and the engine writes the SQL. This family is separate from the Connect spec, and its [own guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/get-started.md) calls it Tableau Semantics.
+
+  Build in this order: the source objects must exist, then [`sdm_create`](#sdm_create), [`sdm_data_object_create`](#sdm_data_object_create) per object, [`sdm_relationship_create`](#sdm_relationship_create), [`sdm_calc_dim_create`](#sdm_calc_dim_create) and [`sdm_calc_measure_create`](#sdm_calc_measure_create), [`sdm_metric_create`](#sdm_metric_create), [`sdm_validate`](#sdm_validate), and [`sdm_query`](#sdm_query). [`sdm_create`](#sdm_create) can also take everything in one body.
+
+  What matters most:
+
+  - **Names.** Authoring and queries use semantic `api_name` values, not `__dlm` or `__c` names. If you send only a label, the server generates the name, so read it back.
+  - **Formulas** are Tableau-style (the guide calls the dialect Tua), in `$$ ... $$`: `[Object].[Field]`, `IF ... END`. A measurement whose formula aggregates needs `aggregation_type => 'UserAgg'`.
+  - **Queries.** Sources conflict on naming the model by ID or API name.
+  - **Deletes.** Deleting a data object or relationship breaks what joins through it. Check each definition's `dependencies`.
+
+  ```sql
+  CALL cdp.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue', dataspace => 'default');
+  CALL cdp.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
+  CALL cdp.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Revenue', api_name => 'Total_Revenue', data_type => 'Number', aggregation_type => 'UserAgg', expression => $$SUM([Account].[AnnualRevenue])$$);
+  CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+  CALL cdp.sdm_query (semantic_model_api_name => 'AccountRevenue', structured_semantic_query => (fields = [(expression = (semantic_field = (name = 'Total_Revenue')), alias = 'revenue', semantic_aggregation_method = 'SEMANTIC_AGGREGATION_METHOD_USER_AGG')]));
+  ```
+
+functions:
+  - name: sdm_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models
+    tools: [d360_sdm_list]
+    description: List the semantic models in the org, optionally filtered by data space, label or API names. Use it to find a model's `api_name`.
+    example: CALL cdp.sdm_list (dataspace => 'default', limit => 100, order_by => 'apiName ASC');
+    options:
+      - {name: dataspace, in: query, type: string, description: "Dataspace name"}
+      - {name: app, in: query, type: string, description: "App filter"}
+      - {name: category, in: query, type: string, description: "Category filter (Marketing, Commerce, Sales, Service, Other)"}
+      - {name: label, in: query, type: string, description: "Label filter"}
+      - {name: limit, in: query, type: integer, description: "Max number of results"}
+      - {name: offset, in: query, type: integer, description: "Offset for pagination"}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort clause. A [community fixture](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/semantic/models.json) shows `api_name ASC`."}
+      - {name: search_term, api_name: searchTerm, in: query, type: string, description: "Search term"}
+      - {name: semantic_model_api_names, api_name: semanticModelApiNames, in: query, type: string, description: "Comma-separated semantic model api names"}
+      - {name: source_creation, api_name: sourceCreation, in: query, type: string, description: "Source-creation filter. Sources disagree on the values, see [`sdm_create`](#sdm_create)."}
+      - {name: source_creation_name, api_name: sourceCreationName, in: query, type: string, description: "Source-creation-name filter"}
+    rows: /items
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Use this in the path of other calls."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace, type: VARCHAR}
+      - {name: app, type: VARCHAR}
+      - {name: categories, type: JSON}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: "One row per item of `/items` in the response. Other response fields go to `_meta`: `count`, `total`, `currentPageUrl`, `nextPageUrl`, `previousPageUrl`. The key is from [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md), the other response fields from a [community fixture](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/test/fixtures/semantic/models.json) with no items, so the item columns come from the model schema and haven't been seen in a list response."
+    notes: "**Paging:** `limit`, `offset`. The response has `next_page_url`, null on the last page (community)."
+
+  - name: sdm_get
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}
+    tools: [d360_sdm_get]
+    description: Read a whole model, with its data objects, relationships, calculated fields and metrics inline. Use it to read the generated API names and the `id` a query may need.
+    example: CALL cdp.sdm_get (model_api_name_or_id => 'AccountRevenue', include_table_keys => true);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: abac_filtering_mode, api_name: abacFilteringMode, in: query, type: boolean, description: "ABAC filtering mode"}
+      - {name: allow_unmapped, api_name: allowUnmapped, in: query, type: boolean, description: "Include unmapped definitions in the response."}
+      - {name: field_name, api_name: fieldName, in: query, type: string, description: "Return only fields whose labels contain this text."}
+      - {name: fine_grain_security, api_name: fineGrainSecurity, in: query, type: boolean, description: "Apply fine-grained security rules and return a partial model."}
+      - {name: include_model_content, api_name: includeModelContent, in: query, type: boolean, description: "Add the model's full content to the response."}
+      - {name: include_table_keys, api_name: includeTableKeys, in: query, type: boolean, description: "Add key qualifiers and primary key indicators."}
+    columns:
+      - {name: id, type: VARCHAR, description: "Record ID, prefix `2SM` in the official examples. `semantic_model_id` of [`sdm_query`](#sdm_query) takes this."}
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace, type: VARCHAR}
+      - {name: app, type: VARCHAR}
+      - {name: categories, type: JSON, description: "Marketing, Commerce, Sales, Service, Other."}
+      - {name: currency, type: JSON, description: "Model default currency."}
+      - {name: source_creation, api_name: sourceCreation, type: VARCHAR}
+      - {name: source_creation_name, api_name: sourceCreationName, type: VARCHAR}
+      - {name: version_state, api_name: versionState, type: VARCHAR, description: "`Draft`, `Published` or `PublishedWithDraft`."}
+      - {name: is_locked, api_name: isLocked, type: BOOLEAN, description: "Locked for edit or delete."}
+      - {name: locked_actions, api_name: lockedActions, type: JSON, description: "Maps an action such as `edit`, `delete` or `clone` to the reasons it is restricted."}
+      - {name: is_upsertable, api_name: isUpsertable, type: BOOLEAN, description: "Whether the model can be edited. False when it contains non-queryable entities."}
+      - {name: has_unmapped, api_name: hasUnmapped, type: BOOLEAN, description: "The model contains unmapped definitions."}
+      - {name: is_partial_sdm, api_name: isPartialSdm, type: BOOLEAN, description: "The model is partial because of data governance."}
+      - {name: agent_enabled, api_name: agentEnabled, type: BOOLEAN}
+      - {name: business_preferences, api_name: businessPreferences, type: VARCHAR}
+      - {name: semantic_model_info, api_name: semanticModelInfo, type: JSON, description: "`definitionsCount`, `maxDefinitionCount`, `modelHierarchyDepth`."}
+      - {name: base_models, api_name: baseModels, type: JSON, description: "Models this one extends."}
+      - {name: semantic_data_objects, api_name: semanticDataObjects, type: JSON}
+      - {name: semantic_relationships, api_name: semanticRelationships, type: JSON}
+      - {name: semantic_calculated_dimensions, api_name: semanticCalculatedDimensions, type: JSON}
+      - {name: semantic_calculated_measurements, api_name: semanticCalculatedMeasurements, type: JSON}
+      - {name: semantic_metrics, api_name: semanticMetrics, type: JSON}
+      - {name: semantic_parameters, api_name: semanticParameters, type: JSON}
+      - {name: semantic_logical_views, api_name: semanticLogicalViews, type: JSON}
+      - {name: semantic_groupings, api_name: semanticGroupings, type: JSON}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`, including the `semantic...Url` links. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: "**Notes:** Option meanings are from the [v65 Semantics OpenAPI file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml), a copy of the published file in a community repo. `abac_filtering_mode` appears only in [the tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java), with no explanation. A model holds a limited number of definitions: `semantic_model_info.maxDefinitionCount` is 5000 in the [official example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md)."
+
+  - name: sdm_create
+    method: POST
+    host: connect
+    path: /ssot/semantic/models
+    tools: [d360_sdm_create]
+    description: "Create a semantic model. The first step of every build: either an empty shell that later calls fill in, or the whole model in one call."
+    example: CALL cdp.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue Model', description => 'Accounts and revenue', dataspace => 'default');
+    options:
+      - {name: api_name, api_name: apiName, in: body, type: string, required: true, description: "API name of the model."}
+      - {name: label, in: body, type: string, required: true, description: "Display name."}
+      - {name: dataspace, in: body, type: string, required: true, description: "Data space that holds the model."}
+      - {name: description, in: body, type: string, description: "Free text."}
+      - {name: app, in: body, type: string, description: "App the model belongs to."}
+      - {name: categories, in: body, array: 1, type: string, description: "Marketing, Commerce, Sales, Service, Other."}
+      - {name: currency, in: body, schema: SemanticModelCurrency, description: "Model default currency."}
+      - {name: source_creation, api_name: sourceCreation, in: body, type: string, description: "Where the model came from. Sources disagree on the values, see Notes."}
+      - {name: query_unrelated_data_objects, api_name: queryUnrelatedDataObjects, in: body, type: string, description: "What a query does across data objects with no relationship. Sources disagree on the name and the values, see Notes."}
+      - {name: agent_enabled, api_name: agentEnabled, in: body, type: boolean, description: "Enable agent features for the model."}
+      - {name: business_preferences, api_name: businessPreferences, in: body, type: string, description: "Business-specific preferences or context from analysts."}
+      - {name: base_models, api_name: baseModels, in: body, type: any, description: "Models this one extends: `api_name`, `label`."}
+      - {name: external_connections, api_name: externalConnections, in: body, type: any, description: "External connections of the model."}
+      - {name: fields_overrides, api_name: fieldsOverrides, in: body, type: any, description: "Field overrides."}
+      - {name: semantic_data_objects, api_name: semanticDataObjects, in: body, schema: SemanticDataObject, array: 1, description: "Data objects, for the one-call build."}
+      - {name: semantic_relationships, api_name: semanticRelationships, in: body, schema: SemanticRelationship, array: 1, description: "Relationships, for the one-call build."}
+      - {name: semantic_calculated_dimensions, api_name: semanticCalculatedDimensions, in: body, schema: SemanticCalculatedDimension, array: 1, description: "Calculated dimensions, for the one-call build."}
+      - {name: semantic_calculated_measurements, api_name: semanticCalculatedMeasurements, in: body, schema: SemanticCalculatedMeasurement, array: 1, description: "Calculated measurements, for the one-call build."}
+      - {name: semantic_metrics, api_name: semanticMetrics, in: body, schema: SemanticMetricDefinition, array: 1, description: "Metrics, for the one-call build."}
+      - {name: semantic_parameters, api_name: semanticParameters, in: body, type: any, description: "Parameters that formulas and filters can reference. There is no separate function for these here."}
+      - {name: semantic_logical_views, api_name: semanticLogicalViews, in: body, type: any, description: "Join, union or custom SQL views. There is no separate function for these here."}
+      - {name: semantic_groupings, api_name: semanticGroupings, in: body, type: any, description: "Groupings. There is no separate function for these here."}
+      - {name: allow_external_definitions, api_name: allowExternalDefinitions, in: query, type: boolean, description: "Flag to allow external definitions"}
+      - {name: allow_unmapped, api_name: allowUnmapped, in: query, type: boolean, description: "Flag to allow unmapped fields"}
+      - {name: inherit_dc_relationship, api_name: inheritDcRelationship, in: query, type: boolean, description: "Flag to inherit data cloud relationships"}
+    columns:
+      - {name: id, type: VARCHAR, description: "Record ID, prefix `2SM` in the official examples. `semantic_model_id` of [`sdm_query`](#sdm_query) takes this."}
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace, type: VARCHAR}
+      - {name: app, type: VARCHAR}
+      - {name: categories, type: JSON, description: "Marketing, Commerce, Sales, Service, Other."}
+      - {name: currency, type: JSON, description: "Model default currency."}
+      - {name: source_creation, api_name: sourceCreation, type: VARCHAR}
+      - {name: source_creation_name, api_name: sourceCreationName, type: VARCHAR}
+      - {name: version_state, api_name: versionState, type: VARCHAR, description: "`Draft`, `Published` or `PublishedWithDraft`."}
+      - {name: is_locked, api_name: isLocked, type: BOOLEAN, description: "Locked for edit or delete."}
+      - {name: locked_actions, api_name: lockedActions, type: JSON, description: "Maps an action such as `edit`, `delete` or `clone` to the reasons it is restricted."}
+      - {name: is_upsertable, api_name: isUpsertable, type: BOOLEAN, description: "Whether the model can be edited. False when it contains non-queryable entities."}
+      - {name: has_unmapped, api_name: hasUnmapped, type: BOOLEAN, description: "The model contains unmapped definitions."}
+      - {name: is_partial_sdm, api_name: isPartialSdm, type: BOOLEAN, description: "The model is partial because of data governance."}
+      - {name: agent_enabled, api_name: agentEnabled, type: BOOLEAN}
+      - {name: business_preferences, api_name: businessPreferences, type: VARCHAR}
+      - {name: semantic_model_info, api_name: semanticModelInfo, type: JSON, description: "`definitionsCount`, `maxDefinitionCount`, `modelHierarchyDepth`."}
+      - {name: base_models, api_name: baseModels, type: JSON, description: "Models this one extends."}
+      - {name: semantic_data_objects, api_name: semanticDataObjects, type: JSON}
+      - {name: semantic_relationships, api_name: semanticRelationships, type: JSON}
+      - {name: semantic_calculated_dimensions, api_name: semanticCalculatedDimensions, type: JSON}
+      - {name: semantic_calculated_measurements, api_name: semanticCalculatedMeasurements, type: JSON}
+      - {name: semantic_metrics, api_name: semanticMetrics, type: JSON}
+      - {name: semantic_parameters, api_name: semanticParameters, type: JSON}
+      - {name: semantic_logical_views, api_name: semanticLogicalViews, type: JSON}
+      - {name: semantic_groupings, api_name: semanticGroupings, type: JSON}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`, including the `semantic...Url` links. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: |
+      **Notes:** **Prerequisite.** All DMOs and calculated insights the model will use must already exist ([tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java)).
+
+      **One call or several.** [Salesforce's catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) says "Create empty model. Add objects separately", and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) describes the same. The [official example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) posts a whole model in one body. [A community tool](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts) moved to the one-body form at v65 (one org). Its reason: a failure part way through several calls leaves a half-built shell, and posting the same `api_name` again gives a 409 (community).
+
+      **Required body fields.** The tool's request class has only `api_name`, `label`, `description` and `dataspace`. The other body rows come from the [official examples](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and the [v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml). Omitting `dataspace` gives a 400, `missing a mandatory dataspace value` ([community, one org](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/resources/semantic-models.ts)).
+
+      **Conflicting enums.** The v65 file gives `source_creation` as `Manual`, `Import` and `query_unrelated_data_objects` as `Allow`, `Disallow`. [One community SDK](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/resources/semantic-models.ts) found both rejected, and `DataCloud` and `Union` accepted (one org). The [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md) names the second one `UnrelatedDataObjectsQueryBehavior`, with `Exception` and `Union`.
+
+      **Imported relationships.** Relationships that already exist between Data 360 objects are [imported automatically](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md) at creation. The sources don't explain how `inherit_dc_relationship` interacts with that.
+
+      **Order.** In the several-call build, calculated fields follow the data objects because their formulas name data object fields ([community](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts)).
+
+  - name: sdm_update
+    method: PATCH
+    host: connect
+    path: /ssot/semantic/models/{id}
+    tools: [d360_sdm_update]
+    description: Change model-level fields such as the label or description. It leaves data objects, relationships and calculated fields as they are.
+    example: CALL cdp.sdm_update (model_api_name_or_id => 'AccountRevenue', description => 'Accounts and revenue, used by the sales dashboard');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: label, in: body, type: string, description: "New display name."}
+      - {name: description, in: body, type: string, description: "New description."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "New API name."}
+      - {name: allow_unmapped, api_name: allowUnmapped, in: query, type: boolean, description: "Flag to allow unmapped fields"}
+    columns:
+      - {name: id, type: VARCHAR, description: "Record ID, prefix `2SM` in the official examples. `semantic_model_id` of [`sdm_query`](#sdm_query) takes this."}
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace, type: VARCHAR}
+      - {name: app, type: VARCHAR}
+      - {name: categories, type: JSON, description: "Marketing, Commerce, Sales, Service, Other."}
+      - {name: currency, type: JSON, description: "Model default currency."}
+      - {name: source_creation, api_name: sourceCreation, type: VARCHAR}
+      - {name: source_creation_name, api_name: sourceCreationName, type: VARCHAR}
+      - {name: version_state, api_name: versionState, type: VARCHAR, description: "`Draft`, `Published` or `PublishedWithDraft`."}
+      - {name: is_locked, api_name: isLocked, type: BOOLEAN, description: "Locked for edit or delete."}
+      - {name: locked_actions, api_name: lockedActions, type: JSON, description: "Maps an action such as `edit`, `delete` or `clone` to the reasons it is restricted."}
+      - {name: is_upsertable, api_name: isUpsertable, type: BOOLEAN, description: "Whether the model can be edited. False when it contains non-queryable entities."}
+      - {name: has_unmapped, api_name: hasUnmapped, type: BOOLEAN, description: "The model contains unmapped definitions."}
+      - {name: is_partial_sdm, api_name: isPartialSdm, type: BOOLEAN, description: "The model is partial because of data governance."}
+      - {name: agent_enabled, api_name: agentEnabled, type: BOOLEAN}
+      - {name: business_preferences, api_name: businessPreferences, type: VARCHAR}
+      - {name: semantic_model_info, api_name: semanticModelInfo, type: JSON, description: "`definitionsCount`, `maxDefinitionCount`, `modelHierarchyDepth`."}
+      - {name: base_models, api_name: baseModels, type: JSON, description: "Models this one extends."}
+      - {name: semantic_data_objects, api_name: semanticDataObjects, type: JSON}
+      - {name: semantic_relationships, api_name: semanticRelationships, type: JSON}
+      - {name: semantic_calculated_dimensions, api_name: semanticCalculatedDimensions, type: JSON}
+      - {name: semantic_calculated_measurements, api_name: semanticCalculatedMeasurements, type: JSON}
+      - {name: semantic_metrics, api_name: semanticMetrics, type: JSON}
+      - {name: semantic_parameters, api_name: semanticParameters, type: JSON}
+      - {name: semantic_logical_views, api_name: semanticLogicalViews, type: JSON}
+      - {name: semantic_groupings, api_name: semanticGroupings, type: JSON}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`, including the `semantic...Url` links. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: "**Notes:** Model changes can affect semantic queries, dashboards and RAG retrievers ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json)). A locked model reports the reason in `locked_actions`. The [v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml) also has `PUT` on this path, which replaces the whole model including relationships. No function here maps to it, and it can't create: on a missing `api_name` it returns 404 ([community, one org](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/resources/semantic-models.ts))."
+
+  - name: sdm_delete
+    method: DELETE
+    host: connect
+    path: /ssot/semantic/models/{id}
+    tools: [d360_sdm_delete]
+    description: Permanently delete a model and everything in it.
+    example: CALL cdp.sdm_delete (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The [v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml) gives HTTP 200 with no body, [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) gives 204. One row with only the standard columns.
+    notes: |
+      **Notes:** **What goes.** The data objects, relationships, calculated fields and metrics inside it ([catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java)). It can't be undone ([v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml)). Afterwards `sdm_get` returns `SEMANTIC_ENTITY_NOT_EXIST` ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md)).
+
+      **What breaks.** Queries that name the model. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) also lists dashboards and RAG retrievers as consumers of model metadata. Check `sdm_dependencies` first, and `is_locked` and `locked_actions` on `sdm_get`.
+
+      **The other direction.** A model blocks deleting a calculated insight it references, with a 400 `DELETE_FAILED`. So delete the model first ([community, one org](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts)).
+
+  - name: sdm_clone
+    method: POST
+    host: connect
+    path: /ssot/semantic/models/{id}/clone
+    tools: [d360_sdm_clone]
+    description: Copy a model to a new one that can change independently. Use it for variations or experiments.
+    example: CALL cdp.sdm_clone (model_api_name_or_id => 'AccountRevenue', api_name => 'AccountRevenue_Test');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID to clone"}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "API name of the new model."}
+    columns:
+      - {name: id, type: VARCHAR, description: "Record ID, prefix `2SM` in the official examples. `semantic_model_id` of [`sdm_query`](#sdm_query) takes this."}
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: dataspace, type: VARCHAR}
+      - {name: app, type: VARCHAR}
+      - {name: categories, type: JSON, description: "Marketing, Commerce, Sales, Service, Other."}
+      - {name: currency, type: JSON, description: "Model default currency."}
+      - {name: source_creation, api_name: sourceCreation, type: VARCHAR}
+      - {name: source_creation_name, api_name: sourceCreationName, type: VARCHAR}
+      - {name: version_state, api_name: versionState, type: VARCHAR, description: "`Draft`, `Published` or `PublishedWithDraft`."}
+      - {name: is_locked, api_name: isLocked, type: BOOLEAN, description: "Locked for edit or delete."}
+      - {name: locked_actions, api_name: lockedActions, type: JSON, description: "Maps an action such as `edit`, `delete` or `clone` to the reasons it is restricted."}
+      - {name: is_upsertable, api_name: isUpsertable, type: BOOLEAN, description: "Whether the model can be edited. False when it contains non-queryable entities."}
+      - {name: has_unmapped, api_name: hasUnmapped, type: BOOLEAN, description: "The model contains unmapped definitions."}
+      - {name: is_partial_sdm, api_name: isPartialSdm, type: BOOLEAN, description: "The model is partial because of data governance."}
+      - {name: agent_enabled, api_name: agentEnabled, type: BOOLEAN}
+      - {name: business_preferences, api_name: businessPreferences, type: VARCHAR}
+      - {name: semantic_model_info, api_name: semanticModelInfo, type: JSON, description: "`definitionsCount`, `maxDefinitionCount`, `modelHierarchyDepth`."}
+      - {name: base_models, api_name: baseModels, type: JSON, description: "Models this one extends."}
+      - {name: semantic_data_objects, api_name: semanticDataObjects, type: JSON}
+      - {name: semantic_relationships, api_name: semanticRelationships, type: JSON}
+      - {name: semantic_calculated_dimensions, api_name: semanticCalculatedDimensions, type: JSON}
+      - {name: semantic_calculated_measurements, api_name: semanticCalculatedMeasurements, type: JSON}
+      - {name: semantic_metrics, api_name: semanticMetrics, type: JSON}
+      - {name: semantic_parameters, api_name: semanticParameters, type: JSON}
+      - {name: semantic_logical_views, api_name: semanticLogicalViews, type: JSON}
+      - {name: semantic_groupings, api_name: semanticGroupings, type: JSON}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`, including the `semantic...Url` links. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: "**Notes:** Check that the new `api_name` doesn't already exist ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json)). The [v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml) documents the 200 response but no request body, so `api_name` comes from the [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java). `locked_actions` can restrict `clone`."
+
+  - name: sdm_validate
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/validate
+    tools: [d360_sdm_validate]
+    description: Check a model's structure and configuration and report errors. Run it after building and before querying.
+    example: CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+    columns:
+      - {name: is_valid, api_name: isValid, type: BOOLEAN}
+      - {name: validation, type: JSON, description: "Validation details. The file doesn't document the shape."}
+      - {name: semantic_model, api_name: semanticModel, type: JSON, description: "The validated model."}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. See the [v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/authoring.yaml).
+    notes: "**Notes:** This is a `GET`. `POST` returns `METHOD_NOT_ALLOWED` ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md))."
+
+  - name: sdm_dependencies
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/external-dependencies
+    tools: [d360_sdm_dependencies]
+    description: List what a model depends on outside itself. Read it before deleting or changing the model or its source objects.
+    example: CALL cdp.sdm_dependencies (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Inside a model, each definition has its own `dependencies` list, in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md)."
+
+  - name: sdm_data_object_create
+    method: POST
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects
+    tools: [d360_sdm_data_object_create]
+    description: Add an existing DMO, DLO or calculated insight to a model. This is the second build step, and the source object must already exist.
+    example: CALL cdp.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: data_object_name, api_name: dataObjectName, in: body, type: string, required: true, description: "The source object, such as `Account__dlm`."}
+      - {name: label, in: body, type: string, required: true, description: "Display name."}
+      - {name: data_object_type, api_name: dataObjectType, in: body, type: string, required: true, description: "`Dmo`, `Dlo` or `Cio` (a calculated insight). Not `CalculatedInsight`."}
+      - {name: should_include_all_fields, api_name: shouldIncludeAllFields, in: body, type: boolean, required: true, description: "True adds every source field as a dimension or measurement. The entities page and tool text require it, the request class marks it optional."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "Semantic name of the object. If omitted, the server generates one, see Notes."}
+      - {name: description, in: body, type: string, description: "Free text."}
+      - {name: table_type, api_name: tableType, in: body, type: string, description: "`Standard`, `Dimension` or `Fact`."}
+      - {name: semantic_dimensions, api_name: semanticDimensions, in: body, schema: SemanticDimension, array: 1, description: "Fields to expose as dimensions, when not including all."}
+      - {name: semantic_measurements, api_name: semanticMeasurements, in: body, schema: SemanticMeasurement, array: 1, description: "Fields to expose as measurements, when not including all."}
+      - {name: filters, in: body, schema: SemanticFilter, array: 1, description: "Restrict the rows this object contributes."}
+      - {name: filter_logic, api_name: filterLogic, in: body, type: string, description: "Combines `filters` by 1-based index, such as `1 AND 2`."}
+      - {name: allow_unmapped, api_name: allowUnmapped, in: query, type: boolean, description: "Flag to allow unmapped fields"}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Semantic name. Relationships, formulas and queries use this."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: data_object_name, api_name: dataObjectName, type: VARCHAR, description: "The source object, such as `ssot__Account__dlm`."}
+      - {name: data_object_type, api_name: dataObjectType, type: VARCHAR}
+      - {name: should_include_all_fields, api_name: shouldIncludeAllFields, type: BOOLEAN}
+      - {name: table_type, api_name: tableType, type: VARCHAR, description: "`Standard`, `Dimension` or `Fact`."}
+      - {name: semantic_dimensions, api_name: semanticDimensions, type: JSON, description: "Items have the attributes of [SemanticDimension](#semanticdimension) plus `id` and audit fields."}
+      - {name: semantic_measurements, api_name: semanticMeasurements, type: JSON, description: "Items have the attributes of [SemanticMeasurement](#semanticmeasurement) plus `id` and audit fields."}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. See the official [create example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: |
+      **Notes:** **Read the names back.** Later steps use the semantic names from the response, not `__dlm` or `__c` names. Without an `api_name` the server makes them up: the [official example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) sends label `Name0601_do` and gets `Name0601_do19`, and a field labelled `name__c` becomes `name_c`. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) sends `api_name` on this call. The tool's request class has only `data_object_name`, `label`, `data_object_type` and `should_include_all_fields`. The other rows come from the official examples and schema.
+
+      **`data_object_type` spellings.** The [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) and [query guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-data-objects.md) say `Dmo`, `Dlo`, `Cio`. The [official example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) sends `DMO` and gets `Dmo` back. The [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md) lists only `Dlo` and `Query`.
+
+      **Calculated insights.** An `Active` insight isn't usable until its first compute lands. Until then this returns `SEMANTIC_ENTITY_NOT_EXIST`, and a retry can take minutes ([community, one org](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts)).
+
+      **Other limits, all [community, one org](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts).** A field `api_name` with a space gives a 500, not a 400. A `Currency` measure needs a dimension on `cdp_sys_record_currency__c` with `semantic_data_type => 'RecordCurrency'`. A filter on a raw column is rejected with `Invalid calculated Field`, and filters can't be changed after creation.
+
+      **Path.** The [quick start](https://developer.salesforce.com/docs/data/semantic-layer/guide/quick-start-connect-api.md) shows `/tables/`. The examples and the tool use `/data-objects`.
+
+  - name: sdm_data_objects_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects
+    tools: [d360_sdm_data_objects_list]
+    description: List the data objects in a model with their fields. This is where the semantic field names for relationships and formulas come from.
+    example: CALL cdp.sdm_data_objects_list (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticDataObject` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md), such as `api_name` and `semantic_dimensions`.
+    notes: "**Notes:** Use the field `api_name` values from this output in relationship criteria, for example `Individual_Id18`, not the DMO field names ([tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java))."
+
+  - name: sdm_data_object_get
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects/{oid}
+    tools: [d360_sdm_data_object_get]
+    description: Read one data object in a model, with its dimensions and measurements.
+    example: CALL cdp.sdm_data_object_get (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Semantic name. Relationships, formulas and queries use this."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: data_object_name, api_name: dataObjectName, type: VARCHAR, description: "The source object, such as `ssot__Account__dlm`."}
+      - {name: data_object_type, api_name: dataObjectType, type: VARCHAR}
+      - {name: should_include_all_fields, api_name: shouldIncludeAllFields, type: BOOLEAN}
+      - {name: table_type, api_name: tableType, type: VARCHAR, description: "`Standard`, `Dimension` or `Fact`."}
+      - {name: semantic_dimensions, api_name: semanticDimensions, type: JSON, description: "Items have the attributes of [SemanticDimension](#semanticdimension) plus `id` and audit fields."}
+      - {name: semantic_measurements, api_name: semanticMeasurements, type: JSON, description: "Items have the attributes of [SemanticMeasurement](#semanticmeasurement) plus `id` and audit fields."}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. See the official [create example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_data_object_update
+    method: PUT
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects/{oid}
+    tools: [d360_sdm_data_object_update]
+    description: Change a data object in a model, such as its label or whether it includes all fields.
+    example: CALL cdp.sdm_data_object_update (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account', label => 'Customer Account');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
+      - {name: label, in: body, type: string, description: "New display name."}
+      - {name: data_object_type, api_name: dataObjectType, in: body, type: string, description: "`Dmo`, `Dlo` or `Cio`."}
+      - {name: should_include_all_fields, api_name: shouldIncludeAllFields, in: body, type: boolean, description: "Whether to include all fields of the source."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This is a `PUT`, but the [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) sends only the attributes you set. The sources don't say whether omitted attributes are reset. The change can affect dimensions, measurements, relationships and queries ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json))."
+
+  - name: sdm_data_object_delete
+    method: DELETE
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects/{oid}
+    tools: [d360_sdm_data_object_delete]
+    description: Remove a data object from a model. A data object is only a reference to an existing DMO or calculated insight.
+    example: CALL cdp.sdm_data_object_delete (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Opportunity', relationship_cascade_delete => true);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
+      - {name: relationship_cascade_delete, api_name: relationshipCascadeDelete, in: query, type: boolean, description: "Also delete the relationships that depend on this object."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This [breaks relationships](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) that use the object, and then [queries that needed that join path fail](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md). The sources don't say what happens without `relationship_cascade_delete`, whether the call is refused or leaves relationships dangling. They also don't say what happens to calculated fields and metrics that name the object. Their `dependencies` lists show which do, in `sdm_get`."
+
+  - name: sdm_dimensions_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects/{oid}/dimensions
+    tools: [d360_sdm_dimensions_list]
+    description: List the dimensions of one data object in a model, the fields used for grouping and filtering.
+    example: CALL cdp.sdm_dimensions_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
+      - {name: name, in: query, type: string, description: "Dimension name filter"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticDimension` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: "**Notes:** The path is under a data object, although the [tool's text](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) says \"in a specific Semantic Model\". There are no create, update or delete functions for fields: they arrive with the data object."
+
+  - name: sdm_measurements_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/data-objects/{oid}/measurements
+    tools: [d360_sdm_measurements_list]
+    description: List the measurements of one data object in a model, the numeric fields a query can aggregate.
+    example: CALL cdp.sdm_measurements_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
+      - {name: name, in: query, type: string, description: "Measurement name filter"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticMeasurement` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_calc_dims_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-dimensions
+    tools: [d360_sdm_calc_dims_list]
+    description: List the calculated dimensions of a model.
+    example: CALL cdp.sdm_calc_dims_list (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: name, in: query, type: string, description: "Calculated dimension name filter"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticCalculatedDimension` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_calc_dim_create
+    method: POST
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-dimensions
+    tools: [d360_sdm_calc_dim_create]
+    description: "Add a calculated dimension: a formula over model fields whose value classifies or groups rows, such as a revenue tier. Its data objects must already be in the model."
+    example: CALL cdp.sdm_calc_dim_create (model_api_name_or_id => 'AccountRevenue', label => 'Revenue Tier', api_name => 'Revenue_Tier', data_type => 'Text', expression => $$IF [Account].[AnnualRevenue] > 1000000 THEN 'Enterprise' ELSEIF [Account].[AnnualRevenue] > 100000 THEN 'Mid-Market' ELSE 'SMB' END$$);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: label, in: body, type: string, required: true, description: "Display name."}
+      - {name: expression, in: body, type: string, required: true, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: data_type, api_name: dataType, in: body, type: string, required: true, description: "Text, Date, DateTime, Image, Boolean, Geo or Number on the entities page. The tool lists only Text, Number and DateTime."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "API name. If you only send `label`, the server generates one: `calcdim19` became `calcdim1965` in the official example."}
+      - {name: description, in: body, type: string, description: "Free text."}
+      - {name: syntax, in: body, type: string, description: "Formula dialect: `Tua` (`[Object].[Field]`) or `Salesforce` (`Object.Field`)."}
+      - {name: geo_role, api_name: geoRole, in: body, type: string, description: "Airport, Area Code (US), CBSA/MSA (US), City, Congressional District (US), Country/Region, Country, NUTS Europe, Latitude, Longitude, State/Province, Zip Code/Postcode."}
+      - {name: sort_order, api_name: sortOrder, in: body, type: string, description: "`Ascending`, `Descending` or `None`."}
+      - {name: display_category, api_name: displayCategory, in: body, type: string, description: "`Discrete` or `Continuous`."}
+      - {name: is_visible, api_name: isVisible, in: body, type: boolean, description: "Visible in the consumption layer. Default true."}
+      - {name: level, in: body, type: string, description: "`Row` or `AggregateFunction` in the model schema."}
+      - {name: filters, in: body, schema: SemanticFilter, array: 1, description: "Scope the data the expression sees."}
+      - {name: filter_logic, api_name: filterLogic, in: body, type: string, description: "Combines `filters` by 1-based index, such as `1 AND 2`."}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Queries reference the field by this name through `semantic_field`."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: expression, type: VARCHAR}
+      - {name: syntax, type: VARCHAR, description: "`Tua` or `Salesforce`."}
+      - {name: data_type, api_name: dataType, type: VARCHAR}
+      - {name: display_category, api_name: displayCategory, type: VARCHAR}
+      - {name: geo_role, api_name: geoRole, type: VARCHAR}
+      - {name: sort_order, api_name: sortOrder, type: VARCHAR}
+      - {name: is_visible, api_name: isVisible, type: BOOLEAN}
+      - {name: level, type: VARCHAR}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. See the official [create example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: |
+      **Notes:** **Formula syntax.** Field references are `[DataObject].[Field]`, using semantic `api_name` values, not `{field}` ([tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java)). The other dialect, `syntax => 'Salesforce'`, writes `Object.Field` ([guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-calculated-fields.md)). [One community tool](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts) writes `[Object.Field]` in single brackets instead (one org, v64). A formula can name other calculated fields, and model parameters as `[Parameters].[name]`. Comments `//` and `/* */` are [ignored](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-functions.md).
+
+      **Conditionals.** Use `IF ... THEN ... ELSEIF ... ELSE ... END`. The tool says not to use `CASE WHEN`. The [function reference](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-functions.md) has `CASE <expression> WHEN <value> THEN ...` and `IIF(test, then, else)`. Look functions up there or in [`sdm_formula_metadata`](#sdm_formula_metadata).
+
+      **Dimensions are row-level.** A dimension isn't aggregated. Of the level-of-detail forms, only `{ FIXED ... }` is [allowed](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-calculated-fields.md), and it needs the Tua dialect.
+
+      The tool's request class has only `label`, `expression`, `data_type`. The other rows come from the [official examples](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md).
+
+  - name: sdm_calc_dim_get
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-dimensions/{dimId}
+    tools: [d360_sdm_calc_dim_get]
+    description: Read one calculated dimension, including its formula and dependencies.
+    example: CALL cdp.sdm_calc_dim_get (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: calculated_dimension_name_or_id, api_name: dimId, in: path, type: string, required: true, description: "Calculated dimension name or ID"}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Queries reference the field by this name through `semantic_field`."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: expression, type: VARCHAR}
+      - {name: syntax, type: VARCHAR, description: "`Tua` or `Salesforce`."}
+      - {name: data_type, api_name: dataType, type: VARCHAR}
+      - {name: display_category, api_name: displayCategory, type: VARCHAR}
+      - {name: geo_role, api_name: geoRole, type: VARCHAR}
+      - {name: sort_order, api_name: sortOrder, type: VARCHAR}
+      - {name: is_visible, api_name: isVisible, type: BOOLEAN}
+      - {name: level, type: VARCHAR}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. See the official [create example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_calc_dim_update
+    method: PUT
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-dimensions/{dimId}
+    tools: [d360_sdm_calc_dim_update]
+    description: Change a calculated dimension, usually its formula.
+    example: CALL cdp.sdm_calc_dim_update (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier', expression => $$IF [Account].[AnnualRevenue] > 5000000 THEN 'Enterprise' ELSE 'SMB' END$$);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: calculated_dimension_name_or_id, api_name: dimId, in: path, type: string, required: true, description: "Calculated dimension name or ID"}
+      - {name: label, in: body, type: string, description: "New display name."}
+      - {name: expression, in: body, type: string, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: data_type, api_name: dataType, in: body, type: string, description: "New data type, see [`sdm_calc_dim_create`](#sdm_calc_dim_create)."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This is a `PUT`, but the [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) sends only the attributes you set. The sources don't say whether omitted attributes are reset. Check the formula against [`sdm_formula_metadata`](#sdm_formula_metadata) first ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json))."
+
+  - name: sdm_calc_dim_delete
+    method: DELETE
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-dimensions/{dimId}
+    tools: [d360_sdm_calc_dim_delete]
+    description: Delete a calculated dimension from a model.
+    example: CALL cdp.sdm_calc_dim_delete (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: calculated_dimension_name_or_id, api_name: dimId, in: path, type: string, required: true, description: "Calculated dimension name or ID"}
+      - {name: relationship_cascade_delete, api_name: relationshipCascadeDelete, in: query, type: boolean, description: "Also delete the relationships that depend on this field."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** A relationship criterion [can name a calculated field](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md) with `SemanticField`, which is how a relationship can depend on this. Metrics can use one as their time dimension ([entities](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md)), and other formulas can name it. The sources don't say whether the delete is refused or leaves them broken. Their `dependencies` lists show which do, in `sdm_get`."
+
+  - name: sdm_calc_measures_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-measurements
+    tools: [d360_sdm_calc_measures_list]
+    description: List the calculated measurements of a model.
+    example: CALL cdp.sdm_calc_measures_list (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: name, in: query, type: string, description: "Calculated measurement name filter"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticCalculatedMeasurement` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_calc_measure_create
+    method: POST
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-measurements
+    tools: [d360_sdm_calc_measure_create]
+    description: "Add a calculated measurement: a numeric formula over model fields, computed at query time, such as total pipeline. Metrics usually build on these."
+    example: CALL cdp.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Pipeline', api_name => 'Total_Pipeline', data_type => 'Number', aggregation_type => 'UserAgg', decimal_place => 2, expression => $$SUM([Opportunity].[Amount])$$);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: label, in: body, type: string, required: true, description: "Display name."}
+      - {name: expression, in: body, type: string, required: true, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: data_type, api_name: dataType, in: body, type: string, required: true, description: "Usually `Number`. Currency, Number, Duration or Percentage on the entities page."}
+      - {name: aggregation_type, api_name: aggregationType, in: body, type: string, required: true, description: "Sum, Average, Min, Max, Median, Count, Count Distinct, Stddev, Stddevp, Var, Varp, First, Last, UserAgg, None. Use `UserAgg` when the formula aggregates itself."}
+      - {name: decimal_place, api_name: decimalPlace, in: body, type: integer, description: "Decimal places to display. The entities page marks it required, the tool's request class leaves it out."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "API name. If you only send `label`, the server generates one: `calcMeasurement` became `calcMeasurement225` in the official example."}
+      - {name: description, in: body, type: string, description: "Free text."}
+      - {name: syntax, in: body, type: string, description: "Formula dialect: `Tua` (`[Object].[Field]`) or `Salesforce` (`Object.Field`)."}
+      - {name: level, in: body, type: string, description: "`Row` or `AggregateFunction` in the model schema. The functions page also shows `TableCalc`."}
+      - {name: total_aggregation_type, api_name: totalAggregationType, in: body, type: string, description: "Aggregation for totals. The enum is the same as `aggregation_type` without `UserAgg` and `CountDistinct`."}
+      - {name: sort_order, api_name: sortOrder, in: body, type: string, description: "`Ascending`, `Descending` or `None`."}
+      - {name: display_category, api_name: displayCategory, in: body, type: string, description: "`Discrete` or `Continuous`."}
+      - {name: directionality, in: body, type: string, description: "Whether an upward trend is good (`Up`) or a downward one (`Down`)."}
+      - {name: should_treat_nulls_as_zeros, api_name: shouldTreatNullsAsZeros, in: body, type: boolean, description: "Treat nulls as zero."}
+      - {name: is_visible, api_name: isVisible, in: body, type: boolean, description: "Visible in the consumption layer. Default true."}
+      - {name: filters, in: body, schema: SemanticFilter, array: 1, description: "Scope the data the expression sees."}
+      - {name: filter_logic, api_name: filterLogic, in: body, type: string, description: "Combines `filters` by 1-based index, such as `1 AND 2`."}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Queries reference the field by this name through `semantic_field`."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: expression, type: VARCHAR}
+      - {name: syntax, type: VARCHAR, description: "`Tua` or `Salesforce`."}
+      - {name: data_type, api_name: dataType, type: VARCHAR}
+      - {name: aggregation_type, api_name: aggregationType, type: VARCHAR}
+      - {name: total_aggregation_type, api_name: totalAggregationType, type: VARCHAR}
+      - {name: decimal_place, api_name: decimalPlace, type: INTEGER}
+      - {name: is_aggregatable, api_name: isAggregatable, type: BOOLEAN}
+      - {name: directionality, type: VARCHAR, description: "`Up` or `Down`."}
+      - {name: display_category, api_name: displayCategory, type: VARCHAR}
+      - {name: should_treat_nulls_as_zeros, api_name: shouldTreatNullsAsZeros, type: BOOLEAN}
+      - {name: sort_order, api_name: sortOrder, type: VARCHAR}
+      - {name: is_visible, api_name: isVisible, type: BOOLEAN}
+      - {name: level, type: VARCHAR}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. See the official [create example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: |
+      **Notes:** **`aggregation_type`.** `UserAgg` is required for any formula with an aggregation function such as `SUM` or `COUNT` ([tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java)). The [query guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-functions.md) says the same at query time. The other way round, a row-level formula with `UserAgg` is rejected with `does not support userAgg` ([community, one org](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts)). An [official row-level example](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-functions.md) uses `Sum` with `level => 'Row'`.
+
+      **Spellings conflict.** The [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md) has `Average` and `Count Distinct`, the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md) `Avg` and `CountDistinct`. `Avg` was rejected with `Invalid Semantic Aggregation Type` ([community, one org](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts)).
+
+      **Formula.** Same syntax as [`sdm_calc_dim_create`](#sdm_calc_dim_create). The tool suggests `IIF(condition, true_val, false_val)` for inline conditionals. A level-of-detail expression can use `FIXED`, `INCLUDE` or `EXCLUDE`, nested [up to six levels](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-calculated-fields.md). Each adds a subquery.
+
+      The tool's request class has only `label`, `expression`, `data_type`, `aggregation_type`. The other rows come from the [official examples](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md).
+
+  - name: sdm_calc_measure_get
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-measurements/{mid}
+    tools: [d360_sdm_calc_measure_get]
+    description: Read one calculated measurement, including its formula and dependencies.
+    example: CALL cdp.sdm_calc_measure_get (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: calculated_measurement_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Calculated measurement name or ID"}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "Queries reference the field by this name through `semantic_field`."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: expression, type: VARCHAR}
+      - {name: syntax, type: VARCHAR, description: "`Tua` or `Salesforce`."}
+      - {name: data_type, api_name: dataType, type: VARCHAR}
+      - {name: aggregation_type, api_name: aggregationType, type: VARCHAR}
+      - {name: total_aggregation_type, api_name: totalAggregationType, type: VARCHAR}
+      - {name: decimal_place, api_name: decimalPlace, type: INTEGER}
+      - {name: is_aggregatable, api_name: isAggregatable, type: BOOLEAN}
+      - {name: directionality, type: VARCHAR, description: "`Up` or `Down`."}
+      - {name: display_category, api_name: displayCategory, type: VARCHAR}
+      - {name: should_treat_nulls_as_zeros, api_name: shouldTreatNullsAsZeros, type: BOOLEAN}
+      - {name: sort_order, api_name: sortOrder, type: VARCHAR}
+      - {name: is_visible, api_name: isVisible, type: BOOLEAN}
+      - {name: level, type: VARCHAR}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. See the official [create example](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-examples.md) and [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_calc_measure_update
+    method: PUT
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-measurements/{mid}
+    tools: [d360_sdm_calc_measure_update]
+    description: Change a calculated measurement, usually its formula or aggregation.
+    example: CALL cdp.sdm_calc_measure_update (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline', expression => $$SUM(IIF([Opportunity].[IsClosed], 0, [Opportunity].[Amount]))$$);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: calculated_measurement_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Calculated measurement name or ID"}
+      - {name: label, in: body, type: string, description: "New display name."}
+      - {name: expression, in: body, type: string, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: data_type, api_name: dataType, in: body, type: string, description: "New data type, see [`sdm_calc_measure_create`](#sdm_calc_measure_create)."}
+      - {name: aggregation_type, api_name: aggregationType, in: body, type: string, description: "New aggregation, see [`sdm_calc_measure_create`](#sdm_calc_measure_create)."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This is a `PUT`, but the [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) sends only the attributes you set. The sources don't say whether omitted attributes are reset. Check the metrics and queries that use the measurement first ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json))."
+
+  - name: sdm_calc_measure_delete
+    method: DELETE
+    host: connect
+    path: /ssot/semantic/models/{id}/calculated-measurements/{mid}
+    tools: [d360_sdm_calc_measure_delete]
+    description: Delete a calculated measurement from a model.
+    example: CALL cdp.sdm_calc_measure_delete (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: calculated_measurement_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Calculated measurement name or ID"}
+      - {name: relationship_cascade_delete, api_name: relationshipCascadeDelete, in: query, type: boolean, description: "Also delete the relationships that depend on this field."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Metrics [evaluate a calculated measurement or a field](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md), other formulas can name it, and relationship criteria [can reference one](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md). The sources don't say whether the delete is refused or leaves them broken. Their `dependencies` lists show which do, in `sdm_get`."
+
+  - name: sdm_metrics_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/metrics
+    tools: [d360_sdm_metrics_list]
+    description: List the metrics of a model.
+    example: CALL cdp.sdm_metrics_list (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticMetric` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_metric_create
+    method: POST
+    host: connect
+    path: /ssot/semantic/models/{id}/metrics
+    tools: [d360_sdm_metric_create]
+    description: "Add a metric: a business KPI tracked over time, made of one measurement, one time field and allowed time grains. It comes last in a build, because it references fields that must exist."
+    example: CALL cdp.sdm_metric_create (model_api_name_or_id => 'AccountRevenue', name => 'Annual_Revenue_md', label => 'Annual Revenue', definition => (measurement_reference = (table_field_reference = (field_api_name = 'AnnualRevenue', table_api_name = 'Account')), time_dimension_reference = (table_field_reference = (field_api_name = 'CreatedDate', table_api_name = 'Account')), aggregation_type = 'Sum', time_grains = ['Month', 'Quarter'], additional_dimensions = [(table_field_reference = (field_api_name = 'Region', table_api_name = 'Account'))]));
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: name, in: body, type: string, required: true, description: "API name of the metric."}
+      - {name: label, in: body, type: string, required: true, description: "Display name."}
+      - {name: definition, in: body, schema: SemanticMetricDefinition, required: true, description: "What the metric measures."}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "`metric_api_name` of a metric query."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: measurement_reference, api_name: measurementReference, type: JSON, description: "The calculated measurement or field the metric evaluates."}
+      - {name: time_dimension_reference, api_name: timeDimensionReference, type: JSON, description: "The time field."}
+      - {name: additional_dimensions, api_name: additionalDimensions, type: JSON, description: "Dimensions usable as filters."}
+      - {name: time_grains, api_name: timeGrains, type: JSON, description: "Time grains allowed in a query."}
+      - {name: insights_settings, api_name: insightsSettings, type: JSON}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: aggregation_type, api_name: aggregationType, type: VARCHAR}
+      - {name: is_cumulative, api_name: isCumulative, type: BOOLEAN}
+      - {name: is_goal_editing_blocked, api_name: isGoalEditingBlocked, type: BOOLEAN}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: |
+      **Notes:** **Shape conflict.** The [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) sends `name`, `label` and a `definition` object, and its source has no example of `definition`. No source shows this call's body. The [SemanticMetricDefinition](#semanticmetricdefinition) attributes come from the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md) and the metric inside an [inline model](https://developer.salesforce.com/docs/data/semantic-layer/guide/metric-query-api-in-depth-overview.md), which have them directly on the metric and use `api_name`, not `name`. So they may belong at the top level of this call. The inline example also writes `table_field_reference` where the schema has `measurement_reference`.
+
+      **Required by the [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md).** A time dimension, a measurement and allowed time grains. It also marks filters and filter logic required, though the inline example has neither.
+
+      **Querying.** A metric is read through a [Semantic Metric Query](https://developer.salesforce.com/docs/data/semantic-layer/guide/metric-query-api-in-depth-overview.md) (`structuredMetricQuery`), not `structured_semantic_query`. The guide says it goes to "a gateway service" without naming a path, and no function here covers it.
+
+  - name: sdm_metric_get
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/metrics/{mid}
+    tools: [d360_sdm_metric_get]
+    description: Read one metric.
+    example: CALL cdp.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: metric_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Metric name or ID"}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR, description: "`metric_api_name` of a metric query."}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: measurement_reference, api_name: measurementReference, type: JSON, description: "The calculated measurement or field the metric evaluates."}
+      - {name: time_dimension_reference, api_name: timeDimensionReference, type: JSON, description: "The time field."}
+      - {name: additional_dimensions, api_name: additionalDimensions, type: JSON, description: "Dimensions usable as filters."}
+      - {name: time_grains, api_name: timeGrains, type: JSON, description: "Time grains allowed in a query."}
+      - {name: insights_settings, api_name: insightsSettings, type: JSON}
+      - {name: filters, type: JSON}
+      - {name: filter_logic, api_name: filterLogic, type: VARCHAR}
+      - {name: aggregation_type, api_name: aggregationType, type: VARCHAR}
+      - {name: is_cumulative, api_name: isCumulative, type: BOOLEAN}
+      - {name: is_goal_editing_blocked, api_name: isGoalEditingBlocked, type: BOOLEAN}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_metric_update
+    method: PUT
+    host: connect
+    path: /ssot/semantic/models/{id}/metrics/{mid}
+    tools: [d360_sdm_metric_update]
+    description: Change a metric.
+    example: CALL cdp.sdm_metric_update (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md', label => 'Annual Revenue (booked)');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: metric_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Metric name or ID"}
+      - {name: name, in: body, type: string, description: "New API name."}
+      - {name: label, in: body, type: string, description: "New display name."}
+      - {name: definition, in: body, schema: SemanticMetricDefinition, description: "New definition."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Metric changes can affect BI and semantic query consumers ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json)). The shape of `definition` is unsettled, see [`sdm_metric_create`](#sdm_metric_create)."
+
+  - name: sdm_metric_delete
+    method: DELETE
+    host: connect
+    path: /ssot/semantic/models/{id}/metrics/{mid}
+    tools: [d360_sdm_metric_delete]
+    description: Delete a metric from a model.
+    example: CALL cdp.sdm_metric_delete (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: metric_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Metric name or ID"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Metric queries name a metric by [`metric_api_name`](https://developer.salesforce.com/docs/data/semantic-layer/guide/metric-query-api-in-depth-fields.md), so they stop resolving. The sources don't describe other effects."
+
+  - name: sdm_relationships_list
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/relationships
+    tools: [d360_sdm_relationships_list]
+    description: List the joins defined between data objects in a model, including those imported from existing Data 360 relationships.
+    example: CALL cdp.sdm_relationships_list (model_api_name_or_id => 'AccountRevenue');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`. The wrapper around the list is undocumented. Items have the fields of `semanticRelationship` in the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_relationship_create
+    method: POST
+    host: connect
+    path: /ssot/semantic/models/{id}/relationships
+    tools: [d360_sdm_relationship_create]
+    description: Define the join between two data objects in a model. A query across objects needs a path of these. Add it once both data objects are in the model.
+    example: CALL cdp.sdm_relationship_create (model_api_name_or_id => 'AccountRevenue', label => 'Account to Opportunity', left_semantic_definition_api_name => 'Account', right_semantic_definition_api_name => 'Opportunity', cardinality => 'OneToMany', join_type => 'Auto', criteria => [(join_operator = 'Equals', left_field_type = 'TableField', left_semantic_field_api_name = 'Account_Id', right_field_type = 'TableField', right_semantic_field_api_name = 'AccountId')]);
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: label, in: body, type: string, required: true, description: "Display name."}
+      - {name: left_semantic_definition_api_name, api_name: leftSemanticDefinitionApiName, in: body, type: string, required: true, description: "Semantic `api_name` of the left data object."}
+      - {name: right_semantic_definition_api_name, api_name: rightSemanticDefinitionApiName, in: body, type: string, required: true, description: "Semantic `api_name` of the right data object."}
+      - {name: cardinality, in: body, type: string, required: true, description: "`OneToOne`, `OneToMany`, `ManyToOne`, `ManyToMany` or `Unspecified`. The tool requires it, the guide calls it optional."}
+      - {name: criteria, in: body, schema: SemanticRelationshipCriterion, array: 1, description: "Join conditions. The tool marks it optional, the entities page and schema required."}
+      - {name: join_type, api_name: joinType, in: body, type: string, description: "`Auto` (the default), `Inner`, `Left`, `Right` or `Full`."}
+      - {name: api_name, api_name: apiName, in: body, type: string, description: "API name of the relationship."}
+      - {name: is_enabled, api_name: isEnabled, in: body, type: boolean, description: "Whether the relationship is active."}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: left_semantic_definition_api_name, api_name: leftSemanticDefinitionApiName, type: VARCHAR}
+      - {name: right_semantic_definition_api_name, api_name: rightSemanticDefinitionApiName, type: VARCHAR}
+      - {name: criteria, type: JSON, description: "Items have the attributes of [SemanticRelationshipCriterion](#semanticrelationshipcriterion)."}
+      - {name: cardinality, type: VARCHAR}
+      - {name: join_type, api_name: joinType, type: VARCHAR}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+    notes: |
+      **Notes:** **Names.** Use the semantic field names from [`sdm_data_objects_list`](#sdm_data_objects_list), such as `Individual_Id18`, not DMO field names ([tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java)).
+
+      **Rules** from the [guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md). At most one relationship between any pair of objects, including ones imported at creation, so read the list first. The graph must be acyclic. Both sides of a criterion must have the same data type, and can't be aggregates. A `Formula` side is row-level only.
+
+      **Conflicts.** The [tool's request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/sdm/SdmRelationshipCreateRequest.java) says join_type `Inner` or `LeftOuter`, its text says `Auto`, and the [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md) lists the values above. [One community tool](https://github.com/javrrr/afd360/blob/main/src/resources/semantic-model.ts) found every value but `Auto` rejected outside logical views (one org), yet the [official guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md) shows `Left`. The tool also [parses](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) `criteria` into a single object, while its [own example](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/resources/metadata/payload-examples.json) and the schema use an array.
+
+      Accurate `cardinality` lets the engine [skip a deduplication pass](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-grouping.md). Prefer `Equals`: case-insensitive and range operators [can't use a hash join](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md).
+
+  - name: sdm_relationship_get
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/{id}/relationships/{rid}
+    tools: [d360_sdm_relationship_get]
+    description: Read one relationship, including its join criteria.
+    example: CALL cdp.sdm_relationship_get (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: relationship_name_or_id, api_name: rid, in: path, type: string, required: true, description: "Relationship name or ID"}
+    columns:
+      - {name: id, type: VARCHAR}
+      - {name: api_name, api_name: apiName, type: VARCHAR}
+      - {name: label, type: VARCHAR}
+      - {name: description, type: VARCHAR}
+      - {name: left_semantic_definition_api_name, api_name: leftSemanticDefinitionApiName, type: VARCHAR}
+      - {name: right_semantic_definition_api_name, api_name: rightSemanticDefinitionApiName, type: VARCHAR}
+      - {name: criteria, type: JSON, description: "Items have the attributes of [SemanticRelationshipCriterion](#semanticrelationshipcriterion)."}
+      - {name: cardinality, type: VARCHAR}
+      - {name: join_type, api_name: joinType, type: VARCHAR}
+      - {name: is_enabled, api_name: isEnabled, type: BOOLEAN}
+      - {name: is_queryable, api_name: isQueryable, type: VARCHAR, description: "Whether the query engine can read it. `Queryable` or `NotQueryable` in the model schema, `NonQueryable` in the v65 file."}
+      - {name: dependencies, type: JSON, description: "Other definitions and fields this one depends on: `dependentDefinitionApiName`, `dependentFieldApiName`."}
+      - {name: created_by, api_name: createdBy, type: VARCHAR}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: VARCHAR}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: One row. Other response fields go to `_meta`. Fields are from the official [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md).
+
+  - name: sdm_relationship_update
+    method: PUT
+    host: connect
+    path: /ssot/semantic/models/{id}/relationships/{rid}
+    tools: [d360_sdm_relationship_update]
+    description: Change a relationship's join criteria, cardinality or join type.
+    example: CALL cdp.sdm_relationship_update (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity', cardinality => 'ManyToOne');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: relationship_name_or_id, api_name: rid, in: path, type: string, required: true, description: "Relationship name or ID"}
+      - {name: label, in: body, type: string, description: "New display name."}
+      - {name: cardinality, in: body, type: string, description: "`OneToOne`, `OneToMany`, `ManyToOne`, `ManyToMany` or `Unspecified`."}
+      - {name: criteria, in: body, schema: SemanticRelationshipCriterion, array: 1, description: "New join conditions."}
+      - {name: join_type, api_name: joinType, in: body, type: string, description: "`Auto` (the default), `Inner`, `Left`, `Right` or `Full`."}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** Changes affect joins and query results ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json)). Wrong cardinality or criteria [multiply or drop rows](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md). This is a `PUT`, but the [tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) sends only the attributes you set. The sources don't say whether omitted attributes are reset."
+
+  - name: sdm_relationship_delete
+    method: DELETE
+    host: connect
+    path: /ssot/semantic/models/{id}/relationships/{rid}
+    tools: [d360_sdm_relationship_delete]
+    description: Delete a relationship from a model.
+    example: CALL cdp.sdm_relationship_delete (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
+    options:
+      - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
+      - {name: relationship_name_or_id, api_name: rid, in: path, type: string, required: true, description: "Relationship name or ID"}
+    effect: write
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** This [breaks queries](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) that need the join. A query over objects with no relationship path [fails](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-relationships.md). The [entities page](https://developer.salesforce.com/docs/data/semantic-layer/guide/connect-api-in-depth-entities.md) adds a model setting for this case, `UnrelatedDataObjectsQueryBehavior`, with `Exception` and `Union`."
+
+  - name: sdm_formula_metadata
+    method: GET
+    host: connect
+    path: /ssot/semantic/models/formula-metadata
+    tools: [d360_sdm_formula_metadata]
+    description: List the functions the semantic engine supports in formulas. Use it to check a calculated field's formula before saving it.
+    example: CALL cdp.sdm_formula_metadata ();
+    options:
+      - {name: model_api_name_or_id, api_name: modelApiNameOrId, in: query, type: string, description: "Model API name or ID"}
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** The readable version is the [function reference](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-functions.md), which documents the Tua dialect."
+
+  - name: sdm_permissions
+    method: GET
+    host: connect
+    path: /ssot/semantic/permissions
+    tools: [d360_sdm_permissions]
+    description: Read the semantic layer permissions. The sources don't say more about what it returns.
+    example: CALL cdp.sdm_permissions ();
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: The public sources don't document this response. One row, with the response in `_raw`.
+    notes: "**Notes:** To query, the org needs [CDP Semantic Query Permissions](https://developer.salesforce.com/docs/data/semantic-layer/guide/quick-start-query-api.md)."
+
+  - name: sdm_query
+    method: POST
+    host: connect
+    path: /semantic-engine/gateway
+    tools: [d360_sdm_query]
+    description: Run a query against a semantic model. You name fields, filters and groupings, and the engine works out the joins and SQL, then returns rows. This is the read side of the family.
+    example: |
+      CALL cdp.sdm_query (
+        semantic_model_api_name => 'AccountRevenue',
+        structured_semantic_query => (
+          fields = [
+            (expression = (table_field = (name = 'Region', table_name = 'Account')), alias = 'Region', row_grouping = true),
+            (expression = (semantic_field = (name = 'Revenue_Tier')), alias = 'RevenueSegment', row_grouping = true),
+            (expression = (table_field = (name = 'AnnualRevenue', table_name = 'Account')), alias = 'TotalRevenue', semantic_aggregation_method = 'SEMANTIC_AGGREGATION_METHOD_SUM')
+          ],
+          filter = (binary_predicate = (left_expression = (table_field = (name = 'AnnualRevenue', table_name = 'Account')), binary_operator = 'BINARY_OPERATOR_GREATER_THAN', right_expression = (int_expression = 0))),
+          options = (limit_options = (limit = 100))
+        )
+      );
+    options:
+      - {name: structured_semantic_query, api_name: structuredSemanticQuery, in: body, schema: StructuredSemanticQuery, required: true, description: "The query."}
+      - {name: semantic_model_api_name, api_name: semanticModelApiName, in: body, type: string, description: "API name of a saved model. The guide's preferred way. Give exactly one of the three model options."}
+      - {name: semantic_model_id, api_name: semanticModelId, in: body, type: string, description: "Record ID of a saved model. The guide calls it deprecated, Salesforce's tool uses it."}
+      - {name: semantic_model, api_name: semanticModel, in: body, type: any, description: "A whole model inline, not saved. Has the attributes of the [model schema](https://developer.salesforce.com/docs/data/semantic-layer/guide/salesforce-semantic-model-schema.md). See Notes."}
+      - {name: dataspace, in: body, type: string, description: "Data space to run in. The default data space if omitted."}
+      - {name: group_id, api_name: groupId, in: body, type: string, description: "Sends the query as part of this group of queries."}
+      - {name: query_parameter, api_name: queryParameter, in: body, type: string, description: "Parameter name and value for parameterized queries. The guide's examples use `parameters` on the query instead."}
+      - {name: source, in: body, type: string, description: "Identifies the source of the query. In the [metric guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/metric-query-api-in-depth-fields.md) it is for usage reporting."}
+    rows: /queryResults/queryData/rows
+    effect: read
+    unknown: warning
+    evidence: S
+    result_description: |
+      One row per item of `/queryResults/queryData/rows` in the response. Other response fields go to `_meta`: `status`, `queryResults.queryMetadata`. Each row's `values` array is positional, and `queryMetadata.fields.<alias>.placeInOrder` gives each column's place ([v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/queries.yaml), [community fixture](https://github.com/javrrr/tableau-semantics-sdk/blob/main/tests/fixtures/semantic-query.response.json)).
+
+      The columns come from the query: one per query field, named by its `alias` and typed from `queryMetadata.fields.<alias>.type`, which is VARCHAR, or NUMERIC mapped to DOUBLE. The spec can't list them, so they stay in `_raw`.
+    notes: |
+      **Notes:** This is a read despite the `POST`. The "changes org state" above comes from the verb. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json) treats it as a safe `POST`.
+
+      **Naming the model: sources conflict.** The [official guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-overview.md) prefers `semantic_model_api_name` and calls `semantic_model_id` deprecated. [Salesforce's catalog](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) says "Use semantic_model_id not api_name", and the [tool's request class](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java) has only that. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) shows `semantic_model_id` with an ID or API name. [One community SDK](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/resources/semantic-query.ts) requires `semantic_model_api_name` and found inline `semantic_model` rejected (one org, v65), though the guide documents it.
+
+      **Give each field a role.** A dimension sets `row_grouping`, and a measurement sets `semantic_aggregation_method` with the full enum name. Otherwise the field is dropped, with `Query doesn't include select fields` ([community, one org](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/resources/semantic-query.ts)). The guide's plain row queries instead set `options.detailed_rows`, which disallows aggregates, aggregate filters and level-of-detail expressions ([guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-calculated-fields.md)). Once any field groups, [every other measurement must aggregate](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-grouping.md).
+
+      **Field references.** `table_field` needs `name` and `table_name`, the semantic `api_name` values, not `__dlm` or `__c` names. Calculated fields are model-level: use `semantic_field` with just `name` ([tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SdmTools.java)). Everything must [resolve within the model](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-overview.md). An aggregation on a formula with its own aggregate must be `SEMANTIC_AGGREGATION_METHOD_USER_AGG`.
+
+      **Limit.** `limit` [applies after grouping](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-sorting-limiting.md), so it caps groups, not source records. Inline formulas exist only for that one query.
+
+      **Errors.** A 400 has `error_code` and `message`, and the message lists the queryable fields when a name is wrong ([v65 file](https://github.com/javrrr/tableau-semantics-sdk/blob/main/src/generated/sources/queries.yaml)). [`sdm_validate`](#sdm_validate) first helps ([sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/operations.json)).
+
+      **Spelling.** Attributes here are camelCase as in the tool's example. The guide says [the API also takes snake_case](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-overview.md), and most of its examples use it. The guide also shows the same payload through `semantic_query('...')` in the SQL of `query_sql`, which returns a `query_id`.
+
+schemas:
+  AggregativeSortOrder:
+    unknown: warning
+    attributes:
+      - {name: grouped_field_alias, api_name: groupedFieldAlias, type: string, description: "Alias of the grouped dimension. Give this or `grouped_expression`."}
+      - {name: grouped_expression, api_name: groupedExpression, schema: Expression, description: "The grouped dimension."}
+      - {name: sort_by_field, api_name: sortByField, schema: SortField, description: "Field to sort by."}
+      - {name: sort_by_field_alias, api_name: sortByFieldAlias, type: string, description: "Alias from `fields`."}
+      - {name: sort_by_row_count, api_name: sortByRowCount, type: boolean, description: "Sort by the group's row count."}
+      - {name: sorting_order, api_name: sortingOrder, type: string, description: "Sort direction: `ASC` or `DESC`. Default ascending."}
+      - {name: null_values_position, api_name: nullValuesPosition, type: string, description: "`NULLS_FIRST` or `NULLS_LAST`."}
+
+  BinaryPredicate:
+    unknown: warning
+    attributes:
+      - {name: left_expression, api_name: leftExpression, schema: Expression, required: true, description: "Left side."}
+      - {name: binary_operator, api_name: binaryOperator, type: string, required: true, description: "`BINARY_OPERATOR_` plus EQUALS, NOT_EQUAL_TO, GREATER_THAN, GREATER_THAN_OR_EQUAL_TO, LESS_THAN, LESS_THAN_OR_EQUAL_TO, EQUALS_IGNORE_CASE, NOT_EQUALS_IGNORE_CASE, IN, NOT_IN, BETWEEN, CONTAINS, STARTS_WITH, ENDS_WITH, IS_NULL, IS_NOT_NULL, IS_EMPTY or IS_NOT_EMPTY."}
+      - {name: right_expression, api_name: rightExpression, schema: Expression, description: "Right side."}
+
+  CalculatedDimensionExpression:
+    unknown: warning
+    attributes:
+      - {name: dimension_output_type, api_name: dimensionOutputType, type: string, required: true, description: "A `SEMANTIC_DIMENSION_TYPE_*` value: TEXT, NUMBER, DATE_TIME."}
+
+  CalculatedField:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, required: true, description: "Label for the calculation within the query."}
+      - {name: expression, type: string, required: true, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: syntax, type: string, description: "`Tua` (the default here) or `Salesforce`."}
+      - {name: calculated_measure_expression, api_name: calculatedMeasureExpression, schema: CalculatedMeasureExpression, description: "Declares a numeric output. Set exactly one of this and `calculated_dimension_expression`."}
+      - {name: calculated_dimension_expression, api_name: calculatedDimensionExpression, schema: CalculatedDimensionExpression, description: "Declares a non-numeric output."}
+
+  CalculatedMeasureExpression:
+    unknown: warning
+    attributes:
+      - {name: measure_output_type, api_name: measureOutputType, type: string, required: true, description: "A `SEMANTIC_MEASUREMENT_TYPE_*` value, such as `SEMANTIC_MEASUREMENT_TYPE_NUMBER`."}
+      - {name: decimal_places_options, api_name: decimalPlacesOptions, type: any, description: "Holds `decimalPlaces`."}
+
+  Expression:
+    unknown: warning
+    attributes:
+      - {name: table_field, api_name: tableField, schema: TableField, description: "A field on a data object."}
+      - {name: semantic_field, api_name: semanticField, schema: SemanticField, description: "A model-level field, such as a calculated field or `Parameters.<api_name>`."}
+      - {name: calculated_field, api_name: calculatedField, schema: CalculatedField, description: "A formula for this query only."}
+      - {name: string_expression, api_name: stringExpression, type: string, description: Literal.}
+      - {name: bool_expression, api_name: boolExpression, type: boolean, description: Literal.}
+      - {name: int_expression, api_name: intExpression, type: integer, description: "Literal, 32-bit."}
+      - {name: long_expression, api_name: longExpression, type: integer, description: "Literal, 64-bit."}
+      - {name: float_expression, api_name: floatExpression, type: number, description: Literal.}
+      - {name: double_expression, api_name: doubleExpression, type: number, description: Literal.}
+      - {name: bytes_expression, api_name: bytesExpression, type: string, description: "Binary literal."}
+      - {name: datetime_expression, api_name: datetimeExpression, type: string, description: "ISO 8601 datetime."}
+      - {name: date_expression, api_name: dateExpression, type: any, description: "Date without time."}
+      - {name: array_expression, api_name: arrayExpression, type: any, description: "Array of expressions."}
+      - {name: range_values, api_name: rangeValues, schema: RangeValues, description: "For `BINARY_OPERATOR_BETWEEN`."}
+      - {name: relative_date_range, api_name: relativeDateRange, type: any, description: "Dynamic range: `datePart`, `startOffset`, `endOffset`, `anchorDate`, `useCurrentDateAsEndDate`."}
+      - {name: null_value, api_name: nullValue, type: any, description: Null.}
+      - {name: forecast_field, api_name: forecastField, type: any, description: "Forecast field for predictive queries."}
+      - {name: relationship_formula, api_name: relationshipFormula, type: string, description: "Inline row-level join formula."}
+
+  FlattenFilter:
+    unknown: warning
+    attributes:
+      - {name: filters, type: any, required: true, description: "Items have `field_name`, a PascalCase `operator`, `value` or `values`, and optionally `fieldType`."}
+      - {name: filter_logic, api_name: filterLogic, type: string, required: true, description: "Combines `filters` by 1-based index, such as `(1 AND 2) OR 3`."}
+
+  LimitOptions:
+    unknown: warning
+    attributes:
+      - {name: limit, type: integer, required: true, description: Non-negative.}
+
+  LogicalBinaryPredicate:
+    unknown: warning
+    attributes:
+      - {name: left_predicate, api_name: leftPredicate, schema: Predicate, required: true, description: "Left side."}
+      - {name: logical_binary_operator, api_name: logicalBinaryOperator, type: string, required: true, description: "`LOGICAL_BINARY_OPERATOR_AND`, `_OR` or `_NOT`."}
+      - {name: right_predicate, api_name: rightPredicate, schema: Predicate, required: true, description: "Right side."}
+
+  Predicate:
+    unknown: warning
+    attributes:
+      - {name: binary_predicate, api_name: binaryPredicate, schema: BinaryPredicate, description: "A comparison."}
+      - {name: unary_predicate, api_name: unaryPredicate, schema: UnaryPredicate, description: "A test on one expression."}
+      - {name: logical_binary_predicate, api_name: logicalBinaryPredicate, schema: LogicalBinaryPredicate, description: "Two predicates combined."}
+      - {name: simple_dimension_filter, api_name: simpleDimensionFilter, schema: Predicate, description: "Wraps a predicate. The guide uses it in context filters."}
+      - {name: flatten_filter, api_name: flattenFilter, schema: FlattenFilter, description: "A list of filters plus a logic string."}
+
+  QueryField:
+    unknown: warning
+    attributes:
+      - {name: expression, schema: Expression, required: true, description: "What the field returns."}
+      - {name: alias, type: string, description: "Column name in the response. Sorts can reference it."}
+      - {name: row_grouping, api_name: rowGrouping, type: boolean, description: "Group by this field. Shorthand for `grouping => 'ROW_GROUPING'`."}
+      - {name: grouping, type: string, description: "`ROW_GROUPING` or `COLUMN_GROUPING`."}
+      - {name: semantic_aggregation_method, api_name: semanticAggregationMethod, type: string, description: "`SEMANTIC_AGGREGATION_METHOD_` plus AUTO, NONE, SUM, AVG, MIN, MAX, MEDIAN, COUNT, UNIQUE_COUNT, STDDEV, STDDEVP, VAR, VARP, FIRST, LAST, UNIQUE or USER_AGG."}
+      - {name: show_missing_values, api_name: showMissingValues, type: any, description: "Data densification settings."}
+
+  QueryOptions:
+    unknown: warning
+    attributes:
+      - {name: sort_orders, api_name: sortOrders, schema: SortOrder, array: 1, description: "Applied in list order."}
+      - {name: limit_options, api_name: limitOptions, schema: LimitOptions, description: "Maximum rows, after grouping."}
+      - {name: offset_options, api_name: offsetOptions, type: any, description: "Offset of the results from a row."}
+      - {name: detailed_rows, api_name: detailedRows, type: boolean, description: "Return individual rows. Disallows aggregates and aggregate filters."}
+      - {name: subtotals, type: boolean, description: "Add one summary row per grouped dimension. Needs a row-grouping field."}
+      - {name: grand_total, api_name: grandTotal, type: boolean, description: "Add one summary row for the whole result."}
+      - {name: row_counts, api_name: rowCounts, type: boolean, description: "Include the count of underlying rows per group."}
+      - {name: join_path_plan, api_name: joinPathPlan, type: string, description: "`JOIN_ALL_TABLES` or `JOIN_MINIMAL_TABLES`."}
+      - {name: smart_aggregations, api_name: smartAggregations, type: boolean, description: "Compute subtotal and grand total rows in one grouped pass."}
+      - {name: apply_model_sorting, api_name: applyModelSorting, type: boolean, description: "Apply each field's model-defined sort order."}
+      - {name: disallow_cross_join, api_name: disallowCrossJoin, type: boolean, description: "Disallow cross joins."}
+
+  QueryParameter:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, required: true, description: "API name of the model parameter."}
+      - {name: value, type: string, required: true, description: "Must convert to the parameter's data type."}
+
+  RangeValues:
+    unknown: warning
+    attributes:
+      - {name: lower_boundary, api_name: lowerBoundary, schema: Expression, required: true, description: Inclusive.}
+      - {name: upper_boundary, api_name: upperBoundary, schema: Expression, required: true, description: Inclusive.}
+
+  SemanticCalculatedDimension:
+    unknown: warning
+    attributes:
+      - {name: expression, type: string, required: true, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: data_type, api_name: dataType, type: string, required: true, description: "See [`sdm_calc_dim_create`](#sdm_calc_dim_create)."}
+      - {name: label, type: string, description: "Display name."}
+      - {name: api_name, api_name: apiName, type: string, description: "API name. If you only send `label`, the server generates one: `calcdim19` became `calcdim1965` in the official example."}
+      - {name: description, type: string, description: "Free text."}
+      - {name: syntax, type: string, description: "Formula dialect: `Tua` (`[Object].[Field]`) or `Salesforce` (`Object.Field`)."}
+      - {name: geo_role, api_name: geoRole, type: string, description: "Airport, Area Code (US), CBSA/MSA (US), City, Congressional District (US), Country/Region, Country, NUTS Europe, Latitude, Longitude, State/Province, Zip Code/Postcode."}
+      - {name: sort_order, api_name: sortOrder, type: string, description: "`Ascending`, `Descending` or `None`."}
+      - {name: display_category, api_name: displayCategory, type: string, description: "`Discrete` or `Continuous`."}
+      - {name: is_visible, api_name: isVisible, type: boolean, description: "Visible in the consumption layer. Default true."}
+      - {name: level, type: string, description: "`Row` or `AggregateFunction` in the model schema."}
+      - {name: filters, schema: SemanticFilter, array: 1, description: "Scope the data the expression sees."}
+      - {name: filter_logic, api_name: filterLogic, type: string, description: "Combines `filters` by 1-based index, such as `1 AND 2`."}
+
+  SemanticCalculatedMeasurement:
+    unknown: warning
+    attributes:
+      - {name: expression, type: string, required: true, description: "Formula. Write it as `$$ ... $$` so its quotes need no escaping."}
+      - {name: data_type, api_name: dataType, type: string, required: true, description: "See [`sdm_calc_measure_create`](#sdm_calc_measure_create)."}
+      - {name: aggregation_type, api_name: aggregationType, type: string, description: "Sum, Average, Min, Max, Median, Count, Count Distinct, Stddev, Stddevp, Var, Varp, First, Last, UserAgg, None. Use `UserAgg` when the formula aggregates itself."}
+      - {name: label, type: string, description: "Display name."}
+      - {name: decimal_place, api_name: decimalPlace, type: integer, description: "Decimal places to display. The entities page marks it required, the tool's request class leaves it out."}
+      - {name: api_name, api_name: apiName, type: string, description: "API name. If you only send `label`, the server generates one: `calcMeasurement` became `calcMeasurement225` in the official example."}
+      - {name: description, type: string, description: "Free text."}
+      - {name: syntax, type: string, description: "Formula dialect: `Tua` (`[Object].[Field]`) or `Salesforce` (`Object.Field`)."}
+      - {name: level, type: string, description: "`Row` or `AggregateFunction` in the model schema. The functions page also shows `TableCalc`."}
+      - {name: total_aggregation_type, api_name: totalAggregationType, type: string, description: "Aggregation for totals. The enum is the same as `aggregation_type` without `UserAgg` and `CountDistinct`."}
+      - {name: sort_order, api_name: sortOrder, type: string, description: "`Ascending`, `Descending` or `None`."}
+      - {name: display_category, api_name: displayCategory, type: string, description: "`Discrete` or `Continuous`."}
+      - {name: directionality, type: string, description: "Whether an upward trend is good (`Up`) or a downward one (`Down`)."}
+      - {name: should_treat_nulls_as_zeros, api_name: shouldTreatNullsAsZeros, type: boolean, description: "Treat nulls as zero."}
+      - {name: is_visible, api_name: isVisible, type: boolean, description: "Visible in the consumption layer. Default true."}
+      - {name: filters, schema: SemanticFilter, array: 1, description: "Scope the data the expression sees."}
+      - {name: filter_logic, api_name: filterLogic, type: string, description: "Combines `filters` by 1-based index, such as `1 AND 2`."}
+
+  SemanticContext:
+    unknown: warning
+    attributes:
+      - {name: time_zone, api_name: timezone, type: any, description: "Holds `id`, an IANA zone such as `America/Los_Angeles`."}
+      - {name: locale, type: any, description: "Holds `code`, such as `en_US`."}
+      - {name: currency, type: any, description: "Holds `id`, an ISO code. Takes precedence over model and org defaults."}
+      - {name: context_filter, api_name: contextFilter, schema: Predicate, description: "Applies before all other query filters except model and data object filters."}
+
+  SemanticDataObject:
+    unknown: warning
+    attributes:
+      - {name: data_object_name, api_name: dataObjectName, type: string, required: true, description: "The source object."}
+      - {name: data_object_type, api_name: dataObjectType, type: string, required: true, description: "`Dmo`, `Dlo` or `Cio`."}
+      - {name: label, type: string, description: "Display name."}
+      - {name: api_name, api_name: apiName, type: string, description: "Semantic name of the object."}
+      - {name: description, type: string, description: "Free text."}
+      - {name: should_include_all_fields, api_name: shouldIncludeAllFields, type: boolean, description: "True adds every source field."}
+      - {name: table_type, api_name: tableType, type: string, description: "`Standard`, `Dimension` or `Fact`."}
+      - {name: semantic_dimensions, api_name: semanticDimensions, schema: SemanticDimension, array: 1, description: Dimensions.}
+      - {name: semantic_measurements, api_name: semanticMeasurements, schema: SemanticMeasurement, array: 1, description: Measurements.}
+      - {name: filters, schema: SemanticFilter, array: 1, description: "Restrict the rows this object contributes."}
+      - {name: filter_logic, api_name: filterLogic, type: string, description: "Combines `filters` by 1-based index."}
+
+  SemanticDimension:
+    unknown: warning
+    attributes:
+      - {name: data_object_field_name, api_name: dataObjectFieldName, type: string, required: true, description: "The source column, such as `ssot__Name__c`."}
+      - {name: label, type: string, description: "Display name."}
+      - {name: api_name, api_name: apiName, type: string, description: "Semantic name. Letters, digits and underscores only (community)."}
+      - {name: description, type: string, description: "Free text."}
+      - {name: data_type, api_name: dataType, type: string, description: "Text, Number, Date, DateTime, Boolean, Currency, Email, Percentage, PhoneNumber, Url or Geo."}
+      - {name: display_category, api_name: displayCategory, type: string, description: "`Discrete` or `Continuous`."}
+      - {name: geo_role, api_name: geoRole, type: string, description: "Geographic role, see `geo_role` of [`sdm_calc_dim_create`](#sdm_calc_dim_create)."}
+      - {name: sort_order, api_name: sortOrder, type: string, description: "`Ascending`, `Descending` or `None`."}
+      - {name: is_visible, api_name: isVisible, type: boolean, description: "Visible in the consumption layer. Default true."}
+      - {name: is_primary_key, api_name: isPrimaryKey, type: boolean, description: "-"}
+      - {name: semantic_data_type, api_name: semanticDataType, type: string, description: "`RecordCurrency` marks the record currency field (community)."}
+      - {name: storage_data_type, api_name: storageDataType, type: string, description: "Native storage type. For a `Cio` it must equal the field's type (community)."}
+
+  SemanticField:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, required: true, description: "API name of the model-level field."}
+
+  SemanticFieldReference:
+    unknown: warning
+    attributes:
+      - {name: table_field_reference, api_name: tableFieldReference, schema: SemanticTableFieldReference, description: "A field on a data object."}
+      - {name: calculated_field_api_name, api_name: calculatedFieldApiName, type: string, description: "A calculated field, as an alternative to `table_field_reference`."}
+
+  SemanticFilter:
+    unknown: warning
+    attributes:
+      - {name: field_name, api_name: fieldName, type: string, description: "API name of the field being filtered."}
+      - {name: operator, type: string, description: "PascalCase operator such as `GreaterThan`, `In`, `StartsWith`, `Between`, `IsNull`."}
+      - {name: value, type: string, description: "Value as a string. `Between` takes `lower | upper`."}
+      - {name: values, array: 1, type: string, description: "Values, for operators such as `In`."}
+
+  SemanticMeasurement:
+    unknown: warning
+    attributes:
+      - {name: data_object_field_name, api_name: dataObjectFieldName, type: string, required: true, description: "The source column, such as `ssot__AnnualRevenueAmount__c`."}
+      - {name: label, type: string, description: "Display name."}
+      - {name: api_name, api_name: apiName, type: string, description: "Semantic name. Letters, digits and underscores only (community)."}
+      - {name: description, type: string, description: "Free text."}
+      - {name: data_type, api_name: dataType, type: string, description: "Number, Currency or Percentage. `Percent` is rejected (community)."}
+      - {name: aggregation_type, api_name: aggregationType, type: string, description: "Default aggregation, see [`sdm_calc_measure_create`](#sdm_calc_measure_create). `Sum` when omitted in the official example."}
+      - {name: decimal_place, api_name: decimalPlace, type: integer, description: "Decimal places to display."}
+      - {name: directionality, type: string, description: "`Up` or `Down`, whether a rising trend is good."}
+      - {name: display_category, api_name: displayCategory, type: string, description: "`Continuous`."}
+      - {name: should_treat_nulls_as_zeros, api_name: shouldTreatNullsAsZeros, type: boolean, description: "Treat nulls as zero."}
+      - {name: sort_order, api_name: sortOrder, type: string, description: "`Ascending`, `Descending` or `None`."}
+      - {name: is_visible, api_name: isVisible, type: boolean, description: "Visible in the consumption layer. Default true."}
+      - {name: is_aggregatable, api_name: isAggregatable, type: boolean, description: "-"}
+
+  SemanticMetricDefinition:
+    unknown: warning
+    attributes:
+      - {name: measurement_reference, api_name: measurementReference, schema: SemanticFieldReference, required: true, description: "The calculated measurement or field the metric evaluates."}
+      - {name: time_dimension_reference, api_name: timeDimensionReference, schema: SemanticFieldReference, required: true, description: "The time field."}
+      - {name: time_grains, api_name: timeGrains, array: 1, type: string, required: true, description: "Allowed grains: Day, Week, Month, Quarter, Year."}
+      - {name: aggregation_type, api_name: aggregationType, type: string, description: "Such as `Sum`."}
+      - {name: additional_dimensions, api_name: additionalDimensions, schema: SemanticFieldReference, array: 1, description: "Dimensions usable as filters."}
+      - {name: insights_settings, api_name: insightsSettings, type: any, description: "Which insight types and dimensions to use when generating insights."}
+      - {name: filters, schema: SemanticFilter, array: 1, description: "Filters on the metric."}
+      - {name: filter_logic, api_name: filterLogic, type: string, description: "Combines `filters` by 1-based index."}
+      - {name: is_cumulative, api_name: isCumulative, type: boolean, description: "Whether the metric is cumulative."}
+      - {name: is_goal_editing_blocked, api_name: isGoalEditingBlocked, type: boolean, description: "Whether goal editing is blocked."}
+      - {name: api_name, api_name: apiName, type: string, description: "Only inside `semantic_metrics` of [`sdm_create`](#sdm_create)."}
+      - {name: label, type: string, description: "Only inside `semantic_metrics` of [`sdm_create`](#sdm_create)."}
+
+  SemanticModelCurrency:
+    unknown: warning
+    attributes:
+      - {name: id, type: string, description: "Currency ISO code."}
+      - {name: use_org_default, api_name: useOrgDefault, type: boolean, description: "Use the org default currency."}
+
+  SemanticRelationship:
+    unknown: warning
+    attributes:
+      - {name: left_semantic_definition_api_name, api_name: leftSemanticDefinitionApiName, type: string, required: true, description: "Semantic `api_name` of the left data object."}
+      - {name: right_semantic_definition_api_name, api_name: rightSemanticDefinitionApiName, type: string, required: true, description: "Semantic `api_name` of the right data object."}
+      - {name: criteria, schema: SemanticRelationshipCriterion, array: 1, required: true, description: "Join conditions."}
+      - {name: api_name, api_name: apiName, type: string, description: "API name."}
+      - {name: label, type: string, description: "Display name."}
+      - {name: cardinality, type: string, description: "`OneToOne`, `OneToMany`, `ManyToOne`, `ManyToMany` or `Unspecified`."}
+      - {name: join_type, api_name: joinType, type: string, description: "`Auto` (the default), `Inner`, `Left`, `Right` or `Full`."}
+      - {name: is_enabled, api_name: isEnabled, type: boolean, description: "Whether the relationship is active."}
+
+  SemanticRelationshipCriterion:
+    unknown: warning
+    attributes:
+      - {name: left_semantic_field_api_name, api_name: leftSemanticFieldApiName, type: string, required: true, description: "Field on the left object, or a formula if `left_field_type` is `Formula`."}
+      - {name: right_semantic_field_api_name, api_name: rightSemanticFieldApiName, type: string, required: true, description: "Field on the right object, or a formula if `right_field_type` is `Formula`."}
+      - {name: join_operator, api_name: joinOperator, type: string, description: "Equals, EqualsIgnoreCase, GreaterThan, LessThan, GreaterThanOrEqual, LessThanOrEqual, NotEquals or NotEqualsIgnoreCase."}
+      - {name: left_field_type, api_name: leftFieldType, type: string, description: "`TableField` (the default), `SemanticField` for a calculated field, or `Formula`."}
+      - {name: right_field_type, api_name: rightFieldType, type: string, description: "`TableField` (the default), `SemanticField` for a calculated field, or `Formula`."}
+
+  SemanticTableFieldReference:
+    unknown: warning
+    attributes:
+      - {name: field_api_name, api_name: fieldApiName, type: string, required: true, description: "Semantic field name."}
+      - {name: table_api_name, api_name: tableApiName, type: string, required: true, description: "Semantic data object name."}
+
+  SimpleSortOrder:
+    unknown: warning
+    attributes:
+      - {name: sort_by_field, api_name: sortByField, schema: SortField, description: "Field to sort by. Give this or `sort_by_field_alias`."}
+      - {name: sort_by_field_alias, api_name: sortByFieldAlias, type: string, description: "Alias from `fields`."}
+      - {name: sorting_order, api_name: sortingOrder, type: string, description: "Sort direction: `ASC` or `DESC`. Default ascending."}
+      - {name: null_values_position, api_name: nullValuesPosition, type: string, description: "`NULLS_FIRST` or `NULLS_LAST`."}
+
+  SortField:
+    unknown: warning
+    attributes:
+      - {name: expression, schema: Expression, required: true, description: "The field."}
+      - {name: semantic_aggregation_method, api_name: semanticAggregationMethod, type: string, description: "`SEMANTIC_AGGREGATION_METHOD_` plus AUTO, NONE, SUM, AVG, MIN, MAX, MEDIAN, COUNT, UNIQUE_COUNT, STDDEV, STDDEVP, VAR, VARP, FIRST, LAST, UNIQUE or USER_AGG."}
+
+  SortOrder:
+    unknown: warning
+    attributes:
+      - {name: simple_sort_order, api_name: simpleSortOrder, schema: SimpleSortOrder, description: "Sort by one field or alias."}
+      - {name: aggregative_sort_order, api_name: aggregativeSortOrder, schema: AggregativeSortOrder, description: "Sort a grouped dimension by an aggregated measure or row count."}
+
+  StructuredSemanticQuery:
+    unknown: warning
+    attributes:
+      - {name: fields, schema: QueryField, array: 1, required: true, description: "The dimensions, measurements and calculations to return."}
+      - {name: filter, schema: Predicate, description: "Applies before aggregation."}
+      - {name: aggregate_filter, api_name: aggregateFilter, schema: Predicate, description: "Applies after aggregation, like `HAVING`. Must reference an aggregated expression."}
+      - {name: options, schema: QueryOptions, description: "Sorting, limits, totals, join strategy."}
+      - {name: semantic_context, api_name: semanticContext, schema: SemanticContext, description: "Time zone, locale, currency and context filter for this query."}
+      - {name: parameters, schema: QueryParameter, array: 1, description: "Values for model parameters. An unknown name is ignored."}
+      - {name: advanced_dimension_filters_v2, api_name: advancedDimensionFiltersV2, type: any, description: "Top-N and bottom-N filters on dimension values ranked by a measure."}
+      - {name: unpivot, type: any, description: "Rotates selected aggregated measures into name and value rows."}
+
+  TableField:
+    unknown: warning
+    attributes:
+      - {name: name, type: string, required: true, description: "Semantic field `api_name`."}
+      - {name: table_name, api_name: tableName, type: string, required: true, description: "Semantic data object `api_name`."}
+
+  UnaryPredicate:
+    unknown: warning
+    attributes:
+      - {name: expression, schema: Expression, required: true, description: "The expression tested."}
+      - {name: unary_operator, api_name: unaryOperator, type: string, required: true, description: "Such as `UNARY_OPERATOR_IS_NOT_NULL`."}

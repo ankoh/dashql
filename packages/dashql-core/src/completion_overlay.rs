@@ -164,7 +164,7 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
             S_LRB if matches!(top.frame, Frame::Opaque) => stack.push(Scope::new(Frame::Opaque)),
             S_LRB if top.at_key => stack.push(Scope::new(Frame::Opaque)),
             S_LRB => {
-                // A name before the parenthesis is a function, `secret(`
+                // A name before the parenthesis is a function, the analyzer rejects it
                 if i > 0 && is_name(symbols[i - 1].kind) {
                     stack.push(Scope::new(Frame::Opaque));
                 } else if starts_embedded_sql(symbols, i) {

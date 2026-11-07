@@ -1,0 +1,1925 @@
+title: Data Governance
+description: |
+  This family labels data and controls who can read it. [Governance runs on tags rather than per-user permissions](https://trailhead.salesforce.com/content/learn/modules/data-cloud-governance-quick-look/get-to-know-data-cloud-governance): you label objects and fields, and policies act on the labels.
+
+  - **Tags and assignments:** a tag taxonomy holds tags up to two levels deep. A tag assignment puts a tag on an object or field.
+  - **Classifications and taxonomies:** classifications group tags, in their own taxonomies. A classification assignment links a classification to a tag, not to data.
+  - **Detection:** detection instructions tell an LLM what a tag means. Generating suggestions starts a job per object, and you approve or reject the results.
+  - **Access policies and rules:** a policy holds rules that permit, forbid or mask.
+  - **Object access grants:** these give a permission set access to an object in a data space.
+
+  Dependencies set the order: create a taxonomy before its tags, a parent tag before its children, and tags before anything that references them.
+
+  Gotchas:
+
+  - Names are dotted paths, `<Taxonomy>.<Level1>[.<Level2>]`. A taxonomy's `fully_qualified_name` is just its name.
+  - List `limit` must be 5 to 200, so smaller values return 400.
+  - Bulk calls can return success with failed items. Check `has_errors` and each `results[].statusCode`.
+  - Most deletes return 202, and tags can sit in state `Deleting`.
+
+  ```sql
+  CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
+  CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
+  CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address');
+  CALL cdp.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
+  CALL cdp.tags_propagate (object_names => ['Individual_DLO__dll']);
+  ```
+
+functions:
+  - name: access_policy_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/access-policies/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D/delete
+    description: Permanently deletes an access policy and cascades the delete to its rules. Since v67.0.
+    example: CALL cdp.access_policy_delete (name => 'RestrictSensitiveFields');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "Developer name of the access policy."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+
+  - name: classification_assignment_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/classification-assignments/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1%7Bid%7D/delete
+    description: Deletes a data governance classification assignment by ID. Since v67.0.
+    example: CALL cdp.classification_assignment_delete (id => '9aa000000000050');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the classification assignment."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+
+  - name: classification_taxonomy_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1%7Bname%7D/delete
+    description: Deletes a classification taxonomy. Since v67.0.
+    example: CALL cdp.classification_taxonomy_delete (name => 'Data_Residency_Classifications');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "API name or developer name of the classification taxonomy."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+    notes: |
+      **Done when:** `classification_taxonomy_get` returns 404. Inferred from the 202 response and the `Deleting` state, not documented.
+
+      **Notes:** Returns 412 `REFERENTIAL_INTEGRITY_VIOLATION` if the taxonomy has external dependencies or child classifications, so delete those first. System taxonomies can't be deleted. Returns 202. The spec has a `Deleting` state and the errors "Entity is already being deleted" and "Cannot update entity in Deleting state", so deletion looks like it finishes in the background. No source documents a wait.
+
+  - name: classification_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/classifications/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D/delete
+    description: Deletes a classification and cascades the deletion to any child classifications and assignments. Since v67.0.
+    example: CALL cdp.classification_delete (fully_qualified_name => 'Compliance_Classifications.Sensitive');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+    notes: |
+      **Done when:** `classification_get` returns 404. Inferred from the 202 response and the `Deleting` state, not documented.
+
+      **Notes:** The description promises a cascade to children and assignments, but the spec also lists a 412 "has external dependencies or children classifications". Sources conflict. System classifications can't be deleted. Returns 202. The spec has a `Deleting` state and the errors "Entity is already being deleted" and "Cannot update entity in Deleting state", so deletion looks like it finishes in the background. No source documents a wait.
+
+  - name: object_access_grant_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/object-access-grants/{objectApiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1%7BobjectApiName%7D/delete
+    description: Deletes a single object access grant. Since v67.0.
+    example: CALL cdp.object_access_grant_delete (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
+    options:
+      - {name: object_api_name, api_name: objectApiName, in: path, type: string, required: true, description: "API name of the Data Cloud object."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, in: query, type: string, description: "Developer name of the permission set. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 204). One row with only the standard columns.
+    notes: "**Notes:** A grant is identified by object, data space and permission set, as the 404 message shows. The spec marks `permission_set_name` optional, and doesn't say which grant is meant without it when several permission sets grant the object. Pass all three."
+
+  - name: tag_assignment_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/tag-assignments/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1%7Bid%7D/delete
+    description: Deletes a data governance tag assignment by ID. Since v67.0.
+    example: CALL cdp.tag_assignment_delete (id => '9aa000000000001');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the tag assignment."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+
+  - name: tag_taxonomy_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D/delete
+    description: Deletes a tag taxonomy and all child tags. Since v67.0.
+    example: CALL cdp.tag_taxonomy_delete (fully_qualified_name => 'Marketing_Tags');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+    notes: |
+      **Done when:** `tag_taxonomy_get` returns 404. Inferred from the 202 response and the `Deleting` state, not documented.
+
+      **Notes:** The description promises deleting all child tags, but the spec also lists a 412 "has external dependencies or children tags". Sources conflict. System taxonomies can't be deleted. Returns 202. The spec has a `Deleting` state and the errors "Entity is already being deleted" and "Cannot update entity in Deleting state", so deletion looks like it finishes in the background. No source documents a wait.
+
+  - name: tag_delete
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D/delete
+    description: Deletes a tag and cascades the deletion to any child tags and assignments. Since v67.0.
+    example: CALL cdp.tag_delete (fully_qualified_name => 'Compliance_Tags.PII.Phone');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+    notes: |
+      **Done when:** `tag_get` returns 404. Inferred from the 202 response and the `Deleting` state, not documented.
+
+      **Notes:** The description promises a cascade to children and assignments, but the spec also lists a 412 "has external dependencies or children tags". Sources conflict. System tags can't be deleted. No source says what happens to policies that test the tag. Returns 202. The spec has a `Deleting` state and the errors "Entity is already being deleted" and "Cannot update entity in Deleting state", so deletion looks like it finishes in the background. No source documents a wait.
+
+  - name: tag_detection_instruction_deactivate
+    method: DELETE
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}/detection-instructions/active
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1detection-instructions~1active/delete
+    description: Deactivates the currently active detection instruction for a tag. Since v67.0.
+    example: CALL cdp.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path)."}
+    effect: write
+    evidence: O
+    result_description: No response body (HTTP 202). One row with only the standard columns.
+    notes: "**Notes:** This deactivates the instruction and doesn't delete the tag. Returns 202."
+
+  - name: access_policy_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/access-policies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies/get
+    description: Returns a paginated list of builder-compatible access policies. To include system or legacy policies that aren't builder-compatible, set `include_incompatible` to `true`. Since v67.0.
+    example: CALL cdp.access_policy_list (search_string => 'mask', include_incompatible => true);
+    options:
+      - {name: include_incompatible, api_name: includeIncompatible, in: query, type: boolean, description: "Indicates whether to include policies that aren't builder-compatible (`true`) or not (`false`). If unspecified, the default value is `false`. Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of access policies to return. Values are `5` through `200`. If unspecified, the default value is `25`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: search_string, api_name: searchString, in: query, type: string, description: "Case-insensitive substring to match against the policy name or label. Since v67.0."}
+    rows: /records
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: builder_compatible, api_name: builderCompatible, type: BOOLEAN, description: "Indicates whether the policy was authored to be renderable in the access policy builder (`true`) or not (`false`). Since v67.0."}
+      - {name: builder_validated, api_name: builderValidated, type: BOOLEAN, description: "Indicates whether the access policy validator has run for the policy (`true`) or not (`false`). Read-only; the server derives this value on save. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the policy. Since v67.0."}
+      - {name: rules, type: JSON, array: 1, schema: AccessPolicyRuleRepresentation, description: "Rules contained in the policy. The access policy builder restricts a policy to one rule; multi-rule policies have `builder_compatible` set to `false`. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/records` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `AccessPolicyRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** An org without the feature can return 404, although the spec declares only 400. [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) records this from a live org, and [config-snapshot-data360](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md) saw the same (community, one org).
+
+  - name: access_policy_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/access-policies/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D/get
+    description: Returns a single access policy and its rules by developer name. Since v67.0.
+    example: CALL cdp.access_policy_get (name => 'RestrictSensitiveFields');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "Developer name of the access policy."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: builder_compatible, api_name: builderCompatible, type: BOOLEAN, description: "Indicates whether the policy was authored to be renderable in the access policy builder (`true`) or not (`false`). Since v67.0."}
+      - {name: builder_validated, api_name: builderValidated, type: BOOLEAN, description: "Indicates whether the access policy validator has run for the policy (`true`) or not (`false`). Read-only; the server derives this value on save. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the policy. Since v67.0."}
+      - {name: rules, type: JSON, array: 1, schema: AccessPolicyRuleRepresentation, description: "Rules contained in the policy. The access policy builder restricts a policy to one rule; multi-rule policies have `builder_compatible` set to `false`. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `AccessPolicyRepresentation`.
+    notes: "**Notes:** The spec lists `MULTIPLE_RULES_NOT_ALLOWED` and `NAME_MISMATCH` as 400s on this read. Those look like errors of `access_policy_rule_replace` filed under the wrong verb."
+
+  - name: access_policy_rule_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/access-policies/{name}/rules/{ruleName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D~1rules~1%7BruleName%7D/get
+    description: Returns the details of a specific rule within an access policy. Since v67.0.
+    example: CALL cdp.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "Developer name of the parent access policy."}
+      - {name: rule_name, api_name: ruleName, in: path, type: string, required: true, description: "Developer name of the rule."}
+    columns:
+      - {name: action, type: JSON, description: "Actions the rule applies to, such as `Read`. Since v67.0."}
+      - {name: category, type: VARCHAR, description: "MDAPI rule category, which determines the validator that dispatches. Since v67.0."}
+      - {name: effect, type: VARCHAR, description: "Effect of the rule. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "18-character record ID of the underlying PolicyRuleDefinition. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label for the rule. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the rule (PolicyRuleDefinition fullName). Since v67.0."}
+      - {name: principal_authentication_level, api_name: principalAuthenticationLevel, type: VARCHAR, description: "Required principal authentication level. Since v67.0."}
+      - {name: principal_scope_type, api_name: principalScopeType, type: VARCHAR, description: "Principal scope type. Since v67.0."}
+      - {name: resource_domains, api_name: resourceDomains, type: JSON, description: "DMOs or objects the rule scopes to. Required for record-scope (RLS) rules; typically empty or absent for OLS or FLS. Since v67.0."}
+      - {name: resource_scope_type, api_name: resourceScopeType, type: VARCHAR, description: "Resource scope type. Since v67.0."}
+      - {name: resource_transform, api_name: resourceTransform, type: VARCHAR, description: "For Transform or FLS rules, the transform applied to the field before the principal sees it. Since v67.0."}
+      - {name: resource_transform_arguments, api_name: resourceTransformArguments, type: JSON, array: 1, schema: ResourceTransformArgumentRepresentation, description: "Static argument list for the resource transform, such as the `2` for `FIRST_N_CHARS_RESOURCE_TRANSFORM`. Since v67.0."}
+      - {name: rule_consumer, api_name: ruleConsumer, type: VARCHAR, description: "Consumer of the rule's enforcement. Since v67.0."}
+      - {name: transform_precedence, api_name: transformPrecedence, type: BIGINT, description: "Tiebreaker when multiple Transform rules apply to the same field. The lower value wins. Emitted only on Transform-effect rules. Since v67.0."}
+      - {name: unless, type: JSON, schema: ConditionGroupRepresentation, description: "Condition group that, when met, exempts the rule from applying. Since v67.0."}
+      - {name: when, type: JSON, schema: ConditionGroupRepresentation, description: "Condition group that must be met for the rule to apply. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `AccessPolicyRuleRepresentation`.
+
+  - name: auto_tagging_job_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/auto-tagging-jobs
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1auto-tagging-jobs/get
+    description: Returns a paginated list of data governance auto-tagging jobs, optionally filtered by object or status. Auto-tagging jobs are created by the generate tag suggestions action. Since v67.0.
+    example: CALL cdp.auto_tagging_job_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of auto-tagging jobs to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
+      - {name: object_name, api_name: objectName, in: query, type: string, description: "API name of the object to filter jobs by. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: status, in: query, type: string, description: "Status to filter jobs by. Values are `InProgress`, `Success`, or `Fail`. Since v67.0."}
+    rows: /jobs
+    columns:
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the job was created. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the job. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the job status was last updated. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Target object API name. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the job. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/jobs` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `AutoTaggingJobRepresentation`."
+    notes: "**Paging:** `next_page_url`."
+
+  - name: auto_tagging_job_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/auto-tagging-jobs/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1auto-tagging-jobs~1%7Bid%7D/get
+    description: Returns a single data governance auto-tagging job by ID, reporting its progress and status. Since v67.0.
+    example: CALL cdp.auto_tagging_job_get (id => '...');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the auto-tagging job. Since v67.0."}
+    columns:
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the job was created. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the job. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the job status was last updated. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Target object API name. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the job. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `AutoTaggingJobRepresentation`.
+    notes: "**Notes:** The `id` is a `job_id` from `tag_suggestions_generate`."
+
+  - name: classification_assignment_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classification-assignments
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments/get
+    description: Returns a paginated list of data governance classification assignments, optionally filtered by tag or classification. Since v67.0.
+    example: CALL cdp.classification_assignment_list ();
+    options:
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the classification to filter assignments by. Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of classification assignments to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the tag to filter assignments by. Since v67.0."}
+    rows: /classificationAssignments
+    columns:
+      - {name: classification_fully_qualified_label, api_name: classificationFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the classification (dotted path of ancestor labels). Since v67.0."}
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the source classification. Since v67.0."}
+      - {name: classification_id, api_name: classificationId, type: VARCHAR, description: "ID of the source classification. Since v67.0."}
+      - {name: classification_label, api_name: classificationLabel, type: VARCHAR, description: "Leaf display label of the classification. Since v67.0."}
+      - {name: classification_name, api_name: classificationName, type: VARCHAR, description: "Leaf developer name of the source classification. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the classification assignment. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the target tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the target tag. Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the target tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the target tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the target tag. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/classificationAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `ClassificationAssignmentRepresentation`."
+    notes: "**Paging:** `next_page_url`."
+
+  - name: classification_assignment_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classification-assignments/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1%7Bid%7D/get
+    description: Returns a single data governance classification assignment by ID. Since v67.0.
+    example: CALL cdp.classification_assignment_get (id => '9aa000000000050');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the classification assignment."}
+    columns:
+      - {name: classification_fully_qualified_label, api_name: classificationFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the classification (dotted path of ancestor labels). Since v67.0."}
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the source classification. Since v67.0."}
+      - {name: classification_id, api_name: classificationId, type: VARCHAR, description: "ID of the source classification. Since v67.0."}
+      - {name: classification_label, api_name: classificationLabel, type: VARCHAR, description: "Leaf display label of the classification. Since v67.0."}
+      - {name: classification_name, api_name: classificationName, type: VARCHAR, description: "Leaf developer name of the source classification. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the classification assignment. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the target tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the target tag. Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the target tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the target tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the target tag. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ClassificationAssignmentRepresentation`.
+
+  - name: classification_taxonomy_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies/get
+    description: Returns a paginated list of classification taxonomies. Since v67.0.
+    example: CALL cdp.classification_taxonomy_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of classification taxonomies to return. Must be between `5` and `200`. If unspecified, the default value is `25`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, the default value is `ASC` ordered by developer name. Since v67.0."}
+      - {name: search_string, api_name: searchString, in: query, type: string, description: "Search keyword to match against the developer name or label. Since v67.0."}
+    rows: /taxonomies
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/taxonomies` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TaxonomyRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The option text says `order_by` takes `ASC` or `DESC`, but the spec's error example says "Invalid order_by field. Valid fields: Label, DeveloperName." Sources conflict, so test before relying on it.
+
+  - name: classification_taxonomy_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1%7Bname%7D/get
+    description: Returns a classification taxonomy by its API name. Since v67.0.
+    example: CALL cdp.classification_taxonomy_get (name => 'Compliance_Classifications');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "API name or developer name of the classification taxonomy."}
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `TaxonomyRepresentation`.
+
+  - name: classification_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classifications
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications/get
+    description: Returns a paginated list of classifications across all classification taxonomies. Since v67.0.
+    example: CALL cdp.classification_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of classifications to return from `5` through `200`. If unspecified, the default number of rows is `25`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified,the default value is `ASC` ordered by developer name. Since v67.0."}
+      - {name: parent_classification_fully_qualified_name, api_name: parentClassificationFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the parent classification. Scopes the list to direct children. Since v67.0."}
+      - {name: search_string, api_name: searchString, in: query, type: string, description: "Search keyword to match against the developer name or label. Since v67.0."}
+      - {name: taxonomy_name, api_name: taxonomyName, in: query, type: string, description: "Fully-qualified API name of the classification taxonomy (for example, `Compliance_Classifications`). Scopes the list to classifications under that taxonomy. Since v67.0."}
+    rows: /classifications
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the classification. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the classification was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the classification. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the classification in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the classification. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the classification. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the classification. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the classification was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the classification. Terminal segment only. Since v67.0."}
+      - {name: parent_classification, api_name: parentClassification, type: JSON, schema: ClassificationLookupRepresentation, description: "Parent classification reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the classification. Since v67.0."}
+      - {name: tags, type: JSON, array: 1, schema: TagLookupRepresentation, description: "Tags associated with the classification. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of classification. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the classification resource. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/classifications` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `ClassificationRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The option text says `order_by` takes `ASC` or `DESC`, but the spec's error example says "Invalid order_by field. Valid fields: Label, DeveloperName." Sources conflict, so test before relying on it. The option text says `offset` must be greater than zero, while other lists in this family only require non-negative. Omit it on the first page.
+
+  - name: classification_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classifications/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D/get
+    description: Returns a classification by its fully-qualified API name. Since v67.0.
+    example: CALL cdp.classification_get (fully_qualified_name => 'Compliance_Classifications.PII');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the classification. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the classification was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the classification. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the classification in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the classification. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the classification. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the classification. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the classification was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the classification. Terminal segment only. Since v67.0."}
+      - {name: parent_classification, api_name: parentClassification, type: JSON, schema: ClassificationLookupRepresentation, description: "Parent classification reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the classification. Since v67.0."}
+      - {name: tags, type: JSON, array: 1, schema: TagLookupRepresentation, description: "Tags associated with the classification. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of classification. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the classification resource. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `ClassificationRepresentation`.
+
+  - name: classification_assignments_classification_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/classifications/{fullyQualifiedName}/assignments
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D~1assignments/get
+    description: Returns a paginated list of assignments for a specific classification, including all linked tags. Since v67.0.
+    example: CALL cdp.classification_assignments_classification_list (fully_qualified_name => 'Compliance_Classifications.PII');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification (dotted path). Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of classification assignments to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+    rows: /classificationAssignments
+    columns:
+      - {name: classification_fully_qualified_label, api_name: classificationFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the classification (dotted path of ancestor labels). Since v67.0."}
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the source classification. Since v67.0."}
+      - {name: classification_id, api_name: classificationId, type: VARCHAR, description: "ID of the source classification. Since v67.0."}
+      - {name: classification_label, api_name: classificationLabel, type: VARCHAR, description: "Leaf display label of the classification. Since v67.0."}
+      - {name: classification_name, api_name: classificationName, type: VARCHAR, description: "Leaf developer name of the source classification. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the classification assignment. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the target tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the target tag. Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the target tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the target tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the target tag. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/classificationAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `ClassificationAssignmentRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** Returns the same kind of rows as `classification_assignment_list` with `classification_fully_qualified_name`.
+
+  - name: object_access_grant_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/object-access-grants
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants/get
+    description: Returns a paginated list of object access grants, with optional filters. Providing only a permission set name returns all associated grants across data spaces and objects. Providing only a data space name returns all grants for objects within that data space across all permission sets. Providing only an object name returns all permission sets that grant access to that object. Since v67.0.
+    example: CALL cdp.object_access_grant_list (permission_set_name => 'DC_Analyst_PermSet');
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: query, type: string, description: "Developer name of the data space to filter grants by. Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of object access grants to return. Values are `5` through `200`. If unspecified, the default value is `25`. Since v67.0."}
+      - {name: object_api_name, api_name: objectApiName, in: query, type: string, description: "API name of the DMO, DLO, or CIO object to filter grants by. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, in: query, type: string, description: "Developer name of the permission set or permission set group to filter grants by. Since v67.0."}
+    rows: /grants
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the grant. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Timestamp when the grant was created. Since v67.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Name of the data space that the grant belongs to. Since v67.0."}
+      - {name: object_api_name, api_name: objectApiName, type: VARCHAR, description: "API name of the granted Data Cloud object. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, type: VARCHAR, description: "Developer name of the permission set. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/grants` in the response. Other response fields go to `_meta`: `count`, `currentPageUrl`, `limit`, `nextPageUrl`, `offset`, `previousPageUrl`, `totalSize`. Schema `DataGovernanceObjectAccessGrantRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The description defines what each single filter returns, not what combinations do.
+
+  - name: object_access_grant_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/object-access-grants/{objectApiName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1%7BobjectApiName%7D/get
+    description: Returns a single object access grant. Since v67.0.
+    example: CALL cdp.object_access_grant_get (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
+    options:
+      - {name: object_api_name, api_name: objectApiName, in: path, type: string, required: true, description: "API name of the Data Cloud object."}
+      - {name: dataspace_name, api_name: dataSpaceName, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, in: query, type: string, description: "Developer name of the permission set. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the grant. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Timestamp when the grant was created. Since v67.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Name of the data space that the grant belongs to. Since v67.0."}
+      - {name: object_api_name, api_name: objectApiName, type: VARCHAR, description: "API name of the granted Data Cloud object. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, type: VARCHAR, description: "Developer name of the permission set. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `DataGovernanceObjectAccessGrantRepresentation`.
+    notes: "**Notes:** A grant is identified by object, data space and permission set, as the 404 message shows. The spec marks `permission_set_name` optional, and doesn't say which grant is meant without it when several permission sets grant the object. Pass all three."
+
+  - name: tag_assignment_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-assignments
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments/get
+    description: Returns a paginated list of data governance tag assignments for a given object, with optional field filtering. Since v67.0.
+    example: CALL cdp.tag_assignment_list (object_name => 'Individual_DLO__dll', field_name => 'Email');
+    options:
+      - {name: field_name, api_name: fieldName, in: query, type: string, description: "API name of the field to filter tag assignments by. Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of tag assignments to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
+      - {name: object_name, api_name: objectName, in: query, type: string, description: "API name of the object to filter tag assignments by. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the tag to filter assignments by. Since v67.0."}
+    rows: /tagAssignments
+    columns:
+      - {name: field_label, api_name: fieldLabel, type: VARCHAR, description: "Label of the field the tag is assigned to. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: VARCHAR, description: "Name of the field the tag is assigned to. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the tag assignment. Since v67.0."}
+      - {name: object_label, api_name: objectLabel, type: VARCHAR, description: "Label of the object the tag is assigned to. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Name of the object the tag is assigned to. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the assigned tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the assigned tag (dotted path). Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the assigned tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the assigned tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the assigned tag (terminal segment only). Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/tagAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagAssignmentRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The spec describes this as a list "for a given object" but marks `object_name` optional, so an unfiltered call is undocumented. `field_name` without `object_name` returns 400. To list by tag alone, use `tag_assignments_tag_list`.
+
+  - name: tag_assignment_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-assignments/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1%7Bid%7D/get
+    description: Returns a single data governance tag assignment by ID. Since v67.0.
+    example: CALL cdp.tag_assignment_get (id => '9aa000000000001');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the tag assignment."}
+    columns:
+      - {name: field_label, api_name: fieldLabel, type: VARCHAR, description: "Label of the field the tag is assigned to. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: VARCHAR, description: "Name of the field the tag is assigned to. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the tag assignment. Since v67.0."}
+      - {name: object_label, api_name: objectLabel, type: VARCHAR, description: "Label of the object the tag is assigned to. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Name of the object the tag is assigned to. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the assigned tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the assigned tag (dotted path). Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the assigned tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the assigned tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the assigned tag (terminal segment only). Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `TagAssignmentRepresentation`.
+
+  - name: tag_suggestion_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-suggestions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions/get
+    description: Returns a paginated list of AI-generated data governance tag suggestions, optionally filtered by object, tag, or status. Since v67.0.
+    example: CALL cdp.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New');
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of tag suggestions to return. The spec's error text says `5` through `200`. Since v67.0."}
+      - {name: object_name, api_name: objectName, in: query, type: string, description: "API name of the object to filter suggestions by. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: status, in: query, type: string, description: "Status to filter suggestions by. The response enum is `New`, `Approved`, `Rejected`, or `AutoRejected`. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the tag to filter suggestions by. Since v67.0."}
+    rows: /suggestions
+    columns:
+      - {name: assignment_id, api_name: assignmentId, type: VARCHAR, description: "ID of the tag assignment created when the suggestion was approved. Null if not yet approved. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the suggestion was generated. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: VARCHAR, description: "Target field API name. Null if the suggestion targets the object rather than a specific field. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the suggestion. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Target object API name. Since v67.0."}
+      - {name: processed_by, api_name: processedBy, type: JSON, schema: CdpUserRepresentation, description: "User who approved or rejected the suggestion. Null if not yet processed. Since v67.0."}
+      - {name: processed_date, api_name: processedDate, type: TIMESTAMPTZ, description: "Date the suggestion was approved or rejected. Null if the suggestion is new. Since v67.0."}
+      - {name: score, type: DOUBLE, description: "LLM confidence score. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the suggestion. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the suggested tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the suggested tag (dotted path). Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the suggested tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the suggested tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the suggested tag (terminal segment only). Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/suggestions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagSuggestionRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The spec's response enum for `status` is `New`, `Approved`, `Rejected` and `AutoRejected`. It doesn't say what causes `AutoRejected`.
+
+  - name: tag_suggestion_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-suggestions/{id}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1%7Bid%7D/get
+    description: Returns a single AI-generated tag suggestion by ID. Since v67.0.
+    example: CALL cdp.tag_suggestion_get (id => '1dg000000000001');
+    options:
+      - {name: id, in: path, type: string, required: true, description: "ID of the tag suggestion. Since v67.0."}
+    columns:
+      - {name: assignment_id, api_name: assignmentId, type: VARCHAR, description: "ID of the tag assignment created when the suggestion was approved. Null if not yet approved. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the suggestion was generated. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: VARCHAR, description: "Target field API name. Null if the suggestion targets the object rather than a specific field. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the suggestion. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Target object API name. Since v67.0."}
+      - {name: processed_by, api_name: processedBy, type: JSON, schema: CdpUserRepresentation, description: "User who approved or rejected the suggestion. Null if not yet processed. Since v67.0."}
+      - {name: processed_date, api_name: processedDate, type: TIMESTAMPTZ, description: "Date the suggestion was approved or rejected. Null if the suggestion is new. Since v67.0."}
+      - {name: score, type: DOUBLE, description: "LLM confidence score. Since v67.0."}
+      - {name: status, type: VARCHAR, description: "Status of the suggestion. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the suggested tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the suggested tag (dotted path). Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the suggested tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the suggested tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the suggested tag (terminal segment only). Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `TagSuggestionRepresentation`.
+
+  - name: tag_taxonomy_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies/get
+    description: Returns a paginated list of tag taxonomies. Since v67.0.
+    example: CALL cdp.tag_taxonomy_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of tag taxonomies to return. Must be between `5` and `200`. If unspecified, the default value is `25`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, the default value is `ASC` ordered by developer name. Since v67.0."}
+      - {name: search_string, api_name: searchString, in: query, type: string, description: "Search keyword to match against the developer name or label. Since v67.0."}
+    rows: /taxonomies
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/taxonomies` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TaxonomyRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The option text says `order_by` takes `ASC` or `DESC`, but the spec's error example says "Invalid order_by field. Valid fields: Label, DeveloperName." Sources conflict, so test before relying on it.
+
+  - name: tag_taxonomy_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D/get
+    description: Returns a tag taxonomy by its fully qualified API name. Since v67.0.
+    example: CALL cdp.tag_taxonomy_get (fully_qualified_name => 'Compliance_Tags');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`."}
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `TaxonomyRepresentation`.
+
+  - name: tags_active_detection_instruction_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}/tags-with-active-detection-instructions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D~1tags-with-active-detection-instructions/get
+    description: Returns a paginated list of tags in a taxonomy along with their active detection instruction, if any. Since v67.0.
+    example: CALL cdp.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag taxonomy. Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of tags to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+    rows: /tagsWithActiveDetectionInstructions
+    columns:
+      - {name: active_detection_instruction, api_name: activeDetectionInstruction, type: JSON, schema: TagDetectionInstructionRepresentation, description: "Currently active detection instruction for the tag. Null if the tag has no active instruction. Since v67.0."}
+      - {name: tag, type: JSON, schema: TagLookupRepresentation, description: "Tag the detection instruction applies to. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/tagsWithActiveDetectionInstructions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagWithActiveDetectionInstructionRepresentation`."
+    notes: "**Paging:** `next_page_url`."
+
+  - name: tag_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tags
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags/get
+    description: Returns a paginated list of tags across all tag taxonomies. Since v67.0.
+    example: CALL cdp.tag_list ();
+    options:
+      - {name: limit, in: query, type: integer, description: "Maximum number of tags to return from `5` through `200`. If unspecified, the default number of rows is `25`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v67.0."}
+      - {name: order_by, api_name: orderBy, in: query, type: string, description: "Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, the default value is `ASC` ordered by developer name. Since v67.0."}
+      - {name: parent_tag_fully_qualified_name, api_name: parentTagFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the parent tag. Scopes the list to direct children. Since v67.0."}
+      - {name: search_string, api_name: searchString, in: query, type: string, description: "Search keyword to match against the developer name or label. Since v67.0."}
+      - {name: taxonomy_name, api_name: taxonomyName, in: query, type: string, description: "Fully-qualified API name of the tag taxonomy (for example, `Compliance_Tags`). Scopes the list to tags under that taxonomy. Since v67.0."}
+    rows: /tags
+    columns:
+      - {name: classifications, type: JSON, array: 1, schema: ClassificationLookupRepresentation, description: "Classifications associated with the tag. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the tag was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the tag in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the tag. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the tag was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag. Terminal segment only. Since v67.0."}
+      - {name: parent_tag, api_name: parentTag, type: JSON, schema: TagLookupRepresentation, description: "Parent tag reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the tag. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the tag resource. Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/tags` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagRepresentation`."
+    notes: |
+      **Paging:** `next_page_url`.
+
+      **Notes:** The option text says `order_by` takes `ASC` or `DESC`, but the spec's error example says "Invalid order_by field. Valid fields: Label, DeveloperName." Sources conflict, so test before relying on it. The option text says `offset` must be greater than zero, while other lists in this family only require non-negative. Omit it on the first page.
+
+  - name: tag_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D/get
+    description: Returns a tag by its fully qualified API name. Since v67.0.
+    example: CALL cdp.tag_get (fully_qualified_name => 'Compliance_Tags.PII.Email');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag."}
+    columns:
+      - {name: classifications, type: JSON, array: 1, schema: ClassificationLookupRepresentation, description: "Classifications associated with the tag. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the tag was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the tag in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the tag. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the tag was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag. Terminal segment only. Since v67.0."}
+      - {name: parent_tag, api_name: parentTag, type: JSON, schema: TagLookupRepresentation, description: "Parent tag reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the tag. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the tag resource. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `TagRepresentation`.
+
+  - name: tag_assignments_tag_list
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}/assignments
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1assignments/get
+    description: Returns a paginated list of tag assignments for a specific tag. Since v67.0.
+    example: CALL cdp.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path). Since v67.0."}
+      - {name: limit, in: query, type: integer, description: "Maximum number of tag assignments to return. The spec's error text says `5` through `200`. Since v67.0."}
+      - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
+    rows: /tagAssignments
+    columns:
+      - {name: field_label, api_name: fieldLabel, type: VARCHAR, description: "Label of the field the tag is assigned to. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: VARCHAR, description: "Name of the field the tag is assigned to. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the tag assignment. Since v67.0."}
+      - {name: object_label, api_name: objectLabel, type: VARCHAR, description: "Label of the object the tag is assigned to. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Name of the object the tag is assigned to. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the assigned tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the assigned tag (dotted path). Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the assigned tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the assigned tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the assigned tag (terminal segment only). Since v67.0."}
+    paging: {kind: url, from: /nextPageUrl}
+    effect: read
+    evidence: O
+    result_description: "One row per item of `/tagAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagAssignmentRepresentation`."
+    notes: "**Paging:** `next_page_url`."
+
+  - name: tag_detection_instruction_get
+    method: GET
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}/detection-instructions/active
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1detection-instructions~1active/get
+    description: Returns the currently active detection instruction for a tag. Since v67.0.
+    example: CALL cdp.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path)."}
+    columns:
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the detection instruction was created. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the detection instruction. Since v67.0."}
+      - {name: instruction_txt, api_name: instructionTxt, type: VARCHAR, description: "LLM detection-instruction (prompt) body. Since v67.0."}
+      - {name: is_active, api_name: isActive, type: BOOLEAN, description: "Indicates whether the version is the currently active instruction for the tag (`true`) or not (`false`). Since v67.0."}
+      - {name: last_synced_date, api_name: lastSyncedDate, type: TIMESTAMPTZ, description: "Timestamp of the last successful off-core sync. Null until the first sync. Since v67.0."}
+      - {name: off_core_sync_state, api_name: offCoreSyncState, type: VARCHAR, description: "Off-core sync state. Values are `NotSynced`, `Syncing`, `Synced`, or `Error`. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the tag the instruction is bound to. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the detection instruction resource. Since v67.0."}
+      - {name: version, type: BIGINT, description: "Monotonically increasing version of the instruction within the tag. Since v67.0."}
+    effect: read
+    evidence: O
+    result_description: One row. Schema `TagDetectionInstructionRepresentation`.
+    notes: "**Notes:** Despite the name, this returns the one active instruction, not a list of versions. No call reads older versions."
+
+  - name: access_policy_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-governance/access-policies/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D/patch
+    description: Applies an idempotent partial update to an access policy's label or description. To modify rules, use the PUT rules endpoint instead. Since v67.0.
+    example: CALL cdp.access_policy_update (name => 'RestrictSensitiveFields', label => 'Regional Masking Updated', description => 'Updated policy description.');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "Developer name of the access policy."}
+      - {name: description, in: body, type: string, description: "Description of the policy. Omit to leave unchanged. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Display label for the policy. Omit to leave unchanged. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: builder_compatible, api_name: builderCompatible, type: BOOLEAN, description: "Indicates whether the policy was authored to be renderable in the access policy builder (`true`) or not (`false`). Since v67.0."}
+      - {name: builder_validated, api_name: builderValidated, type: BOOLEAN, description: "Indicates whether the access policy validator has run for the policy (`true`) or not (`false`). Read-only; the server derives this value on save. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the policy. Since v67.0."}
+      - {name: rules, type: JSON, array: 1, schema: AccessPolicyRuleRepresentation, description: "Rules contained in the policy. The access policy builder restricts a policy to one rule; multi-rule policies have `builder_compatible` set to `false`. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `AccessPolicyRepresentation`.
+    notes: "**Notes:** Rules can't change here: a body with rules returns `RULE_MUTATION_NOT_SUPPORTED`. Use `access_policy_rule_replace`."
+
+  - name: classification_taxonomy_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies/{name}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1%7Bname%7D/patch
+    description: Updates a classification taxonomy. Omitted fields are left unchanged. Since v67.0.
+    example: CALL cdp.classification_taxonomy_update (name => 'Compliance_Classifications', description => 'Sensitivity and compliance classifications for regulated workloads.');
+    options:
+      - {name: name, in: path, type: string, required: true, description: "API name or developer name of the classification taxonomy."}
+      - {name: description, in: body, type: string, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Label of the tag taxonomy. Since v67.0."}
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TaxonomyRepresentation`.
+
+  - name: classification_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-governance/classifications/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D/patch
+    description: Updates a classification. Omitted fields are left unchanged. Since v67.0.
+    example: CALL cdp.classification_update (fully_qualified_name => 'Compliance_Classifications.PII', description => 'Personally identifiable information, direct and indirect identifiers.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']);
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification."}
+      - {name: description, in: body, type: string, description: "Updated description. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Updated display label. Since v67.0."}
+      - {name: tag_fully_qualified_names, api_name: tagFullyQualifiedNames, in: body, array: 1, type: string, description: "Replaces all tag links. Maximum of 200 items. Provide an empty list to remove all links. Omit to leave unchanged. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the classification. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the classification was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the classification. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the classification in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the classification. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the classification. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the classification. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the classification was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the classification. Terminal segment only. Since v67.0."}
+      - {name: parent_classification, api_name: parentClassification, type: JSON, schema: ClassificationLookupRepresentation, description: "Parent classification reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the classification. Since v67.0."}
+      - {name: tags, type: JSON, array: 1, schema: TagLookupRepresentation, description: "Tags associated with the classification. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of classification. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the classification resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ClassificationRepresentation`.
+    notes: "**Notes:** The spec's error examples include \"Referenced tag must be in the same taxonomy\", while its own sample links a classification in `Compliance_Classifications` to tags in `Compliance_Tags`. Sources conflict."
+
+  - name: tag_taxonomy_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D/patch
+    description: Updates a tag taxonomy. Omitted fields are left unchanged. Since v67.0.
+    example: "CALL cdp.tag_taxonomy_update (fully_qualified_name => 'Compliance_Tags', label => 'Compliance Tags (GA)', description => 'Compliance-related tags: PII, financial and health indicators.');"
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`."}
+      - {name: description, in: body, type: string, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Label of the tag taxonomy. Since v67.0."}
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TaxonomyRepresentation`.
+
+  - name: tag_update
+    method: PATCH
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D/patch
+    description: Updates a tag. Omitted fields are left unchanged. Since v67.0.
+    example: CALL cdp.tag_update (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address (PII)', description => 'Personal and work email fields.', classification_fully_qualified_names => ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive']);
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag."}
+      - {name: classification_fully_qualified_names, api_name: classificationFullyQualifiedNames, in: body, array: 1, type: string, description: "Replaces all classification links. Maximum of 200 items. Provide an empty list to remove all links. Omit to leave unchanged. Since v67.0."}
+      - {name: description, in: body, type: string, description: "Updated description. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Updated display label. Since v67.0."}
+      - {name: parent_tag_fully_qualified_name, api_name: parentTagFullyQualifiedName, in: body, type: string, description: "Fully-qualified API name of the new parent tag. Provide `null` to move the tag to the root level. Must be in the same taxonomy. Since v67.0."}
+    columns:
+      - {name: classifications, type: JSON, array: 1, schema: ClassificationLookupRepresentation, description: "Classifications associated with the tag. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the tag was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the tag in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the tag. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the tag was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag. Terminal segment only. Since v67.0."}
+      - {name: parent_tag, api_name: parentTag, type: JSON, schema: TagLookupRepresentation, description: "Parent tag reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the tag. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the tag resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TagRepresentation`.
+    notes: "**Notes:** The spec doesn't say whether moving a tag with `parent_tag_fully_qualified_name` changes its `fully_qualified_name`, which contains the path."
+
+  - name: access_policy_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/access-policies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies/post
+    description: Creates an access policy, with optional inline rules, using all-or-none semantics. A builder-compatible policy can contain at most one rule. Since v67.0.
+    example: CALL cdp.access_policy_create (name => 'RestrictSensitiveFields', label => 'Restrict Sensitive Fields', description => 'Restricts read access to sensitive account fields.', rules => [(name = 'Mask_SSN', label = 'Mask SSN', category = 'TRANSFORM_POLICY_RULE_DEFINITION', effect = 'Transform', action = ['Read'], resource_scope_type = 'FIELD', principal_scope_type = 'ANY', resource_domains = ['Account__dlm'], resource_transform = 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments = [(type = 'NUMBER', value = '4')], transform_precedence = 100)]);
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
+      - {name: description, in: body, type: string, description: "Description of the policy."}
+      - {name: label, in: body, type: string, description: "Display label of the policy."}
+      - {name: name, in: body, type: string, required: true, description: "Developer name of the policy. The spec's error text says alphanumeric with no spaces."}
+      - {name: rules, in: body, schema: AccessPolicyRuleInputRepresentation, array: 1, description: "Ordered list of rules embedded in the policy. The access policy builder requires exactly one rule. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: builder_compatible, api_name: builderCompatible, type: BOOLEAN, description: "Indicates whether the policy was authored to be renderable in the access policy builder (`true`) or not (`false`). Since v67.0."}
+      - {name: builder_validated, api_name: builderValidated, type: BOOLEAN, description: "Indicates whether the access policy validator has run for the policy (`true`) or not (`false`). Read-only; the server derives this value on save. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the policy. Since v67.0."}
+      - {name: rules, type: JSON, array: 1, schema: AccessPolicyRuleRepresentation, description: "Rules contained in the policy. The access policy builder restricts a policy to one rule; multi-rule policies have `builder_compatible` set to `false`. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `AccessPolicyRepresentation`.
+    notes: "**Notes:** A second rule returns `MULTIPLE_RULES_NOT_ALLOWED`, so this call creates at most one rule. The spec's error text says names must be alphanumeric with no spaces, yet its own sample rule is `Mask_SSN`. The schema's `resource_path` values include `TAG` and `CLASSIFICATION`, which is how `when` and `unless` can test labels: [ABAC uses tags and classifications as attributes](https://help.salesforce.com/s/articleView?id=data.c360_a_policy_types_in_dg.htm&language=en_US) (Help, seen only in a search excerpt). No source shows a filled condition. From the schema alone, the shape is `when = (operator = 'AND', operands = [(condition = (clause = 'WHEN', resource_path = 'TAG', operator = 'EQUALS', values = [(reference = 'Compliance_Tags.PII.Email', reference_type = 'CUSTOM_TAG')]))])`. Which operator suits `TAG` isn't documented."
+
+  - name: classification_assignment_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-assignments
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments/post
+    description: Creates a single data governance classification assignment. Since v67.0.
+    example: CALL cdp.classification_assignment_create (classification_fully_qualified_name => 'Compliance_Classifications.PII', tag_fully_qualified_name => 'Compliance_Tags.PII.Email');
+    options:
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, in: body, type: string, required: true, description: "Fully-qualified API name of the source classification. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, in: body, type: string, required: true, description: "Fully-qualified API name of the target tag. Since v67.0."}
+    columns:
+      - {name: classification_fully_qualified_label, api_name: classificationFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the classification (dotted path of ancestor labels). Since v67.0."}
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the source classification. Since v67.0."}
+      - {name: classification_id, api_name: classificationId, type: VARCHAR, description: "ID of the source classification. Since v67.0."}
+      - {name: classification_label, api_name: classificationLabel, type: VARCHAR, description: "Leaf display label of the classification. Since v67.0."}
+      - {name: classification_name, api_name: classificationName, type: VARCHAR, description: "Leaf developer name of the source classification. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the classification assignment. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the target tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the target tag. Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the target tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the target tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the target tag. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ClassificationAssignmentRepresentation`.
+    notes: "**Notes:** This links a classification to a tag. To label data, use `tag_assignment_create`. `classification_update` and `tag_update` can change the same links."
+
+  - name: classification_assignment_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-assignments/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1actions~1bulk-create/post
+    description: Bulk creates data governance classification assignments. Since v67.0.
+    example: CALL cdp.classification_assignment_bulk_create (assignments => [(classification_fully_qualified_name = 'Compliance_Classifications.PII', tag_fully_qualified_names = ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']), (classification_fully_qualified_name = 'Compliance_Classifications.Sensitive', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
+    options:
+      - {name: assignments, in: body, schema: ClassificationAssignmentBulkItemInputRepresentation, array: 1, required: true, description: "List of classification assignment bulk items, each containing a classification and its target tags. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_assignment_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-assignments/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1actions~1bulk-delete/post
+    description: Bulk deletes data governance classification assignments. Since v67.0.
+    example: CALL cdp.classification_assignment_bulk_delete (ids => ['9aa000000000050', '9aa000000000053']);
+    options:
+      - {name: ids, in: body, array: 1, type: string, required: true, description: "List of classification assignment IDs to delete. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_taxonomy_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies/post
+    description: Creates a classification taxonomy. Since v67.0.
+    example: CALL cdp.classification_taxonomy_create (name => 'Compliance_Classifications', label => 'Compliance Classifications', description => 'Sensitivity and compliance classifications.');
+    options:
+      - {name: description, in: body, type: string, description: "Description of the classification taxonomy."}
+      - {name: label, in: body, type: string, description: "Label of the classification taxonomy. Must be unique."}
+      - {name: name, in: body, type: string, description: "Developer name of the classification taxonomy, with no `.`. A managed-package namespace prefix is allowed."}
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TaxonomyRepresentation`.
+    notes: "**Notes:** The spec marks `name` optional and its sample omits it, but its error examples include \"Name is required.\" Pass it. The name is one developer name with no `.`, and labels must be unique."
+
+  - name: classification_taxonomy_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1actions~1bulk-create/post
+    description: Creates multiple classification taxonomies in a single request. Since v67.0.
+    example: CALL cdp.classification_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Classifications', label = 'Compliance Classifications', description = 'Sensitivity classifications.'), (name = 'Data_Residency_Classifications', label = 'Data Residency Classifications', description = 'Region-of-origin classifications.')]);
+    options:
+      - {name: taxonomies, in: body, schema: TaxonomyCreateInputRepresentation, array: 1, description: "List of tag taxonomies to create. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_taxonomy_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1actions~1bulk-delete/post
+    description: Deletes multiple classification taxonomies in a single request. Since v67.0.
+    example: CALL cdp.classification_taxonomy_bulk_delete (names => ['Compliance_Classifications', 'Data_Residency_Classifications']);
+    options:
+      - {name: names, in: body, array: 1, type: string, description: "List tag taxonomies to delete. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_taxonomy_bulk_update
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classification-taxonomies/actions/bulk-update
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1actions~1bulk-update/post
+    description: Updates multiple classification taxonomies in a single request. Omitted fields are left unchanged. Since v67.0.
+    example: CALL cdp.classification_taxonomy_bulk_update (items => [(name = 'Compliance_Classifications', label = 'Compliance Classifications (GA)'), (name = 'Data_Residency_Classifications', description = 'Data residency and sovereignty classifications.')]);
+    options:
+      - {name: items, in: body, schema: TaxonomyBulkUpdateItemInputRepresentation, array: 1, description: "List of tag taxonomies to update. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classifications
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications/post
+    description: Creates a classification under a specified classification taxonomy, with optional initial tag links. If a tag link fails, the classification is still created and the failed tag link is reported. Since v67.0.
+    example: CALL cdp.classification_create (fully_qualified_name => 'Compliance_Classifications.PII', label => 'PII', description => 'Personally identifiable information.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard']);
+    options:
+      - {name: description, in: body, type: string, description: "Description of the classification. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: body, type: string, description: "Fully-qualified API name of the classification in dotted path format. Use 2-3 segments: `<TaxonomyName>.<Level1>[.<Level2>]`. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Display label of the classification. Since v67.0."}
+      - {name: tag_fully_qualified_names, api_name: tagFullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of tags to associate with the classification. Maximum of 200 items. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the classification. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the classification was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the classification. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the classification in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the classification. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the classification. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the classification. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the classification was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the classification. Terminal segment only. Since v67.0."}
+      - {name: parent_classification, api_name: parentClassification, type: JSON, schema: ClassificationLookupRepresentation, description: "Parent classification reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the classification. Since v67.0."}
+      - {name: tags, type: JSON, array: 1, schema: TagLookupRepresentation, description: "Tags associated with the classification. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of classification. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the classification resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `ClassificationRepresentation`.
+    notes: "**Notes:** The spec marks `fully_qualified_name` optional, yet it's rejected unless it has 2 or 3 segments, and the taxonomy in the first segment must exist. The schema has no field for a failed tag link, so compare `tags` in the result with what you sent."
+
+  - name: classification_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classifications/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1actions~1bulk-create/post
+    description: Creates multiple classifications in a single request. Maximum of 200 items per request. If a tag link fails for an item, the classification is still created. Since v67.0.
+    example: CALL cdp.classification_bulk_create (classifications => [(fully_qualified_name = 'Compliance_Classifications.PII', label = 'PII', description = 'Personally identifiable information.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive', description = 'Sensitive data requiring handling controls.', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
+    options:
+      - {name: classifications, in: body, schema: ClassificationCreateInputRepresentation, array: 1, description: "List of classification create inputs. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classifications/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1actions~1bulk-delete/post
+    description: Deletes multiple classifications in a single request, cascading each deletion to its child classifications and assignments. Since v67.0.
+    example: CALL cdp.classification_bulk_delete (fully_qualified_names => ['Compliance_Classifications.Sensitive']);
+    options:
+      - {name: fully_qualified_names, api_name: fullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of classifications to delete. Maximum of 200 items. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: classification_bulk_update
+    method: POST
+    host: connect
+    path: /ssot/data-governance/classifications/actions/bulk-update
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1actions~1bulk-update/post
+    description: Updates multiple classifications in a single request. Omitted fields are left unchanged. Tag validation runs against the state before the batch operation. If a tag link fails, the classification is updated, but the tag link change is not applied, and an error is reported Since v67.0.
+    example: CALL cdp.classification_bulk_update (items => [(fully_qualified_name = 'Compliance_Classifications.PII', description = 'All PII classifications.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive Data'), (fully_qualified_name = 'Compliance_Classifications.Restricted', tag_fully_qualified_names = ['Compliance_Tags.PII.SSN', 'Compliance_Tags.PII.CreditCard'])]);
+    options:
+      - {name: items, in: body, schema: ClassificationBulkUpdateItemInputRepresentation, array: 1, description: "List of classification update items. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: object_access_grant_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/object-access-grants
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants/post
+    description: Creates a single object access grant using an idempotent request. If a matching grant already exists, the API returns the existing record; otherwise, it creates and returns a new grant. Since v67.0.
+    example: CALL cdp.object_access_grant_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_name => 'Account__dlm');
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space that the grant belongs to. Since v67.0."}
+      - {name: object_api_name, api_name: objectApiName, in: body, type: string, required: true, description: "API name of the Data Cloud object to grant access to. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, in: body, type: string, required: true, description: "Developer name of the permission set. Since v67.0."}
+    columns:
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the grant. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Timestamp when the grant was created. Since v67.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Name of the data space that the grant belongs to. Since v67.0."}
+      - {name: object_api_name, api_name: objectApiName, type: VARCHAR, description: "API name of the granted Data Cloud object. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, type: VARCHAR, description: "Developer name of the permission set. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataGovernanceObjectAccessGrantRepresentation`.
+    notes: "**Notes:** The permission set must already have the data space assigned, or the call returns \"There is no Permission Set {permissionSetName} with assigned Dataspace {dataspaceName}\". The spec marks `dataSpaceName` optional, but its error examples include \"dataspaceName is required\", so pass it. The list call accepts DMO, DLO and CIO names."
+
+  - name: object_access_grant_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/object-access-grants/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1actions~1bulk-create/post
+    description: Creates multiple object access grants for a single combination of a data space and a permission set using an idempotent request. A request supports a maximum of 200 items. Since v67.0.
+    example: CALL cdp.object_access_grant_bulk_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'Contact__dlm', 'revenue_insights__cio']);
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space that the grants belong to. Since v67.0."}
+      - {name: object_api_names, api_name: objectApiNames, in: body, array: 1, type: string, required: true, description: "List of Data Cloud object API names to grant access to. Maximum of 200. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, in: body, type: string, required: true, description: "Developer name of the permission set. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: DataGovernanceObjectAccessGrantBulkResultItemRepresentation, description: "Per-item results, in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataGovernanceObjectAccessGrantBulkCreateResultRepresentation`.
+    notes: "**Notes:** Same prerequisite and `dataspace_name` conflict as `object_access_grant_create`. Failed items carry a list of errors in `results[].result`."
+
+  - name: object_access_grant_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/object-access-grants/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1actions~1bulk-delete/post
+    description: Deletes multiple object access grants for a single combination of a data space and a permission set using an idempotent request. If a specified grant doesn't exist, no action is taken for that item. Since v67.0.
+    example: CALL cdp.object_access_grant_bulk_delete (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'revenue_insights__cio']);
+    options:
+      - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space that the grants belong to. Since v67.0."}
+      - {name: object_api_names, api_name: objectApiNames, in: body, array: 1, type: string, required: true, description: "List of Data Cloud object API names to remove grants for. Maximum of 200. Since v67.0."}
+      - {name: permission_set_name, api_name: permissionSetName, in: body, type: string, required: true, description: "Developer name of the permission set. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: DataGovernanceObjectAccessGrantBulkResultItemRepresentation, description: "Per-item results, in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `DataGovernanceObjectAccessGrantBulkDeleteResultRepresentation`.
+    notes: "**Notes:** The description says a missing grant is a no-op, while the spec's error text says such an item returns `RESOURCE_NOT_FOUND`. Sources conflict, so don't treat that item error as fatal. Duplicate names return \"Duplicate identifier in request\"."
+
+  - name: tag_assignment_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-assignments
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments/post
+    description: Creates a single data governance tag assignment. Since v67.0.
+    example: CALL cdp.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
+    options:
+      - {name: field_name, api_name: fieldName, in: body, type: string, description: "API name of the field. Requires `object_name`. Since v67.0."}
+      - {name: object_name, api_name: objectName, in: body, type: string, description: "API name of the data object. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, in: body, type: string, required: true, description: "Fully-qualified API name of the tag to assign. Since v67.0."}
+    columns:
+      - {name: field_label, api_name: fieldLabel, type: VARCHAR, description: "Label of the field the tag is assigned to. Since v67.0."}
+      - {name: field_name, api_name: fieldName, type: VARCHAR, description: "Name of the field the tag is assigned to. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "ID of the tag assignment. Since v67.0."}
+      - {name: object_label, api_name: objectLabel, type: VARCHAR, description: "Label of the object the tag is assigned to. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Name of the object the tag is assigned to. Since v67.0."}
+      - {name: tag_fully_qualified_label, api_name: tagFullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label of the assigned tag (dotted path of ancestor labels). Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the assigned tag (dotted path). Since v67.0."}
+      - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the assigned tag. Since v67.0."}
+      - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the assigned tag. Since v67.0."}
+      - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the assigned tag (terminal segment only). Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TagAssignmentRepresentation`.
+    notes: "**Notes:** An unknown object returns 404. Assigning a child tag [also applies its parent tag](https://help.salesforce.com/s/articleView?language=en_US&id=data.c360_a_using_tagging_and_classification_dg.htm&type=5) (Help, seen only in a search excerpt). The spec's samples target DLOs (`__dll`)."
+
+  - name: tag_assignment_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-assignments/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1actions~1bulk-create/post
+    description: Bulk creates data governance tag assignments. Since v67.0.
+    example: CALL cdp.tag_assignment_bulk_create (assignments => [(tag_fully_qualified_name = 'Compliance_Tags.PII.Email', targets = [(object_name = 'Individual_DLO__dll', field_name = 'Email'), (object_name = 'Contact_DLO__dll', field_name = 'PersonalEmail')]), (tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', targets = [(object_name = 'Payment_DLO__dll', field_name = 'CardPAN')])]);
+    options:
+      - {name: assignments, in: body, schema: TagAssignmentTargetInputRepresentation, array: 2, required: true, description: "List of tag assignment bulk items, each containing a tag and its targets. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: "**Notes:** The spec's types and sample disagree. The schema types `assignments` as an array of arrays of targets, while its description and sample use objects with `tag_fully_qualified_name` and `targets`. The example follows the sample, so completion from the table would miss those two attributes. The spec's sample has an intentionally failing target, removed here."
+
+  - name: tag_assignment_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-assignments/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1actions~1bulk-delete/post
+    description: Bulk deletes data governance tag assignments. Since v67.0.
+    example: CALL cdp.tag_assignment_bulk_delete (ids => ['9aa000000000001', '9aa000000000002']);
+    options:
+      - {name: ids, in: body, array: 1, type: string, required: true, description: "List of tag assignment IDs to delete. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: tag_suggestions_approve
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-suggestions/actions/approve
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1actions~1approve/post
+    description: Approves one or more tag suggestions. Each item returns status code 200 on success, 404 if the suggestion isn't found, or 400 if the suggestion is in a terminal state. Since v67.0.
+    example: CALL cdp.tag_suggestions_approve (ids => ['1dg000000000001', '1dg000000000002']);
+    options:
+      - {name: ids, in: body, array: 1, type: string, required: true, description: "List of core record IDs (18 characters). Maximum 200. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: "**Notes:** Approval creates the tag assignment; see `assignment_id` on the suggestion. An item in a terminal state returns 400 in its result. The spec doesn't list the terminal statuses, but `processed_date` is null only for `New`. The option says ids have 18 characters, while the spec's samples have 15. The spec's sample has an intentionally unknown id, removed here."
+
+  - name: tag_suggestions_generate
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-suggestions/actions/generate
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1actions~1generate/post
+    description: Launches asynchronous AI-driven tag suggestion jobs for one or more objects. Returns per-object job IDs. Since v67.0.
+    example: CALL cdp.tag_suggestions_generate (object_names => ['Individual_DLO__dll', 'Account_DLO__dll'], taxonomy_names => ['Compliance_Tags']);
+    options:
+      - {name: object_names, api_name: objectNames, in: body, array: 1, type: string, required: true, description: "Data object API names to generate tag suggestions for. Maximum 20. Since v67.0."}
+      - {name: taxonomy_names, api_name: taxonomyNames, in: body, array: 1, type: string, required: true, description: "Flat developer names of the tag taxonomies to source suggestions from. Maximum 20. Since v67.0."}
+    rows: /jobs
+    columns:
+      - {name: job_id, api_name: jobId, type: VARCHAR, description: "ID of the auto-tagging job (references DataObjectAutoTaggingJob). Since v67.0."}
+      - {name: object_name, api_name: objectName, type: VARCHAR, description: "Target object API name, echoed back from the request for client correlation. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row per item of `/jobs` in the response. Schema `SuggestTagsJobRepresentation`.
+    notes: |
+      **Done when:** `auto_tagging_job_get.status` for each `job_id` is `Success` or `Fail`. It's `InProgress` while running.
+
+      **Notes:** Needs `GovernanceAiSuggestTags`, like every suggestion and job call. The LLM [reads object and field metadata such as names and descriptions](https://help.salesforce.com/s/articleView?language=en_US&id=data.c360_a_using_tagging_and_classification_dg.htm&type=5), and an admin still reviews the results (Help, seen only in a search excerpt). An object with a running job returns 400, and too many running jobs return 429: `MaxConcurrentAutoTagJobs`, default 100. The sources read don't state a credit cost.
+
+  - name: tag_suggestions_reject
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-suggestions/actions/reject
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1actions~1reject/post
+    description: Rejects one or more tag suggestions. Each item returns status code 200 on success, 404 if the suggestion isn't found, or 400 if the suggestion is in a terminal state. Since v67.0.
+    example: CALL cdp.tag_suggestions_reject (ids => ['1dg000000000003', '1dg000000000004']);
+    options:
+      - {name: ids, in: body, array: 1, type: string, required: true, description: "List of core record IDs (18 characters). Maximum 200. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: "**Notes:** An item in a terminal state returns 400 in its result. The spec doesn't list the terminal statuses, but `processed_date` is null only for `New`."
+
+  - name: tag_taxonomy_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies/post
+    description: Creates a top-level tag taxonomy. Since v67.0.
+    example: CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags', description => 'Compliance-related tags (PII, financial, health).');
+    options:
+      - {name: description, in: body, type: string, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Label of the tag taxonomy. Must be unique."}
+      - {name: name, in: body, type: string, description: "Developer name of the tag taxonomy, with no `.`. A managed-package namespace prefix is allowed."}
+    columns:
+      - {name: child_count, api_name: childCount, type: BIGINT, description: "Number of direct child tags. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag taxonomy. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag taxonomy. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag taxonomy. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Label of the tag taxonomy. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag taxonomy. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date and time when the tag taxonomy was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag taxonomy. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "Current state of the tag taxonomy. Since v67.0."}
+      - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TaxonomyRepresentation`.
+    notes: "**Notes:** The spec marks `name` optional and its sample omits it, but its error examples include \"Name is required.\" Pass it. The name is one developer name with no `.`, and labels must be unique."
+
+  - name: tag_detection_instruction_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}/detection-instructions/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D~1detection-instructions~1actions~1bulk-create/post
+    description: Bulk creates active detection instructions for multiple tags under one taxonomy. Each item creates or replaces the active instruction for one tag. Since v67.0.
+    example: "CALL cdp.tag_detection_instruction_bulk_create (fully_qualified_name => 'Compliance_Tags', detection_instructions => [(tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', instruction_txt = 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.'), (tag_fully_qualified_name = 'Compliance_Tags.PII.SSN', instruction_txt = 'Detect US Social Security Numbers: NNN-NN-NNNN format or 9-digit numeric sequences.')]);"
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag taxonomy. Since v67.0."}
+      - {name: detection_instructions, api_name: detectionInstructions, in: body, schema: TagDetectionInstructionBulkCreateItemRepresentation, array: 1, required: true, description: "List of per-tag detection instruction create items. Maximum 200. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: |
+      **Done when:** `tags_active_detection_instruction_list.active_detection_instruction` has `off_core_sync_state` `Synced` for each tag, or `Error` on failure.
+
+      **Notes:** `fully_qualified_name` is the taxonomy, and each item names a tag in it. Each `instruction_txt` is capped at 100 characters.
+
+  - name: tag_taxonomy_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1actions~1bulk-create/post
+    description: Creates multiple tag taxonomies in a single request. Since v67.0.
+    example: CALL cdp.tag_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Tags', label = 'Compliance Tags', description = 'Compliance-related tags.'), (name = 'Ethics_Tags', label = 'Ethics Tags', description = 'Ethical AI compliance indicators.'), (name = 'Marketing_Tags', label = 'Marketing Tags', description = 'Marketing consent and preference tags.')]);
+    options:
+      - {name: taxonomies, in: body, schema: TaxonomyCreateInputRepresentation, array: 1, description: "List of tag taxonomies to create. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: tag_taxonomy_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1actions~1bulk-delete/post
+    description: Deletes multiple tag taxonomies and all child tags in a single request. Since v67.0.
+    example: CALL cdp.tag_taxonomy_bulk_delete (names => ['Marketing_Tags', 'Unused_Tags']);
+    options:
+      - {name: names, in: body, array: 1, type: string, description: "List tag taxonomies to delete. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: tag_taxonomy_bulk_update
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tag-taxonomies/actions/bulk-update
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1actions~1bulk-update/post
+    description: Updates multiple tag taxonomies in a single request. Omitted fields are left unchanged. Since v67.0.
+    example: CALL cdp.tag_taxonomy_bulk_update (items => [(name = 'Compliance_Tags', label = 'Compliance Tags (GA)'), (name = 'Ethics_Tags', description = 'Ethical AI tags — caste, gender, accessibility.')]);
+    options:
+      - {name: items, in: body, schema: TaxonomyBulkUpdateItemInputRepresentation, array: 1, description: "List of tag taxonomies to update. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: tag_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tags
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags/post
+    description: Creates a tag under a specified tag taxonomy, optionally nested under a parent tag. Since v67.0.
+    example: CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address', description => 'Personally identifiable email addresses.', classification_fully_qualified_names => ['Compliance_Classifications.PII']);
+    options:
+      - {name: classification_fully_qualified_names, api_name: classificationFullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of classifications to associate with the tag. Maximum of 200 items. Since v67.0."}
+      - {name: description, in: body, type: string, description: "Description of the tag. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: body, type: string, description: "Fully-qualified API name of the tag in dotted path format. Use 2-3 segments: `<TaxonomyName>.<Level1>[.<Level2>]`. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Display label of the tag. Since v67.0."}
+    columns:
+      - {name: classifications, type: JSON, array: 1, schema: ClassificationLookupRepresentation, description: "Classifications associated with the tag. Since v67.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "User who created the tag. Since v67.0."}
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the tag was created. Since v67.0."}
+      - {name: description, type: VARCHAR, description: "Description of the tag. Since v67.0."}
+      - {name: fully_qualified_label, api_name: fullyQualifiedLabel, type: VARCHAR, description: "Hierarchical display label in dotted path format of ancestor labels. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the tag in dotted path format. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the tag. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label of the tag. Since v67.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "User who last modified the tag. Since v67.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the tag was last modified. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the tag. Terminal segment only. Since v67.0."}
+      - {name: parent_tag, api_name: parentTag, type: JSON, schema: TagLookupRepresentation, description: "Parent tag reference. Since v67.0."}
+      - {name: state, type: VARCHAR, description: "State of the tag. Since v67.0."}
+      - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
+      - {name: type, type: VARCHAR, description: "Type of tag. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the tag resource. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TagRepresentation`.
+    notes: "**Notes:** The parent comes from the path, and it and the taxonomy must already exist. The spec marks `fully_qualified_name` optional, yet it's rejected unless it has 2 or 3 segments."
+
+  - name: tag_detection_instruction_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tags/{fullyQualifiedName}/detection-instructions
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1detection-instructions/post
+    description: Creates or replaces the active detection instruction for a tag. Since v67.0.
+    example: "CALL cdp.tag_detection_instruction_create (fully_qualified_name => 'Compliance_Tags.PII.CreditCard', instruction_txt => 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.');"
+    options:
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path). Since v67.0."}
+      - {name: instruction_txt, api_name: instructionTxt, in: body, type: string, required: true, description: "LLM detection-instruction (prompt) body. Maximum 100 characters. Posting replaces the currently active instruction with a new version. Since v67.0."}
+    columns:
+      - {name: created_date, api_name: createdDate, type: TIMESTAMPTZ, description: "Date the detection instruction was created. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "Unique identifier of the detection instruction. Since v67.0."}
+      - {name: instruction_txt, api_name: instructionTxt, type: VARCHAR, description: "LLM detection-instruction (prompt) body. Since v67.0."}
+      - {name: is_active, api_name: isActive, type: BOOLEAN, description: "Indicates whether the version is the currently active instruction for the tag (`true`) or not (`false`). Since v67.0."}
+      - {name: last_synced_date, api_name: lastSyncedDate, type: TIMESTAMPTZ, description: "Timestamp of the last successful off-core sync. Null until the first sync. Since v67.0."}
+      - {name: off_core_sync_state, api_name: offCoreSyncState, type: VARCHAR, description: "Off-core sync state. Values are `NotSynced`, `Syncing`, `Synced`, or `Error`. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: VARCHAR, description: "Fully-qualified API name of the tag the instruction is bound to. Since v67.0."}
+      - {name: url, type: VARCHAR, description: "URL of the detection instruction resource. Since v67.0."}
+      - {name: version, type: BIGINT, description: "Monotonically increasing version of the instruction within the tag. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `TagDetectionInstructionRepresentation`.
+    notes: |
+      **Done when:** `tag_detection_instruction_get.off_core_sync_state` is `Synced`, or `Error` on failure. `NotSynced` and `Syncing` come before that.
+
+      **Notes:** `instruction_txt` is capped at 100 characters, enforced by a 400. The spec's own sample is about 200 characters, so it's replaced here. The spec doesn't say whether suggestions need the sync to finish.
+
+  - name: tag_bulk_create
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tags/actions/bulk-create
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1bulk-create/post
+    description: Creates multiple tags in a single request. Maximum of 200 items per request. A parent tag and its child cannot be created in the same request. Since v67.0.
+    example: CALL cdp.tag_bulk_create (tags => [(fully_qualified_name = 'Compliance_Tags.PII.Phone', label = 'Phone Number', description = 'Phone numbers (personal or business).'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', label = 'Credit Card Number', description = 'Credit card PAN, PCI-regulated.', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
+    options:
+      - {name: tags, in: body, schema: TagCreateInputRepresentation, array: 1, description: "List of tag create inputs. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: "**Notes:** Send parents and children in separate calls, parents first. The spec's sample has an intentionally invalid item, removed here."
+
+  - name: tag_bulk_delete
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tags/actions/bulk-delete
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1bulk-delete/post
+    description: Deletes multiple tags in a single request, cascading each deletion to its child tags and assignments. Since v67.0.
+    example: CALL cdp.tag_bulk_delete (fully_qualified_names => ['Compliance_Tags.PII.Phone', 'Compliance_Tags.PII.Obsolete']);
+    options:
+      - {name: fully_qualified_names, api_name: fullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of tags to delete. Maximum of 200 items. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+
+  - name: tag_bulk_update
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tags/actions/bulk-update
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1bulk-update/post
+    description: Updates multiple tags in a single requests. Omitted fields are left unchanged. Validation runs against the state before the batch operation. For example, if item 1 re-parents tag A and item 2 references tag A, item 2 validates against tag A's ancestry before the batch operation. Since v67.0.
+    example: CALL cdp.tag_bulk_update (items => [(fully_qualified_name = 'Compliance_Tags.PII.Email', label = 'Email Address (PII)'), (fully_qualified_name = 'Compliance_Tags.PII.Phone', parent_tag_fully_qualified_name = 'Compliance_Tags.PII.Contact'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
+    options:
+      - {name: items, in: body, schema: TagBulkUpdateItemInputRepresentation, array: 1, description: "List of tag update items. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: "**Notes:** The spec's sample has an intentionally failing item, removed here."
+
+  - name: tags_propagate
+    method: POST
+    host: connect
+    path: /ssot/data-governance/tags/actions/propagate
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1propagate/post
+    description: Propagates data governance tags to the specified objects. Since v67.0.
+    example: CALL cdp.tags_propagate (object_names => ['Individual_DLO__dll', 'Contact_DLO__dll']);
+    options:
+      - {name: object_names, api_name: objectNames, in: body, array: 1, type: string, required: true, description: "List of object developer names to propagate the tag to. Since v67.0."}
+    columns:
+      - {name: has_errors, api_name: hasErrors, type: BOOLEAN, description: "Indicates whether any item failed (`true`) or all items succeeded (`false`). Since v67.0."}
+      - {name: results, type: JSON, array: 1, schema: BatchResultItemRepresentation, description: "List of per-item results in the same order as the input list. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `BatchRepresentation`.
+    notes: "**Notes:** The body names objects but no tags, and the spec doesn't say which tags move or whether the work finishes before the call returns. The option says the objects are propagated *to*, while [Help](https://help.salesforce.com/s/articleView?language=en_US&id=data.c360_a_using_tagging_and_classification_dg.htm&type=5) describes tags going from a source object to its downstream objects, and the spec's samples pass DLOs (Help, seen only in a search excerpt). [Data graphs](https://help.salesforce.com/apex/HTViewHelpDoc?id=data.c360_a_data_graph_tag_propagation.htm) also depend on this: a tag added to a DMO after the graph exists needs manual propagation, and a user missing any required tag can't read the graph (same caveat). At most 20 objects."
+
+  - name: access_policy_rule_replace
+    method: PUT
+    host: connect
+    path: /ssot/data-governance/access-policies/{name}/rules/{ruleName}
+    spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D~1rules~1%7BruleName%7D/put
+    description: Overwrites or upserts a single rule within an access policy. Since v67.0.
+    example: CALL cdp.access_policy_rule_replace (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN', body_name => 'Mask_SSN', label => 'Mask SSN', category => 'TRANSFORM_POLICY_RULE_DEFINITION', effect => 'Transform', action => ['Read'], resource_scope_type => 'FIELD', principal_scope_type => 'ANY', resource_domains => ['Account__dlm'], resource_transform => 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments => [(type = 'NUMBER', value = '4')], transform_precedence => 100);
+    options:
+      - {name: name, in: path, type: string, required: true, description: "Developer name of the parent access policy."}
+      - {name: rule_name, api_name: ruleName, in: path, type: string, required: true, description: "Developer name of the rule. Must equal `body_name`."}
+      - {name: action, in: body, array: 1, type: string, description: "Actions the rule applies to, such as `Read`. Since v67.0."}
+      - {name: category, in: body, type: string, enum: [ACCESS_POLICY_RULE_DEFINITION, GOVERNANCE_POLICY_RULE_DEFINITION, TRANSFORM_POLICY_RULE_DEFINITION, RECORD_POLICY_RULE_DEFINITION, IDENTIFIED_RECORD_POLICY_RULE_DEFINITION], required: true, description: "MDAPI rule category. Since v67.0."}
+      - {name: effect, in: body, type: string, enum: [Permit, Forbid, Transform], required: true, description: "Effect of the rule. Since v67.0."}
+      - {name: label, in: body, type: string, description: "Display label for the rule. Since v67.0."}
+      - {name: body_name, api_name: name, in: body, type: string, required: true, description: "Developer name of the rule (PolicyRuleDefinition fullName). Since v67.0."}
+      - {name: principal_authentication_level, api_name: principalAuthenticationLevel, in: body, type: string, enum: [UNIDENTIFIED, IDENTIFIED, AUTHENTICATED, INTERNAL], description: "Required principal authentication level. Since v67.0."}
+      - {name: principal_scope_type, api_name: principalScopeType, in: body, type: string, enum: [ANY], description: "Principal scope type. Since v67.0."}
+      - {name: resource_domains, api_name: resourceDomains, in: body, array: 1, type: string, description: "DMOs or objects the rule scopes to. Required for record-scope (RLS) rules. Since v67.0."}
+      - {name: resource_scope_type, api_name: resourceScopeType, in: body, type: string, enum: [ANY, FIELD, RECORD], description: "Resource scope type. Since v67.0."}
+      - {name: resource_transform, api_name: resourceTransform, in: body, type: string, enum: [LAST_N_CHARS_RESOURCE_TRANSFORM, FIRST_N_CHARS_RESOURCE_TRANSFORM, ALL_BUT_LAST_N_CHARS_RESOURCE_TRANSFORM, ALL_BUT_FIRST_N_CHARS_RESOURCE_TRANSFORM, CLOSEST_ORDER_OF_MAGNITUDE_RESOURCE_TRANSFORM, NULL_RESOURCE_TRANSFORM, EMPTY_STRING_RESOURCE_TRANSFORM, TRUNCATE_DATE_RESOURCE_TRANSFORM, ROUND_RESOURCE_TRANSFORM, REPLACE_ALL_CHARS_RESOURCE_TRANSFORM], description: "For Transform or FLS rules, the transform applied to the field. Since v67.0."}
+      - {name: resource_transform_arguments, api_name: resourceTransformArguments, in: body, schema: ResourceTransformArgumentInputRepresentation, array: 1, description: "Static argument list for the resource transform, such as the `2` for `FIRST_N_CHARS_RESOURCE_TRANSFORM`. Since v67.0."}
+      - {name: rule_consumer, api_name: ruleConsumer, in: body, type: string, enum: [ALL, DATACLOUD, MULESOFT, TABLEAU, CORE], description: "Consumer of the rule's enforcement. Since v67.0."}
+      - {name: transform_precedence, api_name: transformPrecedence, in: body, type: integer, description: "Tiebreaker when multiple Transform rules apply to the same field. The lower value wins. Applies only to Transform-effect rules. Since v67.0."}
+      - {name: unless, in: body, schema: ConditionGroupInputRepresentation, description: "Condition group that, when met, exempts the rule from applying. Since v67.0."}
+      - {name: when, in: body, schema: ConditionGroupInputRepresentation, description: "Condition group that must be met for the rule to apply. Since v67.0."}
+    columns:
+      - {name: action, type: JSON, description: "Actions the rule applies to, such as `Read`. Since v67.0."}
+      - {name: category, type: VARCHAR, description: "MDAPI rule category, which determines the validator that dispatches. Since v67.0."}
+      - {name: effect, type: VARCHAR, description: "Effect of the rule. Since v67.0."}
+      - {name: id, type: VARCHAR, description: "18-character record ID of the underlying PolicyRuleDefinition. Since v67.0."}
+      - {name: label, type: VARCHAR, description: "Display label for the rule. Since v67.0."}
+      - {name: name, type: VARCHAR, description: "Developer name of the rule (PolicyRuleDefinition fullName). Since v67.0."}
+      - {name: principal_authentication_level, api_name: principalAuthenticationLevel, type: VARCHAR, description: "Required principal authentication level. Since v67.0."}
+      - {name: principal_scope_type, api_name: principalScopeType, type: VARCHAR, description: "Principal scope type. Since v67.0."}
+      - {name: resource_domains, api_name: resourceDomains, type: JSON, description: "DMOs or objects the rule scopes to. Required for record-scope (RLS) rules; typically empty or absent for OLS or FLS. Since v67.0."}
+      - {name: resource_scope_type, api_name: resourceScopeType, type: VARCHAR, description: "Resource scope type. Since v67.0."}
+      - {name: resource_transform, api_name: resourceTransform, type: VARCHAR, description: "For Transform or FLS rules, the transform applied to the field before the principal sees it. Since v67.0."}
+      - {name: resource_transform_arguments, api_name: resourceTransformArguments, type: JSON, array: 1, schema: ResourceTransformArgumentRepresentation, description: "Static argument list for the resource transform, such as the `2` for `FIRST_N_CHARS_RESOURCE_TRANSFORM`. Since v67.0."}
+      - {name: rule_consumer, api_name: ruleConsumer, type: VARCHAR, description: "Consumer of the rule's enforcement. Since v67.0."}
+      - {name: transform_precedence, api_name: transformPrecedence, type: BIGINT, description: "Tiebreaker when multiple Transform rules apply to the same field. The lower value wins. Emitted only on Transform-effect rules. Since v67.0."}
+      - {name: unless, type: JSON, schema: ConditionGroupRepresentation, description: "Condition group that, when met, exempts the rule from applying. Since v67.0."}
+      - {name: when, type: JSON, schema: ConditionGroupRepresentation, description: "Condition group that must be met for the rule to apply. Since v67.0."}
+    effect: write
+    evidence: O
+    result_description: One row. Schema `AccessPolicyRuleRepresentation`.
+    notes: "**Notes:** `rule_name` and `body_name` must be equal, or the call returns `NAME_MISMATCH`. It's a full overwrite, and the schema requires each condition's `id` on update, so read the rule with `access_policy_rule_get` first and send those ids back. No call deletes a single rule, and the spec doesn't show what upserting a second rule into a one-rule policy does. A 403 can mean a missing `CanAccessCustomerDataCloudAPI` or `ModifyAccessPolicies` permission."
+
+schemas:
+  AccessPolicyRuleInputRepresentation:
+    description: Represents the input for a single rule within an access policy.
+    attributes:
+      - {name: action, array: 1, type: string, description: "Actions the rule applies to, such as `Read`. Since v67.0."}
+      - {name: category, type: string, enum: [ACCESS_POLICY_RULE_DEFINITION, GOVERNANCE_POLICY_RULE_DEFINITION, TRANSFORM_POLICY_RULE_DEFINITION, RECORD_POLICY_RULE_DEFINITION, IDENTIFIED_RECORD_POLICY_RULE_DEFINITION], required: true, description: "MDAPI rule category. Since v67.0."}
+      - {name: effect, type: string, enum: [Permit, Forbid, Transform], required: true, description: "Effect of the rule. Since v67.0."}
+      - {name: label, type: string, description: "Display label for the rule. Since v67.0."}
+      - {name: name, type: string, required: true, description: "Developer name of the rule (PolicyRuleDefinition fullName). Since v67.0."}
+      - {name: principal_authentication_level, api_name: principalAuthenticationLevel, type: string, enum: [UNIDENTIFIED, IDENTIFIED, AUTHENTICATED, INTERNAL], description: "Required principal authentication level. Since v67.0."}
+      - {name: principal_scope_type, api_name: principalScopeType, type: string, enum: [ANY], description: "Principal scope type. Since v67.0."}
+      - {name: resource_domains, api_name: resourceDomains, array: 1, type: string, description: "DMOs or objects the rule scopes to. Required for record-scope (RLS) rules. Since v67.0."}
+      - {name: resource_scope_type, api_name: resourceScopeType, type: string, enum: [ANY, FIELD, RECORD], description: "Resource scope type. Since v67.0."}
+      - {name: resource_transform, api_name: resourceTransform, type: string, enum: [LAST_N_CHARS_RESOURCE_TRANSFORM, FIRST_N_CHARS_RESOURCE_TRANSFORM, ALL_BUT_LAST_N_CHARS_RESOURCE_TRANSFORM, ALL_BUT_FIRST_N_CHARS_RESOURCE_TRANSFORM, CLOSEST_ORDER_OF_MAGNITUDE_RESOURCE_TRANSFORM, NULL_RESOURCE_TRANSFORM, EMPTY_STRING_RESOURCE_TRANSFORM, TRUNCATE_DATE_RESOURCE_TRANSFORM, ROUND_RESOURCE_TRANSFORM, REPLACE_ALL_CHARS_RESOURCE_TRANSFORM], description: "For Transform or FLS rules, the transform applied to the field. Since v67.0."}
+      - {name: resource_transform_arguments, api_name: resourceTransformArguments, schema: ResourceTransformArgumentInputRepresentation, array: 1, description: "Static argument list for the resource transform, such as the `2` for `FIRST_N_CHARS_RESOURCE_TRANSFORM`. Since v67.0."}
+      - {name: rule_consumer, api_name: ruleConsumer, type: string, enum: [ALL, DATACLOUD, MULESOFT, TABLEAU, CORE], description: "Consumer of the rule's enforcement. Since v67.0."}
+      - {name: transform_precedence, api_name: transformPrecedence, type: integer, description: "Tiebreaker when multiple Transform rules apply to the same field. The lower value wins. Applies only to Transform-effect rules. Since v67.0."}
+      - {name: unless, schema: ConditionGroupInputRepresentation, description: "Condition group that, when met, exempts the rule from applying. Since v67.0."}
+      - {name: when, schema: ConditionGroupInputRepresentation, description: "Condition group that must be met for the rule to apply. Since v67.0."}
+
+  ClassificationAssignmentBulkItemInputRepresentation:
+    description: Represents a single classification with its list of target tags for bulk creation.
+    attributes:
+      - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, type: string, required: true, description: "Fully-qualified API name of the source classification. Since v67.0."}
+      - {name: tag_fully_qualified_names, api_name: tagFullyQualifiedNames, array: 1, type: string, required: true, description: "Fully-qualified API names of the target tags. Maximum 50. Since v67.0."}
+
+  ClassificationBulkUpdateItemInputRepresentation:
+    description: Represents the input for a single classification item in a bulk update operation.
+    attributes:
+      - {name: description, type: string, description: "Updated description. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: string, description: "Fully-qualified API name of the classification to update. Since v67.0."}
+      - {name: label, type: string, description: "Updated display label. Since v67.0."}
+      - {name: tag_fully_qualified_names, api_name: tagFullyQualifiedNames, array: 1, type: string, description: "Replaces all tag links. Maximum of 200 items. Provide an empty list to remove all links. Omit to leave unchanged. Since v67.0."}
+
+  ClassificationCreateInputRepresentation:
+    description: Represents the input for creating a data governance classification.
+    attributes:
+      - {name: description, type: string, description: "Description of the classification. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: string, description: "Fully-qualified API name of the classification in dotted path format. Use 2-3 segments: `<TaxonomyName>.<Level1>[.<Level2>]`. Since v67.0."}
+      - {name: label, type: string, description: "Display label of the classification. Since v67.0."}
+      - {name: tag_fully_qualified_names, api_name: tagFullyQualifiedNames, array: 1, type: string, description: "Fully-qualified API names of tags to associate with the classification. Maximum of 200 items. Since v67.0."}
+
+  ConditionGroupInputRepresentation:
+    description: Recursive group of conditions joined by AND or OR.
+    attributes:
+      - {name: operands, schema: ConditionNodeInputRepresentation, array: 1, description: "Operands joined by the operator. Each operand is either a nested group or a leaf condition. Required. Since v67.0."}
+      - {name: operator, type: string, description: "Logical operator joining the operands (AND or OR). Required. Since v67.0."}
+
+  ConditionLeafInputRepresentation:
+    description: Leaf condition within an AccessPolicy clause tree.
+    attributes:
+      - {name: clause, type: string, enum: [WHEN, UNLESS], description: "Which clause of the rule this condition belongs to. Since v67.0."}
+      - {name: context_path, api_name: contextPath, type: string, enum: [SESSION_DATASPACE, SESSION_CONSUMER_ID, CONTEXT_AGENT_ID, CONTEXT_AGENT_VERSION_ID], description: "Context-side path the condition tests. Mutually exclusive with principal_path / resource_path. Since v67.0."}
+      - {name: id, type: string, description: "18-character record ID of the underlying PolicyRuleDefinitionCond. Optional on create; required on update. Since v67.0."}
+      - {name: operator, type: string, enum: [EQUALS, NOT_EQUALS, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUALS, IN, LIKE, CONTAINS_ANY, CONTAINS_NONE, CONTAINS_ALL, IS, EXISTS, HIERARCHICALLY_ABOVE, HIERARCHICALLY_BELOW, CONTAINS, STARTS_WITH, ENDS_WITH], description: "Comparison operator applied to the selected condition path. Valid operators depend on the selected path and value type. Required. Since v67.0."}
+      - {name: principal_path, api_name: principalPath, type: string, enum: [IS_AUTHENTICATED, ASSIGNED_PERMISSIONS_PATH, USER_ID, ORGANIZATION_ID, USER_ROLE_ID, RBAC_TAGS, SCALAR_ATTRIBUTE, PLURAL_ATTRIBUTE, PLACEHOLDER, IS_INTERNAL, CONTACT_ID], description: "Principal-side path the condition tests. Mutually exclusive with resource_path / context_path. Since v67.0."}
+      - {name: resource_expression, api_name: resourceExpression, schema: ResourceExpressionInputRepresentation, description: "Projection or join expression that relates the resource-side row to another object. Mutually exclusive with values and value_principal_path. Since v67.0."}
+      - {name: resource_path, api_name: resourcePath, type: string, enum: [NAMESPACE, ENTITY, RESOURCE, FIELD, ENTITYTYPE, ENTITYKIND, FIELDKIND, DATASPACE, TAG, SYSTEMTAG, OBJECT_TAG, CLASSIFICATION, IMPLICITTAG, OBJECT_SYSTEMTAG, RECORDFIELD, OBJECT_CLASSIFICATION, EXPRESSION, OBJECT_DATASPACE, RECORDFIELDTYPE, METADATAKIND, OBJECT], description: "Resource-side path the condition tests. Mutually exclusive with principal_path / context_path. Since v67.0."}
+      - {name: value_domain, api_name: valueDomain, type: string, description: "Optional value-domain qualifier scoping the comparison. Since v67.0."}
+      - {name: value_principal_path, api_name: valuePrincipalPath, type: string, enum: [IS_AUTHENTICATED, ASSIGNED_PERMISSIONS_PATH, USER_ID, ORGANIZATION_ID, USER_ROLE_ID, RBAC_TAGS, SCALAR_ATTRIBUTE, PLURAL_ATTRIBUTE, PLACEHOLDER, IS_INTERNAL, CONTACT_ID], description: "Right-side dynamic value pulled from the current principal. Mutually exclusive with values and resource_expression. Since v67.0."}
+      - {name: values, schema: PolicyValueInputRepresentation, array: 1, description: "Typed values the operator compares against. Mutually exclusive with value_principal_path and resource_expression. Since v67.0."}
+
+  ConditionNodeInputRepresentation:
+    description: Node in a recursive AccessPolicy condition tree (group or condition). Exactly one of group or condition must be provided.
+    attributes:
+      - {name: condition, schema: ConditionLeafInputRepresentation, description: "Leaf condition at this node. Provide either condition or group, but not both. Since v67.0."}
+      - {name: group, schema: ConditionGroupInputRepresentation, description: "Nested condition group at this node. Provide either group or condition, but not both. Since v67.0."}
+
+  PolicyValueInputRepresentation:
+    description: A single typed value within an AccessPolicy condition's value set. Exactly one of the typed value fields (or the reference pair) must be provided.
+    attributes:
+      - {name: boolean_value, api_name: booleanValue, type: boolean, description: "Boolean-typed value (mutually exclusive with the other typed value fields). Since v67.0."}
+      - {name: date_time_value, api_name: dateTimeValue, type: string, format: date-time, description: "DateTime-typed value (UTC instant, mutually exclusive with the other typed value fields). Since v67.0."}
+      - {name: date_value, api_name: dateValue, type: string, format: date-time, description: "Date-typed value (UTC calendar day, mutually exclusive with the other typed value fields). Since v67.0."}
+      - {name: number_value, api_name: numberValue, type: string, description: "Number-typed value, string-encoded to preserve BigDecimal precision. Mutually exclusive with the other typed value fields. Since v67.0."}
+      - {name: percent_value, api_name: percentValue, type: string, description: "Percent-typed value, string-encoded to preserve BigDecimal precision. Mutually exclusive with the other typed value fields. Since v67.0."}
+      - {name: reference, type: string, description: "Reference value (for example, a tag, classification, or custom permission API name). Paired with reference_type. Orthogonal to the typed value fields. Since v67.0."}
+      - {name: reference_type, api_name: referenceType, type: string, description: "Type discriminator for the reference field (for example, STANDARD_TAG, CUSTOM_TAG, STANDARD_CLASSIFICATION, CUSTOM_PERMISSION). Since v67.0."}
+      - {name: text_value, api_name: textValue, type: string, description: "Plain-text value. Mutually exclusive with the other typed value fields. Since v67.0."}
+
+  ResourceExpressionInputRepresentation:
+    description: Projection/join expression for an RLS-with-joins condition (EXISTS operator).
+    attributes:
+      - {name: projection, schema: ResourceExpressionJoinInputRepresentation, description: "Join definition of the projection, specifying the joined object, its alias, and the join predicate. Since v67.0."}
+      - {name: type, type: string, description: "Expression type — always PROJECTION for join-based RLS. Required. Since v67.0."}
+      - {name: version, type: integer, description: "Schema version of the expression body. Since v67.0."}
+
+  ResourceExpressionJoinInputRepresentation:
+    description: A single join within an AccessPolicy resource-expression projection.
+    attributes:
+      - {name: alias, type: string, description: "Alias used to qualify the joined relation in the predicate, for example `individual`. Required. Since v67.0."}
+      - {name: predicate, schema: ResourceExpressionPredicateInputRepresentation, description: "Join predicate that specifies how a row in the joined object relates to the resource-side row. Since v67.0."}
+      - {name: schema, type: string, description: "Joined Data Model Object or object API name, for example `Individual__dlm`. This is a name, not a record ID. Required. Since v67.0."}
+
+  ResourceExpressionPredicateInputRepresentation:
+    description: Represents the join predicate of an AccessPolicy resource-expression projection.
+    attributes:
+      - {name: predicate, type: string, required: true, description: "Join predicate definition, as a JSON expression that relates a row in the joined object to the resource-side row. Since v67.0."}
+
+  ResourceTransformArgumentInputRepresentation:
+    description: A static argument to an AccessPolicy rule's resource transform. Value is always string-encoded regardless of type.
+    attributes:
+      - {name: type, type: string, description: "Argument type discriminator (STRING, NUMBER, BOOLEAN). Required. Since v67.0."}
+      - {name: value, type: string, description: "Argument value, string-encoded regardless of type. Required. Since v67.0."}
+
+  TagAssignmentTargetInputRepresentation:
+    description: Represents a target object and optional field for a tag assignment.
+    attributes:
+      - {name: field_name, api_name: fieldName, type: string, description: "API name of the field. Requires `object_name`. Since v67.0."}
+      - {name: object_name, api_name: objectName, type: string, description: "API name of the data object. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: string, description: "Not in the spec schema: from the spec's examples."}
+      - {name: targets, schema: TagAssignmentTargetInput_targets, array: 1, description: "Not in the spec schema: from the spec's examples."}
+
+  TagAssignmentTargetInput_targets:
+    unknown: warning
+    attributes:
+      - {name: object_name, api_name: objectName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+      - {name: field_name, api_name: fieldName, type: string, description: "Seen in examples: the spec types the parent as a free-form object."}
+
+  TagBulkUpdateItemInputRepresentation:
+    description: Represents the input for a single tag item in a bulk update operation.
+    attributes:
+      - {name: classification_fully_qualified_names, api_name: classificationFullyQualifiedNames, array: 1, type: string, description: "Replaces all classification links. Maximum of 200 items. Provide an empty list to remove all links. Omit to leave unchanged. Since v67.0."}
+      - {name: description, type: string, description: "Updated description. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: string, description: "Fully-qualified API name of the tag to update. Since v67.0."}
+      - {name: label, type: string, description: "Updated display label. Since v67.0."}
+      - {name: parent_tag_fully_qualified_name, api_name: parentTagFullyQualifiedName, type: string, description: "Fully-qualified API name of the new parent tag. Provide `null` to move the tag to the root level. Must be in the same taxonomy. Since v67.0."}
+
+  TagCreateInputRepresentation:
+    description: Represents the input for creating a data governance tag.
+    attributes:
+      - {name: classification_fully_qualified_names, api_name: classificationFullyQualifiedNames, array: 1, type: string, description: "Fully-qualified API names of classifications to associate with the tag. Maximum of 200 items. Since v67.0."}
+      - {name: description, type: string, description: "Description of the tag. Since v67.0."}
+      - {name: fully_qualified_name, api_name: fullyQualifiedName, type: string, description: "Fully-qualified API name of the tag in dotted path format. Use 2-3 segments: `<TaxonomyName>.<Level1>[.<Level2>]`. Since v67.0."}
+      - {name: label, type: string, description: "Display label of the tag. Since v67.0."}
+
+  TagDetectionInstructionBulkCreateItemRepresentation:
+    description: Represents a single tag's detection instruction in a bulk create request.
+    attributes:
+      - {name: instruction_txt, api_name: instructionTxt, type: string, required: true, description: "LLM detection-instruction (prompt) body that defines how the tag is auto-detected. Maximum 100 characters. Since v67.0."}
+      - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, type: string, required: true, description: "Fully-qualified API name of the tag the instruction applies to (dotted path). Since v67.0."}
+
+  TaxonomyBulkUpdateItemInputRepresentation:
+    description: Represents the input for a single tag taxonomy update in a bulk update.
+    attributes:
+      - {name: description, type: string, description: "Updated description of the taxonomy. Since v67.0."}
+      - {name: label, type: string, description: "Updated label of the taxonomy. Since v67.0."}
+      - {name: name, type: string, description: "Developer name of the taxonomy to update. Since v67.0."}
+
+  TaxonomyCreateInputRepresentation:
+    description: Represents the input for creating a tag taxonomy.
+    attributes:
+      - {name: description, type: string, description: "Description of the taxonomy. Since v67.0."}
+      - {name: label, type: string, description: "Label of the taxonomy. Must be unique. Since v67.0."}
+      - {name: name, type: string, description: "Developer name of the taxonomy, with no `.`. A managed-package namespace prefix is allowed. Since v67.0."}

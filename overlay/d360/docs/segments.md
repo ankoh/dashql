@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/segments.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Segments
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
@@ -672,12 +674,12 @@ Input representation for creating an hourly schedule.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
+| `days_of_week` | `daysOfWeek` | array of enum(Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday) |  | Days of the week on which the schedule runs. From the older spec copy. Since v60.0. |
+| `interval` | `interval` | integer |  | Number of hours between runs. From the older spec copy. Since v60.0. |
 | `definition_name` | `definitionName` | string |  | Name of the schedule definition. Since v63.0. |
 | `frequency` | `frequency` | enum(Daily, Hourly, None) | yes | Frequency on which the schedule is run. `None` removes the schedule and is the default. Since v58.0. |
 | `should_force_specified_minutes` | `shouldForceSpecifiedMinutes` | boolean |  | Only applicable to data transforms. If `true`, the consumer's schedule is used. If `false`, the transform is distributed over an hour to avoid hourly hotspots. Set to `true` only when the schedule is critical. If unspecified, the default value is `false`. Since v64.0. |
 | `time` | `time` | [CdpTimeInput](#cdptimeinputrepresentation) | yes | When to run the schedule. Since v58.0. |
-| `days_of_week` | `daysOfWeek` | array of enum(Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday) |  | Day of the week on which the schedule will run. Since v60.0. |
-| `interval` | `interval` | integer |  | Number of hours between runs. Since v60.0. |
 
 ### CdpMinutelyScheduleInputRepresentation
 
@@ -757,9 +759,9 @@ Time input source for when to run the schedule.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `hour` | `hour` | integer | yes | Hour when the schedule should run. Since v60.0. |
-| `minute` | `minute` | integer | yes | Minute in the hour when the schedule should run. Since v60.0. |
-| `time_zone` | `timeZone` | string | yes | Time zone of the schedule. Since v60.0. |
+| `hour` | `hour` | integer | yes | Hour when the schedule should run, [0 to 23](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/datatransform/DataTransformTimeInput.java). Since v60.0. |
+| `minute` | `minute` | integer | yes | Minute in the hour when the schedule should run, [0 to 59](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/model/request/datatransform/DataTransformTimeInput.java). Exact only with `should_force_specified_minutes`. Since v60.0. |
+| `time_zone` | `timeZone` | string | yes | Time zone of the schedule, such as `America/Los_Angeles`. Since v60.0. |
 
 ### DailyScheduleInputRepresentation
 

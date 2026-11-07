@@ -1,0 +1,467 @@
+title: Agentic Memory & Context
+description: |
+  Agentic Memory stores what agents and users say, then extracts session summaries, profile facts and preferences from it. Agents read that knowledge back as prompt context. These calls feed a conversation into Data 360, inspect it, curate memories by hand and fetch context for an LLM.
+
+  Register the agent first with [`agent_create`](agent_configuration.md#agent_create) and wait until `agent_get.status` is `Active`. [Until then the conversation and context calls return errors](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-agent-registration.md). Then create a conversation, open a session, add entries, close the session and close the conversation. Closing the session runs the last extraction.
+
+  Gotchas:
+
+  - **`agent_id` is a header**, [according to the docs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-context-ref-home.md). It's required on conversation calls and [optional on memory calls](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md). `memory_context_get` is the exception, with a query parameter and two headers of its own.
+  - **Reads fail closed.** [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md) filters every read by the `xid` and `aid` claims in the JWT. No match returns no data, and no page says how to get a token with those claims.
+  - **`memory_create` and `memory_update` send the same verb and path.** See their notes.
+  - **The host is inferred.** These pages give only paths. The tenant host comes from the [API notes](api_notes.md#hosts-and-tokens).
+  - **Extraction will cost credits.** It [consumes flex credits once pricing applies, and is free during Limited GA](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-billing.md).
+
+  ```sql
+  CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual');
+  CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner'), (id = 'ACE_Demo_Agent', type = 'agent', role = 'participant')]);
+  CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?')]);
+  CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
+  CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
+  ```
+
+functions:
+  - name: memory_conversation_create
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/conversations
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-conversation.md
+    description: Create a conversation with an ID you choose and an owner. This is the first call of the ingest flow; sessions and entries go inside it.
+    example: CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', name => 'Support, onboarding', channel => (type = 'chat', id = 'slack-C0123'));
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name, such as `ACE_Demo_Agent`."}
+      - {name: conversation_id, api_name: conversationId, in: body, type: string, required: true, description: "Caller-supplied unique ID for this conversation."}
+      - {name: conversation_owner_id, api_name: conversationOwnerId, in: body, type: string, required: true, description: "Individual or User ID of the owner."}
+      - {name: owner_type, api_name: ownerType, in: body, type: string, enum: [individual, employee], required: true, description: "Type of owner."}
+      - {name: name, in: body, type: string, description: "Human-readable name."}
+      - {name: channel, in: body, schema: ConversationChannel, description: "Channel the conversation runs on."}
+      - {name: variable, in: body, map: true, type: string, description: "Arbitrary key-value metadata."}
+    columns:
+      - {name: status_code, api_name: statusCode, type: VARCHAR, description: "Operation status, `created`."}
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "The created conversation's ID."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row, HTTP 201.
+    notes: "**Notes:** The [page](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-conversation.md) lists no 409, so the docs don't say what a duplicate `conversation_id` does."
+
+  - name: memory_conversation_list
+    method: GET
+    host: tenant
+    path: /api/v1/agentic/conversations
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-list-conversations.md
+    description: List a person's conversations as summary rows, without sessions or entries. Use it to find a `conversation_id`.
+    example: CALL cdp.memory_conversation_list (agent_id => 'ACE_Demo_Agent', owner_id => '003AB000000XYZ', owner_type => 'individual');
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Agent identifier. [Requests without it are rejected](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md)."}
+      - {name: owner_id, in: query, type: string, required: true, description: "End user's Individual ID."}
+      - {name: owner_type, in: query, type: string, required: true, description: "Owner type, such as `individual`."}
+      - {name: status, in: query, type: string, description: "Filter by conversation status."}
+      - {name: time_range, in: query, type: string, description: "Filter by time range. No page gives the format."}
+      - {name: fields, in: query, array: 1, type: string, description: "Fields to return. Sent as a repeated parameter: `fields=id&fields=name`."}
+      - {name: participant_id, in: query, type: string, description: "Filter by participant."}
+      - {name: page_token, in: query, type: string, description: "`nextPageToken` from the previous page."}
+    rows: /conversations
+    columns:
+      - {name: id, type: VARCHAR, description: "Conversation ID."}
+      - {name: start_time, api_name: startTime, type: TIMESTAMPTZ, description: "When the conversation started."}
+      - {name: status, type: VARCHAR, description: "Conversation status, such as `ACTIVE`."}
+      - {name: name, type: VARCHAR, description: "Conversation name."}
+      - {name: modified_date, api_name: modifiedDate, type: TIMESTAMPTZ, description: "When the conversation last changed."}
+    paging: {kind: token, from: /nextPageToken, option: page_token}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/conversations` in the response. Other response fields go to `_meta`.
+    notes: |
+      **Paging:** `page_token`, from `nextPageToken`. An absent or empty token [ends the list](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md).
+
+      **Token:** Data 360 JWT. The `xid` and `aid` claims filter the rows, see [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md). A caller sees a conversation only if it's a participant.
+
+      **Notes:** No page lists the status values. The examples show `ACTIVE` and `COMPLETED`.
+
+  - name: memory_conversation_get
+    method: GET
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-get-conversation-data-graph.md
+    description: "Read one conversation in full: its sessions, entries and metadata. Use it to inspect what was ingested."
+    example: CALL cdp.memory_conversation_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', scope => 'messages');
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Agent identifier. [Requests without it are rejected](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md)."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
+      - {name: owner_id, in: query, type: string, required: true, description: "End user's Individual ID."}
+      - {name: session_id, in: query, type: string, description: "Limit the result to one session."}
+      - {name: participant_id, in: query, type: string, description: "Filter by participant."}
+      - {name: owner_type, in: query, type: string, description: "Type of profile. Optional here, unlike the list calls."}
+      - {name: scope, in: query, type: string, enum: [messages, traces, all], description: "Which entry types to return."}
+      - {name: page_token, in: query, type: string, description: "`nextPageToken` from the previous page."}
+    columns:
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "Conversation ID."}
+      - {name: name, type: VARCHAR, description: "Conversation name. Nullable."}
+      - {name: status, type: VARCHAR, description: "Conversation status, such as `COMPLETED`."}
+      - {name: start_time, api_name: startTime, type: TIMESTAMPTZ, description: "When the conversation started."}
+      - {name: end_time, api_name: endTime, type: TIMESTAMPTZ, description: "When the conversation ended. Nullable."}
+      - {name: conversation_owner_id, api_name: conversationOwnerId, type: VARCHAR, description: "Owner ID."}
+      - {name: sessions, type: JSON, description: "Array of `session_id`, `status`, `start_time`, `end_time` and `entries`. Each entry has `id`, `interaction_id`, `participant_id`, `content`, `type`, `timestamp`, `category` and `variable`."}
+      - {name: metadata, type: JSON, description: "Conversation metadata. Nullable."}
+    paging: {kind: token, from: /nextPageToken, option: page_token}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row. `nextPageToken` goes to `_meta`.
+    notes: |
+      **Paging:** `page_token`, from `nextPageToken`.
+
+      **Token:** Data 360 JWT. The `xid` and `aid` claims filter the data, see [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md).
+
+      **Notes:** The [page](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-get-conversation-data-graph.md) doesn't say how `sessions` splits across pages. [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md) says a failed participant check returns no data, but not whether that's an empty result or the page's 404.
+
+  - name: memory_conversation_close
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}/close
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-close-conversation.md
+    description: Mark a conversation complete across all its sessions. This also closes any sessions still open.
+    example: CALL cdp.memory_conversation_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001');
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
+    columns:
+      - {name: status_code, api_name: statusCode, type: VARCHAR, description: "Operation status, `closed`."}
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "The closed conversation's ID."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row, HTTP 202.
+    notes: |
+      **Done when:** `memory_conversation_get.status` is `COMPLETED`. That value comes from the page's example; no page lists the values or says when it changes.
+
+      **Notes:** Returns HTTP 202. No page gives a signal for when extraction from the closed sessions has finished.
+
+  - name: memory_entry_add
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}/entries
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-add-entries.md
+    description: Send messages and traces to a session, in order. This is the main way data enters the memory pipeline, and several entries can go in one call.
+    example: CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?'), (participant_id = 'ACE_Demo_Agent', category = 'Trace', type = 'tool_call', variable = (tool = 'kb_search', query = 'password reset'))]);
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
+      - {name: session_id, api_name: sessionId, in: body, type: string, required: true, description: "Session that receives the entries."}
+      - {name: entries, in: body, schema: ConversationEntry, array: 1, required: true, description: "Ordered entries. At least one."}
+    columns:
+      - {name: status_code, api_name: statusCode, type: VARCHAR, description: "Operation status, `entriesAdded`."}
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "Parent conversation ID."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "Parent session ID."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row, HTTP 202.
+    notes: "**Notes:** Returns HTTP 202 once storage and indexing are committed. [It doesn't wait for extraction](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-conversation-management.md). Entries are processed in the order received, so the guide advises sending timestamps. [Extraction runs](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-summary-generation.md) when unprocessed messages reach about half the LLM context window, after a configurable time, or when the session closes. The page doesn't say what `category` defaults to. It gives no idempotency key, so don't assume a retry is safe."
+
+  - name: memory_session_create
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}/sessions
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-session.md
+    description: Open a session inside a conversation, with an ID you choose and at least one participant. A conversation can hold several sessions, for pauses and agent handoffs.
+    example: CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner', start_time = '2026-01-01T00:00:00Z')]);
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Parent conversation ID."}
+      - {name: session_id, api_name: sessionId, in: body, type: string, required: true, description: "Caller-supplied unique ID for this session."}
+      - {name: conversation_owner_id, api_name: conversationOwnerId, in: body, type: string, required: true, description: "Individual or User ID. Must align with the parent conversation."}
+      - {name: owner_type, api_name: ownerType, in: body, type: string, enum: [individual, employee], required: true, description: "Type of owner."}
+      - {name: participants, in: body, schema: SessionParticipant, array: 1, required: true, description: "Initial participants. At least one."}
+      - {name: variable, in: body, map: true, type: any, description: "Arbitrary metadata."}
+    columns:
+      - {name: status_code, api_name: statusCode, type: VARCHAR, description: "Operation status, `created`."}
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "Parent conversation ID."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "The created session's ID."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row, HTTP 201.
+    notes: "**Notes:** `conversation_owner_id` must align with the parent conversation. [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md) limits reads to participants, and when the token has `aid` the agent must be one too, so list the agent here or add it with `memory_participant_add`. For a restricted handoff, [Agent A closes its session and Agent B creates a new one](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-conversation-management.md). Agent B then sees conversation-level context, not the details of Agent A's session."
+
+  - name: memory_session_list
+    method: GET
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}/sessions
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-list-sessions.md
+    description: List a conversation's sessions as summary rows, without entries.
+    example: CALL cdp.memory_session_list (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual');
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Agent identifier. [Requests without it are rejected](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md)."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
+      - {name: owner_id, in: query, type: string, required: true, description: "End user's Individual ID."}
+      - {name: owner_type, in: query, type: string, required: true, description: "Owner type, such as `individual`."}
+      - {name: status, in: query, type: string, description: "Filter by session status."}
+      - {name: time_range, in: query, type: string, description: "Filter by time range. No page gives the format."}
+      - {name: fields, in: query, array: 1, type: string, description: "Fields to return. Sent as a repeated parameter."}
+      - {name: participant_id, in: query, type: string, description: "Filter by participant."}
+      - {name: page_token, in: query, type: string, description: "`nextPageToken` from the previous page."}
+    rows: /sessions
+    columns:
+      - {name: id, type: VARCHAR, description: "Session ID."}
+      - {name: start_time, api_name: startTime, type: TIMESTAMPTZ, description: "When the session started."}
+      - {name: status, type: VARCHAR, description: "Session status, such as `ACTIVE` or `COMPLETED`."}
+    paging: {kind: token, from: /nextPageToken, option: page_token}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/sessions` in the response. Other response fields go to `_meta`.
+    notes: |
+      **Paging:** `page_token`, from `nextPageToken`. An absent or empty token [ends the list](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md).
+
+      **Token:** Data 360 JWT. The `xid` and `aid` claims filter the rows, see [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md).
+
+      **Notes:** Session IDs come back as `id` here and as `session_id` in `memory_conversation_get`.
+
+  - name: memory_session_close
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}/sessions/{sessionId}/close
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-close-session.md
+    description: End a session. This triggers a final memory extraction for any messages not yet processed.
+    example: CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
+      - {name: session_id, api_name: sessionId, in: path, type: string, required: true, description: "Session ID."}
+    columns:
+      - {name: status_code, api_name: statusCode, type: VARCHAR, description: "Operation status, `closed`."}
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "Parent conversation ID."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "The closed session's ID."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row, HTTP 202.
+    notes: |
+      **Done when:** `memory_session_list.status` is `COMPLETED`. That value comes from the page's example; no page lists the values or says when it changes.
+
+      **Notes:** Returns HTTP 202. No page gives a signal for when extraction has finished. The [guide](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-about.md) only says memories are available within seconds of extraction, so check with `memory_list`. Extraction [consumes flex credits](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-summary-generation.md), though the [billing page](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-billing.md) says it's free during Limited GA.
+
+  - name: memory_participant_add
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/conversations/{conversationId}/sessions/{sessionId}/participants
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-add-participants.md
+    description: Add participants to an active session, for agent handoffs or several agents working together.
+    example: CALL cdp.memory_participant_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', participants => [(id = 'Billing_Agent', type = 'agent', role = 'participant')]);
+    options:
+      - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
+      - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
+      - {name: session_id, api_name: sessionId, in: path, type: string, required: true, description: "Session ID."}
+      - {name: participants, in: body, schema: AddedParticipant, array: 1, required: true, description: "Participants to add. At least one."}
+    columns:
+      - {name: status_code, api_name: statusCode, type: VARCHAR, description: "Operation status, `participantsAdded`."}
+      - {name: conversation_id, api_name: conversationId, type: VARCHAR, description: "Parent conversation ID."}
+      - {name: session_id, api_name: sessionId, type: VARCHAR, description: "Parent session ID."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row, HTTP 202.
+    notes: "**Notes:** The [page](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-add-participants.md) lists only `id`, `type` and `role`, while the [resource model](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-ingest-apis.md) also shows `start_time`, `end_time` and `org_id` on a participant."
+
+  - name: memory_create
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/memory
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-memories.md
+    description: Add memory entries to a profile by hand, alongside what extraction produces. Each entry gets a system-generated memory ID.
+    example: CALL cdp.memory_create (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(content = 'Prefers EST scheduling')]);
+    options:
+      - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
+      - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
+      - {name: profile_type, in: query, type: string, enum: [individual, employee], required: true, description: "Type of profile."}
+      - {name: category, in: query, type: string, required: true, description: "Partition key for the entries, such as `sys_PROFILE_FACT`. See the notes."}
+      - {name: memories, in: body, schema: MemoryCreateItem, array: 1, required: true, description: "Entries to create. At least one."}
+    rows: /memories
+    columns:
+      - {name: memory_id, api_name: memoryId, type: VARCHAR, description: "System-generated memory ID."}
+      - {name: content, type: VARCHAR, description: "Memory content."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/memories` in the response. Other response fields go to `_meta`. `status_code` there is `created`.
+    notes: |
+      **Notes:** **Same verb and path as `memory_update`.** The [Create](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-memories.md) and [Update](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-update-memories.md) pages both give `POST /api/v1/agentic/memory`, with the same query parameters. It may not be a typo: the [Memory APIs overview](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md) names only `POST` and `DELETE` as write methods and says only the body differs. The documented difference is `memory_id` on each entry, but no page says the server uses it to choose. `status_code` in the response shows which one ran.
+
+      **`category` spelling conflicts.** The overview uses `sys_PROFILE_FACT` and `sys_PROFILE_PREFERENCES` and says custom categories have no prefix. This page's example is `PROFILE_FACT`, which by the overview's rule would be a custom category.
+
+      [A write cancels any active extraction batch for that scope](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-memory-management.md), and extraction re-runs on its next cycle. You can't create conversation-scoped memories. Entries are tagged with author type `USER_API`. No idempotency key is documented, so don't assume a retry is safe.
+
+  - name: memory_list
+    method: GET
+    host: tenant
+    path: /api/v1/agentic/memory
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-read-memories.md
+    description: Read a profile's memory entries in one category. Use it to see what extraction or manual curation has stored.
+    example: CALL cdp.memory_list (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_FACT');
+    options:
+      - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
+      - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
+      - {name: profile_type, in: query, type: string, enum: [individual, employee], required: true, description: "Type of profile."}
+      - {name: category, in: query, type: string, required: true, description: "Partition key that filters the entries, such as `sys_PROFILE_FACT`."}
+    rows: /memories
+    columns:
+      - {name: memory_id, api_name: memoryId, type: VARCHAR, description: "Memory ID."}
+      - {name: content, type: VARCHAR, description: "Memory content."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/memories` in the response. Other response fields go to `_meta`.
+    notes: |
+      **Token:** Data 360 JWT. [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md) scopes curated memory to the customer in the `xid` claim, and any agent serving that customer can read it.
+
+      **Notes:** The [page](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-read-memories.md) documents no paging. The [Memory Management guide](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-memory-management.md) describes a "unified flag" that merges memories across a unified individual and adds the source individual ID to each entry. The reference lists no such parameter or field, so it isn't an option here; a returned source ID would land in `_raw`. See `memory_create` for the `category` spelling conflict.
+
+  - name: memory_update
+    method: POST
+    host: tenant
+    path: /api/v1/agentic/memory
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-update-memories.md
+    description: Replace the content of existing memory entries, each identified by its memory ID.
+    example: CALL cdp.memory_update (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123', content = 'Prefers PST scheduling')]);
+    options:
+      - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
+      - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
+      - {name: profile_type, in: query, type: string, enum: [individual, employee], required: true, description: "Type of profile."}
+      - {name: category, in: query, type: string, required: true, description: "Partition key for the entries, such as `sys_PROFILE_FACT`."}
+      - {name: memories, in: body, schema: MemoryUpdateItem, array: 1, required: true, description: "Entries to update. At least one."}
+    rows: /memories
+    columns:
+      - {name: memory_id, api_name: memoryId, type: VARCHAR, description: "Memory ID."}
+      - {name: content, type: VARCHAR, description: "Updated content."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/memories` in the response. Other response fields go to `_meta`. `status_code` there is `updated`.
+    notes: |
+      **Notes:** **Same verb and path as `memory_create`.** See its notes. `memory_id` on each entry is the only documented difference in the request.
+
+      **The memory ID may change.** The [page](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-update-memories.md) says an update generates a new memory ID and deactivates the old record, yet its example response returns the same ID. Take the ID from the result rather than keeping the old one.
+
+      The [Memory Management guide](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-memory-management.md) says expired entries can be recovered by updating `validTo`, but this page's body has no such field.
+
+  - name: memory_delete
+    method: DELETE
+    host: tenant
+    path: /api/v1/agentic/memory
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-delete-memories.md
+    description: Delete memory entries by memory ID. Deletion is permanent.
+    example: CALL cdp.memory_delete (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123')]);
+    options:
+      - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
+      - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
+      - {name: profile_type, in: query, type: string, enum: [individual, employee], required: true, description: "Type of profile."}
+      - {name: category, in: query, type: string, required: true, description: "Partition key for the entries, such as `sys_PROFILE_FACT`."}
+      - {name: memories, in: body, schema: MemoryDeleteItem, array: 1, required: true, description: "Entries to delete. At least one."}
+    rows: /memories
+    columns:
+      - {name: memory_id, api_name: memoryId, type: VARCHAR, description: "The deleted entry's ID."}
+      - {name: content, type: VARCHAR, description: "Empty for deleted entries."}
+    effect: write
+    unknown: warning
+    evidence: D
+    result_description: One row per item of `/memories` in the response. Other response fields go to `_meta`. `status_code` there is `deleted`.
+    notes: "**Notes:** This `DELETE` carries a JSON body. The `category` and profile options are required even though each entry is identified by `memory_id`."
+
+  - name: memory_context_get
+    method: GET
+    host: tenant
+    path: /api/v1/agentic/context
+    reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-get-context.md
+    description: Assemble context for an agent turn from memories, conversation history, profile data and any additional data graphs, as text ready for an LLM prompt.
+    example: CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
+    options:
+      - {name: agent_id, in: query, type: string, required: true, description: "Agent identifier, the registered API name. A query parameter on this call only."}
+      - {name: conversation_id, in: query, type: string, required: true, description: "Conversation to read messages and summaries from."}
+      - {name: owner_id, in: query, type: string, description: "Individual or User ID. Requires `owner_type`."}
+      - {name: owner_type, in: query, type: string, enum: [individual, employee], description: "Type of owner. Required when `owner_id` is set."}
+      - {name: mode, in: query, type: string, enum: [fast], description: "Retrieval mode. `fast` returns pre-indexed context and is the default."}
+      - {name: latency_sensitivity, in: query, type: string, enum: [low, medium, high], description: "Doesn't apply in `fast` mode."}
+      - {name: token_budget, in: query, type: integer, description: "Maximum tokens in the response. Doesn't apply in `fast` mode."}
+      - {name: ctx_agent_id, in: header, type: string, required: true, description: "Sent as header `ctx-agent-id`. API name of the registered agent, such as `ACE_Demo_Agent`."}
+      - {name: ctx_dataspace_ds_name, in: header, type: string, required: true, description: "Sent as header `ctx-dataspace-ds_name`. Data space the agent belongs to, such as `default`."}
+    rows: /userContext
+    columns:
+      - {name: entry, type: VARCHAR, description: "Context text."}
+      - {name: source_type, api_name: sourceType, type: VARCHAR, description: "Where the entry came from: `Profile`, `Conversation`, or another data graph's name."}
+    effect: read
+    unknown: warning
+    evidence: D
+    result_description: "One row per item of `/userContext` in the response. Other response fields go to `_meta`: `contextId` for tracing, `sessionId` and `createdAt`."
+    notes: |
+      **Token:** Data 360 JWT. The `xid` and `aid` claims filter the data, see [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md).
+
+      **Notes:** **Agent ID appears twice.** The [page](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-get-context.md) requires both the `agent_id` query parameter and the `ctx-agent-id` header. It also requires `ctx-dataspace-ds_name`, while the [Context API overview](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-context-api.md) says `agent_id` resolves the data space.
+
+      **Tuning options do nothing today.** `fast` is the only mode and the default, and `latency_sensitivity` and `token_budget` don't apply to it. The page also mentions a `query` parameter that isn't in its parameter table, so it isn't an option here.
+
+      **Sources disagree on agent scope.** [Fast Mode](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-fast-mode.md) says the response excludes memories extracted by other agents. [Governance](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-governance.md) says facts and preferences are available to any agent serving the customer.
+
+      The reference marks `owner_id` optional, but Fast Mode uses it for the profile lookup. An empty `userContext` gives no rows. If an additional data graph is unavailable, [the response carries a warning in its metadata](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-agent-registration.md), which the response schema doesn't show. Fast mode [uses no flex credits for assembly](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-fast-mode.md).
+
+schemas:
+  AddedParticipant:
+    unknown: warning
+    attributes:
+      - {name: id, type: string, required: true, description: "The agent's registered API name, an Individual ID or a User ID, depending on `type`."}
+      - {name: type, type: string, required: true, description: "`individual`, `employee`, `agent`, or a free-form string."}
+      - {name: role, type: string, enum: [owner, participant], required: true, description: "Role in the session."}
+
+  ConversationChannel:
+    unknown: warning
+    attributes:
+      - {name: type, type: string, enum: [web, chat, voice, sms, email, other], description: "Channel type."}
+      - {name: id, type: string, description: "Channel identifier, such as `slack-C0123`."}
+
+  ConversationEntry:
+    unknown: warning
+    attributes:
+      - {name: id, type: string, description: "Entry ID. Server-generated if omitted."}
+      - {name: interaction_id, api_name: interactionId, type: string, description: "Groups related entries, such as a tool call and its result."}
+      - {name: participant_id, api_name: participantId, type: string, required: true, description: "Author of the entry."}
+      - {name: content, type: string, description: "Required for the `Message` category. Not used for `Trace`."}
+      - {name: type, type: string, enum: [user_message, agent_response, agent_reasoning, tool_call, tool_result], description: "The first two go with `Message`, the other three with `Trace`."}
+      - {name: role, type: string, description: "Role of the participant."}
+      - {name: timestamp, type: string, format: date-time, description: "Entry time. The server stamps it if omitted."}
+      - {name: category, type: string, enum: [Message, Trace, Entry], description: "`Message` is human-readable, `Trace` is agent reasoning and tools, `Entry` is anything else."}
+      - {name: attachments, schema: EntryAttachment, array: 1, description: Attachments.}
+      - {name: variable, map: true, type: any, description: "Free-form payload. `Trace` entries carry their tool call data here."}
+
+  EntryAttachment:
+    unknown: warning
+    attributes:
+      - {name: content_type, api_name: contentType, type: string, description: "-"}
+      - {name: content_url, api_name: contentUrl, type: string, description: "-"}
+
+  MemoryCreateItem:
+    unknown: warning
+    attributes:
+      - {name: content, type: string, required: true, description: "Memory content."}
+
+  MemoryDeleteItem:
+    unknown: warning
+    attributes:
+      - {name: memory_id, api_name: memoryId, type: string, required: true, description: "Entry to delete."}
+
+  MemoryUpdateItem:
+    unknown: warning
+    attributes:
+      - {name: memory_id, api_name: memoryId, type: string, required: true, description: "Entry to update."}
+      - {name: content, type: string, required: true, description: "New content."}
+
+  SessionParticipant:
+    unknown: warning
+    attributes:
+      - {name: id, type: string, required: true, description: "Participant ID."}
+      - {name: type, type: string, required: true, description: "`individual`, `employee`, `agent`, or a free-form string."}
+      - {name: role, type: string, enum: [owner, participant], required: true, description: "Role in the session."}
+      - {name: start_time, api_name: startTime, type: string, format: date-time, description: "Join time."}
+      - {name: end_time, api_name: endTime, type: string, format: date-time, description: "Leave time. Null means still active."}
+      - {name: org_id, api_name: orgId, type: string, description: "Organization ID, for cross-org handoffs."}

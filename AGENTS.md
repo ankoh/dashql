@@ -28,7 +28,7 @@ Please consult relevant docs in that directory before making changes.
 
 - CDP SQL (proposed, not implemented: the first overlay, `CALL cdp.*` over the Salesforce Data 360 API)
     - `overlay/d360/docs/overview.md` (the Salesforce binding, how Data 360 fits the format, naming, where attributes come from)
-    - `overlay/d360/docs/functions.md` (the function reference and result schema, with one document per family in the same directory)
+    - `overlay/d360/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `overlay/d360/api/*.yaml`, the source of the spec as well)
     - `overlay/d360/docs/api_notes.md` (API quirks, usage order, source conflicts, checks to run on an org)
 
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)

@@ -1,3 +1,5 @@
+<!-- Generated from overlay/d360/api/agent_configuration.yaml, edit that and run: bazel run //overlay/d360:update -->
+
 # Agent Configuration
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).

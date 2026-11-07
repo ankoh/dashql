@@ -131,7 +131,7 @@
     },
     {
       "function": "consent_update",
-      "call": "CALL cdp.consent_update (\n  action => 'portability',\n  ids => '100000695',\n  mode => 'cdp',\n  status => 'optin',\n  aws_s3_bucket_id => 'cdpgdprtest',\n  aws_access_key_id => secret(consent_s3_access_key),\n  aws_secret_access_key => secret(consent_s3_secret_key),\n  aws_s3_folder => 'yyun/Person',\n  aws_region => 'us-west-1'\n)",
+      "call": "CALL cdp.consent_update (\n  action => 'portability',\n  ids => '100000695',\n  mode => 'cdp',\n  status => 'optin',\n  aws_s3_bucket_id => 'cdpgdprtest',\n  aws_access_key_id => :consent_s3_access_key,\n  aws_secret_access_key => :consent_s3_secret_key,\n  aws_s3_folder => 'yyun/Person',\n  aws_region => 'us-west-1'\n)",
       "description": {
         "namespace": "cdp",
         "function": "consent_update",
@@ -151,11 +151,11 @@
         "bindings": [
           {
             "pointer": "/aws_access_key_id",
-            "secret": "consent_s3_access_key"
+            "param": "consent_s3_access_key"
           },
           {
             "pointer": "/aws_secret_access_key",
-            "secret": "consent_s3_secret_key"
+            "param": "consent_s3_secret_key"
           }
         ]
       },
@@ -182,8 +182,8 @@
         },
         "body": {
           "aws_s3_bucket_id": "cdpgdprtest",
-          "aws_access_key_id": "secret(consent_s3_access_key)",
-          "aws_secret_access_key": "secret(consent_s3_secret_key)",
+          "aws_access_key_id": ":consent_s3_access_key",
+          "aws_secret_access_key": ":consent_s3_secret_key",
           "aws_s3_folder": "yyun/Person",
           "aws_region": "us-west-1"
         }
