@@ -331,7 +331,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                             disabled={!props.aiAvailable}
                             data-testid="composer-mode"
                             data-mode="ai"
-                            title={props.aiAvailable ? undefined : 'Start an agent session in the header and connect the agent server to ask questions'}
+                            title={props.aiAvailable ? undefined : 'Enable the agent in the header and connect the agent server to ask questions'}
                         >
                             AI
                         </SegmentedControl.Button>

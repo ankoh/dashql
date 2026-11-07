@@ -268,7 +268,7 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 (`agent_commands.ts`), the provider (`agent_bridge.tsx`), the agent view and the agent session menu live in
 `packages/dashql-app/src/agent/`.
 
-- **Agent access toggle** per session, off by default. Start Session in the header of a session turns it on
+- **Agent access toggle** per session, off by default. Enable Agent in the header of a session turns it on
   right away. The sessions with access are an app setting (`agentSessions`), so a shared session file never turns
   access on. While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff.
   After a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
@@ -387,7 +387,7 @@ absolute paths.
 
 The Agent button in the top bar configures the bridge. It holds the connection open while
 it is shown, so it also works before any session has agent access. Once a session has agent access, its
-header shows Control Session: Disconnect the Session turns the access off, Reset the Session forgets the agent
+header shows Control Agent: Disable Agent turns the access off, Reset Agent forgets the agent
 context, Continue in terminal copies the command that continues the harness session.
 
 - **Port** of the agent server, an app setting (`agentPort`); the build's default otherwise.
@@ -435,8 +435,8 @@ else the agent says is shown by the composer (`packages/dashql-app/src/agent/age
   the dialect and the catalog objects it mentions.
 - **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
   and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
-- **Control Session** in the header of a session: its menu offers "Disconnect the Session", "Reset the
-  Session" (forget the stored harness session id) and "Continue in terminal" (the harness's resume command).
+- **Control Agent** in the header of a session: its menu offers "Disable Agent", "Reset Agent" (forget the stored
+  harness session id) and "Continue in terminal" (the harness's resume command).
 - **Not connected:** the agent view shows the `dashql agent serve` command.
 
 ### Data and security

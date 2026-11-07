@@ -46,7 +46,7 @@ interface Props {
     labelClassName?: string;
 }
 
-/// The agent access of a session: "Start Session" turns it on right away, "Control Session" turns it off,
+/// The agent access of a session: "Enable Agent" turns it on right away, "Control Agent" turns it off,
 /// forgets the agent context or continues in a terminal
 export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
     const bridge = useAgentBridge();
@@ -60,14 +60,14 @@ export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
     const close = () => setOpen(false);
     const resetContext = () => {
         bridge.reset(props.sessionId).then(
-            () => setNotice('The next question starts a new agent session'),
+            () => setNotice('The next question starts a new conversation'),
             e => setNotice(`Resetting failed: ${stringifyError(e)}`),
         );
     };
     const copyTerminalCommand = () => {
         bridge.context(props.sessionId).then(context => {
             if (context.terminalCommand == null) {
-                setNotice('The agent has no session to continue yet');
+                setNotice('The agent has no conversation to continue yet');
                 return;
             }
             const command = `cd ${quoteShellArg(context.folder)} && ${context.terminalCommand.map(quoteShellArg).join(' ')}`;
@@ -84,16 +84,16 @@ export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
                 variant={ButtonVariant.Invisible}
                 size={ButtonSize.Small}
                 leadingVisual={SparklesFillIcon}
-                aria-label="Start Session"
+                aria-label="Enable Agent"
                 title={state === AgentAccessState.Unsupported
                     ? 'Safari cannot reach the local agent server. Use Chrome, Edge, Firefox or the DashQL desktop app.'
-                    : 'Let agents on this machine read and edit the scripts of this session and run its queries'}
+                    : 'Let the agent on this machine read and edit the scripts of this session and run its queries'}
                 disabled={state === AgentAccessState.Unsupported}
                 data-testid="agent-access"
                 data-state={state}
                 onClick={() => bridge.setAccess(props.sessionId, true)}
             >
-                <span className={props.labelClassName}>Start Session</span>
+                <span className={props.labelClassName}>Enable Agent</span>
             </Button>
         );
     }
@@ -115,15 +115,15 @@ export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
                     variant={ButtonVariant.Invisible}
                     size={ButtonSize.Small}
                     leadingVisual={SparklesFillIcon}
-                    aria-label="Control Session"
+                    aria-label="Control Agent"
                     data-testid="agent-access"
                     data-state={state}
                 >
-                    <span className={props.labelClassName}>Control Session</span>
+                    <span className={props.labelClassName}>Control Agent</span>
                 </Button>
             )}
         >
-            <div className={styles.menu} role="dialog" aria-label="Control agent session">
+            <div className={styles.menu} role="dialog" aria-label="Control agent">
                 {notice == null && bridge.status === AgentConnectionStatus.Incompatible && (
                     <div className={styles.notice}>The agent server runs another version. Update DashQL or reload the page.</div>
                 )}
@@ -131,11 +131,11 @@ export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
                 <ActionList.List aria-label="Agent actions">
                     <ActionList.ListItem
                         data-testid="agent-menu-item"
-                        data-action="disconnect"
+                        data-action="disable"
                         onClick={() => { close(); bridge.setAccess(props.sessionId, false); }}
                     >
                         <ActionList.Leading><PlugIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>Disconnect the Session</ActionList.ItemText>
+                        <ActionList.ItemText>Disable Agent</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
                         data-testid="agent-menu-item"
@@ -144,7 +144,7 @@ export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
                         onClick={resetContext}
                     >
                         <ActionList.Leading><SyncIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>Reset the Session</ActionList.ItemText>
+                        <ActionList.ItemText>Reset Agent</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
                         data-testid="agent-menu-item"

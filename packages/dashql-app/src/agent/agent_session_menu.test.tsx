@@ -69,29 +69,29 @@ describe('Agent session menu', () => {
         expect(trigger()).toBeNull();
     });
 
-    it('starts the session right away', async () => {
+    it('enables the agent right away', async () => {
         const bridge = fakeBridge();
         await render(bridge);
-        expect(trigger().textContent).toContain('Start Session');
+        expect(trigger().textContent).toContain('Enable Agent');
         expect(trigger().dataset.state).toBe('off');
         await act(async () => trigger().click());
         expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', true);
         expect(document.body.querySelector('[data-testid="agent-menu-item"]')).toBeNull();
     });
 
-    it('cannot start a session in a browser without access to the agent server', async () => {
+    it('cannot enable the agent in a browser without access to the agent server', async () => {
         await render(fakeBridge({ supported: false }));
         expect(trigger().disabled).toBe(true);
     });
 
-    it('controls a started session', async () => {
+    it('controls an enabled agent', async () => {
         const bridge = fakeBridge({ hasAccess: () => true });
         await render(bridge);
-        expect(trigger().textContent).toContain('Control Session');
+        expect(trigger().textContent).toContain('Control Agent');
         expect(trigger().dataset.state).toBe('connected');
         const items = await openItems();
         expect(items.map(item => [item.dataset.action, item.textContent])).toEqual([
-            ['disconnect', 'Disconnect the Session'], ['reset', 'Reset the Session'], ['terminal', 'Continue in terminal'],
+            ['disable', 'Disable Agent'], ['reset', 'Reset Agent'], ['terminal', 'Continue in terminal'],
         ]);
         await act(async () => items[0].click());
         expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', false);
