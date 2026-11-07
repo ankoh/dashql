@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
-import { syncConnectionClientFunctions } from './connection_client_functions.js';
+import { ensureConnectionClientFunctions } from './connection_client_functions.js';
 import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from './connection_state.js';
 import { createConnectionStateDetails } from './connection_state_details.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
@@ -33,7 +33,7 @@ function calls(state: ConnectionState): number {
 /// Register the client functions of a connection and wait for the spec
 async function sync(connections: Map<string, ConnectionState>): Promise<ReturnType<typeof vi.fn>> {
     const onDidUpdate = vi.fn();
-    syncConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
+    ensureConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
     await vi.waitFor(() => expect(onDidUpdate).toHaveBeenCalledWith('c'), { timeout: 5000 });
     return onDidUpdate;
 }
@@ -58,7 +58,7 @@ describe('The client functions of a connection', () => {
         const connections = new Map([['c', state]]);
         const register = vi.spyOn(state.catalog, 'registerClientFunctions');
         const onDidUpdate = await sync(connections);
-        syncConnectionClientFunctions(connections, 'c', onDidUpdate as never, logger);
+        ensureConnectionClientFunctions(connections, 'c', onDidUpdate as never, logger);
         expect(register).toHaveBeenCalledTimes(1);
         expect(onDidUpdate).toHaveBeenCalledTimes(1);
     });
@@ -78,7 +78,7 @@ describe('The client functions of a connection', () => {
         const next = reduceConnectionState(state, { type: SWITCH_CONNECTOR_TYPE, value: ConnectorType.TRINO }, logger);
         connections.set('c', next);
         const onDidUpdate = vi.fn();
-        syncConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
+        ensureConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
         expect(onDidUpdate).toHaveBeenCalledWith('c');
         expect(calls(next)).toEqual(0);
     });
@@ -88,7 +88,7 @@ describe('The client functions of a connection', () => {
         const connections = new Map([['c', state]]);
         const register = vi.spyOn(state.catalog, 'registerClientFunctions');
         const onDidUpdate = vi.fn();
-        syncConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
+        ensureConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
         connections.delete('c');
         await new Promise(resolve => setTimeout(resolve, 200));
         expect(register).not.toHaveBeenCalled();
@@ -98,7 +98,7 @@ describe('The client functions of a connection', () => {
     it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SIDB])('are not on connector %s', type => {
         const state = connection(type);
         const onDidUpdate = vi.fn();
-        syncConnectionClientFunctions(new Map([['c', state]]), 'c', onDidUpdate, logger);
+        ensureConnectionClientFunctions(new Map([['c', state]]), 'c', onDidUpdate, logger);
         expect(onDidUpdate).not.toHaveBeenCalled();
         expect(calls(state)).toEqual(0);
     });

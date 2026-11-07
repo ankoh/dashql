@@ -271,7 +271,7 @@ interface ClientFunctionBinding {
 
 This is all that exists so far, and it's enough for checks and completion. Running a call will add two more, to resolve a host that the spec names, async since a token may need a refresh or an exchange, and to fill the `{variables}` of the base paths. Requests will go through the existing `HttpClient`, with the headers of the host also carrying what a service wants on every call, such as an API version header or a token type.
 
-**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `syncConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, and it drops the spec if the connection switches to a connector without it.
+**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `ensureConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, and it drops the spec if the connection switches to a connector without it.
 
 **A service with no SQL backend** would need a connector that runs no `SELECT`, with a setup UI and its own auth flows. That's later work, and it's not needed for a service that sits on an existing connection.
 

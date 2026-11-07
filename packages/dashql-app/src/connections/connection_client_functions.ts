@@ -18,7 +18,7 @@ const REGISTRATIONS = new WeakMap<DashQLCatalog, Registration>();
 
 /// Make the catalog of a connection hold the client functions of its connector.
 /// `onDidUpdate` is called when they changed, the scripts of the connection are then outdated.
-export function syncConnectionClientFunctions(
+export function ensureConnectionClientFunctions(
     connections: ReadonlyMap<string, ConnectionState>,
     connectionId: string,
     onDidUpdate: (connectionId: string) => void,
