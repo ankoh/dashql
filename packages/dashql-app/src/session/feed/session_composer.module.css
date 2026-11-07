@@ -3,22 +3,15 @@
     display: flex;
     flex-direction: column;
     border: 1px solid var(--color_border);
-    --composer_radius: var(--border_radius);
-    border-radius: var(--composer_radius);
+    border-radius: var(--border_radius);
     background-color: var(--color_bg_card);
     box-sizing: border-box;
     --prompt_editor_max_height: 30vh;
 }
 
 .composer[data-variant="hero"] {
-    --composer_radius: 12px;
     --composer_agent_padding: 10px 16px;
     --prompt_editor_max_height: 40vh;
-}
-
-/* With agent access the composer talks to the agent, lifted off the feed a little */
-.composer[data-agent] {
-    box-shadow: var(--shadow_medium);
 }
 
 /* The inputs of the draft, many of them scroll. The padding keeps the focus outline of a card from being clipped. */

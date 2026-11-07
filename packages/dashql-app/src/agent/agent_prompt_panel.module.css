@@ -1,12 +1,12 @@
 /* The agent on top of the composer, a header bar like the action bars of the cards in the feed.
-   The composer sets its radius and the padding that lines the panel up with its editor. */
+   The composer sets the padding that lines the panel up with its editor. */
 .panel {
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: var(--composer_agent_padding, 8px 12px);
     border-bottom: 1px solid var(--color_border);
-    border-radius: calc(var(--composer_radius, var(--border_radius)) - 1px) calc(var(--composer_radius, var(--border_radius)) - 1px) 0 0;
+    border-radius: calc(var(--border_radius) - 1px) calc(var(--border_radius) - 1px) 0 0;
     background-color: var(--color_bg_subtle);
     color: var(--color_fg_muted);
     font-size: var(--font_size_small);

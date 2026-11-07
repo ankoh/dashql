@@ -36,11 +36,6 @@
     font-size: var(--font_size_caption);
 }
 
-.card:focus-within {
-    border-color: var(--color_focus);
-    outline: 2px solid color-mix(in srgb, var(--color_focus) 30%, transparent);
-}
-
 .card[data-dirty] {
     border-color: var(--color_fg_subtle);
 }
@@ -50,6 +45,18 @@
     border-color: var(--color_danger_fg);
 }
 
+/* The focus ring of the text inputs of the app. It covers the border, a draft that is not valid stays marked. */
+.card:focus-within {
+    border-color: var(--color_focus);
+    outline: 2px solid var(--color_focus);
+    outline-offset: -1px;
+}
+
+.card[data-invalid]:focus-within {
+    border-color: var(--color_danger_fg);
+    outline-color: var(--color_danger_fg);
+}
+
 /* On the strip an input is an input group: the name as a muted prefix, then the field with the type as a suffix */
 .card:not(.card_block) {
     align-items: stretch;
@@ -57,10 +64,6 @@
     height: 30px;
     padding: 0;
     overflow: hidden;
-}
-
-.card:not(.card_block):focus-within {
-    outline-offset: -1px;
 }
 
 .card:not(.card_block) .name {
