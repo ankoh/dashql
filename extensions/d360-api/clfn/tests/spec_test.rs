@@ -9,12 +9,12 @@ use dashql_parser::parser::parse;
 use dashql_parser::scanner::scan;
 use serde_json::Value;
 use std::collections::BTreeSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 const REFERENCE: &str = "extensions/d360-api/clfn/docs";
 const SPEC: &str = "extensions/d360-api/clfn/spec/spec.json";
-const SNIPPETS: &str = "extensions/d360-api/snippets";
+const SCENARIOS: &str = "extensions/d360-api/snippets/scenarios";
 
 fn spec_text() -> String {
     std::fs::read_to_string(SPEC).expect("the spec is a test input")
@@ -223,43 +223,76 @@ fn unions_narrow_completion() {
     assert_eq!(names(&format!("{route}broker_endpoints = ['b'],")), set(&["service_name", "type"]));
 }
 
-/// The snippets are workflows, their steps build on each other. They can't run alone, but each of them has to pass the
-/// checks, keep to the rules of the snippet browser, and say where a value from an earlier step comes from.
+/// The entries of a directory in name order
+fn sorted_entries(dir: &Path) -> Vec<PathBuf> {
+    let mut paths: Vec<_> = std::fs::read_dir(dir).expect("the snippets are a test input").map(|f| f.unwrap().path()).collect();
+    paths.sort();
+    paths
+}
+
+/// What every snippet has to do: pass the checks, keep to the rules of the snippet browser, and say where the value of
+/// a parameter comes from. Returns the descriptions of its calls.
+fn check_snippet(catalog: &Catalog, path: &Path, failures: &mut Vec<String>) -> Vec<Value> {
+    let text = std::fs::read_to_string(path).unwrap();
+    let description = text.split("*/").next().unwrap();
+    if !text.starts_with("/**") {
+        failures.push(format!("{path:?} has no description"));
+    }
+    let entry_id = catalog.allocate_entry_id();
+    let parsed = Arc::new(parse(Arc::new(scan(&text, 0, entry_id))));
+    if !parsed.errors.is_empty() {
+        failures.push(format!("{path:?}: {:?}", parsed.errors));
+    }
+    // The browser takes no comments besides the description
+    if parsed.scanned.comments.len() != 1 {
+        failures.push(format!("{path:?} has comments after its description"));
+    }
+    let analyzed = analyze(parsed.clone(), catalog).expect("the analysis runs");
+    let messages: Vec<&str> = analyzed.errors.iter().map(|e| e.message.as_str()).collect();
+    if !messages.is_empty() {
+        failures.push(format!("{path:?}: {messages:?}"));
+    }
+    for parameter in &analyzed.parameters {
+        let name = parameter.name.as_deref().unwrap();
+        if !description.contains(&format!("`:{name}`")) {
+            failures.push(format!("{path:?} doesn't say where :{name} comes from"));
+        }
+    }
+    analyzed.client_function_calls.iter().filter_map(|call| analyzed.describe_client_function_call(call.ast_statement_id)).collect()
+}
+
+/// The scenarios are workflows, their steps build on each other. They can't run alone, but each step has to say which
+/// one it is.
 #[test]
-fn snippets_pass_the_checks() {
+fn scenarios_pass_the_checks() {
     let catalog = catalog();
+    let mut failures = Vec::new();
     let (mut steps, mut workflows) = (0, 0);
-    for category in std::fs::read_dir(SNIPPETS).expect("the snippets are a test input") {
+    for workflow in sorted_entries(Path::new(SCENARIOS)) {
         let mut calls = 0;
-        let mut paths: Vec<_> = std::fs::read_dir(category.unwrap().path()).unwrap().map(|f| f.unwrap().path()).collect();
-        paths.sort();
-        for (i, path) in paths.iter().enumerate() {
+        for (i, path) in sorted_entries(&workflow).iter().enumerate() {
             let stem = path.file_stem().unwrap().to_string_lossy().to_string();
-            assert!(stem.starts_with(&format!("{:02}-", i + 1)), "{path:?} is out of order");
-            assert!(stem.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-'), "{path:?} has an invalid name");
-            let text = std::fs::read_to_string(path).unwrap();
-            let description = text.split("*/").next().unwrap();
-            assert!(text.starts_with("/**") && description.contains(&format!("Step {} of", i + 1)), "{path:?} doesn't say which step it is");
-            let entry_id = catalog.allocate_entry_id();
-            let parsed = Arc::new(parse(Arc::new(scan(&text, 0, entry_id))));
-            assert!(parsed.errors.is_empty(), "{path:?}: {:?}", parsed.errors);
-            // The browser takes no comments besides the description
-            assert_eq!(parsed.scanned.comments.len(), 1, "{path:?} has comments after its description");
-            let analyzed = analyze(parsed.clone(), &catalog).expect("the analysis runs");
-            let messages: Vec<&str> = analyzed.errors.iter().map(|e| e.message.as_str()).collect();
-            assert!(messages.is_empty(), "{path:?}: {messages:?}");
-            for parameter in &analyzed.parameters {
-                let name = parameter.name.as_deref().unwrap();
-                assert!(description.contains(&format!("`:{name}`")), "{path:?} doesn't say where :{name} comes from");
+            if !stem.starts_with(&format!("{:02}-", i + 1)) {
+                failures.push(format!("{path:?} is out of order"));
             }
-            calls += analyzed.client_function_calls.len();
+            if !stem.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-') {
+                failures.push(format!("{path:?} has an invalid name"));
+            }
+            let text = std::fs::read_to_string(path).unwrap();
+            if !text.split("*/").next().unwrap().contains(&format!("Step {} of", i + 1)) {
+                failures.push(format!("{path:?} doesn't say which step it is"));
+            }
+            calls += check_snippet(&catalog, path, &mut failures).len();
             steps += 1;
         }
-        assert!(calls > 0, "a workflow without a call");
+        if calls == 0 {
+            failures.push(format!("{workflow:?} is a workflow without a call"));
+        }
         workflows += 1;
     }
     println!("{workflows} workflows, {steps} steps");
     assert!(steps > 0);
+    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
 }
 
 #[test]

@@ -4,7 +4,7 @@
 #   clfn/spec/   the source, edited by hand: clfn.yaml and a file per family with its functions, schemas and prose
 #   clfn/tests/  a fixture per family: calls, their requests, and responses with where they came from
 #   clfn/docs/   the reference: a document per family generated from clfn/spec/, and the notes behind it
-#   snippets/    workflows for the snippet browser, their steps build on each other
+#   snippets/    for the snippet browser: scenarios/ with workflows whose steps build on each other
 #
 # Bazel generates clfn/spec/spec.json from the source, which is what the core, the runtime and the app read. After
 # editing the source, regenerate the documents and the fixtures with `bazel run //extensions/d360-api:update`. A fixture
@@ -16,7 +16,7 @@ load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 filegroup(
     name = "files",
-    srcs = ["clfn/spec/spec.json"] + glob(["clfn/tests/*.json"], allow_empty = True) + glob(["snippets/*/*.sql"]),
+    srcs = ["clfn/spec/spec.json"] + glob(["clfn/tests/*.json"], allow_empty = True) + glob(["snippets/**/*.sql"]),
     visibility = ["//packages/dashql-app:__pkg__"],
 )
 
@@ -103,7 +103,7 @@ sh_test(
     size = "small",
     srcs = ["clfn/tests/check_snippets.sh"],
     args = ["$(rootpath //packages/dashql-cli:dashql)"],
-    data = ["//packages/dashql-cli:dashql"] + glob(["snippets/*/*.sql"]),
+    data = ["//packages/dashql-cli:dashql"] + glob(["snippets/**/*.sql"]),
 )
 
 # The core reads the spec: every documented example and snippet passes the checks, and completion offers exactly what
@@ -115,7 +115,7 @@ rust_test(
     data = [
         "clfn/spec/spec.json",
         "//extensions/d360-api/clfn/docs:reference",
-    ] + glob(["snippets/*/*.sql"]),
+    ] + glob(["snippets/**/*.sql"]),
     edition = "2021",
     deps = [
         "//packages/dashql-core:dashql_core",

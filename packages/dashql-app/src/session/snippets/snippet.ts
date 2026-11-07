@@ -7,7 +7,7 @@ export const SNIPPET_DATASETS_FOLDER = 'datasets';
 export interface Snippet {
     /// The id of the snippet, `<category>/<name>`
     id: string;
-    /// The category of the snippet, the path of its folder in the tree of the browser, e.g. `dates` or `d360-api/agent-memory`
+    /// The category of the snippet, the path of its folder in the tree of the browser, e.g. `dates` or `d360-api/scenarios/agent-memory`
     category: string;
     /// The connectors that the snippet runs on
     connectors: ConnectorType[];
