@@ -9,7 +9,7 @@ CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one f
 
 ## Goals
 
-1. **Reach everything.** Every API operation can be called, and a call the spec doesn't know yet still works.
+1. **Reach everything.** Every API operation can be called, apart from [the Query API](#functions-and-options), and a call the spec doesn't know yet still works.
 2. **Know the API.** Completion and checks cover every function, option and nested attribute.
 3. **Prove the extension point.** Anything Data 360 needs goes into the generic format or the binding. Core and the runtime stay free of Salesforce.
 
@@ -123,6 +123,7 @@ A schema inferred from examples can miss attributes. The prototype hit this with
 
 ## Functions and options
 
+- **The Query API is left out on purpose.** The Salesforce connection subsumes it: a script's `SELECT` already runs over that connection, so `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query` and `/ssot/queryv2` get no functions. `cdp.request` can still reach them.
 - **One function per HTTP operation.** Variants collapse: `datastream_create_snowflake` is an ordinary `datastream_create` with particular attributes.
 - **Function names** follow Salesforce's MCP tool names without `d360_` where a tool exists, so its skills and examples transfer. Others follow the same `<noun>_<verb>` pattern, derived from the spec's summary.
 - **Option names** are the API's names in snake_case. The rare clash between a body field and a path or query parameter gets a prefix on the body field: `segment_create` has both `dataspace` (query) and `body_dataspace` (body). A handful of functions need this.

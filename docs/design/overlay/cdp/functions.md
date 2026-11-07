@@ -133,6 +133,6 @@ This shows the shape only. These values are made up, since nothing has run again
 | `d360_smart_mapping_suggest`, `d360_preview_field_matches`, `d360_smart_datastream_create`, `d360_event_date_recommend` | MCP helpers that compute suggestions or wrap other calls |
 | `d360_standard_mapping_preview`, `d360_standard_mapping_create` | MCP tools for predefined mappings, which may be one or more `dmo_mapping_create` calls |
 | `search`, `execute`, `payload_examples` | The MCP server's own discovery tools |
-| Query API v1, v2 and v3: `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2` | Not needed. [`query_sql`](query.md) covers SQL over REST, and a script's `SELECT` runs over Hyper. This leaves out 3 of the contract's 414 operations |
+| Query API v1, v2 and v3: `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2` | Left out on purpose: the Salesforce connection subsumes them, since a script's `SELECT` already runs over that connection. This leaves out 3 of the contract's 414 operations |
 
 Anything else goes through `cdp.request`, see [the escape hatch](overview.md#the-escape-hatch).
