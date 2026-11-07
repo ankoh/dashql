@@ -8,7 +8,8 @@ select region, count(*) from :foo group by region;
 ```
 
 A script that is referenced is a single SELECT, its result is the result of the query. A reference reads the query
-like a view: it never runs commands, neither in a run of the session nor in a run of the consumer. A script with
+like a view: it never runs commands, neither in a run of the session nor in a run of the consumer. A script that is a
+single call of a client function that reads is referenced too, but only scanned, see [Client Function Calls](#client-function-calls). A script with
 commands, e.g. `create table t as ...; select * from t`, is split into a script with the commands and one with the
 query; the planner orders the query after the commands by the relations it reads (`planner_dependencies.md`).
 
@@ -44,6 +45,23 @@ select count(*) from foo
 
 The host writes the result of foo.sql through hyperdb-wasm for every connection type, into the folder of the query
 result cache that is mounted read-write at `/mnt/external/cache`, not as a path below `/mnt/fs`.
+
+## Client Function Calls
+
+A script that is a single `CALL` of a client function that reads (`extensions.md`, Running calls) has a result like
+a query: the columns of the function followed by the standard columns, `_status`, `_next`, `_poll` if the function
+can answer before it finishes, `_meta` and `_raw`. The call runs in the host and not in a database, no query can
+inline it, so only a **scan** reads it:
+
+| bar.sql runs on | foo.sql is a call that reads, on | `:foo` in bar.sql |
+|---|---|---|
+| LOCAL | another connection | **scan**: the call runs first, its result is written as Parquet file and scanned |
+| the connection of foo.sql | | an error, the call cannot be inlined |
+| REMOTE | another connection | an error, as for a query |
+
+A call of a function that writes, of an unknown function or an `EXPLAIN CALL` is an error for every reference
+("deleted.sql calls tickets.ticket_delete, which writes, consumer.sql can only read a call that reads"). A script
+with a call isn't cacheable, so its file is transient and a script that reads it has no reusable key.
 
 ## Scripts That Run on Request
 

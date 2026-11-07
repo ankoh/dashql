@@ -30,10 +30,11 @@ beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQ
 afterEach(() => { vi.restoreAllMocks(); registerScriptRunServices(dql, null); dql.resetUnsafe(); });
 
 /// A session with scripts on the embedded database, `remote` moves scripts to a Trino connection. `caching` tells
-/// whether the connections cache query results.
-function fixture(entries: Array<[string, string]>, remote: string[] = [], caching = true) {
+/// whether the connections cache query results, `clientFunctions` is a spec of the Trino connection.
+function fixture(entries: Array<[string, string]>, remote: string[] = [], caching = true, clientFunctions?: string) {
     const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog(), local: true };
     const trino = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+    if (clientFunctions !== undefined) trino.catalog.registerClientFunctions(clientFunctions);
     const scripts: SessionScripts['scripts'] = {};
     const scriptRefs: SessionScripts['scriptRefs'] = {};
     for (const [fileName, text] of entries) {
@@ -182,6 +183,21 @@ describe('script runs', () => {
         const f = fixture([['foo.sql', 'create table t (a int);\nselect a from t;'], ['bar.sql', 'select count(*) from :foo;']]);
         await expect(f.run('bar.sql')).rejects.toThrow('bar.sql: foo.sql is no single SELECT that bar.sql could read');
         expect(f.executeQuery.mock.calls.map(([, args]) => args.failure?.message)).toEqual(['bar.sql: foo.sql is no single SELECT that bar.sql could read']);
+    });
+
+    it('materializes the result of a call that a script of the embedded database reads', async () => {
+        const spec = `{ "format": 1, "namespace": "t", "functions": [{ "name": "list", "method": "GET", "columns": [{ "name": "id" }] }] }`;
+        const f = fixture([['foo.sql', 'call t.list ();'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql'], true, spec);
+        await f.run('bar.sql');
+        const [[, call], [, scan]] = f.executeQuery.mock.calls;
+        expect(f.calls.map(c => c.connection)).toEqual(['remote', 'local']);
+        expect(call.clientFunctionCall).toMatchObject({ namespace: 't', function: 'list', effect: 'read' });
+        // A call asks a service, its result is never a cached result, not even with caching connections
+        expect(call.cacheable).toBe(false);
+        const [path] = vi.mocked(f.mounts[0].writeTable).mock.calls[0];
+        expect(path).toMatch(/^\/mnt\/external\/cache\/[0-9a-f-]{36}\.transient\.parquet$/);
+        expect(scan.query).toContain(`external('${path}', format => 'parquet')`);
+        expect(scan.cacheable).toBeFalsy();
     });
 
     it('reuses the cached result of a materialized script of another connection', async () => {

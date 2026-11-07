@@ -159,7 +159,8 @@ share). The connections decide what it becomes:
 | LOCAL connection | attachment | attachment: `with foo as (select * from external('<attachment_prefix>/<file>', format => 'parquet'))` |
 | REMOTE connection | attachment | error |
 
-A referenced script is a single SELECT, so a reference never runs commands of the referenced script. The common
+A referenced script is a single SELECT, so a reference never runs commands of the referenced script. A single call of
+a client function that reads is referenced too, by a scan only (`script_references.md`, Client Function Calls). The common
 table expressions of a statement are flattened: the references of an inlined query are resolved in
 the context of the statement, every script appears once after the scripts it references. They go into the
 outermost SELECT around the references, inside the parentheses of a subquery, and before the common table
@@ -176,7 +177,7 @@ Errors, each with the text of the parameter except the one of a script that runs
 ("the table parameter :sales matches sales.sql and sales.parquet"), a positional table
 parameter, a script or attachment as the target of INSERT or DELETE, a REMOTE statement that reads an attachment, a reference outside of a query (`delete ... using
 :foo`), a referenced script that is no single SELECT or does not parse ("foo.sql is no single SELECT that bar.sql
-could read"), a cycle, a REMOTE statement that reads another connection, a statement that reads a script of another
+could read"), a call that writes or is explained, a call that a query of its own connection would inline, a cycle, a REMOTE statement that reads another connection, a statement that reads a script of another
 connection that runs only on request (`@manual`), a view over a materialized result, also
 through an inlined query, an inlined query that reads a relation that the statement defines as common table expression
 where the query goes (a recursive WITH, the WITH of an INSERT around it), and a materialized script that runs later in the session than the statement that scans it ("move foo.sql above bar.sql").

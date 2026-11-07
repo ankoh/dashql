@@ -140,7 +140,8 @@ barrier, and before every later one, directly until the next barrier and through
 
 A referenced script is a single SELECT (`ScriptReferences::check`): a script with commands, several statements, a
 statement of another kind or a syntax error is the error "foo.sql is no single SELECT that bar.sql could read". A
-reference thus never runs a command of the referenced script.
+reference thus never runs a command of the referenced script. A single call of a client function that reads is the
+exception that a scan reads (`unreadable`), its node is the terminal node of the materialization.
 
 `splice_statement` resolves the references of a statement into the scripts it reads, every script after the scripts
 its query references. Inline references are followed into the query of the inlined script, so a statement also reads
@@ -267,8 +268,9 @@ of its materializations.
 ## Cacheability
 
 A script is cacheable if it parses, has a statement and every statement is a SELECT or EXPLAIN
-(`ExecutionGraphScript.cacheable`). The scripts it references need no check: a referenced script is a single SELECT,
-anything else invalidates the plan. Whether a cached result is used also depends on the connections
+(`ExecutionGraphScript.cacheable`). The scripts it references need no check: a referenced script is a single SELECT or a
+call that reads, anything else invalidates the plan. A call isn't cacheable, so the key of a script that reads one isn't
+reusable (`query_cache.md`). Whether a cached result is used also depends on the connections
 (`query_cache.md`, Cache Key).
 
 ## Outputs of a Target

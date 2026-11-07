@@ -37,6 +37,13 @@ pub struct ClientFunctionCall {
     pub effect: ClientFunctionEffect,
 }
 
+impl ClientFunctionCall {
+    /// Can another script read the result? A call of a known function that reads, not its EXPLAIN.
+    pub fn readable(&self) -> bool {
+        !self.explain && self.function.is_some() && self.effect == ClientFunctionEffect::Read
+    }
+}
+
 /// Does a statement start with a call in a namespace with client functions? This comes from the tokens, so it also holds
 /// for a call that doesn't parse, which the analysis never sees. A host that sends text to a backend asks this first.
 pub fn starts_client_function_call(scanned: &ScannedScript, catalog: &CatalogSnapshot) -> bool {
@@ -493,6 +500,21 @@ impl Describer<'_> {
 }
 
 impl AnalyzedScript {
+    /// The call of a script that is a single call in a namespace with client functions
+    pub fn single_client_function_call(&self) -> Option<&ClientFunctionCall> {
+        match &self.parsed.statements[..] {
+            [_] => self.client_function_calls.iter().find(|c| c.ast_statement_id == 0),
+            _ => None,
+        }
+    }
+
+    /// The result columns of a call of a known function, in the order of the runtime
+    pub fn client_function_result_columns(&self, call: &ClientFunctionCall) -> Option<Vec<Arc<str>>> {
+        let spec = self.snapshot.client_function_spec(&call.namespace)?;
+        let function = spec.function(call.function.as_deref()?)?;
+        Some(spec.result_columns(function).into_iter().map(Arc::from).collect())
+    }
+
     /// Describe a `CALL` of a function of a spec for the runtime of the host: plain JSON over the names of the spec.
     /// A known name has the spelling of the spec, any other the spelling of the script. Strings are unescaped, and a
     /// parameter is a null with an entry in `bindings`. None for any other statement.

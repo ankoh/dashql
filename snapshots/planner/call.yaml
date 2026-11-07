@@ -378,7 +378,7 @@ planner-snapshots:
         - script: consumer
           text: ":producer"
           error: true
-          message: producer.sql is no single SELECT that consumer.sql could read
+          message: 'producer.sql calls tickets.ticket_list, which no query of the connection default can inline, only the scripts of the embedded Hyper read its result'
       checked-references:
         - script: consumer
           references:
@@ -386,4 +386,177 @@ planner-snapshots:
               target: producer
               kind: invalid
               errors:
-                - producer.sql is no single SELECT that consumer.sql could read
+                - 'producer.sql calls tickets.ticket_list, which no query of the connection default can inline, only the scripts of the embedded Hyper read its result'
+
+  - name: CallScanned
+    client_functions: tickets
+    hyper: skip
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: open_tickets
+        connection: d360
+        input: |
+          call tickets.ticket_list (project => 'a', _pages => 3);
+      - name: counted
+        connection: local
+        input: |
+          select count(*), max(_next) from :open_tickets;
+    expected:
+      valid: true
+      connections:
+        - name: d360
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: open_tickets
+          connection: d360
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f93ed3b08f6b4248fe54b86e5d9e7b15"
+        - name: counted
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e2ef0ee200d1089d5aa76061b0d37356"
+          references: [open_tickets]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: open_tickets
+          connection: d360
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.ticket_list (project => 'a', _pages => 3)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":3}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          materialization: 0
+          accesses: []
+        - id: 1
+          script: counted
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with open_tickets as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select count(*), max(_next) from open_tickets
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: MATERIALIZATION
+      materializations:
+        - script: open_tickets
+          node: 0
+          path: /mnt/external/dashql-run-test/s0.parquet
+      references:
+        - node: 1
+          script: counted
+          text: ":open_tickets"
+          target: open_tickets
+          cte: open_tickets
+          materialization: 0
+      diagnostics: []
+      checked-references:
+        - script: counted
+          references:
+            - text: ":open_tickets"
+              target: open_tickets
+              kind: scan
+
+  - name: CallReferencedWrite
+    client_functions: tickets
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: deleted
+        connection: d360
+        input: |
+          call tickets.ticket_delete (id => 1);
+      - name: explained
+        connection: d360
+        input: |
+          explain call tickets.ticket_list (project => 'a');
+      - name: consumer
+        connection: local
+        input: |
+          select * from :deleted, :explained;
+    expected:
+      valid: false
+      connections:
+        - name: d360
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: deleted
+          connection: d360
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "5259f458026825b77a687a68006dc9bc"
+        - name: explained
+          connection: d360
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "c0c18d4827a76707750daab73038f2bc"
+        - name: consumer
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "85441d14aaedff393476767967005ffe"
+          references: [deleted,explained]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: consumer
+          text: ":deleted"
+          error: true
+          message: 'deleted.sql calls tickets.ticket_delete, which writes, consumer.sql can only read a call that reads'
+        - script: consumer
+          text: ":explained"
+          error: true
+          message: 'explained.sql explains a call of tickets.ticket_list and sends nothing, consumer.sql cannot read it'
+      checked-references:
+        - script: consumer
+          references:
+            - text: ":deleted"
+              target: deleted
+              kind: invalid
+              errors:
+                - 'deleted.sql calls tickets.ticket_delete, which writes, consumer.sql can only read a call that reads'
+            - text: ":explained"
+              target: explained
+              kind: invalid
+              errors:
+                - 'explained.sql explains a call of tickets.ticket_list and sends nothing, consumer.sql cannot read it'

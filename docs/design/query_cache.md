@@ -31,7 +31,8 @@ line. The AST signature of a script that binds inputs is followed by their liter
 the attachments they read. Every planned script has a result key (`computeScriptResultKeys`). The key is reusable, i.e. a run may serve
 a cached file of the key instead of running the script, if the script is cacheable, its connection caches results,
 and the keys of the scripts it references are reusable. A referenced script is a single SELECT, so it is cacheable;
-one on a connection that doesn't cache results makes the script not reusable either.
+one on a connection that doesn't cache results makes the script not reusable either, and so does a referenced call of
+a client function, which is never cacheable.
 
 For a terminal query with `@vis` tags, the signature excludes the tags, they are comments. Result analysis and visualization projection run after cache loading, so visualization-only edits can reuse the same raw result.
 

@@ -65,7 +65,7 @@ planner-snapshots:
         input: |
           call tickets.ticket_delete (id => 1);
 
-  # A script reads a query of another script, not a call
+  # A call runs in the host, no query of its connection can inline it
   - name: CallReferenced
     client_functions: tickets
     scripts:
@@ -75,3 +75,44 @@ planner-snapshots:
       - name: consumer
         input: |
           select * from :producer;
+
+  # The LOCAL connection scans the result of a call that reads, the host materializes it
+  - name: CallScanned
+    client_functions: tickets
+    hyper: skip
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: open_tickets
+        connection: d360
+        input: |
+          call tickets.ticket_list (project => 'a', _pages => 3);
+      - name: counted
+        connection: local
+        input: |
+          select count(*), max(_next) from :open_tickets;
+
+  # Another script reads no call that writes, and no EXPLAIN, which sends nothing
+  - name: CallReferencedWrite
+    client_functions: tickets
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: deleted
+        connection: d360
+        input: |
+          call tickets.ticket_delete (id => 1);
+      - name: explained
+        connection: d360
+        input: |
+          explain call tickets.ticket_list (project => 'a');
+      - name: consumer
+        connection: local
+        input: |
+          select * from :deleted, :explained;

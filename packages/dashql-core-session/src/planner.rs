@@ -1238,7 +1238,8 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
                             .join("\n")
                     }));
                     // Queries only, a client function call asks a service and not the backend. The scripts that a script
-                    // references are single queries, or the plan is invalid.
+                    // references are single queries or calls, or the plan is invalid, and the key of a script that
+                    // references a call isn't reusable either.
                     meta.cacheable = p.parses()
                         && !p.parsed.statements.is_empty()
                         && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN))

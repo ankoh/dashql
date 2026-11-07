@@ -3,7 +3,8 @@
 //! A table parameter `:foo` references the script `foo.sql` and reads the result of its terminal query. The
 //! connections of the two scripts decide what a reference becomes:
 //!
-//! A referenced script is a single SELECT, a reference never runs commands.
+//! A referenced script is a single SELECT, a reference never runs commands. A script that is a single call of a client
+//! function that reads is referenced too, but only scanned: the call runs in the host, no query can inline it.
 //!
 //! - Within one connection the query is inlined into the statement as a common table expression,
 //!   `with foo as (<query of foo>) select * from foo`.
@@ -296,13 +297,8 @@ impl ScriptReferences {
                 let producer = match r.source() {
                     Some(TableParameterSource::Script(producer)) => {
                         let Some(p) = prepared[producer as usize].as_ref() else { continue };
-                        let query = p.parses() && matches!(&p.parsed.statements[..], [statement] if statement.statement_type == StatementType::SELECT);
-                        if !query {
-                            reporter.error(
-                                script as u32,
-                                Some(r.text_span),
-                                format!("{} is no single SELECT that {} could read", script_label(request, producer), script_label(request, script as u32)),
-                            );
+                        if let Some(message) = unreadable(request, p, producer, script as u32, r.kind) {
+                            reporter.error(script as u32, Some(r.text_span), message);
                         }
                         Some(producer)
                     }
@@ -395,6 +391,38 @@ impl ScriptReferences {
         for (script, index) in failed {
             self.by_script[script as usize][index].kind = ReferenceKind::Invalid;
         }
+    }
+}
+
+/// Why a script cannot read the result of a script it references, None if it can. A referenced script is a single
+/// SELECT, or a single call of a client function that reads. A call runs in the host and not in a database, so no query
+/// can inline it: only a scan reads its result, which the host materializes.
+fn unreadable(request: &SessionPlanRequest, p: &Prepared, producer: u32, consumer: u32, kind: ReferenceKind) -> Option<String> {
+    let (producer_label, consumer_label) = (script_label(request, producer), script_label(request, consumer));
+    if !p.parses() {
+        return Some(format!("{producer_label} is no single SELECT that {consumer_label} could read"));
+    }
+    let Some(call) = p.analyzed.single_client_function_call() else {
+        return match &p.parsed.statements[..] {
+            [statement] if statement.statement_type == StatementType::SELECT => None,
+            _ => Some(format!("{producer_label} is no single SELECT that {consumer_label} could read")),
+        };
+    };
+    let function = match &call.function {
+        Some(function) => format!("{}.{function}", call.namespace),
+        None => format!("an unknown function of {}", call.namespace),
+    };
+    if call.explain {
+        Some(format!("{producer_label} explains a call of {function} and sends nothing, {consumer_label} cannot read it"))
+    } else if !call.readable() {
+        Some(format!("{producer_label} calls {function}, which writes, {consumer_label} can only read a call that reads"))
+    } else if kind == ReferenceKind::Inline {
+        let connection = request.connections[request.scripts[consumer as usize].connection as usize].id;
+        Some(format!(
+            "{producer_label} calls {function}, which no query of the connection {connection} can inline, only the scripts of the embedded Hyper read its result"
+        ))
+    } else {
+        None
     }
 }
 

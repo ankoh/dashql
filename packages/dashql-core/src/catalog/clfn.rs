@@ -20,6 +20,17 @@ pub const OPTION_POLL: &str = "_poll";
 /// The standard option that waits for a pending result
 pub const OPTION_WAIT: &str = "_wait";
 
+/// The standard column of the HTTP status
+pub const COLUMN_STATUS: &str = "_status";
+/// The standard column of the value for the next page
+pub const COLUMN_NEXT: &str = "_next";
+/// The standard column of the value to poll, only on functions that can answer before they finish
+pub const COLUMN_POLL: &str = "_poll";
+/// The standard column of the response fields outside the rows
+pub const COLUMN_META: &str = "_meta";
+/// The standard column of the row fields that the spec does not list
+pub const COLUMN_RAW: &str = "_raw";
+
 /// What an option or attribute that the spec does not list does
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -391,6 +402,18 @@ impl ClientFunctionSpec {
             None => self.pending.as_ref().is_some_and(is_set),
         }
     }
+
+    /// The result columns of a function in the order of the runtime: the columns of the function, then the standard
+    /// columns. A raw function has no columns of its own, its response is in `_raw`.
+    pub fn result_columns<'a>(&self, function: &'a ClientFunction) -> Vec<&'a str> {
+        let mut columns: Vec<&'a str> = if function.raw { Vec::new() } else { function.columns.iter().map(|c| c.name.as_str()).collect() };
+        columns.extend([COLUMN_STATUS, COLUMN_NEXT]);
+        if self.has_pending(function) {
+            columns.push(COLUMN_POLL);
+        }
+        columns.extend([COLUMN_META, COLUMN_RAW]);
+        columns
+    }
 }
 
 /// The attribute that a name in a script selects. An unquoted name folds its case, a quoted one is exact.
@@ -547,6 +570,22 @@ mod tests {
         .unwrap();
         assert!(spec.has_pending(spec.function("a").unwrap()));
         assert!(!spec.has_pending(spec.function("b").unwrap()));
+    }
+
+    #[test]
+    fn result_columns_end_with_the_standard_columns() {
+        let spec = ClientFunctionSpec::parse(
+            r#"{"format": 1, "namespace": "t", "functions": [
+                {"name": "a", "columns": [{"name": "id"}, {"name": "label"}]},
+                {"name": "b", "columns": [{"name": "id"}], "pending": {"status": 202}},
+                {"name": "c", "columns": [{"name": "id"}], "raw": true}
+            ]}"#,
+        )
+        .unwrap();
+        let columns = |name: &str| spec.result_columns(spec.function(name).unwrap()).join(",");
+        assert_eq!(columns("a"), "id,label,_status,_next,_meta,_raw");
+        assert_eq!(columns("b"), "id,_status,_next,_poll,_meta,_raw");
+        assert_eq!(columns("c"), "_status,_next,_meta,_raw");
     }
 
     #[test]

@@ -1,6 +1,6 @@
 # Extensions
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. On a Salesforce connection a script gets checks and completion, and a call that reads runs in the app. A call that writes fails before anything is sent, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. On a Salesforce connection a script gets checks and completion, a call that reads runs in the app, and a script of the embedded Hyper reads its result. A call that writes fails before anything is sent, and nothing has run against a real service.
 
 An **extension** adds what DashQL needs for a service, in a folder of `extensions/`. It holds client functions and snippets so far. Extensions are bundled with the app and declarative: nothing gets installed, and an extension runs no code of its own.
 
@@ -421,7 +421,22 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - **Waiting on a job is explicit.** Polling a job means calling its status function. There is no `AWAIT`. [Pending results](#pending-results) cover the different case where the HTTP response itself says it isn't finished.
 - **No automatic retries.** Some POSTs aren't safe to repeat.
 
-**Reading a result from another script** isn't built: a reference to a script with a call is an error today, because a referenced script is a single `SELECT`. [Script references](script_references.md) read a query like a view, by inlining it, which a `CALL` can't do. So a script with a single `effect: read` call should be referenced only from a script on the LOCAL connection, through the scan path: the call runs first, and its result is written as a Parquet file and scanned. A reference from any other connection stays an error, as does a reference to a write. This extends the rule that a referenced script is a single `SELECT`, and it needs a change in the planner and the result columns below. `:param` values can't come from a result, since inputs are literals in `@param` tags, so a script reads more pages with `_pages`, not by passing `_next` from another script.
+**Reading a result from another script.** A script that is a single call of a function that reads is a [script reference](script_references.md) like a single `SELECT`, but only through the scan path:
+
+```sql
+-- open_tickets.sql, on the Salesforce connection
+call tickets.ticket_list (project => 'OPS', _pages => 3);
+-- counted.sql, on the embedded Hyper
+select count(*), max(_next) from :open_tickets;
+```
+
+- **The call runs first,** and its result is written as a Parquet file that the statement scans. The planner gives the call's node the materialization, and the run writes the result table of the runtime like the result of any query.
+- **Only a script on the LOCAL connection reads it.** A reference reads a query like a view, by inlining it, which a call can't do: it runs in the host, not in a database. A reference from the call's own connection is an error, and so is one from another REMOTE connection, as for every script.
+- **Only a call that reads.** A reference to a call of a function that writes, to a call of an unknown function, or to an `EXPLAIN CALL` is an error.
+- **The columns** are the function's `columns` followed by the [standard columns](#results-and-errors), as the runtime returns them. `TableParameters` holds them like the output columns of a query, so the analyzer resolves `:open_tickets` and completion offers its columns.
+- **Its file is transient.** A script with a call isn't cacheable, so a script that reads one has no reusable key either.
+
+`:param` values can't come from a result, since inputs are literals in `@param` tags, so a script reads more pages with `_pages`, not by passing `_next` from another script.
 
 ## Paging
 
@@ -601,14 +616,14 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Formatter | `formatter/explain.rs`, `formatter/mod.rs` | `call <name> (<options>)`, objects and arrays |
 | Specs | `packages/dashql-core/src/catalog/clfn.rs` | `ClientFunctionSpec` reads the generic part of a document and ignores what only the runtime needs. `Catalog::register_client_functions` and `drop_client_functions` bump the catalog version |
 | Checks | `packages/dashql-core/src/analyzer/clfn_calls.rs` | A pass after the others walks every call against its signature. `AnalyzedScript::client_function_calls` lists the calls in a namespace with a spec |
+| Result columns | `ClientFunctionSpec::result_columns`, `packages/dashql-core/src/table_parameters.rs` | The columns of a function and the standard columns, the table of a script that is a single call that reads |
+| Script references | `packages/dashql-core-session/src/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
 | Description | `AnalyzedScript::describe_client_function_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.client_function_calls` in the packed analysis carries it, so the app needs no second call |
 | Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql-core-js/src/api.ts`. A binding registers the spec on the catalog of its connection |
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
 | Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
 **Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
-
-**Still missing in core:** result columns for script references, see [Running calls](#running-calls).
 
 ## The runtime
 
@@ -645,7 +660,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 Each phase lands separately.
 
-1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
+1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, and script references to a call that reads, all tested with a made-up fixture spec. Done.
 2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
