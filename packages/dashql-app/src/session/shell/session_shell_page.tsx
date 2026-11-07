@@ -12,6 +12,7 @@ import {
 import type { BrowserShellController } from '../../shell/browser_shell.js';
 import {
     createSessionShellEnvironment,
+    resolveClientFunctionCall,
 } from './session_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../../shell/shell_result.js';
@@ -119,6 +120,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
             getOutputMode,
             () => terminalColumnsRef.current,
             releaseResult,
+            query => resolveClientFunctionCall(connection.catalog, query),
         );
         const outputCommand = createShellOutputCommand(getOutputMode, mode => {
             outputModeRef.current = mode;

@@ -15,6 +15,8 @@ use dashql_buffers::parser::{AttributeKey as K, Node, NodeType};
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
+use dashql_parser::scanner::ScannedScript;
+use dashql_parser::symbol_kind::*;
 use serde_json::{json, Map, Number, Value};
 use std::sync::Arc;
 
@@ -33,6 +35,24 @@ pub struct ClientFunctionCall {
     pub function: Option<Arc<str>>,
     /// The effect of the function, a write if it is unknown
     pub effect: ClientFunctionEffect,
+}
+
+/// Does a statement start with a call in a namespace with client functions? This comes from the tokens, so it also holds
+/// for a call that doesn't parse, which the analysis never sees. A host that sends text to a backend asks this first.
+pub fn starts_client_function_call(scanned: &ScannedScript, catalog: &CatalogSnapshot) -> bool {
+    scanned.symbols.split(|symbol| symbol.kind == S_SEMICOLON).any(|statement| {
+        let body = match statement.first() {
+            Some(symbol) if symbol.kind == S_EXPLAIN => &statement[1..],
+            _ => statement,
+        };
+        let [call, namespace, dot, ..] = body else { return false };
+        if call.kind != S_CALL_P || (dot.kind != S_DOT && dot.kind != S_DOT_TRAILING) {
+            return false;
+        }
+        let location = namespace.location;
+        let name = &scanned.text.as_bytes()[location.offset as usize..(location.offset + location.length) as usize];
+        catalog.client_function_spec(&String::from_utf8_lossy(name).trim_matches('"').to_ascii_lowercase()).is_some()
+    })
 }
 
 /// The call of a statement: the root or the body of an EXPLAIN

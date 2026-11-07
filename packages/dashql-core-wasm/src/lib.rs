@@ -377,6 +377,13 @@ impl Script {
         self.inner.analyze(&catalog, parse_if_outdated).map_err(js_error)
     }
 
+    /// Does a statement of the parsed script start with a call in a namespace with client functions, even if it doesn't parse?
+    #[wasm_bindgen(js_name = startsClientFunctionCall)]
+    pub fn starts_client_function_call(&self) -> bool {
+        let catalog = self.catalog.borrow();
+        self.inner.parsed.as_ref().is_some_and(|parsed| dashql_core::analyzer::clfn_calls::starts_client_function_call(&parsed.scanned, &catalog))
+    }
+
     /// The packed `ParsedScript`
     #[wasm_bindgen(js_name = getParsed)]
     pub fn get_parsed(&self) -> Result<Vec<u8>, JsError> {

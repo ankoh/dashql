@@ -85,6 +85,23 @@ describe('Client functions', () => {
         expect(candidates).toEqual(['project', 'page_size']);
     });
 
+    it('tells a call in the namespace from its tokens, even if it does not parse', () => {
+        const catalog = dql.createCatalog();
+        catalog.registerClientFunctions(SPEC);
+        const starts = (text: string) => analyze(catalog, text).startsClientFunctionCall();
+        expect(starts(`call tickets.ticket_list (project => 'a');`)).toBe(true);
+        expect(starts('call tickets.ticket_list (project => );')).toBe(true);
+        expect(starts('call tickets.')).toBe(true);
+        expect(starts('CALL "TICKETS".ticket_list ();')).toBe(true);
+        expect(starts('/* first */ explain call tickets.ticket_list ();')).toBe(true);
+        expect(starts('select 1; call tickets.ticket_list (')).toBe(true);
+        expect(starts('call other.ticket_list ();')).toBe(false);
+        expect(starts('call ticket_list ();')).toBe(false);
+        expect(starts(`select 'call tickets.ticket_list ()';`)).toBe(false);
+        catalog.dropClientFunctions('tickets');
+        expect(starts('call tickets.ticket_list ();')).toBe(false);
+    });
+
     it('only applies while their spec is registered', () => {
         const catalog = dql.createCatalog();
         const before = catalog.flatten().read().catalogReader.catalogVersion();

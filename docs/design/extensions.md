@@ -410,6 +410,8 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 
 **The executor** gets the description as `clientFunctionCall` of its arguments, and `executeConnectionQuery` hands it to the runtime instead of the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
 
+**The shell of a connection** has no plan. `resolveClientFunctionCall` (`session/shell/session_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
+
 **Rules for `effect: write`:**
 - It never runs implicitly: not on opening a script, not on a rerun of dependents.
 - Its result is never read from or written to the query result cache. `queryResultCaching` is on for most connectors, so this needs an explicit check.

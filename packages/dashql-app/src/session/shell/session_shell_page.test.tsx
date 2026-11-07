@@ -26,6 +26,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import { SessionViewMode, SessionViewModeProvider, useSessionViewMode } from '../session_view_mode.js';
+import { resolveClientFunctionCall } from './session_shell_environment.js';
 import { SessionShellPage, type SessionShellPageDependencies } from './session_shell_page.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -469,6 +470,81 @@ describe('SessionShellPage', () => {
             expect(execute).not.toHaveBeenCalled();
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+        });
+    });
+
+    describe('with client functions', () => {
+        /// A connection whose catalog has the Data 360 client functions
+        async function openWithSpec() {
+            const connection = createConnection(MAIN);
+            connection.catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));
+            await open([connection]);
+        }
+        const lastArgs = () => execute.mock.calls[execute.mock.calls.length - 1][1] as { query: string; clientFunctionCall?: unknown };
+
+        it('runs a call in the namespace as a client function', async () => {
+            await openWithSpec();
+            run("call cdp.segment_list (dataspace => 'default');");
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+            expect(execute.mock.calls[0][0]).toBe(MAIN);
+            expect(lastArgs().query).toContain('call cdp.segment_list');
+            expect(lastArgs().clientFunctionCall).toEqual({
+                namespace: 'cdp',
+                function: 'segment_list',
+                effect: 'read',
+                explain: false,
+                options: { dataspace: 'default' },
+            });
+        });
+
+        it('explains a call as a client function', async () => {
+            await openWithSpec();
+            run('explain call cdp.segment_list ();');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+            expect(lastArgs().clientFunctionCall).toMatchObject({ function: 'segment_list', explain: true });
+        });
+
+        it('leaves a statement without a call to the backend', async () => {
+            await openWithSpec();
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+            expect(lastArgs().clientFunctionCall).toBeUndefined();
+        });
+
+        it('leaves a call to the backend on a connection without the spec', async () => {
+            await open();
+            run('call cdp.segment_list ();');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+            expect(lastArgs().clientFunctionCall).toBeUndefined();
+        });
+
+        it('fails a call that the spec does not know without running anything', async () => {
+            await openWithSpec();
+            run('call cdp.segment_lisst ();');
+            await vi.waitFor(() => expect(screen()).toContain('segment_lisst'), WAIT);
+            await vi.waitFor(() => expect(screen()).toMatch(/segment_list/), WAIT);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('fails a parameter without a value without running anything', async () => {
+            await openWithSpec();
+            run('call cdp.segment_list (dataspace => :space);');
+            await vi.waitFor(() => expect(screen()).toContain('input :space has no value'), WAIT);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('fails a call that does not parse without running anything', async () => {
+            await openWithSpec();
+            run('call cdp.segment_list (dataspace => );');
+            await vi.waitFor(() => expect(screen()).toMatch(/syntax error/i), WAIT);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('fails a call next to another statement', async () => {
+            const catalog = core.createCatalog();
+            catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));
+            expect(() => resolveClientFunctionCall(catalog, 'select 1; call cdp.segment_list ();')).toThrow('statement of its own');
         });
     });
 
