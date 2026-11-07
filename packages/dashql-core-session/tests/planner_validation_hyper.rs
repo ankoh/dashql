@@ -50,7 +50,7 @@ fn provide(connections: &mut [HyperConnection], fixture: &Fixture, planned: &Pla
     let name = planned.names[script as usize].clone();
     let target = Fixture {
         catalog: fixture.catalog.clone(),
-        overlay: fixture.overlay,
+        client_functions: fixture.client_functions,
         connections: fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino }).collect(),
         scripts: fixture.scripts.iter().map(|s| FixtureScript { name: s.name.clone(), input: s.input.clone(), stale_prepend: None, connection: s.connection.clone() }).collect(),
         targets: Some(vec![name.clone()]),

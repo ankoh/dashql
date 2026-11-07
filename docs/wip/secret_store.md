@@ -27,7 +27,7 @@ See [Session Inputs](../design/session_inputs.md).
 - The named parameters of a session's scripts are its inputs, shown as cards. A changed card writes the value into the `@param` tag of every script that uses it, also when a script is exported.
 - A script binds the value of its own tag, and the value of the session otherwise.
 - The planner inlines the value as a literal, so it's in the SQL text sent to a backend and in the query history. The signature of a script holds it as well (`:min=10`), and so do its result keys.
-- `CALL` of an overlay gets a null plus a binding from the core, and the runtime fills in the value from `env.params`.
+- A client function `CALL` gets a null plus a binding from the core, and the runtime fills in the value from `env.params`.
 
 ## With a store
 

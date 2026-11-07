@@ -128,15 +128,15 @@ pub struct CompletionCase {
 /// Run a completion snapshot case: analyze the catalog script and the editor script like the
 /// analyzer snapshots, place the cursor after the search text plus `index`, and complete.
 pub fn complete_case(
-    overlay: Option<&str>,
+    client_functions: Option<&str>,
     catalog_input: Option<&str>,
     editor_input: &str,
     cursor_offset: CursorOffset,
     limit: usize,
 ) -> Result<CompletionCase, String> {
     let mut catalog = Catalog::new();
-    if let Some(spec) = overlay {
-        catalog.register_overlay(spec).map_err(|e| e.message)?;
+    if let Some(spec) = client_functions {
+        catalog.register_client_functions(spec).map_err(|e| e.message)?;
     }
     let mut catalog_yaml = None;
     if let Some(input) = catalog_input {

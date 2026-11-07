@@ -7,7 +7,7 @@ pub mod annotation;
 pub mod catalog;
 pub mod compact_json;
 pub mod completion;
-mod completion_overlay;
+mod completion_clfn;
 mod completion_vis;
 pub mod cursor;
 pub mod error;

@@ -46,8 +46,8 @@ export default vite.defineConfig(({ mode, command }) => {
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
     // The SQL snippets of examples/snippets, bundled as text
     const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
-    // The overlays of overlay/: the app bundles their generated specs, and the browser tests read the fixtures as well
-    const OVERLAYS_PATH = path.resolve(rootDir, "__OVERLAYS_PATH__");
+    // The extensions: the app bundles their generated specs, and the browser tests read the fixtures as well
+    const EXTENSIONS_PATH = path.resolve(rootDir, "__EXTENSIONS_PATH__");
     // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs.
     const declaredTestInputs = (manifest: string) => includesBrowserTests && command === 'build'
         ? nodeFs.readFileSync(path.join(rootDir, manifest), 'utf8')
@@ -364,7 +364,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 { find: /^@dashql\/snippets/, replacement: SNIPPETS_PATH },
-                { find: /^@dashql\/overlays/, replacement: OVERLAYS_PATH },
+                { find: /^@dashql\/extensions/, replacement: EXTENSIONS_PATH },
                 {
                     find: /^@dashql\/browser-test-act$/,
                     replacement: path.resolve(rootDir, "src/tests/react_act.ts"),
@@ -404,7 +404,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.dirname(SHELL_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,
-                        OVERLAYS_PATH,
+                        EXTENSIONS_PATH,
                     ]
                         .map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
                     return paths;

@@ -10,7 +10,7 @@ planner-snapshots:
 
   # A spec shadows its namespace: a call in it never reaches the backend, it can't run without a runtime
   - name: CallRegisteredNamespace
-    overlay: tickets
+    client_functions: tickets
     scripts:
       - name: queries
         input: |
@@ -21,7 +21,7 @@ planner-snapshots:
 
   # Another namespace goes to the backend as written, an unknown function of the shadowed namespace doesn't
   - name: CallShadowing
-    overlay: tickets
+    client_functions: tickets
     scripts:
       - name: queries
         input: |

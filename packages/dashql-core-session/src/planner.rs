@@ -717,17 +717,17 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 | Type::SELECT_INTO
                 | Type::DROP_TABLE
                 | Type::DROP_VIEW => {}
-                // An overlay call doesn't run on the backend, see below
-                Type::CALL if analyzed.overlay_calls.iter().any(|c| c.ast_statement_id == statement_id as u32) => {}
+                // A client function call doesn't run on the backend, see below
+                Type::CALL if analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32) => {}
                 _ => {
                     barrier!("unsupported statement effects; backend session semantics are not guaranteed");
                 }
             }
             // A spec shadows its namespace, a call in it never reaches the backend. Without a runtime that sends it, it can't
             // run. Any other call goes to the backend as written.
-            if let Some(call) = analyzed.overlay_calls.iter().find(|c| c.ast_statement_id == statement_id as u32) {
+            if let Some(call) = analyzed.client_function_calls.iter().find(|c| c.ast_statement_id == statement_id as u32) {
                 barrier = true;
-                state.report(node_id, si as u32, None, format!("CALL {}.*: overlay calls can't run yet", call.namespace), true);
+                state.report(node_id, si as u32, None, format!("CALL {}.*: client function calls can't run yet", call.namespace), true);
                 sql.clear();
             }
             // A query with `@vis` tags carries its visualization

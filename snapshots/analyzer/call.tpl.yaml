@@ -6,25 +6,25 @@ analyzer-snapshots:
   # A namespace without a spec on a connection that has another one
   - name: call_other_namespace
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call other.f (a => 1);
   # A valid call, its options become plain JSON with the names of the spec
   - name: call_valid
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'OPS', page_size => 50);
   # Names fold their case, the description has the spelling of the spec
   - name: call_case_folding
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: CALL TICKETS.TICKET_LIST (PROJECT => 'OPS', Page_Size => 50);
   # Strings are unescaped, dollar-quoted strings are verbatim, numbers stay numbers
   - name: call_values
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_create (
@@ -36,7 +36,7 @@ analyzer-snapshots:
   # A query is the text between its parentheses
   - name: call_embedded_sql
     catalog:
-      overlay: tickets
+      client_functions: tickets
       script:
         input: create table alerts (host text, level int);
     script:
@@ -44,56 +44,56 @@ analyzer-snapshots:
   # Parameters are bindings, and inputs of the session
   - name: call_bindings
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.webhook_create (url => :hook_url, signing_key => :hook_key, credentials => [(param_name = 'pw', value = :stored)]);
   # EXPLAIN of a call is checked like the call
   - name: call_explain
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: explain call tickets.ticket_delete (idd => 7);
   # The spec shadows its namespace: an unknown function is an error, with the closest name
   - name: call_unknown_function
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_lst (project => 'a');
   # A longer name isn't a function of the spec either
   - name: call_unknown_function_path
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.a.b ();
   # An option of another function, an API spelling, and a word that is a keyword elsewhere
   - name: call_unknown_options
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'a', batch_size => 1, pageSize => 2, offset => 3);
   # Quoting sends a name as written
   - name: call_quoted_unknown
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'a', "pageSize" => 2, "offset" => 3);
   # A name that is no identifier
   - name: call_quoted_known
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_create (project => 'a', title => 'b', "X-Trace-Id" => 'c', datasourceid__c => 'd');
   # A missing required option, and a duplicate
   - name: call_missing_and_duplicate
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_create (project => 'a', PROJECT => 'b');
   # Attributes in the wrong object, also through arrays and recursion
   - name: call_nested_attributes
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_create (
@@ -105,26 +105,26 @@ analyzer-snapshots:
   # An object in a schema that may be incomplete only warns, a free-form object takes anything
   - name: call_unknown_policies
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_create (project => 'a', title => 'b', inferred => (other = 1), metadata => (someKey = 1, "with space" = 2));
   # An unlisted option of a function that may be incomplete only warns, and it reads even though it's a POST
   - name: call_unknown_option_warning
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_search (query => 'a', other => 1);
   # The escape hatch takes any option
   - name: call_raw
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.request (method => 'POST', path => '/x', body => (a = 1), someParam => 1);
   # Nothing is classified as secret: a literal and a parameter both go anywhere
   - name: call_credentials
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.webhook_create (
@@ -137,32 +137,32 @@ analyzer-snapshots:
   # No function is a value
   - name: call_invalid_functions
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => now(), page_size => secret(a), page_token => cast(1 as text));
   # The standard options of a paged function that reads
   - name: call_paging
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_list (project => 'a', page_size => 50, _next => 'abc', _pages => 10);
   # A next URL carries the whole request, so required options aren't needed
   - name: call_paging_url
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_feed (_next => '/feed?page=2');
   # _next sets the option of the function
   - name: call_paging_conflict
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'a', page_token => 'x', _next => 'y');
   # _pages takes a positive number, functions that don't page have no _next
   - name: call_paging_errors
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_list (project => 'a', _pages => 0);
@@ -170,7 +170,7 @@ analyzer-snapshots:
   # A function with pending results waits and polls, a poll needs no other option
   - name: call_pending
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.export_start (format => 'csv', _wait => 60);
@@ -178,48 +178,48 @@ analyzer-snapshots:
   # A function without pending results has neither
   - name: call_pending_errors
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_delete (id => 1, _wait => 60, _poll => 'x');
   # A tag selects the variant of a union, whatever the case of its value
   - name: call_union_tag
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = 'EMAIL', address = 'a@b.c', owner = (id = 1)));
   # An attribute of another variant, and what the selected variant still needs
   - name: call_union_tag_mismatch
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = 'Email', queue = 'ops'));
   # A parameter selects nothing, so the attributes decide. Here they still fit one variant.
   - name: call_union_tag_parameter
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = :kind, queue = 'ops'));
   # Without a tag the attributes decide: they have to fit one variant
   - name: call_union_shape
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (trigger => (event = 'created', filter = 'x'));
   # The first attribute that leaves no variant is the mistake
   - name: call_union_shape_conflict
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (trigger => (event = 'created', cron = '* * * * *'));
   # A name that no variant takes, and the closest variant needs its attribute
   - name: call_union_unknown
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (trigger => (evnt = 'created'));
   # Nested schemas are checked through a union
   - name: call_union_nested
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = 'Queue', queue = 'ops', owner = (nope = 1)));

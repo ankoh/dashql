@@ -2,7 +2,7 @@ completion-snapshots:
   # The namespaces after CALL
   - name: call_namespaces
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tic
     cursor:
@@ -14,7 +14,7 @@ completion-snapshots:
   # CALL is a keyword at the start of a statement if the connection has a spec
   - name: call_keyword_with_spec
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: cal
     cursor:
@@ -37,7 +37,7 @@ completion-snapshots:
   # The functions of a namespace
   - name: call_functions
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.
     cursor:
@@ -49,7 +49,7 @@ completion-snapshots:
   # The functions that match the typed name
   - name: call_functions_prefix
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.web
     cursor:
@@ -61,7 +61,7 @@ completion-snapshots:
   # A namespace without a spec completes as usual
   - name: call_no_spec
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call other.
     cursor:
@@ -73,7 +73,7 @@ completion-snapshots:
   # The options of a function, required first, the standard options last
   - name: call_options
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (
     cursor:
@@ -85,7 +85,7 @@ completion-snapshots:
   # The options that match the typed name
   - name: call_options_prefix
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (pa
     cursor:
@@ -97,7 +97,7 @@ completion-snapshots:
   # A name that is also a keyword is typed like any other
   - name: call_options_keyword_prefix
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (title
     cursor:
@@ -109,7 +109,7 @@ completion-snapshots:
   # Options that are used already are left out
   - name: call_options_used
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project => 'a',
     cursor:
@@ -121,7 +121,7 @@ completion-snapshots:
   # Options in the middle of a statement that parses
   - name: call_options_inside
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project => 'a', ); select 1;
     cursor:
@@ -133,7 +133,7 @@ completion-snapshots:
   # A value takes no candidates
   - name: call_value
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project =>
     cursor:
@@ -145,7 +145,7 @@ completion-snapshots:
   # The attributes of a schema
   - name: call_attributes
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (assignee => (
     cursor:
@@ -157,7 +157,7 @@ completion-snapshots:
   # The attributes of the item schema of an array, and of a recursive schema
   - name: call_attributes_recursive
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (components => [(name = 'a', children = [(
     cursor:
@@ -169,7 +169,7 @@ completion-snapshots:
   # A free-form object offers nothing
   - name: call_attributes_free_form
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (metadata => (
     cursor:
@@ -181,7 +181,7 @@ completion-snapshots:
   # An attribute called select is an object, its siblings still complete
   - name: call_attributes_keyword
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (assignee => (select = 1,
     cursor:
@@ -193,7 +193,7 @@ completion-snapshots:
   # Inside a query, core SQL completes
   - name: call_embedded_sql
     catalog:
-      overlay: tickets
+      client_functions: tickets
       script:
         input: create table alerts (host text);
     editor:
@@ -207,7 +207,7 @@ completion-snapshots:
   # After a query the options continue
   - name: call_after_embedded_sql
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (affected => (select (1)),
     cursor:
@@ -219,7 +219,7 @@ completion-snapshots:
   # After the call, core SQL completes
   - name: call_after
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project => 'a'); sel
     cursor:
@@ -231,7 +231,7 @@ completion-snapshots:
   # A quoted option needs its quotes
   - name: call_quoted_option
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (X-
     cursor:
@@ -243,7 +243,7 @@ completion-snapshots:
   # EXPLAIN of a call completes like the call
   - name: call_explain
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: explain call tickets.ticket_delete (
     cursor:
@@ -255,7 +255,7 @@ completion-snapshots:
   # The standard options of a function with pending results
   - name: call_pending_options
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.export_start (format => 'csv', _
     cursor:
@@ -267,7 +267,7 @@ completion-snapshots:
   # A union offers what its variants take, nothing is required until one is selected
   - name: call_union_all_variants
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.rule_create (trigger => (
     cursor:
@@ -279,7 +279,7 @@ completion-snapshots:
   # An attribute narrows the variants
   - name: call_union_narrowed_by_attribute
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.rule_create (trigger => (event = 'x',
     cursor:
@@ -291,7 +291,7 @@ completion-snapshots:
   # The value of a tag selects the variant
   - name: call_union_narrowed_by_tag
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.rule_create (target => (kind = 'queue',
     cursor:

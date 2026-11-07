@@ -338,12 +338,12 @@ enum AnalyzerErrorType: uint8 {
     MALFORMED_COMMENT_TAG,
     INVALID_VIS_TAG,
     INVALID_PARAM_TAG,
-    OVERLAY_UNKNOWN_FUNCTION,
-    OVERLAY_UNKNOWN_OPTION,
-    OVERLAY_MISSING_OPTION,
-    OVERLAY_DUPLICATE_OPTION,
-    OVERLAY_UNSUPPORTED_OPTION,
-    OVERLAY_INVALID_VALUE,
+    CLIENT_FUNCTION_UNKNOWN_FUNCTION,
+    CLIENT_FUNCTION_UNKNOWN_OPTION,
+    CLIENT_FUNCTION_MISSING_OPTION,
+    CLIENT_FUNCTION_DUPLICATE_OPTION,
+    CLIENT_FUNCTION_UNSUPPORTED_OPTION,
+    CLIENT_FUNCTION_INVALID_VALUE,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a
@@ -422,27 +422,27 @@ table InferredTableSchema {
     columns: [InferredColumn];
 }
 
-/// Does a function of an overlay change anything?
-enum OverlayEffect: uint8 {
+/// Does a client function change anything?
+enum ClientFunctionEffect: uint8 {
     READ = 0,
     WRITE = 1,
 }
 
-/// A call in a namespace with an overlay, it never reaches the backend
-table OverlayCall {
+/// A call in a namespace with client functions, it never reaches the backend
+table ClientFunctionCall {
     // The id of the call node, the root of the statement or the body of its EXPLAIN
     ast_node_id: uint32;
     // The id of the statement
     ast_statement_id: uint32;
     // Prints the request, sends nothing?
     explain: bool = false;
-    // The namespace of the overlay
+    // The namespace of the spec
     namespace_name: string;
-    // The function, null if the overlay does not know it
+    // The function, null if the spec does not know it
     function_name: string;
     // The effect of the function, a write if it is unknown
-    effect: OverlayEffect = WRITE;
-    // The call as JSON for the runtime, null if the overlay does not know the function
+    effect: ClientFunctionEffect = WRITE;
+    // The call as JSON for the runtime, null if the spec does not know the function
     description: string;
 }
 
@@ -504,6 +504,6 @@ table AnalyzedScript {
     /// The parameters, in the order of the script
     parameters: [Parameter];
 
-    /// The calls in a namespace with an overlay
-    overlay_calls: [OverlayCall];
+    /// The calls in a namespace with client functions
+    client_function_calls: [ClientFunctionCall];
 }

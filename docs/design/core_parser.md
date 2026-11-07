@@ -135,7 +135,7 @@ The final `.y` file is composed in this order:
 | `ext_set.y` | SET variable statements |
 | `ext_varargs.y` | Nested key/value field syntax |
 | `ext_explain.y` | EXPLAIN wrapper |
-| `ext_call.y` | The generic CALL and its values, see `overlay.md` |
+| `ext_call.y` | The generic CALL and its values, see `extensions.md` |
 
 ### Type files (`.yh`)
 

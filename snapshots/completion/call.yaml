@@ -2,7 +2,7 @@ completion-snapshots:
 
   - name: call_namespaces
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tic
       catalog-id: 1
@@ -25,7 +25,7 @@ completion-snapshots:
 
   - name: call_keyword_with_spec
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: cal
       catalog-id: 1
@@ -94,12 +94,12 @@ completion-snapshots:
 
   - name: call_functions
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
     cursor:
@@ -134,7 +134,7 @@ completion-snapshots:
 
   - name: call_functions_prefix
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.web
       catalog-id: 1
@@ -157,7 +157,7 @@ completion-snapshots:
 
   - name: call_no_spec
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call other.
       catalog-id: 1
@@ -177,7 +177,7 @@ completion-snapshots:
 
   - name: call_options
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (
       catalog-id: 1
@@ -224,7 +224,7 @@ completion-snapshots:
 
   - name: call_options_prefix
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (pa
       catalog-id: 1
@@ -259,7 +259,7 @@ completion-snapshots:
 
   - name: call_options_keyword_prefix
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (title
       catalog-id: 1
@@ -282,7 +282,7 @@ completion-snapshots:
 
   - name: call_options_used
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project => 'a',
       catalog-id: 1
@@ -328,7 +328,7 @@ completion-snapshots:
 
   - name: call_options_inside
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project => 'a', ); select 1;
       catalog-id: 1
@@ -382,7 +382,7 @@ completion-snapshots:
 
   - name: call_value
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project =>
       catalog-id: 1
@@ -399,7 +399,7 @@ completion-snapshots:
 
   - name: call_attributes
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (assignee => (
       catalog-id: 1
@@ -428,7 +428,7 @@ completion-snapshots:
 
   - name: call_attributes_recursive
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (components => [(name = 'a', children = [(
       catalog-id: 1
@@ -462,7 +462,7 @@ completion-snapshots:
 
   - name: call_attributes_free_form
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (metadata => (
       catalog-id: 1
@@ -479,7 +479,7 @@ completion-snapshots:
 
   - name: call_attributes_keyword
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (assignee => (select = 1,
       catalog-id: 1
@@ -513,7 +513,7 @@ completion-snapshots:
 
   - name: call_embedded_sql
     catalog:
-      overlay: tickets
+      client_functions: tickets
       script:
         input: create table alerts (host text);
         catalog-id: 1
@@ -573,7 +573,7 @@ completion-snapshots:
 
   - name: call_after_embedded_sql
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (affected => (select (1)),
       catalog-id: 1
@@ -616,12 +616,12 @@ completion-snapshots:
 
   - name: call_after
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_list (project => 'a'); sel
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -667,7 +667,7 @@ completion-snapshots:
 
   - name: call_quoted_option
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.ticket_create (X-
       catalog-id: 1
@@ -690,7 +690,7 @@ completion-snapshots:
 
   - name: call_explain
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: explain call tickets.ticket_delete (
       catalog-id: 1
@@ -713,7 +713,7 @@ completion-snapshots:
 
   - name: call_pending_options
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.export_start (format => 'csv', _
       catalog-id: 1
@@ -747,7 +747,7 @@ completion-snapshots:
 
   - name: call_union_all_variants
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.rule_create (trigger => (
       catalog-id: 1
@@ -782,7 +782,7 @@ completion-snapshots:
 
   - name: call_union_narrowed_by_attribute
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.rule_create (trigger => (event = 'x',
       catalog-id: 1
@@ -810,7 +810,7 @@ completion-snapshots:
 
   - name: call_union_narrowed_by_tag
     catalog:
-      overlay: tickets
+      client_functions: tickets
     editor:
       input: call tickets.rule_create (target => (kind = 'queue',
       catalog-id: 1

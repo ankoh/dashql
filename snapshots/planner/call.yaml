@@ -59,7 +59,7 @@ planner-snapshots:
           message: unsupported statement effects; backend session semantics are not guaranteed
 
   - name: CallRegisteredNamespace
-    overlay: tickets
+    client_functions: tickets
     scripts:
       - name: queries
         input: |
@@ -127,14 +127,14 @@ planner-snapshots:
         - node: 1
           script: queries
           error: true
-          message: 'CALL tickets.*: overlay calls can''t run yet'
+          message: 'CALL tickets.*: client function calls can''t run yet'
         - node: 2
           script: queries
           error: true
-          message: 'CALL tickets.*: overlay calls can''t run yet'
+          message: 'CALL tickets.*: client function calls can''t run yet'
 
   - name: CallShadowing
-    overlay: tickets
+    client_functions: tickets
     scripts:
       - name: queries
         input: |
@@ -182,7 +182,7 @@ planner-snapshots:
         - node: 1
           script: queries
           error: true
-          message: 'CALL tickets.*: overlay calls can''t run yet'
+          message: 'CALL tickets.*: client function calls can''t run yet'
         - node: 1
           script: queries
           error: false

@@ -1054,15 +1054,15 @@ export class DashQLCatalog {
         this.ptr.assertNotNull().dropDescriptor(id);
         this.deleteSnapshot();
     }
-    /// Register an overlay from its JSON spec and return its namespace. The namespace must be free.
-    public registerOverlay(spec: string): string {
-        const namespace = this.ptr.assertNotNull().registerOverlay(spec);
+    /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
+    public registerClientFunctions(spec: string): string {
+        const namespace = this.ptr.assertNotNull().registerClientFunctions(spec);
         this.deleteSnapshot();
         return namespace;
     }
-    /// Drop the overlay of a namespace
-    public dropOverlay(namespace: string): void {
-        this.ptr.assertNotNull().dropOverlay(namespace);
+    /// Drop the client functions of a namespace
+    public dropClientFunctions(namespace: string): void {
+        this.ptr.assertNotNull().dropClientFunctions(namespace);
         this.deleteSnapshot();
     }
     /// Apply catalog changes to a descriptor entry, an unknown entry is created in the layer

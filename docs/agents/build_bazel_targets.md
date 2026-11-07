@@ -115,7 +115,7 @@ bazel test //...
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
 | `//packages/dashql-core-session:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
-| `//overlay/d360:all` | The Data 360 overlay: `api/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `overlay/d360/docs/overview.md`. `bazel run //overlay/d360:update` regenerates the documents and fixtures |
+| `//extensions/d360:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360/clfn/docs/overview.md`. `bazel run //extensions/d360:update` regenerates the documents and fixtures |
 | `//packages/dashql-core-js:all` | Core Node unit, assembled-runtime, and tarball consumer tests |
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
@@ -448,7 +448,7 @@ bazel run //packages/dashql-cli:dashql -- lint --schema schema.sql query.sql
 files that aren't formatted, and `--dialect trino` formats Trino scripts.
 
 ```bash
-bazel run //packages/dashql-cli:dashql -- format --write overlay/d360/snippets
+bazel run //packages/dashql-cli:dashql -- format --write extensions/d360/snippets
 ```
 
 ### Before Committing

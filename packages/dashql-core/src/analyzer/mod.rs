@@ -7,7 +7,7 @@
 //! The scanned script is not modified. The analyzed script owns a copy of the names with the
 //! analyzer tags and the objects they resolve to.
 
-pub mod overlay_calls;
+pub mod clfn_calls;
 mod constants;
 mod function_calls;
 pub mod manual_tag;
@@ -19,7 +19,7 @@ mod state;
 pub mod types;
 mod vis_tags;
 
-pub use overlay_calls::OverlayCall;
+pub use clfn_calls::ClientFunctionCall;
 pub use sql_types::{SqlType, SqlTypeKind};
 pub use types::*;
 pub use vis_tags::{has_vis_tags, statement_output_columns};
@@ -72,8 +72,8 @@ pub struct AnalyzedScript {
     pub constant_expressions: Vec<ConstantExpression>,
     /// The parameters, in the order of the script
     pub parameters: Vec<Parameter>,
-    /// The calls in a namespace with an overlay
-    pub overlay_calls: Vec<OverlayCall>,
+    /// The calls in a namespace with client functions
+    pub client_function_calls: Vec<ClientFunctionCall>,
     /// The visualization specs
     pub visualization_specs: Vec<VisualizationSpec>,
     /// The dashboard placement of the script, the `@board` tag of its last statement
@@ -174,7 +174,7 @@ pub fn analyze_with(parsed: Arc<ParsedScript>, catalog: &Catalog, table_paramete
     vis_tags::analyze(&mut state);
     param_tags::analyze(&mut state);
     manual_tag::analyze(&mut state);
-    overlay_calls::analyze(&mut state);
+    clfn_calls::analyze(&mut state);
 
     let mut out = state.into_script();
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed

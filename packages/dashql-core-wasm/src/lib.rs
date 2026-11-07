@@ -188,16 +188,16 @@ impl Catalog {
         self.inner.borrow_mut().drop_descriptor(id).map_err(js_error)
     }
 
-    /// Register an overlay from its JSON spec and return its namespace. The namespace must be free.
-    #[wasm_bindgen(js_name = registerOverlay)]
-    pub fn register_overlay(&self, spec: &str) -> Result<String, JsError> {
-        self.inner.borrow_mut().register_overlay(spec).map(|namespace| namespace.to_string()).map_err(js_error)
+    /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
+    #[wasm_bindgen(js_name = registerClientFunctions)]
+    pub fn register_client_functions(&self, spec: &str) -> Result<String, JsError> {
+        self.inner.borrow_mut().register_client_functions(spec).map(|namespace| namespace.to_string()).map_err(js_error)
     }
 
-    /// Drop the overlay of a namespace
-    #[wasm_bindgen(js_name = dropOverlay)]
-    pub fn drop_overlay(&self, namespace: &str) {
-        self.inner.borrow_mut().drop_overlay(namespace);
+    /// Drop the client functions of a namespace
+    #[wasm_bindgen(js_name = dropClientFunctions)]
+    pub fn drop_client_functions(&self, namespace: &str) {
+        self.inner.borrow_mut().drop_client_functions(namespace);
     }
 
     /// Apply packed `CatalogChanges` to a descriptor entry, an unknown entry is created in the layer

@@ -1,6 +1,0 @@
-# The Data 360 reference, its family documents are generated from overlay/d360/api/*.yaml.
-filegroup(
-    name = "reference",
-    srcs = glob(["*.md"]),
-    visibility = ["//overlay/d360:__pkg__"],
-)

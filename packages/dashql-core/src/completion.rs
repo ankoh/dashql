@@ -590,8 +590,8 @@ impl<'c, 'a> Completion<'c, 'a> {
         if completion.complete_table_parameter(&location) {
             return completion;
         }
-        // A function, an option or an attribute of an overlay call
-        if crate::completion_overlay::complete_overlay_call(&mut completion, k) {
+        // A function, an option or an attribute of a client function call
+        if crate::completion_clfn::complete_client_function_call(&mut completion, k) {
             return completion;
         }
         let mut previous_symbol = location.previous;
@@ -838,9 +838,9 @@ impl<'c, 'a> Completion<'c, 'a> {
                 .any(|&n| parsed.nodes[n as usize].node_type() == NodeType::OBJECT_SQL_SELECT)
         });
 
-        // CALL is only worth offering if an overlay gives it a meaning, it must not outrank CREATE otherwise
-        let has_overlays = !self.catalog().overlays().is_empty();
-        let offers = |keyword: SymbolKind| keyword != S_CALL_P || has_overlays;
+        // CALL is only worth offering if client functions give it a meaning, it must not outrank CREATE otherwise
+        let has_client_functions = !self.catalog().client_function_specs().is_empty();
+        let offers = |keyword: SymbolKind| keyword != S_CALL_P || has_client_functions;
 
         // Probe the keywords against the tokens after the cursor
         let mut probes = Vec::new();

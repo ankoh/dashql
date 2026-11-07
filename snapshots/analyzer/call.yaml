@@ -17,7 +17,7 @@ analyzer-snapshots:
 
   - name: call_other_namespace
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call other.f (a => 1);
       catalog-id: 1
@@ -34,12 +34,12 @@ analyzer-snapshots:
 
   - name: call_valid
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'OPS', page_size => 50);
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -63,12 +63,12 @@ analyzer-snapshots:
 
   - name: call_case_folding
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: CALL TICKETS.TICKET_LIST (PROJECT => 'OPS', Page_Size => 50);
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -92,7 +92,7 @@ analyzer-snapshots:
 
   - name: call_values
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_create (
@@ -103,7 +103,7 @@ analyzer-snapshots:
         );
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_create
@@ -176,7 +176,7 @@ analyzer-snapshots:
 
   - name: call_embedded_sql
     catalog:
-      overlay: tickets
+      client_functions: tickets
       script:
         input: create table alerts (host text, level int);
         catalog-id: 1
@@ -201,7 +201,7 @@ analyzer-snapshots:
       input: call tickets.ticket_create (project => 'a', title => 'b', affected => ((select host from alerts where level > 1)));
       catalog-id: 2
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_create
@@ -257,13 +257,13 @@ analyzer-snapshots:
 
   - name: call_bindings
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.webhook_create (url => :hook_url, signing_key => :hook_key, credentials => [(param_name = 'pw', value = :stored)]);
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: webhook_create
@@ -293,18 +293,18 @@ analyzer-snapshots:
 
   - name: call_explain
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: explain call tickets.ticket_delete (idd => 7);
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: 'tickets.ticket_delete has no option idd, did you mean id?'
           text: "idd"
-        - type: OVERLAY_MISSING_OPTION
+        - type: CLIENT_FUNCTION_MISSING_OPTION
           message: tickets.ticket_delete needs the option id
           text: "call ticke..(idd => 7)"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_delete
@@ -321,15 +321,15 @@ analyzer-snapshots:
 
   - name: call_unknown_function
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_lst (project => 'a');
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_FUNCTION
+        - type: CLIENT_FUNCTION_UNKNOWN_FUNCTION
           message: 'unknown function tickets.ticket_lst, did you mean ticket_list?'
           text: "tickets.ticket_lst"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
       expressions:
@@ -344,35 +344,35 @@ analyzer-snapshots:
 
   - name: call_unknown_function_path
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.a.b ();
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_FUNCTION
+        - type: CLIENT_FUNCTION_UNKNOWN_FUNCTION
           message: unknown function tickets.a.b
           text: "tickets.a.b"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
 
   - name: call_unknown_options
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'a', batch_size => 1, pageSize => 2, offset => 3);
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: tickets.ticket_list has no option batch_size
           text: "batch_size"
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: 'tickets.ticket_list has no option pageSize, did you mean page_size?'
           text: "pageSize"
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: tickets.ticket_list has no option offset
           text: "offset"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -410,12 +410,12 @@ analyzer-snapshots:
 
   - name: call_quoted_unknown
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'a', "pageSize" => 2, "offset" => 3);
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -446,12 +446,12 @@ analyzer-snapshots:
 
   - name: call_quoted_known
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_create (project => 'a', title => 'b', "X-Trace-Id" => 'c', datasourceid__c => 'd');
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_create
@@ -489,18 +489,18 @@ analyzer-snapshots:
 
   - name: call_missing_and_duplicate
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_create (project => 'a', PROJECT => 'b');
       catalog-id: 1
       errors:
-        - type: OVERLAY_DUPLICATE_OPTION
+        - type: CLIENT_FUNCTION_DUPLICATE_OPTION
           message: duplicate option project
           text: "PROJECT"
-        - type: OVERLAY_MISSING_OPTION
+        - type: CLIENT_FUNCTION_MISSING_OPTION
           message: tickets.ticket_create needs the option title
           text: "call ticke..CT => 'b')"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_create
@@ -524,7 +524,7 @@ analyzer-snapshots:
 
   - name: call_nested_attributes
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_create (
@@ -535,16 +535,16 @@ analyzer-snapshots:
         );
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: no attribute nam here
           text: "nam"
-        - type: OVERLAY_MISSING_OPTION
+        - type: CLIENT_FUNCTION_MISSING_OPTION
           message: needs the attribute id
           text: "(notify = ..nam = 'x')"
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: 'no attribute nmae here, did you mean name?'
           text: "nmae"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_create
@@ -596,17 +596,17 @@ analyzer-snapshots:
 
   - name: call_unknown_policies
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_create (project => 'a', title => 'b', inferred => (other = 1), metadata => (someKey = 1, "with space" = 2));
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           severity: WARNING
           message: no attribute other here
           text: "other"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_create
@@ -651,16 +651,16 @@ analyzer-snapshots:
 
   - name: call_unknown_option_warning
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_search (query => 'a', other => 1);
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           severity: WARNING
           message: tickets.ticket_search has no option other
           text: "other"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_search
@@ -684,12 +684,12 @@ analyzer-snapshots:
 
   - name: call_raw
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.request (method => 'POST', path => '/x', body => (a = 1), someParam => 1);
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: request
@@ -727,7 +727,7 @@ analyzer-snapshots:
 
   - name: call_credentials
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.webhook_create (
@@ -739,7 +739,7 @@ analyzer-snapshots:
         );
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: webhook_create
@@ -782,21 +782,21 @@ analyzer-snapshots:
 
   - name: call_invalid_functions
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => now(), page_size => secret(a), page_token => cast(1 as text));
       catalog-id: 1
       errors:
-        - type: OVERLAY_INVALID_VALUE
+        - type: CLIENT_FUNCTION_INVALID_VALUE
           message: a value can't call a function
           text: "now()"
-        - type: OVERLAY_INVALID_VALUE
+        - type: CLIENT_FUNCTION_INVALID_VALUE
           message: a value can't call a function
           text: "secret(a)"
-        - type: OVERLAY_INVALID_VALUE
+        - type: CLIENT_FUNCTION_INVALID_VALUE
           message: a value can't call a function
           text: "cast(1 as text)"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -834,13 +834,13 @@ analyzer-snapshots:
 
   - name: call_paging
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_list (project => 'a', page_size => 50, _next => 'abc', _pages => 10);
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -878,12 +878,12 @@ analyzer-snapshots:
 
   - name: call_paging_url
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_feed (_next => '/feed?page=2');
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_feed
@@ -900,15 +900,15 @@ analyzer-snapshots:
 
   - name: call_paging_conflict
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_list (project => 'a', page_token => 'x', _next => 'y');
       catalog-id: 1
       errors:
-        - type: OVERLAY_DUPLICATE_OPTION
+        - type: CLIENT_FUNCTION_DUPLICATE_OPTION
           message: '_next sets the option page_token, use one of them'
           text: "call ticke..xt => 'y')"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -939,23 +939,23 @@ analyzer-snapshots:
 
   - name: call_paging_errors
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.ticket_list (project => 'a', _pages => 0);
         call tickets.ticket_delete (id => 1, _next => 'x', _unknown => 1);
       catalog-id: 1
       errors:
-        - type: OVERLAY_INVALID_VALUE
+        - type: CLIENT_FUNCTION_INVALID_VALUE
           message: _pages takes a positive number
           text: "0"
-        - type: OVERLAY_UNSUPPORTED_OPTION
+        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
           message: tickets.ticket_delete has no option _next
           text: "_next"
-        - type: OVERLAY_UNSUPPORTED_OPTION
+        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
           message: tickets.ticket_delete has no option _unknown
           text: "_unknown"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_list
@@ -1004,14 +1004,14 @@ analyzer-snapshots:
 
   - name: call_pending
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: |
         call tickets.export_start (format => 'csv', _wait => 60);
         call tickets.export_start (_poll => '/results/1');
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: export_start
@@ -1046,18 +1046,18 @@ analyzer-snapshots:
 
   - name: call_pending_errors
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.ticket_delete (id => 1, _wait => 60, _poll => 'x');
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNSUPPORTED_OPTION
+        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
           message: tickets.ticket_delete has no option _wait
           text: "_wait"
-        - type: OVERLAY_UNSUPPORTED_OPTION
+        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
           message: tickets.ticket_delete has no option _poll
           text: "_poll"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: ticket_delete
@@ -1088,12 +1088,12 @@ analyzer-snapshots:
 
   - name: call_union_tag
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = 'EMAIL', address = 'a@b.c', owner = (id = 1)));
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
@@ -1124,18 +1124,18 @@ analyzer-snapshots:
 
   - name: call_union_tag_mismatch
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = 'Email', queue = 'ops'));
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: no attribute queue when kind is 'Email'
           text: "queue"
-        - type: OVERLAY_MISSING_OPTION
+        - type: CLIENT_FUNCTION_MISSING_OPTION
           message: needs the attribute address
           text: "(kind = 'E..e = 'ops')"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
@@ -1159,12 +1159,12 @@ analyzer-snapshots:
 
   - name: call_union_tag_parameter
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = :kind, queue = 'ops'));
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
@@ -1186,12 +1186,12 @@ analyzer-snapshots:
 
   - name: call_union_shape
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (trigger => (event = 'created', filter = 'x'));
       catalog-id: 1
       errors: []
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
@@ -1215,15 +1215,15 @@ analyzer-snapshots:
 
   - name: call_union_shape_conflict
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (trigger => (event = 'created', cron = '* * * * *'));
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: cron does not fit the attributes before it
           text: "cron"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
@@ -1247,18 +1247,18 @@ analyzer-snapshots:
 
   - name: call_union_unknown
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (trigger => (evnt = 'created'));
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: 'no attribute evnt here, did you mean event?'
           text: "evnt"
-        - type: OVERLAY_MISSING_OPTION
+        - type: CLIENT_FUNCTION_MISSING_OPTION
           message: 'needs one of the attributes cron, event'
           text: "(evnt = 'created')"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
@@ -1275,18 +1275,18 @@ analyzer-snapshots:
 
   - name: call_union_nested
     catalog:
-      overlay: tickets
+      client_functions: tickets
     script:
       input: call tickets.rule_create (target => (kind = 'Queue', queue = 'ops', owner = (nope = 1)));
       catalog-id: 1
       errors:
-        - type: OVERLAY_UNKNOWN_OPTION
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
           message: no attribute nope here
           text: "nope"
-        - type: OVERLAY_MISSING_OPTION
+        - type: CLIENT_FUNCTION_MISSING_OPTION
           message: needs the attribute id
           text: "(nope = 1)"
-      overlay-calls:
+      client-function-calls:
         - statement: 0
           namespace: tickets
           function: rule_create
