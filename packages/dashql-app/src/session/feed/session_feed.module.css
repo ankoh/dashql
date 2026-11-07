@@ -595,7 +595,6 @@ button.feed_entry_mention {
 }
 
 .feed_script_editor :global(.cm-scroller) {
-    overflow-y: auto;
     padding: 0;
 }
 

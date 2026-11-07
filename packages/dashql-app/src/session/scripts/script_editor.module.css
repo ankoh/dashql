@@ -19,7 +19,9 @@
     height: auto;
 }
 
+/* The editor grows with its lines, so only long lines scroll, sideways */
 .auto_height_editor :global(.cm-scroller) {
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
     max-height: none;
 }
