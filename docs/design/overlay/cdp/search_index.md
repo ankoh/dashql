@@ -4,7 +4,7 @@ Part of the [CDP function reference](functions.md). Nothing here is implemented 
 
 A search index makes the text in a data model object (DMO) searchable by meaning. Data 360 splits the text into chunks, embeds them, and generates two DMOs: `<name>_chunk__dlm` holds the chunk text and `<name>_index__dlm` holds the searchable index. You query them with SQL, and [retrievers](machine_learning.md) build on them.
 
-The order is: map data into the source DMO, read `search_index_config`, run `search_index_create`, poll `search_index_get` until `runtime_status` is `READY`, then search with `query_sql`.
+The order is: map data into the source DMO, read `search_index_config`, run `search_index_create`, poll `search_index_get` until `runtime_status` is `READY`, then search with a `SELECT` over the connection.
 
 Gotchas that matter most:
 
@@ -17,13 +17,11 @@ Gotchas that matter most:
 CALL cdp.search_index_config ();
 /* search_index_create goes here, see its example */
 CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
-CALL cdp.query_sql (sql => $$
-  SELECT v."hybrid_score__c", c."Chunk__c", c."SourceRecordId__c"
-  FROM hybrid_search(TABLE("Articles_Search_index__dlm"), 'reset password', '', 5) AS v
-  INNER JOIN "Articles_Search_chunk__dlm" AS c ON c."RecordId__c" = v."RecordId__c"
-  ORDER BY v."hybrid_score__c" DESC
-  LIMIT 5
-$$);
+SELECT v."hybrid_score__c", c."Chunk__c", c."SourceRecordId__c"
+FROM hybrid_search(TABLE("Articles_Search_index__dlm"), 'reset password', '', 5) AS v
+INNER JOIN "Articles_Search_chunk__dlm" AS c ON c."RecordId__c" = v."RecordId__c"
+ORDER BY v."hybrid_score__c" DESC
+LIMIT 5;
 ```
 
 **Functions:** [`search_index_delete`](#search_index_delete), [`search_index_list`](#search_index_list), [`search_index_get`](#search_index_get), [`search_index_config`](#search_index_config), [`search_index_update`](#search_index_update), [`search_index_create`](#search_index_create), [`search_index_process_history`](#search_index_process_history)
@@ -357,7 +355,7 @@ Salesforce's docs agree on the cause: [chunking runs only on content that exists
 - The body: Salesforce's request class also has `parsing_configurations`, `pre_processing_configurations`, `post_processing_configurations`, `rule_configuration`, `semantic_search_ranking_configurations`, `source_app` and `source_app_developer_name`, which the spec lacks.
 - Data space: the spec has no data space option, but [Salesforce's kit](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/intelligent-context/SKILL.md) posts with `?dataspace=default`.
 
-**Reading the index.** Run `vector_search` or `hybrid_search` through `query_sql`. The arguments are `TABLE("<name>_index__dlm")`, the search text, a prefilter string (`''` if none) and the number of results. The spec's retriever examples join `c."RecordId__c" = v."RecordId__c"`, then `c."SourceRecordId__c"` to the source DMO's key. Some also read `Chunk__c`, `DataSource__c` and `DataSourceObject__c` from the chunk DMO. A prefilter is a string, so its quotes double: `'Language__c = ''en_US'''`. [One community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/query/searchSql.ts) joins `v."SourceRecordId__c" = c."RecordId__c"` instead, but it labels that SQL unverified, so prefer the spec's form. [Another community example](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-ai-agentforce-observability/references/query-patterns.md) uses the spec's join. Salesforce's [published SQL reference doesn't cover these functions](https://developer.salesforce.com/docs/llms-data-cloud.txt), going by its index. No source says whether `hybrid_search` works on a `VECTOR` index.
+**Reading the index.** Run `vector_search` or `hybrid_search` in a `SELECT` over the connection. The arguments are `TABLE("<name>_index__dlm")`, the search text, a prefilter string (`''` if none) and the number of results. The spec's retriever examples join `c."RecordId__c" = v."RecordId__c"`, then `c."SourceRecordId__c"` to the source DMO's key. Some also read `Chunk__c`, `DataSource__c` and `DataSourceObject__c` from the chunk DMO. A prefilter is a string, so its quotes double: `'Language__c = ''en_US'''`. [One community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/src/query/searchSql.ts) joins `v."SourceRecordId__c" = c."RecordId__c"` instead, but it labels that SQL unverified, so prefer the spec's form. [Another community example](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-ai-agentforce-observability/references/query-patterns.md) uses the spec's join. Salesforce's [published SQL reference doesn't cover these functions](https://developer.salesforce.com/docs/llms-data-cloud.txt), going by its index. No source says whether `hybrid_search` works on a `VECTOR` index.
 
 ## search_index_process_history
 

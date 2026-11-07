@@ -2,7 +2,7 @@
 
 Status: work in progress, part of the [CDP SQL](overview.md) spec. Nothing here is implemented, and nothing has been tested against an org.
 
-This is the reference for `CALL cdp.<function>(...)`: 538 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading.
+This is the reference for `CALL cdp.<function>(...)`: 534 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading.
 
 The overlay holds all of it, so completion offers exactly what a position takes and a misplaced attribute gets a diagnostic. See [the Data 360 doc](overview.md) and [overlays](../../overlay.md).
 
@@ -39,7 +39,6 @@ The overlay holds all of it, so completion offers exactly what a position takes 
 | [Personalization](personalization.md) | 21 | S 21 | This family configures Salesforce Personalization: which content a website or mobile app shows, to whom, and how it renders. |
 | [Private Network Routes](private_network_routes.md) | 4 | O 4 | A private network route (PNR) connects a Data 360 tenant to a data source without sending traffic over the public internet. |
 | [Profiles, Insights and Metadata](profiles_and_metadata.md) | 27 | D 14, O 12, S 1 | These calls read what exists in an org and fetch single records, without SQL. |
-| [Query](query.md) | 4 | O 4 | These calls run Data 360 SQL over REST and give you a `query_id`. |
 | [Search Index](search_index.md) | 7 | O 6, S 1 | A search index makes the text in a data model object (DMO) searchable by meaning. |
 | [Segments](segments.md) | 11 | O 11 | A segment is a named audience built on a data model object (DMO), such as every individual with an order over 5000. |
 | [Semantic Models](semantic_models.md) | 38 | S 38 | A semantic model (SDM) is a named layer over existing DMOs, DLOs and calculated insights. |
@@ -63,7 +62,7 @@ Each function has the same parts:
 
 | Tag | Functions | Meaning |
 |---|---:|---|
-| O | 411 | In the official Connect API contract, v68, as normalized in Salesforce's [`sf-pi`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-contracts.json) repository |
+| O | 407 | In the official Connect API contract, v68, as normalized in Salesforce's [`sf-pi`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-contracts.json) repository |
 | S | 86 | Only in Salesforce's [MCP server](https://github.com/forcedotcom/d360-mcp-server) source, not in the contract. Includes Semantic Models and Personalization, which have their own APIs |
 | D | 39 | Official documentation pages for APIs outside the contract: ingestion, agentic memory, direct reads, consent |
 | C | 2 | Community sources only |
@@ -133,6 +132,6 @@ This shows the shape only. These values are made up, since nothing has run again
 | `d360_smart_mapping_suggest`, `d360_preview_field_matches`, `d360_smart_datastream_create`, `d360_event_date_recommend` | MCP helpers that compute suggestions or wrap other calls |
 | `d360_standard_mapping_preview`, `d360_standard_mapping_create` | MCP tools for predefined mappings, which may be one or more `dmo_mapping_create` calls |
 | `search`, `execute`, `payload_examples` | The MCP server's own discovery tools |
-| Query API v1, v2 and v3: `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2` | Left out on purpose: the Salesforce connection subsumes them, since a script's `SELECT` already runs over that connection. This leaves out 3 of the contract's 414 operations |
+| The Query API: `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2`, `/ssot/query-sql` | Left out on purpose: the Salesforce connection subsumes it, since a script's `SELECT` already runs over that connection. This leaves out 7 of the contract's 414 operations |
 
 Anything else goes through `cdp.request`, see [the escape hatch](overview.md#the-escape-hatch).

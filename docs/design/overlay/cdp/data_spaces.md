@@ -10,7 +10,7 @@ A data space is an [isolated workspace](https://github.com/forcedotcom/d360-mcp-
 
 | Where | Calls |
 |---|---|
-| `dataspace` query | `metadata`, mappings, DMO relationships, `segment_list`, `segment_create`, the calculated insight list, data graphs, data actions, `query_sql` |
+| `dataspace` query | `metadata`, mappings, DMO relationships, `segment_list`, `segment_create`, the calculated insight list, data graphs, data actions |
 | `dataspace` query | Activation and target enable, disable and metadata lookups |
 | `dataspace_name` or `dataspace_id` query | Object access grants; capping dimensions |
 | Body field | `dataspace_name` on `dmo_create`, `activation_create`; `dataspace_info` on `dlo_create`, `datastream_create` |

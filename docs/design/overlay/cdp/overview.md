@@ -39,7 +39,7 @@ CALL cdp.segment_create (
 CALL cdp.segment_list (batch_size => 200, offset => 0);
 CALL cdp.segment_list (batch_size => 200, _pages => 5);
 CALL cdp.segment_publish (segment_id => '1sgRM0000000001');
-CALL cdp.query_sql_status (query_id => :query_id);
+CALL cdp.segment_get (segment_api_name => :segment);
 
 /* Any endpoint the spec doesn't know yet */
 CALL cdp.request (method => 'POST', path => '/ssot/new-thing', body => (a = 1));
@@ -123,7 +123,7 @@ A schema inferred from examples can miss attributes. The prototype hit this with
 
 ## Functions and options
 
-- **The Query API is left out on purpose.** The Salesforce connection subsumes it: a script's `SELECT` already runs over that connection, so `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query` and `/ssot/queryv2` get no functions. `cdp.request` can still reach them.
+- **The Query API is left out on purpose.** The Salesforce connection subsumes it: a script's `SELECT` already runs over that connection, so `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2` and `/ssot/query-sql` get no functions. `cdp.request` can still reach them.
 - **One function per HTTP operation.** Variants collapse: `datastream_create_snowflake` is an ordinary `datastream_create` with particular attributes.
 - **Function names** follow Salesforce's MCP tool names without `d360_` where a tool exists, so its skills and examples transfer. Others follow the same `<noun>_<verb>` pattern, derived from the spec's summary.
 - **Option names** are the API's names in snake_case. The rare clash between a body field and a path or query parameter gets a prefix on the body field: `segment_create` has both `dataspace` (query) and `body_dataspace` (body). A handful of functions need this.
@@ -230,4 +230,3 @@ The [overlay roadmap](../../overlay.md#roadmap) comes first, up to its generator
 3. **Which spec version.** The API has versions, and a spec is generated from one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
 4. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.
 5. **Unpublished endpoints.** Sources mention calls no function covers: `POST /personalization/decisions`, `/ssot/intelligent-context/{lens}/chunks`, `/ssot/metadata-entities/{nextBatchId}`, some semantic model endpoints, and community-reported agent calls. They work through `cdp.request` for now.
-6. **The `query` family.** [functions.md](functions.md) lists a [Query](query.md) family with 4 functions, including `query_sql`, but its document is missing from the repository. It needs restoring or regenerating.

@@ -156,7 +156,7 @@ Data 360 has several, and DashQL's grammar can't enforce their differences.
 
 | Dialect | Where | Notes |
 |---|---|---|
-| Query SQL | `query_sql` | Shared with the Hyper API; treat as read-only. Parameters: `:name` (D) |
+| Query SQL | A script's `SELECT` over the connection | Shared with the Hyper API; treat as read-only. Parameters: `:name` (D) |
 | Segment SQL | `includeDbt` | Below |
 | Insight SQL | `ci_create` | `apiName` ends in `__cio`, columns as `table.column`, no `COUNT(DISTINCT)` (use `APPROX_COUNT_DISTINCT`), subqueries, `CAST AS FLOAT` or `CURRENT_DATE - INTERVAL` (S). No dimensions or measures arrays |
 | Transforms | `transform_create` | Batch DCSQL. Streaming SQL allows row-level functions, no aggregates or window functions. On joins, the payload note rejects outer joins (S), while Help allows `LEFT JOIN` (X) |

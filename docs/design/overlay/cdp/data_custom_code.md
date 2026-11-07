@@ -236,7 +236,7 @@ One row. Schema `CustomCodeExecutionBaseRepresentation`.
 
 **Notes:** A run has ended when `status` is `Success`, `Failure` or `Cancelled`. The [docs](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/view-deployment-details.md) list `Running`, `Success` and `Failure`, and the spec adds `Cancelled`.
 
-The script's own log lines aren't in this result. They are in the `DataCustomCodeLogs__dll` DLO, which you read with `query_sql`. They can [take about 10 minutes to appear, and messages are cut at 31,072 characters](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/query-logs-api.md). The docs filter that DLO by `ExecutionId__c`, and don't say that it equals this call's `id`. The spec defines `CustomCodeExecutionLogRepresentation` with a `downloadUrl`, but no operation in the spec returns it.
+The script's own log lines aren't in this result. They are in the `DataCustomCodeLogs__dll` DLO, which you read with a `SELECT` over the connection. They can [take about 10 minutes to appear, and messages are cut at 31,072 characters](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/query-logs-api.md). The docs filter that DLO by `ExecutionId__c`, and don't say that it equals this call's `id`. The spec defines `CustomCodeExecutionLogRepresentation` with a `downloadUrl`, but no operation in the spec returns it.
 
 ## custom_code_deployment_update
 
@@ -368,4 +368,3 @@ The SDK also sends `code_type` in lowercase (`script`, `function`), while the sp
 | `CPU_L` | `CPU_4XL` | Standard - 4X-Large | 32 |
 
 **After `Deployed`.** A script does nothing until a transform uses it, and the SDK creates one right away. Its `definition` is the `DCSQL` manifest in the [intro example](#data-custom-code), with one `nodes` entry per output object and one `sources` entry per input. Output objects [must exist, in the same data space](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/README.md), for the DLO case. DMO outputs also need `output_data_objects` in the definition. A function is [chosen in a search index](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/use-custom-code.md) instead.
-

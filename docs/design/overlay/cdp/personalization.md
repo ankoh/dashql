@@ -559,7 +559,7 @@ One row. No source shows a real response. These columns are the attributes of th
 | `content_object` | `contentObject` | JSON | [PersonalizationContentObject](#personalizationcontentobject). |
 | `related_content_objects` | `relatedContentObjects` | JSON | Array of [PersonalizationRelatedContentObject](#personalizationrelatedcontentobject). |
 
-**Notes:** No source has a list call for schemas. The docs describe a [`ssot__PersonalizationSchema__dlm`](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationschemadmo-dmo.md) DMO with `Name`, `PersonalizationType` and `IsActive`, which [`query_sql`](query.md#query_sql) could read, but they don't say it holds every schema created here.
+**Notes:** No source has a list call for schemas. The docs describe a [`ssot__PersonalizationSchema__dlm`](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationschemadmo-dmo.md) DMO with `Name`, `PersonalizationType` and `IsActive`, which a `SELECT` over the connection could read, but they don't say it holds every schema created here.
 
 ## p13n_schema_update
 
@@ -718,7 +718,7 @@ One row. No source shows a real response. These columns are the request attribut
 | `decisions` | `decisions` | JSON | Array of [PersonalizationDecision](#personalizationdecision). |
 | `status` | `status` | VARCHAR | Current sync status. Only the test mock shows this name, with `Active`. The [Point DMO](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md) lists `Processing`, `Active`, `Error` and `Deleting`. |
 
-**Notes:** No source has a list call for points. The docs describe a [`ssot__PersonalizationPoint__dlm`](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md) DMO with `Name` and `PersonalizationPointStatus`, which [`query_sql`](query.md#query_sql) could read, but they don't say it holds every point created here.
+**Notes:** No source has a list call for points. The docs describe a [`ssot__PersonalizationPoint__dlm`](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.md) DMO with `Name` and `PersonalizationPointStatus`, which a `SELECT` over the connection could read, but they don't say it holds every point created here.
 
 ## p13n_point_update
 

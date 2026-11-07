@@ -6,7 +6,7 @@ This family trains predictive models, serves them, and manages retrievers for AI
 
 Training runs in this order. Inspect the data with `ml_query_setup_fields`, `ml_query_data_profile`, `ml_query_outcome` and `ml_query_row_count`. Then call `ml_model_setup_create`, `ml_setup_version_create` and `ml_setup_version_update` with `status = 'Training'`. A version that reaches `Published` produces a model artifact, and you wrap that artifact with `ml_configured_model_create`. Enable the configured model, then either score rows with `ml_predict` or batch-score a DMO with a prediction job.
 
-Retrievers are separate. They need a search index with `runtime_status` = `READY`. Test one with `hybrid_search()` through `query_sql`.
+Retrievers are separate. They need a search index with `runtime_status` = `READY`. Test one with `hybrid_search()` in a `SELECT` over the connection.
 
 The gotchas that matter most:
 

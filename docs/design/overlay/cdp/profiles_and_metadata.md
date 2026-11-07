@@ -2,7 +2,7 @@
 
 Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
-These calls read what exists in an org and fetch single records, without SQL. There are four groups: metadata (which objects and fields exist), profile reads, calculated insight reads and ID lookups. The docs [recommend these over custom SQL](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/obj-specific-apis.md) where one fits. For joins, aggregates or engagement data, use [Query](query.md).
+These calls read what exists in an org and fetch single records, without SQL. There are four groups: metadata (which objects and fields exist), profile reads, calculated insight reads and ID lookups. The docs [recommend these over custom SQL](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/obj-specific-apis.md) where one fits. For joins, aggregates or engagement data, use a `SELECT` over the connection.
 
 **Order:** find a name with `metadata_search` or `metadata_entities`, describe it with `metadata`, then read records. Every read takes an API name such as `ssot__Individual__dlm`.
 
