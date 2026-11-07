@@ -1,8 +1,10 @@
 //! dashql: the command line tool of DashQL.
 //! `dashql agent` reaches the DashQL session that is open in the browser or the desktop app through the local agent
-//! server, which `dashql agent serve` runs. `dashql lint` lints SQL files on disk with the native dashql-core.
+//! server, which `dashql agent serve` runs. `dashql lint` lints and `dashql format` pretty prints SQL files on disk with
+//! the native dashql-core.
 
 mod agent;
+mod format_files;
 mod inputs;
 mod lint;
 mod lint_files;
@@ -19,6 +21,7 @@ const USAGE: &str = "Usage: dashql <command> [options]
 Commands:
   agent <command>                     Work with the DashQL session that is open in the browser or the desktop app,
                                       through the local agent server, see dashql agent --help
+  format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
   lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help";
 
 fn env_var(name: &str) -> Option<String> {
@@ -152,6 +155,7 @@ fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     match argv.first().map(String::as_str) {
         Some("agent") => agent(&argv[1..]),
+        Some("format") => format_files::main(&argv[1..]),
         Some("lint") => lint_files::main(&argv[1..]),
         Some("help" | "-h" | "--help") => {
             println!("{USAGE}");

@@ -10,6 +10,7 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 4. Don't use the source text of a node (`text_at`) as escape hatch to copy over the AST node content, instead use a place holder similar to unsupported node types (`format_unimplemented`).
 5. Don't format children nodes in parent nodes, let the formatter format children when visiting them and look up the child's `FmtReg` (`reg`, `reg_or_placeholder`).
 6. The formatter visits the nodes in post-order (the order of the node array), so the regs of the children are already computed (if we can format them).
+7. To try a change on real scripts, run `bazel run //packages/dashql-cli:dashql -- format <file.sql|dir|->`.
 
 Example: for `OBJECT_SQL_ORDER`, read attributes like `SQL_ORDER_VALUE`, `SQL_ORDER_DIRECTION`, and `SQL_ORDER_NULLRULE`, then render the order item text used by `order by` clauses.
 

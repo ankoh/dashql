@@ -10,11 +10,13 @@
   over HTTP, and it runs harnesses (Claude Code, Codex, opencode) headless for questions asked in DashQL. See
   `docs/design/agent_bridge.md`.
 - **`dashql lint`** lints SQL files on disk without DashQL.
+- **`dashql format`** pretty prints SQL files on disk without DashQL.
 
 ```
 bazel run //packages/dashql-cli:dashql -- agent serve
 bazel run //packages/dashql-cli:dashql -- agent status
 bazel run //packages/dashql-cli:dashql -- lint examples/snippets/hyper
+bazel run //packages/dashql-cli:dashql -- format --write overlay/d360/snippets
 ```
 
 ## Agent server
@@ -97,6 +99,23 @@ tables are reported. Schema scripts are checked first, a schema with errors is n
 
 The parser accepts some incomplete statements (e.g. a `FROM` or `WHERE` without anything after it) so the editor can
 complete them. They are not reported.
+
+## dashql format
+
+```
+dashql format [--write|--check] [--dialect hyper|trino] <file.sql|dir|->...
+```
+
+Paths work like those of `dashql lint`. Every script is formatted by dashql-core in the pretty mode with lowercase
+keywords, a width of 120 and an indentation of 4, and printed to stdout. `--write` rewrites the files that change and
+`--check` only names them. Both end with a summary. `--dialect` is `hyper` by default, Trino scripts need `trino`, where
+types and time literals are spelled differently.
+
+A script with errors isn't formatted. Neither is one with a statement the formatter doesn't know, or one whose output
+doesn't parse. These scripts are reported on stderr and stay as they are, the others are still formatted.
+
+The exit code is 0 if all scripts could be formatted (with `--check`: are formatted), 1 otherwise and 2 on usage or I/O
+errors.
 
 ## Tests
 

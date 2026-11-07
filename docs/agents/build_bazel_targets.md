@@ -64,7 +64,7 @@ bazel build //...
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool: `agent` commands and the local agent server (`agent serve`), `lint` for SQL files |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool: `agent` commands and the local agent server (`agent serve`), `lint` and `format` for SQL files |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -120,7 +120,7 @@ bazel test //...
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint` |
+| `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint`, `format` |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
@@ -442,6 +442,13 @@ bazel run //packages/dashql-cli:dashql -- lint path/to/script.sql path/to/dir
 echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
 # Resolve names against CREATE TABLE statements
 bazel run //packages/dashql-cli:dashql -- lint --schema schema.sql query.sql
+```
+
+`dashql format` pretty prints them with the same core, to stdout or with `--write` in place. `--check` only names the
+files that aren't formatted, and `--dialect trino` formats Trino scripts.
+
+```bash
+bazel run //packages/dashql-cli:dashql -- format --write overlay/d360/snippets
 ```
 
 ### Before Committing
