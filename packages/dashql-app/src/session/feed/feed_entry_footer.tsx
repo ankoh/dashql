@@ -240,7 +240,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     debugMode={false}
                     maxRows={FEED_LIMIT_RESULT_ROWS}
                     columnHeader={TableColumnHeader.OnlyColumnName}
-                    cellBackground="transparent"
                     onShowTable={props.onShowTable}
                     compact
                 />
