@@ -13,6 +13,15 @@ import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
+/// Load a script into the catalog of a shell
+function loadCatalogScript(shell: DashQLShell, text: string): void {
+    const script = shell.core.createScript(shell.catalog);
+    script.replaceText(text);
+    script.analyze();
+    shell.catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
+    script.destroy();
+}
+
 describe('DashQL shell Wasm', () => {
     let shell: DashQLShell;
     let executeQuery: (query: string, signal?: AbortSignal) => Promise<Uint8Array>;
@@ -38,7 +47,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('switches keyword completion case without changing catalog names or prompt state', () => {
-        shell.loadCatalogScript('create table orders(id int);');
+        loadCatalogScript(shell, 'create table orders(id int);');
         shell.setPrompt('sel');
         expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'select')).toBe(true);
         shell.setKeywordCase(dashql.buffers.formatting.KeywordCase.UPPER);
@@ -51,11 +60,13 @@ describe('DashQL shell Wasm', () => {
         expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'select')).toBe(true);
     });
 
-    it('owns an independent catalog and completes from copied relation and function scripts', () => {
-        shell.loadCatalogScript(
+    it('completes from the relations and functions of its catalog', () => {
+        loadCatalogScript(
+            shell,
             'CREATE TABLE sales.orders (order_id BIGINT, amount DOUBLE);',
         );
-        shell.loadCatalogScript(
+        loadCatalogScript(
+            shell,
             'CREATE FUNCTION sales.discount(DOUBLE) RETURNS DOUBLE;',
         );
 
@@ -69,24 +80,6 @@ describe('DashQL shell Wasm', () => {
         expect(() => shell.setPrompt('select sales.discount(1.0);')).not.toThrow();
     });
 
-    it('replaces a loaded catalog script in place', () => {
-        const script = shell.loadCatalogScript(
-            'CREATE TABLE sales.orders (order_id BIGINT);',
-        );
-        shell.setPrompt('select * from ord');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(true);
-
-        shell.replaceCatalogScript(
-            script,
-            'CREATE TABLE sales.customers (customer_id BIGINT);',
-        );
-
-        shell.setPrompt('select * from ord');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(false);
-        shell.setPrompt('select * from cust');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'customers')).toBe(true);
-    });
-
     it('auto-qualifies non-default database tables on the first Tab when enabled', async () => {
         shell.destroy();
         shell = await DashQLShell.create({
@@ -95,7 +88,8 @@ describe('DashQL shell Wasm', () => {
             autoQualifyNonDefaultDatabaseTables: true,
             core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
-        shell.loadCatalogScript(
+        loadCatalogScript(
+            shell,
             'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
         );
         shell.openTerminal('db> ');
@@ -118,7 +112,8 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('keeps automatic table qualification disabled by default', () => {
-        shell.loadCatalogScript(
+        loadCatalogScript(
+            shell,
             'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
         );
         shell.openTerminal('db> ');

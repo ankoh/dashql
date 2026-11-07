@@ -1,4 +1,4 @@
-import { DashQL, DashQLCatalog, DashQLScript, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@ankoh/dashql-core';
+import { DashQL, DashQLCatalog, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
 import { stringifyError } from '../platform/logger/logger.js';
 
@@ -158,7 +158,6 @@ export class DashQLShell {
     protected shell: Shell | null;
     protected readonly lifecycleAbort = new AbortController();
     protected activeExecution: AbortController | null = null;
-    protected readonly catalogScripts: DashQLScript[] = [];
     protected readonly commands: Map<string, DashQLShellCommand>;
     protected readonly settings: DashQLShellSettings;
 
@@ -210,31 +209,6 @@ export class DashQLShell {
             }
         }
         return shell;
-    }
-
-    /// Load a script of the connection catalog
-    loadCatalogScript(text: string): DashQLScript {
-        this.assertAlive();
-        const script = this.core.createScript(this.catalog);
-        try {
-            script.replaceText(text);
-            if (text.trim().length !== 0) {
-                script.analyze();
-                this.catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
-            }
-            this.catalogScripts.push(script);
-            return script;
-        } catch (error) {
-            script.destroy();
-            throw error;
-        }
-    }
-
-    replaceCatalogScript(script: DashQLScript, text: string): void {
-        this.assertAlive();
-        script.replaceText(text);
-        script.analyze();
-        this.catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
     }
 
     resize(terminalColumns: number): void {
@@ -589,10 +563,6 @@ export class DashQLShell {
             this.lifecycleAbort.abort();
             this.shell.free();
             this.shell = null;
-            for (let i = this.catalogScripts.length - 1; i >= 0; --i) {
-                this.catalogScripts[i].destroy();
-            }
-            this.catalogScripts.length = 0;
             if (this.ownsCatalog) this.catalog.destroy();
         }
     }
