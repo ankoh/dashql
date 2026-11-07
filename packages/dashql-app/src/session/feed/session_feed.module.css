@@ -28,9 +28,31 @@
     grid-row: 1;
 }
 
-.feed_landing_header {
+/* The greeting and the inputs of the draft stand on the prompt, the inputs lift the greeting */
+.feed_landing_top {
     grid-row: 2;
     align-self: end;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Lines the cards up with the frame of the composer below */
+.feed_landing_inputs {
+    width: min(720px, 100%);
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    padding: 0 16px;
+}
+
+.feed_landing_inputs:empty {
+    display: none;
+}
+
+.feed_landing_header {
+    width: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;

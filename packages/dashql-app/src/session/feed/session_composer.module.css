@@ -21,6 +21,18 @@
     box-shadow: var(--shadow_medium);
 }
 
+/* The inputs of the draft, many of them scroll. The padding keeps the focus outline of a card from being clipped. */
+.composer_inputs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-height: 30vh;
+    margin: 0 -2px;
+    padding: 2px;
+    overflow-y: auto;
+}
+
 /* The frame turns in the gradient of the agent while it works */
 @property --composer_agent_angle {
     syntax: '<angle>';

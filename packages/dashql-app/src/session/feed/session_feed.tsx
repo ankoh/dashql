@@ -738,6 +738,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // The agent turns grow the composer, the greeting stays hidden while they are shown.
     // Sending clears the draft before the agent writes the first script, the turn keeps the greeting away.
     const greetingHidden = (composerAgent.agent?.turns.length ?? 0) > 0;
+    // The cards of the inputs of the draft stand below the greeting and lift it, the prompt stays in place.
+    // The session has no inputs yet on the landing view, later the strip shows the inputs of the scripts.
+    const [landingInputs, setLandingInputs] = React.useState<HTMLDivElement | null>(null);
     // While the user writes, the face watches the caret of the composer
     const composerCaret = React.useCallback(() => {
         const head = composerView?.state?.selection?.main.head;
@@ -821,11 +824,14 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 ) : undefined}
             />
             {landing && (
-                <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
-                    <AgentGreeting
-                        face={landingFace}
-                        questionClassName={styles.feed_landing_question}
-                        questionTestId="feed-landing-question" />
+                <div className={styles.feed_landing_top}>
+                    <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
+                        <AgentGreeting
+                            face={landingFace}
+                            questionClassName={styles.feed_landing_question}
+                            questionTestId="feed-landing-question" />
+                    </div>
+                    <div className={styles.feed_landing_inputs} ref={setLandingInputs} data-testid="feed-landing-inputs" />
                 </div>
             )}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}
@@ -877,6 +883,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         aiAvailable={composerAgent.available}
                         agent={composerAgent.agent}
                         onSend={handleComposerSend}
+                        inputsContainer={landingInputs}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
                         scriptNames={scriptNames}

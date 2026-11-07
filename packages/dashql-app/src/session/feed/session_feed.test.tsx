@@ -648,6 +648,18 @@ describe('Session feed composer', () => {
         expect(title().hasAttribute('data-hidden')).toBe(false);
     });
 
+    it('gives the composer the room for the inputs of its draft below the greeting, only on the landing view', async () => {
+        const onModify = vi.fn();
+        render(withCatalog(session(), emptyCatalog), onModify);
+        const slot = container.querySelector('[data-testid="feed-landing-inputs"]')!;
+        expect(feedState.composerProps?.inputsContainer).toBe(slot);
+        expect(slot.parentElement!.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
+        expect(slot.previousElementSibling!.hasAttribute('data-hidden')).toBe(false);
+        render(withCatalog(session(['a.sql']), emptyCatalog), onModify);
+        expect(container.querySelector('[data-testid="feed-landing-inputs"]')).toBeNull();
+        expect(feedState.composerProps?.inputsContainer).toBeNull();
+    });
+
     it('offers AI only with agent access and a connected agent server', () => {
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(false);

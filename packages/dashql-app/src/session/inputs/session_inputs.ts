@@ -98,12 +98,9 @@ export function readSessionInputType(type: core.buffers.analyzer.SqlTypeT | null
     };
 }
 
-/// Collect the inputs of a session with the core
-function collectSessionInputs(session: SessionScripts): SessionInput[] {
-    const scripts = orderedSessionScripts(session);
-    if (scripts.length === 0 || typeof session.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
-    const request = sessionPlanRequest(scripts, scripts.map(s => s.fileName), session);
-    const collected = session.instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT;
+/// Collect the inputs of a plan request with the core, `scripts` are the scripts of the request that have a key
+function readSessionInputs(instance: core.DashQL, request: core.SessionPlanRequest, scripts: readonly Pick<ScriptData, 'scriptKey'>[]): SessionInput[] {
+    const collected = instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT;
     return collected.inputs.map(input => ({
         name: String(input.name ?? ''),
         type: readSessionInputType(input.sqlType, input.typeSource),
@@ -115,6 +112,26 @@ function collectSessionInputs(session: SessionScripts): SessionInput[] {
         }),
         warnings: input.warnings.map(String),
     }));
+}
+
+/// Collect the inputs of a session with the core
+function collectSessionInputs(session: SessionScripts): SessionInput[] {
+    const scripts = orderedSessionScripts(session);
+    if (scripts.length === 0 || typeof session.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
+    return readSessionInputs(session.instance, sessionPlanRequest(scripts, scripts.map(s => s.fileName), session), scripts);
+}
+
+/// The inputs of the draft of a composer, a script session that is no session script: nothing consumes them yet
+export function collectDraftInputs(instance: core.DashQL, draft: core.DashQLScriptSession, catalog: core.DashQLCatalog): SessionInput[] {
+    try {
+        return readSessionInputs(instance, {
+            connections: [{ id: 'draft', local: false, catalog }],
+            scripts: [{ name: 'draft', connection: 0, session: draft }],
+        }, []);
+    } catch (e) {
+        console.warn('cannot collect the inputs of the draft', e);
+        return NO_INPUTS;
+    }
 }
 
 /// The scripts that use an input, without duplicates
@@ -130,7 +147,7 @@ interface CachedInputs {
 /// The last inputs of every session, by session id
 const INPUTS = new Map<string, CachedInputs>();
 
-function sameInputs(l: SessionInput[], r: SessionInput[]): boolean {
+export function sameInputs(l: SessionInput[], r: SessionInput[]): boolean {
     return JSON.stringify(l) === JSON.stringify(r);
 }
 

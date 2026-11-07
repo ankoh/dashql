@@ -14,6 +14,7 @@ import * as identifierStyles from '../../agent/nl_identifier_plugin.module.css';
 import * as styles from './session_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
+import type { ComposerAgent } from '../../agent/agent_prompt_panel.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -44,8 +45,11 @@ describe('Session composer', () => {
     let onSend: ReturnType<typeof vi.fn<(text: string, mode: ComposerInputMode) => void>>;
     let targetScript: React.RefObject<((name: string) => void) | null>;
     let attention: { sessionId: string; active: boolean; request: ReturnType<typeof vi.fn> };
+    let inputsContainer: HTMLDivElement;
 
     beforeEach(() => {
+        inputsContainer = document.createElement('div');
+        document.body.appendChild(inputsContainer);
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -58,19 +62,21 @@ describe('Session composer', () => {
     afterEach(() => {
         act(() => root.unmount());
         container.remove();
+        inputsContainer.remove();
         catalog.destroy();
         dql.resetUnsafe();
         document.getElementById('__dashqlPortalRoot__')?.remove();
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = SessionComposerVariant.Docked, aiAvailable = false, offlineSessionId: string | null = null) {
+    async function render(variant = SessionComposerVariant.Docked, aiAvailable = false, offlineSessionId: string | null = null, agent: ComposerAgent | null = null) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <SessionConnectionAttentionContext.Provider value={attention as any}>
                 <SessionComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
-                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineSessionId={offlineSessionId}
+                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineSessionId={offlineSessionId} agent={agent}
+                    inputsContainer={variant === SessionComposerVariant.Hero ? inputsContainer : null}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             </SessionConnectionAttentionContext.Provider>
         </LoggerProvider>));
@@ -228,6 +234,102 @@ describe('Session composer', () => {
         expect(container.querySelector('[data-variant="docked"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 3');
         expect(modeButton('ai').disabled).toBe(true);
+    });
+
+    describe('inputs of the draft', () => {
+        const card = (name: string) => inputsContainer.querySelector<HTMLInputElement>(`[data-session-input="${name}"] input`)!;
+        const inputNames = () => Array.from(inputsContainer.querySelectorAll('[data-testid="composer-inputs"] [data-session-input]'))
+            .map(element => element.getAttribute('data-session-input'));
+        const idleAgent: ComposerAgent = {
+            connected: true, port: 47100, context: null, turns: [],
+            onStop: () => {}, onDismiss: () => {}, onShowScript: () => {},
+        };
+        function typeValue(name: string, value: string) {
+            const control = card(name);
+            const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+            act(() => {
+                setValue.call(control, value);
+                control.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        }
+        function fillInput(name: string, value: string) {
+            typeValue(name, value);
+            act(() => { card(name).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
+        }
+
+        it('shows the scalar parameters of a draft in its container', async () => {
+            const editor = await render(SessionComposerVariant.Hero);
+            expect(inputsContainer.childElementCount).toBe(0);
+            act(() => type(editor, 'select :min, :region from :revenue'));
+            expect(inputNames()).toEqual(['min', 'region']);
+            expect(container.querySelector('[data-testid="composer-inputs"]')).toBeNull();
+            // The cards go with the parameters
+            act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: 'select 1' } }));
+            expect(inputsContainer.childElementCount).toBe(0);
+        });
+
+        it('shows no cards without a container', async () => {
+            const editor = await render(SessionComposerVariant.Docked);
+            act(() => type(editor, 'select :min'));
+            expect(document.querySelector('[data-testid="composer-inputs"]')).toBeNull();
+        });
+
+        it('writes a value into the draft as a tag, keeps the cursor and sends the tag along', async () => {
+            const editor = await render(SessionComposerVariant.Hero);
+            act(() => type(editor, 'select :min'));
+            act(() => editor.dispatch({ selection: { anchor: 'select'.length } }));
+            fillInput('min', '10');
+            const text = '/** @param :min = 10 */\nselect :min';
+            expect(editor.state.doc.toString()).toBe(text);
+            expect(text.slice(editor.state.selection.main.head)).toBe(' :min');
+            expect(onSend).not.toHaveBeenCalled();
+            // The card reads the value from the tag
+            expect(card('min').value).toBe('10');
+            // A second value replaces the first one
+            fillInput('min', '20');
+            expect(editor.state.doc.toString()).toBe('/** @param :min = 20 */\nselect :min');
+            act(() => sendButton().click());
+            expect(onSend).toHaveBeenCalledExactlyOnceWith('/** @param :min = 20 */\nselect :min', ComposerInputMode.Sql);
+            expect(inputNames()).toEqual([]);
+        });
+
+        it('sends a typed value along and keeps the send button under the pointer until the click', async () => {
+            const editor = await render(SessionComposerVariant.Hero);
+            act(() => type(editor, 'select :min'));
+            act(() => card('min').focus());
+            typeValue('min', '10');
+            // Writing the value on the press would grow the draft and move the button away before the release
+            expect(mouseDown(sendButton()).defaultPrevented).toBe(true);
+            expect(editor.state.doc.toString()).toBe('select :min');
+            act(() => sendButton().click());
+            expect(onSend).toHaveBeenCalledExactlyOnceWith('/** @param :min = 10 */\nselect :min', ComposerInputMode.Sql);
+        });
+
+        it('shows the values of a snippet with tags', async () => {
+            const editor = await render(SessionComposerVariant.Hero);
+            act(() => type(editor, `/** @param :region = 'EU' */\nselect :region`));
+            expect(card('region').value).toBe('EU');
+        });
+
+        it('keeps the agent on the prompt and shows cards only in SQL', async () => {
+            const editor = await render(SessionComposerVariant.Hero, true, null, idleAgent);
+            const panel = () => container.querySelector('[data-testid="composer-agent"]');
+            act(() => type(editor, 'select :min from orders '));
+            expect(inputNames()).toEqual(['min']);
+            expect(panel()).not.toBeNull();
+            // `:min` references a script in a question
+            act(() => modeButton('ai').click());
+            expect(inputNames()).toEqual([]);
+            expect(panel()).not.toBeNull();
+        });
+
+        it('stays in SQL when a value writes the tag of a detected draft', async () => {
+            const editor = await render(SessionComposerVariant.Hero, true);
+            act(() => type(editor, 'select :min from orders '));
+            fillInput('min', '10');
+            expect(editor.state.doc.toString()).toBe('/** @param :min = 10 */\nselect :min from orders ');
+            expect(inputNames()).toEqual(['min']);
+        });
     });
 
     it('moves the draft to the catalog of a merged connection', async () => {

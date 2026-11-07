@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 import * as styles from './session_composer.module.css';
 
+import { createPortal } from 'react-dom';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
@@ -16,6 +17,9 @@ import { findScriptReferences, renderScriptReference, SCRIPT_REFERENCE_PREFIX } 
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../agent/agent_prompt_panel.js';
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
+import { SessionInputCard } from '../inputs/session_input_card.js';
+import { collectDraftInputs, sameInputs, sessionInputLiteral, type SessionInput } from '../inputs/session_inputs.js';
+import { textChange } from '../scripts/session_scripts.js';
 import type { ConnectorType } from '../../connections/connector_info.js';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 
@@ -23,6 +27,9 @@ const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 
 /// A composer without session scripts
 const NO_SCRIPT_NAMES: readonly string[] = [];
+
+/// A draft without inputs
+const NO_INPUTS: SessionInput[] = [];
 
 /// The parts of the prompt that handle a click themselves: the editor places its cursor, the controls act
 const PROMPT_CONTROLS = '.cm-editor, button, a, input, select, textarea, [role="button"]';
@@ -52,6 +59,8 @@ export interface SessionComposerProps {
     onSend: (text: string, mode: ComposerInputMode) => void;
     /// Called with whether the draft is blank, once on mount and whenever that changes
     onDraftEmptyChange?: (empty: boolean) => void;
+    /// The element that shows the cards of the inputs of a SQL draft, the composer shows no cards without it
+    inputsContainer?: HTMLElement | null;
     /// Receives the editor view once it is mounted
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
@@ -143,6 +152,30 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
         input.onTextChange(text);
     }, [input.onTextChange]);
     React.useEffect(() => props.onDraftEmptyChange?.(empty), [empty, props.onDraftEmptyChange]);
+    // The inputs of the draft follow its analysis, a cursor move changes nothing
+    const [draftInputs, setDraftInputs] = React.useState(NO_INPUTS);
+    const handleEditorUpdate = React.useCallback((update: core.buffers.editor.EditorUpdateT) => {
+        input.onEditorUpdate(update);
+        if (!update.analysisUpdated) return;
+        const next = collectDraftInputs(props.instance, scriptSession, props.catalog);
+        setDraftInputs(previous => sameInputs(previous, next) ? previous : next);
+    }, [input.onEditorUpdate, props.instance, props.catalog, scriptSession]);
+    // The value of an input of the draft is a `@param` tag of the draft like in a script, it goes along when the draft
+    // is sent. Nothing runs before that.
+    const literalOfDraftInput = React.useCallback((draftInput: SessionInput, value: string) => sessionInputLiteral(props.instance, draftInput.type, value), [props.instance]);
+    const commitDraftInput = React.useCallback((name: string, literal: string) => {
+        if (view == null) return;
+        const from = view.state.doc.toString();
+        let to: string;
+        try {
+            to = scriptSession.rewriteParamTag(name, literal);
+        } catch (e) {
+            console.warn('cannot write the value of an input of the draft', e);
+            return;
+        }
+        if (to === from) return;
+        view.dispatch({ changes: textChange(from, to), effects: DashQLCompletionAbortEffect.of(null) });
+    }, [view, scriptSession]);
     const handleModeChange = React.useCallback((index: number) => {
         input.pick(index === 0 ? ComposerInputMode.Sql : ComposerInputMode.Ai);
     }, [input.pick]);
@@ -150,6 +183,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     // The connection of a SQL draft has to be connected first, the draft stays until it is
     const connectionAttention = React.useContext(SessionConnectionAttentionContext);
     const offlineSessionId = props.offlineSessionId ?? null;
+    const inputsRef = React.useRef<HTMLDivElement>(null);
     const send = React.useCallback(() => {
         if (view == null) return;
         const mode = input.resolveSendMode();
@@ -157,6 +191,9 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
             connectionAttention?.request(offlineSessionId);
             return;
         }
+        // A card writes a typed value when it loses the focus, the value goes along
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && inputsRef.current?.contains(active)) active.blur();
         const text = takeComposerDraft(view);
         if (text != null) {
             props.onSend(text, mode);
@@ -181,7 +218,13 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
         const target = event.target;
         if (view == null || event.button !== 0 || !(target instanceof Element)) return;
         // The overlays of the controls are portals, their events still bubble through here
-        if (!event.currentTarget.contains(target) || target.closest(PROMPT_CONTROLS) != null) return;
+        if (!event.currentTarget.contains(target)) return;
+        if (target.closest(PROMPT_CONTROLS) != null) {
+            // A card writes a typed value when it loses the focus. The tag can grow the draft and move the control away
+            // from under the pointer before the button is released, which would lose the click: the card keeps the focus.
+            if (target.closest('.cm-editor') == null && inputsRef.current?.contains(document.activeElement)) event.preventDefault();
+            return;
+        }
         // The browser would move the focus to the body after this event
         event.preventDefault();
         view.focus();
@@ -228,6 +271,8 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     }, [view]);
 
     const naturalLanguage = input.mode === ComposerInputMode.Ai;
+    // Only SQL has inputs, `:name` in a question references a script
+    const inputsContainer = naturalLanguage ? null : props.inputsContainer ?? null;
     const blockedSessionId = naturalLanguage ? null : offlineSessionId;
     const blocked = blockedSessionId != null;
     // A blocked button stays clickable, it pulses the connections that are not connected
@@ -254,6 +299,14 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
             data-variant={hero ? 'hero' : 'docked'}
             data-agent={agent == null ? undefined : (isAgentWorking(agent) ? 'working' : 'ready')}
         >
+            {inputsContainer != null && draftInputs.length > 0 && createPortal(
+                <div ref={inputsRef} className={styles.composer_inputs} role="group" aria-label="Inputs of the prompt" data-testid="composer-inputs">
+                    {draftInputs.map(draftInput => (
+                        <SessionInputCard key={draftInput.name} input={draftInput} literalOf={literalOfDraftInput} onCommit={commitDraftInput} />
+                    ))}
+                </div>,
+                inputsContainer,
+            )}
             {agent != null && <AgentPromptPanel agent={agent} />}
             <div className={styles.composer_prompt} onMouseDown={handlePromptMouseDown}>
                 <PromptEditor
@@ -264,7 +317,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                     assist={input.assist}
                     onSubmit={send}
                     onTextChange={handleTextChange}
-                    onEditorUpdate={input.onEditorUpdate}
+                    onEditorUpdate={handleEditorUpdate}
                     setView={handleView}
                 />
                 <div className={styles.composer_action_bar}>

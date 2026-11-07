@@ -112,4 +112,9 @@ doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not writte
   the bar is a row above the scrolling scripts and holds the chip of the attachments, their cards open in a drawer
   within it. The strip of the
   dashboard sticks to the top of the page.
+- **Landing prompt.** An empty session has no scripts and no strip, so the prompt shows the inputs of its SQL draft as
+  soon as it holds a parameter (`collectDraftInputs`). The cards stand between the greeting and the prompt, they lift the
+  greeting and the prompt stays in place. A value is written into the draft as `@param` tag like in a script and nothing
+  runs, the tag goes along when the draft is sent. The docked prompt shows no cards, the strip shows the inputs of a
+  script once it is sent.
 - **Dataflow.** Every input is a box with a header and the value in one row (`dataflow.md`).
