@@ -1,8 +1,9 @@
-# The Data 360 overlay, the namespace `cdp` of a Salesforce connection. See docs/design/overlay/cdp/overview.md.
+# The Data 360 overlay, the namespace `cdp` of a Salesforce connection. See overlay/d360/docs/overview.md.
 #
 #   api/       spec.json, generated from the reference documents
 #   tests/     a fixture per family: calls, their requests, and responses with where they came from
 #   snippets/  workflows for the snippet browser, their steps build on each other
+#   docs/      the reference, the source of the spec, and the notes behind it
 #
 # Regenerate the spec and the fixtures with `bazel run //overlay/d360:update`. A fixture response that isn't
 # `assumed` is kept.
@@ -54,12 +55,12 @@ py_test(
     size = "small",
     srcs = ["api/generate.py"],
     args = [
-        "--reference=docs/design/overlay/cdp",
+        "--reference=overlay/d360/docs",
         "--check=overlay/d360/api/spec.json",
     ],
     data = [
         "api/spec.json",
-        "//docs/design/overlay/cdp:reference",
+        "//overlay/d360/docs:reference",
     ],
     main = "api/generate.py",
 )
@@ -73,7 +74,7 @@ sh_test(
     data = [
         "api/spec.json",
         ":generate_tests",
-        "//docs/design/overlay/cdp:reference",
+        "//overlay/d360/docs:reference",
     ] + glob(["tests/*.json"], allow_empty = True),
 )
 
@@ -85,7 +86,7 @@ rust_test(
     srcs = ["tests/spec_test.rs"],
     data = [
         "api/spec.json",
-        "//docs/design/overlay/cdp:reference",
+        "//overlay/d360/docs:reference",
     ] + glob(["snippets/*/*.sql"]),
     edition = "2021",
     deps = [

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Data 360 overlay from its reference documents.
 
-The reference (docs/design/overlay/cdp/) already merges the official contract with what its examples and Salesforce's
+The reference (overlay/d360/docs/) already merges the official contract with what its examples and Salesforce's
 own tools add, so it's the source of the spec. Its tables are regular, and the few rules that are only prose are in
 this file, see PAGING_RULES and CREDENTIAL_OPTIONS.
 

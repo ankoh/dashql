@@ -4,7 +4,7 @@ Status: work in progress, part of the [CDP SQL](overview.md) spec. Nothing here 
 
 This is the reference for `CALL cdp.<function>(...)`: 534 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading.
 
-The overlay holds all of it, so completion offers exactly what a position takes and a misplaced attribute gets a diagnostic. See [the Data 360 doc](overview.md) and [overlays](../../overlay.md).
+The overlay holds all of it, so completion offers exactly what a position takes and a misplaced attribute gets a diagnostic. See [the Data 360 doc](overview.md) and [overlays](../../../docs/design/overlay.md).
 
 ## Families
 
@@ -50,9 +50,9 @@ Each function has the same parts:
 - **Header:** the HTTP verb and path, a link to its reference, the Salesforce MCP tools it covers, its evidence, and whether it changes org state.
 - **Options:** path parameters, query parameters and request body fields are all options. Only the **In** column tells them apart, and the overlay uses it to build the request. A body field that clashes with a parameter of the same name gets a `body_` prefix.
 - **API name:** every option, attribute and column is snake_case in a script, and this column has the API's exact spelling, which the client sends and reads. For a path option, it's the placeholder. See [Naming](overview.md#naming). Values, free-form keys and JSON in results keep the API's spelling.
-- **Example:** a `CALL` statement. Every example in these documents parses on the proposed `CALL` grammar, see [What was checked](../../overlay.md#what-was-checked).
+- **Example:** a `CALL` statement. Every example in these documents parses on the proposed `CALL` grammar, see [What was checked](../../../docs/design/overlay.md#what-was-checked).
 - **Result:** the rows and columns, described below.
-- **Paging, Done when, Token, Notes:** present when they apply. Paging names the options that move through results. Every paged function also takes `_next` and `_pages`, see [Paging](../../overlay.md#paging). Done when says what to read to see that an asynchronous call finished.
+- **Paging, Done when, Token, Notes:** present when they apply. Paging names the options that move through results. Every paged function also takes `_next` and `_pages`, see [Paging](../../../docs/design/overlay.md#paging). Done when says what to read to see that an asynchronous call finished.
 
 **Paths** under `/ssot`, `/connect`, `/personalization` and `/semantic-engine` are relative to `/services/data/vXX.X`. Paths under `/api/...` are on the tenant host. See [Hosts and tokens](api_notes.md#hosts-and-tokens).
 

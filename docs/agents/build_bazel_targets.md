@@ -115,7 +115,7 @@ bazel test //...
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
 | `//packages/dashql-core-session:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
-| `//overlay/d360:all` | The Data 360 overlay: the spec and fixtures are up to date, and the core reads them, see `docs/design/overlay/cdp/overview.md`. `bazel run //overlay/d360:update` regenerates them |
+| `//overlay/d360:all` | The Data 360 overlay: the spec and fixtures are up to date, and the core reads them, see `overlay/d360/docs/overview.md`. `bazel run //overlay/d360:update` regenerates them |
 | `//packages/dashql-core-js:all` | Core Node unit, assembled-runtime, and tarball consumer tests |
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |

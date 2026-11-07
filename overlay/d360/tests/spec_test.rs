@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 
-const REFERENCE: &str = "docs/design/overlay/cdp";
+const REFERENCE: &str = "overlay/d360/docs";
 const SPEC: &str = "overlay/d360/api/spec.json";
 const SNIPPETS: &str = "overlay/d360/snippets";
 

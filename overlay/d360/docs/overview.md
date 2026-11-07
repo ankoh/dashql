@@ -2,7 +2,7 @@
 
 Status: the spec is generated in `overlay/d360/api/`, and the core and the runtime read it. It has no binding yet, so no call can run, and nothing has been tested against an org.
 
-CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [overlay](../../overlay.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [overlay.md](../../overlay.md) describes them.
+CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [overlay](../../../docs/design/overlay.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [overlay.md](../../../docs/design/overlay.md) describes them.
 
 - [functions.md](functions.md) is the function reference, with one document per family in this directory.
 - [api_notes.md](api_notes.md) holds the research: API quirks, usage order, sources and a list of checks to run on an org.
@@ -66,7 +66,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 
 **SIDB** spreads the Salesforce descriptor, so it would inherit the binding. Whether it should is an [open question](#open-questions).
 
-**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../overlay.md#running-calls).
+**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../../docs/design/overlay.md#running-calls).
 
 ## How Data 360 fits the format
 
@@ -85,13 +85,13 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | 404 for an empty result (DMO mappings) | `empty_on` on that function |
 | 200 with errors (consent) | The `result` column on every row, which a script reads. No `error_if`, since no source gives a pointer that means failure |
 | Connect errors: an array whose `message` may be a JSON string | `errors` at the top level, with `message_is_json` |
-| CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../overlay.md#open-questions) |
+| CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../../docs/design/overlay.md#open-questions) |
 | Credentials, where `value` is secret depending on `param_name` | `sensitive` with `public_when` |
 | `agent_id`: a header on most agentic memory calls, a query parameter on one | `in` per function |
 | Data space filtering that the API doesn't support | Not handled. Values are wire values, and the client adds no filtering |
 | Segment SQL rules, call order, readiness | Stay out of the spec. The server decides, and [the notes](api_notes.md) explain |
 
-Data 360's contract doesn't exercise the format much: it has no top-level array responses or form encoding, and it doesn't record response headers. [The survey](../api_survey.md) measures the format against APIs that do.
+Data 360's contract doesn't exercise the format much: it has no top-level array responses or form encoding, and it doesn't record response headers. [The survey](../../../docs/design/overlay/api_survey.md) measures the format against APIs that do.
 
 ## Generating the spec
 
@@ -228,11 +228,11 @@ CALL cdp.connection_create (
 );
 ```
 
-Connection credentials are a list of `(param_name, value)` pairs, so whether `value` is secret depends on the `param_name` beside it. Every `value` must be `secret()` unless `public_when` lists that `param_name` as public (see [Secrets](../../overlay.md#secrets)). The spec's connector metadata may say which are public; that needs checking.
+Connection credentials are a list of `(param_name, value)` pairs, so whether `value` is secret depends on the `param_name` beside it. Every `value` must be `secret()` unless `public_when` lists that `param_name` as public (see [Secrets](../../../docs/design/overlay.md#secrets)). The spec's connector metadata may say which are public; that needs checking.
 
 ## The escape hatch
 
-`cdp.request` is the spec's [raw function](../../overlay.md#the-escape-hatch):
+`cdp.request` is the spec's [raw function](../../../docs/design/overlay.md#the-escape-hatch):
 
 ```sql
 CALL cdp.request (method => 'POST', path => '/ssot/new-thing', host => 'tenant', body => (a = 1), someParam => 1);
@@ -268,7 +268,7 @@ It's the only function with a `body` option.
 
 ## Roadmap
 
-The [overlay roadmap](../../overlay.md#roadmap) comes first. The spec is generated. For Data 360:
+The [overlay roadmap](../../../docs/design/overlay.md#roadmap) comes first. The spec is generated. For Data 360:
 
 1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Needs a browser CORS check, since only `GET` on `/services/data` is exercised today.
 2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.

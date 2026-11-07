@@ -1,12 +1,12 @@
 # Overlays
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](overlay/cdp/overview.md#generating-the-spec) implemented. The connector bindings don't exist yet, so an overlay call can't run in the app, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../overlay/d360/docs/overview.md#generating-the-spec) implemented. The connector bindings don't exist yet, so an overlay call can't run in the app, and nothing has run against a real service.
 
 An **overlay** lets a DashQL script reach a remote REST service. `CALL <name>(<option> => <value>, ...)` is a generic statement, and an overlay lies on top of a connection and shadows one namespace: a call in that namespace runs as an HTTP request and never reaches the connection's SQL backend. **Any other `CALL` goes to the backend as written.**
 
 An overlay is a declarative JSON document, the **spec**, that describes a service: its functions, their attributes, how they page and what they return. A **connector binding** says where the service is and how to authenticate.
 
-- [CDP SQL](overlay/cdp/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [overlay/cdp/](overlay/cdp/).
+- [CDP SQL](../../overlay/d360/docs/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [overlay/d360/docs/](../../overlay/d360/docs/).
 - [The API survey](overlay/api_survey.md) measures this format against Snowflake, GitHub and Stripe, and records what similar formats do.
 
 ## Goals
@@ -131,6 +131,7 @@ One JSON document per namespace, in a folder named for the API, which needn't eq
 | `api/` | `spec.json` |
 | `tests/` | A fixture per family: calls, the requests they should send, and responses with the tables they should give |
 | `snippets/` | Workflows for the snippet browser, whose steps build on each other |
+| `docs/` | The reference documents, when a spec is generated from them |
 
 This is the whole shape of a spec, with one function:
 
@@ -225,13 +226,13 @@ This is the whole shape of a spec, with one function:
 
 **Names are mapped explicitly, not converted by a rule.** A script writes `name`, and the request carries `wire`, the API's exact spelling. A rule couldn't do this: APIs mix `primaryDMO`, `orderBy`, `orderby` and `dataSpace`, and some of those spellings differ per endpoint. A generator can derive `name` from `wire`, but the spec records both. A missing `wire` means the two are the same, and a name the spec doesn't list is sent as written, so `new_field` is not turned into `newField`.
 
-There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](overlay/cdp/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its wire names. Completion shows the script's names only, on purpose.
+There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](../../overlay/d360/docs/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its wire names. Completion shows the script's names only, on purpose.
 
 **A schema** has `attributes`, plus `unknown` with the same values as on a function. An attribute with a `schema` accepts one object or an array of them, because real APIs and their own examples often disagree on which is right.
 
 **`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body:root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
 
-**Generating a spec.** A spec can be written by hand or generated, and [Data 360](overlay/cdp/overview.md#generating-the-spec) generates its spec from its reference documents. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
+**Generating a spec.** A spec can be written by hand or generated, and [Data 360](../../overlay/d360/docs/overview.md#generating-the-spec) generates its spec from its reference documents. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
 - OpenAPI is an input and not the format. None of the Snowflake, GitHub or Stripe documents describe paging in a machine-readable way, and real contracts are often narrower than the payloads they describe.
 - The annotations use the [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) format, a standard list of updates applied in order. Despite the name, that format is unrelated to the overlays here.
 - A generator keeps schemas named. Stripe has 124 recursive references, so unfolding them doesn't terminate in practice.
@@ -607,11 +608,11 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 - **Grammar:** no conflicts, and precedence resolutions stay at 1,814, the same as without `CALL`. It adds 50 states and one token.
 - **Ordinary SQL:** every existing parser, formatter, analyzer, completion and planner snapshot is unchanged byte for byte.
-- **Examples:** every `CALL` in [the Data 360 reference](overlay/cdp/functions.md) parses on the real parser and passes the real checks against the generated spec, and completion offers exactly what the reference lists, see [its tests](overlay/cdp/overview.md#generating-the-spec).
+- **Examples:** every `CALL` in [the Data 360 reference](../../overlay/d360/docs/functions.md) parses on the real parser and passes the real checks against the generated spec, and completion offers exactly what the reference lists, see [its tests](../../overlay/d360/docs/overview.md#generating-the-spec).
 - **The format:** [the survey](overlay/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
 
 **What this doesn't show:**
-- Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](overlay/cdp/overview.md#the-fixtures).
+- Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](../../overlay/d360/docs/overview.md#the-fixtures).
 - The runtime only runs reads. Writes are only checked up to their requests.
 - A spec's load time isn't measured.
 - Nothing ran against a service.
@@ -622,8 +623,8 @@ Each phase lands separately.
 
 1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
 2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
-3. **Generators:** the [Data 360 spec](overlay/cdp/overview.md#generating-the-spec), from its reference, which is done. Then OpenAPI plus annotations to a spec in `overlay/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
-4. **First spec:** the [Data 360 spec](overlay/cdp/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
+3. **Generators:** the [Data 360 spec](../../overlay/d360/docs/overview.md#generating-the-spec), from its reference, which is done. Then OpenAPI plus annotations to a spec in `overlay/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
+4. **First spec:** the [Data 360 spec](../../overlay/d360/docs/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
 5. **Writes:** mutating calls, the secret store, run gating and agent policy. To be designed; `effect` and `billed` are its input.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 
