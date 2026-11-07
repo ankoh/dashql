@@ -143,7 +143,7 @@ This is the whole shape of a spec, with one function:
     "api": { "base_path": "/api/v{api_version}" }
   },
   "errors": { "message": ["/error/message", "/message"] },
-  "pending": { "status": 202, "poll": "header:Location" },
+  "pending": { "status": 202, "poll": { "header": "Location" } },
   "schemas": {
     "Assignee": {
       "attributes": [
@@ -169,7 +169,7 @@ This is the whole shape of a spec, with one function:
         { "name": "id", "api_name": "id", "type": "BIGINT" },
         { "name": "created_at", "api_name": "createdAt", "type": "TIMESTAMPTZ" }
       ],
-      "paging": { "kind": "token", "from": "/nextPageToken", "option": "page_token" },
+      "paging": { "kind": "token", "from": { "body": "/nextPageToken" }, "option": "page_token" },
       "effect": "read"
     }
   ]
@@ -418,16 +418,16 @@ A function has at most one `paging` entry, in one of four kinds:
 
 | `from` | Reads | Example |
 |---|---|---|
-| `/next/url` | A JSON pointer into the response body | Data 360's `nextPageUrl` |
-| `header:Link#next` | The `rel="next"` entry of a `Link` header | Snowflake, GitHub |
-| `header:<name>` | A response header | |
-| `last_row:/id` | A field of the page's last row | Stripe's `starting_after` |
+| `{ "body": "/next/url" }` | A JSON pointer into the response body | Data 360's `nextPageUrl` |
+| `{ "link": "next" }` | The entry of a `Link` header with that `rel` | Snowflake, GitHub |
+| `{ "header": "Location" }` | A response header | |
+| `{ "last_row": "/id" }` | A JSON pointer into the page's last row | Stripe's `starting_after` |
 
 **`end`** is `empty_page` (the default), `short_page`, `{ "total": "/totalSize" }` or `{ "has_more": "/has_more" }`. It's per function, because a short page doesn't always mean the end. Only a documented rule ends a list early, so `empty_page` can cost one last call, but it can't lose rows.
 
 ```json
-"paging": { "kind": "url", "from": "header:Link#next" }
-"paging": { "kind": "token", "from": "last_row:/id", "option": "starting_after", "end": { "has_more": "/has_more" } }
+"paging": { "kind": "url", "from": { "link": "next" } }
+"paging": { "kind": "token", "from": { "last_row": "/id" }, "option": "starting_after", "end": { "has_more": "/has_more" } }
 "paging": { "kind": "offset", "option": "offset", "size": "batch_size", "start": 0, "end": { "total": "/totalSize" } }
 "paging": { "kind": "page", "option": "page", "size": "per_page", "start": 1 }
 ```
@@ -482,13 +482,13 @@ One call is one page unless a script asks for more, because every page can cost 
 Some services answer before they finish. Snowflake declares `202` on 400 of its 418 operations, and [its guide](https://docs.snowflake.com/en/developer-guide/snowflake-rest-api/getting-started) says this happens to requests that take longer than 45 seconds. Without a rule, a create that hasn't finished would look like a success.
 
 ```json
-"pending": { "status": 202, "poll": "header:Location" }
+"pending": { "status": 202, "poll": { "header": "Location" } }
 ```
 
 | `poll` | What the runtime does | Example |
 |---|---|---|
-| `header:<name>` | Requests that URL with `GET` and no body, after the origin check | Snowflake's `Location`, which points to `/api/v2/results/{handle}` |
-| `same` | Repeats the request. Only allowed on `effect: read` | GitHub's statistics endpoints |
+| `{ "header": "Location" }` | Requests the URL in that header with `GET` and no body, after the origin check | Snowflake's `Location`, which points to `/api/v2/results/{handle}` |
+| `{ "repeat": true }` | Repeats the request. Only allowed on `effect: read` | GitHub's statistics endpoints |
 
 A status with no `pending` rule is an ordinary success. Data 360's `202`s on deletes are this case.
 
@@ -496,7 +496,7 @@ A status with no `pending` rule is an ordinary success. Data 360's `202`s on del
 
 **The `_wait` option.** `_wait => 60` polls for up to that many seconds, honoring `Retry-After`. It defaults to 0.
 - If the time runs out, the result is the pending row. That isn't an error, since the call is still running.
-- It's safe for writes, because `header:` polling never re-sends the request.
+- It's safe for writes, because polling a URL from a header never re-sends the request.
 - Canceling the statement stops the polling. It doesn't cancel the remote work.
 - During `_pages`, a page that comes back pending waits within `_wait`, and otherwise fails the statement.
 

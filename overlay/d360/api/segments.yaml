@@ -238,7 +238,7 @@ functions:
       - {name: snapshot_type, api_name: snapshotType, type: VARCHAR, description: "Type of snapshot. Valid value: `full`. Since v58.0."}
       - {name: timestamp, type: VARCHAR, description: "Timestamp. Since v58.0."}
       - {name: version_stamp, api_name: versionStamp, type: VARCHAR, description: "Version timestamp. Since v58.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/data` in the response. Other response fields go to `_meta`: `endTime`, `filter`, `limit`, `nextPageUrl`, `offSet`, `orderBy`, `rowCount`, `startTime`, `totalCount`. Schema `CdpSegmentMemberRowOutputRepresentation`."

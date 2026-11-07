@@ -68,7 +68,7 @@ functions:
       - {name: status, type: VARCHAR, description: "Conversation status, such as `ACTIVE`."}
       - {name: name, type: VARCHAR, description: "Conversation name."}
       - {name: modified_date, api_name: modifiedDate, type: TIMESTAMPTZ, description: "When the conversation last changed."}
-    paging: {kind: token, from: /nextPageToken, option: page_token}
+    paging: {kind: token, from: {body: /nextPageToken}, option: page_token}
     effect: read
     unknown: warning
     evidence: D
@@ -105,7 +105,7 @@ functions:
       - {name: conversation_owner_id, api_name: conversationOwnerId, type: VARCHAR, description: "Owner ID."}
       - {name: sessions, type: JSON, description: "Array of `session_id`, `status`, `start_time`, `end_time` and `entries`. Each entry has `id`, `interaction_id`, `participant_id`, `content`, `type`, `timestamp`, `category` and `variable`."}
       - {name: metadata, type: JSON, description: "Conversation metadata. Nullable."}
-    paging: {kind: token, from: /nextPageToken, option: page_token}
+    paging: {kind: token, from: {body: /nextPageToken}, option: page_token}
     effect: read
     unknown: warning
     evidence: D
@@ -208,7 +208,7 @@ functions:
       - {name: id, type: VARCHAR, description: "Session ID."}
       - {name: start_time, api_name: startTime, type: TIMESTAMPTZ, description: "When the session started."}
       - {name: status, type: VARCHAR, description: "Session status, such as `ACTIVE` or `COMPLETED`."}
-    paging: {kind: token, from: /nextPageToken, option: page_token}
+    paging: {kind: token, from: {body: /nextPageToken}, option: page_token}
     effect: read
     unknown: warning
     evidence: D

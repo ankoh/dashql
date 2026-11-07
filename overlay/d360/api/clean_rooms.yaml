@@ -66,7 +66,7 @@ functions:
       - {name: members, type: JSON, array: 1, schema: DataCleanRoomMemberRepresentation, description: "List of the collaboration members. Since v63.0."}
       - {name: status, type: VARCHAR, description: "Status of the collaboration. Since v63.0."}
       - {name: template_version, api_name: templateVersion, type: JSON, schema: DataCleanRoomTemplateRepresentation, description: "Information about the template version that the collaboration supports. Since v63.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/collaborations` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomCollaborationRepresentation`."
@@ -114,7 +114,7 @@ functions:
       - {name: segment_names, api_name: segmentNames, type: JSON, description: "List of segment names. Since v63.0."}
       - {name: status, type: VARCHAR, description: "Status of the query job. Since v63.0."}
       - {name: triggered_date, api_name: triggeredDate, type: VARCHAR, description: "Date and time the query run job was started. Since v63.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/queryJobs` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomQueryJobRepresentation`."
@@ -194,7 +194,7 @@ functions:
       - {name: source_configuration, api_name: sourceConfiguration, type: JSON, schema: DataCleanRoomProviderSourceConfigRepresentation, description: "Other source-related configurations for the provider. The endpoint returns the source config output object that corresponds to the type of provider. For example, the Data Clean Room AWS Source Config Output is returned for the `AWS` type. Since v64.0."}
       - {name: template_names, api_name: templateNames, type: JSON, description: "List of template names. Since v63.0."}
       - {name: use_case_type_config, api_name: useCaseTypeConfig, type: JSON, schema: DataCleanRoomUseCaseTypeRepresentation, description: "Configuration for the type of use case template. Since v65.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/providers` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomProviderRepresentation`."
@@ -275,7 +275,7 @@ functions:
       - {name: template_type, api_name: templateType, type: VARCHAR, description: "Type of use case template. Since v63.0."}
       - {name: template_version, api_name: templateVersion, type: VARCHAR, description: "Version of the use case template. Since v63.0."}
       - {name: use_case_type, api_name: useCaseType, type: VARCHAR, description: "Type of use case for the template. Since v63.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/templates` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomTemplateRepresentation`."
@@ -315,7 +315,7 @@ functions:
       - {name: status, type: VARCHAR, description: "Status of the specification. Since v63.0."}
       - {name: template_version, api_name: templateVersion, type: JSON, schema: DataCleanRoomTemplateRepresentation, description: "Details of the use case template version for which the mapping is provided. Since v63.0."}
       - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/cleanroomSpecifications` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomDataSpecificationRepresentation`."
@@ -357,7 +357,7 @@ functions:
       - {name: template_type, api_name: templateType, type: VARCHAR, description: "Type of use case template. Since v63.0."}
       - {name: template_version, api_name: templateVersion, type: VARCHAR, description: "Version of the use case template. Since v63.0."}
       - {name: use_case_type, api_name: useCaseType, type: VARCHAR, description: "Type of use case for the template. Since v63.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/templates` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomTemplateRepresentation`."
@@ -400,7 +400,7 @@ functions:
       - {name: output_object_to_dev_name, api_name: outputObjectToDevName, type: JSON, description: "Map of output object names to their developer names. Since v66.0."}
       - {name: status, type: VARCHAR, description: "Status of the clean room. Since v66.0."}
       - {name: template_version, api_name: templateVersion, type: JSON, schema: DataCleanRoomTemplateRepresentation, description: "Version information of the template from which the clean room was created. Since v66.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/collaborations` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `DataCleanRoomCollaborationForUseCaseTypeRepresentation`."

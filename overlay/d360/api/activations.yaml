@@ -252,7 +252,7 @@ functions:
       - {name: records, type: JSON, array: 1, schema: ActivationHistoryRecordRepresentation, description: "Publish-history records in the page. Most-recent-first by default. Since v67.0."}
       - {name: total_pages, api_name: totalPages, type: BIGINT, description: "Total number of pages available for the query at the current page size. A next page exists while the current page index, derived from offset and limit, is below this value. Since v67.0."}
       - {name: total_size, api_name: totalSize, type: BIGINT, description: "Number of publish-history records returned in the page. Because a grand total record count isn't returned, this value reflects the current page only. Use `total_pages` for the full pagination extent, and follow `next_page_url` to page through results. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: One row. Schema `ActivationHistoryCollectionRepresentation`.
@@ -318,7 +318,7 @@ functions:
       - {name: channel_type, api_name: channelType, type: VARCHAR, description: "Type of delivery channel. Since v67.0."}
       - {name: is_mapped, api_name: isMapped, type: BOOLEAN, description: "Indicates whether the org has data mapped to the channel's data model object (DMO) in the requested data space (`true`) or not (`false`). Since v67.0."}
       - {name: label, type: VARCHAR, description: "Display label for the channel's underlying data model object (DMO). Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/channels` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ChannelRepresentation`."
@@ -363,7 +363,7 @@ functions:
       - {name: data_source_objects, api_name: dataSourceObjects, type: JSON, description: "API names of the data-source objects backing the data source. Since v67.0."}
       - {name: id, type: VARCHAR, description: "Record ID (18-character) of the data source. Since v67.0."}
       - {name: name, type: VARCHAR, description: "Display name of the data source. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataSources` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataSourceRepresentation`."

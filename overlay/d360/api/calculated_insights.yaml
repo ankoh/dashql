@@ -95,7 +95,7 @@ functions:
       - {name: publish_schedule_end_date, api_name: publishScheduleEndDate, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: publish_schedule_interval, api_name: publishScheduleInterval, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
       - {name: publish_schedule_start_date_time, api_name: publishScheduleStartDateTime, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: token, from: /collection/nextPageToken, option: page_token}
+    paging: {kind: token, from: {body: /collection/nextPageToken}, option: page_token}
     effect: read
     evidence: O
     result_description: One row per item of `/collection/items` in the response. Schema `CdpCalculatedInsightRepresentation`.

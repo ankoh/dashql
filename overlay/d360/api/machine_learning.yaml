@@ -150,7 +150,7 @@ functions:
       - {name: setup_type, api_name: setupType, type: VARCHAR, description: "Referenced setup type. - `OutOfTheBox` — a model managed by Salesforce. - `ModelConnector` — an external model exposed to Salesforce through a connector. - `EdcNoCode` — a model created using a no-code or low-code model builder. Since v61.0."}
       - {name: status, type: VARCHAR, description: "Model status. Since v61.0."}
       - {name: visibility, type: VARCHAR, description: "Model visibility. Since v62.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/configuredModels` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `MlConfiguredModelRepresentation`."
@@ -243,7 +243,7 @@ functions:
       - {name: tasks_url, api_name: tasksUrl, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
       - {name: total_rows_processed, api_name: totalRowsProcessed, type: BIGINT, description: "Not in the spec schema: from the spec's examples."}
       - {name: trigger_type, api_name: triggerType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/jobs` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CdpMlJobBaseRepresentation`."
@@ -394,7 +394,7 @@ functions:
       - {name: foundational_model, api_name: foundationalModel, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: generative_model_type, api_name: generativeModelType, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
       - {name: model_capabilities, api_name: modelCapabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/modelArtifacts` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CdpMlModelArtifactBaseRepresentation`."
@@ -489,7 +489,7 @@ functions:
       - {name: status, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
       - {name: transformations, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: validation_configuration, api_name: validationConfiguration, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/versions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CdpMlSetupBaseRepresentation`."
@@ -719,7 +719,7 @@ functions:
       - {name: query_type, api_name: queryType, type: VARCHAR, description: "Type of query. Since v61.0."}
       - {name: retriever_lifetime, api_name: retrieverLifetime, type: VARCHAR, description: "Lifetime of the retriever. Since v61.0."}
       - {name: references, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/retrievers` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `MlRetrieverRepresentation`."
@@ -801,7 +801,7 @@ functions:
       - {name: source_dmo, api_name: sourceDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Source data model object (DMO) to query. Applies only to `NoCode`. Since v61.0."}
       - {name: vector_dmo, api_name: vectorDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Vector data model object (DMO) containing embeddings for semantic search. Applies only to `NoCode`. Since v61.0."}
       - {name: version, type: BIGINT, description: "Version number of the configuration. Must be non-negative. Since v61.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/configurations` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `MlRetrieverConfigurationRepresentation`."

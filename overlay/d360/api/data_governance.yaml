@@ -190,7 +190,7 @@ functions:
       - {name: builder_validated, api_name: builderValidated, type: BOOLEAN, description: "Indicates whether the access policy validator has run for the policy (`true`) or not (`false`). Read-only; the server derives this value on save. Since v67.0."}
       - {name: description, type: VARCHAR, description: "Description of the policy. Since v67.0."}
       - {name: rules, type: JSON, array: 1, schema: AccessPolicyRuleRepresentation, description: "Rules contained in the policy. The access policy builder restricts a policy to one rule; multi-rule policies have `builder_compatible` set to `false`. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/records` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `AccessPolicyRepresentation`."
@@ -277,7 +277,7 @@ functions:
       - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ, description: "Date the job status was last updated. Since v67.0."}
       - {name: object_name, api_name: objectName, type: VARCHAR, description: "Target object API name. Since v67.0."}
       - {name: status, type: VARCHAR, description: "Status of the job. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/jobs` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `AutoTaggingJobRepresentation`."
@@ -328,7 +328,7 @@ functions:
       - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the target tag. Since v67.0."}
       - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the target tag. Since v67.0."}
       - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the target tag. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/classificationAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `ClassificationAssignmentRepresentation`."
@@ -386,7 +386,7 @@ functions:
       - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
       - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
       - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/taxonomies` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TaxonomyRepresentation`."
@@ -454,7 +454,7 @@ functions:
       - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
       - {name: type, type: VARCHAR, description: "Type of classification. Since v67.0."}
       - {name: url, type: VARCHAR, description: "URL of the classification resource. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/classifications` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `ClassificationRepresentation`."
@@ -517,7 +517,7 @@ functions:
       - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the target tag. Since v67.0."}
       - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the target tag. Since v67.0."}
       - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the target tag. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/classificationAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `ClassificationAssignmentRepresentation`."
@@ -546,7 +546,7 @@ functions:
       - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Name of the data space that the grant belongs to. Since v67.0."}
       - {name: object_api_name, api_name: objectApiName, type: VARCHAR, description: "API name of the granted Data Cloud object. Since v67.0."}
       - {name: permission_set_name, api_name: permissionSetName, type: VARCHAR, description: "Developer name of the permission set. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/grants` in the response. Other response fields go to `_meta`: `count`, `currentPageUrl`, `limit`, `nextPageUrl`, `offset`, `previousPageUrl`, `totalSize`. Schema `DataGovernanceObjectAccessGrantRepresentation`."
@@ -602,7 +602,7 @@ functions:
       - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the assigned tag. Since v67.0."}
       - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the assigned tag. Since v67.0."}
       - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the assigned tag (terminal segment only). Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/tagAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagAssignmentRepresentation`."
@@ -664,7 +664,7 @@ functions:
       - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the suggested tag. Since v67.0."}
       - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the suggested tag. Since v67.0."}
       - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the suggested tag (terminal segment only). Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/suggestions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagSuggestionRepresentation`."
@@ -728,7 +728,7 @@ functions:
       - {name: taxonomy_kind, api_name: taxonomyKind, type: VARCHAR, description: "Kind of tag taxonomy. Since v67.0."}
       - {name: type, type: VARCHAR, description: "Type of tag taxonomy. Since v67.0."}
       - {name: url, type: VARCHAR, description: "URL of the taxonomy resource. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/taxonomies` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TaxonomyRepresentation`."
@@ -779,7 +779,7 @@ functions:
     columns:
       - {name: active_detection_instruction, api_name: activeDetectionInstruction, type: JSON, schema: TagDetectionInstructionRepresentation, description: "Currently active detection instruction for the tag. Null if the tag has no active instruction. Since v67.0."}
       - {name: tag, type: JSON, schema: TagLookupRepresentation, description: "Tag the detection instruction applies to. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/tagsWithActiveDetectionInstructions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagWithActiveDetectionInstructionRepresentation`."
@@ -817,7 +817,7 @@ functions:
       - {name: taxonomy, type: JSON, schema: TaxonomyLookupRepresentation, description: "Taxonomy reference. Since v67.0."}
       - {name: type, type: VARCHAR, description: "Type of tag. Since v67.0."}
       - {name: url, type: VARCHAR, description: "URL of the tag resource. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/tags` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagRepresentation`."
@@ -879,7 +879,7 @@ functions:
       - {name: tag_id, api_name: tagId, type: VARCHAR, description: "ID of the assigned tag. Since v67.0."}
       - {name: tag_label, api_name: tagLabel, type: VARCHAR, description: "Leaf display label of the assigned tag. Since v67.0."}
       - {name: tag_name, api_name: tagName, type: VARCHAR, description: "Leaf developer name of the assigned tag (terminal segment only). Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/tagAssignments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `count`, `limit`, `offset`, `previousPageUrl`. Schema `TagAssignmentRepresentation`."

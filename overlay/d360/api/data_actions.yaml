@@ -57,7 +57,7 @@ functions:
       - {name: status_error_code, api_name: statusErrorCode, type: VARCHAR, description: "Status error code. Since v62.0."}
       - {name: sub_type, api_name: subType, type: VARCHAR, description: "Sub type Since v62.0."}
       - {name: type, type: VARCHAR, description: "Data action target type. Since v62.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataActionTargets` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`. Schema `CdpDataActionTargetOutputRepresentation`."
@@ -124,7 +124,7 @@ functions:
       - {name: master_label, api_name: masterLabel, type: VARCHAR, description: "Data action's master label. Since v62.0."}
       - {name: should_trigger_event_only_first_time, api_name: shouldTriggerEventOnlyFirstTime, type: BOOLEAN, description: "If `true`, the related event is triggered only the first time that the data action is used. If `false`, the event is triggered each time the data action is used. Since v62.0."}
       - {name: subscriber_key, api_name: subscriberKey, type: VARCHAR, description: "Data action subscriber key. Since v62.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataActions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`. Schema `CdpDataActionOutputRepresentation`."

@@ -99,7 +99,7 @@ functions:
       - {name: dataspace_name, api_name: dataspaceName, type: VARCHAR, description: "Name of the data space that the agent belongs to. Since v66.0."}
       - {name: setup_name, api_name: setupName, type: JSON, schema: CdpAssetReferenceRepresentation, description: "Name of the agent setup. Since v66.0."}
       - {name: status, type: VARCHAR, description: "Status of the agent. Since v66.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/agents` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `limit`, `offset`. Schema `AgentRepresentation`."

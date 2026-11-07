@@ -181,7 +181,7 @@ describe('overlay paging', () => {
         rows: '/items',
         options: [{ name: 'token', api_name: 'pageToken', in: 'query' }, { name: 'size', in: 'query' }],
         columns: [{ name: 'id', type: 'BIGINT' }],
-        paging: { kind: 'token', from: '/next', option: 'token' },
+        paging: { kind: 'token', from: { body: '/next' }, option: 'token' },
     };
 
     it('returns one page and the value for the next one', async () => {
@@ -239,6 +239,15 @@ describe('overlay paging', () => {
         expect(last.rows.length).toEqual(0);
     });
 
+    it('reads a value by the rel of a Link header, and fails on a source it does not know', async () => {
+        const list = (from: unknown): OverlayFunction => ({ name: 'list', rows: '', paging: { kind: 'url', from: from as never } });
+        const links = { headers: { Link: `</a>; rel="first", </b>; rel="last"` } };
+        const { fetch, environment } = env([json([{ a: 1 }], links), json([])]);
+        await runOverlayCall(spec([list({ link: 'last' })]), call('list', { _pages: 2 }), environment);
+        expect(urlOf(fetch, 1)).toEqual(`${BASE}/b`);
+        await expect(runOverlayCall(spec([list({ nope: 'x' })]), call('list', {}), env([json([{ a: 1 }])]).environment)).rejects.toThrow(/unknown source/);
+    });
+
     it('follows a next URL with GET and no body', async () => {
         const fn: OverlayFunction = {
             name: 'search',
@@ -246,7 +255,7 @@ describe('overlay paging', () => {
             effect: 'read',
             rows: '',
             options: [{ name: 'q', in: 'body' }, { name: 'trace', api_name: 'X-Trace', in: 'header' }],
-            paging: { kind: 'url', from: 'header:Link#next' },
+            paging: { kind: 'url', from: { link: 'next' } },
         };
         const { fetch, environment } = env([
             json([{ a: 1 }], { headers: { Link: `</results/1?page=0>; rel="first", </results/1?page=1>; rel="next"` } }),
@@ -265,7 +274,7 @@ describe('overlay paging', () => {
     });
 
     it('never sends the token to another origin', async () => {
-        const fn: OverlayFunction = { name: 'feed', rows: '/items', options: [{ name: 'required', api_name: 'r', in: 'path' }], path: '/{r}', paging: { kind: 'url', from: '/next' } };
+        const fn: OverlayFunction = { name: 'feed', rows: '/items', options: [{ name: 'required', api_name: 'r', in: 'path' }], path: '/{r}', paging: { kind: 'url', from: { body: '/next' } } };
         const fromScript = env([]);
         await expect(runOverlayCall(spec([fn]), call('feed', { _next: 'https://evil.example.com/x' }), fromScript.environment)).rejects.toThrow(/another origin/);
         expect(fromScript.fetch).not.toHaveBeenCalled();
@@ -279,7 +288,7 @@ describe('overlay paging', () => {
             name: 'charges',
             rows: '/data',
             options: [{ name: 'starting_after', in: 'query' }],
-            paging: { kind: 'token', from: 'last_row:/id', option: 'starting_after', end: { has_more: '/has_more' } },
+            paging: { kind: 'token', from: { last_row: '/id' }, option: 'starting_after', end: { has_more: '/has_more' } },
         };
         const { fetch, environment } = env([json({ data: [{ id: 'a' }, { id: 'b' }], has_more: true }), json({ data: [{ id: 'c' }], has_more: false })]);
         const result = await runOverlayCall(spec([fn]), call('charges', { _pages: 5 }), environment);
@@ -387,7 +396,7 @@ describe('overlay results', () => {
 });
 
 describe('overlay pending results', () => {
-    const pending = { status: 202, poll: 'header:Location' };
+    const pending = { status: 202, poll: { header: 'Location' } };
     const fn: OverlayFunction = { name: 'slow', rows: '', columns: [{ name: 'id', type: 'BIGINT' }], pending, options: [{ name: 'required', in: 'query' }] };
     const accepted = (headers: Record<string, string> = { Location: '/results/1' }) => new Response('{}', { status: 202, headers });
 
@@ -439,7 +448,7 @@ describe('overlay pending results', () => {
 
     it('repeats the request for poll rule same', async () => {
         const time = clock();
-        const same: OverlayFunction = { ...fn, pending: { status: 202, poll: 'same' } };
+        const same: OverlayFunction = { ...fn, pending: { status: 202, poll: { repeat: true } } };
         const { fetch, environment } = env([accepted({}), json([{ id: 1 }])], time);
         await runOverlayCall(spec([same]), call('slow', { required: 1, _wait: 5 }), environment);
         expect(urlOf(fetch, 1)).toEqual(urlOf(fetch, 0));
@@ -447,8 +456,16 @@ describe('overlay pending results', () => {
         expect(cell(pendingResult, 0, '_poll')).toEqual('same');
     });
 
+    it('repeats the request if the rule says so', async () => {
+        const repeat: OverlayFunction = { ...fn, effect: 'read', pending: { status: 202, poll: { repeat: true } } };
+        const { fetch, environment } = env([accepted({}), json({ state: 'done' })]);
+        await runOverlayCall(spec([repeat]), call('slow', { required: 1, _wait: 60 }), environment);
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(urlOf(fetch, 1)).toEqual(urlOf(fetch, 0));
+    });
+
     it('fails without the header it polls, and on another origin', async () => {
-        await expect(runOverlayCall(spec([fn]), call('slow', { required: 1 }), env([accepted({})]).environment)).rejects.toThrow(/without a header:Location/);
+        await expect(runOverlayCall(spec([fn]), call('slow', { required: 1 }), env([accepted({})]).environment)).rejects.toThrow(/without a Location header/);
         await expect(runOverlayCall(spec([fn]), call('slow', { _poll: 'https://evil.example.com/x' }), env([]).environment)).rejects.toThrow(/another origin/);
     });
 
@@ -501,7 +518,7 @@ describe('overlay EXPLAIN', () => {
     });
 
     it('shows a followed URL and what the runtime applies itself', async () => {
-        const url: OverlayFunction = { name: 'feed', paging: { kind: 'url', from: '/next' } };
+        const url: OverlayFunction = { name: 'feed', paging: { kind: 'url', from: { body: '/next' } } };
         const result = await explainOverlayCall(spec([url]), call('feed', { _next: '/feed?page=2', _pages: 3 }));
         expect(cell(result, 0, 'method')).toEqual('GET');
         expect(cell(result, 0, 'path')).toEqual('/feed?page=2');

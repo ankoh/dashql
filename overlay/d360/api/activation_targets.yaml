@@ -172,7 +172,7 @@ functions:
       - {name: partner_object_id, api_name: partnerObjectId, type: VARCHAR, description: "Identifier on the external platform. Since v67.0."}
       - {name: status, type: VARCHAR, description: "Status of the partner object. Since v67.0."}
       - {name: type, type: VARCHAR, description: "Partner-object type identifier. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/partnerObjects` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `PartnerObjectRepresentation`."
@@ -206,7 +206,7 @@ functions:
       - {name: platform_type, api_name: platformType, type: VARCHAR, description: "Type of the activation platform. Since v67.0."}
       - {name: processing_type, api_name: processingType, type: VARCHAR, description: "How the platform processes activations. Since v67.0."}
       - {name: sort_order, api_name: sortOrder, type: BIGINT, description: "Sort order used to display platforms in pickers. Lower values appear first. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/activationTargetPlatforms` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ActivationTargetPlatformRepresentation`."
@@ -234,7 +234,7 @@ functions:
       - {name: dataspace_id, api_name: dataSpaceId, type: VARCHAR}
       - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR}
       - {name: dataspace, api_name: dataSpace, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataSpaces` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CommunicationCappingDataSpaceRepresentation`."
@@ -277,7 +277,7 @@ functions:
       - {name: connector_id, api_name: connectorId, type: VARCHAR, description: "Connector ID linking the enterprise to Data Cloud. Since v67.0."}
       - {name: enterprise_id, api_name: enterpriseId, type: VARCHAR, description: "Marketing Cloud enterprise ID (EID). Since v67.0."}
       - {name: enterprise_name, api_name: enterpriseName, type: VARCHAR, description: "Display name of the enterprise. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/enterprises` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `McEnterpriseRepresentation`."

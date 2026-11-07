@@ -40,11 +40,22 @@ export interface OverlayColumn {
 /// When a list of pages ends
 export type OverlayPagingEnd = 'empty_page' | 'short_page' | { total: string } | { has_more: string };
 
+/// Where a value of a response is
+export type OverlayValueSource =
+    /// A JSON pointer into the body
+    | { body: string }
+    /// A response header
+    | { header: string }
+    /// The entry with this `rel` of a `Link` header
+    | { link: string }
+    /// A JSON pointer into the last row of the page
+    | { last_row: string };
+
 /// How a function pages
 export interface OverlayPaging {
     kind: 'url' | 'token' | 'offset' | 'page';
-    /// Where the value is: `/pointer`, `header:Link#next`, `header:<name>` or `last_row:/pointer`
-    from?: string;
+    /// Where the value is
+    from?: OverlayValueSource;
     /// The option that takes the value
     option?: string;
     /// The option with the page size
@@ -59,8 +70,8 @@ export interface OverlayPaging {
 export interface OverlayPending {
     /// The status that means not finished
     status: number;
-    /// `header:<name>` with the URL to poll, or `same` to repeat the request
-    poll: string;
+    /// The header with the URL to poll, or a repeat of the request
+    poll: { header: string } | { repeat: true };
 }
 
 /// How a function reports errors

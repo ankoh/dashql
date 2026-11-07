@@ -72,7 +72,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 | Finding | Change in [the format](../overlay.md) |
 |---|---|
 | Snowflake declares `Link` on 13 `POST` and `PUT` operations, and the URL points at a results path | A followed URL always uses `GET` with no body. Otherwise, fetching page 2 could repeat a create |
-| Next values live in headers and in rows, not only in the body | `from` takes a pointer, `header:Link#next`, `header:<name>` or `last_row:/id` |
+| Next values live in headers and in rows, not only in the body | `from` takes `body`, `link`, `header` or `last_row` |
 | GitHub pages by number | A `page` kind |
 | Stripe ends with `has_more` | `end` takes `{ "has_more": ... }` |
 | 400 Snowflake operations can return `202` | `pending`, with `_poll` and `_wait` |

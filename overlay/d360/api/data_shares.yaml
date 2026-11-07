@@ -124,7 +124,7 @@ functions:
       - {name: target_type, api_name: targetType, type: VARCHAR, description: "Type of data share target. The endpoint returns the output object that corresponds to the target type. For example, the Aws Data Share Target Output is returned for the `Aws` target type. Since v63.0."}
       - {name: account_id, api_name: accountId, type: VARCHAR}
       - {name: aws_role_arn, api_name: awsRoleArn, type: VARCHAR}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataShareTargets` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataShareTargetRepresentation`."
@@ -187,7 +187,7 @@ functions:
       - {name: data_share_objects, api_name: dataShareObjects, type: JSON, schema: DataShareObjectRepresentation, description: "Data share objects included in the data share. Since v63.0."}
       - {name: dataspace_name, api_name: dataspaceName, type: VARCHAR, description: "Name of the data space that the data share belongs to. Since v63.0."}
       - {name: status, type: VARCHAR, description: "Status of the data share. Since v63.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataShares` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataShareRepresentation`."

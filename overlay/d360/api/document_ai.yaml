@@ -66,7 +66,7 @@ functions:
       - {name: source_dmo, api_name: sourceDmo, type: JSON, schema: CdpAssetReferenceRepresentation, description: "The unstructured DMO used as the input for the data extraction process. Since v63.0."}
       - {name: status, type: VARCHAR, description: "The status of the latest configuration version that's been synced off-core. Since v63.0."}
       - {name: version, type: VARCHAR, description: "The current version of the configuration. This is incremented automatically with each edit. Since v63.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/configurations` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `IdpConfigurationRepresentation`."

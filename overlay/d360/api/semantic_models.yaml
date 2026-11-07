@@ -49,7 +49,7 @@ functions:
       - {name: app, type: VARCHAR}
       - {name: categories, type: JSON}
       - {name: last_modified_date, api_name: lastModifiedDate, type: TIMESTAMPTZ}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     unknown: warning
     evidence: S

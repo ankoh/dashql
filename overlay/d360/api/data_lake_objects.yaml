@@ -62,7 +62,7 @@ functions:
       - {name: status, type: VARCHAR, description: "Status of the DLO. Since v60.0."}
       - {name: capabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: fields, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataLakeObjects` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataLakeObjectRepresentation`."

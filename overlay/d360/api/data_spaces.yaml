@@ -82,7 +82,7 @@ functions:
       - {name: description, type: VARCHAR, description: "Description of the data space. Since v62.0."}
       - {name: prefix, type: VARCHAR, description: "Three-character prefix of the data space. Since v62.0."}
       - {name: status, type: VARCHAR, description: "Status of the data space. Since v62.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataSpaces` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataSpaceInfoRepresentation`."
@@ -147,7 +147,7 @@ functions:
       - {name: filter, type: JSON, schema: DataSpaceFilterRepresentation, description: "Filter on the object used for creating the data space member. Since v61.0."}
       - {name: member_name, api_name: memberName, type: VARCHAR, description: "Developer name of the data space member. Since v62.0."}
       - {name: status, type: VARCHAR, description: "Status of the off-core sync of the data space member. Since v62.0."}
-    paging: {kind: token, from: /continuationToken, option: continuation_token}
+    paging: {kind: token, from: {body: /continuationToken}, option: continuation_token}
     effect: read
     evidence: O
     result_description: "One row per item of `/members` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`, `continuationToken`. Schema `DataSpaceMemberRepresentation`."

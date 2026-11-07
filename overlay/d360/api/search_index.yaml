@@ -82,7 +82,7 @@ functions:
       - {name: runtime_status, api_name: runtimeStatus, type: VARCHAR, description: "Not in the spec schema: from the spec's examples."}
       - {name: semantic_search_ranking_configurations, api_name: semanticSearchRankingConfigurations, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: transcribe_dmo_id, api_name: transcribeDmoId, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/semanticSearchDefinitionDetails` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `SemanticSearchDefDetailRepresentation`."

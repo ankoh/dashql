@@ -65,7 +65,7 @@ functions:
       - {name: privacy_type, api_name: privacyType, type: VARCHAR, description: "Privacy type for the external platform. Since v64.0."}
       - {name: status, type: VARCHAR, description: "Status of the external platform. Since v64.0."}
       - {name: type, type: VARCHAR, description: "Platform type for the external platform. Since v64.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/platforms` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ActivationExternalPlatformRepresentation`."
@@ -216,7 +216,7 @@ functions:
     rows: /actionSources
     columns:
       - {name: name, type: VARCHAR, description: "Name of the action source, such as Website, App, or Offline. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/actionSources` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `ActionSourceRepresentation`."
@@ -239,7 +239,7 @@ functions:
     rows: /events
     columns:
       - {name: name, type: VARCHAR, description: "Name of the event, such as Purchase or AddToCart. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/events` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `EventRepresentation`."
@@ -263,7 +263,7 @@ functions:
     columns:
       - {name: label, type: VARCHAR, description: "Display label for the partner-object type. Since v67.0."}
       - {name: type, type: VARCHAR, description: "Partner-object type identifier, such as Pixel, App, or ConversionRule. Values are partner-defined. Since v67.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/partnerObjectTypes` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `PartnerObjectTypeRepresentation`."

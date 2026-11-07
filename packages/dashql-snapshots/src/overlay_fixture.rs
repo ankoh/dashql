@@ -67,7 +67,7 @@ pub const TICKETS: &str = r#"{
       ],
       "rows": "/items",
       "columns": [{ "name": "id", "api_name": "id", "type": "BIGINT" }],
-      "paging": { "kind": "token", "from": "/nextPageToken", "option": "page_token" }
+      "paging": { "kind": "token", "from": { "body": "/nextPageToken" }, "option": "page_token" }
     },
     {
       "name": "ticket_feed",
@@ -75,7 +75,7 @@ pub const TICKETS: &str = r#"{
       "host": "api",
       "path": "/feed",
       "options": [{ "name": "project", "api_name": "project", "in": "query", "type": "string", "required": true }],
-      "paging": { "kind": "url", "from": "header:Link#next" }
+      "paging": { "kind": "url", "from": { "link": "next" } }
     },
     {
       "name": "ticket_create",
@@ -117,7 +117,7 @@ pub const TICKETS: &str = r#"{
       "method": "POST",
       "host": "api",
       "path": "/exports",
-      "pending": { "status": 202, "poll": "header:Location" },
+      "pending": { "status": 202, "poll": { "header": "Location" } },
       "options": [{ "name": "format", "api_name": "format", "in": "body", "type": "string", "required": true }]
     },
     {

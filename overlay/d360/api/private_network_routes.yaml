@@ -82,7 +82,7 @@ functions:
       - {name: cloud_provider, api_name: cloudProvider, type: JSON, schema: CloudProviderDetailsRepresentation, description: "Details about the cloud provider for the Private Network Route. Since v65.0."}
       - {name: route, type: JSON, description: "Provider details for the Private Network Route. The endpoint returns the details output object that corresponds to the type of Private Network Route. For example, the Amazon MSK Route Details Output is returned for the `AmazonMsk` type. Since v65.0."}
       - {name: storage_route, api_name: storageRoute, type: JSON, schema: RouteDetailsRepresentation, description: "Storage details for a route, for example, the URL and service name, for a storage/internal stage in the case of customer-managed and Salesforce-managed solutions. Since v66.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/routes` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `PrivateNetworkRouteRepresentation`."

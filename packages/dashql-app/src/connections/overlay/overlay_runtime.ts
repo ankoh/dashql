@@ -12,6 +12,7 @@ import {
     OverlayPaging,
     OverlayPending,
     OverlaySpec,
+    OverlayValueSource,
     pendingOf,
     readJsonPointer,
 } from './overlay_spec.js';
@@ -103,34 +104,39 @@ interface Page {
     headers: Headers;
 }
 
-/// Read the `rel="next"` entry of a `Link` header
-function readLinkNext(link: string | null): string | null {
+/// Read the entry with a `rel` of a `Link` header
+function readLink(link: string | null, rel: string): string | null {
+    const wanted = rel.toLowerCase();
     for (const entry of (link ?? '').split(',')) {
         const match = /<([^>]*)>\s*;\s*(.*)/.exec(entry.trim());
-        if (match !== null && /(^|;)\s*rel="?next"?\s*(;|$)/i.test(match[2])) {
-            return match[1];
+        const found = match === null ? null : /(?:^|;)\s*rel="?([^";]*)"?\s*(?:;|$)/i.exec(match[2]);
+        if (found !== null && found[1].trim().toLowerCase() === wanted) {
+            return match![1];
         }
     }
     return null;
 }
 
 /// A value that the overlay points to
-function readSource(source: string | undefined, page: Page): unknown {
+function readSource(source: OverlayValueSource | undefined, page: Page): unknown {
     if (source === undefined) {
         return undefined;
     }
-    if (source.startsWith('last_row:')) {
+    if ('last_row' in source) {
         const last = page.items[page.items.length - 1];
-        return last === undefined ? undefined : readJsonPointer(last, source.substring('last_row:'.length));
+        return last === undefined ? undefined : readJsonPointer(last, source.last_row);
     }
-    if (source.startsWith('header:')) {
-        const name = source.substring('header:'.length);
-        if (name.toLowerCase() === 'link#next') {
-            return readLinkNext(page.headers.get('Link'));
-        }
-        return page.headers.get(name);
+    if ('link' in source) {
+        return readLink(page.headers.get('Link'), source.link);
     }
-    return readJsonPointer(page.body, source);
+    if ('header' in source) {
+        return page.headers.get(source.header);
+    }
+    if ('body' in source) {
+        return readJsonPointer(page.body, source.body);
+    }
+    // A mistake in a spec would end the list without a word otherwise
+    throw new OverlayError(`the overlay reads a value from the unknown source ${JSON.stringify(source)}`);
 }
 
 /// Does the list end after a page? Only a documented rule ends it early, so an empty page is the default.
@@ -317,14 +323,15 @@ class OverlayCallRun {
             if (this.pending === null || response.status !== this.pending.status) {
                 return { response };
             }
-            if (this.pending.poll !== POLL_SAME && !this.pending.poll.startsWith('header:')) {
-                throw new OverlayError(`${this.spec.namespace}.${this.fn.name} has the unknown poll rule ${this.pending.poll}`);
+            const rule = this.pending.poll;
+            if (!('header' in rule) && !('repeat' in rule)) {
+                throw new OverlayError(`${this.spec.namespace}.${this.fn.name} has the unknown poll rule ${JSON.stringify(rule)}`);
             }
             let poll = POLL_SAME;
-            if (this.pending.poll !== POLL_SAME) {
-                const value = response.headers.get(this.pending.poll.substring('header:'.length));
+            if ('header' in rule) {
+                const value = response.headers.get(rule.header);
                 if (isEmptyValue(value)) {
-                    throw new OverlayError(`${this.spec.namespace}.${this.fn.name} answered ${response.status} without a ${this.pending.poll}`, response.status);
+                    throw new OverlayError(`${this.spec.namespace}.${this.fn.name} answered ${response.status} without a ${rule.header} header`, response.status);
                 }
                 poll = value!;
             }

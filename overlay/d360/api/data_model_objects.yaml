@@ -109,7 +109,7 @@ functions:
       - {name: source_entity_developer_name, api_name: sourceEntityDeveloperName, type: VARCHAR, description: "Source DLO entity developer name of the object source target map. Since v61.0."}
       - {name: status, type: VARCHAR, description: "Status of the object source target map. Since v61.0."}
       - {name: target_entity_developer_name, api_name: targetEntityDeveloperName, type: VARCHAR, description: "Target DMO entity developer name of the object source target map. Since v61.0."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     errors: {empty_on: [404]}
     effect: read
     evidence: O
@@ -178,7 +178,7 @@ functions:
       - {name: is_editable, api_name: isEditable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
       - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
       - {name: is_segmentable, api_name: isSegmentable, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataModelObject` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataModelObjectRepresentation`."
@@ -258,7 +258,7 @@ functions:
       - {name: target_object, api_name: targetObject, type: JSON, schema: RelationshipObjectRepresentation, description: "Details about the target object involved in the relationship. Since v64.0."}
       - {name: source_entity, api_name: sourceEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: target_entity, api_name: targetEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/relationships` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `FieldSrcTrgtRelationshipRepresentation`."
@@ -488,7 +488,7 @@ functions:
       - {name: target_object, api_name: targetObject, type: JSON, schema: RelationshipObjectRepresentation, description: "Details about the target object involved in the relationship. Since v64.0."}
       - {name: source_entity, api_name: sourceEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
       - {name: target_entity, api_name: targetEntity, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: write
     evidence: O
     result_description: "One row per item of `/relationships` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `FieldSrcTrgtRelationshipRepresentation`."

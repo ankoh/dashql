@@ -106,7 +106,7 @@ functions:
       - {name: total_records, api_name: totalRecords, type: BIGINT, description: "Total records in the data stream. Since v60.0."}
       - {name: is_enabled, api_name: isEnabled, type: BOOLEAN, description: "Not in the spec schema: from the spec's examples."}
       - {name: capabilities, type: JSON, description: "Not in the spec schema: from the spec's examples."}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/dataStreams` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataStreamDetailedRepresentation`."

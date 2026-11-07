@@ -85,7 +85,7 @@ functions:
       - {name: is_remote, api_name: isRemote, type: BOOLEAN}
       - {name: owned_by, api_name: ownedBy, type: VARCHAR}
       - {name: status, type: VARCHAR}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/customCodeDeployments` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CustomCodeDeploymentRepresentation`."
@@ -157,7 +157,7 @@ functions:
       - {name: start_time, api_name: startTime, type: TIMESTAMPTZ}
       - {name: status, type: VARCHAR}
       - {name: submitted_time, api_name: submittedTime, type: TIMESTAMPTZ}
-    paging: {kind: url, from: /nextPageUrl}
+    paging: {kind: url, from: {body: /nextPageUrl}}
     effect: read
     evidence: O
     result_description: "One row per item of `/executions` in the response. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `CustomCodeExecutionBaseRepresentation`."

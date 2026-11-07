@@ -263,7 +263,7 @@ fn assumed_response(function: &Value, options: &Value) -> (Value, Value) {
     let kind = paging["kind"].as_str();
     if matches!(kind, Some("url" | "token")) && body.is_object() {
         let value = if kind == Some("url") { json!("/assumed/next-page") } else { json!("assumed-token") };
-        set_pointer(&mut body, paging["from"].as_str().unwrap(), value.clone());
+        set_pointer(&mut body, paging["from"]["body"].as_str().unwrap(), value.clone());
         next = value;
     } else if kind == Some("offset") {
         let start = options[paging["option"].as_str().unwrap()].as_i64().or(paging["start"].as_i64()).unwrap_or(0);
