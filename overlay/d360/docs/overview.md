@@ -152,9 +152,9 @@ Passing means an example has the shape the spec describes, not that the server a
 
 **Responses start as assumptions and get replaced by real ones.** An `assumed` response is built from the columns of the spec, so it shows that the runtime follows the spec, not that the spec is right. Replace `response` and `result` of a case with a real exchange, with `source: recorded` or `documented`, and regenerating keeps it. A real exchange must not contain tokens or the data of an org.
 
-**Snippets** are workflows in `overlay/d360/snippets/<workflow>/<NN>-<step>.sql`, built from the examples of the reference. A single call of this API rarely does anything on its own, so the steps build on each other: `order-pipeline` goes from a Snowflake connection through a data stream, the data model, identity resolution, an insight and a segment to an activation, in the [documented order](api_notes.md#usage-order). `bulk-ingest`, `semantic-search` and `data-transform` are shorter.
+**Snippets** are workflows in `overlay/d360/snippets/<workflow>/<NN>-<step>.sql`, built from the examples of the reference. A single call of this API rarely does anything on its own, so the steps build on each other: `order-pipeline` goes from a Snowflake connection through a data stream, the data model, identity resolution, an insight and a segment to an activation, in the [documented order](api_notes.md#usage-order). The others are shorter, with most families having one, and `explore-the-org` only reads.
 
-Names stay the same from step to step, and a value that only a result can give is a `:param`, which the description of the step explains. The tests hold every step to the checks and the rules of the snippet browser, but passing doesn't mean a workflow runs on an org, and the object names in `order-pipeline` are made up. The snippet browser doesn't list them yet, since a call can't run until the binding exists.
+Names stay the same from step to step, and a value that only a result can give is a `:param`, which the description of the step explains. The tests hold every step to the checks and the rules of the snippet browser, but passing doesn't mean a workflow runs on an org, and the object names are made up. The snippet browser doesn't list them yet, since a call can't run until the binding exists.
 
 ## Where attributes come from
 
