@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { applyFlavorToDocument, getRequestedFlavor, resolveFlavor, selectFlavor, withFlavorParameter } from './flavor_resolution.js';
-import { applyFlavorSettings, DASHQL_FLAVOR, SIDB_FLAVOR } from './flavors.js';
+import { applyFlavorSettings, DASHQL_FLAVOR, DBCOM_FLAVOR } from './flavors.js';
 
 describe('App flavor resolution', () => {
     it('defaults to DashQL', () => {
@@ -9,8 +9,13 @@ describe('App flavor resolution', () => {
     });
 
     it('selects the requested flavor', () => {
-        expect(resolveFlavor('sidb')).toEqual({ flavor: SIDB_FLAVOR });
+        expect(resolveFlavor('dbcom')).toEqual({ flavor: DBCOM_FLAVOR });
         expect(resolveFlavor('dashql')).toEqual({ flavor: DASHQL_FLAVOR });
+    });
+
+    it('accepts the former id of the Database.com flavor', () => {
+        expect(resolveFlavor('sidb')).toEqual({ flavor: DBCOM_FLAVOR });
+        expect(selectFlavor(null, 'sidb')).toBe(DBCOM_FLAVOR);
     });
 
     it('ignores unknown flavors', () => {
@@ -19,18 +24,19 @@ describe('App flavor resolution', () => {
 
     it('lets the url flavor win over the flavor of the app settings', () => {
         expect(selectFlavor(null, undefined)).toBe(DASHQL_FLAVOR);
-        expect(selectFlavor(null, 'sidb')).toBe(SIDB_FLAVOR);
+        expect(selectFlavor(null, 'dbcom')).toBe(DBCOM_FLAVOR);
         expect(selectFlavor(null, 'unknown')).toBe(DASHQL_FLAVOR);
-        expect(selectFlavor(DASHQL_FLAVOR, 'sidb')).toBe(DASHQL_FLAVOR);
-        expect(selectFlavor(SIDB_FLAVOR, 'dashql')).toBe(SIDB_FLAVOR);
+        expect(selectFlavor(DASHQL_FLAVOR, 'dbcom')).toBe(DASHQL_FLAVOR);
+        expect(selectFlavor(DBCOM_FLAVOR, 'dashql')).toBe(DBCOM_FLAVOR);
     });
 
     it('adds the flavor parameter to urls that lost it', () => {
-        expect(withFlavorParameter(new URL('https://dashql.app/sessions/a'), SIDB_FLAVOR)?.href)
-            .toBe('https://dashql.app/sessions/a?flavor=sidb');
-        expect(withFlavorParameter(new URL('https://dashql.app/sessions/a?data=x#h'), SIDB_FLAVOR)?.href)
-            .toBe('https://dashql.app/sessions/a?data=x&flavor=sidb#h');
-        expect(withFlavorParameter(new URL('https://dashql.app/?flavor=sidb'), SIDB_FLAVOR)).toBeNull();
+        expect(withFlavorParameter(new URL('https://dashql.app/sessions/a'), DBCOM_FLAVOR)?.href)
+            .toBe('https://dashql.app/sessions/a?flavor=dbcom');
+        expect(withFlavorParameter(new URL('https://dashql.app/sessions/a?data=x#h'), DBCOM_FLAVOR)?.href)
+            .toBe('https://dashql.app/sessions/a?data=x&flavor=dbcom#h');
+        expect(withFlavorParameter(new URL('https://dashql.app/?flavor=dbcom'), DBCOM_FLAVOR)).toBeNull();
+        expect(withFlavorParameter(new URL('https://dashql.app/?flavor=sidb'), DBCOM_FLAVOR)).toBeNull();
         expect(withFlavorParameter(new URL('https://dashql.app/sessions/a'), DASHQL_FLAVOR)).toBeNull();
     });
 });
@@ -54,8 +60,13 @@ describe('the flavor of the page url', () => {
     });
 
     it('is the requested flavor', () => {
+        withSearch('?flavor=dbcom');
+        expect(getRequestedFlavor()).toBe(DBCOM_FLAVOR);
+    });
+
+    it('is the flavor of a former id', () => {
         withSearch('?flavor=sidb');
-        expect(getRequestedFlavor()).toBe(SIDB_FLAVOR);
+        expect(getRequestedFlavor()).toBe(DBCOM_FLAVOR);
     });
 
     it('is the default flavor with a warning for an unknown one', () => {
@@ -90,22 +101,22 @@ describe('App flavor branding', () => {
 
     it('replaces the favicons of a branded flavor', () => {
         const doc = createDocument();
-        applyFlavorToDocument(SIDB_FLAVOR, doc);
-        expect(doc.documentElement.dataset.flavor).toBe('sidb');
-        expect(doc.title).toBe('SIDB');
-        expect(doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content')).toBe('SIDB');
+        applyFlavorToDocument(DBCOM_FLAVOR, doc);
+        expect(doc.documentElement.dataset.flavor).toBe('dbcom');
+        expect(doc.title).toBe('Database.com');
+        expect(doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content')).toBe('Database.com');
         const links = [...doc.head.querySelectorAll('link')].map(l => [l.rel, l.getAttribute('href')]);
         expect(links).toEqual([
             ['manifest', '/static/favicons/dashql/site.webmanifest'],
-            ['icon', SIDB_FLAVOR.favicon!.href],
+            ['icon', DBCOM_FLAVOR.favicon!.href],
         ]);
     });
 
     it('restores the static favicons when switching back to the default flavor', () => {
         const doc = createDocument();
         const statics = [...doc.head.querySelectorAll('link')].map(l => [l.rel, l.getAttribute('href')]);
-        applyFlavorToDocument(SIDB_FLAVOR, doc);
-        applyFlavorToDocument(SIDB_FLAVOR, doc);
+        applyFlavorToDocument(DBCOM_FLAVOR, doc);
+        applyFlavorToDocument(DBCOM_FLAVOR, doc);
         expect(doc.head.querySelectorAll('link[rel="icon"]').length).toBe(1);
         applyFlavorToDocument(DASHQL_FLAVOR, doc);
         expect(doc.documentElement.dataset.flavor).toBe('dashql');
@@ -117,7 +128,7 @@ describe('App flavor branding', () => {
 
     it('layers flavor settings over the config settings', () => {
         expect(applyFlavorSettings({ enableTableColumnPlots: true }, DASHQL_FLAVOR)).toEqual({ enableTableColumnPlots: true });
-        const flavor = { ...SIDB_FLAVOR, settings: { enableTableColumnPlots: false, keywordCase: 'upper' as const } };
+        const flavor = { ...DBCOM_FLAVOR, settings: { enableTableColumnPlots: false, keywordCase: 'upper' as const } };
         expect(applyFlavorSettings({ enableTableColumnPlots: true, pauseAfterAppSetup: false }, flavor)).toEqual({
             enableTableColumnPlots: false,
             pauseAfterAppSetup: false,

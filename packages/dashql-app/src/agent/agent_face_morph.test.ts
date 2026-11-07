@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { DASHQL_BRAND, SIDB_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from './agent_face_morph.js';
+import { DASHQL_BRAND, DBCOM_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from './agent_face_morph.js';
 
 /// The frame of a morph without wobble and ripple
 const frame = (progress: number) => ({ progress, time: 0, wobble: 0, lag: 0.35, ripple: 0 });
 
 /// The pieces of all brands
-const PIECES = [...DASHQL_BRAND.pieces, ...SIDB_BRAND.pieces];
+const PIECES = [...DASHQL_BRAND.pieces, ...DBCOM_BRAND.pieces];
 
 /// Morph a piece to a progress
 function morph(index: number, progress: number): Float64Array {
@@ -16,14 +16,14 @@ function morph(index: number, progress: number): Float64Array {
 }
 
 describe('Agent face morph', () => {
-    it('splits the face into a piece per contour of the SIDB wordmark', () => {
+    it('splits the face into a band per shape of the Hyper logo', () => {
         expect(DASHQL_BRAND.cutouts).toHaveLength(0);
-        // S, I, the stem and the bowl of the D, B, the counters of the B are cut out
-        expect(SIDB_BRAND.pieces).toHaveLength(5);
-        expect(SIDB_BRAND.cutouts).toHaveLength(1);
-        // The slices of the face run from left to right like the letters
-        const left = SIDB_BRAND.pieces.map(piece => outlineBounds(piece.faceRest)[0]);
-        expect([...left].sort((a, b) => a - b)).toEqual(left);
+        // The top of the cylinder and the three rings below it
+        expect(DBCOM_BRAND.pieces).toHaveLength(4);
+        expect(DBCOM_BRAND.cutouts).toHaveLength(0);
+        // The bands of the face run from top to bottom like the shapes of the logo
+        const top = DBCOM_BRAND.pieces.map(piece => outlineBounds(piece.faceRest)[1]);
+        expect([...top].sort((a, b) => a - b)).toEqual(top);
     });
 
     it('parses quadratic segments as cubics', () => {
@@ -44,9 +44,12 @@ describe('Agent face morph', () => {
         const scaled = (bounds: number[]) => bounds.map(v => 100 + (v - 100) * 0.9);
         expectBounds(upper, scaled([91.8, 25, 200, 125]));
         expectBounds(lower, scaled([1.8, 75, 110, 175]));
-        const sidb = SIDB_BRAND.pieces.map(piece => outlineBounds(piece.logo));
-        expect(Math.min(...sidb.map(b => b[0]))).toBeCloseTo(-2, 0);
-        expect(Math.max(...sidb.map(b => b[2]))).toBeCloseTo(202, 0);
+        // The Hyper logo shrinks to the height of the disk and stays centered
+        const hyper = DBCOM_BRAND.pieces.map(piece => outlineBounds(piece.logo));
+        expect(Math.min(...hyper.map(b => b[0]))).toBeCloseTo(43, 0);
+        expect(Math.max(...hyper.map(b => b[2]))).toBeCloseTo(157, 0);
+        expect(Math.min(...hyper.map(b => b[1]))).toBeCloseTo(30, 0);
+        expect(Math.max(...hyper.map(b => b[3]))).toBeCloseTo(170, 0);
     });
 
     it('resamples every outline to the same points with the same winding', () => {

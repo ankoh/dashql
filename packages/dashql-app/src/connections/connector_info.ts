@@ -3,19 +3,19 @@ import { isDesktopHost } from "../platform/native_globals.js";
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
 export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
-export const SIDB_CONNECTOR = Symbol('SIDB_CONNECTOR');
+export const DBCOM_CONNECTOR = Symbol('DBCOM_CONNECTOR');
 
 export enum ConnectorType {
     HYPER = 0,
     SALESFORCE_DATA_CLOUD = 1,
     TRINO = 2,
-    SIDB = 3,
+    DBCOM = 3,
 }
 export const CONNECTOR_TYPES: ConnectorType[] = [
     ConnectorType.HYPER,
     ConnectorType.SALESFORCE_DATA_CLOUD,
     ConnectorType.TRINO,
-    ConnectorType.SIDB,
+    ConnectorType.DBCOM,
 ];
 
 export interface ConnectorInfo {
@@ -123,18 +123,18 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
     },
     {
-        // SIDB connections behave like Salesforce Data Cloud connections for now, but can write to their database
-        connectorType: ConnectorType.SIDB,
+        // Database.com connections behave like Salesforce Data Cloud connections for now, but can write to their database
+        connectorType: ConnectorType.DBCOM,
         helloWorldScript: 'select version();',
         names: {
-            displayShort: 'SIDB',
-            displayLong: 'SIDB',
-            fileShort: 'sidb',
+            displayShort: 'Database.com',
+            displayLong: 'Database.com',
+            fileShort: 'dbcom',
         },
         icons: {
-            colored: "sidb_mark",
-            uncolored: "sidb_mark_nocolor",
-            outlines: "sidb_mark_outlines",
+            colored: "hyper_nocolor",
+            uncolored: "hyper_nocolor",
+            outlines: "hyper_outlines",
         },
         features: {
             queryResultCaching: true,
@@ -147,10 +147,10 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
 ];
 
-export function getConnectorInfoForParams(params: { hyper?: any; salesforce?: any; sidb?: any; trino?: any }): ConnectorInfo | null {
+export function getConnectorInfoForParams(params: { hyper?: any; salesforce?: any; dbcom?: any; trino?: any }): ConnectorInfo | null {
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-    if ("sidb" in params) return CONNECTOR_INFOS[ConnectorType.SIDB];
+    if ("dbcom" in params) return CONNECTOR_INFOS[ConnectorType.DBCOM];
     if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     return null;
 }
@@ -164,6 +164,6 @@ export function requiresSwitchingToNative(info: ConnectorInfo) {
 }
 
 export const useConnectorList = () => {
-    const connectorTypes = [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB, ConnectorType.TRINO];
+    const connectorTypes = [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM, ConnectorType.TRINO];
     return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
 };

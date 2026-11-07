@@ -13,7 +13,7 @@ import { ConnectorType } from '../connector_info.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
-for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB] as const) for (const exchangeFails of [false, true]) for (const databaseName of [undefined, 'sales']) describe(`setupSalesforceConnection of ${ConnectorType[connector]} with exchange failure=${exchangeFails} and database=${databaseName}`, () => {
+for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM] as const) for (const exchangeFails of [false, true]) for (const databaseName of [undefined, 'sales']) describe(`setupSalesforceConnection of ${ConnectorType[connector]} with exchange failure=${exchangeFails} and dbcom=${databaseName}`, () => {
     it('configures the Salesforce database over http', async () => {
         let context: HyperDatabaseConnectionContext | undefined;
         const client: HyperDatabaseClient = {
@@ -95,7 +95,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB
             protocol: 'V3_HTTP',
             endpoint: 'https://hyper.example.com/',
         }), context);
-        expect(context?.getAttachedDatabases()).toEqual(connector === ConnectorType.SIDB
+        expect(context?.getAttachedDatabases()).toEqual(connector === ConnectorType.DBCOM
             ? [{ path: `hyper.cloud:${databaseName ?? 'default'}`, alias: 'lakehouse' }]
             : []);
         expect(await context?.getRequestMetadata()).toEqual({
@@ -130,7 +130,7 @@ describe('createSalesforceSetup', () => {
         const dispatch = vi.fn();
         const abort = new AbortController();
         abort.abort();
-        await expect(create({ auth: { oauthRedirect: 'https://dashql.app/oauth.html' } }).setup(dispatch, ConnectorType.SIDB, params, abort.signal))
+        await expect(create({ auth: { oauthRedirect: 'https://dashql.app/oauth.html' } }).setup(dispatch, ConnectorType.DBCOM, params, abort.signal))
             .rejects.toThrow();
         expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([SETUP_STARTED, SETUP_CANCELLED]);
     });

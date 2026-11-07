@@ -7,7 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { isWorkspacePath, NavRailPages } from './nav_rail.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
-import { type AppFlavor, DASHQL_FLAVOR, SIDB_FLAVOR } from '../config/flavors.js';
+import { type AppFlavor, DASHQL_FLAVOR, DBCOM_FLAVOR } from '../config/flavors.js';
 import { SessionViewModeProvider } from '../session/session_view_mode.js';
 
 describe('Nav rail', () => {
@@ -51,15 +51,15 @@ describe('Nav rail pages', () => {
     const items = () => [...container.querySelectorAll('button, [role="separator"]')]
         .map(e => e.getAttribute('aria-label') ?? '|');
 
-    it('lays out the pages of the sidb flavor in groups', () => {
-        render(SIDB_FLAVOR);
+    it('lays out the pages of the dbcom flavor in groups', () => {
+        render(DBCOM_FLAVOR);
         expect(items()).toEqual([
             'Workspace', 'Shell', 'Ingestion', 'Data Pipelines', '|',
             'Indexes', 'AI & ML', 'PostgreSQL', 'Marketplace', '|',
             'Catalog', 'Monitoring', 'Governance', 'Sharing', '|',
             'Compute', 'Admin',
         ]);
-        const upcoming = SIDB_FLAVOR.railPages.flat().filter(page => page.type === 'upcoming');
+        const upcoming = DBCOM_FLAVOR.railPages.flat().filter(page => page.type === 'upcoming');
         for (const page of upcoming) {
             const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${page.label}"]`)!;
             expect(button.getAttribute('aria-disabled')).toBe('true');

@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { DASHQL_BRAND, OUTLINE_POINTS, SIDB_BRAND, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
+import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import * as styles from './agent_face.module.css';
 
 /// The brand marks by the id of their app flavor
-const BRANDS_BY_FLAVOR: ReadonlyMap<string, AgentFaceBrand> = new Map([DASHQL_BRAND, SIDB_BRAND].map(brand => [brand.id, brand]));
+const BRANDS_BY_FLAVOR: ReadonlyMap<string, AgentFaceBrand> = new Map([DASHQL_BRAND, DBCOM_BRAND].map(brand => [brand.id, brand]));
 
 /// The brand mark of the app flavor, the DashQL brand mark for a flavor without one
 export function useFlavorAgentFaceBrand(): AgentFaceBrand {

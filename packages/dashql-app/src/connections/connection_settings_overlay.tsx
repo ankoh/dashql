@@ -91,7 +91,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
                     {currentConnectorType === ConnectorType.HYPER && <HyperConnectorSettings connectionId={props.connectionId} onClose={saving ? undefined : props.onClose} />}
                     {currentConnectorType === ConnectorType.TRINO && <TrinoConnectorSettings connectionId={props.connectionId} onClose={saving ? undefined : props.onClose} />}
                     {currentConnectorType === ConnectorType.SALESFORCE_DATA_CLOUD && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.SALESFORCE_DATA_CLOUD} onClose={saving ? undefined : props.onClose} />}
-                    {currentConnectorType === ConnectorType.SIDB && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.SIDB} onClose={saving ? undefined : props.onClose} />}
+                    {currentConnectorType === ConnectorType.DBCOM && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.DBCOM} onClose={saving ? undefined : props.onClose} />}
                 </div>
                 <QueryResultCachingRow
                     caching={conn != null && connectionCachesQueryResults(conn)}

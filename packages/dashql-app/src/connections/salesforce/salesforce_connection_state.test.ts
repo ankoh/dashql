@@ -2,7 +2,7 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, expect, it } from 'vitest';
 
 import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
 import { connectorState, fakeChannel, reduceConnector, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../tests/mocks/connector_state.js';
 import type { SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import {
@@ -97,8 +97,8 @@ describe('reduceSalesforceConnectionState', () => {
         expect(proto(reduce(byEmail, userInfo({}))).setupParams?.login).toEqual('mail@example.com');
     });
 
-    it('keeps the details type of SIDB connections', () => {
-        expect(reduce(initial(SIDB_CONNECTOR), { type: SETUP_STARTED, value: PARAMS }).details.type).toBe(SIDB_CONNECTOR);
+    it('keeps the details type of Database.com connections', () => {
+        expect(reduce(initial(DBCOM_CONNECTOR), { type: SETUP_STARTED, value: PARAMS }).details.type).toBe(DBCOM_CONNECTOR);
     });
 
     it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('%s closes the channel and clears the setup', type => {

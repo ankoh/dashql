@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { AgentFace, AgentFaceMode, DEFAULT_AGENT_FACE_TUNING, useFlavorAgentFaceBrand, type AgentFaceTuning } from '../../agent/agent_face.js';
-import { DASHQL_BRAND, SIDB_BRAND } from '../../agent/agent_face_morph.js';
+import { DASHQL_BRAND, DBCOM_BRAND } from '../../agent/agent_face_morph.js';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
@@ -54,7 +54,7 @@ const KNOB_GROUPS: { title: string; knobs: Knob[] }[] = [
 
 const BRANDS = [
     { label: 'DashQL', brand: DASHQL_BRAND },
-    { label: 'SIDB', brand: SIDB_BRAND },
+    { label: 'Database.com', brand: DBCOM_BRAND },
 ];
 /// The demo cycles faster than the app, to watch the morph without waiting
 const DEMO_TUNING: AgentFaceTuning = { ...DEFAULT_AGENT_FACE_TUNING, faceHoldMs: 4000, logoHoldMs: 2000 };
@@ -75,7 +75,7 @@ const SIZES = [24, 48, 96];
 /// A playground of the agent face that morphs into the DashQL brand mark, to tune its motion
 function AgentFacePage(): React.ReactElement {
     const [tuning, setTuning] = React.useState<AgentFaceTuning>(DEMO_TUNING);
-    // The demo starts with the brand mark of the flavor, `demos.html?flavor=sidb#/agent_face`
+    // The demo starts with the brand mark of the flavor, `demos.html?flavor=dbcom#/agent_face`
     const flavorBrand = useFlavorAgentFaceBrand();
     const [brand, setBrand] = React.useState(() => Math.max(0, BRANDS.findIndex(entry => entry.brand === flavorBrand)));
     const [mode, setMode] = React.useState(0);

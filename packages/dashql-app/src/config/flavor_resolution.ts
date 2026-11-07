@@ -1,6 +1,6 @@
-import { AppFlavor, DASHQL_FLAVOR, FLAVORS } from './flavors.js';
+import { AppFlavor, DASHQL_FLAVOR, findFlavor } from './flavors.js';
 
-/// The query parameter selecting a flavor, e.g. `?flavor=sidb`
+/// The query parameter selecting a flavor, e.g. `?flavor=dbcom`, former flavor ids are accepted as well
 export const FLAVOR_QUERY_PARAMETER = 'flavor';
 
 /// The result of resolving the flavor
@@ -16,7 +16,7 @@ export function resolveFlavor(requested: string | null): FlavorResolution {
     if (requested == null) {
         return { flavor: DASHQL_FLAVOR };
     }
-    const flavor = FLAVORS.get(requested);
+    const flavor = findFlavor(requested);
     if (flavor == null) {
         return { flavor: DASHQL_FLAVOR, unknownId: requested };
     }
@@ -41,13 +41,14 @@ export function getRequestedFlavor(): AppFlavor | null {
 /// Select the flavor of the app.
 /// The flavor requested by the url wins over the flavor of the app settings, DashQL is the default.
 export function selectFlavor(requested: AppFlavor | null, settingId: string | undefined): AppFlavor {
-    return requested ?? (settingId == null ? null : FLAVORS.get(settingId)) ?? DASHQL_FLAVOR;
+    return requested ?? (settingId == null ? null : findFlavor(settingId)) ?? DASHQL_FLAVOR;
 }
 
 /// The url with the query parameter of a flavor, null if it already carries it.
 /// The default flavor needs no query parameter.
 export function withFlavorParameter(url: URL, flavor: AppFlavor): URL | null {
-    if (flavor.id === DASHQL_FLAVOR.id || url.searchParams.get(FLAVOR_QUERY_PARAMETER) === flavor.id) {
+    const current = url.searchParams.get(FLAVOR_QUERY_PARAMETER);
+    if (flavor.id === DASHQL_FLAVOR.id || (current != null && findFlavor(current) === flavor)) {
         return null;
     }
     const next = new URL(url);

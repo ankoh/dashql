@@ -323,7 +323,7 @@
         },
         "databaseName": {
           "type": "string",
-          "description": "The Hyper Cloud database that SIDB connections attach, \"default\" if empty"
+          "description": "The Hyper Cloud database that Database.com connections attach, \"default\" if empty"
         }
       },
       "required": ["instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],
@@ -996,12 +996,12 @@
         },
         {
           "properties": {
-            "sidb": {
+            "dbcom": {
               "$ref": "#/definitions/SalesforceConnectionParams",
-              "description": "Parameters for SIDB connections, they share the parameters of Salesforce connections"
+              "description": "Parameters for Database.com connections, they share the parameters of Salesforce connections"
             }
           },
-          "required": ["sidb"],
+          "required": ["dbcom"],
           "additionalProperties": false
         },
         {
@@ -1042,12 +1042,12 @@
         },
         {
           "properties": {
-            "sidb": {
+            "dbcom": {
               "$ref": "#/definitions/SalesforceConnectionDetails",
-              "description": "Details for SIDB connections, they share the details of Salesforce connections"
+              "description": "Details for Database.com connections, they share the details of Salesforce connections"
             }
           },
-          "required": ["sidb"],
+          "required": ["dbcom"],
           "additionalProperties": false
         },
         {

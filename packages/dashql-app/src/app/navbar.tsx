@@ -146,7 +146,7 @@ const ColorSchemeButton = () => {
 };
 
 /// The height of a wordmark in the navbar, a bit smaller than square logos to match the cap height of text
-const WORDMARK_HEIGHT = 16;
+const WORDMARK_HEIGHT = 14;
 
 const BrandIdentity = () => {
     const flavor = useAppFlavor();
@@ -163,7 +163,7 @@ const BrandIdentity = () => {
 };
 
 /// The height of a wordmark in the stripe at the top, a bit smaller than in the compact navbar
-const TOP_BAR_WORDMARK_HEIGHT = 14;
+const TOP_BAR_WORDMARK_HEIGHT = 12;
 
 /// The brand in the stripe at the top, the logo and, next to the wide rail, the name without the tagline.
 /// A square logo is a bit larger without the traffic lights of macOS next to it.

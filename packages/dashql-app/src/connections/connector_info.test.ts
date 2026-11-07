@@ -11,7 +11,7 @@ describe('connector list', () => {
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
             ConnectorType.HYPER,
             ConnectorType.SALESFORCE_DATA_CLOUD,
-            ConnectorType.SIDB,
+            ConnectorType.DBCOM,
             ConnectorType.TRINO,
         ]);
     });
@@ -21,7 +21,7 @@ describe('connector list', () => {
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
             ConnectorType.HYPER,
             ConnectorType.SALESFORCE_DATA_CLOUD,
-            ConnectorType.SIDB,
+            ConnectorType.DBCOM,
             ConnectorType.TRINO,
         ]);
         expect(useConnectorList()[0]).toBe(CONNECTOR_INFOS[ConnectorType.HYPER]);
@@ -33,7 +33,7 @@ describe('connector hello world scripts', () => {
         [ConnectorType.HYPER, 'select version();'],
         [ConnectorType.SALESFORCE_DATA_CLOUD, 'select version();'],
         [ConnectorType.TRINO, 'select version();'],
-        [ConnectorType.SIDB, 'select version();'],
+        [ConnectorType.DBCOM, 'select version();'],
     ])('defines an executable starter query for %s', (connectorType, expected) => {
         expect(CONNECTOR_INFOS[connectorType].helloWorldScript).toBe(expected);
     });

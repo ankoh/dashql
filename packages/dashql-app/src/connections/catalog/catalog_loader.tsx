@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useDynamicConnectionDispatch } from '../connection_registry.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import { useSalesforceAPI } from '../salesforce/salesforce_connector.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
     CATALOG_UPDATE_CANCELLED,
@@ -12,7 +12,7 @@ import {
     CATALOG_UPDATE_SUCCEEDED,
     UPDATE_CATALOG,
 } from '../connection_state.js';
-import { getSidbAttachedDatabase, updateSalesforceCatalog } from '../salesforce/salesforce_catalog_update.js';
+import { getHyperCloudAttachedDatabase, updateSalesforceCatalog } from '../salesforce/salesforce_catalog_update.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
@@ -211,13 +211,13 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                     break;
                 }
                 // Update the catalog by querying the _hyper_catalog of the attached Hyper Cloud database
-                case SIDB_CONNECTOR:
+                case DBCOM_CONNECTOR:
                     await dependencies.updateHyperCatalog(
                         traced,
                         connectionId,
                         connDispatch,
                         updateId,
-                        [getSidbAttachedDatabase(conn.details.value.proto.setupParams)],
+                        [getHyperCloudAttachedDatabase(conn.details.value.proto.setupParams)],
                         executor,
                         conn.catalog,
                         conn.instance,

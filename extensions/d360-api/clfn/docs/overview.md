@@ -64,7 +64,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 
 **`api_version`** comes from the binding, which sends 68.0, the version of the spec. DashQL's own calls use v64.0, and the hosted server needs v66 or later. The binding could load a spec per API version later, which needs no rebuild.
 
-**SIDB** spreads the Salesforce descriptor and turns the binding off, since it isn't known whether it has this API, see the [open questions](#open-questions).
+**Database.com** spreads the Salesforce descriptor and turns the binding off, since it isn't known whether it has this API, see the [open questions](#open-questions).
 
 **Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../../../docs/design/extensions.md#running-calls).
 
@@ -308,7 +308,7 @@ The [extension roadmap](../../../../docs/design/extensions.md#roadmap) comes fir
 
 ## Open questions
 
-1. **SIDB.** Its binding is off. Does SIDB have this API?
+1. **Database.com.** Its binding is off. Does Database.com have this API?
 2. **CORS for writes.** If `POST`, `PATCH`, `PUT` and `DELETE` fail on `/services/data` from a browser, even with the org's allowlist, writes are Electron-only.
 3. **Which spec version.** The API has versions, and a spec describes one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
 4. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.

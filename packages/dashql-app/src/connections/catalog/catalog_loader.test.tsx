@@ -7,7 +7,7 @@ import { CatalogLoaderProvider, useCatalogLoaderQueue, type CatalogLoaderDepende
 import { type ConnectionRegistry, type DynamicConnectionDispatch } from '../connection_registry.js';
 import { CATALOG_UPDATE_CANCELLED, CATALOG_UPDATE_FAILED, CATALOG_UPDATE_SUCCEEDED, ConnectionHealth, type ConnectionState, type CatalogAction } from '../connection_state.js';
 import { reduceCatalogAction } from './catalog_update_state.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -155,11 +155,11 @@ describe('CatalogLoaderProvider queue', () => {
         await vi.waitFor(() => expect(scriptsDispatch).toHaveBeenCalledWith('salesforce'));
     });
 
-    it('describes an SIDB connection with the Hyper catalog of its attached database', async () => {
+    it('describes a Database.com connection with the Hyper catalog of its attached database', async () => {
         const connection = registry.connections.get('database')!;
         registry.connections.set('database', {
             ...connection,
-            details: { type: SIDB_CONNECTOR, value: { proto: { setupParams: { databaseName: 'sales' } } } },
+            details: { type: DBCOM_CONNECTOR, value: { proto: { setupParams: { databaseName: 'sales' } } } },
         } as unknown as ConnectionState);
         await render();
         await act(async () => enqueue('database', true));

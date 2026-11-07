@@ -12,7 +12,7 @@ import type { QueryExecutionResponseStream } from '../query/query_execution_stat
 import type { ClientFunctionHostTarget } from './clfn/clfn_runtime.js';
 import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
 import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
-import { SALESFORCE_CONNECTOR_DESCRIPTOR, SIDB_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
+import { SALESFORCE_CONNECTOR_DESCRIPTOR, DBCOM_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
 import { TRINO_CONNECTOR_DESCRIPTOR } from './trino/trino_connector_descriptor.js';
 
 /// The params of the connectors by the field of the connection params that holds them
@@ -21,8 +21,8 @@ export interface ConnectorParamsMap {
     hyper: HyperConnectionParams;
     /// Salesforce Data Cloud connections
     salesforce: SalesforceConnectionParams;
-    /// SIDB connections, they share the params of Salesforce Data Cloud connections
-    sidb: SalesforceConnectionParams;
+    /// Database.com connections, they share the params of Salesforce Data Cloud connections
+    dbcom: SalesforceConnectionParams;
     /// Trino connections
     trino: TrinoConnectionParams;
 }
@@ -32,8 +32,8 @@ interface ConnectorDetailsMap {
     hyper: HyperConnectionDetails;
     /// Salesforce Data Cloud connections
     salesforce: SalesforceConnectionStateDetails;
-    /// SIDB connections
-    sidb: SalesforceConnectionStateDetails;
+    /// Database.com connections
+    dbcom: SalesforceConnectionStateDetails;
     /// Trino connections
     trino: TrinoConnectionStateDetails;
 }
@@ -97,7 +97,7 @@ export const CONNECTOR_DESCRIPTORS: Record<ConnectorType, ConnectorDescriptor> =
     [ConnectorType.HYPER]: HYPER_CONNECTOR_DESCRIPTOR,
     [ConnectorType.SALESFORCE_DATA_CLOUD]: SALESFORCE_CONNECTOR_DESCRIPTOR,
     [ConnectorType.TRINO]: TRINO_CONNECTOR_DESCRIPTOR,
-    [ConnectorType.SIDB]: SIDB_CONNECTOR_DESCRIPTOR,
+    [ConnectorType.DBCOM]: DBCOM_CONNECTOR_DESCRIPTOR,
 };
 const DESCRIPTORS = Object.values(CONNECTOR_DESCRIPTORS);
 

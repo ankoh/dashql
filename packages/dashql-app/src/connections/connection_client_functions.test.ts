@@ -99,7 +99,7 @@ describe('The client functions of a connection', () => {
         expect(onDidUpdate).not.toHaveBeenCalled();
     });
 
-    it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SIDB])('are not on connector %s', type => {
+    it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.DBCOM])('are not on connector %s', type => {
         const state = connection(type);
         const onDidUpdate = vi.fn();
         ensureConnectionClientFunctions(new Map([['c', state]]), 'c', onDidUpdate, logger);

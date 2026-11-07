@@ -5,7 +5,7 @@ import type { DetailedError } from '../../utils/error.js';
 
 import { VariantKind } from '../../utils/variant.js';
 import { SalesforceDatabaseChannel } from './salesforce_api_client.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
 import type { SalesforceDetailsType } from '../connection_state_details.js';
 import {
     ConnectionHealth,
@@ -40,7 +40,7 @@ export function getSalesforceConnectionDetails(state: ConnectionState | null): S
     if (state == null) return null;
     switch (state.details.type) {
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-        case SIDB_CONNECTOR:
+        case DBCOM_CONNECTOR:
             return state.details.value;
         default: return null;
     }

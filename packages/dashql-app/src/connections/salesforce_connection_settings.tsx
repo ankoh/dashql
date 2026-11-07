@@ -22,13 +22,13 @@ import {
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { classNames } from '../utils/classnames.js';
 import { Logger } from '../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from './connector_descriptor.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import type { DetailedError } from '../utils/error.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { collectSalesforceAuthInfo } from './salesforce/salesforce_api_client.js';
-import { SIDB_DEFAULT_DATABASE_NAME } from './salesforce/salesforce_catalog_update.js';
+import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from './salesforce/salesforce_catalog_update.js';
 
 const LOG_CTX = "sf_connector";
 
@@ -114,7 +114,7 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
         case TRINO_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-        case SIDB_CONNECTOR:
+        case DBCOM_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case HYPER_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
@@ -148,7 +148,7 @@ interface SalesforceConnectionSettingsPageProps {
     instanceUrl: string;
     appConsumerKey: string;
     login: string;
-    /// The Hyper Cloud database, only shown for SIDB connections
+    /// The Hyper Cloud database, only shown for Database.com connections
     databaseName?: string;
     coreAccessToken: string;
     dataCloudAccessToken: string;
@@ -253,13 +253,13 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                             disabled={props.freezeInput}
                             logContext={LOG_CTX}
                         />
-                        {props.connector === ConnectorType.SIDB && (
+                        {props.connector === ConnectorType.DBCOM && (
                             <TextField
                                 name="Database Name"
-                                data-testid="sidb-database-name"
+                                data-testid="hyper-cloud-database-name"
                                 caption="Hyper Cloud database that is queried"
                                 value={props.databaseName ?? ""}
-                                placeholder={SIDB_DEFAULT_DATABASE_NAME}
+                                placeholder={HYPER_CLOUD_DEFAULT_DATABASE_NAME}
                                 leadingVisual={() => <div>DB</div>}
                                 onChange={props.updateDatabaseName}
                                 readOnly={props.freezeInput}
@@ -346,8 +346,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
-    const paramsKey = CONNECTOR_DESCRIPTORS[props.connector].paramsKey as 'salesforce' | 'sidb';
-    const isSidb = props.connector === ConnectorType.SIDB;
+    const paramsKey = CONNECTOR_DESCRIPTORS[props.connector].paramsKey as 'salesforce' | 'dbcom';
+    const isDbcomConnector = props.connector === ConnectorType.DBCOM;
     const editableParams = connectionState?.paramsDraft ?? connectionState?.params;
     const salesforceParams = editableParams && paramsKey in editableParams ? (editableParams as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined;
 
@@ -355,7 +355,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
         login: params?.login ?? "",
-        databaseName: params?.databaseName ?? SIDB_DEFAULT_DATABASE_NAME,
+        databaseName: params?.databaseName ?? HYPER_CLOUD_DEFAULT_DATABASE_NAME,
     });
     const [pageState, setPageState] = useConnectionDraftForm(props.connectionId,
         params => buildPageState(params && paramsKey in params ? (params as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined),
@@ -363,7 +363,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             ...salesforceParams,
             ...form,
             appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
-            ...(isSidb ? { databaseName } : {}),
+            ...(isDbcomConnector ? { databaseName } : {}),
         }));
     const updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, instanceUrl: ev.target.value }));
     const updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, appConsumerKey: ev.target.value }));
@@ -389,8 +389,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
         login: pageState.login,
-        ...(isSidb ? { databaseName: pageState.databaseName } : {}),
-    }), [pageState, salesforceParams?.appConsumerSecret, isSidb]);
+        ...(isDbcomConnector ? { databaseName: pageState.databaseName } : {}),
+    }), [pageState, salesforceParams?.appConsumerSecret, isDbcomConnector]);
     const setupConnection = async () => {
         let validationSucceeded = true;
         if (pageState.instanceUrl == "") {

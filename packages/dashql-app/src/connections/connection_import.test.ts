@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { decodeConnectionFromProto } from './connection_import.js';
-import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { LoggableException } from '../platform/logger/logger.js';
 
 describe('decodeConnectionFromProto', () => {
     const cases = [
         ['salesforce', ConnectorType.SALESFORCE_DATA_CLOUD, SALESFORCE_DATA_CLOUD_CONNECTOR, { instanceUrl: 'https://example.my.salesforce.com' }],
-        ['sidb', ConnectorType.SIDB, SIDB_CONNECTOR, { databases: ['main'] }],
+        ['dbcom', ConnectorType.DBCOM, DBCOM_CONNECTOR, { databases: ['main'] }],
         ['hyper', ConnectorType.HYPER, HYPER_CONNECTOR, { endpoint: 'http://127.0.0.1:7484' }],
         ['trino', ConnectorType.TRINO, TRINO_CONNECTOR, { endpoint: 'http://127.0.0.1:8080', catalog: 'tpch' }],
     ] as const;

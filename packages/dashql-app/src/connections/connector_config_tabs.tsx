@@ -68,7 +68,7 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
                 case ConnectorType.TRINO:
                     return <TrinoConnectorSettings connectionId={connectionId} />;
                 case ConnectorType.SALESFORCE_DATA_CLOUD:
-                case ConnectorType.SIDB:
+                case ConnectorType.DBCOM:
                     return <SalesforceConnectorSettings connectionId={connectionId} connector={connectorType} />;
                 case ConnectorType.HYPER:
                     return <HyperConnectorSettings connectionId={connectionId} />;

@@ -31,12 +31,12 @@ import { RESET_CONNECTION } from '../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 import { authenticateSalesforce, SalesforceAuthenticationProgress } from './salesforce_authentication.js';
 import { ConnectorType } from '../connector_info.js';
-import { getSidbAttachedDatabase } from './salesforce_catalog_update.js';
+import { getHyperCloudAttachedDatabase } from './salesforce_catalog_update.js';
 
 const LOG_CTX = "salesforce_setup";
 
 /// The connectors that share the Salesforce setup
-export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.SIDB;
+export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.DBCOM;
 
 // We use the web-server OAuth Flow with or without consumer secret.
 //
@@ -159,10 +159,10 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // Static connection context.
         // Inject the database name, the audience header and the bearer token
         const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
-        // SIDB queries the configured Hyper Cloud database
+        // Database.com queries the configured Hyper Cloud database
         const attachedDatabases: AttachedDatabase[] = [];
-        if (connector === ConnectorType.SIDB) {
-            attachedDatabases.push(getSidbAttachedDatabase(params));
+        if (connector === ConnectorType.DBCOM) {
+            attachedDatabases.push(getHyperCloudAttachedDatabase(params));
         }
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {

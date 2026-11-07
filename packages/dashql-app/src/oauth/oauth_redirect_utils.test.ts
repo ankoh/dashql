@@ -67,7 +67,7 @@ describe('OAuth redirect state flavor', () => {
     const encode = (state: object) => BASE64URL_CODEC.encode(new TextEncoder().encode(JSON.stringify(state)).buffer);
 
     it('reads a known flavor', () => {
-        expect(getOAuthStateFlavor(encode({ ...makeState(), flavor: 'sidb' }))?.id).toBe('sidb');
+        expect(getOAuthStateFlavor(encode({ ...makeState(), flavor: 'dbcom' }))?.id).toBe('dbcom');
     });
 
     it('ignores missing, unknown and malformed flavors', () => {

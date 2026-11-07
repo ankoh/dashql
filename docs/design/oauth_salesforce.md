@@ -63,8 +63,8 @@ After the redirect arrives:
    and `subject_token_type=urn:ietf:params:oauth:token-type:access_token`.
 10. Decode the exchanged Data Cloud JWT. The connection speaks Hyper over HTTP (`V3_HTTP`) to the exchange
     response's `instance_url`; every request carries the Data Cloud JWT unchanged as bearer token and its
-    `audienceTenantId` as `audience`. The SIDB connector additionally attaches `hyper.cloud:{databaseName}`
-    as `lakehouse` (`getSidbAttachedDatabase`). Read the selected dataspace from
+    `audienceTenantId` as `audience`. The Database.com connector additionally attaches `hyper.cloud:{databaseName}`
+    as `lakehouse` (`getHyperCloudAttachedDatabase`). Read the selected dataspace from
     `customAttributes.data.dataspace` (or the flat `customAttributes.dataspace`), falling back to
     `default`. Keep the Core token and its `instance_url` for Core REST user info and metadata;
     metadata requests use the dataspace from the Data Cloud token.

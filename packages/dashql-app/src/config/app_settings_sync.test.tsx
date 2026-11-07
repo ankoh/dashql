@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppSettingsSync, useAppSettingsReady } from './app_settings_sync.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from './app_config.js';
 import { FlavorProvider, useAppFlavor } from './flavor_provider.js';
-import { DASHQL_FLAVOR, SIDB_FLAVOR, type AppFlavor } from './flavors.js';
+import { DASHQL_FLAVOR, DBCOM_FLAVOR, type AppFlavor } from './flavors.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import type { Logger } from '../platform/logger/logger.js';
 import { StorageProvider } from '../storage/storage_provider.js';
@@ -66,7 +66,7 @@ describe('AppSettingsSync', () => {
     it('hydrates the stored settings and drops the retired ones', async () => {
         backend.appSettings = {
             keywordCase: 'upper',
-            flavor: SIDB_FLAVOR.id,
+            flavor: DBCOM_FLAVOR.id,
             lastOpenedSessionId: 'retired',
             aiProvider: { apiKey: 'secret' },
             experimental_dashboards: true,
@@ -82,15 +82,15 @@ describe('AppSettingsSync', () => {
         expect(config!.settings).not.toHaveProperty('aiProvider');
         expect(config!.settings).not.toHaveProperty('experimental_dashboards');
         expect(config!.settings).not.toHaveProperty('experimental_dataflow');
-        expect(flavor.id).toBe(SIDB_FLAVOR.id);
+        expect(flavor.id).toBe(DBCOM_FLAVOR.id);
         expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(true);
     });
 
     it('keeps the flavor that the url requests', async () => {
-        backend.appSettings = { flavor: SIDB_FLAVOR.id };
+        backend.appSettings = { flavor: DBCOM_FLAVOR.id };
         await render(DASHQL_FLAVOR);
         await vi.waitFor(() => expect(ready).toBe(true));
-        expect(config!.settings?.flavor).toBe(SIDB_FLAVOR.id);
+        expect(config!.settings?.flavor).toBe(DBCOM_FLAVOR.id);
         expect(flavor.id).toBe(DASHQL_FLAVOR.id);
     });
 
@@ -100,12 +100,12 @@ describe('AppSettingsSync', () => {
         // Without stored settings the config stays as downloaded
         expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(false);
 
-        act(() => reconfigure(c => c == null ? null : { ...c, settings: { ...c.settings, scriptDebugMode: true, flavor: SIDB_FLAVOR.id } }));
+        act(() => reconfigure(c => c == null ? null : { ...c, settings: { ...c.settings, scriptDebugMode: true, flavor: DBCOM_FLAVOR.id } }));
         // The settings select the flavor right away
-        expect(flavor.id).toBe(SIDB_FLAVOR.id);
+        expect(flavor.id).toBe(DBCOM_FLAVOR.id);
         // The settings are saved after the changes pause
         await vi.waitFor(() => expect(backend.appSettings?.scriptDebugMode).toBe(true));
-        expect(backend.appSettings?.flavor).toBe(SIDB_FLAVOR.id);
+        expect(backend.appSettings?.flavor).toBe(DBCOM_FLAVOR.id);
     });
 
     it('logs failures to load and save the settings', async () => {

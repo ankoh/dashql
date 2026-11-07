@@ -21,8 +21,8 @@ describe('connectionParamsLabel', () => {
         expect(label({ trino: {} })).toBe('Trino / ');
         expect(label({ salesforce: { instanceUrl: 'https://sf.example' } })).toBe('Salesforce Data Cloud / https://sf.example');
         expect(label({ salesforce: {} })).toBe('Salesforce Data Cloud / ');
-        expect(label({ sidb: { instanceUrl: 'https://sidb.example' } })).toBe('SIDB / https://sidb.example');
-        expect(label({ sidb: {} })).toBe('SIDB / ');
+        expect(label({ dbcom: { instanceUrl: 'https://dbcom.example' } })).toBe('Database.com / https://dbcom.example');
+        expect(label({ dbcom: {} })).toBe('Database.com / ');
     });
 
     it('falls back to a generic name', () => {

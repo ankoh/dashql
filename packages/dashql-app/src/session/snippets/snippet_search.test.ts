@@ -64,7 +64,7 @@ describe('Snippet search', () => {
         expect(await ids(ConnectorType.TRINO, 'split')).toEqual(['strings/split']);
         expect(await ids(ConnectorType.HYPER, 'split')).toEqual([]);
         // Data Cloud has its own snippets
-        expect(await ids(ConnectorType.SIDB, 'json')).toEqual(['json/access']);
+        expect(await ids(ConnectorType.DBCOM, 'json')).toEqual(['json/access']);
         expect(await ids(ConnectorType.SALESFORCE_DATA_CLOUD, 'json')).toEqual([]);
     });
 

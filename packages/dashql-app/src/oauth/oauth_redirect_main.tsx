@@ -14,7 +14,7 @@ import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '@ankoh/dashql-ui/styles/flavors/sidb.css';
+import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
 
 // Resolve the flavor before the first render, the page would otherwise flip from DashQL to the flavor.
 // The query parameter wins over the flavor carried in the OAuth state.

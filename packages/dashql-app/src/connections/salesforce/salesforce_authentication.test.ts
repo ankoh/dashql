@@ -117,7 +117,7 @@ describe('Salesforce OAuth callback state', () => {
 
 describe('authenticateSalesforce', () => {
     it('carries the flavor of the document in the OAuth state', async () => {
-        document.documentElement.dataset.flavor = 'sidb';
+        document.documentElement.dataset.flavor = 'dbcom';
         try {
             const popup = { closed: false, close: vi.fn(), focus: vi.fn() } as unknown as Window;
             const open = vi.spyOn(window, 'open').mockReturnValue(popup);
@@ -144,7 +144,7 @@ describe('authenticateSalesforce', () => {
                 abortSignal: new AbortController().signal,
             });
 
-            expect(decodeState(new URL(open.mock.calls[0][0]!.toString())).flavor).toBe('sidb');
+            expect(decodeState(new URL(open.mock.calls[0][0]!.toString())).flavor).toBe('dbcom');
         } finally {
             delete document.documentElement.dataset.flavor;
         }

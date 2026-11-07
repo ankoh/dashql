@@ -93,7 +93,7 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
 };
 
 /// The height of a wordmark in the navbar
-const WORDMARK_HEIGHT = 16;
+const WORDMARK_HEIGHT = 14;
 
 /// The brand of the shell.
 /// The shell is branded for Hyper, a flavor requested by the url replaces the Hyper banner with its logo and tagline.

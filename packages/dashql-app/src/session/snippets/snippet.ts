@@ -22,7 +22,7 @@ export interface Snippet {
 export const SNIPPET_ROOT_CONNECTORS: ReadonlyMap<string, readonly ConnectorType[]> = new Map([
     ['d360', [ConnectorType.SALESFORCE_DATA_CLOUD]],
     ['d360-api', [ConnectorType.SALESFORCE_DATA_CLOUD]],
-    ['hyper', [ConnectorType.HYPER, ConnectorType.SIDB]],
+    ['hyper', [ConnectorType.HYPER, ConnectorType.DBCOM]],
     ['trino', [ConnectorType.TRINO]],
 ]);
 

@@ -98,9 +98,9 @@ describe('Snippet registry', () => {
         });
         expect(registry.errors).toEqual([]);
         const snippet = registry.byId.get('json/access')!;
-        expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SIDB].sort());
+        expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.DBCOM].sort());
         expect(snippet.paths.get(ConnectorType.HYPER)).toEqual('hyper/json/access.sql');
-        expect(snippet.paths.get(ConnectorType.SIDB)).toEqual('hyper/json/access.sql');
+        expect(snippet.paths.get(ConnectorType.DBCOM)).toEqual('hyper/json/access.sql');
         expect(snippet.paths.get(ConnectorType.TRINO)).toEqual('trino/json/access.sql');
         // A root that is a folder of the browser keeps its files apart
         const d360 = registry.byId.get('d360/json/access')!;
@@ -148,7 +148,7 @@ describe('Snippet registry', () => {
         const salesforce = snippetsForConnector(registry, ConnectorType.SALESFORCE_DATA_CLOUD);
         expect(new Set(salesforce.map(snippet => snippet.category.split('/')[0]))).toEqual(new Set(['d360', 'd360-api']));
         expect(registry.byId.get('d360-api/scenarios/agent-memory/01-create-the-agent')).toBeDefined();
-        for (const connector of [ConnectorType.HYPER, ConnectorType.SIDB, ConnectorType.TRINO]) {
+        for (const connector of [ConnectorType.HYPER, ConnectorType.DBCOM, ConnectorType.TRINO]) {
             expect(snippetsForConnector(registry, connector).filter(snippet => snippet.id.startsWith('d360')), ConnectorType[connector]).toEqual([]);
         }
     });
@@ -194,7 +194,7 @@ describe('Snippet registry', () => {
         const ids = (connector: ConnectorType) => snippetsForConnector(registry, connector).map(snippet => snippet.id);
         expect(ids(ConnectorType.HYPER)).toEqual(['datasets/tpch_1', 'dates/month', 'dates/series', 'json/access', 'my-folder/anything']);
         expect(ids(ConnectorType.TRINO)).toEqual(['dates/month', 'json/access']);
-        expect(ids(ConnectorType.SIDB)).toEqual(ids(ConnectorType.HYPER));
+        expect(ids(ConnectorType.DBCOM)).toEqual(ids(ConnectorType.HYPER));
         expect(ids(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual(['d360/profiles/recent']);
     });
 });

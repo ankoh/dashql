@@ -1,5 +1,5 @@
 import type { OAuthState } from './oauth_types.js';
-import { AppFlavor, FLAVORS } from '../config/flavors.js';
+import { AppFlavor, findFlavor } from '../config/flavors.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
 
 const PUBLIC_OAUTH_ORIGINS = new Set(['https://dashql.app', 'https://stable.dashql.app', 'https://hyperdb.sh']);
@@ -61,7 +61,7 @@ export function getOAuthStateFlavor(encoded: string | null): AppFlavor | null {
     }
     try {
         const flavor = decodeOAuthState(encoded)?.flavor;
-        return typeof flavor === 'string' ? FLAVORS.get(flavor) ?? null : null;
+        return typeof flavor === 'string' ? findFlavor(flavor) ?? null : null;
     } catch {
         return null;
     }

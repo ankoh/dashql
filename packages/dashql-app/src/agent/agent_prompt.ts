@@ -7,7 +7,7 @@ export function describeSqlDialect(connectorType: ConnectorType): string {
         case ConnectorType.HYPER:
             return 'Tableau Hyper (PostgreSQL-compatible)';
         case ConnectorType.SALESFORCE_DATA_CLOUD:
-        case ConnectorType.SIDB:
+        case ConnectorType.DBCOM:
             return 'Salesforce Data Cloud SQL (PostgreSQL-compatible)';
         case ConnectorType.TRINO:
             return 'Trino';

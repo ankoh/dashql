@@ -83,7 +83,7 @@ const OAuthBanner: React.FC = () => {
             )}
             <div className={baseStyles.banner_text_container}>
                 <div className={baseStyles.banner_title}>
-                    {flavor.logo.wordmark ? <FlavorLogo height={22} /> : flavor.displayName}
+                    {flavor.logo.wordmark ? <FlavorLogo height={20} /> : flavor.displayName}
                 </div>
                 <div className={baseStyles.app_version}>version {DASHQL_VERSION}</div>
             </div>

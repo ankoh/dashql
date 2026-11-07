@@ -48,7 +48,7 @@ import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '@ankoh/dashql-ui/styles/flavors/sidb.css';
+import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
 
 const LOG_CTX = 'app';
 

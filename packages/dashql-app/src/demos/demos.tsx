@@ -17,7 +17,7 @@ import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '@ankoh/dashql-ui/styles/flavors/sidb.css';
+import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
 
 /// The pages of the demos, loaded when they are opened
 const PAGES = new Map(DEMOS.map(demo => [demo.id, React.lazy(demo.load)]));
@@ -53,7 +53,7 @@ const DemoPage: React.FC = () => {
 
 /// Demos of DashQL on Hyper, every demo is a page of its own.
 /// The routes are hashes, `demos.html#/<id>`, so that every host serves the page without rewrites.
-/// A flavor is requested in front of the hash, `demos.html?flavor=sidb#/<id>`, or in the query of the route.
+/// A flavor is requested in front of the hash, `demos.html?flavor=dbcom#/<id>`, or in the query of the route.
 export const Demos: React.FC = () => (
     <HashRouter>
         <LoggerProvider>
@@ -76,7 +76,7 @@ export const Demos: React.FC = () => (
     </HashRouter>
 );
 
-/// The flavor requested by the query of the route, `#/<id>?flavor=sidb`, or else by the query in front of the hash
+/// The flavor requested by the query of the route, `#/<id>?flavor=dbcom`, or else by the query in front of the hash
 function getRequestedDemoFlavor(): AppFlavor | null {
     const hash = globalThis.location?.hash ?? '';
     const query = hash.indexOf('?');

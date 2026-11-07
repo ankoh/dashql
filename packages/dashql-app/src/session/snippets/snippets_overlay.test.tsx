@@ -268,7 +268,7 @@ describe('SnippetsOverlay', () => {
     });
 
     it('keeps a long name on one line at the start of the entry', () => {
-        render(ConnectorType.SIDB);
+        render(ConnectorType.DBCOM);
         open();
         const item = query(`[data-testid="snippet"][data-snippet-id="${LONG_ID}"]`)!;
         const path = item.querySelector<HTMLElement>(`[title="${LONG_PATH}"]`)!;

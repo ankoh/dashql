@@ -76,6 +76,6 @@ export function connectionParamsLabel(params: ConnectionParams): string {
     }
     if ('trino' in params) return `${name} / ${params.trino.endpoint ?? ''}`;
     if ('salesforce' in params) return `${name} / ${params.salesforce.instanceUrl ?? ''}`;
-    if ('sidb' in params) return `${name} / ${params.sidb.instanceUrl ?? ''}`;
+    if ('dbcom' in params) return `${name} / ${params.dbcom.instanceUrl ?? ''}`;
     return name;
 }

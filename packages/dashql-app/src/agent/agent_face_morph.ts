@@ -202,7 +202,7 @@ export function alignOutline(a: ArrayLike<number>, b: Float64Array): { outline: 
 }
 
 /// A region of the face: arcs of the face outline, clockwise on screen, with chords from the end of one arc to the
-/// start of the next. One arc and its chord is a half, two arcs are a vertical slice, one full turn is the disk.
+/// start of the next. One arc and its chord is a half, two arcs are a horizontal band, one full turn is the disk.
 interface FaceRegion {
     /// The arcs, [from, to] angles with from < to
     arcs: [number, number][];
@@ -247,12 +247,12 @@ function sampleFaceRegion(arcs: [number, number][], n: number): FaceRegion {
     return { arcs, angles, chordArc, chordT };
 }
 
-/// A vertical slice of the face between two offsets from the center, in face radii in [-1, 1]
-function faceSlice(left: number, right: number): [number, number][] {
-    const l = Math.acos(Math.max(-1, Math.min(1, left)));
-    const r = Math.acos(Math.max(-1, Math.min(1, right)));
-    // The top arc runs from the left to the right, the bottom arc back
-    return [[-l, -r], [r, l]];
+/// A horizontal band of the face between two offsets from the center, in face radii in [-1, 1]
+function faceBand(top: number, bottom: number): [number, number][] {
+    const t = Math.asin(Math.max(-1, Math.min(1, top)));
+    const b = Math.asin(Math.max(-1, Math.min(1, bottom)));
+    // The right arc runs from the top to the bottom, the left arc back
+    return [[t, b], [Math.PI - b, Math.PI - t]];
 }
 
 /// The radius wobble of the liquid face at an angle and a time in seconds
@@ -376,45 +376,44 @@ export const DASHQL_BRAND: AgentFaceBrand = {
     cutouts: [],
 };
 
-/// The SIDB wordmark, `static/svg/logo/sidb.svg`, glyph outlines of Bricolage Grotesque ExtraBold.
-/// Every outer contour is a piece, the D is a stem and a bowl, the counters of the B are cut out.
-const SIDB_WORDMARK = { minX: 39, maxX: 2270, centerY: -330 };
-/// The wordmark is wider than the viewBox, the face would otherwise seem to lose mass when it melts into the letters
-const SIDB_WIDTH = 204;
-const SIDB_SCALE = SIDB_WIDTH / (SIDB_WORDMARK.maxX - SIDB_WORDMARK.minX);
-const SIDB_DX = (VIEWBOX_SIZE - SIDB_WIDTH) / 2 - SIDB_WORDMARK.minX * SIDB_SCALE;
-const SIDB_DY = VIEWBOX_SIZE / 2 - SIDB_WORDMARK.centerY * SIDB_SCALE;
-const sidbPoint = (x: number, y: number): [number, number] => [SIDB_DX + x * SIDB_SCALE, SIDB_DY + y * SIDB_SCALE];
-const SIDB_S = 'M331,14Q267,14 215,2Q163,-10 125,-34.5Q87,-59 65,-97Q43,-135 39,-185L180,-232Q183,-190 204,-162Q225,-134 260.5,-120.5Q296,-107 340,-107Q382,-107 410.5,-117.5Q439,-128 453.5,-144.5Q468,-161 468,-180Q468,-202 449,-216.5Q430,-231 397,-241.5Q364,-252 320,-262Q270,-274 222,-288Q174,-302 135,-324.5Q96,-347 73.5,-382.5Q51,-418 51,-472Q51,-533 82,-578Q113,-623 173,-648.5Q233,-674 321,-674Q408,-674 469,-649Q530,-624 563,-579.5Q596,-535 599,-476L455,-435Q455,-464 445.5,-486Q436,-508 419,-522.5Q402,-537 377,-544.5Q352,-552 320,-552Q282,-552 255.5,-543Q229,-534 216,-519.5Q203,-505 203,-486Q203,-462 223.5,-446.5Q244,-431 279.5,-420.5Q315,-410 358,-400Q401,-391 447,-377.5Q493,-364 533,-342Q573,-320 597.5,-282.5Q622,-245 622,-188Q622,-127 589.5,-81.5Q557,-36 492,-11Q427,14 331,14Z';
-const SIDB_I = 'M712,0L712,-660L876,-660L876,0L712,0Z';
-const SIDB_D_BOWL = 'M1075,0L1075,-130L1266,-130Q1318,-130 1353,-152Q1388,-174 1405.5,-218Q1423,-262 1423,-328Q1423,-381 1412,-419Q1401,-457 1379.5,-481.5Q1358,-506 1324.5,-518Q1291,-530 1246,-530L1075,-530L1075,-660L1240,-660Q1363,-660 1441,-621Q1519,-582 1555,-509.5Q1591,-437 1591,-336Q1591,-258 1572.5,-201Q1554,-144 1522,-105.5Q1490,-67 1448.5,-43.5Q1407,-20 1361.5,-10Q1316,0 1271,0L1075,0Z';
-const SIDB_D_STEM = 'M1000,0L1000,-660L1161,-660L1161,0L1000,0Z';
-const SIDB_B = 'M1690,0L1690,-660L1975,-660Q2037,-660 2086.5,-649.5Q2136,-639 2171,-617.5Q2206,-596 2224.5,-562.5Q2243,-529 2243,-483Q2243,-444 2226.5,-415Q2210,-386 2175,-368Q2140,-350 2082,-344L2082,-327Q2178,-321 2224,-281Q2270,-241 2270,-173Q2270,-115 2239,-77Q2208,-39 2148,-19.5Q2088,0 2000,0L1690,0Z';
-const SIDB_B_COUNTERS = 'M1844,-128L1994,-128Q2055,-128 2084,-145.5Q2113,-163 2113,-201Q2113,-243 2078,-264Q2043,-285 1971,-285L1844,-285L1844,-128ZM1844,-383L1949,-383Q2020,-383 2053,-402.5Q2086,-422 2086,-461Q2086,-499 2055.5,-516.5Q2025,-534 1963,-534L1844,-534L1844,-383Z';
+/// The Hyper logo, the brand mark of Database.com in the one color of the face, `static/favicons/hyper/favicon.svg`.
+/// The shapes run from top to bottom: the top of the cylinder and the three rings below it.
+const HYPER_SHAPES = [
+    'M68.788,44.394C105.304,44.394 134.879,34.691 134.879,22.7C134.879,10.723 105.304,1 68.788,1C32.314,1.014 2.725,10.723 2.725,22.7C2.725,34.691 32.314,44.394 68.788,44.394Z',
+    'M134.77,30.012C133.436,41.618 104.459,50.888 68.788,50.888C33.138,50.888 4.181,41.618 2.848,30.026C1.688,32.122 1,34.321 1,36.595L1,57.066C1,72.919 31.366,85.748 68.788,85.748C106.252,85.748 136.611,72.919 136.611,57.066L136.611,36.595C136.611,34.321 135.93,32.122 134.769,30.012Z',
+    'M68.788,92.798C36.966,92.798 10.311,83.514 3.04,70.994C1.756,73.2 1,75.481 1,77.859L1,98.357C1,114.189 31.366,127.032 68.788,127.032C106.252,127.032 136.611,114.189 136.611,98.357L136.611,77.859C136.611,75.481 135.855,73.2 134.577,70.994C127.286,83.514 100.645,92.798 68.788,92.798Z',
+    'M68.788,134.172C36.966,134.172 10.311,124.888 3.04,112.389C1.756,114.567 1,116.856 1,119.226L1,139.738C1,155.57 31.366,168.399 68.788,168.399C106.252,168.399 136.611,155.57 136.611,139.738L136.611,119.226C136.611,116.856 135.855,114.567 134.577,112.389C127.286,124.888 100.645,134.172 68.788,134.172Z',
+];
+const HYPER_BOUNDS = { minX: 1, maxX: 136.611, minY: 1, maxY: 168.399 };
+/// The logo is higher than the disk of the face, it shrinks to about the height of the disk
+const HYPER_SCALE = 0.84;
+const hyperPoint = (x: number, y: number): [number, number] => [
+    VIEWBOX_SIZE / 2 + (x - (HYPER_BOUNDS.minX + HYPER_BOUNDS.maxX) / 2) * HYPER_SCALE,
+    VIEWBOX_SIZE / 2 + (y - (HYPER_BOUNDS.minY + HYPER_BOUNDS.maxY) / 2) * HYPER_SCALE,
+];
 
-/// The face splits into vertical slices from left to right, one per piece of the wordmark. The slices end halfway
-/// between the centers of two neighboring pieces, mapped from the width of the wordmark onto the width of the face.
-function sidbBrand(): AgentFaceBrand {
-    const glyphs = [SIDB_S, SIDB_I, SIDB_D_STEM, SIDB_D_BOWL, SIDB_B];
-    const centers = glyphs.map(d => {
-        const xs = parseClosedPath(d).flatMap(c => [c[0], c[6]]);
-        return (Math.min(...xs) + Math.max(...xs)) / 2;
+/// The face splits into horizontal bands from top to bottom, one per shape of the logo. The bands end halfway between
+/// the centers of two neighboring shapes, mapped from the height of the logo onto the height of the face.
+function dbcomBrand(): AgentFaceBrand {
+    const centers = HYPER_SHAPES.map(d => {
+        const ys = parseClosedPath(d).flatMap(c => [c[1], c[7]]);
+        return (Math.min(...ys) + Math.max(...ys)) / 2;
     });
-    const toFace = (x: number) => -1 + (2 * (x - SIDB_WORDMARK.minX)) / (SIDB_WORDMARK.maxX - SIDB_WORDMARK.minX);
+    const toFace = (y: number) => -1 + (2 * (y - HYPER_BOUNDS.minY)) / (HYPER_BOUNDS.maxY - HYPER_BOUNDS.minY);
     const bounds = [-1, ...centers.slice(1).map((c, i) => toFace((centers[i] + c) / 2)), 1];
-    // The slices overlap a little, so the joined slices show no seam
+    // The bands overlap a little, so the joined bands show no seam
     const overlap = 0.04;
     return {
-        id: 'sidb',
-        pieces: glyphs.map((d, i) => buildPiece(
-            faceSlice(bounds[i] - (i > 0 ? overlap : 0), bounds[i + 1] + (i < glyphs.length - 1 ? overlap : 0)),
-            { d, map: sidbPoint },
+        id: 'dbcom',
+        pieces: HYPER_SHAPES.map((d, i) => buildPiece(
+            faceBand(bounds[i] - (i > 0 ? overlap : 0), bounds[i + 1] + (i < HYPER_SHAPES.length - 1 ? overlap : 0)),
+            { d, map: hyperPoint },
             OUTLINE_POINTS,
         )),
-        cutouts: [{ d: SIDB_B_COUNTERS, transform: `translate(${SIDB_DX} ${SIDB_DY}) scale(${SIDB_SCALE})` }],
+        cutouts: [],
     };
 }
-export const SIDB_BRAND: AgentFaceBrand = sidbBrand();
+export const DBCOM_BRAND: AgentFaceBrand = dbcomBrand();
 
 /// The parameters of one frame of the morph
 export interface MorphFrame {

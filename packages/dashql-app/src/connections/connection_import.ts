@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { LoggableException } from '../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionState, createConnectionState } from './connection_state.js';
 import type { ConnectionParams } from './connection_params.js';
 const LOG_CTX = "connection";
@@ -25,14 +25,14 @@ export function decodeConnectionFromProto(conn: connection.Connection, sessionId
             }
         };
         return [info, details];
-    } else if ('sidb' in conn) {
-        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.SIDB];
-        const sidb = conn.sidb as any;
-        const proto = sidb?.setupParams
-            ? sidb
-            : { setupTimings: {}, setupParams: sidb ?? {} };
+    } else if ('dbcom' in conn) {
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DBCOM];
+        const dbcom = conn.dbcom as any;
+        const proto = dbcom?.setupParams
+            ? dbcom
+            : { setupTimings: {}, setupParams: dbcom ?? {} };
         const details: ConnectionStateDetailsVariant = {
-            type: SIDB_CONNECTOR,
+            type: DBCOM_CONNECTOR,
             value: {
                 proto,
                 channel: null,
