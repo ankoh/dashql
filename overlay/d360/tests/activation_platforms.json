@@ -1,0 +1,853 @@
+{
+  "cases": [
+    {
+      "function": "activation_external_platform_list",
+      "call": "CALL cdp.activation_external_platform_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_external_platform_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-external-platforms",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "platforms": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "attributeConfig": {
+                "assumed": "attribute_config"
+              },
+              "creationType": "creation_type_value",
+              "keyPrefixName": "key_prefix_name_value",
+              "privacyType": "privacy_type_value",
+              "status": "status_value",
+              "type": "type_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "attribute_config": "{\"assumed\":\"attribute_config\"}",
+            "creation_type": "creation_type_value",
+            "key_prefix_name": "key_prefix_name_value",
+            "privacy_type": "privacy_type_value",
+            "status": "status_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_create",
+      "call": "CALL cdp.activation_target_create (name => 'google_ads_target', dataspace_name => 'default', platform_type => 'ExternalPlatform', connector => (name = 'PremiumPartnerGoogle', key_prefix_name = 'cdpactvstrgptnr'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "google_ads_target",
+          "dataspace_name": "default",
+          "platform_type": "ExternalPlatform",
+          "connector": {
+            "name": "PremiumPartnerGoogle",
+            "key_prefix_name": "cdpactvstrgptnr"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "google_ads_target",
+          "dataSpaceName": "default",
+          "platformType": "ExternalPlatform",
+          "connector": {
+            "name": "PremiumPartnerGoogle",
+            "keyPrefixName": "cdpactvstrgptnr"
+          }
+        }
+      }
+    },
+    {
+      "function": "activation_platform_get",
+      "call": "CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "activationFlowType": "activation_flow_type_value",
+          "activationPlatformAttributes": {
+            "assumed": "activation_platform_attributes"
+          },
+          "activationPlatformCreationType": "activation_platform_creation_type_value",
+          "additionalMetadata": {
+            "assumed": "additional_metadata"
+          },
+          "canPublishNow": true,
+          "connector": {
+            "assumed": "connector"
+          },
+          "connectorType": "connector_type_value",
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "2026-01-02T03:04:05.000Z",
+          "customerIdTypeMapping": {
+            "assumed": "customer_id_type_mapping"
+          },
+          "description": "description_value",
+          "enabled": true,
+          "errorCode": "error_code_value",
+          "eventParameterHierarchyMap": {
+            "assumed": "event_parameter_hierarchy_map"
+          },
+          "eventParameters": {
+            "assumed": "event_parameters"
+          },
+          "externalProvider": "external_provider_value",
+          "fields": {
+            "assumed": "fields"
+          },
+          "id": "id_value",
+          "identifiers": {
+            "assumed": "identifiers"
+          },
+          "includeSegmentNames": true,
+          "isStrategicPartner": true,
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "2026-01-02T03:04:05.000Z",
+          "logoUrl": "logo_url_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "notes": "notes_value",
+          "outputFormat": "output_format_value",
+          "outputGrouping": "output_grouping_value",
+          "platformProcessingType": "platform_processing_type_value",
+          "platformType": "platform_type_value",
+          "privacyType": "privacy_type_value",
+          "refreshSettings": {
+            "assumed": "refresh_settings"
+          },
+          "showEventSourceAnnotations": true,
+          "status": "status_value",
+          "supportedEventTypes": {
+            "assumed": "supported_event_types"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "activation_flow_type": "activation_flow_type_value",
+            "activation_platform_attributes": "{\"assumed\":\"activation_platform_attributes\"}",
+            "activation_platform_creation_type": "activation_platform_creation_type_value",
+            "additional_metadata": "{\"assumed\":\"additional_metadata\"}",
+            "can_publish_now": true,
+            "connector": "{\"assumed\":\"connector\"}",
+            "connector_type": "connector_type_value",
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "2026-01-02T03:04:05.000Z",
+            "customer_id_type_mapping": "{\"assumed\":\"customer_id_type_mapping\"}",
+            "description": "description_value",
+            "enabled": true,
+            "error_code": "error_code_value",
+            "event_parameter_hierarchy_map": "{\"assumed\":\"event_parameter_hierarchy_map\"}",
+            "event_parameters": "{\"assumed\":\"event_parameters\"}",
+            "external_provider": "external_provider_value",
+            "fields": "{\"assumed\":\"fields\"}",
+            "id": "id_value",
+            "identifiers": "{\"assumed\":\"identifiers\"}",
+            "include_segment_names": true,
+            "is_strategic_partner": true,
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "2026-01-02T03:04:05.000Z",
+            "logo_url": "logo_url_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "notes": "notes_value",
+            "output_format": "output_format_value",
+            "output_grouping": "output_grouping_value",
+            "platform_processing_type": "platform_processing_type_value",
+            "platform_type": "platform_type_value",
+            "privacy_type": "privacy_type_value",
+            "refresh_settings": "{\"assumed\":\"refresh_settings\"}",
+            "show_event_source_annotations": true,
+            "status": "status_value",
+            "supported_event_types": "{\"assumed\":\"supported_event_types\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_publish",
+      "call": "CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_publish",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers/actions/publish",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_platform_delete",
+      "call": "CALL cdp.activation_platform_delete (id_or_name => 'abc_user_identifiers')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_external_platform_get",
+      "call": "CALL cdp.activation_external_platform_get (id_or_name => '1sqxx0000000087AAA', event_name => 'Purchase', action_source => 'Website')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_external_platform_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "1sqxx0000000087AAA",
+          "event_name": "Purchase",
+          "action_source": "Website"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-external-platforms/1sqxx0000000087AAA",
+        "query": [
+          [
+            "eventName",
+            "Purchase"
+          ],
+          [
+            "actionSource",
+            "Website"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "attributeConfig": {
+            "assumed": "attribute_config"
+          },
+          "creationType": "creation_type_value",
+          "keyPrefixName": "key_prefix_name_value",
+          "privacyType": "privacy_type_value",
+          "status": "status_value",
+          "type": "type_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "attribute_config": "{\"assumed\":\"attribute_config\"}",
+            "creation_type": "creation_type_value",
+            "key_prefix_name": "key_prefix_name_value",
+            "privacy_type": "privacy_type_value",
+            "status": "status_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_list",
+      "call": "CALL cdp.activation_platform_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "activationPlatforms": [
+            {
+              "activationPlatformCreationType": "activation_platform_creation_type_value",
+              "canPublishNow": true,
+              "enabled": true,
+              "id": "id_value",
+              "label": "label_value",
+              "name": "name_value",
+              "platformProcessingType": "platform_processing_type_value",
+              "platformType": "platform_type_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "activation_platform_creation_type": "activation_platform_creation_type_value",
+            "can_publish_now": true,
+            "enabled": true,
+            "id": "id_value",
+            "label": "label_value",
+            "name": "name_value",
+            "platform_processing_type": "platform_processing_type_value",
+            "platform_type": "platform_type_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_action_source_list",
+      "call": "CALL cdp.activation_platform_action_source_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API', event_name => 'Purchase')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_action_source_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "cdpactvstrgptnr__Meta_Conversions_API",
+          "event_name": "Purchase"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/cdpactvstrgptnr__Meta_Conversions_API/metadata/action-sources",
+        "query": [
+          [
+            "eventName",
+            "Purchase"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "actionSources": [
+            {
+              "name": "name_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "name": "name_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_event_list",
+      "call": "CALL cdp.activation_platform_event_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_event_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "cdpactvstrgptnr__Meta_Conversions_API"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/cdpactvstrgptnr__Meta_Conversions_API/metadata/events",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "events": [
+            {
+              "name": "name_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "name": "name_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_partner_object_type_list",
+      "call": "CALL cdp.activation_platform_partner_object_type_list (id_or_name => 'cdpactvstrgptnr__LinkedInPlatform')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_partner_object_type_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "cdpactvstrgptnr__LinkedInPlatform"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/cdpactvstrgptnr__LinkedInPlatform/metadata/partner-object-types",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "partnerObjectTypes": [
+            {
+              "label": "label_value",
+              "type": "type_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "label": "label_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_update",
+      "call": "CALL cdp.activation_platform_update (id_or_name => 'abc_user_identifiers', description => 'Activates only user identifiers', refresh_settings => (mode = 'Incremental', frequency = 'TwentyFourHours', periodic_full_refresh = 'Every30Days'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers",
+          "description": "Activates only user identifiers",
+          "refresh_settings": {
+            "mode": "Incremental",
+            "frequency": "TwentyFourHours",
+            "periodic_full_refresh": "Every30Days"
+          }
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "description": "Activates only user identifiers",
+          "refreshSettings": {
+            "mode": "Incremental",
+            "frequency": "TwentyFourHours",
+            "periodicFullRefresh": "Every30Days"
+          }
+        }
+      }
+    },
+    {
+      "function": "activation_platform_create",
+      "call": "CALL cdp.activation_platform_create (\n  name => 'abc_user_identifiers',\n  label => 'abc-user-identifiers',\n  description => 'Activates only user identifiers',\n  platform_type => 'Advertising',\n  output_format => 'Csv',\n  output_grouping => 'PerAccount',\n  refresh_settings => (mode = 'Full', frequency = 'TwentyFourHours'),\n  connector => (bucketName = 'example-bucket', exportDirectory = 'datacloud-activations'),\n  custom_metadata => (connector_type = 'S3', access_key = secret(s3_access_key), secret_key = secret(s3_secret_key)),\n  activation_platform_attributes => [(name = 'EmailAddress', label = 'Hashed Email', destination_name = 'EmailAddress', object_name = 'ContactPointEmail', field_name = 'Email', is_required = true, apply_hash = true, is_identifier = true)],\n  fields => [(name = 'AccountId', is_required = true, is_hidden = false, type = 'Text')],\n  additional_metadata => (hash_method = 'SHA256')\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "abc_user_identifiers",
+          "label": "abc-user-identifiers",
+          "description": "Activates only user identifiers",
+          "platform_type": "Advertising",
+          "output_format": "Csv",
+          "output_grouping": "PerAccount",
+          "refresh_settings": {
+            "mode": "Full",
+            "frequency": "TwentyFourHours"
+          },
+          "connector": {
+            "bucketName": "example-bucket",
+            "exportDirectory": "datacloud-activations"
+          },
+          "custom_metadata": {
+            "connector_type": "S3",
+            "access_key": null,
+            "secret_key": null
+          },
+          "activation_platform_attributes": [
+            {
+              "name": "EmailAddress",
+              "label": "Hashed Email",
+              "destination_name": "EmailAddress",
+              "object_name": "ContactPointEmail",
+              "field_name": "Email",
+              "is_required": true,
+              "apply_hash": true,
+              "is_identifier": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "AccountId",
+              "is_required": true,
+              "is_hidden": false,
+              "type": "Text"
+            }
+          ],
+          "additional_metadata": {
+            "hash_method": "SHA256"
+          }
+        },
+        "bindings": [
+          {
+            "pointer": "/custom_metadata/access_key",
+            "secret": "s3_access_key"
+          },
+          {
+            "pointer": "/custom_metadata/secret_key",
+            "secret": "s3_secret_key"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "abc_user_identifiers",
+          "label": "abc-user-identifiers",
+          "description": "Activates only user identifiers",
+          "platformType": "Advertising",
+          "outputFormat": "Csv",
+          "outputGrouping": "PerAccount",
+          "refreshSettings": {
+            "mode": "Full",
+            "frequency": "TwentyFourHours"
+          },
+          "connector": {
+            "bucketName": "example-bucket",
+            "exportDirectory": "datacloud-activations"
+          },
+          "customMetadata": {
+            "connectorType": "S3",
+            "accessKey": "secret(s3_access_key)",
+            "secretKey": "secret(s3_secret_key)"
+          },
+          "activationPlatformAttributes": [
+            {
+              "name": "EmailAddress",
+              "label": "Hashed Email",
+              "destinationName": "EmailAddress",
+              "objectName": "ContactPointEmail",
+              "fieldName": "Email",
+              "isRequired": true,
+              "applyHash": true,
+              "isIdentifier": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "AccountId",
+              "isRequired": true,
+              "isHidden": false,
+              "type": "Text"
+            }
+          ],
+          "additionalMetadata": {
+            "hashMethod": "SHA256"
+          }
+        }
+      }
+    },
+    {
+      "function": "activation_platform_disable",
+      "call": "CALL cdp.activation_platform_disable (id_or_name => 'abc_user_identifiers')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_disable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers/actions/disable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_platform_enable",
+      "call": "CALL cdp.activation_platform_enable (id_or_name => 'abc_user_identifiers')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_enable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers/actions/enable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_platform_sync_retry",
+      "call": "CALL cdp.activation_platform_sync_retry (id_or_name => 'abc_user_identifiers')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_sync_retry",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers/actions/retry-sync",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_platform_privacy_type_set",
+      "call": "CALL cdp.activation_platform_privacy_type_set (id_or_name => 'abc_user_identifiers', privacy_type => 'NotApplicable')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_privacy_type_set",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "abc_user_identifiers",
+          "privacy_type": "NotApplicable"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-platforms/abc_user_identifiers/actions/set-privacy-type",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "privacyType": "NotApplicable"
+        }
+      }
+    }
+  ]
+}

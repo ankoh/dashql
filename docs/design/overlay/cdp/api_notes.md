@@ -332,18 +332,19 @@ Run these once an org is available, read-only first. Each settles something this
 6. Verify the functions outside the contract: evidence `S`, `D` and `C`, and the attributes labeled as beyond the spec, especially schemas inferred from examples.
 
 **Behavior:**
-7. Check each pagination row, including the data space filtering after paging.
-8. Check the 204 and 404 empty-result cases.
-9. Find the full `completionStatus` enum on the Connect query, and the current query timeout.
-10. Check `publishStatus` values, and `Dbt` vs `DBT` per API version.
-11. Does a DMO name need the `__dlm` suffix on create?
+7. Do `vector_search` and `hybrid_search` work in a `SELECT` over the connection? The Query API is left out on the assumption that the connection subsumes it.
+8. Check each pagination row, including the data space filtering after paging.
+9. Check the 204 and 404 empty-result cases.
+10. Find the full `completionStatus` enum on the Connect query, and the current query timeout.
+11. Check `publishStatus` values, and `Dbt` vs `DBT` per API version.
+12. Does a DMO name need the `__dlm` suffix on create?
 
 **Segment SQL:**
-12. Test `IS NOT DISTINCT FROM` in `ON`, subqueries in `WHERE`, and table aliases, to settle the source conflicts.
-13. Test `INTERSECT` and `UNION` of canonical shapes. High-level segments depend on it.
+13. Test `IS NOT DISTINCT FROM` in `ON`, subqueries in `WHERE`, and table aliases, to settle the source conflicts.
+14. Test `INTERSECT` and `UNION` of canonical shapes. High-level segments depend on it.
 
 **Cost:**
-14. Measure credit use per family, and how Headless Platform Interactions apply. Set the `billed` flag from the results.
+15. Measure credit use per family, and how Headless Platform Interactions apply. Set the `billed` flag from the results.
 
 **Response headers:**
-15. Do `202` responses carry a `Location`, and do list responses carry a `Link`? The normalized contract drops response headers, so this decides whether Data 360 needs `pending` or header paging. From a browser, check that `Access-Control-Expose-Headers` lists them.
+16. Do `202` responses carry a `Location`, and do list responses carry a `Link`? The normalized contract drops response headers, so this decides whether Data 360 needs `pending` or header paging. From a browser, check that `Access-Control-Expose-Headers` lists them.

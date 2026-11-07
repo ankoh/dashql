@@ -1,0 +1,643 @@
+{
+  "cases": [
+    {
+      "function": "dataaction_target_create",
+      "call": "CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_target_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "type": "WebHook",
+          "label": "Contact webhook",
+          "api_name": "contact_webhook",
+          "config": {
+            "target_endpoint": "https://hooks.example.com/data360"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-action-targets",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "type": "WebHook",
+          "label": "Contact webhook",
+          "apiName": "contact_webhook",
+          "config": {
+            "targetEndpoint": "https://hooks.example.com/data360"
+          }
+        }
+      }
+    },
+    {
+      "function": "dataaction_target_get",
+      "call": "CALL cdp.dataaction_target_get (api_name => 'contact_webhook')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_target_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "api_name": "contact_webhook"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-action-targets/contact_webhook",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "apiName": "api_name_value",
+          "config": {
+            "assumed": "config"
+          },
+          "externalRecordIdentifier": "external_record_identifier_value",
+          "label": "label_value",
+          "status": "status_value",
+          "statusErrorCode": "status_error_code_value",
+          "subType": "sub_type_value",
+          "type": "type_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "config": "{\"assumed\":\"config\"}",
+            "external_record_identifier": "external_record_identifier_value",
+            "label": "label_value",
+            "status": "status_value",
+            "status_error_code": "status_error_code_value",
+            "sub_type": "sub_type_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataaction_target_signing_key_generate",
+      "call": "CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_target_signing_key_generate",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "contact_webhook"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-action-targets/contact_webhook/signing-key",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataaction_create",
+      "call": "CALL cdp.dataaction_create (data_action_target_names => ['contact_webhook'], body_dataspace => 'default', data_action_name => 'Rate changed', developer_name => 'Rate_Changed', description => 'Notify on rate changes', master_label => 'Rate changed', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '', action_conditions => [], data_action_enrichment_properties => [], data_action_projected_fields => [])",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_action_target_names": [
+            "contact_webhook"
+          ],
+          "body_dataspace": "default",
+          "data_action_name": "Rate changed",
+          "developer_name": "Rate_Changed",
+          "description": "Notify on rate changes",
+          "master_label": "Rate changed",
+          "data_action_sources": [
+            {
+              "source_name": "StaticCurrencyRates_Home__dlm",
+              "source_type": "DataModelEntity",
+              "source_cdc_subscriptions": [
+                "CREATE",
+                "UPDATE"
+              ]
+            }
+          ],
+          "action_condition_expression": "",
+          "action_conditions": [],
+          "data_action_enrichment_properties": [],
+          "data_action_projected_fields": []
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataActionTargetNames": [
+            "contact_webhook"
+          ],
+          "dataspace": "default",
+          "dataActionName": "Rate changed",
+          "developerName": "Rate_Changed",
+          "description": "Notify on rate changes",
+          "masterLabel": "Rate changed",
+          "dataActionSources": [
+            {
+              "sourceName": "StaticCurrencyRates_Home__dlm",
+              "sourceType": "DataModelEntity",
+              "sourceCdcSubscriptions": [
+                "CREATE",
+                "UPDATE"
+              ]
+            }
+          ],
+          "actionConditionExpression": "",
+          "actionConditions": [],
+          "dataActionEnrichmentProperties": [],
+          "dataActionProjectedFields": []
+        }
+      }
+    },
+    {
+      "function": "dataaction_list",
+      "call": "CALL cdp.dataaction_list (dataspace => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "dataspace": "default"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions",
+        "query": [
+          [
+            "dataspace",
+            "default"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataActions": [
+            {
+              "actionConditionExpression": "action_condition_expression_value",
+              "actionConditions": {
+                "assumed": "action_conditions"
+              },
+              "dataActionEnrichmentProperties": {
+                "assumed": "data_action_enrichment_properties"
+              },
+              "dataActionName": "data_action_name_value",
+              "dataActionProjectedFields": {
+                "assumed": "data_action_projected_fields"
+              },
+              "dataActionSources": {
+                "assumed": "data_action_sources"
+              },
+              "dataActionStatus": "data_action_status_value",
+              "dataActionTargets": {
+                "assumed": "data_action_targets"
+              },
+              "dataSpaceDevName": "dataspace_dev_name_value",
+              "description": "description_value",
+              "developerName": "developer_name_value",
+              "eventTriggerCondition": "event_trigger_condition_value",
+              "externalRecordIdentifier": "external_record_identifier_value",
+              "isRealTimeAction": true,
+              "lastActionStatusDateTime": "last_action_status_date_time_value",
+              "lastActionStatusErrorCode": "last_action_status_error_code_value",
+              "masterLabel": "master_label_value",
+              "shouldTriggerEventOnlyFirstTime": true,
+              "subscriberKey": "subscriber_key_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "action_condition_expression": "action_condition_expression_value",
+            "action_conditions": "{\"assumed\":\"action_conditions\"}",
+            "data_action_enrichment_properties": "{\"assumed\":\"data_action_enrichment_properties\"}",
+            "data_action_name": "data_action_name_value",
+            "data_action_projected_fields": "{\"assumed\":\"data_action_projected_fields\"}",
+            "data_action_sources": "{\"assumed\":\"data_action_sources\"}",
+            "data_action_status": "data_action_status_value",
+            "data_action_targets": "{\"assumed\":\"data_action_targets\"}",
+            "dataspace_dev_name": "dataspace_dev_name_value",
+            "description": "description_value",
+            "developer_name": "developer_name_value",
+            "event_trigger_condition": "event_trigger_condition_value",
+            "external_record_identifier": "external_record_identifier_value",
+            "is_real_time_action": true,
+            "last_action_status_date_time": "last_action_status_date_time_value",
+            "last_action_status_error_code": "last_action_status_error_code_value",
+            "master_label": "master_label_value",
+            "should_trigger_event_only_first_time": true,
+            "subscriber_key": "subscriber_key_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataaction_target_delete",
+      "call": "CALL cdp.dataaction_target_delete (api_name => 'contact_webhook')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_target_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "contact_webhook"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-action-targets/contact_webhook",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataaction_target_list",
+      "call": "CALL cdp.dataaction_target_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_target_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-action-targets",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataActionTargets": [
+            {
+              "apiName": "api_name_value",
+              "config": {
+                "assumed": "config"
+              },
+              "externalRecordIdentifier": "external_record_identifier_value",
+              "label": "label_value",
+              "status": "status_value",
+              "statusErrorCode": "status_error_code_value",
+              "subType": "sub_type_value",
+              "type": "type_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "config": "{\"assumed\":\"config\"}",
+            "external_record_identifier": "external_record_identifier_value",
+            "label": "label_value",
+            "status": "status_value",
+            "status_error_code": "status_error_code_value",
+            "sub_type": "sub_type_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataaction_list",
+      "call": "CALL cdp.dataaction_list (dataspace => 'default', batch_size => 50)",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "dataspace": "default",
+          "batch_size": 50
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions",
+        "query": [
+          [
+            "dataspace",
+            "default"
+          ],
+          [
+            "batchSize",
+            "50"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataaction_create",
+      "call": "CALL cdp.dataaction_create (dataspace => 'default', body_dataspace => 'default', data_action_target_names => ['contact_webhook'], data_action_name => 'High rate', developer_name => 'High_Rate', description => 'Notify when a rate crosses the threshold', master_label => 'High rate', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '(1 AND 2)', action_conditions => [(objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateDenominatorNumber__c', operator = 'GreaterThan', order = '1', value = '0.3'), (objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateNumeratorNumber__c', operator = 'LessThanOrEqualTo', order = '2', value = '100')], data_action_enrichment_properties => [], data_action_projected_fields => [(objectApiName = 'StaticCurrencyRates_Home__dlm', fieldApiName = 'RateNumeratorNumber__c', fieldAliasName = 'Rate__c')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "dataspace": "default",
+          "body_dataspace": "default",
+          "data_action_target_names": [
+            "contact_webhook"
+          ],
+          "data_action_name": "High rate",
+          "developer_name": "High_Rate",
+          "description": "Notify when a rate crosses the threshold",
+          "master_label": "High rate",
+          "data_action_sources": [
+            {
+              "source_name": "StaticCurrencyRates_Home__dlm",
+              "source_type": "DataModelEntity",
+              "source_cdc_subscriptions": [
+                "CREATE",
+                "UPDATE"
+              ]
+            }
+          ],
+          "action_condition_expression": "(1 AND 2)",
+          "action_conditions": [
+            {
+              "objectName": "StaticCurrencyRates_Home__dlm",
+              "fieldName": "RateDenominatorNumber__c",
+              "operator": "GreaterThan",
+              "order": "1",
+              "value": "0.3"
+            },
+            {
+              "objectName": "StaticCurrencyRates_Home__dlm",
+              "fieldName": "RateNumeratorNumber__c",
+              "operator": "LessThanOrEqualTo",
+              "order": "2",
+              "value": "100"
+            }
+          ],
+          "data_action_enrichment_properties": [],
+          "data_action_projected_fields": [
+            {
+              "objectApiName": "StaticCurrencyRates_Home__dlm",
+              "fieldApiName": "RateNumeratorNumber__c",
+              "fieldAliasName": "Rate__c"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions",
+        "query": [
+          [
+            "dataspace",
+            "default"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataspace": "default",
+          "dataActionTargetNames": [
+            "contact_webhook"
+          ],
+          "dataActionName": "High rate",
+          "developerName": "High_Rate",
+          "description": "Notify when a rate crosses the threshold",
+          "masterLabel": "High rate",
+          "dataActionSources": [
+            {
+              "sourceName": "StaticCurrencyRates_Home__dlm",
+              "sourceType": "DataModelEntity",
+              "sourceCdcSubscriptions": [
+                "CREATE",
+                "UPDATE"
+              ]
+            }
+          ],
+          "actionConditionExpression": "(1 AND 2)",
+          "actionConditions": [
+            {
+              "objectName": "StaticCurrencyRates_Home__dlm",
+              "fieldName": "RateDenominatorNumber__c",
+              "operator": "GreaterThan",
+              "order": "1",
+              "value": "0.3"
+            },
+            {
+              "objectName": "StaticCurrencyRates_Home__dlm",
+              "fieldName": "RateNumeratorNumber__c",
+              "operator": "LessThanOrEqualTo",
+              "order": "2",
+              "value": "100"
+            }
+          ],
+          "dataActionEnrichmentProperties": [],
+          "dataActionProjectedFields": [
+            {
+              "objectApiName": "StaticCurrencyRates_Home__dlm",
+              "fieldApiName": "RateNumeratorNumber__c",
+              "fieldAliasName": "Rate__c"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "dataaction_get",
+      "call": "CALL cdp.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "action_developer_name": "High_Rate",
+          "dataspace": "default"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions/High_Rate",
+        "query": [
+          [
+            "dataspace",
+            "default"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataaction_target_update",
+      "call": "CALL cdp.dataaction_target_update (target_api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360/v2'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_target_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "target_api_name": "contact_webhook",
+          "config": {
+            "target_endpoint": "https://hooks.example.com/data360/v2"
+          }
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-action-targets/contact_webhook",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "config": {
+            "targetEndpoint": "https://hooks.example.com/data360/v2"
+          }
+        }
+      }
+    },
+    {
+      "function": "dataaction_update",
+      "call": "CALL cdp.dataaction_update (action_developer_name => 'High_Rate')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "action_developer_name": "High_Rate"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions/High_Rate",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataaction_delete",
+      "call": "CALL cdp.dataaction_delete (action_developer_name => 'High_Rate', dataspace => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataaction_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "action_developer_name": "High_Rate",
+          "dataspace": "default"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-actions/High_Rate",
+        "query": [
+          [
+            "dataspace",
+            "default"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

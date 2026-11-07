@@ -1,0 +1,707 @@
+{
+  "cases": [
+    {
+      "function": "dataspace_create",
+      "call": "CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "nonDefault",
+          "prefix": "ndf",
+          "description": "Custom data space."
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "nonDefault",
+          "prefix": "ndf",
+          "description": "Custom data space."
+        }
+      }
+    },
+    {
+      "function": "dataspace_member_add",
+      "call": "CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'NoneOperator', conditions = (conditions = [])))]))",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_add",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault",
+          "members": {
+            "members": [
+              {
+                "member_name": "Orders__dll",
+                "filter": {
+                  "conjunctive_operator": "NoneOperator",
+                  "conditions": {
+                    "conditions": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault/members",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "members": {
+            "members": [
+              {
+                "memberName": "Orders__dll",
+                "filter": {
+                  "conjunctiveOperator": "NoneOperator",
+                  "conditions": {
+                    "conditions": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "function": "dataspace_member_get",
+      "call": "CALL cdp.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault",
+          "dataspace_member_object_name": "Orders__dll"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault/members/Orders__dll",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "filter": {
+            "assumed": "filter"
+          },
+          "memberName": "member_name_value",
+          "status": "status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "filter": "{\"assumed\":\"filter\"}",
+            "member_name": "member_name_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "segment_list",
+      "call": "CALL cdp.segment_list (dataspace => 'nonDefault')",
+      "description": {
+        "namespace": "cdp",
+        "function": "segment_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "dataspace": "nonDefault"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "core",
+        "path": "/services/data/v68.0/ssot/segments",
+        "query": [
+          [
+            "dataspace",
+            "nonDefault"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "segments": [
+            {
+              "apiName": "api_name_value",
+              "dataSpace": "dataspace_value",
+              "description": "description_value",
+              "developerName": "developer_name_value",
+              "displayName": "display_name_value",
+              "excludeCriteria": "exclude_criteria_value",
+              "includeCriteria": "include_criteria_value",
+              "includeDbt": {
+                "assumed": "include_dbt"
+              },
+              "lastPublishedEndDateTime": "last_published_end_date_time_value",
+              "lastSegmentMemberCount": 2,
+              "lookalikeCriteria": {
+                "assumed": "lookalike_criteria"
+              },
+              "lookbackPeriod": "lookback_period_value",
+              "marketSegmentDefinitionId": "market_segment_definition_id_value",
+              "marketSegmentId": "market_segment_id_value",
+              "nextPublishDateTime": "next_publish_date_time_value",
+              "parameters": {
+                "assumed": "parameters"
+              },
+              "publishInterval": "publish_interval_value",
+              "publishScheduleEndDate": "publish_schedule_end_date_value",
+              "publishScheduleEndDateTime": "publish_schedule_end_date_time_value",
+              "publishScheduleInfo": {
+                "assumed": "publish_schedule_info"
+              },
+              "publishScheduleStartDateTime": "publish_schedule_start_date_time_value",
+              "publishStatus": "publish_status_value",
+              "segmentMembershipDmo": {
+                "assumed": "segment_membership_dmo"
+              },
+              "segmentMembershipTable": "segment_membership_table_value",
+              "segmentOnApiName": "segment_on_api_name_value",
+              "segmentOnDataGraph": "segment_on_data_graph_value",
+              "segmentOnId": "segment_on_id_value",
+              "segmentStatus": "segment_status_value",
+              "segmentType": "segment_type_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "dataspace": "dataspace_value",
+            "description": "description_value",
+            "developer_name": "developer_name_value",
+            "display_name": "display_name_value",
+            "exclude_criteria": "exclude_criteria_value",
+            "include_criteria": "include_criteria_value",
+            "include_dbt": "{\"assumed\":\"include_dbt\"}",
+            "last_published_end_date_time": "last_published_end_date_time_value",
+            "last_segment_member_count": 2,
+            "lookalike_criteria": "{\"assumed\":\"lookalike_criteria\"}",
+            "lookback_period": "lookback_period_value",
+            "market_segment_definition_id": "market_segment_definition_id_value",
+            "market_segment_id": "market_segment_id_value",
+            "next_publish_date_time": "next_publish_date_time_value",
+            "parameters": "{\"assumed\":\"parameters\"}",
+            "publish_interval": "publish_interval_value",
+            "publish_schedule_end_date": "publish_schedule_end_date_value",
+            "publish_schedule_end_date_time": "publish_schedule_end_date_time_value",
+            "publish_schedule_info": "{\"assumed\":\"publish_schedule_info\"}",
+            "publish_schedule_start_date_time": "publish_schedule_start_date_time_value",
+            "publish_status": "publish_status_value",
+            "segment_membership_dmo": "{\"assumed\":\"segment_membership_dmo\"}",
+            "segment_membership_table": "segment_membership_table_value",
+            "segment_on_api_name": "segment_on_api_name_value",
+            "segment_on_data_graph": "segment_on_data_graph_value",
+            "segment_on_id": "segment_on_id_value",
+            "segment_status": "segment_status_value",
+            "segment_type": "segment_type_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataspace_delete",
+      "call": "CALL cdp.dataspace_delete (id_or_name => 'nonDefault')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataspace_member_remove",
+      "call": "CALL cdp.dataspace_member_remove (id_or_name => 'nonDefault', member_names => 'Orders__dll,Returns__dll')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_remove",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault",
+          "member_names": "Orders__dll,Returns__dll"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault/members",
+        "query": [
+          [
+            "memberNames",
+            "Orders__dll,Returns__dll"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataspace_list",
+      "call": "CALL cdp.dataspace_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataSpaces": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "description": "description_value",
+              "prefix": "prefix_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "description": "description_value",
+            "prefix": "prefix_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataspace_get",
+      "call": "CALL cdp.dataspace_get (id_or_name => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "default"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/default",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "description": "description_value",
+          "prefix": "prefix_value",
+          "status": "status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "description": "description_value",
+            "prefix": "prefix_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataspace_member_list",
+      "call": "CALL cdp.dataspace_member_list (id_or_name => 'default', batch_size => 200)",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "default",
+          "batch_size": 200
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/default/members",
+        "query": [
+          [
+            "batchSize",
+            "200"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "members": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "filter": {
+                "assumed": "filter"
+              },
+              "memberName": "member_name_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "continuationToken": "assumed-token"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "filter": "{\"assumed\":\"filter\"}",
+            "member_name": "member_name_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "assumed-token",
+            "_meta": {
+              "continuationToken": "assumed-token"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "dataspace_member_get",
+      "call": "CALL cdp.dataspace_member_get (dataspace_member_object_name => 'Orders__dll', id_or_name => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "dataspace_member_object_name": "Orders__dll",
+          "id_or_name": "default"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/default/members/Orders__dll",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataspace_update",
+      "call": "CALL cdp.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault",
+          "label": "nonDefault",
+          "description": "Custom data space."
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "nonDefault",
+          "description": "Custom data space."
+        }
+      }
+    },
+    {
+      "function": "dataspace_sync",
+      "call": "CALL cdp.dataspace_sync (id_or_name => 'nonDefault')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_sync",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault/actions/retry",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataspace_member_sync",
+      "call": "CALL cdp.dataspace_member_sync (dataspace_member_object_name => 'Orders__dll', id_or_name => 'nonDefault')",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_sync",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "dataspace_member_object_name": "Orders__dll",
+          "id_or_name": "nonDefault"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault/members/Orders__dll/actions/retry",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "dataspace_member_add",
+      "call": "CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'OrOperator', condition_groups = [], conditions = (conditions = [(field_name = 'Region__c', filter_value = 'EMEA', operator = 'EqualsOperator', table_name = 'Orders__dll')])))]))",
+      "description": {
+        "namespace": "cdp",
+        "function": "dataspace_member_add",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "nonDefault",
+          "members": {
+            "members": [
+              {
+                "member_name": "Orders__dll",
+                "filter": {
+                  "conjunctive_operator": "OrOperator",
+                  "condition_groups": [],
+                  "conditions": {
+                    "conditions": [
+                      {
+                        "field_name": "Region__c",
+                        "filter_value": "EMEA",
+                        "operator": "EqualsOperator",
+                        "table_name": "Orders__dll"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-spaces/nonDefault/members",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "members": {
+            "members": [
+              {
+                "memberName": "Orders__dll",
+                "filter": {
+                  "conjunctiveOperator": "OrOperator",
+                  "conditionGroups": [],
+                  "conditions": {
+                    "conditions": [
+                      {
+                        "fieldName": "Region__c",
+                        "filterValue": "EMEA",
+                        "operator": "EqualsOperator",
+                        "tableName": "Orders__dll"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

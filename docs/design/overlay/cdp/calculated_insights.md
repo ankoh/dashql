@@ -81,7 +81,7 @@ Get calculated insights in Data 360. Since v57.0.
 | `definition_type` | `definitionType` | query | string |  | Definition type of the calculated insight. Values are: - `CALCULATED_METRIC` - `EXTERNAL_METRIC` - `STREAMING_METRIC` Since v57.0. |
 | `offset` | `offset` | query | integer | yes | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v57.0. |
 | `order_by` | `orderby` | query | string |  | Sort order for the result set, such as `GenderId__c.ASC, Occupation__c.DESC`. If unspecified, items are returned in the order they are retrieved. Since v57.0. |
-| `page_token` | `pageToken` | query | string |  | **Sensitive:** use `secret()`. Specifies the page token to use to view a page of information. Page tokens are returned as part of the response, such as `currentPageToken` or `nextPageToken`. If unspecified, the first page is returned. Since v57.0. |
+| `page_token` | `pageToken` | query | string |  | Specifies the page token to use to view a page of information. Page tokens are returned as part of the response, such as `currentPageToken` or `nextPageToken`. If unspecified, the first page is returned. Since v57.0. |
 
 ```sql
 CALL cdp.ci_list (offset => 0, definition_type => 'CALCULATED_METRIC', batch_size => 100);

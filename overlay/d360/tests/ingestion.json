@@ -1,0 +1,535 @@
+{
+  "cases": [
+    {
+      "function": "ingest_test",
+      "call": "CALL cdp.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)])",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_test",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "name": "ecomm",
+          "object_name": "Orders",
+          "data": [
+            {
+              "id": "o-1",
+              "total": 77506
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/ingest/sources/ecomm/Orders/actions/test",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "data": [
+            {
+              "id": "o-1",
+              "total": 77506
+            }
+          ]
+        }
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ingest_insert",
+      "call": "CALL cdp.ingest_insert (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)])",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_insert",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "ecomm",
+          "object_name": "Orders",
+          "data": [
+            {
+              "id": "o-1",
+              "total": 77506
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/ingest/sources/ecomm/Orders",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "data": [
+            {
+              "id": "o-1",
+              "total": 77506
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "ingest_job_create",
+      "call": "CALL cdp.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "object": "Orders",
+          "source_name": "ecomm",
+          "operation": "upsert"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "object": "Orders",
+          "sourceName": "ecomm",
+          "operation": "upsert"
+        }
+      }
+    },
+    {
+      "function": "ingest_job_upload",
+      "call": "CALL cdp.ingest_job_upload (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', csv => $$id,total\no-1,77506\n$$)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_upload",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+          "csv": "id,total\no-1,77506\n"
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs/913a8b00-7a9e-4331-aaf6-a019ae5021ab/batches",
+        "query": [],
+        "headers": {
+          "Content-Type": "text/csv"
+        },
+        "body": "id,total\no-1,77506\n"
+      }
+    },
+    {
+      "function": "ingest_job_update",
+      "call": "CALL cdp.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+          "state": "UploadComplete"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs/913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "state": "UploadComplete"
+        }
+      }
+    },
+    {
+      "function": "ingest_insert",
+      "call": "CALL cdp.ingest_insert (\n  name => 'ecomm',\n  object_name => 'Orders',\n  data => [\n    (\n      id = 'f19cae7e-5cdb-41ce-92ba-539afea04f9d',\n      contact_name = 'Joe Smith',\n      created_date = '2021-07-22T08:57:08.118Z',\n      tax_exempt = false,\n      total = 77506\n    )\n  ]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_insert",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "ecomm",
+          "object_name": "Orders",
+          "data": [
+            {
+              "id": "f19cae7e-5cdb-41ce-92ba-539afea04f9d",
+              "contact_name": "Joe Smith",
+              "created_date": "2021-07-22T08:57:08.118Z",
+              "tax_exempt": false,
+              "total": 77506
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/ingest/sources/ecomm/Orders",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "data": [
+            {
+              "id": "f19cae7e-5cdb-41ce-92ba-539afea04f9d",
+              "contact_name": "Joe Smith",
+              "created_date": "2021-07-22T08:57:08.118Z",
+              "tax_exempt": false,
+              "total": 77506
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "ingest_delete",
+      "call": "CALL cdp.ingest_delete (\n  name => 'ecomm',\n  object_name => 'Orders',\n  ids => '001xx000003DGb2AAG,003xx000004TmiQAAS'\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "ecomm",
+          "object_name": "Orders",
+          "ids": "001xx000003DGb2AAG,003xx000004TmiQAAS"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "tenant",
+        "path": "/api/v1/ingest/sources/ecomm/Orders",
+        "query": [
+          [
+            "ids",
+            "001xx000003DGb2AAG,003xx000004TmiQAAS"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "ingest_test",
+      "call": "CALL cdp.ingest_test (\n  name => 'ecomm',\n  object_name => 'Orders',\n  data => [\n    (\n      id = 'f19cae7e-5cdb-41ce-92ba-539afea04f9d',\n      contact_name = 'Joe Smith',\n      created_date = '2021-07-22T08:57:08.118Z',\n      tax_exempt = false,\n      total = 77506\n    )\n  ]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_test",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "name": "ecomm",
+          "object_name": "Orders",
+          "data": [
+            {
+              "id": "f19cae7e-5cdb-41ce-92ba-539afea04f9d",
+              "contact_name": "Joe Smith",
+              "created_date": "2021-07-22T08:57:08.118Z",
+              "tax_exempt": false,
+              "total": 77506
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/ingest/sources/ecomm/Orders/actions/test",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "data": [
+            {
+              "id": "f19cae7e-5cdb-41ce-92ba-539afea04f9d",
+              "contact_name": "Joe Smith",
+              "created_date": "2021-07-22T08:57:08.118Z",
+              "tax_exempt": false,
+              "total": 77506
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "ingest_job_create",
+      "call": "CALL cdp.ingest_job_create (\n  object => 'Orders',\n  source_name => 'ecomm',\n  operation => 'upsert'\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "object": "Orders",
+          "source_name": "ecomm",
+          "operation": "upsert"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "object": "Orders",
+          "sourceName": "ecomm",
+          "operation": "upsert"
+        }
+      }
+    },
+    {
+      "function": "ingest_job_list",
+      "call": "CALL cdp.ingest_job_list (states => 'Open,UploadComplete', limit => 100)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "states": "Open,UploadComplete",
+          "limit": 100
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs",
+        "query": [
+          [
+            "states",
+            "Open,UploadComplete"
+          ],
+          [
+            "limit",
+            "100"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "data": [
+            {
+              "id": "id_value",
+              "operation": "operation_value",
+              "object": "object_value",
+              "createdById": "created_by_id_value",
+              "createdDate": "2026-01-02T03:04:05.000Z",
+              "systemModstamp": "2026-01-02T03:04:05.000Z",
+              "state": "state_value",
+              "states": "states_value",
+              "contentType": "content_type_value",
+              "apiVersion": "api_version_value",
+              "contentUrl": "content_url_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "operation": "operation_value",
+            "object": "object_value",
+            "created_by_id": "created_by_id_value",
+            "created_date": "2026-01-02T03:04:05.000Z",
+            "system_modstamp": "2026-01-02T03:04:05.000Z",
+            "state": "state_value",
+            "states": "states_value",
+            "content_type": "content_type_value",
+            "api_version": "api_version_value",
+            "content_url": "content_url_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ingest_job_get",
+      "call": "CALL cdp.ingest_job_get (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id": "913a8b00-7a9e-4331-aaf6-a019ae5021ab"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs/913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "id_value",
+          "operation": "operation_value",
+          "object": "object_value",
+          "sourceName": "source_name_value",
+          "createdById": "created_by_id_value",
+          "createdDate": "2026-01-02T03:04:05.000Z",
+          "systemModstamp": "2026-01-02T03:04:05.000Z",
+          "state": "state_value",
+          "contentType": "content_type_value",
+          "apiVersion": "api_version_value",
+          "contentUrl": "content_url_value",
+          "retries": 1,
+          "totalProcessingTime": 2,
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "operation": "operation_value",
+            "object": "object_value",
+            "source_name": "source_name_value",
+            "created_by_id": "created_by_id_value",
+            "created_date": "2026-01-02T03:04:05.000Z",
+            "system_modstamp": "2026-01-02T03:04:05.000Z",
+            "state": "state_value",
+            "content_type": "content_type_value",
+            "api_version": "api_version_value",
+            "content_url": "content_url_value",
+            "retries": 1,
+            "total_processing_time": 2,
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ingest_job_upload",
+      "call": "CALL cdp.ingest_job_upload (\n  id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',\n  csv => $$id,contact_name,created_date,tax_exempt,total\nf19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,77506\n48c8b6a6-8179-4a15-ba19-ec5c8206ce28,Kristina Jakubowski,2021-07-08T22:57:02.008Z,false,16986\n$$\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_upload",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+          "csv": "id,contact_name,created_date,tax_exempt,total\nf19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,77506\n48c8b6a6-8179-4a15-ba19-ec5c8206ce28,Kristina Jakubowski,2021-07-08T22:57:02.008Z,false,16986\n"
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs/913a8b00-7a9e-4331-aaf6-a019ae5021ab/batches",
+        "query": [],
+        "headers": {
+          "Content-Type": "text/csv"
+        },
+        "body": "id,contact_name,created_date,tax_exempt,total\nf19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,77506\n48c8b6a6-8179-4a15-ba19-ec5c8206ce28,Kristina Jakubowski,2021-07-08T22:57:02.008Z,false,16986\n"
+      }
+    },
+    {
+      "function": "ingest_job_update",
+      "call": "CALL cdp.ingest_job_update (\n  id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',\n  state => 'UploadComplete'\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+          "state": "UploadComplete"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs/913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "state": "UploadComplete"
+        }
+      }
+    },
+    {
+      "function": "ingest_job_delete",
+      "call": "CALL cdp.ingest_job_delete (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ingest_job_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "913a8b00-7a9e-4331-aaf6-a019ae5021ab"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "tenant",
+        "path": "/api/v1/ingest/jobs/913a8b00-7a9e-4331-aaf6-a019ae5021ab",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

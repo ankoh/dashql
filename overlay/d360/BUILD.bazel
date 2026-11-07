@@ -1,0 +1,97 @@
+# The Data 360 overlay, the namespace `cdp` of a Salesforce connection. See docs/design/overlay/cdp/overview.md.
+#
+#   api/       spec.json, generated from the reference documents
+#   tests/     a fixture per family: calls, their requests, and responses with where they came from
+#   snippets/  workflows for the snippet browser, their steps build on each other
+#
+# Regenerate the spec and the fixtures with `bazel run //overlay/d360:update`. A fixture response that isn't
+# `assumed` is kept.
+
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+filegroup(
+    name = "files",
+    srcs = ["api/spec.json"] + glob(["tests/*.json"], allow_empty = True) + glob(["snippets/*/*.sql"]),
+    visibility = ["//packages/dashql-app:__pkg__"],
+)
+
+py_binary(
+    name = "generate_spec",
+    srcs = ["api/generate.py"],
+    main = "api/generate.py",
+)
+
+rust_binary(
+    name = "generate_tests",
+    srcs = ["tests/generate_tests.rs"],
+    edition = "2021",
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "@core_crates//:serde_json",
+    ],
+)
+
+sh_binary(
+    name = "update",
+    srcs = ["update.sh"],
+    args = [
+        "$(rootpath :generate_spec)",
+        "$(rootpath :generate_tests)",
+    ],
+    data = [
+        ":generate_spec",
+        ":generate_tests",
+    ],
+)
+
+# The spec is what the reference generates
+py_test(
+    name = "spec_up_to_date_test",
+    size = "small",
+    srcs = ["api/generate.py"],
+    args = [
+        "--reference=docs/design/overlay/cdp",
+        "--check=overlay/d360/api/spec.json",
+    ],
+    data = [
+        "api/spec.json",
+        "//docs/design/overlay/cdp:reference",
+    ],
+    main = "api/generate.py",
+)
+
+# The fixtures are what the spec and the reference generate
+sh_test(
+    name = "tests_up_to_date_test",
+    size = "small",
+    srcs = ["tests/check_tests.sh"],
+    args = ["$(rootpath :generate_tests)"],
+    data = [
+        "api/spec.json",
+        ":generate_tests",
+        "//docs/design/overlay/cdp:reference",
+    ] + glob(["tests/*.json"], allow_empty = True),
+)
+
+# The core reads the spec: every documented example and snippet passes the checks, and completion offers exactly what
+# the reference lists
+rust_test(
+    name = "spec_test",
+    size = "medium",
+    srcs = ["tests/spec_test.rs"],
+    data = [
+        "api/spec.json",
+        "//docs/design/overlay/cdp:reference",
+    ] + glob(["snippets/*/*.sql"]),
+    edition = "2021",
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:serde_json",
+    ],
+)

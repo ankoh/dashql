@@ -201,7 +201,7 @@ Returns partner-platform objects of the specified type. Results are cursor-pagin
 | Option | API name | In | Type | Required | Description |
 |---|---|---|---|---|---|
 | `activation_target_id` | `activationTargetId` | path | string | yes | Record ID (15- or 18-character) of the activation target. Since v67.0. |
-| `page_token` | `pageToken` | query | string |  | **Sensitive:** use `secret()`. Cursor for the next page of results. Omit this value on the first request. The response's `next_page_url` includes the `page_token` to fetch the next page, so follow `next_page_url` rather than constructing this value. Since v67.0. |
+| `page_token` | `pageToken` | query | string |  | Cursor for the next page of results. Omit this value on the first request. The response's `next_page_url` includes the `page_token` to fetch the next page, so follow `next_page_url` rather than constructing this value. Since v67.0. |
 | `partner_object_type` | `partnerObjectType` | query | enum(App, ConversionRule, CrmEventSet, MobileApp, OfflineEventSet, Pixel) | yes | Type of partner object to retrieve. Since v67.0. |
 
 ```sql

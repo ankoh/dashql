@@ -1,0 +1,574 @@
+{
+  "cases": [
+    {
+      "function": "document_ai_global_configuration_get",
+      "call": "CALL cdp.document_ai_global_configuration_get ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_global_configuration_get",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/global-config",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "supportedContentTypes": {
+            "assumed": "supported_content_types"
+          },
+          "supportedModels": {
+            "assumed": "supported_models"
+          },
+          "version": "version_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "supported_content_types": "{\"assumed\":\"supported_content_types\"}",
+            "supported_models": "{\"assumed\":\"supported_models\"}",
+            "version": "version_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "document_ai_schema_generate",
+      "call": "CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_schema_generate",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "ml_model": "llmgateway__VertexAIGemini25Flash001",
+          "files": [
+            {
+              "file_id": "068xxxxxxxxxxxxxxx"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/actions/generate-schema",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mlModel": "llmgateway__VertexAIGemini25Flash001",
+          "files": [
+            {
+              "fileId": "068xxxxxxxxxxxxxxx"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "document_ai_data_extract",
+      "call": "CALL cdp.document_ai_data_extract (idp_configuration_id_or_name => 'Vendor_Invoice', files => [(file_id = '068xxxxxxxxxxxxxxx')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_data_extract",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "idp_configuration_id_or_name": "Vendor_Invoice",
+          "files": [
+            {
+              "file_id": "068xxxxxxxxxxxxxxx"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/actions/extract-data",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "idpConfigurationIdOrName": "Vendor_Invoice",
+          "files": [
+            {
+              "fileId": "068xxxxxxxxxxxxxxx"
+            }
+          ]
+        }
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "data": [
+            {
+              "data": "data_value",
+              "error": "error_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "data": "data_value",
+            "error": "error_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "document_ai_configuration_delete",
+      "call": "CALL cdp.document_ai_configuration_delete (id_or_api_name => 'Vendor_Invoice')",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_configuration_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_api_name": "Vendor_Invoice"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/configurations/Vendor_Invoice",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "document_ai_configuration_list",
+      "call": "CALL cdp.document_ai_configuration_list (activation_status => 'Activated', order_by => 'Label DESC', limit => 25)",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_configuration_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "activation_status": "Activated",
+          "order_by": "Label DESC",
+          "limit": 25
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/configurations",
+        "query": [
+          [
+            "activationStatus",
+            "Activated"
+          ],
+          [
+            "orderBy",
+            "Label DESC"
+          ],
+          [
+            "limit",
+            "25"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "configurations": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "activationStatus": "activation_status_value",
+              "configMetadata": {
+                "assumed": "config_metadata"
+              },
+              "dataspace": {
+                "assumed": "dataspace"
+              },
+              "description": "description_value",
+              "lastRunOn": "last_run_on_value",
+              "mlModel": "ml_model_value",
+              "runtimeStatus": "runtime_status_value",
+              "sourceDmo": {
+                "assumed": "source_dmo"
+              },
+              "status": "status_value",
+              "version": "version_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "activation_status": "activation_status_value",
+            "config_metadata": "{\"assumed\":\"config_metadata\"}",
+            "dataspace": "{\"assumed\":\"dataspace\"}",
+            "description": "description_value",
+            "last_run_on": "last_run_on_value",
+            "ml_model": "ml_model_value",
+            "runtime_status": "runtime_status_value",
+            "source_dmo": "{\"assumed\":\"source_dmo\"}",
+            "status": "status_value",
+            "version": "version_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "document_ai_configuration_get",
+      "call": "CALL cdp.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice')",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_configuration_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_api_name": "Vendor_Invoice"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/configurations/Vendor_Invoice",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "activationStatus": "activation_status_value",
+          "configMetadata": {
+            "assumed": "config_metadata"
+          },
+          "dataspace": {
+            "assumed": "dataspace"
+          },
+          "description": "description_value",
+          "lastRunOn": "last_run_on_value",
+          "mlModel": "ml_model_value",
+          "runtimeStatus": "runtime_status_value",
+          "sourceDmo": {
+            "assumed": "source_dmo"
+          },
+          "status": "status_value",
+          "version": "version_value",
+          "extractedDloConfig": "extracted_dlo_config_value",
+          "extractedDlos": {
+            "assumed": "extracted_dlos"
+          },
+          "fileConfig": {
+            "assumed": "file_config"
+          },
+          "schemaConfig": "schema_config_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "activation_status": "activation_status_value",
+            "config_metadata": "{\"assumed\":\"config_metadata\"}",
+            "dataspace": "{\"assumed\":\"dataspace\"}",
+            "description": "description_value",
+            "last_run_on": "last_run_on_value",
+            "ml_model": "ml_model_value",
+            "runtime_status": "runtime_status_value",
+            "source_dmo": "{\"assumed\":\"source_dmo\"}",
+            "status": "status_value",
+            "version": "version_value",
+            "extracted_dlo_config": "extracted_dlo_config_value",
+            "extracted_dlos": "{\"assumed\":\"extracted_dlos\"}",
+            "file_config": "{\"assumed\":\"file_config\"}",
+            "schema_config": "schema_config_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "document_ai_configuration_update",
+      "call": "CALL cdp.document_ai_configuration_update (id_or_api_name => 'Vendor_Invoice', description => 'Supplier invoices, EU and US', activation_status => 'Deactivated')",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_configuration_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_api_name": "Vendor_Invoice",
+          "description": "Supplier invoices, EU and US",
+          "activation_status": "Deactivated"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/configurations/Vendor_Invoice",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "description": "Supplier invoices, EU and US",
+          "activationStatus": "Deactivated"
+        }
+      }
+    },
+    {
+      "function": "document_ai_schema_detect",
+      "call": "CALL cdp.document_ai_schema_detect (schema_configurations => ['Invoice_Schema_v1', 'Receipt_Schema_v2'], ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')], mode => 'Single', threshold => 0.9)",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_schema_detect",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "schema_configurations": [
+            "Invoice_Schema_v1",
+            "Receipt_Schema_v2"
+          ],
+          "ml_model": "llmgateway__VertexAIGemini25Flash001",
+          "files": [
+            {
+              "file_id": "068xxxxxxxxxxxxxxx"
+            }
+          ],
+          "mode": "Single",
+          "threshold": 0.9
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/actions/detect-schema",
+        "query": [
+          [
+            "threshold",
+            "0.9"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "schemaConfigurations": [
+            "Invoice_Schema_v1",
+            "Receipt_Schema_v2"
+          ],
+          "mlModel": "llmgateway__VertexAIGemini25Flash001",
+          "files": [
+            {
+              "fileId": "068xxxxxxxxxxxxxxx"
+            }
+          ],
+          "mode": "Single"
+        }
+      }
+    },
+    {
+      "function": "document_ai_data_extract",
+      "call": "CALL cdp.document_ai_data_extract (\n  ml_model => 'llmgateway__VertexAIGemini25Flash001',\n  files => [(file_id = '068xxxxxxxxxxxxxxx')],\n  extract_data_with_confidence_score => true,\n  schema_config => $$\n    {\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n      \"title\": \"Invoice\",\n      \"description\": \"Ignore the terms and conditions pages.\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\", \"description\": \"The legal invoice identifier.\" },\n        \"invoice_date\": { \"type\": \"string\", \"format\": \"date\" },\n        \"total\": { \"type\": \"number\" }\n      },\n      \"required\": [\"invoice_number\"]\n    }\n  $$\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_data_extract",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "ml_model": "llmgateway__VertexAIGemini25Flash001",
+          "files": [
+            {
+              "file_id": "068xxxxxxxxxxxxxxx"
+            }
+          ],
+          "extract_data_with_confidence_score": true,
+          "schema_config": "\n    {\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n      \"title\": \"Invoice\",\n      \"description\": \"Ignore the terms and conditions pages.\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\", \"description\": \"The legal invoice identifier.\" },\n        \"invoice_date\": { \"type\": \"string\", \"format\": \"date\" },\n        \"total\": { \"type\": \"number\" }\n      },\n      \"required\": [\"invoice_number\"]\n    }\n  "
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/actions/extract-data",
+        "query": [
+          [
+            "extractDataWithConfidenceScore",
+            "true"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mlModel": "llmgateway__VertexAIGemini25Flash001",
+          "files": [
+            {
+              "fileId": "068xxxxxxxxxxxxxxx"
+            }
+          ],
+          "schemaConfig": "\n    {\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n      \"title\": \"Invoice\",\n      \"description\": \"Ignore the terms and conditions pages.\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\", \"description\": \"The legal invoice identifier.\" },\n        \"invoice_date\": { \"type\": \"string\", \"format\": \"date\" },\n        \"total\": { \"type\": \"number\" }\n      },\n      \"required\": [\"invoice_number\"]\n    }\n  "
+        }
+      }
+    },
+    {
+      "function": "document_ai_configuration_create",
+      "call": "CALL cdp.document_ai_configuration_create (\n  name => 'Vendor_Invoice',\n  label => 'Vendor Invoice',\n  ml_model => 'llmgateway__VertexAIGemini25Flash001',\n  activation_status => 'Activated',\n  file_config => (file_types = ['application/pdf', 'image/png', 'image/jpeg']),\n  schema_config => $$\n    {\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n      \"title\": \"Vendor Invoice\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\", \"description\": \"The legal invoice identifier.\" },\n        \"total\": { \"type\": \"number\" }\n      }\n    }\n  $$\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_configuration_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Vendor_Invoice",
+          "label": "Vendor Invoice",
+          "ml_model": "llmgateway__VertexAIGemini25Flash001",
+          "activation_status": "Activated",
+          "file_config": {
+            "file_types": [
+              "application/pdf",
+              "image/png",
+              "image/jpeg"
+            ]
+          },
+          "schema_config": "\n    {\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n      \"title\": \"Vendor Invoice\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\", \"description\": \"The legal invoice identifier.\" },\n        \"total\": { \"type\": \"number\" }\n      }\n    }\n  "
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/configurations",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Vendor_Invoice",
+          "label": "Vendor Invoice",
+          "mlModel": "llmgateway__VertexAIGemini25Flash001",
+          "activationStatus": "Activated",
+          "fileConfig": {
+            "fileTypes": [
+              "application/pdf",
+              "image/png",
+              "image/jpeg"
+            ]
+          },
+          "schemaConfig": "\n    {\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n      \"title\": \"Vendor Invoice\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\", \"description\": \"The legal invoice identifier.\" },\n        \"total\": { \"type\": \"number\" }\n      }\n    }\n  "
+        }
+      }
+    },
+    {
+      "function": "document_ai_process_run",
+      "call": "CALL cdp.document_ai_process_run (id_or_api_name => 'Vendor_Invoice')",
+      "description": {
+        "namespace": "cdp",
+        "function": "document_ai_process_run",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_api_name": "Vendor_Invoice"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/document-processing/configurations/Vendor_Invoice/actions/run",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,679 @@
+{
+  "cases": [
+    {
+      "function": "search_index_config",
+      "call": "CALL cdp.search_index_config ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_config",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index/config",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "config": "config_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "config": "config_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "search_index_get",
+      "call": "CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search')",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "search_index_api_name_or_id": "Articles_Search"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index/Articles_Search",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "attachmentDmoId": "attachment_dmo_id_value",
+          "attachmentDmoName": "attachment_dmo_name_value",
+          "chunkDmoDeveloperName": "chunk_dmo_developer_name_value",
+          "chunkDmoId": "chunk_dmo_id_value",
+          "chunkDmoName": "chunk_dmo_name_value",
+          "chunkingConfiguration": {
+            "assumed": "chunking_configuration"
+          },
+          "dataspace": "dataspace_value",
+          "description": "description_value",
+          "developerName": "developer_name_value",
+          "id": "id_value",
+          "indexConfiguration": {
+            "assumed": "index_configuration"
+          },
+          "indexRefreshedOn": "index_refreshed_on_value",
+          "label": "label_value",
+          "rankingConfigurations": {
+            "assumed": "ranking_configurations"
+          },
+          "searchType": "search_type_value",
+          "sourceDmoDeveloperName": "source_dmo_developer_name_value",
+          "sourceDmoId": "source_dmo_id_value",
+          "transcribeDmoDeveloperName": "transcribe_dmo_developer_name_value",
+          "transcribeDmoName": "transcribe_dmo_name_value",
+          "transformConfigurations": {
+            "assumed": "transform_configurations"
+          },
+          "vectorDmoDeveloperName": "vector_dmo_developer_name_value",
+          "vectorDmoId": "vector_dmo_id_value",
+          "vectorDmoName": "vector_dmo_name_value",
+          "vectorEmbedding": {
+            "assumed": "vector_embedding"
+          },
+          "vectorEmbeddingConfiguration": {
+            "assumed": "vector_embedding_configuration"
+          },
+          "version": "version_value",
+          "attachmentDmoDeveloperName": {
+            "assumed": "attachment_dmo_developer_name"
+          },
+          "semanticSearchRankingConfigurations": {
+            "assumed": "semantic_search_ranking_configurations"
+          },
+          "transcribeDmoId": {
+            "assumed": "transcribe_dmo_id"
+          },
+          "processingType": "processing_type_value",
+          "runtimeStatus": "runtime_status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "attachment_dmo_id": "attachment_dmo_id_value",
+            "attachment_dmo_name": "attachment_dmo_name_value",
+            "chunk_dmo_developer_name": "chunk_dmo_developer_name_value",
+            "chunk_dmo_id": "chunk_dmo_id_value",
+            "chunk_dmo_name": "chunk_dmo_name_value",
+            "chunking_configuration": "{\"assumed\":\"chunking_configuration\"}",
+            "dataspace": "dataspace_value",
+            "description": "description_value",
+            "developer_name": "developer_name_value",
+            "id": "id_value",
+            "index_configuration": "{\"assumed\":\"index_configuration\"}",
+            "index_refreshed_on": "index_refreshed_on_value",
+            "label": "label_value",
+            "ranking_configurations": "{\"assumed\":\"ranking_configurations\"}",
+            "search_type": "search_type_value",
+            "source_dmo_developer_name": "source_dmo_developer_name_value",
+            "source_dmo_id": "source_dmo_id_value",
+            "transcribe_dmo_developer_name": "transcribe_dmo_developer_name_value",
+            "transcribe_dmo_name": "transcribe_dmo_name_value",
+            "transform_configurations": "{\"assumed\":\"transform_configurations\"}",
+            "vector_dmo_developer_name": "vector_dmo_developer_name_value",
+            "vector_dmo_id": "vector_dmo_id_value",
+            "vector_dmo_name": "vector_dmo_name_value",
+            "vector_embedding": "{\"assumed\":\"vector_embedding\"}",
+            "vector_embedding_configuration": "{\"assumed\":\"vector_embedding_configuration\"}",
+            "version": "version_value",
+            "attachment_dmo_developer_name": "{\"assumed\":\"attachment_dmo_developer_name\"}",
+            "semantic_search_ranking_configurations": "{\"assumed\":\"semantic_search_ranking_configurations\"}",
+            "transcribe_dmo_id": "{\"assumed\":\"transcribe_dmo_id\"}",
+            "processing_type": "processing_type_value",
+            "runtime_status": "runtime_status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "search_index_delete",
+      "call": "CALL cdp.search_index_delete (search_index_api_name_or_id => '18lTC0000001qPZYAY')",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "search_index_api_name_or_id": "18lTC0000001qPZYAY"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index/18lTC0000001qPZYAY",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "search_index_list",
+      "call": "CALL cdp.search_index_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "semanticSearchDefinitionDetails": [
+            {
+              "attachmentDmoId": "attachment_dmo_id_value",
+              "attachmentDmoName": "attachment_dmo_name_value",
+              "chunkDmoDeveloperName": "chunk_dmo_developer_name_value",
+              "chunkDmoId": "chunk_dmo_id_value",
+              "chunkDmoName": "chunk_dmo_name_value",
+              "chunkingConfiguration": {
+                "assumed": "chunking_configuration"
+              },
+              "dataspace": "dataspace_value",
+              "description": "description_value",
+              "developerName": "developer_name_value",
+              "id": "id_value",
+              "indexConfiguration": {
+                "assumed": "index_configuration"
+              },
+              "indexRefreshedOn": "index_refreshed_on_value",
+              "label": "label_value",
+              "rankingConfigurations": {
+                "assumed": "ranking_configurations"
+              },
+              "searchType": "search_type_value",
+              "sourceDmoDeveloperName": "source_dmo_developer_name_value",
+              "sourceDmoId": "source_dmo_id_value",
+              "transcribeDmoDeveloperName": "transcribe_dmo_developer_name_value",
+              "transcribeDmoName": "transcribe_dmo_name_value",
+              "transformConfigurations": {
+                "assumed": "transform_configurations"
+              },
+              "vectorDmoDeveloperName": "vector_dmo_developer_name_value",
+              "vectorDmoId": "vector_dmo_id_value",
+              "vectorDmoName": "vector_dmo_name_value",
+              "vectorEmbedding": {
+                "assumed": "vector_embedding"
+              },
+              "vectorEmbeddingConfiguration": {
+                "assumed": "vector_embedding_configuration"
+              },
+              "version": "version_value",
+              "attachmentDmoDeveloperName": {
+                "assumed": "attachment_dmo_developer_name"
+              },
+              "processingType": "processing_type_value",
+              "runtimeStatus": "runtime_status_value",
+              "semanticSearchRankingConfigurations": {
+                "assumed": "semantic_search_ranking_configurations"
+              },
+              "transcribeDmoId": {
+                "assumed": "transcribe_dmo_id"
+              },
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "attachment_dmo_id": "attachment_dmo_id_value",
+            "attachment_dmo_name": "attachment_dmo_name_value",
+            "chunk_dmo_developer_name": "chunk_dmo_developer_name_value",
+            "chunk_dmo_id": "chunk_dmo_id_value",
+            "chunk_dmo_name": "chunk_dmo_name_value",
+            "chunking_configuration": "{\"assumed\":\"chunking_configuration\"}",
+            "dataspace": "dataspace_value",
+            "description": "description_value",
+            "developer_name": "developer_name_value",
+            "id": "id_value",
+            "index_configuration": "{\"assumed\":\"index_configuration\"}",
+            "index_refreshed_on": "index_refreshed_on_value",
+            "label": "label_value",
+            "ranking_configurations": "{\"assumed\":\"ranking_configurations\"}",
+            "search_type": "search_type_value",
+            "source_dmo_developer_name": "source_dmo_developer_name_value",
+            "source_dmo_id": "source_dmo_id_value",
+            "transcribe_dmo_developer_name": "transcribe_dmo_developer_name_value",
+            "transcribe_dmo_name": "transcribe_dmo_name_value",
+            "transform_configurations": "{\"assumed\":\"transform_configurations\"}",
+            "vector_dmo_developer_name": "vector_dmo_developer_name_value",
+            "vector_dmo_id": "vector_dmo_id_value",
+            "vector_dmo_name": "vector_dmo_name_value",
+            "vector_embedding": "{\"assumed\":\"vector_embedding\"}",
+            "vector_embedding_configuration": "{\"assumed\":\"vector_embedding_configuration\"}",
+            "version": "version_value",
+            "attachment_dmo_developer_name": "{\"assumed\":\"attachment_dmo_developer_name\"}",
+            "processing_type": "processing_type_value",
+            "runtime_status": "runtime_status_value",
+            "semantic_search_ranking_configurations": "{\"assumed\":\"semantic_search_ranking_configurations\"}",
+            "transcribe_dmo_id": "{\"assumed\":\"transcribe_dmo_id\"}",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "search_index_update",
+      "call": "CALL cdp.search_index_update (search_index_api_name_or_id => 'Articles_Search', label => 'Articles Search v2', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "search_index_api_name_or_id": "Articles_Search",
+          "label": "Articles Search v2",
+          "developer_name": "Articles_Search",
+          "source_dmo_developer_name": "Articles__dlm",
+          "chunk_dmo_name": "Articles Search chunk",
+          "chunk_dmo_developer_name": "Articles_Search_chunk",
+          "vector_dmo_name": "Articles Search index",
+          "vector_dmo_developer_name": "Articles_Search_index",
+          "search_type": "HYBRID",
+          "processing_type": "NEAR_REALTIME",
+          "vector_embedding": {
+            "vector_embedding_related_fields": [
+              {
+                "related_dmo_developer_name": "Articles__dlm",
+                "related_dmo_field_developer_name": "Id__c",
+                "relationships": []
+              }
+            ]
+          },
+          "chunking_configuration": {
+            "field_level_configurations": [
+              {
+                "source_dmo_developer_name": "Articles__dlm",
+                "source_dmo_field_developer_name": "Body__c",
+                "config": {
+                  "id": "passage_extraction",
+                  "user_values": [
+                    {
+                      "id": "strip_html",
+                      "value": "true"
+                    },
+                    {
+                      "id": "max_tokens",
+                      "value": "512"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "vector_embedding_configuration": {
+            "embedding_model": {
+              "id": "e5_large_v2",
+              "user_values": [
+                {
+                  "id": "dimension",
+                  "value": "1024"
+                },
+                {
+                  "id": "max_token_limit",
+                  "value": "512"
+                }
+              ]
+            },
+            "index": {
+              "id": "HNSW",
+              "user_values": [
+                {
+                  "id": "hnswEfConstruction",
+                  "value": "2000"
+                },
+                {
+                  "id": "M",
+                  "value": "64"
+                }
+              ]
+            },
+            "similarity_metric": "COSINE"
+          }
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index/Articles_Search",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Articles Search v2",
+          "developerName": "Articles_Search",
+          "sourceDmoDeveloperName": "Articles__dlm",
+          "chunkDmoName": "Articles Search chunk",
+          "chunkDmoDeveloperName": "Articles_Search_chunk",
+          "vectorDmoName": "Articles Search index",
+          "vectorDmoDeveloperName": "Articles_Search_index",
+          "searchType": "HYBRID",
+          "processingType": "NEAR_REALTIME",
+          "vectorEmbedding": {
+            "vectorEmbeddingRelatedFields": [
+              {
+                "relatedDmoDeveloperName": "Articles__dlm",
+                "relatedDmoFieldDeveloperName": "Id__c",
+                "relationships": []
+              }
+            ]
+          },
+          "chunkingConfiguration": {
+            "fieldLevelConfigurations": [
+              {
+                "sourceDmoDeveloperName": "Articles__dlm",
+                "sourceDmoFieldDeveloperName": "Body__c",
+                "config": {
+                  "id": "passage_extraction",
+                  "userValues": [
+                    {
+                      "id": "strip_html",
+                      "value": "true"
+                    },
+                    {
+                      "id": "max_tokens",
+                      "value": "512"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "vectorEmbeddingConfiguration": {
+            "embeddingModel": {
+              "id": "e5_large_v2",
+              "userValues": [
+                {
+                  "id": "dimension",
+                  "value": "1024"
+                },
+                {
+                  "id": "max_token_limit",
+                  "value": "512"
+                }
+              ]
+            },
+            "index": {
+              "id": "HNSW",
+              "userValues": [
+                {
+                  "id": "hnswEfConstruction",
+                  "value": "2000"
+                },
+                {
+                  "id": "M",
+                  "value": "64"
+                }
+              ]
+            },
+            "similarityMetric": "COSINE"
+          }
+        }
+      }
+    },
+    {
+      "function": "search_index_create",
+      "call": "CALL cdp.search_index_create (label => 'Articles Search', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "Articles Search",
+          "developer_name": "Articles_Search",
+          "source_dmo_developer_name": "Articles__dlm",
+          "chunk_dmo_name": "Articles Search chunk",
+          "chunk_dmo_developer_name": "Articles_Search_chunk",
+          "vector_dmo_name": "Articles Search index",
+          "vector_dmo_developer_name": "Articles_Search_index",
+          "search_type": "HYBRID",
+          "processing_type": "NEAR_REALTIME",
+          "vector_embedding": {
+            "vector_embedding_related_fields": [
+              {
+                "related_dmo_developer_name": "Articles__dlm",
+                "related_dmo_field_developer_name": "Id__c",
+                "relationships": []
+              }
+            ]
+          },
+          "chunking_configuration": {
+            "field_level_configurations": [
+              {
+                "source_dmo_developer_name": "Articles__dlm",
+                "source_dmo_field_developer_name": "Body__c",
+                "config": {
+                  "id": "passage_extraction",
+                  "user_values": [
+                    {
+                      "id": "strip_html",
+                      "value": "true"
+                    },
+                    {
+                      "id": "max_tokens",
+                      "value": "512"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "vector_embedding_configuration": {
+            "embedding_model": {
+              "id": "e5_large_v2",
+              "user_values": [
+                {
+                  "id": "dimension",
+                  "value": "1024"
+                },
+                {
+                  "id": "max_token_limit",
+                  "value": "512"
+                }
+              ]
+            },
+            "index": {
+              "id": "HNSW",
+              "user_values": [
+                {
+                  "id": "hnswEfConstruction",
+                  "value": "2000"
+                },
+                {
+                  "id": "M",
+                  "value": "64"
+                }
+              ]
+            },
+            "similarity_metric": "COSINE"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Articles Search",
+          "developerName": "Articles_Search",
+          "sourceDmoDeveloperName": "Articles__dlm",
+          "chunkDmoName": "Articles Search chunk",
+          "chunkDmoDeveloperName": "Articles_Search_chunk",
+          "vectorDmoName": "Articles Search index",
+          "vectorDmoDeveloperName": "Articles_Search_index",
+          "searchType": "HYBRID",
+          "processingType": "NEAR_REALTIME",
+          "vectorEmbedding": {
+            "vectorEmbeddingRelatedFields": [
+              {
+                "relatedDmoDeveloperName": "Articles__dlm",
+                "relatedDmoFieldDeveloperName": "Id__c",
+                "relationships": []
+              }
+            ]
+          },
+          "chunkingConfiguration": {
+            "fieldLevelConfigurations": [
+              {
+                "sourceDmoDeveloperName": "Articles__dlm",
+                "sourceDmoFieldDeveloperName": "Body__c",
+                "config": {
+                  "id": "passage_extraction",
+                  "userValues": [
+                    {
+                      "id": "strip_html",
+                      "value": "true"
+                    },
+                    {
+                      "id": "max_tokens",
+                      "value": "512"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "vectorEmbeddingConfiguration": {
+            "embeddingModel": {
+              "id": "e5_large_v2",
+              "userValues": [
+                {
+                  "id": "dimension",
+                  "value": "1024"
+                },
+                {
+                  "id": "max_token_limit",
+                  "value": "512"
+                }
+              ]
+            },
+            "index": {
+              "id": "HNSW",
+              "userValues": [
+                {
+                  "id": "hnswEfConstruction",
+                  "value": "2000"
+                },
+                {
+                  "id": "M",
+                  "value": "64"
+                }
+              ]
+            },
+            "similarityMetric": "COSINE"
+          }
+        }
+      }
+    },
+    {
+      "function": "search_index_process_history",
+      "call": "CALL cdp.search_index_process_history (search_index_api_name_or_id => 'Articles_Search', limit => 20)",
+      "description": {
+        "namespace": "cdp",
+        "function": "search_index_process_history",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "search_index_api_name_or_id": "Articles_Search",
+          "limit": 20
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/search-index/Articles_Search/process-history",
+        "query": [
+          [
+            "limit",
+            "20"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": "2",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

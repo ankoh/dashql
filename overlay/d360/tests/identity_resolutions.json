@@ -1,0 +1,587 @@
+{
+  "cases": [
+    {
+      "function": "ir_create",
+      "call": "CALL cdp.ir_create (label => 'Email Match', configuration_type => 'Individual', ruleset_id => 'mail',\n  match_rules => [(label = 'Normalized Email', criteria = [(entity_name = 'ssot__ContactPointEmail__dlm', field_name = 'ssot__EmailAddress__c', match_method_type = 'exactnormalized', should_match_on_blank = false)])],\n  reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true)])",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "Email Match",
+          "configuration_type": "Individual",
+          "ruleset_id": "mail",
+          "match_rules": [
+            {
+              "label": "Normalized Email",
+              "criteria": [
+                {
+                  "entity_name": "ssot__ContactPointEmail__dlm",
+                  "field_name": "ssot__EmailAddress__c",
+                  "match_method_type": "exactnormalized",
+                  "should_match_on_blank": false
+                }
+              ]
+            }
+          ],
+          "reconciliation_rules": [
+            {
+              "entity_name": "ssot__Individual__dlm",
+              "rule_type": "lastupdated",
+              "should_ignore_empty_value": true
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Email Match",
+          "configurationType": "Individual",
+          "rulesetId": "mail",
+          "matchRules": [
+            {
+              "label": "Normalized Email",
+              "criteria": [
+                {
+                  "entityName": "ssot__ContactPointEmail__dlm",
+                  "fieldName": "ssot__EmailAddress__c",
+                  "matchMethodType": "exactnormalized",
+                  "shouldMatchOnBlank": false
+                }
+              ]
+            }
+          ],
+          "reconciliationRules": [
+            {
+              "entityName": "ssot__Individual__dlm",
+              "ruleType": "lastupdated",
+              "shouldIgnoreEmptyValue": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "ir_run",
+      "call": "CALL cdp.ir_run (identity_resolution => '1irfj000000IWhWAAW')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_run",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "identity_resolution": "1irfj000000IWhWAAW"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions/1irfj000000IWhWAAW/actions/run-now",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "ir_get",
+      "call": "CALL cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "identity_resolution": "1irfj000000IWhWAAW"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions/1irfj000000IWhWAAW",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "anonymousUnifiedProfiles": 2,
+          "configurationType": "configuration_type_value",
+          "consolidationRate": 0.5,
+          "dataSpaceName": "dataspace_name_value",
+          "description": "description_value",
+          "doesRunAutomatically": true,
+          "id": "id_value",
+          "knownUnifiedProfiles": 2,
+          "label": "label_value",
+          "lastJobCompleted": "last_job_completed_value",
+          "lastJobStatus": "last_job_status_value",
+          "matchRules": {
+            "assumed": "match_rules"
+          },
+          "matchedSourceProfiles": 2,
+          "objectApiName": "object_api_name_value",
+          "reconciliationRules": {
+            "assumed": "reconciliation_rules"
+          },
+          "rulesetId": "ruleset_id_value",
+          "rulesetStatus": "ruleset_status_value",
+          "sourceProfiles": 2,
+          "totalUnifiedProfiles": 2,
+          "secondaryDmo": "secondary_dmo_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "anonymous_unified_profiles": 2,
+            "configuration_type": "configuration_type_value",
+            "consolidation_rate": 0.5,
+            "dataspace_name": "dataspace_name_value",
+            "description": "description_value",
+            "does_run_automatically": true,
+            "id": "id_value",
+            "known_unified_profiles": 2,
+            "label": "label_value",
+            "last_job_completed": "last_job_completed_value",
+            "last_job_status": "last_job_status_value",
+            "match_rules": "{\"assumed\":\"match_rules\"}",
+            "matched_source_profiles": 2,
+            "object_api_name": "object_api_name_value",
+            "reconciliation_rules": "{\"assumed\":\"reconciliation_rules\"}",
+            "ruleset_id": "ruleset_id_value",
+            "ruleset_status": "ruleset_status_value",
+            "source_profiles": 2,
+            "total_unified_profiles": 2,
+            "secondary_dmo": "secondary_dmo_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ir_delete",
+      "call": "CALL cdp.ir_delete (identity_resolution => '1irfj000000IWhWAAW')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "identity_resolution": "1irfj000000IWhWAAW"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions/1irfj000000IWhWAAW",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "ir_list",
+      "call": "CALL cdp.ir_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "identityResolutions": [
+            {
+              "anonymousUnifiedProfiles": 2,
+              "configurationType": "configuration_type_value",
+              "consolidationRate": 0.5,
+              "dataSpaceName": "dataspace_name_value",
+              "description": "description_value",
+              "doesRunAutomatically": true,
+              "id": "id_value",
+              "knownUnifiedProfiles": 2,
+              "label": "label_value",
+              "lastJobCompleted": "last_job_completed_value",
+              "lastJobStatus": "last_job_status_value",
+              "matchRules": {
+                "assumed": "match_rules"
+              },
+              "matchedSourceProfiles": 2,
+              "objectApiName": "object_api_name_value",
+              "reconciliationRules": {
+                "assumed": "reconciliation_rules"
+              },
+              "rulesetId": "ruleset_id_value",
+              "rulesetStatus": "ruleset_status_value",
+              "sourceProfiles": 2,
+              "totalUnifiedProfiles": 2,
+              "secondaryDmo": "secondary_dmo_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "anonymous_unified_profiles": 2,
+            "configuration_type": "configuration_type_value",
+            "consolidation_rate": 0.5,
+            "dataspace_name": "dataspace_name_value",
+            "description": "description_value",
+            "does_run_automatically": true,
+            "id": "id_value",
+            "known_unified_profiles": 2,
+            "label": "label_value",
+            "last_job_completed": "last_job_completed_value",
+            "last_job_status": "last_job_status_value",
+            "match_rules": "{\"assumed\":\"match_rules\"}",
+            "matched_source_profiles": 2,
+            "object_api_name": "object_api_name_value",
+            "reconciliation_rules": "{\"assumed\":\"reconciliation_rules\"}",
+            "ruleset_id": "ruleset_id_value",
+            "ruleset_status": "ruleset_status_value",
+            "source_profiles": 2,
+            "total_unified_profiles": 2,
+            "secondary_dmo": "secondary_dmo_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ir_update",
+      "call": "CALL cdp.ir_update (identity_resolution => '1irfj000000IWhWAAW', label => 'Customer Match', does_run_automatically => true, reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true), (entity_name = 'ssot__ContactPointEmail__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true)])",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "identity_resolution": "1irfj000000IWhWAAW",
+          "label": "Customer Match",
+          "does_run_automatically": true,
+          "reconciliation_rules": [
+            {
+              "entity_name": "ssot__Individual__dlm",
+              "rule_type": "lastupdated",
+              "should_ignore_empty_value": true
+            },
+            {
+              "entity_name": "ssot__ContactPointEmail__dlm",
+              "rule_type": "mostfrequent",
+              "should_ignore_empty_value": true
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions/1irfj000000IWhWAAW",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Customer Match",
+          "doesRunAutomatically": true,
+          "reconciliationRules": [
+            {
+              "entityName": "ssot__Individual__dlm",
+              "ruleType": "lastupdated",
+              "shouldIgnoreEmptyValue": true
+            },
+            {
+              "entityName": "ssot__ContactPointEmail__dlm",
+              "ruleType": "mostfrequent",
+              "shouldIgnoreEmptyValue": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "ir_create",
+      "call": "CALL cdp.ir_create (\n  label => 'Customer Match',\n  description => 'Email, or name plus phone, or device serial number',\n  configuration_type => 'Individual',\n  ruleset_id => 'cust',\n  does_run_automatically => false,\n  /* Criteria in one rule are ANDed. Rules are ORed. */\n  match_rules => [\n    (label = 'Normalized Email', criteria = [\n      (entity_name = 'ssot__ContactPointEmail__dlm', field_name = 'ssot__EmailAddress__c', match_method_type = 'exactnormalized', should_match_on_blank = false)\n    ]),\n    (label = 'Fuzzy Name and Normalized Phone', criteria = [\n      (entity_name = 'ssot__Individual__dlm', field_name = 'ssot__FirstName__c', match_method_type = 'fuzzy', should_match_on_blank = false),\n      (entity_name = 'ssot__Individual__dlm', field_name = 'ssot__LastName__c', match_method_type = 'exact', should_match_on_blank = false),\n      (entity_name = 'ssot__ContactPointPhone__dlm', field_name = 'ssot__FormattedE164PhoneNumber__c', match_method_type = 'exactnormalized', should_match_on_blank = false)\n    ]),\n    (label = 'Device Serial Number', criteria = [\n      (entity_name = 'ssot__PartyIdentification__dlm', field_name = 'ssot__IdentificationNumber__c', match_method_type = 'exact', case_sensitive_match = false, should_match_on_blank = false,\n       party_identification_info = (party_name = 'Pacemaker Serial Number', partyType = 'Device Identifier'))\n    ])\n  ],\n  /* A default rule per DMO, with one field overriding it. */\n  reconciliation_rules => [\n    (entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true, fields = [\n      (field_name = 'ssot__Id__c', rule_type = 'sourcesequence', should_ignore_empty_value = true, sources = [(name = 'Contact_Home__dll'), (name = 'Lead_Home__dll')])\n    ]),\n    (entity_name = 'ssot__ContactPointEmail__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true),\n    (entity_name = 'ssot__ContactPointPhone__dlm', rule_type = 'sourcesequence', should_ignore_empty_value = true, sources = [(name = 'Contact_Home__dll'), (name = 'Lead_Home__dll')]),\n    (entity_name = 'ssot__PartyIdentification__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true)\n  ]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "Customer Match",
+          "description": "Email, or name plus phone, or device serial number",
+          "configuration_type": "Individual",
+          "ruleset_id": "cust",
+          "does_run_automatically": false,
+          "match_rules": [
+            {
+              "label": "Normalized Email",
+              "criteria": [
+                {
+                  "entity_name": "ssot__ContactPointEmail__dlm",
+                  "field_name": "ssot__EmailAddress__c",
+                  "match_method_type": "exactnormalized",
+                  "should_match_on_blank": false
+                }
+              ]
+            },
+            {
+              "label": "Fuzzy Name and Normalized Phone",
+              "criteria": [
+                {
+                  "entity_name": "ssot__Individual__dlm",
+                  "field_name": "ssot__FirstName__c",
+                  "match_method_type": "fuzzy",
+                  "should_match_on_blank": false
+                },
+                {
+                  "entity_name": "ssot__Individual__dlm",
+                  "field_name": "ssot__LastName__c",
+                  "match_method_type": "exact",
+                  "should_match_on_blank": false
+                },
+                {
+                  "entity_name": "ssot__ContactPointPhone__dlm",
+                  "field_name": "ssot__FormattedE164PhoneNumber__c",
+                  "match_method_type": "exactnormalized",
+                  "should_match_on_blank": false
+                }
+              ]
+            },
+            {
+              "label": "Device Serial Number",
+              "criteria": [
+                {
+                  "entity_name": "ssot__PartyIdentification__dlm",
+                  "field_name": "ssot__IdentificationNumber__c",
+                  "match_method_type": "exact",
+                  "case_sensitive_match": false,
+                  "should_match_on_blank": false,
+                  "party_identification_info": {
+                    "party_name": "Pacemaker Serial Number",
+                    "partyType": "Device Identifier"
+                  }
+                }
+              ]
+            }
+          ],
+          "reconciliation_rules": [
+            {
+              "entity_name": "ssot__Individual__dlm",
+              "rule_type": "lastupdated",
+              "should_ignore_empty_value": true,
+              "fields": [
+                {
+                  "field_name": "ssot__Id__c",
+                  "rule_type": "sourcesequence",
+                  "should_ignore_empty_value": true,
+                  "sources": [
+                    {
+                      "name": "Contact_Home__dll"
+                    },
+                    {
+                      "name": "Lead_Home__dll"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "entity_name": "ssot__ContactPointEmail__dlm",
+              "rule_type": "mostfrequent",
+              "should_ignore_empty_value": true
+            },
+            {
+              "entity_name": "ssot__ContactPointPhone__dlm",
+              "rule_type": "sourcesequence",
+              "should_ignore_empty_value": true,
+              "sources": [
+                {
+                  "name": "Contact_Home__dll"
+                },
+                {
+                  "name": "Lead_Home__dll"
+                }
+              ]
+            },
+            {
+              "entity_name": "ssot__PartyIdentification__dlm",
+              "rule_type": "mostfrequent",
+              "should_ignore_empty_value": true
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Customer Match",
+          "description": "Email, or name plus phone, or device serial number",
+          "configurationType": "Individual",
+          "rulesetId": "cust",
+          "doesRunAutomatically": false,
+          "matchRules": [
+            {
+              "label": "Normalized Email",
+              "criteria": [
+                {
+                  "entityName": "ssot__ContactPointEmail__dlm",
+                  "fieldName": "ssot__EmailAddress__c",
+                  "matchMethodType": "exactnormalized",
+                  "shouldMatchOnBlank": false
+                }
+              ]
+            },
+            {
+              "label": "Fuzzy Name and Normalized Phone",
+              "criteria": [
+                {
+                  "entityName": "ssot__Individual__dlm",
+                  "fieldName": "ssot__FirstName__c",
+                  "matchMethodType": "fuzzy",
+                  "shouldMatchOnBlank": false
+                },
+                {
+                  "entityName": "ssot__Individual__dlm",
+                  "fieldName": "ssot__LastName__c",
+                  "matchMethodType": "exact",
+                  "shouldMatchOnBlank": false
+                },
+                {
+                  "entityName": "ssot__ContactPointPhone__dlm",
+                  "fieldName": "ssot__FormattedE164PhoneNumber__c",
+                  "matchMethodType": "exactnormalized",
+                  "shouldMatchOnBlank": false
+                }
+              ]
+            },
+            {
+              "label": "Device Serial Number",
+              "criteria": [
+                {
+                  "entityName": "ssot__PartyIdentification__dlm",
+                  "fieldName": "ssot__IdentificationNumber__c",
+                  "matchMethodType": "exact",
+                  "caseSensitiveMatch": false,
+                  "shouldMatchOnBlank": false,
+                  "partyIdentificationInfo": {
+                    "partyName": "Pacemaker Serial Number",
+                    "partyType": "Device Identifier"
+                  }
+                }
+              ]
+            }
+          ],
+          "reconciliationRules": [
+            {
+              "entityName": "ssot__Individual__dlm",
+              "ruleType": "lastupdated",
+              "shouldIgnoreEmptyValue": true,
+              "fields": [
+                {
+                  "fieldName": "ssot__Id__c",
+                  "ruleType": "sourcesequence",
+                  "shouldIgnoreEmptyValue": true,
+                  "sources": [
+                    {
+                      "name": "Contact_Home__dll"
+                    },
+                    {
+                      "name": "Lead_Home__dll"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "entityName": "ssot__ContactPointEmail__dlm",
+              "ruleType": "mostfrequent",
+              "shouldIgnoreEmptyValue": true
+            },
+            {
+              "entityName": "ssot__ContactPointPhone__dlm",
+              "ruleType": "sourcesequence",
+              "shouldIgnoreEmptyValue": true,
+              "sources": [
+                {
+                  "name": "Contact_Home__dll"
+                },
+                {
+                  "name": "Lead_Home__dll"
+                }
+              ]
+            },
+            {
+              "entityName": "ssot__PartyIdentification__dlm",
+              "ruleType": "mostfrequent",
+              "shouldIgnoreEmptyValue": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "ir_publish",
+      "call": "CALL cdp.ir_publish (identity_resolution_id => '1irfj000000IWhWAAW')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ir_publish",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "identity_resolution_id": "1irfj000000IWhWAAW"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/identity-resolutions/1irfj000000IWhWAAW/actions/publish",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

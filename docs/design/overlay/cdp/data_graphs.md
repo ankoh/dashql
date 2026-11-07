@@ -411,11 +411,11 @@ Data graph field input representation.
 
 | Attribute | API name | Type | Required | Description |
 |---|---|---|---|---|
-| `ci_field_type` | `ciFieldType` | string | yes | Calculated insight field type. Since v59.0. |
+| `ci_field_type` | `ciFieldType` | string |  | The spec marks this required, but the example here leaves it out. Calculated insight field type. Since v59.0. |
 | `data_type` | `dataType` | string | yes | Data type of the field. Since v59.0. |
 | `is_key_column` | `isKeyColumn` | boolean | yes | Indicates whether the field is a primary key (`true`) or not (`false`). Since v59.0. |
 | `is_projected` | `isProjected` | boolean | yes | Indicates whether this field needs to be projected in output value JSON (`true`) or not (`false`). Since v59.0. |
-| `key_qualifier_name` | `keyQualifierName` | string | yes | Key qualifier name. Since v59.0. |
+| `key_qualifier_name` | `keyQualifierName` | string |  | The spec marks this required, but the example here leaves it out. Key qualifier name. Since v59.0. |
 | `source_field_name` | `sourceFieldName` | string | yes | API name of the field of the object. Since v59.0. |
 | `usage_tag` | `usageTag` | string | yes | Tag that indicates whether the field represents a key qualifier field (`KEY_QUALIFIER`) or not (`NONE`). Since v59.0. |
 | `dev_name` | `devName` | string |  | Not in the spec schema: from the spec's examples. |

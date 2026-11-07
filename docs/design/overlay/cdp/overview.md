@@ -1,6 +1,6 @@
 # CDP SQL
 
-Status: proposed. Nothing here is implemented, and nothing has been tested against an org.
+Status: the spec is generated in `overlay/d360/api/`, and the core and the runtime read it. It has no binding yet, so no call can run, and nothing has been tested against an org.
 
 CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [overlay](../../overlay.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [overlay.md](../../overlay.md) describes them.
 
@@ -82,7 +82,8 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | `calculated_insights` requires `offset` alongside `page_token` | An ordinary option the script sets |
 | Options in the path, query, header or body | `in`: 411, 542, 18 and 1,279 rows in the reference |
 | `202` on some governance deletes | No `pending` for now, so it's an ordinary success, and job status stays explicit through status functions. The contract drops response headers, so whether these carry a `Location` [needs checking on an org](api_notes.md#live-checks) |
-| 200 with errors (consent), 404 for an empty result (DMO mappings) | `errors` on those functions |
+| 404 for an empty result (DMO mappings) | `empty_on` on that function |
+| 200 with errors (consent) | The `result` column on every row, which a script reads. No `error_if`, since no source gives a pointer that means failure |
 | Connect errors: an array whose `message` may be a JSON string | `errors` at the top level, with `message_is_json` |
 | CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../overlay.md#open-questions) |
 | Credentials, where `value` is secret depending on `param_name` | `sensitive` with `public_when` |
@@ -91,6 +92,58 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | Segment SQL rules, call order, readiness | Stay out of the spec. The server decides, and [the notes](api_notes.md) explain |
 
 Data 360's contract doesn't exercise the format much: it has no top-level array responses or form encoding, and it doesn't record response headers. [The survey](../api_survey.md) measures the format against APIs that do.
+
+## Generating the spec
+
+The overlay lives in `overlay/d360/`, while its namespace is `cdp`. `api/generate.py` reads the [reference documents](functions.md) and writes `api/spec.json`, which is checked in. This also generates [the fixtures](#the-fixtures):
+
+```
+bazel run //overlay/d360:update
+```
+
+| Spec | Number |
+|---|---:|
+| Functions, with `request` | 535 |
+| Options | 2,254 |
+| Schemas | 466 |
+| Schema attributes | 1,889 |
+| Result columns | 4,700 |
+| Size | 910 KB, 60 KB gzipped |
+
+**The reference is the source.** It already merges the contract with everything the contract leaves out, and its tables are regular, so changing the API means editing the reference and regenerating. Rules that are only prose in the reference are in `generate.py`: a few paging notes, and the `param_name` values of `credentials` that are plain settings.
+
+**Corrections go into the reference.** The contract marks some fields required that its own examples leave out, such as every body field of the `PATCH` of `ml_configured_model_update`. Those rows aren't required in the reference, with a note, so the two can't disagree.
+
+**The tests** in `//overlay/d360`:
+- `spec_up_to_date_test` fails if `spec.json` isn't what the reference generates.
+- `spec_test` loads the spec into the core. Every `CALL` example in the reference and every snippet has to parse and pass the checks, and completion has to offer exactly the functions, the options of every function and the attributes of every object option.
+
+Passing means an example has the shape the spec describes, not that the server accepts it.
+
+## The fixtures
+
+`overlay/d360/tests/` has a JSON file per family, generated from the spec and the reference:
+
+```json
+{
+  "function": "segment_get",
+  "call": "CALL cdp.segment_get (segment_api_name => 'Vip')",
+  "description": { "...": "what the core describes" },
+  "request": { "method": "GET", "host": "connect", "path": "/services/data/v68.0/ssot/segments/Vip", "query": [], "headers": {}, "body": null },
+  "response": { "source": "assumed", "status": 200, "headers": {}, "body": { "...": "..." } },
+  "result": { "rows": [{ "api_name": "api_name_value", "_status": 200 }] }
+}
+```
+
+**There are 622 cases.** All 534 documented functions have a request, and 254 of the 256 reads have a response. Writes have no response yet, since the runtime only runs reads.
+
+**Two implementations check each other.** `tests/generate_tests.rs` computes the expected request from the spec, separately from the runtime, and `overlay_fixtures.test.ts` compares the two in the browser, on `EXPLAIN` and on a mock `HttpClient`.
+
+**Responses start as assumptions and get replaced by real ones.** An `assumed` response is built from the columns of the spec, so it shows that the runtime follows the spec, not that the spec is right. Replace `response` and `result` of a case with a real exchange, with `source: recorded` or `documented`, and regenerating keeps it. A real exchange must not contain tokens or the data of an org.
+
+**Snippets** are workflows in `overlay/d360/snippets/<workflow>/<NN>-<step>.sql`, built from the examples of the reference. A single call of this API rarely does anything on its own, so the steps build on each other: `order-pipeline` goes from a Snowflake connection through a data stream, the data model, identity resolution, an insight and a segment to an activation, in the [documented order](api_notes.md#usage-order). `bulk-ingest`, `semantic-search` and `data-transform` are shorter.
+
+Names stay the same from step to step, and a value that only a result can give is a `:param`, which the description of the step explains. The tests hold every step to the checks and the rules of the snippet browser, but passing doesn't mean a workflow runs on an org, and the object names in `order-pipeline` are made up. The snippet browser doesn't list them yet, since a call can't run until the binding exists.
 
 ## Where attributes come from
 
@@ -107,7 +160,7 @@ So the spec is the contract plus annotations, built mechanically and labeled per
 | Path templates | Placeholders the spec's parameters omit |
 | Review | A few corrections from reading the sources, such as `models = (models = [...])` in DBT segments |
 
-The result: 4,035 attribute rows, 616 of them typed objects, and only 24 left free-form. The prototype generated these from the reference documents, so the documents are enough to build the spec.
+That merged knowledge is what [the reference](functions.md) records, so it's the source of the spec.
 
 **`unknown` follows the evidence:**
 
@@ -215,13 +268,12 @@ It's the only function with a `body` option.
 
 ## Roadmap
 
-The [overlay roadmap](../../overlay.md#roadmap) comes first, up to its generator phase. For Data 360:
+The [overlay roadmap](../../overlay.md#roadmap) comes first. The spec is generated. For Data 360:
 
-1. **Generator input:** the OpenAPI contract plus the annotations, producing the spec in `overlay/apis/cdp/`.
-2. **Read-only binding:** host and token resolution, with `effect: read` functions only. Needs a browser CORS check, since only `GET` on `/services/data` is exercised today.
-3. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
-4. **Writes:** all other calls, on the generic write rules. Ingestion needs its own CORS check, since no code calls `/api/v1/ingest` yet.
-5. **High-level forms**, if wanted, compiling to `CALL cdp.*`. The canonical segment shapes in [the notes](api_notes.md#segment-sql) are the starting point, but multi-criterion segments need an org to test against.
+1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Needs a browser CORS check, since only `GET` on `/services/data` is exercised today.
+2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
+3. **Writes:** all other calls, on the generic write rules. Ingestion needs its own CORS check, since no code calls `/api/v1/ingest` yet.
+4. **High-level forms**, if wanted, compiling to `CALL cdp.*`. The canonical segment shapes in [the notes](api_notes.md#segment-sql) are the starting point, but multi-criterion segments need an org to test against.
 
 ## Open questions
 

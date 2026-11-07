@@ -1,0 +1,982 @@
+{
+  "cases": [
+    {
+      "function": "activation_platform_metadata_list",
+      "call": "CALL cdp.activation_platform_metadata_list (platform_type => 'Sftp')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_metadata_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "platform_type": "Sftp"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/metadata/activation-platforms",
+        "query": [
+          [
+            "platformType",
+            "Sftp"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "activationTargetPlatforms": [
+            {
+              "apiName": "api_name_value",
+              "category": "category_value",
+              "description": "description_value",
+              "externalProvider": "external_provider_value",
+              "name": "name_value",
+              "platformType": "platform_type_value",
+              "processingType": "processing_type_value",
+              "sortOrder": 2,
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "category": "category_value",
+            "description": "description_value",
+            "external_provider": "external_provider_value",
+            "name": "name_value",
+            "platform_type": "platform_type_value",
+            "processing_type": "processing_type_value",
+            "sort_order": 2,
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_create",
+      "call": "CALL cdp.activation_target_create (\n  name => 'sftp_exports',\n  dataspace_name => 'default',\n  platform_type => 'Sftp',\n  connector => (name = 'sftpTargetConnector'),\n  egress_properties => (predetermined_filename = 'SegmentActivation', filename_date_suffix_format = 'yyyy-MM-dd-HH-mm-ss', output_delimiter = 'Comma', output_compression_format = 'Gzip', output_max_file_size_mega_bytes = 500, output_format = 'CSV')\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "sftp_exports",
+          "dataspace_name": "default",
+          "platform_type": "Sftp",
+          "connector": {
+            "name": "sftpTargetConnector"
+          },
+          "egress_properties": {
+            "predetermined_filename": "SegmentActivation",
+            "filename_date_suffix_format": "yyyy-MM-dd-HH-mm-ss",
+            "output_delimiter": "Comma",
+            "output_compression_format": "Gzip",
+            "output_max_file_size_mega_bytes": 500,
+            "output_format": "CSV"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "sftp_exports",
+          "dataSpaceName": "default",
+          "platformType": "Sftp",
+          "connector": {
+            "name": "sftpTargetConnector"
+          },
+          "egressProperties": {
+            "predeterminedFilename": "SegmentActivation",
+            "filenameDateSuffixFormat": "yyyy-MM-dd-HH-mm-ss",
+            "outputDelimiter": "Comma",
+            "outputCompressionFormat": "Gzip",
+            "outputMaxFileSizeMegaBytes": 500,
+            "outputFormat": "CSV"
+          }
+        }
+      }
+    },
+    {
+      "function": "activation_target_get",
+      "call": "CALL cdp.activation_target_get (activation_target_id => '85USB000004ADXx2AO')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85USB000004ADXx2AO"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/85USB000004ADXx2AO",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "connector": {
+            "assumed": "connector"
+          },
+          "dataSpaceName": "dataspace_name_value",
+          "description": "description_value",
+          "egressProperties": {
+            "assumed": "egress_properties"
+          },
+          "historyAudienceDmoApiName": "history_audience_dmo_api_name_value",
+          "historyAudienceDmoLabel": "history_audience_dmo_label_value",
+          "isCappingEnabled": true,
+          "isEnabled": true,
+          "latestAudienceDmoApiName": "latest_audience_dmo_api_name_value",
+          "latestAudienceDmoLabel": "latest_audience_dmo_label_value",
+          "organizationId": "organization_id_value",
+          "platformName": "platform_name_value",
+          "platformPrivacyType": "platform_privacy_type_value",
+          "platformType": "platform_type_value",
+          "status": "status_value",
+          "attributeConfig": {
+            "assumed": "attribute_config"
+          },
+          "keyPrefixName": "key_prefix_name_value",
+          "type": "type_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "connector": "{\"assumed\":\"connector\"}",
+            "dataspace_name": "dataspace_name_value",
+            "description": "description_value",
+            "egress_properties": "{\"assumed\":\"egress_properties\"}",
+            "history_audience_dmo_api_name": "history_audience_dmo_api_name_value",
+            "history_audience_dmo_label": "history_audience_dmo_label_value",
+            "is_capping_enabled": true,
+            "is_enabled": true,
+            "latest_audience_dmo_api_name": "latest_audience_dmo_api_name_value",
+            "latest_audience_dmo_label": "latest_audience_dmo_label_value",
+            "organization_id": "organization_id_value",
+            "platform_name": "platform_name_value",
+            "platform_privacy_type": "platform_privacy_type_value",
+            "platform_type": "platform_type_value",
+            "status": "status_value",
+            "attribute_config": "{\"assumed\":\"attribute_config\"}",
+            "key_prefix_name": "key_prefix_name_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_delete",
+      "call": "CALL cdp.activation_target_delete (activation_target_id => '85UVF000000Dr4v2AC')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000Dr4v2AC"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/85UVF000000Dr4v2AC",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_target_list",
+      "call": "CALL cdp.activation_target_list (filters => 'targetStatus in active AND platformName in Amazon S3', order_by => 'createdDate desc', batch_size => 50)",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "filters": "targetStatus in active AND platformName in Amazon S3",
+          "order_by": "createdDate desc",
+          "batch_size": 50
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets",
+        "query": [
+          [
+            "filters",
+            "targetStatus in active AND platformName in Amazon S3"
+          ],
+          [
+            "orderBy",
+            "createdDate desc"
+          ],
+          [
+            "batchSize",
+            "50"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "activationTargets": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "connector": {
+                "assumed": "connector"
+              },
+              "dataSpaceName": "dataspace_name_value",
+              "description": "description_value",
+              "egressProperties": {
+                "assumed": "egress_properties"
+              },
+              "historyAudienceDmoApiName": "history_audience_dmo_api_name_value",
+              "historyAudienceDmoLabel": "history_audience_dmo_label_value",
+              "isCappingEnabled": true,
+              "isEnabled": true,
+              "latestAudienceDmoApiName": "latest_audience_dmo_api_name_value",
+              "latestAudienceDmoLabel": "latest_audience_dmo_label_value",
+              "organizationId": "organization_id_value",
+              "platformName": "platform_name_value",
+              "platformPrivacyType": "platform_privacy_type_value",
+              "platformType": "platform_type_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "connector": "{\"assumed\":\"connector\"}",
+            "dataspace_name": "dataspace_name_value",
+            "description": "description_value",
+            "egress_properties": "{\"assumed\":\"egress_properties\"}",
+            "history_audience_dmo_api_name": "history_audience_dmo_api_name_value",
+            "history_audience_dmo_label": "history_audience_dmo_label_value",
+            "is_capping_enabled": true,
+            "is_enabled": true,
+            "latest_audience_dmo_api_name": "latest_audience_dmo_api_name_value",
+            "latest_audience_dmo_label": "latest_audience_dmo_label_value",
+            "organization_id": "organization_id_value",
+            "platform_name": "platform_name_value",
+            "platform_privacy_type": "platform_privacy_type_value",
+            "platform_type": "platform_type_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_get",
+      "call": "CALL cdp.activation_target_get (activation_target_id => '85UVF000000Dr4v2AC')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000Dr4v2AC"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/85UVF000000Dr4v2AC",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_target_ad_account_list",
+      "call": "CALL cdp.activation_target_ad_account_list (activation_target_id => '85UVF000000NaQz2AK', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_ad_account_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000NaQz2AK",
+          "dataspace": "default",
+          "platform_id_or_name": "cdpactvstrgptnr__PremiumPartnerGoogle"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/85UVF000000NaQz2AK/available-ad-accounts",
+        "query": [
+          [
+            "dataSpace",
+            "default"
+          ],
+          [
+            "platformIdOrName",
+            "cdpactvstrgptnr__PremiumPartnerGoogle"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "adAccounts": [
+            {
+              "accountName": "account_name_value",
+              "accountNumber": "account_number_value",
+              "active": true,
+              "errors": {
+                "assumed": "errors"
+              },
+              "hasError": true,
+              "managerAccountId": "manager_account_id_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "account_name": "account_name_value",
+            "account_number": "account_number_value",
+            "active": true,
+            "errors": "{\"assumed\":\"errors\"}",
+            "has_error": true,
+            "manager_account_id": "manager_account_id_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_partner_object_list",
+      "call": "CALL cdp.activation_target_partner_object_list (activation_target_id => '85UVF000000NaQz2AK', partner_object_type => 'ConversionRule')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_partner_object_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000NaQz2AK",
+          "partner_object_type": "ConversionRule"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/85UVF000000NaQz2AK/partner-objects",
+        "query": [
+          [
+            "partnerObjectType",
+            "ConversionRule"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "partnerObjects": [
+            {
+              "name": "name_value",
+              "partnerObjectId": "partner_object_id_value",
+              "status": "status_value",
+              "type": "type_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "name": "name_value",
+            "partner_object_id": "partner_object_id_value",
+            "status": "status_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_platform_metadata_list",
+      "call": "CALL cdp.activation_platform_metadata_list (platform_type => 'Strategic', order_by => 'name asc')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_platform_metadata_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "platform_type": "Strategic",
+          "order_by": "name asc"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/metadata/activation-platforms",
+        "query": [
+          [
+            "platformType",
+            "Strategic"
+          ],
+          [
+            "orderBy",
+            "name asc"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "communication_capping_data_space_list",
+      "call": "CALL cdp.communication_capping_data_space_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_data_space_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/metadata/communication-capping-data-spaces",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataSpaces": [
+            {
+              "apiName": "api_name_value",
+              "dataCommunicationCapDefId": "data_communication_cap_def_id_value",
+              "dataSpaceId": "dataspace_id_value",
+              "dataSpaceName": "dataspace_name_value",
+              "dataSpace": "dataspace_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "data_communication_cap_def_id": "data_communication_cap_def_id_value",
+            "dataspace_id": "dataspace_id_value",
+            "dataspace_name": "dataspace_name_value",
+            "dataspace": "dataspace_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ad_account_availability_get",
+      "call": "CALL cdp.ad_account_availability_get (account_id => '6586160339', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ad_account_availability_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "account_id": "6586160339",
+          "dataspace": "default",
+          "platform_id_or_name": "cdpactvstrgptnr__PremiumPartnerGoogle"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/metadata/dataspace-account-validation",
+        "query": [
+          [
+            "accountId",
+            "6586160339"
+          ],
+          [
+            "dataSpace",
+            "default"
+          ],
+          [
+            "platformIdOrName",
+            "cdpactvstrgptnr__PremiumPartnerGoogle"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "available": true,
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "available": true,
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "marketing_cloud_enterprise_list",
+      "call": "CALL cdp.marketing_cloud_enterprise_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "marketing_cloud_enterprise_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/metadata/mc-enterprises",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "enterprises": [
+            {
+              "businessUnits": {
+                "assumed": "business_units"
+              },
+              "connectorId": "connector_id_value",
+              "enterpriseId": "enterprise_id_value",
+              "enterpriseName": "enterprise_name_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "business_units": "{\"assumed\":\"business_units\"}",
+            "connector_id": "connector_id_value",
+            "enterprise_id": "enterprise_id_value",
+            "enterprise_name": "enterprise_name_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_platform_field_list",
+      "call": "CALL cdp.activation_target_platform_field_list (platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_platform_field_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "platform_id_or_name": "cdpactvstrgptnr__PremiumPartnerGoogle"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/metadata/target-platform-fields",
+        "query": [
+          [
+            "platformIdOrName",
+            "cdpactvstrgptnr__PremiumPartnerGoogle"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "platformFields": [
+            {
+              "activationPlatformId": "activation_platform_id_value",
+              "activationPlatformName": "activation_platform_name_value",
+              "helpText": "help_text_value",
+              "id": "id_value",
+              "isHidden": true,
+              "isRequired": true,
+              "label": "label_value",
+              "name": "name_value",
+              "type": "type_value",
+              "values": {
+                "assumed": "values"
+              },
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "activation_platform_id": "activation_platform_id_value",
+            "activation_platform_name": "activation_platform_name_value",
+            "help_text": "help_text_value",
+            "id": "id_value",
+            "is_hidden": true,
+            "is_required": true,
+            "label": "label_value",
+            "name": "name_value",
+            "type": "type_value",
+            "values": "{\"assumed\":\"values\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "activation_target_update",
+      "call": "CALL cdp.activation_target_update (activation_target_id => '85UVF000000Dr4v2AC', dataspace_name => 'default', name => 's3_target2', description => 'Nightly audience exports')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000Dr4v2AC",
+          "dataspace_name": "default",
+          "name": "s3_target2",
+          "description": "Nightly audience exports"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/85UVF000000Dr4v2AC",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataSpaceName": "default",
+          "name": "s3_target2",
+          "description": "Nightly audience exports"
+        }
+      }
+    },
+    {
+      "function": "activation_target_create",
+      "call": "CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = secret(s3_access_key), secret_key = secret(s3_secret_key)))",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "s3_target2",
+          "dataspace_name": "default",
+          "platform_type": "AmazonS3",
+          "connector": {
+            "name": "s3_conn_1",
+            "output_format": "CSV",
+            "bucket_name": "audience-exports",
+            "folder_name": "nightly",
+            "access_key": null,
+            "secret_key": null
+          }
+        },
+        "bindings": [
+          {
+            "pointer": "/connector/access_key",
+            "secret": "s3_access_key"
+          },
+          {
+            "pointer": "/connector/secret_key",
+            "secret": "s3_secret_key"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "s3_target2",
+          "dataSpaceName": "default",
+          "platformType": "AmazonS3",
+          "connector": {
+            "name": "s3_conn_1",
+            "outputFormat": "CSV",
+            "bucketName": "audience-exports",
+            "folderName": "nightly",
+            "accessKey": "secret(s3_access_key)",
+            "secretKey": "secret(s3_secret_key)"
+          }
+        }
+      }
+    },
+    {
+      "function": "activation_target_ad_account_assign",
+      "call": "CALL cdp.activation_target_ad_account_assign (activation_target_id => '85UVF000000NaQz2AK', account_number => '6586160339', manager_account_id => '6586160339', dataspace => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_ad_account_assign",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000NaQz2AK",
+          "account_number": "6586160339",
+          "manager_account_id": "6586160339",
+          "dataspace": "default"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/actions/85UVF000000NaQz2AK/assign-ad-account",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "accountNumber": "6586160339",
+          "managerAccountId": "6586160339",
+          "dataSpace": "default"
+        }
+      }
+    },
+    {
+      "function": "activation_target_disable",
+      "call": "CALL cdp.activation_target_disable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_disable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000Dr4v2AC",
+          "dataspace": "default"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/actions/85UVF000000Dr4v2AC/disable",
+        "query": [
+          [
+            "dataSpace",
+            "default"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_target_enable",
+      "call": "CALL cdp.activation_target_enable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_enable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85UVF000000Dr4v2AC",
+          "dataspace": "default"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/actions/85UVF000000Dr4v2AC/enable",
+        "query": [
+          [
+            "dataSpace",
+            "default"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "activation_target_sync_retry",
+      "call": "CALL cdp.activation_target_sync_retry (activation_target_id => '85USB000004LBZF2A4')",
+      "description": {
+        "namespace": "cdp",
+        "function": "activation_target_sync_retry",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "85USB000004LBZF2A4"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/activation-targets/actions/85USB000004LBZF2A4/retry-sync",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

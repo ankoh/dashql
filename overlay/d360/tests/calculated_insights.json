@@ -1,0 +1,551 @@
+{
+  "cases": [
+    {
+      "function": "ci_create",
+      "call": "CALL cdp.ci_create (\n    api_name => 'Customer_Order_Summary__cio',\n    display_name => 'Customer Order Summary',\n    definition_type => 'CALCULATED_METRIC',\n    publish_schedule_interval => 'Six',\n    publish_schedule_start_date_time => '2027-01-01T06:00',\n    expression => $$\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    $$\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Customer_Order_Summary__cio",
+          "display_name": "Customer Order Summary",
+          "definition_type": "CALCULATED_METRIC",
+          "publish_schedule_interval": "Six",
+          "publish_schedule_start_date_time": "2027-01-01T06:00",
+          "expression": "\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    "
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "apiName": "Customer_Order_Summary__cio",
+          "displayName": "Customer Order Summary",
+          "definitionType": "CALCULATED_METRIC",
+          "publishScheduleInterval": "Six",
+          "publishScheduleStartDateTime": "2027-01-01T06:00",
+          "expression": "\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    "
+        }
+      }
+    },
+    {
+      "function": "ci_get",
+      "call": "CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "api_name": "Customer_Order_Summary__cio"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "apiName": "api_name_value",
+          "calculatedInsightStatus": "calculated_insight_status_value",
+          "creationType": "creation_type_value",
+          "dataSpace": "dataspace_value",
+          "definitionStatus": "definition_status_value",
+          "definitionType": "definition_type_value",
+          "description": "description_value",
+          "dimensions": {
+            "assumed": "dimensions"
+          },
+          "displayName": "display_name_value",
+          "expression": "expression_value",
+          "isEnabled": true,
+          "lastCalcInsightStatusDateTime": "last_calc_insight_status_date_time_value",
+          "lastCalcInsightStatusErrorCode": "last_calc_insight_status_error_code_value",
+          "lastRunDateTime": "last_run_date_time_value",
+          "lastRunStatus": "last_run_status_value",
+          "lastRunStatusDateTime": "last_run_status_date_time_value",
+          "lastRunStatusErrorCode": "last_run_status_error_code_value",
+          "measures": {
+            "assumed": "measures"
+          },
+          "publishScheduleEndDate": {
+            "assumed": "publish_schedule_end_date"
+          },
+          "publishScheduleInterval": "publish_schedule_interval_value",
+          "publishScheduleStartDateTime": {
+            "assumed": "publish_schedule_start_date_time"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "calculated_insight_status": "calculated_insight_status_value",
+            "creation_type": "creation_type_value",
+            "dataspace": "dataspace_value",
+            "definition_status": "definition_status_value",
+            "definition_type": "definition_type_value",
+            "description": "description_value",
+            "dimensions": "{\"assumed\":\"dimensions\"}",
+            "display_name": "display_name_value",
+            "expression": "expression_value",
+            "is_enabled": true,
+            "last_calc_insight_status_date_time": "last_calc_insight_status_date_time_value",
+            "last_calc_insight_status_error_code": "last_calc_insight_status_error_code_value",
+            "last_run_date_time": "last_run_date_time_value",
+            "last_run_status": "last_run_status_value",
+            "last_run_status_date_time": "last_run_status_date_time_value",
+            "last_run_status_error_code": "last_run_status_error_code_value",
+            "measures": "{\"assumed\":\"measures\"}",
+            "publish_schedule_end_date": "{\"assumed\":\"publish_schedule_end_date\"}",
+            "publish_schedule_interval": "publish_schedule_interval_value",
+            "publish_schedule_start_date_time": "{\"assumed\":\"publish_schedule_start_date_time\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ci_run",
+      "call": "CALL cdp.ci_run (api_name => 'Customer_Order_Summary__cio')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_run",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Customer_Order_Summary__cio"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio/actions/run",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "insights_query",
+      "call": "CALL cdp.insights_query (ci_name => 'Customer_Order_Summary__cio', batch_size => 10)",
+      "description": {
+        "namespace": "cdp",
+        "function": "insights_query",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "ci_name": "Customer_Order_Summary__cio",
+          "batch_size": 10
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/insight/calculated-insights/Customer_Order_Summary__cio",
+        "query": [
+          [
+            "batchSize",
+            "10"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "data": {
+            "assumed": "data"
+          },
+          "done": true,
+          "endTime": "end_time_value",
+          "metadata": {
+            "assumed": "metadata"
+          },
+          "queryId": "query_id_value",
+          "rowCount": 2,
+          "startTime": "start_time_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "data": "{\"assumed\":\"data\"}",
+            "done": true,
+            "end_time": "end_time_value",
+            "metadata": "{\"assumed\":\"metadata\"}",
+            "query_id": "query_id_value",
+            "row_count": 2,
+            "start_time": "start_time_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ci_delete",
+      "call": "CALL cdp.ci_delete (api_name => 'Customer_Order_Summary__cio')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Customer_Order_Summary__cio"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "ci_list",
+      "call": "CALL cdp.ci_list (offset => 0, definition_type => 'CALCULATED_METRIC', batch_size => 100)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "offset": 0,
+          "definition_type": "CALCULATED_METRIC",
+          "batch_size": 100
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights",
+        "query": [
+          [
+            "offset",
+            "0"
+          ],
+          [
+            "definitionType",
+            "CALCULATED_METRIC"
+          ],
+          [
+            "batchSize",
+            "100"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "collection": {
+            "items": [
+              {
+                "apiName": "api_name_value",
+                "calculatedInsightStatus": "calculated_insight_status_value",
+                "creationType": "creation_type_value",
+                "dataSpace": "dataspace_value",
+                "definitionStatus": "definition_status_value",
+                "definitionType": "definition_type_value",
+                "description": "description_value",
+                "dimensions": {
+                  "assumed": "dimensions"
+                },
+                "displayName": "display_name_value",
+                "expression": "expression_value",
+                "isEnabled": true,
+                "lastCalcInsightStatusDateTime": "last_calc_insight_status_date_time_value",
+                "lastCalcInsightStatusErrorCode": "last_calc_insight_status_error_code_value",
+                "lastRunDateTime": "last_run_date_time_value",
+                "lastRunStatus": "last_run_status_value",
+                "lastRunStatusDateTime": "last_run_status_date_time_value",
+                "lastRunStatusErrorCode": "last_run_status_error_code_value",
+                "measures": {
+                  "assumed": "measures"
+                },
+                "publishScheduleEndDate": {
+                  "assumed": "publish_schedule_end_date"
+                },
+                "publishScheduleInterval": "publish_schedule_interval_value",
+                "publishScheduleStartDateTime": {
+                  "assumed": "publish_schedule_start_date_time"
+                },
+                "assumedUnlistedField": true
+              }
+            ],
+            "nextPageToken": "assumed-token"
+          }
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "calculated_insight_status": "calculated_insight_status_value",
+            "creation_type": "creation_type_value",
+            "dataspace": "dataspace_value",
+            "definition_status": "definition_status_value",
+            "definition_type": "definition_type_value",
+            "description": "description_value",
+            "dimensions": "{\"assumed\":\"dimensions\"}",
+            "display_name": "display_name_value",
+            "expression": "expression_value",
+            "is_enabled": true,
+            "last_calc_insight_status_date_time": "last_calc_insight_status_date_time_value",
+            "last_calc_insight_status_error_code": "last_calc_insight_status_error_code_value",
+            "last_run_date_time": "last_run_date_time_value",
+            "last_run_status": "last_run_status_value",
+            "last_run_status_date_time": "last_run_status_date_time_value",
+            "last_run_status_error_code": "last_run_status_error_code_value",
+            "measures": "{\"assumed\":\"measures\"}",
+            "publish_schedule_end_date": "{\"assumed\":\"publish_schedule_end_date\"}",
+            "publish_schedule_interval": "publish_schedule_interval_value",
+            "publish_schedule_start_date_time": "{\"assumed\":\"publish_schedule_start_date_time\"}",
+            "_status": 200,
+            "_next": "assumed-token",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ci_update",
+      "call": "CALL cdp.ci_update (\n    api_name => 'Customer_Order_Summary__cio',\n    description => 'Total order amount per customer, refreshed twice a day.',\n    publish_schedule_interval => 'Twelve',\n    publish_schedule_start_date_time => '2027-01-01T06:00'\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Customer_Order_Summary__cio",
+          "description": "Total order amount per customer, refreshed twice a day.",
+          "publish_schedule_interval": "Twelve",
+          "publish_schedule_start_date_time": "2027-01-01T06:00"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "description": "Total order amount per customer, refreshed twice a day.",
+          "publishScheduleInterval": "Twelve",
+          "publishScheduleStartDateTime": "2027-01-01T06:00"
+        }
+      }
+    },
+    {
+      "function": "ci_create",
+      "call": "CALL cdp.ci_create (\n    api_name => 'Customer_Order_Summary__cio',\n    display_name => 'Customer Order Summary',\n    description => 'Total order amount per customer.',\n    definition_type => 'CALCULATED_METRIC',\n    dataspace_name => 'default',\n    publish_schedule_interval => 'Six',\n    publish_schedule_start_date_time => '2027-01-01T06:00',\n    expression => $$\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    $$\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Customer_Order_Summary__cio",
+          "display_name": "Customer Order Summary",
+          "description": "Total order amount per customer.",
+          "definition_type": "CALCULATED_METRIC",
+          "dataspace_name": "default",
+          "publish_schedule_interval": "Six",
+          "publish_schedule_start_date_time": "2027-01-01T06:00",
+          "expression": "\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    "
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "apiName": "Customer_Order_Summary__cio",
+          "displayName": "Customer Order Summary",
+          "description": "Total order amount per customer.",
+          "definitionType": "CALCULATED_METRIC",
+          "dataSpaceName": "default",
+          "publishScheduleInterval": "Six",
+          "publishScheduleStartDateTime": "2027-01-01T06:00",
+          "expression": "\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    "
+        }
+      }
+    },
+    {
+      "function": "ci_enable",
+      "call": "CALL cdp.ci_enable (ci_name => 'Customer_Order_Summary__cio')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_enable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "ci_name": "Customer_Order_Summary__cio"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio/actions/enable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "ci_disable",
+      "call": "CALL cdp.ci_disable (ci_name => 'Customer_Order_Summary__cio')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_disable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "ci_name": "Customer_Order_Summary__cio"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio/actions/disable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "ci_run_status",
+      "call": "CALL cdp.ci_run_status (ci_name => 'Customer_Order_Summary__cio')",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_run_status",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "ci_name": "Customer_Order_Summary__cio"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/Customer_Order_Summary__cio/actions/refresh-status",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "ci_validate",
+      "call": "CALL cdp.ci_validate (\n    definition_type => 'CALCULATED_METRIC',\n    dataspace_name => 'default',\n    expression => $$\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    $$\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "ci_validate",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "definition_type": "CALCULATED_METRIC",
+          "dataspace_name": "default",
+          "expression": "\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    "
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/calculated-insights/actions/validate",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "definitionType": "CALCULATED_METRIC",
+          "dataSpaceName": "default",
+          "expression": "\n        SELECT Order__dlm.CustomerId__c AS customer_id__c, SUM(Order__dlm.Total__c) AS total__c\n        FROM Order__dlm\n        GROUP BY Order__dlm.CustomerId__c\n    "
+        }
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

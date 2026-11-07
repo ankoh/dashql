@@ -1,0 +1,875 @@
+{
+  "cases": [
+    {
+      "function": "communication_capping_dimension_create",
+      "call": "CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', hierarchy_order => 1, dimension_values => [(value = 'Email')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_dimension_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Channel",
+          "dimension_name": "ssot__CommunicationChannel__dlm",
+          "hierarchy_order": 1,
+          "dimension_values": [
+            {
+              "value": "Email"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/dimensions",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "apiName": "Channel",
+          "dimensionName": "ssot__CommunicationChannel__dlm",
+          "hierarchyOrder": 1,
+          "dimensionValues": [
+            {
+              "value": "Email"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_configuration_create",
+      "call": "CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_configuration_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Marketing caps",
+          "data_comm_cap_dataspaces": [
+            {
+              "dataspace_id": "DATA_SPACE_ID"
+            }
+          ],
+          "data_comm_cap_related_dims": [
+            {
+              "api_name": "Channel",
+              "data_comm_cap_dim_id": "DIMENSION_ID"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Marketing caps",
+          "dataCommCapDataSpaces": [
+            {
+              "dataSpaceId": "DATA_SPACE_ID"
+            }
+          ],
+          "dataCommCapRelatedDims": [
+            {
+              "apiName": "Channel",
+              "dataCommCapDimId": "DIMENSION_ID"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_rule_create",
+      "call": "CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Email_daily', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_rule_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID",
+          "api_name": "Email_daily",
+          "limits": 10,
+          "start_date": "2027-05-01T00:00:00Z",
+          "end_date": "2027-05-31T00:00:00Z",
+          "data_comm_cap_rule_dim": [
+            {
+              "dim_id": "DIMENSION_ID",
+              "dim_value_ids": [
+                "DIMENSION_VALUE_ID"
+              ]
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/rules",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "apiName": "Email_daily",
+          "limits": 10,
+          "startDate": "2027-05-01T00:00:00Z",
+          "endDate": "2027-05-31T00:00:00Z",
+          "dataCommCapRuleDim": [
+            {
+              "dimId": "DIMENSION_ID",
+              "dimValueIds": [
+                "DIMENSION_VALUE_ID"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_activation_target_metadata_map",
+      "call": "CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_activation_target_metadata_map",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "TARGET_ID",
+          "activation_target_name": "Email_capped",
+          "data_comm_cap_dim_info": [
+            {
+              "data_comm_cap_dim_id": "DIMENSION_ID",
+              "data_comm_cap_dim_value_id": "DIMENSION_VALUE_ID"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/activation-target-capping-metadata/TARGET_ID",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "activationTargetName": "Email_capped",
+          "dataCommCapDimInfo": [
+            {
+              "dataCommCapDimId": "DIMENSION_ID",
+              "dataCommCapDimValueId": "DIMENSION_VALUE_ID"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_enable",
+      "call": "CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_enable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/actions/enable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "communication_capping_activation_target_metadata_delete",
+      "call": "CALL cdp.communication_capping_activation_target_metadata_delete (activation_target_id => 'TARGET_ID')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_activation_target_metadata_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "activation_target_id": "TARGET_ID"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/activation-target-capping-metadata/TARGET_ID",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "communication_capping_rule_delete",
+      "call": "CALL cdp.communication_capping_rule_delete (rule_id_or_name => 'Email_daily')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_rule_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "rule_id_or_name": "Email_daily"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/rules/Email_daily",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "communication_capping_configuration_get",
+      "call": "CALL cdp.communication_capping_configuration_get (id => 'CONFIGURATION_ID')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_configuration_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataspacesInfo": {
+            "assumed": "dataspaces_info"
+          },
+          "description": "description_value",
+          "dimensions": {
+            "assumed": "dimensions"
+          },
+          "id": "id_value",
+          "label": "label_value",
+          "name": "name_value",
+          "status": "status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "dataspaces_info": "{\"assumed\":\"dataspaces_info\"}",
+            "description": "description_value",
+            "dimensions": "{\"assumed\":\"dimensions\"}",
+            "id": "id_value",
+            "label": "label_value",
+            "name": "name_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "communication_capping_activation_target_list",
+      "call": "CALL cdp.communication_capping_activation_target_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'Name', order_by_direction => 'ASC')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_activation_target_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID",
+          "limit": 50,
+          "offset": 0,
+          "order_by_column": "Name",
+          "order_by_direction": "ASC"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/activation-targets",
+        "query": [
+          [
+            "limit",
+            "50"
+          ],
+          [
+            "offset",
+            "0"
+          ],
+          [
+            "orderByColumn",
+            "Name"
+          ],
+          [
+            "orderByDirection",
+            "ASC"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "activationTargets": [
+            {
+              "activationTargetId": "activation_target_id_value",
+              "actvTargetName": "actv_target_name_value",
+              "dataCommCapDim": {
+                "assumed": "data_comm_cap_dim"
+              },
+              "dataCommCapDimValue": {
+                "assumed": "data_comm_cap_dim_value"
+              },
+              "id": "id_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "activation_target_id": "activation_target_id_value",
+            "actv_target_name": "actv_target_name_value",
+            "data_comm_cap_dim": "{\"assumed\":\"data_comm_cap_dim\"}",
+            "data_comm_cap_dim_value": "{\"assumed\":\"data_comm_cap_dim_value\"}",
+            "id": "id_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "communication_capping_rule_list",
+      "call": "CALL cdp.communication_capping_rule_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'StartDate', order_by_direction => 'DESC')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_rule_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID",
+          "limit": 50,
+          "offset": 0,
+          "order_by_column": "StartDate",
+          "order_by_direction": "DESC"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/rules",
+        "query": [
+          [
+            "limit",
+            "50"
+          ],
+          [
+            "offset",
+            "0"
+          ],
+          [
+            "orderByColumn",
+            "StartDate"
+          ],
+          [
+            "orderByDirection",
+            "DESC"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "rules": [
+            {
+              "apiName": "api_name_value",
+              "dataCommCapRuleDim": {
+                "assumed": "data_comm_cap_rule_dim"
+              },
+              "dataCommunicationCapDefId": "data_communication_cap_def_id_value",
+              "endDate": "2026-01-02T03:04:05.000Z",
+              "id": "id_value",
+              "limits": 2,
+              "source": "source_value",
+              "startDate": "2026-01-02T03:04:05.000Z",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "data_comm_cap_rule_dim": "{\"assumed\":\"data_comm_cap_rule_dim\"}",
+            "data_communication_cap_def_id": "data_communication_cap_def_id_value",
+            "end_date": "2026-01-02T03:04:05.000Z",
+            "id": "id_value",
+            "limits": 2,
+            "source": "source_value",
+            "start_date": "2026-01-02T03:04:05.000Z",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "communication_capping_activation_target_metadata_get",
+      "call": "CALL cdp.communication_capping_activation_target_metadata_get (activation_target_id => 'TARGET_ID')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_activation_target_metadata_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "activation_target_id": "TARGET_ID"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/activation-target-capping-metadata/TARGET_ID",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "activationTargets": [
+            {
+              "activationTargetId": "activation_target_id_value",
+              "actvTargetName": "actv_target_name_value",
+              "dataCommCapDim": {
+                "assumed": "data_comm_cap_dim"
+              },
+              "dataCommCapDimValue": {
+                "assumed": "data_comm_cap_dim_value"
+              },
+              "id": "id_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "activation_target_id": "activation_target_id_value",
+            "actv_target_name": "actv_target_name_value",
+            "data_comm_cap_dim": "{\"assumed\":\"data_comm_cap_dim\"}",
+            "data_comm_cap_dim_value": "{\"assumed\":\"data_comm_cap_dim_value\"}",
+            "id": "id_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "communication_capping_dimension_list",
+      "call": "CALL cdp.communication_capping_dimension_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_dimension_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/dimensions",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dimensions": [
+            {
+              "apiName": "api_name_value",
+              "dimensionName": "dimension_name_value",
+              "dimensionValues": {
+                "assumed": "dimension_values"
+              },
+              "functionType": "function_type_value",
+              "hierarchyOrder": 2,
+              "id": "id_value",
+              "name": "name_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "api_name": "api_name_value",
+            "dimension_name": "dimension_name_value",
+            "dimension_values": "{\"assumed\":\"dimension_values\"}",
+            "function_type": "function_type_value",
+            "hierarchy_order": 2,
+            "id": "id_value",
+            "name": "name_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "communication_capping_configuration_update",
+      "call": "CALL cdp.communication_capping_configuration_update (id => 'CONFIGURATION_ID', description => 'Caps for all marketing sends')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_configuration_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID",
+          "description": "Caps for all marketing sends"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "description": "Caps for all marketing sends"
+        }
+      }
+    },
+    {
+      "function": "communication_capping_rule_update",
+      "call": "CALL cdp.communication_capping_rule_update (id => 'CONFIGURATION_ID', rule_id_or_name => 'Email_daily', limits => 5)",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_rule_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID",
+          "rule_id_or_name": "Email_daily",
+          "limits": 5
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/rules/Email_daily",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "limits": 5
+        }
+      }
+    },
+    {
+      "function": "communication_capping_dimension_update",
+      "call": "CALL cdp.communication_capping_dimension_update (dimension_id => '1CDxx0000000001GAA', dimension_values => [(value = 'WhatsApp')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_dimension_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "dimension_id": "1CDxx0000000001GAA",
+          "dimension_values": [
+            {
+              "value": "WhatsApp"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/dimensions/1CDxx0000000001GAA",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dimensionValues": [
+            {
+              "value": "WhatsApp"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_dimension_priority_update",
+      "call": "CALL cdp.communication_capping_dimension_priority_update (dimensions => [(id = '1CDxx0000000002GAA', hierarchy_order = 1), (id = '1CDxx0000000001GAA', hierarchy_order = 2)])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_dimension_priority_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "dimensions": [
+            {
+              "id": "1CDxx0000000002GAA",
+              "hierarchy_order": 1
+            },
+            {
+              "id": "1CDxx0000000001GAA",
+              "hierarchy_order": 2
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/dimensions/actions/swap-priority",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dimensions": [
+            {
+              "id": "1CDxx0000000002GAA",
+              "hierarchyOrder": 1
+            },
+            {
+              "id": "1CDxx0000000001GAA",
+              "hierarchyOrder": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_configuration_create",
+      "call": "CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', description => 'Caps for marketing sends', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_configuration_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Marketing caps",
+          "description": "Caps for marketing sends",
+          "data_comm_cap_dataspaces": [
+            {
+              "dataspace_id": "DATA_SPACE_ID"
+            }
+          ],
+          "data_comm_cap_related_dims": [
+            {
+              "api_name": "Channel",
+              "data_comm_cap_dim_id": "DIMENSION_ID"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Marketing caps",
+          "description": "Caps for marketing sends",
+          "dataCommCapDataSpaces": [
+            {
+              "dataSpaceId": "DATA_SPACE_ID"
+            }
+          ],
+          "dataCommCapRelatedDims": [
+            {
+              "apiName": "Channel",
+              "dataCommCapDimId": "DIMENSION_ID"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_disable",
+      "call": "CALL cdp.communication_capping_disable (id => 'CONFIGURATION_ID')",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_disable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/actions/disable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "communication_capping_rule_create",
+      "call": "CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Sms_daily_hnw', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_rule_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id": "CONFIGURATION_ID",
+          "api_name": "Sms_daily_hnw",
+          "limits": 10,
+          "start_date": "2027-05-01T00:00:00Z",
+          "end_date": "2027-05-31T00:00:00Z",
+          "data_comm_cap_rule_dim": [
+            {
+              "dim_id": "DIMENSION_ID",
+              "dim_value_ids": [
+                "DIMENSION_VALUE_ID"
+              ]
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/CONFIGURATION_ID/rules",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "apiName": "Sms_daily_hnw",
+          "limits": 10,
+          "startDate": "2027-05-01T00:00:00Z",
+          "endDate": "2027-05-31T00:00:00Z",
+          "dataCommCapRuleDim": [
+            {
+              "dimId": "DIMENSION_ID",
+              "dimValueIds": [
+                "DIMENSION_VALUE_ID"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "communication_capping_dimension_create",
+      "call": "CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', function_type => 'NON_FUNCTIONAL_TYPE', hierarchy_order => 1, dimension_values => [(value = 'Email'), (value = 'SMS')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "communication_capping_dimension_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "api_name": "Channel",
+          "dimension_name": "ssot__CommunicationChannel__dlm",
+          "function_type": "NON_FUNCTIONAL_TYPE",
+          "hierarchy_order": 1,
+          "dimension_values": [
+            {
+              "value": "Email"
+            },
+            {
+              "value": "SMS"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/communication-capping/dimensions",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "apiName": "Channel",
+          "dimensionName": "ssot__CommunicationChannel__dlm",
+          "functionType": "NON_FUNCTIONAL_TYPE",
+          "hierarchyOrder": 1,
+          "dimensionValues": [
+            {
+              "value": "Email"
+            },
+            {
+              "value": "SMS"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

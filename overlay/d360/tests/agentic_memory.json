@@ -1,0 +1,915 @@
+{
+  "cases": [
+    {
+      "function": "memory_conversation_create",
+      "call": "CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_conversation_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "conversation_owner_id": "003AB000000XYZ",
+          "owner_type": "individual"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conversationId": "conv-2025-001",
+          "conversationOwnerId": "003AB000000XYZ",
+          "ownerType": "individual"
+        }
+      }
+    },
+    {
+      "function": "memory_session_create",
+      "call": "CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner'), (id = 'ACE_Demo_Agent', type = 'agent', role = 'participant')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_session_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "session_id": "sess-9001",
+          "conversation_owner_id": "003AB000000XYZ",
+          "owner_type": "individual",
+          "participants": [
+            {
+              "id": "003AB000000XYZ",
+              "type": "individual",
+              "role": "owner"
+            },
+            {
+              "id": "ACE_Demo_Agent",
+              "type": "agent",
+              "role": "participant"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/sessions",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "sessionId": "sess-9001",
+          "conversationOwnerId": "003AB000000XYZ",
+          "ownerType": "individual",
+          "participants": [
+            {
+              "id": "003AB000000XYZ",
+              "type": "individual",
+              "role": "owner"
+            },
+            {
+              "id": "ACE_Demo_Agent",
+              "type": "agent",
+              "role": "participant"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_entry_add",
+      "call": "CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_entry_add",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "session_id": "sess-9001",
+          "entries": [
+            {
+              "participant_id": "003AB000000XYZ",
+              "category": "Message",
+              "type": "user_message",
+              "content": "How do I reset my password?"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/entries",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "sessionId": "sess-9001",
+          "entries": [
+            {
+              "participantId": "003AB000000XYZ",
+              "category": "Message",
+              "type": "user_message",
+              "content": "How do I reset my password?"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_session_close",
+      "call": "CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_session_close",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "session_id": "sess-9001"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/sessions/sess-9001/close",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent"
+        },
+        "body": null
+      }
+    },
+    {
+      "function": "memory_context_get",
+      "call": "CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_context_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "ctx_agent_id": "ACE_Demo_Agent",
+          "ctx_dataspace_ds_name": "default"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/agentic/context",
+        "query": [
+          [
+            "agent_id",
+            "ACE_Demo_Agent"
+          ],
+          [
+            "conversation_id",
+            "conv-2025-001"
+          ]
+        ],
+        "headers": {
+          "ctx_agent_id": "ACE_Demo_Agent",
+          "ctx_dataspace_ds_name": "default"
+        },
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "userContext": [
+            {
+              "entry": "entry_value",
+              "sourceType": "source_type_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "entry": "entry_value",
+            "source_type": "source_type_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "memory_conversation_create",
+      "call": "CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', name => 'Support, onboarding', channel => (type = 'chat', id = 'slack-C0123'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_conversation_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "conversation_owner_id": "003AB000000XYZ",
+          "owner_type": "individual",
+          "name": "Support, onboarding",
+          "channel": {
+            "type": "chat",
+            "id": "slack-C0123"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conversationId": "conv-2025-001",
+          "conversationOwnerId": "003AB000000XYZ",
+          "ownerType": "individual",
+          "name": "Support, onboarding",
+          "channel": {
+            "type": "chat",
+            "id": "slack-C0123"
+          }
+        }
+      }
+    },
+    {
+      "function": "memory_conversation_list",
+      "call": "CALL cdp.memory_conversation_list (agent_id => 'ACE_Demo_Agent', owner_id => '003AB000000XYZ', owner_type => 'individual')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_conversation_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "owner_id": "003AB000000XYZ",
+          "owner_type": "individual"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations",
+        "query": [
+          [
+            "owner_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "owner_type",
+            "individual"
+          ]
+        ],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent"
+        },
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "conversations": [
+            {
+              "id": "id_value",
+              "startTime": "2026-01-02T03:04:05.000Z",
+              "status": "status_value",
+              "name": "name_value",
+              "modifiedDate": "2026-01-02T03:04:05.000Z",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageToken": "assumed-token"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "start_time": "2026-01-02T03:04:05.000Z",
+            "status": "status_value",
+            "name": "name_value",
+            "modified_date": "2026-01-02T03:04:05.000Z",
+            "_status": 200,
+            "_next": "assumed-token",
+            "_meta": {
+              "nextPageToken": "assumed-token"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "memory_conversation_get",
+      "call": "CALL cdp.memory_conversation_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', scope => 'messages')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_conversation_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "owner_id": "003AB000000XYZ",
+          "scope": "messages"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001",
+        "query": [
+          [
+            "owner_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "scope",
+            "messages"
+          ]
+        ],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent"
+        },
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "conversationId": "conversation_id_value",
+          "name": "name_value",
+          "status": "status_value",
+          "startTime": "2026-01-02T03:04:05.000Z",
+          "endTime": "2026-01-02T03:04:05.000Z",
+          "conversationOwnerId": "conversation_owner_id_value",
+          "sessions": {
+            "assumed": "sessions"
+          },
+          "metadata": {
+            "assumed": "metadata"
+          },
+          "assumedUnlistedField": true,
+          "nextPageToken": "assumed-token"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "conversation_id": "conversation_id_value",
+            "name": "name_value",
+            "status": "status_value",
+            "start_time": "2026-01-02T03:04:05.000Z",
+            "end_time": "2026-01-02T03:04:05.000Z",
+            "conversation_owner_id": "conversation_owner_id_value",
+            "sessions": "{\"assumed\":\"sessions\"}",
+            "metadata": "{\"assumed\":\"metadata\"}",
+            "_status": 200,
+            "_next": "assumed-token",
+            "_meta": null,
+            "_raw": {
+              "nextPageToken": "assumed-token",
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "memory_conversation_close",
+      "call": "CALL cdp.memory_conversation_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_conversation_close",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/close",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent"
+        },
+        "body": null
+      }
+    },
+    {
+      "function": "memory_entry_add",
+      "call": "CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?'), (participant_id = 'ACE_Demo_Agent', category = 'Trace', type = 'tool_call', variable = (tool = 'kb_search', query = 'password reset'))])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_entry_add",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "session_id": "sess-9001",
+          "entries": [
+            {
+              "participant_id": "003AB000000XYZ",
+              "category": "Message",
+              "type": "user_message",
+              "content": "How do I reset my password?"
+            },
+            {
+              "participant_id": "ACE_Demo_Agent",
+              "category": "Trace",
+              "type": "tool_call",
+              "variable": {
+                "tool": "kb_search",
+                "query": "password reset"
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/entries",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "sessionId": "sess-9001",
+          "entries": [
+            {
+              "participantId": "003AB000000XYZ",
+              "category": "Message",
+              "type": "user_message",
+              "content": "How do I reset my password?"
+            },
+            {
+              "participantId": "ACE_Demo_Agent",
+              "category": "Trace",
+              "type": "tool_call",
+              "variable": {
+                "tool": "kb_search",
+                "query": "password reset"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_session_create",
+      "call": "CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner', start_time = '2026-01-01T00:00:00Z')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_session_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "session_id": "sess-9001",
+          "conversation_owner_id": "003AB000000XYZ",
+          "owner_type": "individual",
+          "participants": [
+            {
+              "id": "003AB000000XYZ",
+              "type": "individual",
+              "role": "owner",
+              "start_time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/sessions",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "sessionId": "sess-9001",
+          "conversationOwnerId": "003AB000000XYZ",
+          "ownerType": "individual",
+          "participants": [
+            {
+              "id": "003AB000000XYZ",
+              "type": "individual",
+              "role": "owner",
+              "startTime": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_session_list",
+      "call": "CALL cdp.memory_session_list (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_session_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "owner_id": "003AB000000XYZ",
+          "owner_type": "individual"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/sessions",
+        "query": [
+          [
+            "owner_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "owner_type",
+            "individual"
+          ]
+        ],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent"
+        },
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "sessions": [
+            {
+              "id": "id_value",
+              "startTime": "2026-01-02T03:04:05.000Z",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageToken": "assumed-token"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "start_time": "2026-01-02T03:04:05.000Z",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "assumed-token",
+            "_meta": {
+              "nextPageToken": "assumed-token"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "memory_participant_add",
+      "call": "CALL cdp.memory_participant_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', participants => [(id = 'Billing_Agent', type = 'agent', role = 'participant')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_participant_add",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "session_id": "sess-9001",
+          "participants": [
+            {
+              "id": "Billing_Agent",
+              "type": "agent",
+              "role": "participant"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/conversations/conv-2025-001/sessions/sess-9001/participants",
+        "query": [],
+        "headers": {
+          "agent_id": "ACE_Demo_Agent",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "participants": [
+            {
+              "id": "Billing_Agent",
+              "type": "agent",
+              "role": "participant"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_create",
+      "call": "CALL cdp.memory_create (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(content = 'Prefers EST scheduling')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "profile_id": "003AB000000XYZ",
+          "profile_type": "individual",
+          "category": "sys_PROFILE_PREFERENCES",
+          "memories": [
+            {
+              "content": "Prefers EST scheduling"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/memory",
+        "query": [
+          [
+            "profile_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "profile_type",
+            "individual"
+          ],
+          [
+            "category",
+            "sys_PROFILE_PREFERENCES"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "memories": [
+            {
+              "content": "Prefers EST scheduling"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_list",
+      "call": "CALL cdp.memory_list (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_FACT')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "profile_id": "003AB000000XYZ",
+          "profile_type": "individual",
+          "category": "sys_PROFILE_FACT"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/agentic/memory",
+        "query": [
+          [
+            "profile_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "profile_type",
+            "individual"
+          ],
+          [
+            "category",
+            "sys_PROFILE_FACT"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "memories": [
+            {
+              "memoryId": "memory_id_value",
+              "content": "content_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "memory_id": "memory_id_value",
+            "content": "content_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "memory_update",
+      "call": "CALL cdp.memory_update (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123', content = 'Prefers PST scheduling')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "profile_id": "003AB000000XYZ",
+          "profile_type": "individual",
+          "category": "sys_PROFILE_PREFERENCES",
+          "memories": [
+            {
+              "memory_id": "mem_abc123",
+              "content": "Prefers PST scheduling"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "tenant",
+        "path": "/api/v1/agentic/memory",
+        "query": [
+          [
+            "profile_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "profile_type",
+            "individual"
+          ],
+          [
+            "category",
+            "sys_PROFILE_PREFERENCES"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "memories": [
+            {
+              "memoryId": "mem_abc123",
+              "content": "Prefers PST scheduling"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_delete",
+      "call": "CALL cdp.memory_delete (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "profile_id": "003AB000000XYZ",
+          "profile_type": "individual",
+          "category": "sys_PROFILE_PREFERENCES",
+          "memories": [
+            {
+              "memory_id": "mem_abc123"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "tenant",
+        "path": "/api/v1/agentic/memory",
+        "query": [
+          [
+            "profile_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "profile_type",
+            "individual"
+          ],
+          [
+            "category",
+            "sys_PROFILE_PREFERENCES"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "memories": [
+            {
+              "memoryId": "mem_abc123"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "memory_context_get",
+      "call": "CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default')",
+      "description": {
+        "namespace": "cdp",
+        "function": "memory_context_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "agent_id": "ACE_Demo_Agent",
+          "conversation_id": "conv-2025-001",
+          "owner_id": "003AB000000XYZ",
+          "owner_type": "individual",
+          "ctx_agent_id": "ACE_Demo_Agent",
+          "ctx_dataspace_ds_name": "default"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "tenant",
+        "path": "/api/v1/agentic/context",
+        "query": [
+          [
+            "agent_id",
+            "ACE_Demo_Agent"
+          ],
+          [
+            "conversation_id",
+            "conv-2025-001"
+          ],
+          [
+            "owner_id",
+            "003AB000000XYZ"
+          ],
+          [
+            "owner_type",
+            "individual"
+          ]
+        ],
+        "headers": {
+          "ctx_agent_id": "ACE_Demo_Agent",
+          "ctx_dataspace_ds_name": "default"
+        },
+        "body": null
+      }
+    }
+  ]
+}

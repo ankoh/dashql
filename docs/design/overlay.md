@@ -1,6 +1,6 @@
 # Overlays
 
-Status: proposed, with the core implemented (see [The core](#the-core)). The runtime, the connector bindings and the specs don't exist yet, so an overlay call can't run, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](overlay/cdp/overview.md#generating-the-spec) implemented. The connector bindings don't exist yet, so an overlay call can't run in the app, and nothing has run against a real service.
 
 An **overlay** lets a DashQL script reach a remote REST service. `CALL <name>(<option> => <value>, ...)` is a generic statement, and an overlay lies on top of a connection and shadows one namespace: a call in that namespace runs as an HTTP request and never reaches the connection's SQL backend. **Any other `CALL` goes to the backend as written.**
 
@@ -124,7 +124,15 @@ A separate Wasm module doesn't solve this. The script, cursor, analyzer and cata
 
 ## The spec
 
-One JSON document per namespace, maintained as `overlay/apis/<namespace>/spec.json` with its `annotations.yaml`. The folder doesn't exist yet. This is the whole shape, with one function:
+One JSON document per namespace, in a folder named for the API, which needn't equal the namespace. `overlay/d360/` holds the `cdp` overlay:
+
+| Folder | Holds |
+|---|---|
+| `api/` | `spec.json` |
+| `tests/` | A fixture per family: calls, the requests they should send, and responses with the tables they should give |
+| `snippets/` | Workflows for the snippet browser, whose steps build on each other |
+
+This is the whole shape of a spec, with one function:
 
 ```json
 {
@@ -213,13 +221,17 @@ One JSON document per namespace, maintained as `overlay/apis/<namespace>/spec.js
 | `required` | Missing it is an error |
 | `style` | Query options holding arrays or objects: `repeat` (`a=1&a=2`, the default), `csv` (`a=1,2`) or `deep` (`created[gte]=1`) |
 | `multi_segment` | Path options whose value may contain `/`, see [Security](#security) |
-| `description` | Shown by completion |
+| `description` | For completion, which doesn't show it yet |
+
+**Names are mapped explicitly, not converted by a rule.** A script writes `name`, and the request carries `wire`, the API's exact spelling. A rule couldn't do this: APIs mix `primaryDMO`, `orderBy`, `orderby` and `dataSpace`, and some of those spellings differ per endpoint. A generator can derive `name` from `wire`, but the spec records both. A missing `wire` means the two are the same, and a name the spec doesn't list is sent as written, so `new_field` is not turned into `newField`.
+
+There are three places to see the actual names: the reference of a spec, such as the **API name** column and the verb and path of every function in [the Data 360 reference](overlay/cdp/functions.md), the spec itself, and `EXPLAIN CALL`, which prints the request with its wire names. Completion shows the script's names only, on purpose.
 
 **A schema** has `attributes`, plus `unknown` with the same values as on a function. An attribute with a `schema` accepts one object or an array of them, because real APIs and their own examples often disagree on which is right.
 
 **`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body:root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
 
-**Generating a spec.** The usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
+**Generating a spec.** A spec can be written by hand or generated, and [Data 360](overlay/cdp/overview.md#generating-the-spec) generates its spec from its reference documents. For another service, the usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
 - OpenAPI is an input and not the format. None of the Snowflake, GitHub or Stripe documents describe paging in a machine-readable way, and real contracts are often narrower than the payloads they describe.
 - The annotations use the [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) format, a standard list of updates applied in order. Despite the name, that format is unrelated to the overlays here.
 - A generator keeps schemas named. Stripe has 124 recursive references, so unfolding them doesn't terminate in practice.
@@ -459,7 +471,7 @@ Some services answer before they finish. Snowflake declares `202` on 400 of its 
 
 A status with no `pending` rule is an ordinary success. Data 360's `202`s on deletes are this case.
 
-**The `_poll` column and option.** A function with `pending` has a `VARCHAR` column `_poll` and accepts `_poll => <value>`. It can't share `_next`, because a poll URL and a page token couldn't be told apart. A pending result is one row with only the standard columns, `_status = 202` and `_poll` set, and the UI shows it as not finished. Using `_poll` returns the function's normal result, or another pending one.
+**The `_poll` column and option.** A function with `pending` has a `VARCHAR` column `_poll` and accepts `_poll => <value>`. It can't share `_next`, because a poll URL and a page token couldn't be told apart. A pending result is one row with only the standard columns, `_status = 202` and `_poll` set, which is the literal `same` for the poll rule `same`, and the UI shows it as not finished. Using `_poll` returns the function's normal result, or another pending one.
 
 **The `_wait` option.** `_wait => 60` polls for up to that many seconds, honoring `Retry-After`. It defaults to 0.
 - If the time runs out, the result is the pending row. That isn't an error, since the call is still running.
@@ -576,16 +588,32 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 **Still missing in core:** result columns for script references, which the runtime phase needs, since a result only exists once a call can run.
 
+## The runtime
+
+`packages/dashql-app/src/connections/overlay/` holds the generic client. It knows no service.
+
+| File | What it does |
+|---|---|
+| `overlay_spec.ts` | The types of the document and of the core's description |
+| `overlay_request.ts` | Builds a request from a description: wire names, path encoding, query styles, body formats, followed URLs and the origin check |
+| `overlay_runtime.ts` | `runOverlayCall` sends it through an `HttpClient`, with paging, polling and errors, and returns the result table. `explainOverlayCall` returns the request and sends nothing |
+| `overlay_result_stream.ts` | The result as a `QueryExecutionResponseStream`, like every other query result |
+
+**It only reads so far.** A call with `effect: write`, or a raw call with a method other than `GET`, fails before anything is sent. `EXPLAIN` works for every call, since it sends nothing.
+
+**Nothing calls it yet.** The planner still rejects overlay calls, until connector bindings exist. The tests use a mock `HttpClient`, so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `overlay_fixtures.test.ts` runs it on the real Data 360 spec.
+
 ## What was checked
 
 - **Grammar:** no conflicts, and precedence resolutions stay at 1,814, the same as without `CALL`. It adds 50 states and one token.
 - **Ordinary SQL:** every existing parser, formatter, analyzer, completion and planner snapshot is unchanged byte for byte.
-- **Examples:** an LR driver on Bison's tables, with a Python model of the scanner, parsed every `CALL` statement in this document and [the Data 360 documents](overlay/cdp/functions.md). One block with a `(...)` placeholder was skipped.
+- **Examples:** every `CALL` in [the Data 360 reference](overlay/cdp/functions.md) parses on the real parser and passes the real checks against the generated spec, and completion offers exactly what the reference lists, see [its tests](overlay/cdp/overview.md#generating-the-spec).
 - **The format:** [the survey](overlay/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
 
 **What this doesn't show:**
-- The Data 360 examples ran through the Python scanner model, not the Rust scanner, and not against the real checks, since no Data 360 spec exists yet. The first design's prototype showed its expected sets exactly matched the options of all 538 Data 360 functions and the attributes of all 270 object options. The same properties should become tests once the spec exists.
-- A spec's load time and size aren't measured.
+- Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](overlay/cdp/overview.md#the-fixtures).
+- The runtime only runs reads. Writes are only checked up to their requests.
+- A spec's load time isn't measured.
 - Nothing ran against a service.
 
 ## Roadmap
@@ -593,8 +621,8 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 Each phase lands separately.
 
 1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
-2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`.
-3. **Generator:** OpenAPI plus annotations to a spec in `overlay/apis/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
+2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
+3. **Generators:** the [Data 360 spec](overlay/cdp/overview.md#generating-the-spec), from its reference, which is done. Then OpenAPI plus annotations to a spec in `overlay/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](overlay/cdp/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
 5. **Writes:** mutating calls, the secret store, run gating and agent policy. To be designed; `effect` and `billed` are its input.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
@@ -604,7 +632,7 @@ Each phase lands separately.
 1. **Format stability.** `format` allows changes, but anything published has to keep working. This is why publishing comes last.
 2. **Specs from elsewhere.** This document covers bundled specs. Loading others needs a trust decision, even with the security rules above.
 3. **Variants.** Unions accept any variant's attributes. A `variants` field keyed by a discriminator could narrow completion and checks, but only Snowflake's 25 schemas would use it so far, and Stripe's `anyOf`s aren't discriminated.
-4. **Spec size.** Stripe's OpenAPI document is 8 MB, with 18,407 attributes, and GitHub's is 14 MB. A spec has less in it, and it loads lazily, but its size hasn't been measured.
+4. **Spec size.** The Data 360 spec is 910 KB, or 60 KB gzipped, for 535 functions and it loads lazily. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,143 here.
 5. **`_next` on an empty page.** The one-row rule covers it, at the cost of `count(*)`. If that turns out to be wrong in practice, the alternative is carrying the value in result metadata, outside the table.
 6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a session attachment.
 7. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.

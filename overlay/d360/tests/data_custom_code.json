@@ -1,0 +1,495 @@
+{
+  "cases": [
+    {
+      "function": "custom_code_deployment_create",
+      "call": "CALL cdp.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS')",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_deployment_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "account_rollup",
+          "label": "Account rollup",
+          "code_type": "Script",
+          "compute_type": "CPU_XS"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "account_rollup",
+          "label": "Account rollup",
+          "codeType": "Script",
+          "computeType": "CPU_XS"
+        }
+      }
+    },
+    {
+      "function": "custom_code_deployment_get",
+      "call": "CALL cdp.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup')",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_deployment_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "custom_code_name_or_id": "account_rollup"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code/account_rollup",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "codeType": "code_type_value",
+          "computeType": "compute_type_value",
+          "deploymentFailureCode": 2,
+          "deploymentFailureReason": "deployment_failure_reason_value",
+          "deploymentStatus": "deployment_status_value",
+          "description": "description_value",
+          "fileUploadUrl": "file_upload_url_value",
+          "isRemote": true,
+          "ownedBy": "owned_by_value",
+          "status": "status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "code_type": "code_type_value",
+            "compute_type": "compute_type_value",
+            "deployment_failure_code": 2,
+            "deployment_failure_reason": "deployment_failure_reason_value",
+            "deployment_status": "deployment_status_value",
+            "description": "description_value",
+            "file_upload_url": "file_upload_url_value",
+            "is_remote": true,
+            "owned_by": "owned_by_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "transform_create",
+      "call": "CALL cdp.transform_create (name => 'account_rollup', label => 'account_rollup', type => 'BATCH', dataspace_name => 'default', definition => $$\n  {\"type\": \"DCSQL\", \"version\": \"56.0\", \"manifest\": {\n    \"nodes\": {\"node1\": {\"relation_name\": \"Account_std_copy__dll\", \"config\": {\"materialized\": \"table\"}, \"compiled_code\": \"\"}},\n    \"sources\": {\"source1\": {\"relation_name\": \"Account_std__dll\"}},\n    \"macros\": {\"macro.byoc\": {\"arguments\": [{\"name\": \"account_rollup\", \"type\": \"BYOC_SCRIPT\"}]}}\n  }}\n$$)",
+      "description": {
+        "namespace": "cdp",
+        "function": "transform_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "account_rollup",
+          "label": "account_rollup",
+          "type": "BATCH",
+          "dataspace_name": "default",
+          "definition": "\n  {\"type\": \"DCSQL\", \"version\": \"56.0\", \"manifest\": {\n    \"nodes\": {\"node1\": {\"relation_name\": \"Account_std_copy__dll\", \"config\": {\"materialized\": \"table\"}, \"compiled_code\": \"\"}},\n    \"sources\": {\"source1\": {\"relation_name\": \"Account_std__dll\"}},\n    \"macros\": {\"macro.byoc\": {\"arguments\": [{\"name\": \"account_rollup\", \"type\": \"BYOC_SCRIPT\"}]}}\n  }}\n"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-transforms",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "account_rollup",
+          "label": "account_rollup",
+          "type": "BATCH",
+          "dataSpaceName": "default",
+          "definition": "\n  {\"type\": \"DCSQL\", \"version\": \"56.0\", \"manifest\": {\n    \"nodes\": {\"node1\": {\"relation_name\": \"Account_std_copy__dll\", \"config\": {\"materialized\": \"table\"}, \"compiled_code\": \"\"}},\n    \"sources\": {\"source1\": {\"relation_name\": \"Account_std__dll\"}},\n    \"macros\": {\"macro.byoc\": {\"arguments\": [{\"name\": \"account_rollup\", \"type\": \"BYOC_SCRIPT\"}]}}\n  }}\n"
+        }
+      }
+    },
+    {
+      "function": "transform_run",
+      "call": "CALL cdp.transform_run (data_transform_name_or_id => 'account_rollup')",
+      "description": {
+        "namespace": "cdp",
+        "function": "transform_run",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_transform_name_or_id": "account_rollup"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-transforms/account_rollup/actions/run",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "custom_code_execution_list",
+      "call": "CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10)",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_execution_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "custom_code_name_or_id": "account_rollup",
+          "limit": 10
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code/account_rollup/executions",
+        "query": [
+          [
+            "limit",
+            "10"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "executions": [
+            {
+              "computeType": "compute_type_value",
+              "durationInSeconds": 2,
+              "endTime": "2026-01-02T03:04:05.000Z",
+              "errorCode": 2,
+              "errorMessage": "error_message_value",
+              "id": "id_value",
+              "rowsRead": 0.5,
+              "rowsWritten": 0.5,
+              "startTime": "2026-01-02T03:04:05.000Z",
+              "status": "status_value",
+              "submittedTime": "2026-01-02T03:04:05.000Z",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "compute_type": "compute_type_value",
+            "duration_in_seconds": 2,
+            "end_time": "2026-01-02T03:04:05.000Z",
+            "error_code": 2,
+            "error_message": "error_message_value",
+            "id": "id_value",
+            "rows_read": 0.5,
+            "rows_written": 0.5,
+            "start_time": "2026-01-02T03:04:05.000Z",
+            "status": "status_value",
+            "submitted_time": "2026-01-02T03:04:05.000Z",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "custom_code_deployment_delete",
+      "call": "CALL cdp.custom_code_deployment_delete (custom_code_name_or_id => 'account_rollup')",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_deployment_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "custom_code_name_or_id": "account_rollup"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code/account_rollup",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "custom_code_deployment_list",
+      "call": "CALL cdp.custom_code_deployment_list (code_type => 'Script', deployment_status => 'Error', order_by => 'DeployedOnDesc', limit => 50)",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_deployment_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "code_type": "Script",
+          "deployment_status": "Error",
+          "order_by": "DeployedOnDesc",
+          "limit": 50
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code",
+        "query": [
+          [
+            "codeType",
+            "Script"
+          ],
+          [
+            "deploymentStatus",
+            "Error"
+          ],
+          [
+            "orderBy",
+            "DeployedOnDesc"
+          ],
+          [
+            "limit",
+            "50"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "customCodeDeployments": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "codeType": "code_type_value",
+              "computeType": "compute_type_value",
+              "deploymentFailureCode": 2,
+              "deploymentFailureReason": "deployment_failure_reason_value",
+              "deploymentStatus": "deployment_status_value",
+              "description": "description_value",
+              "fileUploadUrl": "file_upload_url_value",
+              "isRemote": true,
+              "ownedBy": "owned_by_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "code_type": "code_type_value",
+            "compute_type": "compute_type_value",
+            "deployment_failure_code": 2,
+            "deployment_failure_reason": "deployment_failure_reason_value",
+            "deployment_status": "deployment_status_value",
+            "description": "description_value",
+            "file_upload_url": "file_upload_url_value",
+            "is_remote": true,
+            "owned_by": "owned_by_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "custom_code_execution_list",
+      "call": "CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 20)",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_execution_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "custom_code_name_or_id": "account_rollup",
+          "limit": 20
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code/account_rollup/executions",
+        "query": [
+          [
+            "limit",
+            "20"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "custom_code_execution_get",
+      "call": "CALL cdp.custom_code_execution_get (custom_code_name_or_id => 'account_rollup', custom_code_execution_id => :execution_id)",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_execution_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "custom_code_name_or_id": "account_rollup",
+          "custom_code_execution_id": null
+        },
+        "bindings": [
+          {
+            "pointer": "/custom_code_execution_id",
+            "param": "execution_id"
+          }
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code/account_rollup/executions/%3Aexecution_id",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "custom_code_deployment_update",
+      "call": "CALL cdp.custom_code_deployment_update (custom_code_name_or_id => 'account_rollup', compute_type => 'Cpu_s', description => 'Nightly account rollup')",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_deployment_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "custom_code_name_or_id": "account_rollup",
+          "compute_type": "Cpu_s",
+          "description": "Nightly account rollup"
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code/account_rollup",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "computeType": "Cpu_s",
+          "description": "Nightly account rollup"
+        }
+      }
+    },
+    {
+      "function": "custom_code_deployment_create",
+      "call": "CALL cdp.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS', description => 'Rolls accounts up by region')",
+      "description": {
+        "namespace": "cdp",
+        "function": "custom_code_deployment_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "account_rollup",
+          "label": "Account rollup",
+          "code_type": "Script",
+          "compute_type": "CPU_XS",
+          "description": "Rolls accounts up by region"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-custom-code",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "account_rollup",
+          "label": "Account rollup",
+          "codeType": "Script",
+          "computeType": "CPU_XS",
+          "description": "Rolls accounts up by region"
+        }
+      }
+    }
+  ]
+}

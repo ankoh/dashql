@@ -1,0 +1,728 @@
+{
+  "cases": [
+    {
+      "function": "datakit_create",
+      "call": "CALL cdp.datakit_create (data_kit_dev_name => 'Customer_Kit', label => 'Customer Kit', data_kit_type => 'None', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer'))])",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit",
+          "label": "Customer Kit",
+          "data_kit_type": "None",
+          "components": [
+            {
+              "type": "DataLakeObject",
+              "info": {
+                "name": "Customer__dll",
+                "label": "Customer"
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataKitDevName": "Customer_Kit",
+          "label": "Customer Kit",
+          "dataKitType": "None",
+          "components": [
+            {
+              "type": "DataLakeObject",
+              "info": {
+                "name": "Customer__dll",
+                "label": "Customer"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "datakit_deploy",
+      "call": "CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, components => [])",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_deploy",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit",
+          "async_mode": true,
+          "components": []
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit",
+        "query": [
+          [
+            "asyncMode",
+            "true"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "components": []
+        }
+      }
+    },
+    {
+      "function": "datakit_deploy_status",
+      "call": "CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_deploy_status",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "job_id": "08Paj00000tPyr4"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/deployment-jobs/08Paj00000tPyr4",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "jobId": "job_id_value",
+          "jobStatus": "job_status_value",
+          "jobResults": {
+            "assumed": "job_results"
+          },
+          "errors": {
+            "assumed": "errors"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "job_id": "job_id_value",
+            "job_status": "job_status_value",
+            "job_results": "{\"assumed\":\"job_results\"}",
+            "errors": "{\"assumed\":\"errors\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datakit_delete",
+      "call": "CALL cdp.datakit_delete (data_kit_dev_name => 'Customer_Kit')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "datakit_list",
+      "call": "CALL cdp.datakit_list (namespace => 'acme')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "namespace": "acme"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits",
+        "query": [
+          [
+            "namespace",
+            "acme"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataKitDetails": [
+            {
+              "components": {
+                "assumed": "components"
+              },
+              "developerName": "developer_name_value",
+              "label": "label_value",
+              "publishingSequence": {
+                "assumed": "publishing_sequence"
+              },
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "components": "{\"assumed\":\"components\"}",
+            "developer_name": "developer_name_value",
+            "label": "label_value",
+            "publishing_sequence": "{\"assumed\":\"publishing_sequence\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datakit_component_deps",
+      "call": "CALL cdp.datakit_component_deps (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll', component_type => 'DataLakeObject')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_component_deps",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_kit_name": "Customer_Kit",
+          "component_name": "Customer__dll",
+          "component_type": "DataLakeObject"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit/components/Customer__dll/dependencies",
+        "query": [
+          [
+            "componentType",
+            "DataLakeObject"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "componentDependencies": [
+            {
+              "id": "id_value",
+              "name": "name_value",
+              "type": "type_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "name": "name_value",
+            "type": "type_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datakit_component_status",
+      "call": "CALL cdp.datakit_component_status (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_component_status",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_kit_name": "Customer_Kit",
+          "component_name": "Customer__dll"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit/components/Customer__dll/deployment-status",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "componentDetails": {
+            "assumed": "component_details"
+          },
+          "status": {
+            "assumed": "status"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "component_details": "{\"assumed\":\"component_details\"}",
+            "status": "{\"assumed\":\"status\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datakit_components",
+      "call": "CALL cdp.datakit_components (component_type => 'DataLakeObject', limit => 50)",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_components",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "component_type": "DataLakeObject",
+          "limit": 50
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/available-components",
+        "query": [
+          [
+            "componentType",
+            "DataLakeObject"
+          ],
+          [
+            "limit",
+            "50"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "components": {
+            "assumed": "components"
+          },
+          "externalRecordIdentifier": "external_record_identifier_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "components": "{\"assumed\":\"components\"}",
+            "external_record_identifier": "external_record_identifier_value",
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datakit_manifest",
+      "call": "CALL cdp.datakit_manifest (data_kit_dev_name => 'Customer_Kit')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_manifest",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/datakit/Customer_Kit/manifest",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataKitMembers": [
+            {
+              "developerName": {
+                "assumed": "developer_name"
+              },
+              "entityName": "entity_name_value",
+              "id": {
+                "assumed": "id"
+              },
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "developer_name": "{\"assumed\":\"developer_name\"}",
+            "entity_name": "entity_name_value",
+            "id": "{\"assumed\":\"id\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datakit_components_update",
+      "call": "CALL cdp.datakit_components_update (data_kit_dev_name => 'Customer_Kit', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')), (type = 'DataLakeObject', info = (name = 'Order__dll', label = 'Order'))])",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_components_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit",
+          "components": [
+            {
+              "type": "DataLakeObject",
+              "info": {
+                "name": "Customer__dll",
+                "label": "Customer"
+              }
+            },
+            {
+              "type": "DataLakeObject",
+              "info": {
+                "name": "Order__dll",
+                "label": "Order"
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "components": [
+            {
+              "type": "DataLakeObject",
+              "info": {
+                "name": "Customer__dll",
+                "label": "Customer"
+              }
+            },
+            {
+              "type": "DataLakeObject",
+              "info": {
+                "name": "Order__dll",
+                "label": "Order"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "datakit_create",
+      "call": "CALL cdp.datakit_create (data_kit_dev_name => 'NewDataKit', label => 'New Data Kit From API', data_kit_type => 'None', components => [(type = 'DataStreamBundle', info = (name = 'CRMBundle', connector_type = 'CRM', streams = [(dev_name = 'Lead_Home__dll', label = 'Lead_Home'), (dev_name = 'User_Home__dll', label = 'User_Home')]))])",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "NewDataKit",
+          "label": "New Data Kit From API",
+          "data_kit_type": "None",
+          "components": [
+            {
+              "type": "DataStreamBundle",
+              "info": {
+                "name": "CRMBundle",
+                "connector_type": "CRM",
+                "streams": [
+                  {
+                    "dev_name": "Lead_Home__dll",
+                    "label": "Lead_Home"
+                  },
+                  {
+                    "dev_name": "User_Home__dll",
+                    "label": "User_Home"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataKitDevName": "NewDataKit",
+          "label": "New Data Kit From API",
+          "dataKitType": "None",
+          "components": [
+            {
+              "type": "DataStreamBundle",
+              "info": {
+                "name": "CRMBundle",
+                "connectorType": "CRM",
+                "streams": [
+                  {
+                    "devName": "Lead_Home__dll",
+                    "label": "Lead_Home"
+                  },
+                  {
+                    "devName": "User_Home__dll",
+                    "label": "User_Home"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "datakit_deploy",
+      "call": "CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, dataspace => 'default', components => [(type = 'DataLakeObject', config = (data_source_object_dev_name = 'Namespace__Customer', api_name = 'Customer', label = 'Customer', dataspace_name = 'default')), (type = 'CalculatedInsight', config = (api_name = 'Namespace__Revenue', api_name_override = 'Revenue', label = 'Revenue', publish_interval = 'NotScheduled'))])",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_deploy",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit",
+          "async_mode": true,
+          "dataspace": "default",
+          "components": [
+            {
+              "type": "DataLakeObject",
+              "config": {
+                "data_source_object_dev_name": "Namespace__Customer",
+                "api_name": "Customer",
+                "label": "Customer",
+                "dataspace_name": "default"
+              }
+            },
+            {
+              "type": "CalculatedInsight",
+              "config": {
+                "api_name": "Namespace__Revenue",
+                "api_name_override": "Revenue",
+                "label": "Revenue",
+                "publish_interval": "NotScheduled"
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit",
+        "query": [
+          [
+            "asyncMode",
+            "true"
+          ],
+          [
+            "dataspace",
+            "default"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "components": [
+            {
+              "type": "DataLakeObject",
+              "config": {
+                "dataSourceObjectDevName": "Namespace__Customer",
+                "apiName": "Customer",
+                "label": "Customer",
+                "dataSpaceName": "default"
+              }
+            },
+            {
+              "type": "CalculatedInsight",
+              "config": {
+                "apiName": "Namespace__Revenue",
+                "apiNameOverride": "Revenue",
+                "label": "Revenue",
+                "publishInterval": "NotScheduled"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "datakit_undeploy",
+      "call": "CALL cdp.datakit_undeploy (data_kit_name => 'Customer_Kit', async_mode => true, components => [(type = 'DataTransform', name = 'Customer_Transform'), (type = 'DataLakeObject', name = 'Customer__dll')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_undeploy",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_kit_name": "Customer_Kit",
+          "async_mode": true,
+          "components": [
+            {
+              "type": "DataTransform",
+              "name": "Customer_Transform"
+            },
+            {
+              "type": "DataLakeObject",
+              "name": "Customer__dll"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit/undeploy",
+        "query": [
+          [
+            "asyncMode",
+            "true"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "components": [
+            {
+              "type": "DataTransform",
+              "name": "Customer_Transform"
+            },
+            {
+              "type": "DataLakeObject",
+              "name": "Customer__dll"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "datakit_get",
+      "call": "CALL cdp.datakit_get (data_kit_dev_name => 'Customer_Kit')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datakit_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_kit_dev_name": "Customer_Kit"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-kits/Customer_Kit",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

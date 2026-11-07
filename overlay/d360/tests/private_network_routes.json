@@ -1,0 +1,382 @@
+{
+  "cases": [
+    {
+      "function": "private_network_route_create",
+      "call": "CALL cdp.private_network_route_create (\n  name => 'Snowflake_Prod',\n  label => 'Snowflake Prod',\n  description => 'PrivateLink route to the prod Snowflake account',\n  route => (type = 'Snowflake', service_name = 'com.amazonaws.vpce.us-west-2.vpce-svc-0123456789abcdef0', account_url = 'https://my-account.snowflakecomputing.com')\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "private_network_route_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Snowflake_Prod",
+          "label": "Snowflake Prod",
+          "description": "PrivateLink route to the prod Snowflake account",
+          "route": {
+            "type": "Snowflake",
+            "service_name": "com.amazonaws.vpce.us-west-2.vpce-svc-0123456789abcdef0",
+            "account_url": "https://my-account.snowflakecomputing.com"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/private-network-routes",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Snowflake_Prod",
+          "label": "Snowflake Prod",
+          "description": "PrivateLink route to the prod Snowflake account",
+          "route": {
+            "type": "Snowflake",
+            "serviceName": "com.amazonaws.vpce.us-west-2.vpce-svc-0123456789abcdef0",
+            "accountUrl": "https://my-account.snowflakecomputing.com"
+          }
+        }
+      }
+    },
+    {
+      "function": "private_network_route_get",
+      "call": "CALL cdp.private_network_route_get (route_id_or_name => 'Snowflake_Prod')",
+      "description": {
+        "namespace": "cdp",
+        "function": "private_network_route_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "route_id_or_name": "Snowflake_Prod"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/private-network-routes/Snowflake_Prod",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "cloudProvider": {
+            "assumed": "cloud_provider"
+          },
+          "route": {
+            "assumed": "route"
+          },
+          "storageRoute": {
+            "assumed": "storage_route"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "cloud_provider": "{\"assumed\":\"cloud_provider\"}",
+            "route": "{\"assumed\":\"route\"}",
+            "storage_route": "{\"assumed\":\"storage_route\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "connection_create",
+      "call": "CALL cdp.connection_create (\n  connector_type => 'SNOWFLAKE',\n  label => 'Snowflake prod',\n  name => 'snowflake_prod',\n  method => 'Ingress',\n  credentials => [\n    (param_name = 'authenticationOption', value = 'KeyPair'),\n    (param_name = 'user', value = secret(snowflake_user)),\n    (param_name = 'privateKey', value = secret(snowflake_private_key))\n  ],\n  parameters => [\n    (param_name = 'region', value = 'us-west-2'),\n    (param_name = 'warehouse', value = 'LOAD_WH'),\n    (param_name = 'hasPrivateNetworkRoute', value = 'true'),\n    (param_name = 'outboundnetworkconnection', value = '...') /* id from the route */\n  ]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "connection_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "connector_type": "SNOWFLAKE",
+          "label": "Snowflake prod",
+          "name": "snowflake_prod",
+          "method": "Ingress",
+          "credentials": [
+            {
+              "param_name": "authenticationOption",
+              "value": "KeyPair"
+            },
+            {
+              "param_name": "user",
+              "value": null
+            },
+            {
+              "param_name": "privateKey",
+              "value": null
+            }
+          ],
+          "parameters": [
+            {
+              "param_name": "region",
+              "value": "us-west-2"
+            },
+            {
+              "param_name": "warehouse",
+              "value": "LOAD_WH"
+            },
+            {
+              "param_name": "hasPrivateNetworkRoute",
+              "value": "true"
+            },
+            {
+              "param_name": "outboundnetworkconnection",
+              "value": "..."
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "pointer": "/credentials/1/value",
+            "secret": "snowflake_user"
+          },
+          {
+            "pointer": "/credentials/2/value",
+            "secret": "snowflake_private_key"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/connections",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "connectorType": "SNOWFLAKE",
+          "label": "Snowflake prod",
+          "name": "snowflake_prod",
+          "method": "Ingress",
+          "credentials": [
+            {
+              "paramName": "authenticationOption",
+              "value": "KeyPair"
+            },
+            {
+              "paramName": "user",
+              "value": "secret(snowflake_user)"
+            },
+            {
+              "paramName": "privateKey",
+              "value": "secret(snowflake_private_key)"
+            }
+          ],
+          "parameters": [
+            {
+              "paramName": "region",
+              "value": "us-west-2"
+            },
+            {
+              "paramName": "warehouse",
+              "value": "LOAD_WH"
+            },
+            {
+              "paramName": "hasPrivateNetworkRoute",
+              "value": "true"
+            },
+            {
+              "paramName": "outboundnetworkconnection",
+              "value": "..."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "private_network_route_delete",
+      "call": "CALL cdp.private_network_route_delete (route_id_or_name => 'Redshift_Prod')",
+      "description": {
+        "namespace": "cdp",
+        "function": "private_network_route_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "route_id_or_name": "Redshift_Prod"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/private-network-routes/Redshift_Prod",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "private_network_route_list",
+      "call": "CALL cdp.private_network_route_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "private_network_route_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/private-network-routes",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "routes": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "cloudProvider": {
+                "assumed": "cloud_provider"
+              },
+              "route": {
+                "assumed": "route"
+              },
+              "storageRoute": {
+                "assumed": "storage_route"
+              },
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "cloud_provider": "{\"assumed\":\"cloud_provider\"}",
+            "route": "{\"assumed\":\"route\"}",
+            "storage_route": "{\"assumed\":\"storage_route\"}",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "private_network_route_get",
+      "call": "CALL cdp.private_network_route_get (route_id_or_name => 'Redshift_Prod')",
+      "description": {
+        "namespace": "cdp",
+        "function": "private_network_route_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "route_id_or_name": "Redshift_Prod"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/private-network-routes/Redshift_Prod",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "private_network_route_create",
+      "call": "CALL cdp.private_network_route_create (\n  name => 'Redshift_Prod',\n  label => 'Redshift Prod',\n  description => 'PrivateLink route to the prod Redshift cluster',\n  route => (type = 'Redshift', service_name = 'com.amazonaws.vpce.us-east-1.vpce-svc-0123456789abcdef0')\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "private_network_route_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Redshift_Prod",
+          "label": "Redshift Prod",
+          "description": "PrivateLink route to the prod Redshift cluster",
+          "route": {
+            "type": "Redshift",
+            "service_name": "com.amazonaws.vpce.us-east-1.vpce-svc-0123456789abcdef0"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/private-network-routes",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Redshift_Prod",
+          "label": "Redshift Prod",
+          "description": "PrivateLink route to the prod Redshift cluster",
+          "route": {
+            "type": "Redshift",
+            "serviceName": "com.amazonaws.vpce.us-east-1.vpce-svc-0123456789abcdef0"
+          }
+        }
+      }
+    }
+  ]
+}

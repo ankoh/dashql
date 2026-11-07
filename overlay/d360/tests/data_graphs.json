@@ -1,0 +1,563 @@
+{
+  "cases": [
+    {
+      "function": "data_graph_create",
+      "call": "CALL cdp.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', type = 'standard', json_path = '$', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE')], related_objects = []))",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_graph_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Customer_Graph",
+          "label": "Customer Graph",
+          "type": "NONE",
+          "primary_object_name": "ssot__Individual__dlm",
+          "source_object": {
+            "name": "ssot__Individual__dlm",
+            "type": "standard",
+            "json_path": "$",
+            "fields": [
+              {
+                "source_field_name": "ssot__Id__c",
+                "is_key_column": true,
+                "is_projected": true,
+                "data_type": "Text",
+                "usage_tag": "NONE"
+              }
+            ],
+            "related_objects": []
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Customer_Graph",
+          "label": "Customer Graph",
+          "type": "NONE",
+          "primaryObjectName": "ssot__Individual__dlm",
+          "sourceObject": {
+            "name": "ssot__Individual__dlm",
+            "type": "standard",
+            "jsonPath": "$",
+            "fields": [
+              {
+                "sourceFieldName": "ssot__Id__c",
+                "isKeyColumn": true,
+                "isProjected": true,
+                "dataType": "Text",
+                "usageTag": "NONE"
+              }
+            ],
+            "relatedObjects": []
+          }
+        }
+      }
+    },
+    {
+      "function": "data_graph_get",
+      "call": "CALL cdp.data_graph_get (data_graph_name => 'Customer_Graph')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_graph_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_graph_name": "Customer_Graph"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/Customer_Graph",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": "created_by_value",
+          "createdDate": "created_date_value",
+          "dataspaceName": "dataspace_name_value",
+          "description": "description_value",
+          "id": "id_value",
+          "label": "label_value",
+          "modifiedBy": "modified_by_value",
+          "modifiedDate": "modified_date_value",
+          "name": "name_value",
+          "extendedProperties": "extended_properties_value",
+          "idDmoLabel": "id_dmo_label_value",
+          "idDmoName": "id_dmo_name_value",
+          "kind": "kind_value",
+          "lastRunStatus": "last_run_status_value",
+          "primaryObjectLabel": "primary_object_label_value",
+          "primaryObjectName": "primary_object_name_value",
+          "sourceObject": {
+            "assumed": "source_object"
+          },
+          "status": "status_value",
+          "type": "type_value",
+          "valuesDmoLabel": "values_dmo_label_value",
+          "valuesDmoName": "values_dmo_name_value",
+          "version": "version_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "created_by_value",
+            "created_date": "created_date_value",
+            "dataspace_name": "dataspace_name_value",
+            "description": "description_value",
+            "id": "id_value",
+            "label": "label_value",
+            "modified_by": "modified_by_value",
+            "modified_date": "modified_date_value",
+            "name": "name_value",
+            "extended_properties": "extended_properties_value",
+            "id_dmo_label": "id_dmo_label_value",
+            "id_dmo_name": "id_dmo_name_value",
+            "kind": "kind_value",
+            "last_run_status": "last_run_status_value",
+            "primary_object_label": "primary_object_label_value",
+            "primary_object_name": "primary_object_name_value",
+            "source_object": "{\"assumed\":\"source_object\"}",
+            "status": "status_value",
+            "type": "type_value",
+            "values_dmo_label": "values_dmo_label_value",
+            "values_dmo_name": "values_dmo_name_value",
+            "version": "version_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datagraph_lookup",
+      "call": "CALL cdp.datagraph_lookup (data_graph_entity_name => 'Customer_Graph', lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datagraph_lookup",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_graph_entity_name": "Customer_Graph",
+          "lookup_keys": "[ssot__Individual__dlm.ssot__Id__c=10000001]"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/data/Customer_Graph",
+        "query": [
+          [
+            "lookupKeys",
+            "[ssot__Individual__dlm.ssot__Id__c=10000001]"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "data": {
+            "assumed": "data"
+          },
+          "done": true,
+          "endTime": "end_time_value",
+          "metadata": {
+            "assumed": "metadata"
+          },
+          "queryId": "query_id_value",
+          "rowCount": 2,
+          "startTime": "start_time_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "data": "{\"assumed\":\"data\"}",
+            "done": true,
+            "end_time": "end_time_value",
+            "metadata": "{\"assumed\":\"metadata\"}",
+            "query_id": "query_id_value",
+            "row_count": 2,
+            "start_time": "start_time_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "data_graph_refresh",
+      "call": "CALL cdp.data_graph_refresh (data_graph_name => 'Customer_Graph')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_graph_refresh",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_graph_name": "Customer_Graph"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/Customer_Graph/actions/refresh",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "data_graph_delete",
+      "call": "CALL cdp.data_graph_delete (data_graph_name => 'Customer_Graph')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_graph_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_graph_name": "Customer_Graph"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/Customer_Graph",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "datagraph_lookup",
+      "call": "CALL cdp.datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datagraph_lookup",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_graph_entity_name": "UnifiedIndividual_DG",
+          "lookup_keys": "[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/data/UnifiedIndividual_DG",
+        "query": [
+          [
+            "lookupKeys",
+            "[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "datagraph_query",
+      "call": "CALL cdp.datagraph_query (data_graph_entity_name => 'UnifiedIndividual_DG', id => '100005', live => true)",
+      "description": {
+        "namespace": "cdp",
+        "function": "datagraph_query",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_graph_entity_name": "UnifiedIndividual_DG",
+          "id": "100005",
+          "live": true
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/data/UnifiedIndividual_DG/100005",
+        "query": [
+          [
+            "live",
+            "true"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "data": {
+            "assumed": "data"
+          },
+          "done": true,
+          "endTime": "end_time_value",
+          "metadata": {
+            "assumed": "metadata"
+          },
+          "queryId": "query_id_value",
+          "rowCount": 2,
+          "startTime": "start_time_value",
+          "ssot__id__c": "ssot__id__c_value",
+          "ssot__name__c": "ssot__name__c_value",
+          "ssot__age__c": 2,
+          "ssot__ContactPointEmail__dlm": {
+            "assumed": "ssot__ContactPointEmail__dlm"
+          },
+          "ssot__orders__dlm": {
+            "assumed": "ssot__orders__dlm"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "data": "{\"assumed\":\"data\"}",
+            "done": true,
+            "end_time": "end_time_value",
+            "metadata": "{\"assumed\":\"metadata\"}",
+            "query_id": "query_id_value",
+            "row_count": 2,
+            "start_time": "start_time_value",
+            "ssot__id__c": "ssot__id__c_value",
+            "ssot__name__c": "ssot__name__c_value",
+            "ssot__age__c": 2,
+            "ssot__ContactPointEmail__dlm": "{\"assumed\":\"ssot__ContactPointEmail__dlm\"}",
+            "ssot__orders__dlm": "{\"assumed\":\"ssot__orders__dlm\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "datagraph_metadata",
+      "call": "CALL cdp.datagraph_metadata (data_graph_entity_name => 'UnifiedIndividual_DG')",
+      "description": {
+        "namespace": "cdp",
+        "function": "datagraph_metadata",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "data_graph_entity_name": "UnifiedIndividual_DG"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/metadata",
+        "query": [
+          [
+            "dataGraphEntityName",
+            "UnifiedIndividual_DG"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataGraphMetadata": [
+            {
+              "dataspaceName": "dataspace_name_value",
+              "description": "description_value",
+              "developerName": "developer_name_value",
+              "dgObject": {
+                "assumed": "dg_object"
+              },
+              "extendedProperties": {
+                "assumed": "extended_properties"
+              },
+              "idDmoName": "id_dmo_name_value",
+              "idsDmo": {
+                "assumed": "ids_dmo"
+              },
+              "primaryObjectName": "primary_object_name_value",
+              "primaryObjectType": "primary_object_type_value",
+              "status": "status_value",
+              "valuesDmo": {
+                "assumed": "values_dmo"
+              },
+              "valuesDmoName": "values_dmo_name_value",
+              "version": "version_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "dataspace_name": "dataspace_name_value",
+            "description": "description_value",
+            "developer_name": "developer_name_value",
+            "dg_object": "{\"assumed\":\"dg_object\"}",
+            "extended_properties": "{\"assumed\":\"extended_properties\"}",
+            "id_dmo_name": "id_dmo_name_value",
+            "ids_dmo": "{\"assumed\":\"ids_dmo\"}",
+            "primary_object_name": "primary_object_name_value",
+            "primary_object_type": "primary_object_type_value",
+            "status": "status_value",
+            "values_dmo": "{\"assumed\":\"values_dmo\"}",
+            "values_dmo_name": "values_dmo_name_value",
+            "version": "version_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "data_graph_create",
+      "call": "CALL cdp.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', label = 'Individual', json_path = '$', type = 'standard', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE'), (source_field_name = 'KQ_Id__c', is_key_column = false, is_projected = true, data_type = 'Text', usage_tag = 'KEY_QUALIFIER')], related_objects = []))",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_graph_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Customer_Graph",
+          "label": "Customer Graph",
+          "type": "NONE",
+          "primary_object_name": "ssot__Individual__dlm",
+          "source_object": {
+            "name": "ssot__Individual__dlm",
+            "label": "Individual",
+            "json_path": "$",
+            "type": "standard",
+            "fields": [
+              {
+                "source_field_name": "ssot__Id__c",
+                "is_key_column": true,
+                "is_projected": true,
+                "data_type": "Text",
+                "usage_tag": "NONE"
+              },
+              {
+                "source_field_name": "KQ_Id__c",
+                "is_key_column": false,
+                "is_projected": true,
+                "data_type": "Text",
+                "usage_tag": "KEY_QUALIFIER"
+              }
+            ],
+            "related_objects": []
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Customer_Graph",
+          "label": "Customer Graph",
+          "type": "NONE",
+          "primaryObjectName": "ssot__Individual__dlm",
+          "sourceObject": {
+            "name": "ssot__Individual__dlm",
+            "label": "Individual",
+            "jsonPath": "$",
+            "type": "standard",
+            "fields": [
+              {
+                "sourceFieldName": "ssot__Id__c",
+                "isKeyColumn": true,
+                "isProjected": true,
+                "dataType": "Text",
+                "usageTag": "NONE"
+              },
+              {
+                "sourceFieldName": "KQ_Id__c",
+                "isKeyColumn": false,
+                "isProjected": true,
+                "dataType": "Text",
+                "usageTag": "KEY_QUALIFIER"
+              }
+            ],
+            "relatedObjects": []
+          }
+        }
+      }
+    },
+    {
+      "function": "data_graph_activate",
+      "call": "CALL cdp.data_graph_activate (data_graph_name => 'Customer_Graph', full_refresh_config => (schedule = (frequency = 1, time_granularity = 'Day')))",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_graph_activate",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_graph_name": "Customer_Graph",
+          "full_refresh_config": {
+            "schedule": {
+              "frequency": 1,
+              "time_granularity": "Day"
+            }
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-graphs/Customer_Graph/actions/activate",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "fullRefreshConfig": {
+            "schedule": {
+              "frequency": 1,
+              "timeGranularity": "Day"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

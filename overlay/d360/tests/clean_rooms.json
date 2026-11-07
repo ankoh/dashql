@@ -1,0 +1,1505 @@
+{
+  "cases": [
+    {
+      "function": "clean_room_template_list",
+      "call": "CALL cdp.clean_room_template_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_template_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/templates",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "templates": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "configuration": {
+                "assumed": "configuration"
+              },
+              "description": "description_value",
+              "metadataConfiguration": {
+                "assumed": "metadata_configuration"
+              },
+              "providerId": "provider_id_value",
+              "queryTemplate": {
+                "assumed": "query_template"
+              },
+              "templateType": "template_type_value",
+              "templateVersion": "template_version_value",
+              "useCaseType": "use_case_type_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "configuration": "{\"assumed\":\"configuration\"}",
+            "description": "description_value",
+            "metadata_configuration": "{\"assumed\":\"metadata_configuration\"}",
+            "provider_id": "provider_id_value",
+            "query_template": "{\"assumed\":\"query_template\"}",
+            "template_type": "template_type_value",
+            "template_version": "template_version_value",
+            "use_case_type": "use_case_type_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_collaboration_create",
+      "call": "CALL cdp.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462', specification_dev_name => 'sampleMapping', template_name => 'Overlap', data_cloud_org_id => '00DSB00000eMue32AC')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_collaboration_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "collab21",
+          "provider_dev_name": "X00DSB00000eLeZh2AK_ReportsPackage1763536436462",
+          "specification_dev_name": "sampleMapping",
+          "template_name": "Overlap",
+          "data_cloud_org_id": "00DSB00000eMue32AC"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "collab21",
+          "providerDevName": "X00DSB00000eLeZh2AK_ReportsPackage1763536436462",
+          "specificationDevName": "sampleMapping",
+          "templateName": "Overlap",
+          "dataCloudOrgId": "00DSB00000eMue32AC"
+        }
+      }
+    },
+    {
+      "function": "clean_room_invitation_accept",
+      "call": "CALL cdp.clean_room_invitation_accept (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOSB000000COGH4A4', specification_id => '1TIxx0000004CSOGA2')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_invitation_accept",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3",
+          "invitation_id": "1TOSB000000COGH4A4",
+          "specification_id": "1TIxx0000004CSOGA2"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/accept-invitation",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "invitationId": "1TOSB000000COGH4A4",
+          "specificationId": "1TIxx0000004CSOGA2"
+        }
+      }
+    },
+    {
+      "function": "clean_room_query_run",
+      "call": "CALL cdp.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'overlap_run_1', query_parameters => (threshold_count = '4'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_query_run",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3",
+          "query_execution_name": "overlap_run_1",
+          "query_parameters": {
+            "threshold_count": "4"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/run",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "queryExecutionName": "overlap_run_1",
+          "queryParameters": {
+            "threshold_count": "4"
+          }
+        }
+      }
+    },
+    {
+      "function": "clean_room_query_job_list",
+      "call": "CALL cdp.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_query_job_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/jobs",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "queryJobs": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "completedDate": "completed_date_value",
+              "errorCode": "error_code_value",
+              "errorMessage": "error_message_value",
+              "executedBy": "executed_by_value",
+              "outputDMOName": "output_dmo_name_value",
+              "queryParam": {
+                "assumed": "query_param"
+              },
+              "reportId": "report_id_value",
+              "reportName": "report_name_value",
+              "segmentNames": {
+                "assumed": "segment_names"
+              },
+              "status": "status_value",
+              "triggeredDate": "triggered_date_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "completed_date": "completed_date_value",
+            "error_code": "error_code_value",
+            "error_message": "error_message_value",
+            "executed_by": "executed_by_value",
+            "output_dmo_name": "output_dmo_name_value",
+            "query_param": "{\"assumed\":\"query_param\"}",
+            "report_id": "report_id_value",
+            "report_name": "report_name_value",
+            "segment_names": "{\"assumed\":\"segment_names\"}",
+            "status": "status_value",
+            "triggered_date": "triggered_date_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_specification_delete",
+      "call": "CALL cdp.clean_room_specification_delete (specification_id_or_api_name => 'sampleMapping')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_specification_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "specification_id_or_api_name": "sampleMapping"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/specifications/sampleMapping",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "clean_room_collaboration_list",
+      "call": "CALL cdp.clean_room_collaboration_list (order_by => 'createdDate DESC', limit => 20)",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_collaboration_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "order_by": "createdDate DESC",
+          "limit": 20
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations",
+        "query": [
+          [
+            "orderBy",
+            "createdDate DESC"
+          ],
+          [
+            "limit",
+            "20"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "collaborations": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "apiKey": "api_key_value",
+              "dataSpace": {
+                "assumed": "dataspace"
+              },
+              "description": "description_value",
+              "members": {
+                "assumed": "members"
+              },
+              "status": "status_value",
+              "templateVersion": {
+                "assumed": "template_version"
+              },
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "api_key": "api_key_value",
+            "dataspace": "{\"assumed\":\"dataspace\"}",
+            "description": "description_value",
+            "members": "{\"assumed\":\"members\"}",
+            "status": "status_value",
+            "template_version": "{\"assumed\":\"template_version\"}",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_query_job_list",
+      "call": "CALL cdp.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', limit => 20)",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_query_job_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3",
+          "limit": 20
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/jobs",
+        "query": [
+          [
+            "limit",
+            "20"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "clean_room_collaboration_result_object_list",
+      "call": "CALL cdp.clean_room_collaboration_result_object_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_collaboration_result_object_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/result-data-objects",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "collaborationResultDataObjects": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ]
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_provider_list",
+      "call": "CALL cdp.clean_room_provider_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_provider_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/providers",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "providers": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "creationType": "creation_type_value",
+              "dataCloudOrgId": "data_cloud_org_id_value",
+              "description": "description_value",
+              "domainUrl": "domain_url_value",
+              "logoUrl": "logo_url_value",
+              "offCoreTenantId": "off_core_tenant_id_value",
+              "packageType": "package_type_value",
+              "providerDataSource": "provider_data_source_value",
+              "providerName": "provider_name_value",
+              "source": "source_value",
+              "sourceConfiguration": {
+                "assumed": "source_configuration"
+              },
+              "templateNames": {
+                "assumed": "template_names"
+              },
+              "useCaseTypeConfig": {
+                "assumed": "use_case_type_config"
+              },
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "creation_type": "creation_type_value",
+            "data_cloud_org_id": "data_cloud_org_id_value",
+            "description": "description_value",
+            "domain_url": "domain_url_value",
+            "logo_url": "logo_url_value",
+            "off_core_tenant_id": "off_core_tenant_id_value",
+            "package_type": "package_type_value",
+            "provider_data_source": "provider_data_source_value",
+            "provider_name": "provider_name_value",
+            "source": "source_value",
+            "source_configuration": "{\"assumed\":\"source_configuration\"}",
+            "template_names": "{\"assumed\":\"template_names\"}",
+            "use_case_type_config": "{\"assumed\":\"use_case_type_config\"}",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_provider_get",
+      "call": "CALL cdp.clean_room_provider_get (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_provider_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "provider_id_or_name": "X00DSB00000eLeZh2AK_ReportsPackage1763536436462"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/providers/X00DSB00000eLeZh2AK_ReportsPackage1763536436462",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "creationType": "creation_type_value",
+          "dataCloudOrgId": "data_cloud_org_id_value",
+          "description": "description_value",
+          "domainUrl": "domain_url_value",
+          "logoUrl": "logo_url_value",
+          "offCoreTenantId": "off_core_tenant_id_value",
+          "packageType": "package_type_value",
+          "providerDataSource": "provider_data_source_value",
+          "providerName": "provider_name_value",
+          "source": "source_value",
+          "sourceConfiguration": {
+            "assumed": "source_configuration"
+          },
+          "templateNames": {
+            "assumed": "template_names"
+          },
+          "useCaseTypeConfig": {
+            "assumed": "use_case_type_config"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "creation_type": "creation_type_value",
+            "data_cloud_org_id": "data_cloud_org_id_value",
+            "description": "description_value",
+            "domain_url": "domain_url_value",
+            "logo_url": "logo_url_value",
+            "off_core_tenant_id": "off_core_tenant_id_value",
+            "package_type": "package_type_value",
+            "provider_data_source": "provider_data_source_value",
+            "provider_name": "provider_name_value",
+            "source": "source_value",
+            "source_configuration": "{\"assumed\":\"source_configuration\"}",
+            "template_names": "{\"assumed\":\"template_names\"}",
+            "use_case_type_config": "{\"assumed\":\"use_case_type_config\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_provider_template_list",
+      "call": "CALL cdp.clean_room_provider_template_list (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_provider_template_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "provider_id_or_name": "X00DSB00000eLeZh2AK_ReportsPackage1763536436462"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/providers/X00DSB00000eLeZh2AK_ReportsPackage1763536436462/templates",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "templates": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "configuration": {
+                "assumed": "configuration"
+              },
+              "description": "description_value",
+              "metadataConfiguration": {
+                "assumed": "metadata_configuration"
+              },
+              "providerId": "provider_id_value",
+              "queryTemplate": {
+                "assumed": "query_template"
+              },
+              "templateType": "template_type_value",
+              "templateVersion": "template_version_value",
+              "useCaseType": "use_case_type_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "configuration": "{\"assumed\":\"configuration\"}",
+            "description": "description_value",
+            "metadata_configuration": "{\"assumed\":\"metadata_configuration\"}",
+            "provider_id": "provider_id_value",
+            "query_template": "{\"assumed\":\"query_template\"}",
+            "template_type": "template_type_value",
+            "template_version": "template_version_value",
+            "use_case_type": "use_case_type_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_specification_list",
+      "call": "CALL cdp.clean_room_specification_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_specification_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/specifications",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "cleanroomSpecifications": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "dataMapping": {
+                "assumed": "data_mapping"
+              },
+              "dataSpace": {
+                "assumed": "dataspace"
+              },
+              "description": "description_value",
+              "memberType": "member_type_value",
+              "ownerOrgId": "owner_org_id_value",
+              "status": "status_value",
+              "templateVersion": {
+                "assumed": "template_version"
+              },
+              "dataSpaceName": "dataspace_name_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "data_mapping": "{\"assumed\":\"data_mapping\"}",
+            "dataspace": "{\"assumed\":\"dataspace\"}",
+            "description": "description_value",
+            "member_type": "member_type_value",
+            "owner_org_id": "owner_org_id_value",
+            "status": "status_value",
+            "template_version": "{\"assumed\":\"template_version\"}",
+            "dataspace_name": "dataspace_name_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_template_collaboration_list",
+      "call": "CALL cdp.clean_room_template_collaboration_list (use_case_template_type => 'Overlap')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_template_collaboration_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "use_case_template_type": "Overlap"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/templates/Overlap/collaborations",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "collaborations": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "dataSpace": {
+                "assumed": "dataspace"
+              },
+              "description": "description_value",
+              "members": {
+                "assumed": "members"
+              },
+              "outputObjectToDevName": {
+                "assumed": "output_object_to_dev_name"
+              },
+              "status": "status_value",
+              "templateVersion": {
+                "assumed": "template_version"
+              },
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "dataspace": "{\"assumed\":\"dataspace\"}",
+            "description": "description_value",
+            "members": "{\"assumed\":\"members\"}",
+            "output_object_to_dev_name": "{\"assumed\":\"output_object_to_dev_name\"}",
+            "status": "status_value",
+            "template_version": "{\"assumed\":\"template_version\"}",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_collaboration_create",
+      "call": "CALL cdp.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00Dxx00nZbkbQyW_TestProviderName1746172733791', template_version_id => '00Dxx00nZbkbBjk8ef', template_name => 'OVERLAP', specification_dev_name => 'X00Dxx00MhXCjA7M_null1746504015424', data_cloud_org_id => '00Dxx00nZbkbQgmEIE')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_collaboration_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "collab21",
+          "provider_dev_name": "X00Dxx00nZbkbQyW_TestProviderName1746172733791",
+          "template_version_id": "00Dxx00nZbkbBjk8ef",
+          "template_name": "OVERLAP",
+          "specification_dev_name": "X00Dxx00MhXCjA7M_null1746504015424",
+          "data_cloud_org_id": "00Dxx00nZbkbQgmEIE"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "collab21",
+          "providerDevName": "X00Dxx00nZbkbQyW_TestProviderName1746172733791",
+          "templateVersionId": "00Dxx00nZbkbBjk8ef",
+          "templateName": "OVERLAP",
+          "specificationDevName": "X00Dxx00MhXCjA7M_null1746504015424",
+          "dataCloudOrgId": "00Dxx00nZbkbQgmEIE"
+        }
+      }
+    },
+    {
+      "function": "clean_room_invitation_accept",
+      "call": "CALL cdp.clean_room_invitation_accept (\n  collaboration_id_or_api_name => 'collab21_00DSB00000eMue3',\n  invitation_id => '1TOxx0000004CQoGAM',\n  specification_id => '1TIxx0000004CH6GAM',\n  output_configuration => (\n    output_destination_type = 'EXTERNAL_CONNECTOR',\n    external_id = 'ext12345678',\n    connection_attributes = (connector_type = 'CleanroomSnowflake', account_url = 'https://your-account.snowflakecomputing.com/', warehouse_name = 'COMPUTE_WH', database_name = 'TEST_DB', schema_name = 'TEST_SCHEMA', service_user = 'CLEAN_ROOM_USER')\n  )\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_invitation_accept",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3",
+          "invitation_id": "1TOxx0000004CQoGAM",
+          "specification_id": "1TIxx0000004CH6GAM",
+          "output_configuration": {
+            "output_destination_type": "EXTERNAL_CONNECTOR",
+            "external_id": "ext12345678",
+            "connection_attributes": {
+              "connector_type": "CleanroomSnowflake",
+              "account_url": "https://your-account.snowflakecomputing.com/",
+              "warehouse_name": "COMPUTE_WH",
+              "database_name": "TEST_DB",
+              "schema_name": "TEST_SCHEMA",
+              "service_user": "CLEAN_ROOM_USER"
+            }
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/accept-invitation",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "invitationId": "1TOxx0000004CQoGAM",
+          "specificationId": "1TIxx0000004CH6GAM",
+          "outputConfiguration": {
+            "outputDestinationType": "EXTERNAL_CONNECTOR",
+            "externalId": "ext12345678",
+            "connectionAttributes": {
+              "connectorType": "CleanroomSnowflake",
+              "accountUrl": "https://your-account.snowflakecomputing.com/",
+              "warehouseName": "COMPUTE_WH",
+              "databaseName": "TEST_DB",
+              "schemaName": "TEST_SCHEMA",
+              "serviceUser": "CLEAN_ROOM_USER"
+            }
+          }
+        }
+      }
+    },
+    {
+      "function": "clean_room_collaboration_disable",
+      "call": "CALL cdp.clean_room_collaboration_disable (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_collaboration_disable",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/disable",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "clean_room_invitation_reject",
+      "call": "CALL cdp.clean_room_invitation_reject (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOxx0000004D3UGAU')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_invitation_reject",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3",
+          "invitation_id": "1TOxx0000004D3UGAU"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/reject-invitation",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "invitationId": "1TOxx0000004D3UGAU"
+        }
+      }
+    },
+    {
+      "function": "clean_room_query_run",
+      "call": "CALL cdp.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'rawtalks1', query_parameters => (threshold_count = '4'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_query_run",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3",
+          "query_execution_name": "rawtalks1",
+          "query_parameters": {
+            "threshold_count": "4"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/run",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "queryExecutionName": "rawtalks1",
+          "queryParameters": {
+            "threshold_count": "4"
+          }
+        }
+      }
+    },
+    {
+      "function": "clean_room_provider_create",
+      "call": "CALL cdp.clean_room_provider_create (\n  label => 'package_AWS',\n  description => 'AWS',\n  provider_name => 'package_AWS',\n  source => 'AWS',\n  template_type => 'CUSTOM',\n  source_configuration => (type = 'AWS', account_id = '041291292938', supported_regions = ['us-east-1', 'us-west-2']),\n  template_json => (\n    name = 'Example1',\n    description = 'Example of Clean Room Customized Templates',\n    tables = (table_configs = [\n      (name = 'Provider', role = 'Provider', description = 'Provider table', columns = [\n        (name = 'SegmentName', type = 'STRING', description = 'Name of the segment.'),\n        (name = 'MemberId', type = 'STRING', description = 'Member ID.'),\n        (name = 'HashedEmailAddress', type = 'HASHED_EMAIL', description = 'Contact ID hashed with SHA256')\n      ]),\n      (name = 'Consumer', role = 'Consumer', description = 'Consumer table', columns = [\n        (name = 'SegmentId', type = 'STRING', description = 'Segment ID'),\n        (name = 'HashedEmailAddress', type = 'HASHED_EMAIL', description = 'Contact ID hashed with SHA256')\n      ])\n    ]),\n    queries = (query_configs = [(\n      name = 'QueryOverlap',\n      use_case = 'Overlap',\n      type = 'SQL',\n      description = 'Overlap between consumers and providers.',\n      source = $$\n        SELECT Consumer.SegmentId AS Segment_Id__c,\n               Provider.SegmentName AS Provider_Segment_Name__c,\n               COUNT(DISTINCT Provider.MemberId) AS Matching_Population_Count__c\n        FROM Consumer JOIN Provider ON Consumer.HashedEmailAddress = Provider.HashedEmailAddress\n        GROUP BY Consumer.SegmentId, Provider.SegmentName\n        HAVING COUNT(DISTINCT Provider.MemberId) >= :threshold_count\n      $$,\n      query_parameters = (query_param_configs = [(name = 'threshold_count', type = 'INTEGER', description = 'threshold_count')]),\n      referenced_tables = ['Consumer', 'Provider']\n    )])\n  )\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_provider_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "label": "package_AWS",
+          "description": "AWS",
+          "provider_name": "package_AWS",
+          "source": "AWS",
+          "template_type": "CUSTOM",
+          "source_configuration": {
+            "type": "AWS",
+            "account_id": "041291292938",
+            "supported_regions": [
+              "us-east-1",
+              "us-west-2"
+            ]
+          },
+          "template_json": {
+            "name": "Example1",
+            "description": "Example of Clean Room Customized Templates",
+            "tables": {
+              "table_configs": [
+                {
+                  "name": "Provider",
+                  "role": "Provider",
+                  "description": "Provider table",
+                  "columns": [
+                    {
+                      "name": "SegmentName",
+                      "type": "STRING",
+                      "description": "Name of the segment."
+                    },
+                    {
+                      "name": "MemberId",
+                      "type": "STRING",
+                      "description": "Member ID."
+                    },
+                    {
+                      "name": "HashedEmailAddress",
+                      "type": "HASHED_EMAIL",
+                      "description": "Contact ID hashed with SHA256"
+                    }
+                  ]
+                },
+                {
+                  "name": "Consumer",
+                  "role": "Consumer",
+                  "description": "Consumer table",
+                  "columns": [
+                    {
+                      "name": "SegmentId",
+                      "type": "STRING",
+                      "description": "Segment ID"
+                    },
+                    {
+                      "name": "HashedEmailAddress",
+                      "type": "HASHED_EMAIL",
+                      "description": "Contact ID hashed with SHA256"
+                    }
+                  ]
+                }
+              ]
+            },
+            "queries": {
+              "query_configs": [
+                {
+                  "name": "QueryOverlap",
+                  "use_case": "Overlap",
+                  "type": "SQL",
+                  "description": "Overlap between consumers and providers.",
+                  "source": "\n        SELECT Consumer.SegmentId AS Segment_Id__c,\n               Provider.SegmentName AS Provider_Segment_Name__c,\n               COUNT(DISTINCT Provider.MemberId) AS Matching_Population_Count__c\n        FROM Consumer JOIN Provider ON Consumer.HashedEmailAddress = Provider.HashedEmailAddress\n        GROUP BY Consumer.SegmentId, Provider.SegmentName\n        HAVING COUNT(DISTINCT Provider.MemberId) >= :threshold_count\n      ",
+                  "query_parameters": {
+                    "query_param_configs": [
+                      {
+                        "name": "threshold_count",
+                        "type": "INTEGER",
+                        "description": "threshold_count"
+                      }
+                    ]
+                  },
+                  "referenced_tables": [
+                    "Consumer",
+                    "Provider"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/providers",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "package_AWS",
+          "description": "AWS",
+          "providerName": "package_AWS",
+          "source": "AWS",
+          "templateType": "CUSTOM",
+          "sourceConfiguration": {
+            "type": "AWS",
+            "accountId": "041291292938",
+            "supportedRegions": [
+              "us-east-1",
+              "us-west-2"
+            ]
+          },
+          "templateJson": {
+            "name": "Example1",
+            "description": "Example of Clean Room Customized Templates",
+            "tables": {
+              "tableConfigs": [
+                {
+                  "name": "Provider",
+                  "role": "Provider",
+                  "description": "Provider table",
+                  "columns": [
+                    {
+                      "name": "SegmentName",
+                      "type": "STRING",
+                      "description": "Name of the segment."
+                    },
+                    {
+                      "name": "MemberId",
+                      "type": "STRING",
+                      "description": "Member ID."
+                    },
+                    {
+                      "name": "HashedEmailAddress",
+                      "type": "HASHED_EMAIL",
+                      "description": "Contact ID hashed with SHA256"
+                    }
+                  ]
+                },
+                {
+                  "name": "Consumer",
+                  "role": "Consumer",
+                  "description": "Consumer table",
+                  "columns": [
+                    {
+                      "name": "SegmentId",
+                      "type": "STRING",
+                      "description": "Segment ID"
+                    },
+                    {
+                      "name": "HashedEmailAddress",
+                      "type": "HASHED_EMAIL",
+                      "description": "Contact ID hashed with SHA256"
+                    }
+                  ]
+                }
+              ]
+            },
+            "queries": {
+              "queryConfigs": [
+                {
+                  "name": "QueryOverlap",
+                  "useCase": "Overlap",
+                  "type": "SQL",
+                  "description": "Overlap between consumers and providers.",
+                  "source": "\n        SELECT Consumer.SegmentId AS Segment_Id__c,\n               Provider.SegmentName AS Provider_Segment_Name__c,\n               COUNT(DISTINCT Provider.MemberId) AS Matching_Population_Count__c\n        FROM Consumer JOIN Provider ON Consumer.HashedEmailAddress = Provider.HashedEmailAddress\n        GROUP BY Consumer.SegmentId, Provider.SegmentName\n        HAVING COUNT(DISTINCT Provider.MemberId) >= :threshold_count\n      ",
+                  "queryParameters": {
+                    "queryParamConfigs": [
+                      {
+                        "name": "threshold_count",
+                        "type": "INTEGER",
+                        "description": "threshold_count"
+                      }
+                    ]
+                  },
+                  "referencedTables": [
+                    "Consumer",
+                    "Provider"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "function": "clean_room_specification_create",
+      "call": "CALL cdp.clean_room_specification_create (\n  name => 'sampleMapping',\n  label => 'sampleMapping',\n  dataspace_name => 'default',\n  member_type => 'CONSUMER',\n  owner_org_id => '00Dxx00QA6JqfVUEMZ',\n  template_name => 'Overlap',\n  template_version_id => '1TTxx0000004Cc4GAE',\n  template_type => 'SALESFORCE',\n  use_case_type => 'Overlap',\n  data_mapping => (\n    collaboration_entity = 'ssot__ContactPointEmail__dlm',\n    attributes = [\n      (attribute_id = 'SegmentId', alias = 'SegmentId', subject_attribute = (object_name = 'ssot__ContactPointEmail__dlm', object_label = 'Contact Point Email', field_name = 'ssot__InternalOrganizationId__c', field_label = 'Internal Organization')),\n      (attribute_id = 'HashedEmailAddress', alias = 'HashedEmailAddress', subject_attribute = (object_name = 'ssot__ContactPointEmail__dlm', object_label = 'Contact Point Email', field_name = 'ssot__DataSourceId__c', field_label = 'Data Source'))\n    ]\n  )\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_specification_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "sampleMapping",
+          "label": "sampleMapping",
+          "dataspace_name": "default",
+          "member_type": "CONSUMER",
+          "owner_org_id": "00Dxx00QA6JqfVUEMZ",
+          "template_name": "Overlap",
+          "template_version_id": "1TTxx0000004Cc4GAE",
+          "template_type": "SALESFORCE",
+          "use_case_type": "Overlap",
+          "data_mapping": {
+            "collaboration_entity": "ssot__ContactPointEmail__dlm",
+            "attributes": [
+              {
+                "attribute_id": "SegmentId",
+                "alias": "SegmentId",
+                "subject_attribute": {
+                  "object_name": "ssot__ContactPointEmail__dlm",
+                  "object_label": "Contact Point Email",
+                  "field_name": "ssot__InternalOrganizationId__c",
+                  "field_label": "Internal Organization"
+                }
+              },
+              {
+                "attribute_id": "HashedEmailAddress",
+                "alias": "HashedEmailAddress",
+                "subject_attribute": {
+                  "object_name": "ssot__ContactPointEmail__dlm",
+                  "object_label": "Contact Point Email",
+                  "field_name": "ssot__DataSourceId__c",
+                  "field_label": "Data Source"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/specifications",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "sampleMapping",
+          "label": "sampleMapping",
+          "dataSpaceName": "default",
+          "memberType": "CONSUMER",
+          "ownerOrgId": "00Dxx00QA6JqfVUEMZ",
+          "templateName": "Overlap",
+          "templateVersionId": "1TTxx0000004Cc4GAE",
+          "templateType": "SALESFORCE",
+          "useCaseType": "Overlap",
+          "dataMapping": {
+            "collaborationEntity": "ssot__ContactPointEmail__dlm",
+            "attributes": [
+              {
+                "attributeId": "SegmentId",
+                "alias": "SegmentId",
+                "subjectAttribute": {
+                  "objectName": "ssot__ContactPointEmail__dlm",
+                  "objectLabel": "Contact Point Email",
+                  "fieldName": "ssot__InternalOrganizationId__c",
+                  "fieldLabel": "Internal Organization"
+                }
+              },
+              {
+                "attributeId": "HashedEmailAddress",
+                "alias": "HashedEmailAddress",
+                "subjectAttribute": {
+                  "objectName": "ssot__ContactPointEmail__dlm",
+                  "objectLabel": "Contact Point Email",
+                  "fieldName": "ssot__DataSourceId__c",
+                  "fieldLabel": "Data Source"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "function": "clean_room_connection_test",
+      "call": "CALL cdp.clean_room_connection_test (consumer_org_id => '00D000000000001', connector_type => 'CleanroomAwsS3', connection_attributes => (authenticationOption = 'idp', bucketName = 'cleanroom-data-bucket', parentDirectory = '/shared-data/', iamRoleName = 'arn:aws:iam::123456789012:role/CleanroomDataAccessRole', externalId = 'app:DE809C7E:A1B2C3D4'))",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_connection_test",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "consumer_org_id": "00D000000000001",
+          "connector_type": "CleanroomAwsS3",
+          "connection_attributes": {
+            "authenticationOption": "idp",
+            "bucketName": "cleanroom-data-bucket",
+            "parentDirectory": "/shared-data/",
+            "iamRoleName": "arn:aws:iam::123456789012:role/CleanroomDataAccessRole",
+            "externalId": "app:DE809C7E:A1B2C3D4"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/test-connection",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "consumerOrgId": "00D000000000001",
+          "connectorType": "CleanroomAwsS3",
+          "connectionAttributes": {
+            "authenticationOption": "idp",
+            "bucketName": "cleanroom-data-bucket",
+            "parentDirectory": "/shared-data/",
+            "iamRoleName": "arn:aws:iam::123456789012:role/CleanroomDataAccessRole",
+            "externalId": "app:DE809C7E:A1B2C3D4"
+          }
+        }
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "details": {
+            "assumed": "details"
+          },
+          "errorCode": "error_code_value",
+          "message": "message_value",
+          "success": true,
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "details": "{\"assumed\":\"details\"}",
+            "error_code": "error_code_value",
+            "message": "message_value",
+            "success": true,
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "clean_room_collaboration_metadata_refresh",
+      "call": "CALL cdp.clean_room_collaboration_metadata_refresh (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3')",
+      "description": {
+        "namespace": "cdp",
+        "function": "clean_room_collaboration_metadata_refresh",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "collaboration_id_or_api_name": "collab21_00DSB00000eMue3"
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-clean-room/collaborations/collab21_00DSB00000eMue3/actions/refresh-metadata",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,1282 @@
+{
+  "cases": [
+    {
+      "function": "p13n_transformer_get",
+      "call": "CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_transformer_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "promo_banner_transformer"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/transformer",
+        "query": [
+          [
+            "idOrName",
+            "promo_banner_transformer"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "id_value",
+          "name": "name_value",
+          "label": "label_value",
+          "description": "description_value",
+          "dataConnectors": {
+            "assumed": "data_connectors"
+          },
+          "channel": "channel_value",
+          "substitutionDefinitions": {
+            "assumed": "substitution_definitions"
+          },
+          "schemaReference": "schema_reference_value",
+          "dataSpace": "dataspace_value",
+          "isEnabled": true,
+          "transformerType": "transformer_type_value",
+          "thumbnailImage": "thumbnail_image_value",
+          "transformerTypeDetails": {
+            "assumed": "transformer_type_details"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "name": "name_value",
+            "label": "label_value",
+            "description": "description_value",
+            "data_connectors": "{\"assumed\":\"data_connectors\"}",
+            "channel": "channel_value",
+            "substitution_definitions": "{\"assumed\":\"substitution_definitions\"}",
+            "schema_reference": "schema_reference_value",
+            "dataspace": "dataspace_value",
+            "is_enabled": true,
+            "transformer_type": "transformer_type_value",
+            "thumbnail_image": "thumbnail_image_value",
+            "transformer_type_details": "{\"assumed\":\"transformer_type_details\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_point_get",
+      "call": "CALL cdp.p13n_point_get (id_or_name => 'home_page_experience')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_point_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "home_page_experience"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-points/home_page_experience",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "id_value",
+          "name": "name_value",
+          "label": "label_value",
+          "description": "description_value",
+          "dataSpaceName": "dataspace_name_value",
+          "profileDataGraphName": "profile_data_graph_name_value",
+          "source": "source_value",
+          "isAuthenticationRequired": true,
+          "schemaName": "schema_name_value",
+          "schemaEnum": "schema_enum_value",
+          "maxItemsCount": 1,
+          "decisions": {
+            "assumed": "decisions"
+          },
+          "status": "status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "name": "name_value",
+            "label": "label_value",
+            "description": "description_value",
+            "dataspace_name": "dataspace_name_value",
+            "profile_data_graph_name": "profile_data_graph_name_value",
+            "source": "source_value",
+            "is_authentication_required": true,
+            "schema_name": "schema_name_value",
+            "schema_enum": "schema_enum_value",
+            "max_items_count": 1,
+            "decisions": "{\"assumed\":\"decisions\"}",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_experience_config_create",
+      "call": "CALL cdp.p13n_experience_config_create (\n    id_or_app_source_id_or_name => 'my_website_connector',\n    name => 'homepage_hero_banner',\n    label => 'Homepage Hero Banner',\n    data_provider => (type = 'PersonalizationPoint', reference_type = 'ApiName', value = 'home_page_experience'),\n    source_matchers => [(type = 'ContentZone', value = 'hero_section')],\n    transformation_config => (when = 'Immediately', method = 'ReplaceContentZoneContent', transformations = [(transformer_name = 'promo_banner_transformer')])\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_experience_config_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_app_source_id_or_name": "my_website_connector",
+          "name": "homepage_hero_banner",
+          "label": "Homepage Hero Banner",
+          "data_provider": {
+            "type": "PersonalizationPoint",
+            "reference_type": "ApiName",
+            "value": "home_page_experience"
+          },
+          "source_matchers": [
+            {
+              "type": "ContentZone",
+              "value": "hero_section"
+            }
+          ],
+          "transformation_config": {
+            "when": "Immediately",
+            "method": "ReplaceContentZoneContent",
+            "transformations": [
+              {
+                "transformer_name": "promo_banner_transformer"
+              }
+            ]
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/my_website_connector/personalization-experience-configs",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "homepage_hero_banner",
+          "label": "Homepage Hero Banner",
+          "dataProvider": {
+            "type": "PersonalizationPoint",
+            "referenceType": "ApiName",
+            "value": "home_page_experience"
+          },
+          "sourceMatchers": [
+            {
+              "type": "ContentZone",
+              "value": "hero_section"
+            }
+          ],
+          "transformationConfig": {
+            "when": "Immediately",
+            "method": "ReplaceContentZoneContent",
+            "transformations": [
+              {
+                "transformerName": "promo_banner_transformer"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "function": "p13n_engagement_signals_list",
+      "call": "CALL cdp.p13n_engagement_signals_list (dataspace_id => 'default', data_graph_id => 'user_profile_graph')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_engagement_signals_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "dataspace_id": "default",
+          "data_graph_id": "user_profile_graph"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/engagement-signals",
+        "query": [
+          [
+            "dataSpaceId",
+            "default"
+          ],
+          [
+            "dataGraphId",
+            "user_profile_graph"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_org_info_get",
+      "call": "CALL cdp.p13n_org_info_get ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_org_info_get",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/org",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dcTse": "dc_tse_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "dc_tse": "dc_tse_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_mobile_preview_create",
+      "call": "CALL cdp.p13n_mobile_preview_create (\n    data_connector_id => 'mobile_app_connector_123',\n    experience_config => (\n        name = 'test_experience',\n        label = 'Test Experience',\n        data_provider = (type = 'PersonalizationPoint', reference_type = 'ApiName', value = 'product_recs'),\n        source_matchers = [(type = 'ContentZone', value = 'product_list')],\n        transformation_config = (when = 'Immediately', method = 'ReplaceContentZoneContent', transformations = [(transformer_name = 'product_card_transformer')])\n    ),\n    decision_request_body => (\n        p = (decision_id = 'rec_decision_001', cohort_id = 'cohort_A', experiment_id = 'exp_123'),\n        c = (individual_id = 'ind_456', anchor_id = 'anchor_789')\n    )\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_mobile_preview_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "data_connector_id": "mobile_app_connector_123",
+          "experience_config": {
+            "name": "test_experience",
+            "label": "Test Experience",
+            "data_provider": {
+              "type": "PersonalizationPoint",
+              "reference_type": "ApiName",
+              "value": "product_recs"
+            },
+            "source_matchers": [
+              {
+                "type": "ContentZone",
+                "value": "product_list"
+              }
+            ],
+            "transformation_config": {
+              "when": "Immediately",
+              "method": "ReplaceContentZoneContent",
+              "transformations": [
+                {
+                  "transformer_name": "product_card_transformer"
+                }
+              ]
+            }
+          },
+          "decision_request_body": {
+            "p": {
+              "decision_id": "rec_decision_001",
+              "cohort_id": "cohort_A",
+              "experiment_id": "exp_123"
+            },
+            "c": {
+              "individual_id": "ind_456",
+              "anchor_id": "anchor_789"
+            }
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/mobile/live-preview-link",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataConnectorId": "mobile_app_connector_123",
+          "experienceConfig": {
+            "name": "test_experience",
+            "label": "Test Experience",
+            "dataProvider": {
+              "type": "PersonalizationPoint",
+              "referenceType": "ApiName",
+              "value": "product_recs"
+            },
+            "sourceMatchers": [
+              {
+                "type": "ContentZone",
+                "value": "product_list"
+              }
+            ],
+            "transformationConfig": {
+              "when": "Immediately",
+              "method": "ReplaceContentZoneContent",
+              "transformations": [
+                {
+                  "transformerName": "product_card_transformer"
+                }
+              ]
+            }
+          },
+          "decisionRequestBody": {
+            "p": {
+              "decisionId": "rec_decision_001",
+              "cohortId": "cohort_A",
+              "experimentId": "exp_123"
+            },
+            "c": {
+              "individualId": "ind_456",
+              "anchorId": "anchor_789"
+            }
+          }
+        }
+      }
+    },
+    {
+      "function": "p13n_experience_config_list",
+      "call": "CALL cdp.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website_connector', transformer_name_or_id => 'promo_banner_transformer', limit => 50)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_experience_config_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_app_source_id_or_name": "my_website_connector",
+          "transformer_name_or_id": "promo_banner_transformer",
+          "limit": 50
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/my_website_connector/personalization-experience-configs",
+        "query": [
+          [
+            "transformerNameOrId",
+            "promo_banner_transformer"
+          ],
+          [
+            "limit",
+            "50"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_experience_config_get",
+      "call": "CALL cdp.p13n_experience_config_get (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_wpm_url_required => true)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_experience_config_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_app_source_id_or_name": "my_website_connector",
+          "name_param": "homepage_hero_banner",
+          "is_wpm_url_required": true
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/my_website_connector/personalization-experience-configs/homepage_hero_banner",
+        "query": [
+          [
+            "isWpmUrlRequired",
+            "true"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "id_value",
+          "name": "name_value",
+          "label": "label_value",
+          "description": "description_value",
+          "dataProvider": {
+            "assumed": "data_provider"
+          },
+          "sourceMatchers": {
+            "assumed": "source_matchers"
+          },
+          "transformationConfig": {
+            "assumed": "transformation_config"
+          },
+          "isEnabled": true,
+          "displayUrl": "display_url_value",
+          "publishedDate": "2026-01-02T03:04:05.000Z",
+          "createdById": "created_by_id_value",
+          "createdDate": "2026-01-02T03:04:05.000Z",
+          "lastModifiedById": "last_modified_by_id_value",
+          "lastModifiedDate": "2026-01-02T03:04:05.000Z",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "name": "name_value",
+            "label": "label_value",
+            "description": "description_value",
+            "data_provider": "{\"assumed\":\"data_provider\"}",
+            "source_matchers": "{\"assumed\":\"source_matchers\"}",
+            "transformation_config": "{\"assumed\":\"transformation_config\"}",
+            "is_enabled": true,
+            "display_url": "display_url_value",
+            "published_date": "2026-01-02T03:04:05.000Z",
+            "created_by_id": "created_by_id_value",
+            "created_date": "2026-01-02T03:04:05.000Z",
+            "last_modified_by_id": "last_modified_by_id_value",
+            "last_modified_date": "2026-01-02T03:04:05.000Z",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_experience_config_create",
+      "call": "CALL cdp.p13n_experience_config_create (\n    id_or_app_source_id_or_name => 'my_website_connector',\n    name => 'homepage_hero_banner',\n    label => 'Homepage Hero Banner Personalization',\n    is_enabled => true,\n    data_provider => (\n        type = 'PersonalizationPoint',\n        reference_type = 'ApiName',\n        value = 'hero_banner_recommendations',\n        dataspace_reference_type = 'ApiName',\n        dataspace_value = 'default',\n        group_by_type = 'DataGraph',\n        group_by_reference_type = 'ApiName',\n        group_by_value = 'user_profile_graph'\n    ),\n    source_matchers => [(type = 'PageUrlMatcher', value = '/home'), (type = 'ContentZone', value = 'hero_section')],\n    transformation_config => (\n        render_if_empty = false,\n        when = 'Immediately',\n        method = 'ReplaceContentZoneContent',\n        engagement_destination = 'banner_click_destination',\n        transformations = [(\n            transformer_name = 'promo_banner_transformer',\n            substitutions = (bannerTitle = '{{data.title}}', bannerImage = '{{data.image}}', ctaText = 'Learn More')\n        )]\n    ),\n    display_url => '/home'\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_experience_config_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_app_source_id_or_name": "my_website_connector",
+          "name": "homepage_hero_banner",
+          "label": "Homepage Hero Banner Personalization",
+          "is_enabled": true,
+          "data_provider": {
+            "type": "PersonalizationPoint",
+            "reference_type": "ApiName",
+            "value": "hero_banner_recommendations",
+            "dataspace_reference_type": "ApiName",
+            "dataspace_value": "default",
+            "group_by_type": "DataGraph",
+            "group_by_reference_type": "ApiName",
+            "group_by_value": "user_profile_graph"
+          },
+          "source_matchers": [
+            {
+              "type": "PageUrlMatcher",
+              "value": "/home"
+            },
+            {
+              "type": "ContentZone",
+              "value": "hero_section"
+            }
+          ],
+          "transformation_config": {
+            "render_if_empty": false,
+            "when": "Immediately",
+            "method": "ReplaceContentZoneContent",
+            "engagement_destination": "banner_click_destination",
+            "transformations": [
+              {
+                "transformer_name": "promo_banner_transformer",
+                "substitutions": {
+                  "bannerTitle": "{{data.title}}",
+                  "bannerImage": "{{data.image}}",
+                  "ctaText": "Learn More"
+                }
+              }
+            ]
+          },
+          "display_url": "/home"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/my_website_connector/personalization-experience-configs",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "homepage_hero_banner",
+          "label": "Homepage Hero Banner Personalization",
+          "isEnabled": true,
+          "dataProvider": {
+            "type": "PersonalizationPoint",
+            "referenceType": "ApiName",
+            "value": "hero_banner_recommendations",
+            "dataSpaceReferenceType": "ApiName",
+            "dataSpaceValue": "default",
+            "groupByType": "DataGraph",
+            "groupByReferenceType": "ApiName",
+            "groupByValue": "user_profile_graph"
+          },
+          "sourceMatchers": [
+            {
+              "type": "PageUrlMatcher",
+              "value": "/home"
+            },
+            {
+              "type": "ContentZone",
+              "value": "hero_section"
+            }
+          ],
+          "transformationConfig": {
+            "renderIfEmpty": false,
+            "when": "Immediately",
+            "method": "ReplaceContentZoneContent",
+            "engagementDestination": "banner_click_destination",
+            "transformations": [
+              {
+                "transformerName": "promo_banner_transformer",
+                "substitutions": {
+                  "bannerTitle": "{{data.title}}",
+                  "bannerImage": "{{data.image}}",
+                  "ctaText": "Learn More"
+                }
+              }
+            ]
+          },
+          "displayUrl": "/home"
+        }
+      }
+    },
+    {
+      "function": "p13n_experience_config_update",
+      "call": "CALL cdp.p13n_experience_config_update (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_enabled => false)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_experience_config_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_app_source_id_or_name": "my_website_connector",
+          "name_param": "homepage_hero_banner",
+          "is_enabled": false
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/my_website_connector/personalization-experience-configs/homepage_hero_banner",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "isEnabled": false
+        }
+      }
+    },
+    {
+      "function": "p13n_experience_config_delete",
+      "call": "CALL cdp.p13n_experience_config_delete (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_experience_config_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_app_source_id_or_name": "my_website_connector",
+          "name_param": "homepage_hero_banner"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/my_website_connector/personalization-experience-configs/homepage_hero_banner",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "p13n_transformer_list",
+      "call": "CALL cdp.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'Handlebars', is_enabled => true)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_transformer_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "channel_type": "WebApp",
+          "transformer_type": "Handlebars",
+          "is_enabled": true
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/transformers",
+        "query": [
+          [
+            "channelType",
+            "WebApp"
+          ],
+          [
+            "transformerType",
+            "Handlebars"
+          ],
+          [
+            "isEnabled",
+            "true"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "_status": 200,
+            "_next": "1",
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_transformer_create",
+      "call": "CALL cdp.p13n_transformer_create (\n    name => 'promo_banner_transformer',\n    label => 'Promotional Banner Transformer',\n    channel => 'WebApp',\n    transformer_type => 'Handlebars',\n    is_enabled => true,\n    data_connectors => ['my_website_connector'],\n    dataspace => 'default',\n    substitution_definitions => (\n        bannerTitle = (label = 'Banner Title', configType = 'SchemaPath', defaultValue = '{{recommendation.title}}', overridable = true, required = true),\n        ctaText = (label = 'Call to Action Text', configType = 'Static', defaultValue = 'Shop Now', overridable = true, required = true)\n    ),\n    transformer_type_details => (\n        html = $$<div class=\"promo-banner\"><h2>{{bannerTitle}}</h2><button class=\"cta-button\">{{ctaText}}</button></div>$$,\n        disable_auto_injection_of_engagement_attributes = false\n    )\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_transformer_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "promo_banner_transformer",
+          "label": "Promotional Banner Transformer",
+          "channel": "WebApp",
+          "transformer_type": "Handlebars",
+          "is_enabled": true,
+          "data_connectors": [
+            "my_website_connector"
+          ],
+          "dataspace": "default",
+          "substitution_definitions": {
+            "bannerTitle": {
+              "label": "Banner Title",
+              "configType": "SchemaPath",
+              "defaultValue": "{{recommendation.title}}",
+              "overridable": true,
+              "required": true
+            },
+            "ctaText": {
+              "label": "Call to Action Text",
+              "configType": "Static",
+              "defaultValue": "Shop Now",
+              "overridable": true,
+              "required": true
+            }
+          },
+          "transformer_type_details": {
+            "html": "<div class=\"promo-banner\"><h2>{{bannerTitle}}</h2><button class=\"cta-button\">{{ctaText}}</button></div>",
+            "disable_auto_injection_of_engagement_attributes": false
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/transformers",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "promo_banner_transformer",
+          "label": "Promotional Banner Transformer",
+          "channel": "WebApp",
+          "transformerType": "Handlebars",
+          "isEnabled": true,
+          "dataConnectors": [
+            "my_website_connector"
+          ],
+          "dataSpace": "default",
+          "substitutionDefinitions": {
+            "bannerTitle": {
+              "label": "Banner Title",
+              "configType": "SchemaPath",
+              "defaultValue": "{{recommendation.title}}",
+              "overridable": true,
+              "required": true
+            },
+            "ctaText": {
+              "label": "Call to Action Text",
+              "configType": "Static",
+              "defaultValue": "Shop Now",
+              "overridable": true,
+              "required": true
+            }
+          },
+          "transformerTypeDetails": {
+            "html": "<div class=\"promo-banner\"><h2>{{bannerTitle}}</h2><button class=\"cta-button\">{{ctaText}}</button></div>",
+            "disableAutoInjectionOfEngagementAttributes": false
+          }
+        }
+      }
+    },
+    {
+      "function": "p13n_transformer_update",
+      "call": "CALL cdp.p13n_transformer_update (id_or_name => 'promo_banner_transformer', is_enabled => true, label => 'Updated Banner Transformer')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_transformer_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "promo_banner_transformer",
+          "is_enabled": true,
+          "label": "Updated Banner Transformer"
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/transformer",
+        "query": [
+          [
+            "idOrName",
+            "promo_banner_transformer"
+          ]
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "isEnabled": true,
+          "label": "Updated Banner Transformer"
+        }
+      }
+    },
+    {
+      "function": "p13n_transformer_delete",
+      "call": "CALL cdp.p13n_transformer_delete (id_or_name => 'promo_banner_transformer')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_transformer_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "promo_banner_transformer"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/external-apps/transformer",
+        "query": [
+          [
+            "idOrName",
+            "promo_banner_transformer"
+          ]
+        ],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "p13n_schema_create",
+      "call": "CALL cdp.p13n_schema_create (\n    name => 'product_recommendations_schema',\n    label => 'Product Recommendations Schema',\n    dataspace_name => 'default',\n    personalization_type => 'Recommendations',\n    attributes => [\n        (name = 'recommendation_type', label = 'Recommendation Type', default_value = 'similar_items'),\n        (name = 'priority_score', label = 'Priority Score')\n    ],\n    content_object => (name = 'Product__dll', field_names = ['name', 'description', 'price', 'image_url', 'category']),\n    related_content_objects => [(content_object_name = 'ProductReviews__dll', field_names = ['rating', 'review_count'])]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_schema_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "product_recommendations_schema",
+          "label": "Product Recommendations Schema",
+          "dataspace_name": "default",
+          "personalization_type": "Recommendations",
+          "attributes": [
+            {
+              "name": "recommendation_type",
+              "label": "Recommendation Type",
+              "default_value": "similar_items"
+            },
+            {
+              "name": "priority_score",
+              "label": "Priority Score"
+            }
+          ],
+          "content_object": {
+            "name": "Product__dll",
+            "field_names": [
+              "name",
+              "description",
+              "price",
+              "image_url",
+              "category"
+            ]
+          },
+          "related_content_objects": [
+            {
+              "content_object_name": "ProductReviews__dll",
+              "field_names": [
+                "rating",
+                "review_count"
+              ]
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-schemas",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "product_recommendations_schema",
+          "label": "Product Recommendations Schema",
+          "dataSpaceName": "default",
+          "personalizationType": "Recommendations",
+          "attributes": [
+            {
+              "name": "recommendation_type",
+              "label": "Recommendation Type",
+              "defaultValue": "similar_items"
+            },
+            {
+              "name": "priority_score",
+              "label": "Priority Score"
+            }
+          ],
+          "contentObject": {
+            "name": "Product__dll",
+            "fieldNames": [
+              "name",
+              "description",
+              "price",
+              "image_url",
+              "category"
+            ]
+          },
+          "relatedContentObjects": [
+            {
+              "contentObjectName": "ProductReviews__dll",
+              "fieldNames": [
+                "rating",
+                "review_count"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "p13n_schema_get",
+      "call": "CALL cdp.p13n_schema_get (id_or_name => 'product_recommendations_schema')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_schema_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "id_or_name": "product_recommendations_schema"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-schemas/product_recommendations_schema",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "id_value",
+          "name": "name_value",
+          "label": "label_value",
+          "description": "description_value",
+          "dataSpaceName": "dataspace_name_value",
+          "personalizationType": "personalization_type_value",
+          "attributes": {
+            "assumed": "attributes"
+          },
+          "contentObject": {
+            "assumed": "content_object"
+          },
+          "relatedContentObjects": {
+            "assumed": "related_content_objects"
+          },
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "id_value",
+            "name": "name_value",
+            "label": "label_value",
+            "description": "description_value",
+            "dataspace_name": "dataspace_name_value",
+            "personalization_type": "personalization_type_value",
+            "attributes": "{\"assumed\":\"attributes\"}",
+            "content_object": "{\"assumed\":\"content_object\"}",
+            "related_content_objects": "{\"assumed\":\"related_content_objects\"}",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "p13n_schema_update",
+      "call": "CALL cdp.p13n_schema_update (id_or_name => 'product_recommendations_schema', label => 'Updated Product Recommendations', attributes => [(name = 'new_attribute', label = 'New Attribute', default_value = 'default_value')])",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_schema_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "product_recommendations_schema",
+          "label": "Updated Product Recommendations",
+          "attributes": [
+            {
+              "name": "new_attribute",
+              "label": "New Attribute",
+              "default_value": "default_value"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-schemas/product_recommendations_schema",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Updated Product Recommendations",
+          "attributes": [
+            {
+              "name": "new_attribute",
+              "label": "New Attribute",
+              "defaultValue": "default_value"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "p13n_schema_delete",
+      "call": "CALL cdp.p13n_schema_delete (id_or_name => 'product_recommendations_schema')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_schema_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "product_recommendations_schema"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-schemas/product_recommendations_schema",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "p13n_point_create",
+      "call": "CALL cdp.p13n_point_create (\n    name => 'home_page_experience',\n    label => 'Home Page Experience Point',\n    dataspace_name => 'default',\n    profile_data_graph_name => 'individual_profile',\n    source => 'PersonalizationApp',\n    is_authentication_required => true,\n    schema_name => 'product_recommendations_schema',\n    max_items_count => 10,\n    decisions => [\n        (\n            name = 'premium_decision',\n            label = 'Premium User Decision',\n            criteria = $${\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[{\"type\":\"Filter\",\"operator\":\"EQUALS\",\"subject\":{\"fieldApiName\":\"Segment__c\",\"objectApiName\":\"Individual__dll\"},\"values\":[\"Premium\"]}]}$$,\n            attribute_values = [(attribute_name = 'recommendation_type', value = 'premium_products')],\n            personalizer_name = 'premium_recommender',\n            state = 'Live'\n        ),\n        (\n            name = 'default_decision',\n            label = 'Default Decision',\n            criteria = $${\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}$$,\n            attribute_values = [(attribute_name = 'recommendation_type', value = 'popular_items')],\n            personalizer_name = 'default_recommender',\n            state = 'Live'\n        )\n    ]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_point_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "home_page_experience",
+          "label": "Home Page Experience Point",
+          "dataspace_name": "default",
+          "profile_data_graph_name": "individual_profile",
+          "source": "PersonalizationApp",
+          "is_authentication_required": true,
+          "schema_name": "product_recommendations_schema",
+          "max_items_count": 10,
+          "decisions": [
+            {
+              "name": "premium_decision",
+              "label": "Premium User Decision",
+              "criteria": "{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[{\"type\":\"Filter\",\"operator\":\"EQUALS\",\"subject\":{\"fieldApiName\":\"Segment__c\",\"objectApiName\":\"Individual__dll\"},\"values\":[\"Premium\"]}]}",
+              "attribute_values": [
+                {
+                  "attribute_name": "recommendation_type",
+                  "value": "premium_products"
+                }
+              ],
+              "personalizer_name": "premium_recommender",
+              "state": "Live"
+            },
+            {
+              "name": "default_decision",
+              "label": "Default Decision",
+              "criteria": "{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}",
+              "attribute_values": [
+                {
+                  "attribute_name": "recommendation_type",
+                  "value": "popular_items"
+                }
+              ],
+              "personalizer_name": "default_recommender",
+              "state": "Live"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-points",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "home_page_experience",
+          "label": "Home Page Experience Point",
+          "dataSpaceName": "default",
+          "profileDataGraphName": "individual_profile",
+          "source": "PersonalizationApp",
+          "isAuthenticationRequired": true,
+          "schemaName": "product_recommendations_schema",
+          "maxItemsCount": 10,
+          "decisions": [
+            {
+              "name": "premium_decision",
+              "label": "Premium User Decision",
+              "criteria": "{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[{\"type\":\"Filter\",\"operator\":\"EQUALS\",\"subject\":{\"fieldApiName\":\"Segment__c\",\"objectApiName\":\"Individual__dll\"},\"values\":[\"Premium\"]}]}",
+              "attributeValues": [
+                {
+                  "attributeName": "recommendation_type",
+                  "value": "premium_products"
+                }
+              ],
+              "personalizerName": "premium_recommender",
+              "state": "Live"
+            },
+            {
+              "name": "default_decision",
+              "label": "Default Decision",
+              "criteria": "{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}",
+              "attributeValues": [
+                {
+                  "attributeName": "recommendation_type",
+                  "value": "popular_items"
+                }
+              ],
+              "personalizerName": "default_recommender",
+              "state": "Live"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "p13n_point_update",
+      "call": "CALL cdp.p13n_point_update (\n    id_or_name => 'home_page_experience',\n    name => 'home_page_experience',\n    label => 'Updated Home Page Experience',\n    dataspace_name => 'default',\n    profile_data_graph_name => 'individual_profile',\n    source => 'PersonalizationApp',\n    is_authentication_required => false,\n    schema_name => 'product_recommendations_schema',\n    max_items_count => 15,\n    decisions => [(\n        name = 'default_decision',\n        label = 'Default Decision',\n        criteria = $${\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}$$,\n        attribute_values = [],\n        personalizer_name = 'default_recommender',\n        state = 'Live'\n    )]\n)",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_point_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "home_page_experience",
+          "name": "home_page_experience",
+          "label": "Updated Home Page Experience",
+          "dataspace_name": "default",
+          "profile_data_graph_name": "individual_profile",
+          "source": "PersonalizationApp",
+          "is_authentication_required": false,
+          "schema_name": "product_recommendations_schema",
+          "max_items_count": 15,
+          "decisions": [
+            {
+              "name": "default_decision",
+              "label": "Default Decision",
+              "criteria": "{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}",
+              "attribute_values": [],
+              "personalizer_name": "default_recommender",
+              "state": "Live"
+            }
+          ]
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-points/home_page_experience",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "home_page_experience",
+          "label": "Updated Home Page Experience",
+          "dataSpaceName": "default",
+          "profileDataGraphName": "individual_profile",
+          "source": "PersonalizationApp",
+          "isAuthenticationRequired": false,
+          "schemaName": "product_recommendations_schema",
+          "maxItemsCount": 15,
+          "decisions": [
+            {
+              "name": "default_decision",
+              "label": "Default Decision",
+              "criteria": "{\"type\":\"Criteria\",\"operator\":\"AND\",\"filters\":[]}",
+              "attributeValues": [],
+              "personalizerName": "default_recommender",
+              "state": "Live"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "function": "p13n_point_delete",
+      "call": "CALL cdp.p13n_point_delete (id_or_name => 'home_page_experience')",
+      "description": {
+        "namespace": "cdp",
+        "function": "p13n_point_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "id_or_name": "home_page_experience"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/personalization/personalization-points/home_page_experience",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    }
+  ]
+}

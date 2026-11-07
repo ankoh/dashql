@@ -277,7 +277,7 @@ Returns a paginated list of publish-history records. With a market segment activ
 | `limit` | `limit` | query | integer |  | Maximum number of history records to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0. |
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0. |
 | `order_by` | `orderBy` | query | string |  | Sort expression. If unspecified, the default value is `publishEndTime desc`. Since v67.0. |
-| `page_token` | `pageToken` | query | string |  | **Sensitive:** use `secret()`. Snapshot anchor for consistent pagination. Omit this value on the first request. The response's `next_page_url` includes the `page_token` for subsequent pages, which keeps the result set stable as new activations are published. Follow `next_page_url` rather than constructing this value. Since v67.0. |
+| `page_token` | `pageToken` | query | string |  | Snapshot anchor for consistent pagination. Omit this value on the first request. The response's `next_page_url` includes the `page_token` for subsequent pages, which keeps the result set stable as new activations are published. Follow `next_page_url` rather than constructing this value. Since v67.0. |
 
 ```sql
 CALL cdp.activation_history_list (activation_id => '1sgVF000000LfbFYAS', limit => 50);
@@ -1024,8 +1024,8 @@ Represents the activation contact point input.
 |---|---|---|---|---|
 | `attributes_config` | `attributesConfig` | array of [ContactPointAttributesConfigInput](#contactpointattributesconfiginputrepresentation) | yes | Attributes for the contact point. Since v60.0. |
 | `entity_name` | `entityName` | string | yes | Entity name for the contact point. Since v60.0. |
-| `external_platform_hash_method` | `externalPlatformHashMethod` | string | yes | External platform hash method for the contact point. Since v60.0. |
-| `filter_expression` | `filterExpression` | array of [ContactPointFilterExpressionInput](#contactpointfilterexpressioninputrepresentation) | yes | Filter expression for the contact point. Since v60.0. |
+| `external_platform_hash_method` | `externalPlatformHashMethod` | string |  | The spec marks this required, but the example here leaves it out. External platform hash method for the contact point. Since v60.0. |
+| `filter_expression` | `filterExpression` | array of [ContactPointFilterExpressionInput](#contactpointfilterexpressioninputrepresentation) |  | The spec marks this required, but the example here leaves it out. Filter expression for the contact point. Since v60.0. |
 | `query_path_config` | `queryPathConfig` | array of [QueryPathConfigListInput](#querypathconfiglistinputrepresentation) | yes | Query path configuration list. Since v63.0. |
 | `sources_config` | `sourcesConfig` | array of [ContactPointSourcesConfigInput](#contactpointsourcesconfiginputrepresentation) | yes | Source configurations for the contact point. Since v60.0. |
 | `type` | `type` | enum(Email, Maid, Ott, Phone, Push, SubscriberKeyEmail, SubscriberKeyPhone, WhatsApp) | yes | Type of contact point. Since v60.0. |
@@ -1182,7 +1182,7 @@ Represents the attribute of an activation contact point.
 |---|---|---|---|---|
 | `label` | `label` | string | yes | Label of the attribute. Since v63.0. |
 | `name` | `name` | string | yes | Name of the attribute. Since v63.0. |
-| `preferred_name` | `preferredName` | string | yes | Preferred name of the attribute. Since v63.0. |
+| `preferred_name` | `preferredName` | string |  | The spec marks this required, but the example here leaves it out. Preferred name of the attribute. Since v63.0. |
 
 ### ContactPointAttributesConfigInputRepresentation
 

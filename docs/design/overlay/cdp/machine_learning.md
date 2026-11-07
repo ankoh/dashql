@@ -1086,12 +1086,12 @@ Update a configured model. If using the model's name, use `<namespace>__<devname
 | Option | API name | In | Type | Required | Description |
 |---|---|---|---|---|---|
 | `configured_model_id_or_name` | `configuredModelIdOrName` | path | string | yes | Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`. |
-| `actionable_fields` | `actionableFields` | body | array of object | yes | List of actionable fields. An actionable field is a data field or variable in your dataset that you can use to drive actions based on the model's predictions. These fields are typically used to trigger workflows, automation, or other follow-up actions in Salesforce. Since v61.0. |
-| `artifact` | `artifact` | body | object | yes | Model artifact. Since v61.0. |
-| `capability` | `capability` | body | enum(BinaryClassification, ChatCompletion, Completion, Embedding, Generic, MulticlassClassification, Regression) | yes | The model's capabilities. Since v61.0. |
-| `description` | `description` | body | string | yes | Model description. Since v61.0. |
-| `label` | `label` | body | string | yes | Model's label. Since v61.0. |
-| `parameter_overrides` | `parameterOverrides` | body | array of object | yes | Model parameter overrides. Since v61.0. |
+| `actionable_fields` | `actionableFields` | body | array of object |  | The spec marks this required, but the example here leaves it out. List of actionable fields. An actionable field is a data field or variable in your dataset that you can use to drive actions based on the model's predictions. These fields are typically used to trigger workflows, automation, or other follow-up actions in Salesforce. Since v61.0. |
+| `artifact` | `artifact` | body | object |  | The spec marks this required, but the example here leaves it out. Model artifact. Since v61.0. |
+| `capability` | `capability` | body | enum(BinaryClassification, ChatCompletion, Completion, Embedding, Generic, MulticlassClassification, Regression) |  | The spec marks this required, but the example here leaves it out. The model's capabilities. Since v61.0. |
+| `description` | `description` | body | string |  | The spec marks this required, but the example here leaves it out. Model description. Since v61.0. |
+| `label` | `label` | body | string |  | The spec marks this required, but the example here leaves it out. Model's label. Since v61.0. |
+| `parameter_overrides` | `parameterOverrides` | body | array of object |  | The spec marks this required, but the example here leaves it out. Model parameter overrides. Since v61.0. |
 | `status` | `status` | body | enum(Disabled, Enabled) | yes | Whether the model is enabled or disabled. Since v61.0. |
 | `visibility` | `visibility` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
@@ -1152,8 +1152,8 @@ Update the model artifact. Since v61.0.
 | Option | API name | In | Type | Required | Description |
 |---|---|---|---|---|---|
 | `model_artifact_id_or_name` | `modelArtifactIdOrName` | path | string | yes | Model artifact ID or developer name, for example `Attrition_Risk_Predictor_v1__mla`. |
-| `description` | `description` | body | string | yes | The model artifact's description. Since v61.0. |
-| `label` | `label` | body | string | yes | Model artifact's label. Since v61.0. |
+| `description` | `description` | body | string |  | The spec marks this required, but the example here leaves it out. The model artifact's description. Since v61.0. |
+| `label` | `label` | body | string |  | The spec marks this required, but the example here leaves it out. Model artifact's label. Since v61.0. |
 | `status` | `status` | body | enum(Disabled, Draft, Enabled) | yes | Model artifact's status. Since v61.0. |
 | `output_fields` | `outputFields` | body | array of [ml_model_artifact_update_outputFields](#ml_model_artifact_update_outputfields) |  | Not in the spec schema: from the MCP server's payload example. |
 

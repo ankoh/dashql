@@ -39,6 +39,17 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
+# Stage the overlays for the @dashql/overlays alias, the browser tests read their specs and fixtures.
+copy_to_directory(
+    name = "overlays",
+    srcs = ["//overlay/d360:files"],
+    out = "dependencies/overlays",
+    replace_prefixes = {
+        "overlay": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
 # The wasm-bindgen module of the Rust shell, which also carries the core bindings. The glue loads
 # `dashql_shell_bg.wasm` by default; the app ships the optimized module as `dashql_shell.wasm`.
 genrule(
@@ -113,6 +124,7 @@ genrule(
             -e "s|__SHELL_WASM_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
+            -e "s|__OVERLAYS_PATH__|./dependencies/overlays|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
@@ -146,6 +158,7 @@ genrule(
             -e "s|__SHELL_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             -e "s|__SNIPPETS_PATH__|../../examples/snippets|g" \
+            -e "s|__OVERLAYS_PATH__|../../overlay|g" \
             $(location vite.config.tpl.ts) > $@
     """,
 )
@@ -247,6 +260,7 @@ _vite_web_deps = [
     ":browser_test_files",
     ":browser_test_stylesheets",
     ":example_snippets",
+    ":overlays",
     ":vite_config",
     "//:node_modules/@ankoh/dashql-core",
     "//:node_modules/@ankoh/dashql-ui",

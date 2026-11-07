@@ -1,0 +1,6 @@
+# The Data 360 reference is the source of the overlay in //overlay/d360.
+filegroup(
+    name = "reference",
+    srcs = glob(["*.md"]),
+    visibility = ["//overlay/d360:__pkg__"],
+)

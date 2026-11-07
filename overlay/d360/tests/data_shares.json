@@ -1,0 +1,662 @@
+{
+  "cases": [
+    {
+      "function": "data_share_create",
+      "call": "CALL cdp.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', data_share_objects => ['Sales_Order__dlm', 'Account_Home__dll'])",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Sales_Data_Share",
+          "label": "Sales Data Share",
+          "dataspace_name": "default",
+          "data_share_objects": [
+            "Sales_Order__dlm",
+            "Account_Home__dll"
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Sales_Data_Share",
+          "label": "Sales Data Share",
+          "dataSpaceName": "default",
+          "dataShareObjects": [
+            "Sales_Order__dlm",
+            "Account_Home__dll"
+          ]
+        }
+      }
+    },
+    {
+      "function": "data_share_get",
+      "call": "CALL cdp.data_share_get (name_or_id => 'Sales_Data_Share')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "name_or_id": "Sales_Data_Share"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share/Sales_Data_Share",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "dataShareObjects": {
+            "assumed": "data_share_objects"
+          },
+          "dataspaceName": "dataspace_name_value",
+          "status": "status_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "data_share_objects": "{\"assumed\":\"data_share_objects\"}",
+            "dataspace_name": "dataspace_name_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "data_share_target_create",
+      "call": "CALL cdp.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', target_email_id => 'analytics-team@example.com', target_email_type => 'Group')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_target_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "target_type": "BigQuery",
+          "name": "BigQuery_Analytics_Target",
+          "label": "BigQuery Analytics",
+          "target_email_id": "analytics-team@example.com",
+          "target_email_type": "Group"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share-target",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "targetType": "BigQuery",
+          "name": "BigQuery_Analytics_Target",
+          "label": "BigQuery Analytics",
+          "targetEmailId": "analytics-team@example.com",
+          "targetEmailType": "Group"
+        }
+      }
+    },
+    {
+      "function": "data_share_link",
+      "call": "CALL cdp.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target'])",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_link",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name_or_id": "Sales_Data_Share",
+          "data_share_target_names": [
+            "BigQuery_Analytics_Target"
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share/Sales_Data_Share/actions/link",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataShareTargetNames": [
+            "BigQuery_Analytics_Target"
+          ]
+        }
+      }
+    },
+    {
+      "function": "data_share_target_delete",
+      "call": "CALL cdp.data_share_target_delete (name_or_id => 'BigQuery_Analytics_Target')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_target_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name_or_id": "BigQuery_Analytics_Target"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share-target/BigQuery_Analytics_Target",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "data_share_delete",
+      "call": "CALL cdp.data_share_delete (name_or_id => 'Sales_Data_Share')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_delete",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name_or_id": "Sales_Data_Share"
+        }
+      },
+      "request": {
+        "method": "DELETE",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share/Sales_Data_Share",
+        "query": [],
+        "headers": {},
+        "body": null
+      }
+    },
+    {
+      "function": "data_share_target_get",
+      "call": "CALL cdp.data_share_target_get (name_or_id => 'Snowflake_Prod_Target')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_target_get",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "name_or_id": "Snowflake_Prod_Target"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share-target/Snowflake_Prod_Target",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "createdBy": {
+            "assumed": "created_by"
+          },
+          "createdDate": "created_date_value",
+          "id": "id_value",
+          "label": "label_value",
+          "lastModifiedBy": {
+            "assumed": "last_modified_by"
+          },
+          "lastModifiedDate": "last_modified_date_value",
+          "name": "name_value",
+          "namespace": "namespace_value",
+          "url": "url_value",
+          "targetEmailId": "target_email_id_value",
+          "targetEmailType": "target_email_type_value",
+          "subType": "sub_type_value",
+          "targetOrgId": "target_org_id_value",
+          "accountUrl": "account_url_value",
+          "serviceAccountId": "service_account_id_value",
+          "isPublicKeyProvided": true,
+          "issuer": "issuer_value",
+          "publicKey": "public_key_value",
+          "publicCert": "public_cert_value",
+          "status": "status_value",
+          "targetType": "target_type_value",
+          "accountId": "account_id_value",
+          "awsRoleArn": "aws_role_arn_value",
+          "assumedUnlistedField": true
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "target_email_id": "target_email_id_value",
+            "target_email_type": "target_email_type_value",
+            "sub_type": "sub_type_value",
+            "target_org_id": "target_org_id_value",
+            "account_url": "account_url_value",
+            "service_account_id": "service_account_id_value",
+            "is_public_key_provided": true,
+            "issuer": "issuer_value",
+            "public_key": "public_key_value",
+            "public_cert": "public_cert_value",
+            "status": "status_value",
+            "target_type": "target_type_value",
+            "account_id": "account_id_value",
+            "aws_role_arn": "aws_role_arn_value",
+            "_status": 200,
+            "_next": null,
+            "_meta": null,
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "data_share_target_list",
+      "call": "CALL cdp.data_share_target_list (target_type => 'Snowflake')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_target_list",
+        "effect": "read",
+        "explain": false,
+        "options": {
+          "target_type": "Snowflake"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share-targets/Snowflake",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataShareTargets": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "targetEmailId": "target_email_id_value",
+              "targetEmailType": "target_email_type_value",
+              "subType": "sub_type_value",
+              "targetOrgId": "target_org_id_value",
+              "accountUrl": "account_url_value",
+              "serviceAccountId": "service_account_id_value",
+              "isPublicKeyProvided": true,
+              "issuer": "issuer_value",
+              "publicKey": "public_key_value",
+              "publicCert": "public_cert_value",
+              "status": "status_value",
+              "targetType": "target_type_value",
+              "accountId": "account_id_value",
+              "awsRoleArn": "aws_role_arn_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "target_email_id": "target_email_id_value",
+            "target_email_type": "target_email_type_value",
+            "sub_type": "sub_type_value",
+            "target_org_id": "target_org_id_value",
+            "account_url": "account_url_value",
+            "service_account_id": "service_account_id_value",
+            "is_public_key_provided": true,
+            "issuer": "issuer_value",
+            "public_key": "public_key_value",
+            "public_cert": "public_cert_value",
+            "status": "status_value",
+            "target_type": "target_type_value",
+            "account_id": "account_id_value",
+            "aws_role_arn": "aws_role_arn_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "data_share_list",
+      "call": "CALL cdp.data_share_list ()",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_list",
+        "effect": "read",
+        "explain": false,
+        "options": {}
+      },
+      "request": {
+        "method": "GET",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-shares",
+        "query": [],
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "source": "assumed",
+        "status": 200,
+        "headers": {},
+        "body": {
+          "dataShares": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "dataShareObjects": {
+                "assumed": "data_share_objects"
+              },
+              "dataspaceName": "dataspace_name_value",
+              "status": "status_value",
+              "assumedUnlistedField": true
+            }
+          ],
+          "nextPageUrl": "/assumed/next-page"
+        }
+      },
+      "result": {
+        "rows": [
+          {
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "data_share_objects": "{\"assumed\":\"data_share_objects\"}",
+            "dataspace_name": "dataspace_name_value",
+            "status": "status_value",
+            "_status": 200,
+            "_next": "/assumed/next-page",
+            "_meta": {
+              "nextPageUrl": "/assumed/next-page"
+            },
+            "_raw": {
+              "assumedUnlistedField": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "function": "data_share_update",
+      "call": "CALL cdp.data_share_update (name_or_id => 'Sales_Data_Share', label => 'Sales Data Share (Updated)', description => 'Added order-line DMO', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Sales_Order_Line__dlm', 'Contact_Point_Email__cio'])",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_update",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name_or_id": "Sales_Data_Share",
+          "label": "Sales Data Share (Updated)",
+          "description": "Added order-line DMO",
+          "data_share_objects": [
+            "Account_Home__dll",
+            "Sales_Order__dlm",
+            "Sales_Order_Line__dlm",
+            "Contact_Point_Email__cio"
+          ]
+        }
+      },
+      "request": {
+        "method": "PATCH",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share/Sales_Data_Share",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "label": "Sales Data Share (Updated)",
+          "description": "Added order-line DMO",
+          "dataShareObjects": [
+            "Account_Home__dll",
+            "Sales_Order__dlm",
+            "Sales_Order_Line__dlm",
+            "Contact_Point_Email__cio"
+          ]
+        }
+      }
+    },
+    {
+      "function": "data_share_create",
+      "call": "CALL cdp.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', description => 'Shares sales DMOs and DLOs with external partners', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Contact_Point_Email__cio'])",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name": "Sales_Data_Share",
+          "label": "Sales Data Share",
+          "dataspace_name": "default",
+          "description": "Shares sales DMOs and DLOs with external partners",
+          "data_share_objects": [
+            "Account_Home__dll",
+            "Sales_Order__dlm",
+            "Contact_Point_Email__cio"
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Sales_Data_Share",
+          "label": "Sales Data Share",
+          "dataSpaceName": "default",
+          "description": "Shares sales DMOs and DLOs with external partners",
+          "dataShareObjects": [
+            "Account_Home__dll",
+            "Sales_Order__dlm",
+            "Contact_Point_Email__cio"
+          ]
+        }
+      }
+    },
+    {
+      "function": "data_share_target_create",
+      "call": "CALL cdp.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', dataspace_name => 'default', description => 'BigQuery target for analytics team', target_email_id => 'analytics-team@example.com', target_email_type => 'Group')",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_target_create",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "target_type": "BigQuery",
+          "name": "BigQuery_Analytics_Target",
+          "label": "BigQuery Analytics",
+          "dataspace_name": "default",
+          "description": "BigQuery target for analytics team",
+          "target_email_id": "analytics-team@example.com",
+          "target_email_type": "Group"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share-target",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "targetType": "BigQuery",
+          "name": "BigQuery_Analytics_Target",
+          "label": "BigQuery Analytics",
+          "dataSpaceName": "default",
+          "description": "BigQuery target for analytics team",
+          "targetEmailId": "analytics-team@example.com",
+          "targetEmailType": "Group"
+        }
+      }
+    },
+    {
+      "function": "data_share_link",
+      "call": "CALL cdp.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['Snowflake_Prod_Target', 'BigQuery_Analytics_Target'])",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_link",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name_or_id": "Sales_Data_Share",
+          "data_share_target_names": [
+            "Snowflake_Prod_Target",
+            "BigQuery_Analytics_Target"
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share/Sales_Data_Share/actions/link",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataShareTargetNames": [
+            "Snowflake_Prod_Target",
+            "BigQuery_Analytics_Target"
+          ]
+        }
+      }
+    },
+    {
+      "function": "data_share_unlink",
+      "call": "CALL cdp.data_share_unlink (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target'])",
+      "description": {
+        "namespace": "cdp",
+        "function": "data_share_unlink",
+        "effect": "write",
+        "explain": false,
+        "options": {
+          "name_or_id": "Sales_Data_Share",
+          "data_share_target_names": [
+            "BigQuery_Analytics_Target"
+          ]
+        }
+      },
+      "request": {
+        "method": "POST",
+        "host": "connect",
+        "path": "/services/data/v68.0/ssot/data-share/Sales_Data_Share/actions/unlink",
+        "query": [],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataShareTargetNames": [
+            "BigQuery_Analytics_Target"
+          ]
+        }
+      }
+    }
+  ]
+}
