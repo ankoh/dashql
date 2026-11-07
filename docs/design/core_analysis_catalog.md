@@ -469,9 +469,10 @@ The catalog loader starts the refresh again.
 - `SessionPlanRequest` + `planSession()` borrow every session and every catalog for one planning call.
 
 **JS caches** (`packages/dashql-core-js/src/api.ts`)
-- `DashQLCatalog` caches a `flatten()` snapshot for the version of the catalog (`Catalog.version`).
-  Publishes and drops made through sessions, scripts or the shell bump the version, so the next
-  `createSnapshot` flattens again.
+- `DashQLCatalog.flatten()` returns a `DashQLFlatCatalog`, cached for the version of the catalog
+  (`Catalog.version`). Publishes and drops made through sessions, scripts or the shell bump the
+  version, so the next call flattens again. It isn't a `CatalogSnapshot`: it merges the entries into
+  one read-only view for the catalog tree and the name index.
 - `DashQLScriptSession` keeps the latest update that carries an analysis, sets `known_analysis` on
   every event it applies, and fills an update with `analysis_omitted` from the arrays of that update.
   An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of

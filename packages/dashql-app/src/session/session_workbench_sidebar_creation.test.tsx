@@ -123,7 +123,7 @@ const dependencies = {
 /// The catalog of a connection without relations
 const EMPTY_CATALOG = {
     catalog: {
-        createSnapshot: () => ({
+        flatten: () => ({
             read: () => ({ catalogReader: { databasesLength: () => 0 } }),
         }),
     },
@@ -202,7 +202,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             ...state.local!,
             connectorInfo: { connectorType: ConnectorType.HYPER, icons: { colored: 'database' }, names: { displayLong: 'Hyper' } },
             catalog: {
-                createSnapshot: () => ({
+                flatten: () => ({
                     read: () => ({ catalogReader: { databasesLength: () => 0 } }),
                 }),
             },
@@ -237,7 +237,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             ...state.local!,
             connectionHealth: ConnectionHealth.ONLINE,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            catalog: { createSnapshot: () => ({
+            catalog: { flatten: () => ({
                 read: () => ({ catalogReader: { databasesLength: () => 0 } }),
             }) },
             catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },

@@ -57,8 +57,8 @@ describe('Catalog name index', () => {
     it('indexes the tables of script sessions and skips system schemas', () => {
         const live = dql.createCatalog();
         try {
-            // A snapshot taken before is cached by the catalog, the index must not depend on it
-            live.createSnapshot();
+            // A flat catalog taken before is cached by the catalog, the index must not depend on it
+            live.flatten();
             const session = dql.createScriptSession(live);
             session.replaceText(session.getTextVersion(), 'create table attachments (file_name text)');
             session.analyze();

@@ -249,7 +249,7 @@ describe('Session composer', () => {
 
         it('highlights tables that session scripts load into the catalog later', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
-            catalog.createSnapshot();
+            catalog.flatten();
             const session = dql.createScriptSession(catalog);
             session.replaceText(session.getTextVersion(), 'create table orders (amount int)');
             session.analyze();

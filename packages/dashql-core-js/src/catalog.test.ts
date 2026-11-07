@@ -21,13 +21,13 @@ describe('DashQLCatalog', () => {
         functions.insertTextAt(0, 'create function db.schema.item_count() returns int;');
         relations.analyze();
         functions.analyze();
-        const previousVersion = catalog.createSnapshot().read().catalogReader.catalogVersion();
+        const previousVersion = catalog.flatten().read().catalogReader.catalogVersion();
 
         catalog.loadScripts([[relations, dashql.buffers.catalog.CatalogLayer.CONNECTION], [functions, dashql.buffers.catalog.CatalogLayer.SESSION]]);
 
-        const snapshot = catalog.createSnapshot().read().catalogReader;
-        expect(snapshot.catalogVersion()).toBe(previousVersion + 1n);
-        expect(snapshot.tablesLength()).toBe(1);
+        const flat = catalog.flatten().read().catalogReader;
+        expect(flat.catalogVersion()).toBe(previousVersion + 1n);
+        expect(flat.tablesLength()).toBe(1);
         expect(catalog.containsEntryId(relations.getCatalogEntryId())).toBeTruthy();
         expect(catalog.containsEntryId(functions.getCatalogEntryId())).toBeTruthy();
     });

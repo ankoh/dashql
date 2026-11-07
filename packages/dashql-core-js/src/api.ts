@@ -960,11 +960,11 @@ export class DashQLScript {
     }
 }
 
-export class DashQLCatalogSnapshotReader {
+export class DashQLFlatCatalogReader {
     public catalogReader: buffers.catalog.FlatCatalog;
     nameDictionary: (string | null)[];
 
-    /// Construct a snapshot reader with a name dictionary
+    /// Construct a reader with a name dictionary
     constructor(catalog: buffers.catalog.FlatCatalog, nameDictionary: (string | null)[]) {
         this.catalogReader = catalog;
         this.nameDictionary = nameDictionary;
@@ -980,18 +980,18 @@ export class DashQLCatalogSnapshotReader {
     }
 }
 
-export class DashQLCatalogSnapshot {
+export class DashQLFlatCatalog {
     public ptr: FlatBufferPtr<buffers.catalog.FlatCatalog>;
     nameDictionary: (string | null)[];
 
-    constructor(snapshot: FlatBufferPtr<buffers.catalog.FlatCatalog>) {
-        this.ptr = snapshot;
+    constructor(flat: FlatBufferPtr<buffers.catalog.FlatCatalog>) {
+        this.ptr = flat;
         this.nameDictionary = [];
     }
-    /// Read a snapshot
-    public read(): DashQLCatalogSnapshotReader {
+    /// Read the flat catalog
+    public read(): DashQLFlatCatalogReader {
         const reader = this.ptr.read();
-        return new DashQLCatalogSnapshotReader(reader, this.nameDictionary);
+        return new DashQLFlatCatalogReader(reader, this.nameDictionary);
     }
 }
 
@@ -1010,15 +1010,15 @@ function assertLayer(layer: buffers.catalog.CatalogLayer): void {
 
 export class DashQLCatalog {
     public readonly ptr: Ptr<typeof CATALOG_TYPE, NativeCatalog>;
-    /// The cached snapshot
-    public snapshot: DashQLCatalogSnapshot | null;
-    /// The version of the catalog that the cached snapshot shows
-    private snapshotVersion: number | null;
+    /// The cached flat catalog
+    public flat: DashQLFlatCatalog | null;
+    /// The version of the catalog that the cached flat catalog shows
+    private flatVersion: number | null;
 
     public constructor(ptr: Ptr<typeof CATALOG_TYPE, NativeCatalog>) {
         this.ptr = ptr;
-        this.snapshot = null;
-        this.snapshotVersion = null;
+        this.flat = null;
+        this.flatVersion = null;
     }
     /// The version of the catalog, bumped by every change, also by the script sessions on the catalog
     public version(): number {
@@ -1026,16 +1026,16 @@ export class DashQLCatalog {
     }
     /// Delete the catalog
     public destroy() {
-        this.deleteSnapshot();
+        this.deleteFlat();
         this.ptr.destroy();
     }
-    /// Forget the cached snapshot
-    protected deleteSnapshot() {
-        this.snapshot = null;
+    /// Forget the cached flat catalog
+    protected deleteFlat() {
+        this.flat = null;
     }
     /// Reset a catalog
     public clear(): void {
-        this.deleteSnapshot();
+        this.deleteFlat();
         this.ptr.assertNotNull().clear();
     }
     public allocateEntryId(): number {
@@ -1047,37 +1047,37 @@ export class DashQLCatalog {
         assertUint32(catalogEntryId, 'catalogEntryId');
         assertLayer(layer);
         catalog.replaceDescriptor(catalogEntryId, layer, descriptor);
-        this.deleteSnapshot();
+        this.deleteFlat();
     }
     public dropDescriptor(id: number): void {
         assertUint32(id, 'catalogEntryId');
         this.ptr.assertNotNull().dropDescriptor(id);
-        this.deleteSnapshot();
+        this.deleteFlat();
     }
     /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
     public registerClientFunctions(spec: string): string {
         const namespace = this.ptr.assertNotNull().registerClientFunctions(spec);
-        this.deleteSnapshot();
+        this.deleteFlat();
         return namespace;
     }
     /// Drop the client functions of a namespace
     public dropClientFunctions(namespace: string): void {
         this.ptr.assertNotNull().dropClientFunctions(namespace);
-        this.deleteSnapshot();
+        this.deleteFlat();
     }
     /// Apply catalog changes to a descriptor entry, an unknown entry is created in the layer
     public applyCatalogChanges(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, changes: buffers.catalog.CatalogChangeT[]): void {
         assertUint32(catalogEntryId, 'catalogEntryId');
         assertLayer(layer);
         this.ptr.assertNotNull().applyCatalogChanges(catalogEntryId, layer, packCatalogChanges(changes));
-        this.deleteSnapshot();
+        this.deleteFlat();
     }
     /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created in the layer
     public applyCatalogChangesSql(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, changesSql: string): void {
         assertUint32(catalogEntryId, 'catalogEntryId');
         assertLayer(layer);
         this.ptr.assertNotNull().applyCatalogChangesSql(catalogEntryId, layer, changesSql);
-        this.deleteSnapshot();
+        this.deleteFlat();
     }
     /// Contains an entry id?
     public containsEntryId(entryId: number): boolean {
@@ -1096,24 +1096,24 @@ export class DashQLCatalog {
         }
         return new FlatBufferPtr(CATALOG_ENTRIES_TYPE, this.ptr.api, bytes, () => new buffers.catalog.CatalogEntries());
     }
-    /// Export a catalog snapshot. The snapshot is cached until the version of the catalog changes, the identity of
-    /// the snapshot tells when the catalog changed.
-    public createSnapshot(): DashQLCatalogSnapshot {
+    /// The catalog as one read-only view, merged across its entries. It is cached until the version of the catalog
+    /// changes, so its identity tells when the catalog changed.
+    public flatten(): DashQLFlatCatalog {
         const version = this.version();
-        if (this.snapshot != null && this.snapshotVersion === version) {
-            return this.snapshot;
+        if (this.flat != null && this.flatVersion === version) {
+            return this.flat;
         }
         const bytes = this.ptr.assertNotNull().flatten();
-        this.snapshot = new DashQLCatalogSnapshot(
+        this.flat = new DashQLFlatCatalog(
             new FlatBufferPtr(FLAT_CATALOG_TYPE, this.ptr.api, bytes, () => new buffers.catalog.FlatCatalog()),
         );
-        this.snapshotVersion = version;
-        return this.snapshot;
+        this.flatVersion = version;
+        return this.flat;
     }
     /// Add a script to a layer of the catalog (throws exception on error)
     public loadScript(script: DashQLScript, layer: buffers.catalog.CatalogLayer) {
         assertLayer(layer);
-        this.deleteSnapshot();
+        this.deleteFlat();
         this.ptr.assertNotNull().loadScript(script.ptr.assertNotNull(), layer);
     }
     /// Atomically add or replace scripts in layers of the catalog.
@@ -1130,14 +1130,14 @@ export class DashQLCatalog {
                 batch.add(script, layer);
             }
             catalog.loadScripts(batch);
-            this.deleteSnapshot();
+            this.deleteFlat();
         } finally {
             batch.free();
         }
     }
     /// Drop a script from the registry
     public dropScript(script: DashQLScript) {
-        this.deleteSnapshot();
+        this.deleteFlat();
         this.ptr.assertNotNull().dropScript(script.ptr.assertNotNull());
     }
     /// Get the catalog statistics.

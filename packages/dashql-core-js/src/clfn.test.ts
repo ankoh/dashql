@@ -87,9 +87,9 @@ describe('Client functions', () => {
 
     it('only applies while their spec is registered', () => {
         const catalog = dql.createCatalog();
-        const before = catalog.createSnapshot().read().catalogReader.catalogVersion();
+        const before = catalog.flatten().read().catalogReader.catalogVersion();
         catalog.registerClientFunctions(SPEC);
-        expect(catalog.createSnapshot().read().catalogReader.catalogVersion()).toBeGreaterThan(before);
+        expect(catalog.flatten().read().catalogReader.catalogVersion()).toBeGreaterThan(before);
         catalog.dropClientFunctions('tickets');
         const analyzed = analyze(catalog, 'call tickets.ticket_list ();').getAnalyzed().read();
         expect(analyzed.clientFunctionCallsLength()).toEqual(0);

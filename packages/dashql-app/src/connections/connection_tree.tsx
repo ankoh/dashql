@@ -123,7 +123,7 @@ export function isVisibleCatalogNode(kind: CatalogNode['kind'], name: string): b
 }
 
 function readCatalogNode(
-    reader: core.DashQLCatalogSnapshotReader,
+    reader: core.DashQLFlatCatalogReader,
     level: CatalogNode['kind'],
     index: number,
     parentKey: string,
@@ -152,7 +152,7 @@ function readCatalogNode(
     };
 }
 
-function catalogLevelLength(reader: core.DashQLCatalogSnapshotReader, level: CatalogNode['kind']): number {
+function catalogLevelLength(reader: core.DashQLFlatCatalogReader, level: CatalogNode['kind']): number {
     const catalog = reader.catalogReader;
     switch (level) {
         case 'database': return catalog.databasesLength();
@@ -171,7 +171,7 @@ function nextCatalogLevel(level: CatalogNode['kind']): CatalogNode['kind'] | nul
     }
 }
 
-export function createCatalogTree(reader: core.DashQLCatalogSnapshotReader, parentKey = 'catalog'): CatalogNode[] {
+export function createCatalogTree(reader: core.DashQLFlatCatalogReader, parentKey = 'catalog'): CatalogNode[] {
     const nodes: CatalogNode[] = [];
     for (let index = 0; index < reader.catalogReader.databasesLength(); ++index) {
         const node = readCatalogNode(reader, 'database', index, parentKey);
@@ -181,7 +181,7 @@ export function createCatalogTree(reader: core.DashQLCatalogSnapshotReader, pare
 }
 
 export function flattenCatalogRows(
-    reader: core.DashQLCatalogSnapshotReader,
+    reader: core.DashQLFlatCatalogReader,
     roots: CatalogNode[],
     expanded: ReadonlySet<string>,
 ): CatalogRow[] {
@@ -625,18 +625,18 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onRename,
 }) => {
     // The database states change with every query event while the catalogs rarely change.
-    // A catalog caches its snapshot until its version changes, so the snapshot identity tells us when the trees
+    // A catalog caches its flat form until its version changes, so its identity tells us when the trees
     // must be rebuilt.
     const connectionIds = useShallowStableArray(databases.map(database => database.connectionId));
-    const snapshots = useShallowStableArray(databases.map(database => database.catalog.createSnapshot()));
+    const flatCatalogs = useShallowStableArray(databases.map(database => database.catalog.flatten()));
     const catalogTrees = React.useMemo(() => connectionIds.map((connectionId, i) => {
-        const reader = snapshots[i].read();
+        const reader = flatCatalogs[i].read();
         return {
             connectionId,
             reader,
             roots: createCatalogTree(reader, catalogKey(connectionId)),
         };
-    }), [connectionIds, snapshots]);
+    }), [connectionIds, flatCatalogs]);
     const [expanded, setExpanded] = React.useState<ReadonlySet<string>>(() => {
         const initial = new Set<string>();
         catalogTrees.forEach((tree, i) => {

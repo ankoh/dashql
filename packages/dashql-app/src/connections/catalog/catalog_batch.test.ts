@@ -101,7 +101,7 @@ describe('catalog batch publication', () => {
             expect(await publishCatalogBatch(core, catalog, entries)).toEqual([{ tables: 1, functions: 0 }]);
             expect(worker).toHaveBeenCalledTimes(1);
             expect(script.toString()).toBe(entries[0].text);
-            expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(1);
+            expect(catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
             disposeCatalogBatchWorker(core);
             await expect(publishCatalogBatch(core, catalog, entries)).rejects.toMatchObject({ name: 'AbortError' });
         } finally {

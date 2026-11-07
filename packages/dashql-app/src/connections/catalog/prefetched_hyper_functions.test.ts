@@ -72,10 +72,10 @@ describe('prefetched Hyper functions', () => {
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
         loadPrefetchedHyperFunctions(dql, catalog, script, PREFETCHED_HYPER_FUNCTIONS_SQL);
-        const snapshot = catalog.createSnapshot();
+        const flat = catalog.flatten();
         expect(() => loadPrefetchedHyperFunctions(dql, catalog, script, '-- no functions'))
             .toThrow('function catalog is empty');
-        expect(catalog.createSnapshot()).toBe(snapshot);
+        expect(catalog.flatten()).toBe(flat);
         expect(script.toString()).toBe(PREFETCHED_HYPER_FUNCTIONS_SQL);
     });
 });

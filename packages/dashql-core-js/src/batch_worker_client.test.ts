@@ -152,7 +152,7 @@ describe('Core batch worker integration', () => {
             const descriptor = result.scripts[0].catalogDescriptor!;
             const id = catalog.allocateEntryId();
             catalog.replaceDescriptor(id, buffers.catalog.CatalogLayer.CONNECTION, descriptor);
-            expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(1);
+            expect(catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
 
             const query: BatchRequest = { scripts: [{ id: 'query', text: 'select id from db.sch.items', outputs: ['analyzed'] }] };
             const contextual = await worker.processBatch({ ...query, catalogDescriptors: [descriptor] });

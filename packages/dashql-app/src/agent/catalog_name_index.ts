@@ -70,8 +70,7 @@ export function buildCatalogNameIndex(catalog: core.DashQLCatalog): CatalogNameI
             names.push(name);
         }
     };
-    const snapshot = catalog.createSnapshot();
-    const reader = snapshot.read();
+    const reader = catalog.flatten().read();
     const flat = reader.catalogReader;
     const entry = new core.buffers.catalog.FlatCatalogEntry();
     // Every level references its parent by the index into the flat array of the level above

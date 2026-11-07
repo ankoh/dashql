@@ -136,7 +136,7 @@ describe('updateHyperCatalog', () => {
         expect(script.toString()).toContain('CREATE TABLE "lake db"."public"."lake_table"');
         expect(script.toString()).toContain('CREATE TABLE "cloud"."sales"."orders"');
         expect(script.toString()).not.toContain('CREATE TABLE "Cloud Database"');
-        expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(2);
+        expect(catalog.flatten().read().catalogReader.tablesLength()).toBe(2);
         expect(functionScript.toString()).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
     });
 
@@ -165,7 +165,7 @@ describe('updateHyperCatalog', () => {
 
         expect(result.failures).toEqual([]);
         expect(script.toString().match(/"id" INTEGER/g)).toHaveLength(1);
-        expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(1);
+        expect(catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
     });
 
     it('uses the unqualified default database and live function catalog for Hyper WASM', async () => {
@@ -308,8 +308,8 @@ describe('updateHyperCatalog', () => {
         await refresh(new AbortController().signal);
         const previousRelations = relationScript.toString();
         const previousFunctions = functionScript.toString();
-        const snapshot = catalog.createSnapshot();
-        const version = snapshot.read().catalogReader.catalogVersion();
+        const flat = catalog.flatten();
+        const version = flat.read().catalogReader.catalogVersion();
         revision = 2;
         const abort = new AbortController();
         const processor = async (request: dashql.BatchRequest) => {
@@ -330,16 +330,16 @@ describe('updateHyperCatalog', () => {
             if (failure === 'later publication') expect(relationScript.toString()).toContain('table_v2');
             else expect(relationScript.toString()).toBe(previousRelations);
             expect(functionScript.toString()).toBe(previousFunctions);
-            const currentSnapshot = catalog.createSnapshot();
+            const currentFlat = catalog.flatten();
             if (failure === 'later publication') {
                 expect(publication).toHaveBeenCalledTimes(2);
-                expect(currentSnapshot).not.toBe(snapshot);
-                expect(currentSnapshot.read().catalogReader.catalogVersion()).toBe(version + 1n);
+                expect(currentFlat).not.toBe(flat);
+                expect(currentFlat.read().catalogReader.catalogVersion()).toBe(version + 1n);
             } else {
-                expect(currentSnapshot).toBe(snapshot);
-                expect(currentSnapshot.read().catalogReader.catalogVersion()).toBe(version);
+                expect(currentFlat).toBe(flat);
+                expect(currentFlat.read().catalogReader.catalogVersion()).toBe(version);
             }
-            expect(currentSnapshot.read().catalogReader.tablesLength()).toBe(1);
+            expect(currentFlat.read().catalogReader.tablesLength()).toBe(1);
         } finally {
             publication?.mockRestore();
         }

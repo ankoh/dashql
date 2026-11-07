@@ -69,7 +69,7 @@ describe('updateSalesforceCatalog', () => {
             expect.any(AbortSignal),
             undefined,
         );
-        const catalogSnapshot = catalog.createSnapshot().read();
+        const flatCatalog = catalog.flatten().read();
         const findEntry = (
             begin: number,
             count: number,
@@ -78,28 +78,28 @@ describe('updateSalesforceCatalog', () => {
         ) => {
             for (let index = begin; index < begin + count; ++index) {
                 const entry = readEntry(index, new dashql.buffers.catalog.FlatCatalogEntry());
-                if (entry != null && catalogSnapshot.readName(entry.nameId()) === name) return entry;
+                if (entry != null && flatCatalog.readName(entry.nameId()) === name) return entry;
             }
             return null;
         };
         const database = findEntry(
             0,
-            catalogSnapshot.catalogReader.databasesLength(),
-            (index, entry) => catalogSnapshot.catalogReader.databases(index, entry),
+            flatCatalog.catalogReader.databasesLength(),
+            (index, entry) => flatCatalog.catalogReader.databases(index, entry),
             'lakehouse',
         );
         expect(database).not.toBeNull();
         const schema = findEntry(
             database!.childBegin(),
             database!.childCount(),
-            (index, entry) => catalogSnapshot.catalogReader.schemas(index, entry),
+            (index, entry) => flatCatalog.catalogReader.schemas(index, entry),
             'public',
         );
         expect(schema).not.toBeNull();
         expect(findEntry(
             schema!.childBegin(),
             schema!.childCount(),
-            (index, entry) => catalogSnapshot.catalogReader.tables(index, entry),
+            (index, entry) => flatCatalog.catalogReader.tables(index, entry),
             'Account__dlm',
         )).not.toBeNull();
         expect(relationScript.toString()).not.toContain('"sf"."public"');
@@ -145,8 +145,8 @@ describe('updateSalesforceCatalog', () => {
         await refresh(new AbortController());
         const oldRelations = relations.toString();
         const oldFunctions = functions.toString();
-        const snapshot = catalog.createSnapshot();
-        const version = snapshot.read().catalogReader.catalogVersion();
+        const flat = catalog.flatten();
+        const version = flat.read().catalogReader.catalogVersion();
         name = 'new_table';
         const abort = new AbortController();
         const processor = async (request: dashql.BatchRequest) => {
@@ -167,12 +167,12 @@ describe('updateSalesforceCatalog', () => {
             if (failure === 'later publication') expect(relations.toString()).toContain('new_table');
             else expect(relations.toString()).toBe(oldRelations);
             expect(functions.toString()).toBe(oldFunctions);
-            const currentSnapshot = catalog.createSnapshot();
+            const currentFlat = catalog.flatten();
             if (failure === 'later publication') {
                 expect(replace).toHaveBeenCalledTimes(2);
-                expect(currentSnapshot).not.toBe(snapshot);
-                expect(currentSnapshot.read().catalogReader.catalogVersion()).toBe(version + 1n);
-            } else expect(currentSnapshot).toBe(snapshot);
+                expect(currentFlat).not.toBe(flat);
+                expect(currentFlat.read().catalogReader.catalogVersion()).toBe(version + 1n);
+            } else expect(currentFlat).toBe(flat);
         } finally {
             replace?.mockRestore();
         }
@@ -194,7 +194,7 @@ describe('updateSalesforceCatalog', () => {
             api as any, new AbortController(), { processor: async request => dql.processBatch(request) });
         const oldRelations = relations.toString();
         const oldFunctions = functions.toString();
-        const snapshot = catalog.createSnapshot();
+        const flat = catalog.flatten();
         api.getDataCloudMetadata.mockResolvedValue({ metadata });
         const processor = vi.fn();
         await expect(updateSalesforceCatalog({ info: vi.fn() } as any, connection, catalog, dql, relations, functions,
@@ -202,6 +202,6 @@ describe('updateSalesforceCatalog', () => {
         expect(processor).not.toHaveBeenCalled();
         expect(relations.toString()).toBe(oldRelations);
         expect(functions.toString()).toBe(oldFunctions);
-        expect(catalog.createSnapshot()).toBe(snapshot);
+        expect(catalog.flatten()).toBe(flat);
     });
 });

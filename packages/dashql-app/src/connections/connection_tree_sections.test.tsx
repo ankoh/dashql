@@ -11,7 +11,7 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 
 /// A catalog with a single database
 const catalog = {
-    createSnapshot: () => ({
+    flatten: () => ({
         read: () => ({
             readName: () => 'hyper',
             catalogReader: {

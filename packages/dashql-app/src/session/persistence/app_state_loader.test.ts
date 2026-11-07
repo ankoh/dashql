@@ -333,7 +333,7 @@ describe('real-core startup catalog restoration', () => {
         const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
 
-        expect(main.catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
+        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
         expect(main.catalogChangesSql).toBe('');
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         // The catalog is refreshed on connect instead
@@ -360,7 +360,7 @@ describe('real-core startup catalog restoration', () => {
         const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
 
-        expect(main.catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
+        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
         expect(main.catalogChangesSql).toBe('');
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         expect(main.catalogUpdates.restoredAt).toBeNull();
@@ -397,8 +397,8 @@ describe('real-core startup catalog restoration', () => {
             main.catalogRelationScript.catalog_entry_id, main.catalogFunctionScript.catalog_entry_id,
         ].sort((a, b) => a - b));
         expect(entries.every(entry => entry.catalogEntryType === dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL)).toBe(true);
-        expect(main.catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(1);
-        expect(attached.catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
+        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+        expect(attached.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
         expect(main.catalogUpdates.restoredAt).toBeInstanceOf(Date);
         const query = dql.createScript(main.catalog);
         query.replaceText('SELECT id FROM db.public.restored_items;');
