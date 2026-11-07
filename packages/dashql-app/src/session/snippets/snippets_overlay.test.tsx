@@ -282,10 +282,12 @@ describe('SnippetsOverlay', () => {
         expect(path.getBoundingClientRect().left - icon.getBoundingClientRect().right).toBeLessThan(16);
     });
 
-    it('shows the full names of all bundled snippets', () => {
+    it('shows the full names of all bundled snippets in the widest list', () => {
         for (const connector of [ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD]) {
             render(connector, false, bundled);
             open();
+            const handle = query('[data-testid="snippet-list-resize"]')!;
+            act(() => { handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })); });
             const paths = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="snippet"] [title]'));
             expect(paths.length, ConnectorType[connector]).toBeGreaterThan(0);
             for (const path of paths) {
@@ -293,6 +295,34 @@ describe('SnippetsOverlay', () => {
             }
             act(() => query<HTMLButtonElement>('[data-testid="snippets-close"]')!.click());
         }
+    });
+
+    it('resizes the list by dragging the border to the preview', () => {
+        render(ConnectorType.HYPER);
+        open();
+        const handle = query('[data-testid="snippet-list-resize"]')!;
+        // The sidebar with the search and the list
+        const list = query('[data-testid="snippet-list"]')!.parentElement!;
+        const preview = query('[data-testid="snippet-preview"]')!;
+        const left = list.getBoundingClientRect().left;
+        const drag = (clientX: number) => {
+            act(() => {
+                handle.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 3, button: 0, clientX: list.getBoundingClientRect().right, bubbles: true }));
+                window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX, bubbles: true }));
+                window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3, clientX, bubbles: true }));
+            });
+        };
+        const initial = list.getBoundingClientRect().width;
+        expect(initial).toBeLessThan(preview.getBoundingClientRect().width);
+        drag(left + 400);
+        expect(list.getBoundingClientRect().width).toBeCloseTo(400, 0);
+        // The preview keeps its minimum width
+        drag(left + 5000);
+        expect(preview.getBoundingClientRect().width).toBeGreaterThanOrEqual(320);
+        // Moves after the release leave the width alone
+        const width = list.getBoundingClientRect().width;
+        act(() => { window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX: left + 200, bubbles: true })); });
+        expect(list.getBoundingClientRect().width).toEqual(width);
     });
 
     it('applies the text of a snippet with its description', () => {

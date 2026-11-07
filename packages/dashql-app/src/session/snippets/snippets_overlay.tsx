@@ -41,6 +41,59 @@ export interface SnippetsOverlayProps {
 /// The registry while the bundled snippets are parsed
 const EMPTY_REGISTRY: SnippetRegistry = { snippets: [], byId: new Map(), errors: [] };
 
+/// The bounds of the width of the snippet list, the preview keeps the rest
+const LIST_WIDTH_DEFAULT = 300;
+const LIST_WIDTH_MIN = 180;
+const PREVIEW_WIDTH_MIN = 320;
+const LIST_WIDTH_KEY_STEP = 16;
+
+/// The width of the snippet list and the handlers of the handle on its border that resizes it
+function useListWidth(bodyRef: React.RefObject<HTMLDivElement | null>) {
+    const [width, setWidthState] = React.useState(LIST_WIDTH_DEFAULT);
+    const maxWidth = React.useCallback(() =>
+        Math.max(LIST_WIDTH_MIN, (bodyRef.current?.getBoundingClientRect().width ?? 0) - PREVIEW_WIDTH_MIN), [bodyRef]);
+    const setWidth = React.useCallback((next: number) =>
+        setWidthState(Math.round(Math.min(Math.max(next, LIST_WIDTH_MIN), maxWidth()))), [maxWidth]);
+    const stopDraggingRef = React.useRef<(() => void) | null>(null);
+    React.useEffect(() => () => stopDraggingRef.current?.(), []);
+
+    const onPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        stopDraggingRef.current?.();
+        const pointerId = event.pointerId;
+        const left = bodyRef.current?.getBoundingClientRect().left ?? 0;
+        const onMove = (move: PointerEvent) => {
+            if (move.pointerId === pointerId) setWidth(move.clientX - left);
+        };
+        const onEnd = (end: PointerEvent) => {
+            if (end.pointerId === pointerId) stop();
+        };
+        const stop = () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onEnd);
+            window.removeEventListener('pointercancel', onEnd);
+            stopDraggingRef.current = null;
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onEnd);
+        window.addEventListener('pointercancel', onEnd);
+        stopDraggingRef.current = stop;
+    }, [bodyRef, setWidth]);
+
+    const onKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        switch (event.key) {
+            case 'ArrowLeft': setWidth(width - LIST_WIDTH_KEY_STEP); break;
+            case 'ArrowRight': setWidth(width + LIST_WIDTH_KEY_STEP); break;
+            case 'Home': setWidth(LIST_WIDTH_MIN); break;
+            case 'End': setWidth(maxWidth()); break;
+            default: return;
+        }
+        event.preventDefault();
+    }, [setWidth, maxWidth, width]);
+    return { width, onPointerDown, onKeyDown };
+}
+
 /// A folder of the snippet tree
 interface SnippetFolder {
     /// The path of the folder, it identifies the folder. Empty for the root of the tree.
@@ -205,6 +258,8 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
     const bundled = useBundledSnippets();
     const registry = props.registry ?? bundled ?? EMPTY_REGISTRY;
     const titleId = React.useId();
+    const bodyRef = React.useRef<HTMLDivElement>(null);
+    const listWidth = useListWidth(bodyRef);
     const [selectedId, setSelectedId] = React.useState<string | null>(null);
     const [collapsed, setCollapsed] = React.useState<ReadonlySet<string>>(new Set());
     const [searchText, setSearchText] = React.useState('');
@@ -313,8 +368,19 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
                     <XIcon size={16} />
                 </IconButton>
             </header>
-            <div className={styles.body}>
+            <div ref={bodyRef} className={styles.body} style={{ gridTemplateColumns: `${listWidth.width}px minmax(0, 1fr)` }}>
                 <div className={styles.sidebar}>
+                    <div
+                        className={styles.resize_handle}
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label="Resize the snippet list"
+                        aria-valuenow={listWidth.width}
+                        tabIndex={0}
+                        data-testid="snippet-list-resize"
+                        onPointerDown={listWidth.onPointerDown}
+                        onKeyDown={listWidth.onKeyDown}
+                    />
                     <div className={styles.search}>
                         <TextInput
                             ref={props.searchRef}
