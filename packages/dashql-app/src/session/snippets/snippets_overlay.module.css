@@ -27,7 +27,7 @@
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: 480px minmax(0, 1fr);
+    grid-template-columns: 540px minmax(0, 1fr);
 }
 
 /* The search field above the snippet list */

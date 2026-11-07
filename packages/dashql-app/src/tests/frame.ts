@@ -1,4 +1,8 @@
 import coreWasmUrl from '@ankoh/dashql-core/wasm?url';
+// Tests that measure text need the fonts and the tokens of the app, the default font of the browser has other widths
+import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/colors.css';
+import '@ankoh/dashql-ui/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
 import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '../platform/opfs_root.js';
 
@@ -64,6 +68,8 @@ async function setupBrowserTestEnvironment(): Promise<void> {
     globals.__DASHQL_TEST_CORE_FACTORY__ = parent.__DASHQL_TEST_CORE_FACTORY__;
     globals.__DASHQL_TEST_HYPERDB_CLIENT__ = parent.__DASHQL_TEST_HYPERDB_CLIENT__;
     installSharedCoreTestPool();
+    // A font that loads during a test changes the sizes that the test measured before
+    await Promise.all(Array.from(document.fonts, face => face.load()));
     if (typeof ResizeObserver === 'undefined') {
         globals.ResizeObserver = class ResizeObserverMock {
             observe() {}

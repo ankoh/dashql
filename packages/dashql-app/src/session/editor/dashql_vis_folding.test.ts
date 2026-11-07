@@ -92,7 +92,7 @@ describe('Vega-Lite spec folding', () => {
         expect(folds(state)).toEqual([]);
     });
 
-    it('folds and unfolds a spec from the gutter', () => {
+    it('folds and unfolds a spec from the gutter', async () => {
         const view = new EditorView({ state: createState(SPEC), parent: document.body });
         try {
             // The gutter sizes itself with a hidden spacer marker
@@ -109,6 +109,9 @@ describe('Vega-Lite spec folding', () => {
             };
             expect(folds(view.state)).toEqual([SPEC_BODY]);
             expect(marker().getAttribute('aria-expanded')).toBe('false');
+            // The gutter finds the line of a click by the height of its lines, which are estimates until the view
+            // measures them in the next frame
+            await new Promise(resolve => requestAnimationFrame(resolve));
             click();
             expect(folds(view.state)).toEqual([]);
             expect(marker().getAttribute('aria-expanded')).toBe('true');
