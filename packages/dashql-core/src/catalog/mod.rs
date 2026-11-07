@@ -3,12 +3,14 @@
 //! through [`CatalogEntryRef`]. A script entry holds only declarations and names, never the analysis,
 //! so publishing does not keep ASTs or earlier analyses alive (see `docs/design/core_analysis_catalog.md`).
 
+pub mod overlay;
 pub mod changes;
 pub mod descriptor;
 pub mod entry;
 pub mod ids;
 pub mod names;
 
+pub use overlay::OverlaySpec;
 pub use descriptor::DescriptorEntry;
 pub use entry::*;
 pub use ids::*;
@@ -224,6 +226,8 @@ pub struct CatalogSnapshot {
     databases: BTreeMap<Arc<str>, Arc<DatabaseDeclaration>>,
     /// The schemas referenced by entries
     schemas: BTreeMap<(Arc<str>, Arc<str>), Arc<SchemaDeclaration>>,
+    /// The overlays by namespace, a spec shadows its namespace for `CALL`
+    overlays: BTreeMap<Arc<str>, Arc<OverlaySpec>>,
 }
 
 /// The catalog: the current snapshot and the ids that outlive snapshots.
@@ -279,6 +283,7 @@ impl Catalog {
                 entries_by_schema: BTreeMap::new(),
                 databases: BTreeMap::new(),
                 schemas: BTreeMap::new(),
+                overlays: BTreeMap::new(),
             }),
             ids: RefCell::new(IdReservations {
                 database_ids_by_name: HashMap::default(),
@@ -646,8 +651,28 @@ impl Catalog {
         self.version += 1;
     }
 
+    /// Register an overlay. Its namespace must be free, drop the spec first to replace it.
+    pub fn register_overlay(&mut self, json: &str) -> Result<Arc<str>> {
+        let spec = OverlaySpec::parse(json)?;
+        if self.overlays.contains_key(spec.namespace.as_str()) {
+            return Err(Error::invalid_argument(format!("the namespace {} is already registered", spec.namespace)));
+        }
+        let namespace: Arc<str> = Arc::from(spec.namespace.as_str());
+        self.overlays.insert(namespace.clone(), Arc::new(spec));
+        self.version += 1;
+        Ok(namespace)
+    }
+
+    /// Drop an overlay
+    pub fn drop_overlay(&mut self, namespace: &str) {
+        if self.overlays.remove(namespace).is_some() {
+            self.version += 1;
+        }
+    }
+
     /// Clear the catalog
     pub fn clear(&mut self) {
+        self.overlays.clear();
         self.entries_by_qualified_schema.clear();
         self.entries_by_schema.clear();
         self.entries_ranked.clear();
@@ -662,6 +687,16 @@ impl Catalog {
 }
 
 impl CatalogSnapshot {
+    /// The overlay of a namespace
+    pub fn overlay(&self, namespace: &str) -> Option<&Arc<OverlaySpec>> {
+        self.overlays.get(namespace)
+    }
+
+    /// The overlays by namespace
+    pub fn overlays(&self) -> &BTreeMap<Arc<str>, Arc<OverlaySpec>> {
+        &self.overlays
+    }
+
     /// Flatten the catalog.
     ///
     /// Databases, schemas and tables are merged across entries and ordered by name. A table name that

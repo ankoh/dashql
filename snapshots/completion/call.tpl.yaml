@@ -1,0 +1,266 @@
+completion-snapshots:
+  # The namespaces after CALL
+  - name: call_namespaces
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tic
+    cursor:
+      search:
+        text: tic
+        index: 3
+    completions:
+      limit: 3
+  # CALL is a keyword at the start of a statement if the connection has a spec
+  - name: call_keyword_with_spec
+    catalog:
+      overlay: tickets
+    editor:
+      input: cal
+    cursor:
+      search:
+        text: cal
+        index: 3
+    completions:
+      limit: 3
+  # Without a spec it isn't offered, a call of the backend is still valid
+  - name: call_keyword_without_spec
+    catalog: {}
+    editor:
+      input: cal
+    cursor:
+      search:
+        text: cal
+        index: 3
+    completions:
+      limit: 3
+  # The functions of a namespace
+  - name: call_functions
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.
+    cursor:
+      search:
+        text: tickets.
+        index: 8
+    completions:
+      limit: 3
+  # The functions that match the typed name
+  - name: call_functions_prefix
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.web
+    cursor:
+      search:
+        text: web
+        index: 3
+    completions:
+      limit: 3
+  # A namespace without a spec completes as usual
+  - name: call_no_spec
+    catalog:
+      overlay: tickets
+    editor:
+      input: call other.
+    cursor:
+      search:
+        text: other.
+        index: 6
+    completions:
+      limit: 3
+  # The options of a function, required first, the standard options last
+  - name: call_options
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (
+    cursor:
+      search:
+        text: (
+        index: 1
+    completions:
+      limit: 10
+  # The options that match the typed name
+  - name: call_options_prefix
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (pa
+    cursor:
+      search:
+        text: pa
+        index: 2
+    completions:
+      limit: 10
+  # A name that is also a keyword is typed like any other
+  - name: call_options_keyword_prefix
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (title
+    cursor:
+      search:
+        text: title
+        index: 5
+    completions:
+      limit: 3
+  # Options that are used already are left out
+  - name: call_options_used
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project => 'a',
+    cursor:
+      search:
+        text: "'a',"
+        index: 4
+    completions:
+      limit: 10
+  # Options in the middle of a statement that parses
+  - name: call_options_inside
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project => 'a', ); select 1;
+    cursor:
+      search:
+        text: "'a',"
+        index: 4
+    completions:
+      limit: 10
+  # A value takes no candidates
+  - name: call_value
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project =>
+    cursor:
+      search:
+        text: "=>"
+        index: 2
+    completions:
+      limit: 3
+  # The attributes of a schema
+  - name: call_attributes
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (assignee => (
+    cursor:
+      search:
+        text: => (
+        index: 4
+    completions:
+      limit: 5
+  # The attributes of the item schema of an array, and of a recursive schema
+  - name: call_attributes_recursive
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (components => [(name = 'a', children = [(
+    cursor:
+      search:
+        text: "= [("
+        index: 4
+    completions:
+      limit: 5
+  # A free-form object offers nothing
+  - name: call_attributes_free_form
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (metadata => (
+    cursor:
+      search:
+        text: => (
+        index: 4
+    completions:
+      limit: 5
+  # An attribute called select is an object, its siblings still complete
+  - name: call_attributes_keyword
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (assignee => (select = 1,
+    cursor:
+      search:
+        text: "1,"
+        index: 2
+    completions:
+      limit: 5
+  # Inside a query, core SQL completes
+  - name: call_embedded_sql
+    catalog:
+      overlay: tickets
+      script:
+        input: create table alerts (host text);
+    editor:
+      input: call tickets.ticket_create (affected => (select * from ale
+    cursor:
+      search:
+        text: from ale
+        index: 8
+    completions:
+      limit: 3
+  # After a query the options continue
+  - name: call_after_embedded_sql
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (affected => (select (1)),
+    cursor:
+      search:
+        text: ")),"
+        index: 3
+    completions:
+      limit: 3
+  # After the call, core SQL completes
+  - name: call_after
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project => 'a'); sel
+    cursor:
+      search:
+        text: sel
+        index: 3
+    completions:
+      limit: 3
+  # A quoted option needs its quotes
+  - name: call_quoted_option
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (X-
+    cursor:
+      search:
+        text: "(X"
+        index: 2
+    completions:
+      limit: 3
+  # EXPLAIN of a call completes like the call
+  - name: call_explain
+    catalog:
+      overlay: tickets
+    editor:
+      input: explain call tickets.ticket_delete (
+    cursor:
+      search:
+        text: (
+        index: 1
+    completions:
+      limit: 3
+  # The standard options of a function with pending results
+  - name: call_pending_options
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.export_start (format => 'csv', _
+    cursor:
+      search:
+        text: ", _"
+        index: 3
+    completions:
+      limit: 3

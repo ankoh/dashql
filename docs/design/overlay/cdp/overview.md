@@ -2,7 +2,7 @@
 
 Status: proposed. Nothing here is implemented, and nothing has been tested against an org.
 
-CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [function spec](../../call_api.md) for the call API, and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [call_api.md](../../call_api.md) describes them.
+CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [overlay](../../overlay.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [overlay.md](../../overlay.md) describes them.
 
 - [functions.md](functions.md) is the function reference, with one document per family in this directory.
 - [api_notes.md](api_notes.md) holds the research: API quirks, usage order, sources and a list of checks to run on an org.
@@ -50,7 +50,7 @@ EXPLAIN CALL cdp.segment_delete (segment_api_name => 'vip');
 
 ## The Salesforce binding
 
-The Salesforce connector's descriptor (`packages/dashql-app/src/connections/salesforce/salesforce_connector_descriptor.ts`) enables the spec, so `cdp.` exists only on Salesforce connections. On any other connection, `CALL cdp.*` goes to the backend as written.
+The Salesforce connector's descriptor (`packages/dashql-app/src/connections/salesforce/salesforce_connector_descriptor.ts`) enables the spec, so the spec shadows `cdp.` on Salesforce connections: nothing under it reaches the backend, and a function the spec doesn't know is an error. On any other connection, `CALL cdp.*` goes to the backend as written.
 
 | Spec host | Base path | Token | Used by |
 |---|---|---|---|
@@ -66,7 +66,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 
 **SIDB** spreads the Salesforce descriptor, so it would inherit the binding. Whether it should is an [open question](#open-questions).
 
-**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../call_api.md#running-calls).
+**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../overlay.md#running-calls).
 
 ## How Data 360 fits the format
 
@@ -84,7 +84,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | `202` on some governance deletes | No `pending` for now, so it's an ordinary success, and job status stays explicit through status functions. The contract drops response headers, so whether these carry a `Location` [needs checking on an org](api_notes.md#live-checks) |
 | 200 with errors (consent), 404 for an empty result (DMO mappings) | `errors` on those functions |
 | Connect errors: an array whose `message` may be a JSON string | `errors` at the top level, with `message_is_json` |
-| CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../call_api.md#open-questions) |
+| CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../overlay.md#open-questions) |
 | Credentials, where `value` is secret depending on `param_name` | `sensitive` with `public_when` |
 | `agent_id`: a header on most agentic memory calls, a query parameter on one | `in` per function |
 | Data space filtering that the API doesn't support | Not handled. Values are wire values, and the client adds no filtering |
@@ -96,7 +96,7 @@ Data 360's contract doesn't exercise the format much: it has no top-level array 
 
 The checks are only as good as the attributes. The official contract gives most of them, but it's often narrower than what its own examples send. For example, `dataspace_create` has `label` and `prefix` in its examples but not its schema, and `search_index_get` omits `runtime_status`, the field that says an index is ready. A spec built from the contract alone would reject real payloads.
 
-So the spec is the contract plus an overlay, built mechanically and labeled per row:
+So the spec is the contract plus annotations, built mechanically and labeled per row:
 
 | Source | What it adds |
 |---|---|
@@ -174,11 +174,11 @@ CALL cdp.connection_create (
 );
 ```
 
-Connection credentials are a list of `(param_name, value)` pairs, so whether `value` is secret depends on the `param_name` beside it. Every `value` must be `secret()` unless `public_when` lists that `param_name` as public (see [Secrets](../../call_api.md#secrets)). The spec's connector metadata may say which are public; that needs checking.
+Connection credentials are a list of `(param_name, value)` pairs, so whether `value` is secret depends on the `param_name` beside it. Every `value` must be `secret()` unless `public_when` lists that `param_name` as public (see [Secrets](../../overlay.md#secrets)). The spec's connector metadata may say which are public; that needs checking.
 
 ## The escape hatch
 
-`cdp.request` is the spec's [raw function](../../call_api.md#the-escape-hatch):
+`cdp.request` is the spec's [raw function](../../overlay.md#the-escape-hatch):
 
 ```sql
 CALL cdp.request (method => 'POST', path => '/ssot/new-thing', host => 'tenant', body => (a = 1), someParam => 1);
@@ -208,15 +208,15 @@ It's the only function with a `body` option.
 }
 ```
 
-`evidence` is `O`, `S`, `D` or `C` per function (see [the reference](functions.md#evidence)), plus a source per overlay attribute.
+`evidence` is `O`, `S`, `D` or `C` per function (see [the reference](functions.md#evidence)), plus a source per annotated attribute.
 
 `effect` follows the method, except for reads that use `POST`, such as `transform_validate` and `ci_run_status`. `billed` gets set from the [cost checks](api_notes.md#live-checks).
 
 ## Roadmap
 
-The [call API roadmap](../../call_api.md#roadmap) comes first, up to its generator phase. For Data 360:
+The [overlay roadmap](../../overlay.md#roadmap) comes first, up to its generator phase. For Data 360:
 
-1. **Generator input:** the OpenAPI contract plus the overlay, producing `cdp.json`.
+1. **Generator input:** the OpenAPI contract plus the annotations, producing the spec in `overlay/apis/cdp/`.
 2. **Read-only binding:** host and token resolution, with `effect: read` functions only. Needs a browser CORS check, since only `GET` on `/services/data` is exercised today.
 3. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
 4. **Writes:** all other calls, on the generic write rules. Ingestion needs its own CORS check, since no code calls `/api/v1/ingest` yet.

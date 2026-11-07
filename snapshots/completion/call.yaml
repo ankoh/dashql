@@ -1,0 +1,746 @@
+completion-snapshots:
+
+  - name: call_namespaces
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tic
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: tic
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 262144
+          value: tickets
+          candidate-tags: [PREFIX_MATCH]
+          location: "tic"
+          location-qualified: "tic"
+          objects: []
+      text: "tic"
+
+  - name: call_keyword_with_spec
+    catalog:
+      overlay: tickets
+    editor:
+      input: cal
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: cal
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: call
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "cal"
+          location-qualified: "cal"
+          objects: []
+        - score: 4
+          value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "cal"
+          location-qualified: "cal"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "cal"
+          location-qualified: "cal"
+          objects: []
+      text: "cal"
+
+  - name: call_keyword_without_spec
+    catalog: {}
+    editor:
+      input: cal
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: cal
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "cal"
+          location-qualified: "cal"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "cal"
+          location-qualified: "cal"
+          objects: []
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "cal"
+          location-qualified: "cal"
+          objects: []
+      text: "cal"
+
+  - name: call_functions
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+    cursor:
+      search:
+        text: tickets.
+        index: 8
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 262144
+          value: export_start
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: request
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: ticket_create
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "."
+
+  - name: call_functions_prefix
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.web
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: web
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 262144
+          value: webhook_create
+          candidate-tags: [PREFIX_MATCH]
+          location: "web"
+          location-qualified: "web"
+          objects: []
+      text: "web"
+
+  - name: call_no_spec
+    catalog:
+      overlay: tickets
+    editor:
+      input: call other.
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: other.
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "."
+
+  - name: call_options
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (
+        index: 1
+    completions:
+      limit: 10
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: project
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: page_size
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: page_token
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: _next
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: _pages
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
+  - name: call_options_prefix
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (pa
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: pa
+        index: 2
+    completions:
+      limit: 10
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: page_size
+          candidate-tags: [PREFIX_MATCH]
+          location: "pa"
+          location-qualified: "pa"
+          objects: []
+        - score: 262145
+          value: page_token
+          candidate-tags: [PREFIX_MATCH]
+          location: "pa"
+          location-qualified: "pa"
+          objects: []
+        - score: 0
+          value: _pages
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "pa"
+          location-qualified: "pa"
+          objects: []
+      text: "pa"
+
+  - name: call_options_keyword_prefix
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (title
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: title
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: title
+          candidate-tags: [PREFIX_MATCH]
+          location: "title"
+          location-qualified: "title"
+          objects: []
+      text: "title"
+
+  - name: call_options_used
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project => 'a',
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          text: "'a'"
+    cursor:
+      search:
+        text: "'a',"
+        index: 4
+    completions:
+      limit: 10
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: page_size
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: page_token
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: _next
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: _pages
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ","
+
+  - name: call_options_inside
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project => 'a', ); select 1;
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+    cursor:
+      search:
+        text: "'a',"
+        index: 4
+    completions:
+      limit: 10
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: page_size
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: page_token
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: _next
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262144
+          value: _pages
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ","
+
+  - name: call_value
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project =>
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: "=>"
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries: []
+      text: "=>"
+
+  - name: call_attributes
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (assignee => (
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: => (
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: id
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: notify
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
+  - name: call_attributes_recursive
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (components => [(name = 'a', children = [(
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          text: "'a'"
+    cursor:
+      search:
+        text: "= [("
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: children
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: name
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
+  - name: call_attributes_free_form
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (metadata => (
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: => (
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries: []
+      text: "("
+
+  - name: call_attributes_keyword
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (assignee => (select = 1,
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          text: "1"
+    cursor:
+      search:
+        text: "1,"
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: id
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: notify
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ","
+
+  - name: call_embedded_sql
+    catalog:
+      overlay: tickets
+      script:
+        input: create table alerts (host text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: alerts
+            text: "create tab..host text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: host
+                text: "host text"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: alerts
+            columns: [host]
+        errors: []
+    editor:
+      input: call tickets.ticket_create (affected => (select * from ale
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: from ale
+        index: 8
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 4294967295
+          value: ale
+          candidate-tags: [IDENTITY]
+          location: "ale"
+          location-qualified: "ale"
+          objects: []
+        - score: 57
+          value: alerts
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "ale"
+          location-qualified: "ale"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: alerts
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 50
+          value: coalesce
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "ale"
+          location-qualified: "ale"
+          objects: []
+      text: "ale"
+
+  - name: call_after_embedded_sql
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (affected => (select (1)),
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: ")),"
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: project
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 1310720
+          value: title
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 262145
+          value: '"X-Trace-Id"'
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ","
+
+  - name: call_after
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_list (project => 'a'); sel
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+      constants:
+        - expression: 0
+          text: "'a'"
+    cursor:
+      search:
+        text: sel
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_CALL
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 59
+          value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "sel"
+          location-qualified: "sel"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "sel"
+          location-qualified: "sel"
+          objects: []
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "sel"
+          location-qualified: "sel"
+          objects: []
+      text: "sel"
+
+  - name: call_quoted_option
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.ticket_create (X-
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: "(X"
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 262145
+          value: '"X-Trace-Id"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "X"
+          location-qualified: "X"
+          objects: []
+      text: "-"
+
+  - name: call_explain
+    catalog:
+      overlay: tickets
+    editor:
+      input: explain call tickets.ticket_delete (
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 1310720
+          value: id
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
+  - name: call_pending_options
+    catalog:
+      overlay: tickets
+    editor:
+      input: call tickets.export_start (format => 'csv', _
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          text: "'csv'"
+    cursor:
+      search:
+        text: ", _"
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 262144
+          value: _poll
+          candidate-tags: [PREFIX_MATCH]
+          location: "_"
+          location-qualified: "_"
+          objects: []
+        - score: 262144
+          value: _wait
+          candidate-tags: [PREFIX_MATCH]
+          location: "_"
+          location-qualified: "_"
+          objects: []
+      text: "_"

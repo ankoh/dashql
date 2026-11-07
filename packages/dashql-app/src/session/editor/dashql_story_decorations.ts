@@ -65,6 +65,8 @@ function statementLabel(type: core.buffers.parser.StatementType): string {
             return 'attach database';
         case core.buffers.parser.StatementType.INSERT:
             return 'insert into';
+        case core.buffers.parser.StatementType.CALL:
+            return 'call';
         default:
             return 'statement';
     }

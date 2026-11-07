@@ -24,6 +24,7 @@ use crate::parser::actions::*;
 
 %token<NameId> IDENT   "identifier literal"
 %token         SCONST  "string literal"
+%token         DCONST  "dollar-quoted string"
 %token         Op
 %token         FCONST BCONST XCONST
 %token         ICONST PARAM

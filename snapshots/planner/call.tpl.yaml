@@ -1,0 +1,29 @@
+planner-snapshots:
+  # A call without a spec goes to the backend, in session order
+  - name: CallBackend
+    scripts:
+      - name: queries
+        input: |
+          select 1;
+          call my_schema.procedure (a => 1);
+          select 2;
+
+  # A spec shadows its namespace: a call in it never reaches the backend, it can't run without a runtime
+  - name: CallRegisteredNamespace
+    overlay: tickets
+    scripts:
+      - name: queries
+        input: |
+          select 1;
+          call tickets.ticket_list (project => 'a');
+          explain call tickets.ticket_delete (id => 1);
+          select 2;
+
+  # Another namespace goes to the backend as written, an unknown function of the shadowed namespace doesn't
+  - name: CallShadowing
+    overlay: tickets
+    scripts:
+      - name: queries
+        input: |
+          call other.procedure (a => 1);
+          call tickets.backend_procedure (a => 1);

@@ -63,6 +63,7 @@ impl<'a> AnalysisState<'a> {
             name_scopes_by_root_node: Default::default(),
             constant_expressions: Vec::new(),
             parameters: Vec::new(),
+            overlay_calls: Vec::new(),
             visualization_specs: Vec::new(),
             board: None,
             flow: None,

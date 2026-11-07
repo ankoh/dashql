@@ -135,6 +135,7 @@ The final `.y` file is composed in this order:
 | `ext_set.y` | SET variable statements |
 | `ext_varargs.y` | Nested key/value field syntax |
 | `ext_explain.y` | EXPLAIN wrapper |
+| `ext_call.y` | The generic CALL and its values, see `overlay.md` |
 
 ### Type files (`.yh`)
 
@@ -281,6 +282,7 @@ The scanner uses exclusive states for multi-character tokens:
 | `<xbt>` | Backtick-quoted identifiers |
 | `<xh>` | Hex string literals (`X'...'`) |
 | `<xq>` | Standard single-quoted strings |
+| `<xdq>` | Dollar-quoted strings (`$$...$$`), verbatim, only `CALL` values take them |
 
 ### Identifier resolution
 

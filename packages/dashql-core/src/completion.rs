@@ -172,6 +172,7 @@ pub fn is_symbol_kind_completable(kind: SymbolKind) -> bool {
     !matches!(
         kind,
         S_SCONST
+            | S_DCONST
             | S_ICONST
             | S_FCONST
             | S_BCONST
@@ -405,7 +406,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    fn symbols(&self) -> &'a [Symbol] {
+    pub(crate) fn symbols(&self) -> &'a [Symbol] {
         &self.cursor.script.scanned.unwrap().symbols
     }
 
@@ -418,12 +419,12 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// The catalog snapshot of the analysis
-    fn catalog(&self) -> &'a CatalogSnapshot {
+    pub(crate) fn catalog(&self) -> &'a CatalogSnapshot {
         self.cursor.script.catalog()
     }
 
     /// The text at a text range, clamped to the script text
-    fn text_at(&self, offset: u32, length: u32) -> &'a [u8] {
+    pub(crate) fn text_at(&self, offset: u32, length: u32) -> &'a [u8] {
         let text = self.text().as_bytes();
         let begin = (offset as usize).min(text.len());
         let end = (begin + length as usize).min(text.len());
@@ -587,6 +588,10 @@ impl<'c, 'a> Completion<'c, 'a> {
         completion.target_symbol = Some(location.current);
         // The name of a table parameter, the scripts of the session
         if completion.complete_table_parameter(&location) {
+            return completion;
+        }
+        // A function, an option or an attribute of an overlay call
+        if crate::completion_overlay::complete_overlay_call(&mut completion, k) {
             return completion;
         }
         let mut previous_symbol = location.previous;
@@ -833,13 +838,17 @@ impl<'c, 'a> Completion<'c, 'a> {
                 .any(|&n| parsed.nodes[n as usize].node_type() == NodeType::OBJECT_SQL_SELECT)
         });
 
+        // CALL is only worth offering if an overlay gives it a meaning, it must not outrank CREATE otherwise
+        let has_overlays = !self.catalog().overlays().is_empty();
+        let offers = |keyword: SymbolKind| keyword != S_CALL_P || has_overlays;
+
         // Probe the keywords against the tokens after the cursor
         let mut probes = Vec::new();
         let mut probe_input_idx = Vec::new();
         if self.has_post_cursor_token {
             let mut kinds = Vec::new();
             for (i, &s) in symbols.iter().enumerate() {
-                if Keyword::name_of(s).is_some_and(|n| !n.is_empty()) {
+                if offers(s) && Keyword::name_of(s).is_some_and(|n| !n.is_empty()) {
                     kinds.push(s);
                     probe_input_idx.push(i);
                 }
@@ -851,7 +860,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let mut next_probe = 0;
 
         for (i, &expected) in symbols.iter().enumerate() {
-            let Some(name) = Keyword::name_of(expected).filter(|n| !n.is_empty()) else { continue };
+            let Some(name) = Keyword::name_of(expected).filter(|n| !n.is_empty()).filter(|_| offers(expected)) else { continue };
             let mut tags = keyword_tags(expected, name);
             // A leading FROM is no proactive suggestion outside of a SELECT
             if expected == S_FROM && !inside_select && !has(tags, CandidateTag::SUBSTRING_MATCH) {

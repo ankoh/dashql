@@ -1,0 +1,1162 @@
+analyzer-snapshots:
+
+  - name: call_no_spec
+    script:
+      input: call anything.at_all (whatever => 1);
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+
+  - name: call_other_namespace
+    catalog:
+      overlay: tickets
+    script:
+      input: call other.f (a => 1);
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+
+  - name: call_valid
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_list (project => 'OPS', page_size => 50);
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'OPS'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "50"
+      constants:
+        - expression: 0
+          text: "'OPS'"
+        - expression: 1
+          text: "50"
+
+  - name: call_case_folding
+    catalog:
+      overlay: tickets
+    script:
+      input: CALL TICKETS.TICKET_LIST (PROJECT => 'OPS', Page_Size => 50);
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'OPS'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "50"
+      constants:
+        - expression: 0
+          text: "'OPS'"
+        - expression: 1
+          text: "50"
+
+  - name: call_values
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.ticket_create (
+          project => 'it''s',
+          title => $$raw ' text$$,
+          labels => [1, -2, -1.5, true, false, null, 'x', [2]],
+          assignee => (id = 42, notify = true)
+        );
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"it's\",\"title\":\"raw ' text\",\"labels\":[1,-2,-1.5,true,false,null,\"x\",[2]],\"assignee\":{\"id\":42,\"notify\":true}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'it''s'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "$$raw ' text$$"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 3
+          type: literal/float
+          is-const: true
+          statement-id: 0
+          text: "1.5"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 5
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 6
+          type: literal/null
+          is-const: true
+          statement-id: 0
+          text: "null"
+        - expression-idx: 7
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+        - expression-idx: 8
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "42"
+      constants:
+        - expression: 0
+          text: "'it''s'"
+        - expression: 1
+          text: "$$raw ' text$$"
+        - expression: 2
+          text: "2"
+        - expression: 3
+          text: "1.5"
+        - expression: 4
+          text: "2"
+        - expression: 5
+          text: "1"
+        - expression: 6
+          text: "null"
+        - expression: 7
+          text: "'x'"
+        - expression: 8
+          text: "42"
+
+  - name: call_embedded_sql
+    catalog:
+      overlay: tickets
+      script:
+        input: create table alerts (host text, level int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: alerts
+            text: "create tab..level int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: host
+                text: "host text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: level
+                text: "level int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: alerts
+            columns: [host,level]
+        errors: []
+    script:
+      input: call tickets.ticket_create (project => 'a', title => 'b', affected => ((select host from alerts where level > 1)));
+      catalog-id: 2
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select host from alerts where level > 1\"}}"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "alerts"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "host"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "level"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 2
+          text: "'a'"
+        - expression: 3
+          text: "'b'"
+        - expression: 4
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: alerts
+              text: "alerts"
+          columns:
+            - name: host
+              expression: 0
+          text: "((select h..evel > 1))"
+
+  - name: call_bindings
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.webhook_create (url => :hook_url, signing_key => secret(hook_key), credentials => [(param_name = 'pw', value = secret('stored'))]);
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: webhook_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"secret\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"secret\":\"stored\"}]}"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "hook_key"
+        - expression-idx: 1
+          type: function
+          name: secret
+          statement-id: 0
+          text: "secret(hook_key)"
+        - expression-idx: 2
+          type: function
+          name: secret
+          is-const: true
+          statement-id: 0
+          text: "secret('stored')"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'pw'"
+        - expression-idx: 4
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'stored'"
+      constants:
+        - expression: 3
+          text: "'pw'"
+        - expression: 4
+          text: "'stored'"
+        - expression: 2
+          text: "secret('stored')"
+      parameters:
+        - kind: scalar
+          name: hook_url
+          statement-id: 0
+          text: ":hook_url"
+
+  - name: call_explain
+    catalog:
+      overlay: tickets
+    script:
+      input: explain call tickets.ticket_delete (idd => 7);
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: 'tickets.ticket_delete has no option idd, did you mean id?'
+          text: "idd"
+        - type: OVERLAY_MISSING_OPTION
+          message: tickets.ticket_delete needs the option id
+          text: "call ticke..(idd => 7)"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_delete
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"idd\":7}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "7"
+      constants:
+        - expression: 0
+          text: "7"
+
+  - name: call_unknown_function
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_lst (project => 'a');
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_FUNCTION
+          message: 'unknown function tickets.ticket_lst, did you mean ticket_list?'
+          text: "tickets.ticket_lst"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+      constants:
+        - expression: 0
+          text: "'a'"
+
+  - name: call_unknown_function_path
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.a.b ();
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_FUNCTION
+          message: unknown function tickets.a.b
+          text: "tickets.a.b"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+
+  - name: call_unknown_options
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_list (project => 'a', batch_size => 1, pageSize => 2, offset => 3);
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: tickets.ticket_list has no option batch_size
+          text: "batch_size"
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: 'tickets.ticket_list has no option pageSize, did you mean page_size?'
+          text: "pageSize"
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: tickets.ticket_list has no option offset
+          text: "offset"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"batch_size\":1,\"pageSize\":2,\"offset\":3}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "3"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "1"
+        - expression: 2
+          text: "2"
+        - expression: 3
+          text: "3"
+
+  - name: call_quoted_unknown
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_list (project => 'a', "pageSize" => 2, "offset" => 3);
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"pageSize\":2,\"offset\":3}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "3"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "2"
+        - expression: 2
+          text: "3"
+
+  - name: call_quoted_known
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_create (project => 'a', title => 'b', "X-Trace-Id" => 'c', datasourceid__c => 'd');
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"X-Trace-Id\":\"c\",\"DataSourceId__c\":\"d\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'c'"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'d'"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'b'"
+        - expression: 2
+          text: "'c'"
+        - expression: 3
+          text: "'d'"
+
+  - name: call_missing_and_duplicate
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_create (project => 'a', PROJECT => 'b');
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_DUPLICATE_OPTION
+          message: duplicate option project
+          text: "PROJECT"
+        - type: OVERLAY_MISSING_OPTION
+          message: tickets.ticket_create needs the option title
+          text: "call ticke..CT => 'b')"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"b\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'b'"
+
+  - name: call_nested_attributes
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.ticket_create (
+          project => 'a',
+          title => 'b',
+          assignee => (notify = true, nam = 'x'),
+          components => [(name = 'a', children = [(name = 'b', children = (nmae = 'c'))])]
+        );
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: no attribute nam here
+          text: "nam"
+        - type: OVERLAY_MISSING_OPTION
+          message: needs the attribute id
+          text: "(notify = ..nam = 'x')"
+        - type: OVERLAY_UNKNOWN_OPTION
+          message: 'no attribute nmae here, did you mean name?'
+          text: "nmae"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"assignee\":{\"notify\":true,\"nam\":\"x\"},\"components\":[{\"name\":\"a\",\"children\":[{\"name\":\"b\",\"children\":{\"nmae\":\"c\"}}]}]}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 4
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 5
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'c'"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'b'"
+        - expression: 2
+          text: "'x'"
+        - expression: 3
+          text: "'a'"
+        - expression: 4
+          text: "'b'"
+        - expression: 5
+          text: "'c'"
+
+  - name: call_unknown_policies
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.ticket_create (project => 'a', title => 'b', inferred => (other = 1), metadata => (someKey = 1, "with space" = 2));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          severity: WARNING
+          message: no attribute other here
+          text: "other"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"inferred\":{\"other\":1},\"metadata\":{\"someKey\":1,\"with space\":2}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'b'"
+        - expression: 2
+          text: "1"
+        - expression: 3
+          text: "1"
+        - expression: 4
+          text: "2"
+
+  - name: call_unknown_option_warning
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_search (query => 'a', other => 1);
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNKNOWN_OPTION
+          severity: WARNING
+          message: tickets.ticket_search has no option other
+          text: "other"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_search
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"effect\":\"read\",\"explain\":false,\"options\":{\"query\":\"a\",\"other\":1}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "1"
+
+  - name: call_raw
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.request (method => 'POST', path => '/x', body => (a = 1), someParam => 1);
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: request
+          description: "{\"namespace\":\"tickets\",\"function\":\"request\",\"effect\":\"write\",\"explain\":false,\"options\":{\"method\":\"POST\",\"path\":\"/x\",\"body\":{\"a\":1},\"someParam\":1}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'POST'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'/x'"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'POST'"
+        - expression: 1
+          text: "'/x'"
+        - expression: 2
+          text: "1"
+        - expression: 3
+          text: "1"
+
+  - name: call_sensitive
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.webhook_create (
+          signing_key => 'literal',
+          credentials => [
+            (param_name = 'user', value = 'public'),
+            (param_name = 'password', value = :leaked),
+            (param_name = 'key', value = secret(stored))
+          ]
+        );
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_SENSITIVE_VALUE
+          message: 'signing_key is sensitive, it must be a secret()'
+          text: "'literal'"
+        - type: OVERLAY_SENSITIVE_VALUE
+          message: 'credentials.value is sensitive, it must be a secret()'
+          text: ":leaked"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: webhook_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null},{\"param_name\":\"key\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"leaked\"},{\"pointer\":\"/credentials/2/value\",\"secret\":\"stored\"}]}"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "stored"
+        - expression-idx: 1
+          type: function
+          name: secret
+          statement-id: 0
+          text: "secret(stored)"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'literal'"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'user'"
+        - expression-idx: 4
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'public'"
+        - expression-idx: 5
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'password'"
+        - expression-idx: 6
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'key'"
+      constants:
+        - expression: 2
+          text: "'literal'"
+        - expression: 3
+          text: "'user'"
+        - expression: 4
+          text: "'public'"
+        - expression: 5
+          text: "'password'"
+        - expression: 6
+          text: "'key'"
+      parameters:
+        - kind: scalar
+          name: leaked
+          statement-id: 0
+          text: ":leaked"
+
+  - name: call_sensitive_single_object
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.webhook_create (credentials => (param_name = 'password', value = 'literal'));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_SENSITIVE_VALUE
+          message: 'credentials.value is sensitive, it must be a secret()'
+          text: "'literal'"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: webhook_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"credentials\":{\"param_name\":\"password\",\"value\":\"literal\"}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'password'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'literal'"
+      constants:
+        - expression: 0
+          text: "'password'"
+        - expression: 1
+          text: "'literal'"
+
+  - name: call_invalid_functions
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_list (project => now(), page_size => secret(a, b), page_token => cast(1 as text));
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_INVALID_VALUE
+          message: a value can only call secret(<name>)
+          text: "now()"
+        - type: OVERLAY_INVALID_VALUE
+          message: a value can only call secret(<name>)
+          text: "secret(a, b)"
+        - type: OVERLAY_INVALID_VALUE
+          message: a value can only call secret(<name>)
+          text: "cast(1 as text)"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":null,\"page_size\":null,\"page_token\":null}}"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "b"
+        - expression-idx: 2
+          type: function
+          name: now
+          is-const: true
+          statement-id: 0
+          text: "now()"
+        - expression-idx: 3
+          type: function
+          name: secret
+          statement-id: 0
+          text: "secret(a, b)"
+        - expression-idx: 4
+          type: function
+          known-function: CAST
+          is-const: true
+          statement-id: 0
+          text: "cast(1 as text)"
+        - expression-idx: 5
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 5
+          text: "1"
+
+  - name: call_paging
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.ticket_list (project => 'a', page_size => 50, _next => 'abc', _pages => 10);
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_size\":50,\"_next\":\"abc\",\"_pages\":10}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "50"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'abc'"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "10"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "50"
+        - expression: 2
+          text: "'abc'"
+        - expression: 3
+          text: "10"
+
+  - name: call_paging_url
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_feed (_next => '/feed?page=2');
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_feed
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_feed\",\"effect\":\"read\",\"explain\":false,\"options\":{\"_next\":\"/feed?page=2\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'/feed?page=2'"
+      constants:
+        - expression: 0
+          text: "'/feed?page=2'"
+
+  - name: call_paging_conflict
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_list (project => 'a', page_token => 'x', _next => 'y');
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_DUPLICATE_OPTION
+          message: '_next sets the option page_token, use one of them'
+          text: "call ticke..xt => 'y')"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_token\":\"x\",\"_next\":\"y\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'y'"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'x'"
+        - expression: 2
+          text: "'y'"
+
+  - name: call_paging_errors
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.ticket_list (project => 'a', _pages => 0);
+        call tickets.ticket_delete (id => 1, _next => 'x', _unknown => 1);
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_INVALID_VALUE
+          message: _pages takes a positive number
+          text: "0"
+        - type: OVERLAY_UNSUPPORTED_OPTION
+          message: tickets.ticket_delete has no option _next
+          text: "_next"
+        - type: OVERLAY_UNSUPPORTED_OPTION
+          message: tickets.ticket_delete has no option _unknown
+          text: "_unknown"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_list
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":0}}"
+        - statement: 1
+          namespace: tickets
+          function: ticket_delete
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_next\":\"x\",\"_unknown\":1}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "0"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "1"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 1
+          text: "'x'"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "0"
+        - expression: 2
+          text: "1"
+        - expression: 3
+          text: "'x'"
+        - expression: 4
+          text: "1"
+
+  - name: call_pending
+    catalog:
+      overlay: tickets
+    script:
+      input: |
+        call tickets.export_start (format => 'csv', _wait => 60);
+        call tickets.export_start (_poll => '/results/1');
+      catalog-id: 1
+      errors: []
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: export_start
+          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":60}}"
+        - statement: 1
+          namespace: tickets
+          function: export_start
+          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"_poll\":\"/results/1\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'csv'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "60"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 1
+          text: "'/results/1'"
+      constants:
+        - expression: 0
+          text: "'csv'"
+        - expression: 1
+          text: "60"
+        - expression: 2
+          text: "'/results/1'"
+
+  - name: call_pending_errors
+    catalog:
+      overlay: tickets
+    script:
+      input: call tickets.ticket_delete (id => 1, _wait => 60, _poll => 'x');
+      catalog-id: 1
+      errors:
+        - type: OVERLAY_UNSUPPORTED_OPTION
+          message: tickets.ticket_delete has no option _wait
+          text: "_wait"
+        - type: OVERLAY_UNSUPPORTED_OPTION
+          message: tickets.ticket_delete has no option _poll
+          text: "_poll"
+      overlay-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_delete
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_wait\":60,\"_poll\":\"x\"}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "60"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "60"
+        - expression: 2
+          text: "'x'"

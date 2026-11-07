@@ -157,6 +157,27 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
         .collect();
     out.insert("errors", Node::seq(errors));
 
+    // The calls in a namespace with an overlay, with their descriptions
+    if !script.overlay_calls.is_empty() {
+        let calls = script
+            .overlay_calls
+            .iter()
+            .map(|call| {
+                let mut m = Map::new();
+                m.int("statement", call.ast_statement_id as i64);
+                m.plain("namespace", &call.namespace);
+                if let Some(function) = &call.function {
+                    m.plain("function", function);
+                }
+                if let Some(description) = script.describe_overlay_call(call.ast_statement_id) {
+                    m.quoted("description", &description.to_string());
+                }
+                m.into_node()
+            })
+            .collect();
+        out.insert("overlay-calls", Node::seq(calls));
+    }
+
     // Table references
     if !script.table_references.is_empty() {
         let items = script
@@ -599,8 +620,9 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
 
 
 /// The keys the analyzer snapshot test compares
-pub const COMPARED_KEYS: [&str; 11] = [
+pub const COMPARED_KEYS: [&str; 12] = [
     "errors",
+    "overlay-calls",
     "tables",
     "catalog-changes",
     "table-refs",
@@ -615,13 +637,16 @@ pub const COMPARED_KEYS: [&str; 11] = [
 
 /// Analyze the scripts of an analyzer snapshot case: the catalog script is analyzed and loaded into the connection layer, then the main script is analyzed.
 /// Returns the encoded catalog script (if any) and the encoded main script.
-pub fn analyze_case(catalog_input: Option<&str>, main_input: &str) -> Result<(Option<Yaml>, Yaml), String> {
+pub fn analyze_case(overlay: Option<&str>, catalog_input: Option<&str>, main_input: &str) -> Result<(Option<Yaml>, Yaml), String> {
     use dashql_core::catalog::Catalog;
     use dashql_parser::parser::parse;
     use dashql_parser::scanner::scan;
     use std::sync::Arc;
 
     let mut catalog = Catalog::new();
+    if let Some(spec) = overlay {
+        catalog.register_overlay(spec).map_err(|e| e.message)?;
+    }
     let analyze_text = |catalog: &Catalog, text: &str| -> Result<AnalyzedScript, String> {
         let entry_id = catalog.allocate_entry_id();
         let parsed = Arc::new(parse(Arc::new(scan(text, 0, entry_id))));

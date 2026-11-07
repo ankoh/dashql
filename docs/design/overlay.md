@@ -1,19 +1,22 @@
-# Call API
+# Overlays
 
-Status: proposed. Nothing here is implemented. The grammar was checked on Bison's automaton (see [What was checked](#what-was-checked)), and nothing has run against a real service.
+Status: proposed, with the core implemented (see [The core](#the-core)). The runtime, the connector bindings and the specs don't exist yet, so an overlay call can't run, and nothing has run against a real service.
 
-The call API lets a DashQL script reach a remote REST service. A `CALL <namespace>.<function>(<option> => <value>, ...)` statement runs as an HTTP request instead of going to the connection's SQL backend. A declarative JSON document, the **function spec**, describes a service: its functions, their attributes, how they page and what they return. A **connector binding** says where the service is and how to authenticate.
+An **overlay** lets a DashQL script reach a remote REST service. `CALL <name>(<option> => <value>, ...)` is a generic statement, and an overlay lies on top of a connection and shadows one namespace: a call in that namespace runs as an HTTP request and never reaches the connection's SQL backend. **Any other `CALL` goes to the backend as written.**
 
-- [CDP SQL](call/cdp/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [call/cdp/](call/cdp/).
-- [The API survey](call/api_survey.md) measures this format against Snowflake, GitHub and Stripe, and records what similar formats do.
+An overlay is a declarative JSON document, the **spec**, that describes a service: its functions, their attributes, how they page and what they return. A **connector binding** says where the service is and how to authenticate.
+
+- [CDP SQL](overlay/cdp/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [overlay/cdp/](overlay/cdp/).
+- [The API survey](overlay/api_survey.md) measures this format against Snowflake, GitHub and Stripe, and records what similar formats do.
 
 ## Goals
 
 1. **A new service needs a spec and a binding.** No change to the parser, core or the runtime.
 2. **Core knows no service.** It has no word of any API, and it doesn't know about HTTP.
-3. **Completion and checks come from the spec.** A script gets exactly the functions, options and nested attributes each position takes.
-4. **A spec is data.** It has no expressions and no code. What doesn't fit reaches the script through `_raw` or the escape hatch.
-5. **Everything is reachable.** A call or attribute the spec doesn't know yet can still be sent.
+3. **`CALL` stays general.** It isn't reserved for API clients: a call outside the namespaces with a spec reaches the backend unchanged.
+4. **Completion and checks come from the spec.** A script gets exactly the functions, options and nested attributes each position takes.
+5. **A spec is data.** It has no expressions and no code. What doesn't fit reaches the script through `_raw` or the escape hatch.
+6. **Everything is reachable.** A call or attribute the spec doesn't know yet can still be sent.
 
 ## Layers
 
@@ -22,7 +25,7 @@ The call API lets a DashQL script reach a remote REST service. A `CALL <namespac
 | **Core** (Rust) | `CALL`, namespaces, functions, typed named arguments, nested schemas, result columns | HTTP, any service |
 | **Runtime** (TypeScript) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
 | **Connector binding** (TypeScript) | Host URLs, which credentials go to which host, path variables such as the API version | Individual functions |
-| **Function spec** (JSON) | Namespace, functions, wire names, paging, schemas, effects | Credentials, absolute URLs |
+| **Spec** (JSON) | Namespace, functions, wire names, paging, schemas, effects | Credentials, absolute URLs |
 
 Dependencies point one way: core never imports the runtime, and the runtime never imports a connector. Core tests use a made-up fixture spec, so they can't start depending on a real one.
 
@@ -100,16 +103,16 @@ call_scalar:
 - **`call_value` is separate from `vararg_value`,** so `SET` doesn't change, and a bare column name isn't a value.
 - **`(select = 1)` and `(select 1)` need no scanner help.** LALR(1) decides on the token after `select`, so an attribute can be called `select`, `with`, `table` or `values`.
 - **`secret(name)` is an ordinary function call to the parser.** The check below rejects any other function in a value.
-- **`DCONST` is the `$$` string,** a new scanner rule. `$$` is a syntax error in core SQL today, and only `call_scalar` takes the token, so `SELECT $$x$$` stays one.
+- **`DCONST` is the `$$` string,** a scanner state of its own. It's a `LITERAL_STRING` node, and its text tells it from a quoted string. Only `call_scalar` takes the token, so `SELECT $$x$$` stays a syntax error.
 - **`EXPLAIN`** gets its own production, so `EXPLAIN (analyze) CALL ...` doesn't parse.
 
 **Why not generate the API into the grammar?** That was the first design: functions and attributes as keywords in a scanner mode, one rule per schema. It compiled cleanly and gave every completion for free, but:
 
 | | Core today | Generic `CALL` | API in the grammar |
 |---|---:|---:|---:|
-| Tokens | 511 | 511 | about 2,350 |
-| LR states | 2,297 | 2,346 | 29,812 |
-| `tables.rs` bytes | 924,094 | 959,477 | 3,100,420 |
+| Tokens | 511 | 512 | about 2,350 |
+| LR states | 2,297 | 2,347 | 29,812 |
+| `tables.rs` bytes, without actions | 924,094 | 958,029 | 3,100,420 |
 
 - **Every SQL user pays.** `collect_expected_symbols` (`packages/dashql-parser/src/parser/probe.rs`) loops over every token at each completion, so ordinary SQL would do about 4.6 times the checks.
 - **The errors are worse.** `syntax_error` (`packages/dashql-parser/src/parser/driver.rs`) drops the expected list once more than 4 tokens qualify, and recovery works per statement, so one bad attribute loses the tree, including the embedded `SELECT`.
@@ -119,9 +122,9 @@ call_scalar:
 
 A separate Wasm module doesn't solve this. The script, cursor, analyzer and catalog live in core's linear memory, and embedded `SELECT` needs core's automaton.
 
-## The function spec
+## The spec
 
-One JSON document per namespace. This is the whole shape, with one function:
+One JSON document per namespace, maintained as `overlay/apis/<namespace>/spec.json` with its `annotations.yaml`. The folder doesn't exist yet. This is the whole shape, with one function:
 
 ```json
 {
@@ -216,9 +219,9 @@ One JSON document per namespace. This is the whole shape, with one function:
 
 **`body: "form"`** encodes the same options as form fields, with nested objects as `a[b]=1`. **`body:root`** can't be combined with other body options, and takes an array or object, for calls such as `POST /warehouses/{name}:set-tags`.
 
-**Generating a spec.** The usual route is an OpenAPI document, an [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) with what it can't say, and a generator:
+**Generating a spec.** The usual route is an OpenAPI document, `annotations.yaml` with what it can't say, and a generator:
 - OpenAPI is an input and not the format. None of the Snowflake, GitHub or Stripe documents describe paging in a machine-readable way, and real contracts are often narrower than the payloads they describe.
-- The Overlay is the standard form of a list of updates applied in order, so a service's annotations live in a file of their own.
+- The annotations use the [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) format, a standard list of updates applied in order. Despite the name, that format is unrelated to the overlays here.
 - A generator keeps schemas named. Stripe has 124 recursive references, so unfolding them doesn't terminate in practice.
 - It reports the operations it can't express. Non-JSON responses are the expected ones.
 
@@ -232,9 +235,9 @@ One JSON document per namespace. This is the whole shape, with one function:
 A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-app/src/connections/connector_descriptor.ts`):
 
 ```ts
-interface FunctionSpecBinding<Details> {
+interface OverlayBinding<Details> {
     /// Load the spec, only when the connection needs it
-    loadSpec(): Promise<FunctionSpec>;
+    loadSpec(): Promise<OverlaySpec>;
     /// Resolve a host that the spec names. Async, since a token may need a refresh or an exchange.
     resolveHost(details: Details, host: string): Promise<{ baseUrl: URL; headers: Record<string, string> }>;
     /// The values of the `{variables}` in the base paths
@@ -248,12 +251,11 @@ When the connection is set up, the binding loads the spec and registers it on th
 
 ## Namespaces
 
-**A namespace is reserved per connection, not globally.** `CALL cdp.x` on a connection with that spec is a call to the service. On any other connection it goes to the backend as written, because a Trino connection can have its own `cdp` schema.
+**A spec shadows its namespace on a connection.** Everything under `cdp.` belongs to the spec, so a function it doesn't know is an error, and nothing under `cdp.` reaches the backend, even if the backend has a schema of that name. Every other `CALL` goes to the backend as written: another namespace, and `CALL cdp.x` on a connection without that spec, since a Trino connection can have its own `cdp` schema.
 
 - **Scope:** every `ConnectionState` owns its catalog, and a session belongs to the catalog it was created with, so registering on the catalog scopes the namespace to the connection.
 - **Catalog version:** registering bumps it, so open scripts are analyzed again.
 - **Multiple specs:** a connection can have several. Two with the same namespace is a registration error.
-- **Shadowing:** on that connection, a registered namespace wins over a backend schema of the same name.
 
 ## Checks
 
@@ -261,7 +263,7 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 
 | Text | Result |
 |---|---|
-| An unknown function | Error, with the closest names |
+| A function the spec doesn't know | Error, with the closest name. The namespace is shadowed, so the backend never gets it |
 | An unlisted option or attribute | By the `unknown` setting of the function or schema, with the closest names |
 | The same name, quoted (`"new_field" => 1`) | Accepted and sent as written. Quoting is how a script says it means it |
 | A missing required option, or a duplicate | Error |
@@ -285,10 +287,11 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 
 ## Completion
 
-`Completion::compute` gets a branch before the dot and keyword logic, following the existing `complete_table_parameter`: if the cursor is in a `CALL` on a registered namespace, it answers from the signature and stops.
+`Completion::compute` has a branch before the dot and keyword logic, like `complete_table_parameter`: if the cursor is in a `CALL` of a namespace with a spec, it answers from the signature and stops (`packages/dashql-core/src/completion_overlay.rs`).
 
 | Position | Candidates |
 |---|---|
+| `CALL \|` | The namespaces with a spec. If none matches, core SQL completes as usual |
 | `CALL tickets.\|` | Every function of the namespace |
 | `CALL tickets.ticket_list (\|` | That function's options, minus those already used, required ones first |
 | `assignee => (\|` | The attributes of that schema, minus those already used |
@@ -299,6 +302,8 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 **The position comes from tokens, not the tree,** because the text being typed usually doesn't parse. From the start of the statement, the walk keeps a stack with the key that opened each `(` and `[`. A `(` followed by `select`, `with`, `table` or `values` (not followed by `=`, or with `values` followed by `(`) starts embedded SQL, which falls through to normal completion. A wrong decision here only affects suggestions, since it isn't part of parsing.
 
 The same walk tells a key position from a value position. Completion inside a string could use a spec's enum lists later.
+
+**The `CALL` keyword is only offered if the connection has a spec.** Otherwise it would sort ahead of `CREATE`, and ordinary SQL completion would change. A script can still write it, for a procedure of the backend.
 
 **Highlighting:** names stay plain `NAME` nodes, so attributes aren't colored as keywords. The analyzer could report resolved options later if that's wanted.
 
@@ -315,10 +320,9 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 | `NodeType` | `OBJECT_SQL_CALL` |
 | `AttributeKey` | `SQL_CALL_NAME`, `SQL_CALL_ARGS` |
 | `StatementType` | `CALL` |
-| `AConstType` | `DOLLAR_STRING` |
-| `AnalyzerErrorType` | One value each for an unknown function, an unknown option, a missing option, a duplicate option, a non-secret sensitive value, a function in a value and an unsupported standard option |
+| `AnalyzerErrorType` | `OVERLAY_UNKNOWN_FUNCTION`, `OVERLAY_UNKNOWN_OPTION`, `OVERLAY_MISSING_OPTION`, `OVERLAY_DUPLICATE_OPTION`, `OVERLAY_UNSUPPORTED_OPTION`, `OVERLAY_INVALID_VALUE`, `OVERLAY_SENSITIVE_VALUE` |
 
-**Reused:** `OBJECT_SQL_FUNCTION_ARG` for options, `OBJECT_EXT_VARARG_FIELD` and `OBJECT_EXT_VARARG_ARRAY` for objects and arrays, `OBJECT_SQL_SELECT` for embedded SQL, and `OBJECT_SQL_PARAMETER_REF` for `:param`.
+**Reused:** `OBJECT_SQL_FUNCTION_ARG` for options, an `ARRAY` of `OBJECT_EXT_VARARG_FIELD` for objects, `OBJECT_EXT_VARARG_ARRAY` for arrays, `OBJECT_SQL_SELECT_EXPRESSION` for embedded SQL, `OBJECT_SQL_PARAMETER_REF` for `:param`, and `LITERAL_STRING` for `$$` strings.
 
 **Names are `NAME` nodes,** not enums, so APIs can grow without changing `parsed_script.fbs`.
 
@@ -333,9 +337,27 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 
 ## Running calls
 
-**Core describes, the runtime sends.** Core turns a `CALL` into plain JSON with the namespace, function and options, unescaped strings and source spellings, with `{"param": "name"}` and `{"secret": "name"}` for what it can't resolve. The runtime applies the spec to it. So the rules for reading literals stay in Rust, and `EXPLAIN` shares the path.
+**Core describes, the runtime sends.** `AnalyzedScript::describe_overlay_call` turns a call into plain JSON, and the runtime applies the spec to it. So the rules for reading literals stay in Rust, and `EXPLAIN` shares the path.
 
-**The planner** treats a `CALL` on a registered namespace as a barrier that the executor hands to the runtime. It stays in session order, and its text never reaches the backend.
+```json
+{
+  "namespace": "tickets",
+  "function": "webhook_create",
+  "effect": "write",
+  "explain": false,
+  "options": { "url": null, "signing_key": null, "retries": 3 },
+  "bindings": [
+    { "pointer": "/url", "param": "hook_url" },
+    { "pointer": "/signing_key", "secret": "hook_key" }
+  ]
+}
+```
+
+- **A known name has the spelling of the spec,** any other the spelling of the script, so free-form keys and quoted names stay as written.
+- **Strings are unescaped,** `$$` strings are verbatim, and a query is the text between its parentheses.
+- **`bindings` holds what core can't resolve:** a parameter or a secret is a null in `options` and an entry with its JSON pointer. A marker inside `options` could collide with a real key, such as OData's `$filter`.
+
+**The planner** treats a call in a namespace with a spec as a barrier that the executor hands to the runtime. It stays in session order, and its text never reaches the backend. Until the runtime exists, that makes it a planner error, so it can't reach a backend by accident. Any other `CALL` is an ordinary barrier that runs as written.
 
 **Rules for `effect: write`:**
 - It never runs implicitly: not on opening a script, not on a rerun of dependents.
@@ -536,30 +558,43 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 - Its result is one row with the response in `_raw`.
 - It always counts as `write`, unless the method is `GET`.
 
+## The core
+
+| Part | Where | What it does |
+|---|---|---|
+| Statement | `grammar/rules/ext_call.y` | The generic `CALL` and its values. `StatementType::CALL` |
+| `$$` strings | `packages/dashql-parser/src/scanner.rs` | The `Xdq` start condition and the `DCONST` token |
+| Formatter | `formatter/explain.rs`, `formatter/mod.rs` | `call <name> (<options>)`, objects and arrays |
+| Specs | `packages/dashql-core/src/catalog/overlay.rs` | `OverlaySpec` reads the generic part of a document and ignores what only the runtime needs. `Catalog::register_overlay` and `drop_overlay` bump the catalog version |
+| Checks | `packages/dashql-core/src/analyzer/overlay_calls.rs` | A pass after the others walks every call against its signature. `AnalyzedScript::overlay_calls` lists the calls in a namespace with a spec |
+| Description | `AnalyzedScript::describe_overlay_call` | The JSON for the runtime, see [Running calls](#running-calls) |
+| Completion | `packages/dashql-core/src/completion_overlay.rs` | The token walk, see [Completion](#completion) |
+| Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and the error, see [Running calls](#running-calls) |
+
+**Tests:** `packages/dashql-snapshots/src/overlay_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `overlay: tickets`. The `call` files in `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
+
+**Still missing in core:** the Wasm and JavaScript bindings for registering a spec and describing a call, packing `overlay_calls` for the app, and result columns for script references.
+
 ## What was checked
 
-A scratch copy of the assembled grammar got the rules above, with empty actions, and went through the repo's Bison with the real table skeleton. A small LR driver then ran on the resulting tables, with a Python model of the scanner.
-
-- **Conflicts:** none, and precedence resolutions stay at 1,814, the same as the core grammar.
-- **Size:** 49 more states and 3.8% more table text. No new tokens, apart from `DCONST`, which was modeled as `SCONST` and isn't in these figures.
-- **Examples:** every `CALL` statement in this document and [the Data 360 documents](call/cdp/functions.md) parses. One block with a `(...)` placeholder was skipped.
-- **Fixed cases:** 25 statements that must parse do, and 9 that must not don't. These include `(select = 1)`, `(select 1)`, `(with t as (select 1) select * from t)`, `limit => 1`, `:offset`, `secret(password)`, `SELECT 1 batch_size`, and the rejected `a = 1` at the top level and `EXPLAIN (analyze) CALL`.
-- **The format:** [the survey](call/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
+- **Grammar:** no conflicts, and precedence resolutions stay at 1,814, the same as without `CALL`. It adds 50 states and one token.
+- **Ordinary SQL:** every existing parser, formatter, analyzer, completion and planner snapshot is unchanged byte for byte.
+- **Examples:** an LR driver on Bison's tables, with a Python model of the scanner, parsed every `CALL` statement in this document and [the Data 360 documents](overlay/cdp/functions.md). One block with a `(...)` placeholder was skipped.
+- **The format:** [the survey](overlay/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
 
 **What this doesn't show:**
-- Nothing was compiled, so no Rust was type-checked. The Python scanner model tests the rules, not the Rust.
-- The checks and the completion walk don't exist yet. The first design's prototype showed its expected sets exactly matched the options of all 538 Data 360 functions and the attributes of all 270 object options. The same properties become tests here.
+- The Data 360 examples ran through the Python scanner model, not the Rust scanner, and not against the real checks, since no Data 360 spec exists yet. The first design's prototype showed its expected sets exactly matched the options of all 538 Data 360 functions and the attributes of all 270 object options. The same properties should become tests once the spec exists.
 - A spec's load time and size aren't measured.
 - Nothing ran against a service.
 
 ## Roadmap
 
-Each phase lands separately. None of them has started.
+Each phase lands separately.
 
-1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Until phase 2, a `CALL` on a registered namespace is a planner error, so nothing reaches a backend by accident.
+1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
 2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`.
-3. **Generator:** OpenAPI plus Overlay to a spec. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
-4. **First spec:** the [Data 360 spec](call/cdp/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
+3. **Generator:** OpenAPI plus annotations to a spec in `overlay/apis/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
+4. **First spec:** the [Data 360 spec](overlay/cdp/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
 5. **Writes:** mutating calls, the secret store, run gating and agent policy. To be designed; `effect` and `billed` are its input.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 

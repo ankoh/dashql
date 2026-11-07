@@ -106,7 +106,7 @@ fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
 pub fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
     match statement.statement_type {
         // SELECT INTO creates a table and returns no rows
-        StatementType::SELECT | StatementType::EXPLAIN => true,
+        StatementType::SELECT | StatementType::EXPLAIN | StatementType::CALL => true,
         StatementType::INSERT | StatementType::DELETE => has_returning(parsed, statement),
         _ => false,
     }

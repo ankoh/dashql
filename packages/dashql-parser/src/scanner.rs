@@ -160,6 +160,8 @@ enum State {
     Xh,
     /// Quoted string
     Xq,
+    /// Dollar-quoted string
+    Xdq,
 }
 
 // The rules of every start condition form a logos lexer. Logos takes the longest match like flex,
@@ -200,6 +202,7 @@ enum Initial {
     #[token("'", |_| State::Xq)]
     #[token("\"", |_| State::Xd)]
     #[token("`", |_| State::Xbt)]
+    #[token("$$", |_| State::Xdq)]
     Begin(State),
     /// The operators and punctuation with a token of their own
     #[token("::", |_| S_TYPECAST)]
@@ -306,6 +309,19 @@ enum Xq {
     /// `{xqdouble}`, `{xqinside}`
     #[token("''")]
     #[regex(br"[^']+")]
+    Inside,
+}
+
+/// The rules of xdq, the text between `$$` is verbatim
+#[derive(Logos, Clone, Copy, Debug, PartialEq, Eq)]
+#[logos(utf8 = false)]
+enum Xdq {
+    /// The closing `$$`
+    #[token("$$")]
+    Stop,
+    /// A lone `$` or text without one
+    #[token("$")]
+    #[regex(br"[^$]+")]
     Inside,
 }
 
@@ -445,6 +461,7 @@ impl<'a> Lexer<'a> {
                     State::Xb => "unterminated bit string literal",
                     State::Xh => "unterminated hexadecimal bit string literal",
                     State::Xq => "unterminated quoted string",
+                    State::Xdq => "unterminated dollar-quoted string",
                     State::Xd => "unterminated delimited identifier",
                     State::Xbt => "unterminated backtick-quoted identifier",
                 };
@@ -489,6 +506,13 @@ impl<'a> Lexer<'a> {
                 State::Xq => match self.next_match::<Xq>() {
                     (Xq::QuoteStop, loc) => Some(self.quote_stop(loc)),
                     (Xq::Inside, _) => None,
+                },
+                State::Xdq => match self.next_match::<Xdq>() {
+                    (Xdq::Stop, loc) => {
+                        self.state = State::Initial;
+                        Some(Symbol::new(S_DCONST, self.ext_begin.cover(loc)))
+                    }
+                    (Xdq::Inside, _) => None,
                 },
                 State::Xd => match self.next_match::<Xd>() {
                     (Xd::Stop, loc) => Some(self.identifier_stop(out, loc, b'"', "zero-length delimited identifier")),

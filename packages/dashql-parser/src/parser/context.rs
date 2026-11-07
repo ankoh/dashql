@@ -564,6 +564,7 @@ impl<'a> ParseContext<'a> {
             NodeType::OBJECT_SQL_INSERT => StatementType::INSERT,
             NodeType::OBJECT_SQL_DELETE => StatementType::DELETE,
             NodeType::OBJECT_EXT_EXPLAIN => StatementType::EXPLAIN,
+            NodeType::OBJECT_SQL_CALL => StatementType::CALL,
             other => panic!("unexpected statement root {:?}", other.variant_name()),
         };
         let nodes_len = state.nodes.len() as u32;

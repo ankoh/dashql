@@ -1,0 +1,32 @@
+formatter-snapshots:
+  # A call without options
+  - name: coverage_call_no_args
+    input: CALL  foo( )
+    dialects:
+      hyper:
+  # Names and scalars
+  - name: coverage_call_options
+    input: CALL cdp.segment_list (BATCH_SIZE=>200,"Quoted"=>'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$)
+    dialects:
+      hyper:
+  # Objects and arrays
+  - name: coverage_call_nested
+    input: call t.f(a=>(b=1,c=(d=[1,2],e=[(f=1),(g=2)])),h=>[],i=>())
+    dialects:
+      hyper:
+  # A query and a secret
+  - name: coverage_call_sql_and_secret
+    input: call t.f(a=>(select x from y where z>1),b=>secret(pw),c=>:param)
+    dialects:
+      hyper:
+  # EXPLAIN of a call
+  - name: coverage_call_explain
+    input: explain call t.f(a=>1)
+    dialects:
+      hyper:
+  # A long call breaks
+  - name: coverage_call_long
+    input: |
+      call cdp.segment_create (dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000', include_dbt => (models = (models = [(name = 'any_high_value_order', sql = (select distinct a from b join c on d = e where f > 5000))])));
+    dialects:
+      hyper:

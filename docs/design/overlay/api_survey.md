@@ -1,6 +1,6 @@
 # API Survey
 
-Status: research, as of 2026-11. It backs the format in [call_api.md](../call_api.md), and it measures whether the format stays general, or only fits the API it was designed on.
+Status: research, as of 2026-11. It backs the format in [overlay.md](../overlay.md), and it measures whether the format stays general, or only fits the API it was designed on.
 
 **The short version:** the layers, named hosts and the `name` and `wire` split hold up. The first version of the format was shaped too closely to Data 360: Stripe couldn't be expressed at all, and Snowflake only in part. The changes below are now in the format.
 
@@ -69,7 +69,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 
 ## What had to change
 
-| Finding | Change in [the format](../call_api.md) |
+| Finding | Change in [the format](../overlay.md) |
 |---|---|
 | Snowflake declares `Link` on 13 `POST` and `PUT` operations, and the URL points at a results path | A followed URL always uses `GET` with no body. Otherwise, fetching page 2 could repeat a create |
 | Next values live in headers and in rows, not only in the body | `from` takes a pointer, `header:Link#next`, `header:<name>` or `last_row:/id` |
@@ -84,7 +84,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 | Stripe has 197 responses with one array plus other fields, but only 135 are `data` | `rows` is explicit, and a generator never guesses it |
 | 349 top-level array responses on Snowflake and GitHub | `rows: ""` |
 | Merging Snowflake's 55 files gives 39 duplicate schema names | A generator prefixes them, since `schemas` is one flat map |
-| `Link` and `Location` aren't readable cross-origin without `Access-Control-Expose-Headers` | A check per service, in [Security](../call_api.md#security) |
+| `Link` and `Location` aren't readable cross-origin without `Access-Control-Expose-Headers` | A check per service, in [Security](../overlay.md#security) |
 
 **Data 360's contract alone would have shown almost none of these.** It has no top-level array responses, no array bodies and no form encoding, and it doesn't record response headers. A format is only as general as the APIs it has met.
 
@@ -104,8 +104,8 @@ The first two are transport behavior that the runtime can handle per spec. The t
 - **dlt's parent and child resources** call an endpoint once per parent row. That's a real need, and it's left out here, because it hides a call count that can cost money.
 
 **Standards:**
-- **[OpenAPI Overlay 1.0](https://spec.openapis.org/overlay/v1.0.0)** is a list of updates applied in order to an OpenAPI document. It's the standard form of the contract and overlay approach [Data 360 uses](cdp/overview.md#where-attributes-come-from), so it's the input for a generator.
-- **OpenAPI has no paging standard.** None of the extensions in the Snowflake, GitHub and Stripe documents describe it: they're `x-github`, `x-multi-segment`, `x-expandableFields` and `x-stripeBypassValidation`. Every service needs an overlay for this.
+- **[OpenAPI Overlay 1.0](https://spec.openapis.org/overlay/v1.0.0)** is a list of updates applied in order to an OpenAPI document. It's the standard form of the annotations [Data 360 needs](cdp/overview.md#where-attributes-come-from), so it's the format for a generator's input. Despite the name, it's unrelated to DashQL's overlays.
+- **OpenAPI has no paging standard.** None of the extensions in the Snowflake, GitHub and Stripe documents describe it: they're `x-github`, `x-multi-segment`, `x-expandableFields` and `x-stripeBypassValidation`. Every service needs annotations for this.
 
 ## Sources
 

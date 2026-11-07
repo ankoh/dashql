@@ -193,6 +193,10 @@ fn analyze_script(catalog: &Catalog, input: &str) -> Option<AnalyzedScript> {
 /// Build the catalog of a case from its `catalog.script` and append the analysis to that node (`read_catalog_yml`)
 fn read_catalog(test: &mut Node) -> Catalog {
     let mut catalog = Catalog::new();
+    if let Some(spec) = test.get("catalog").and_then(|c| c.get("overlay")).and_then(Node::val) {
+        assert_eq!(spec, "tickets", "unknown overlay");
+        catalog.register_overlay(dashql_snapshots::overlay_fixture::TICKETS).expect("the fixture overlay is valid");
+    }
     let Some(script_node) = test.get_mut("catalog").and_then(|c| c.get_mut("script")) else { return catalog };
     if let Some(analyzed) = analyze_script(&catalog, &script_input(script_node)) {
         append(script_node, analyzer::encode_script(&analyzed, false, None));

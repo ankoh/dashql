@@ -34,6 +34,7 @@
 
 explain_stmt:
     EXPLAIN explainable_stmt { ctx.object(@$, NodeType::OBJECT_EXT_EXPLAIN, &[attr(Key::EXT_EXPLAIN_STATEMENT, $2)]) }
+  | EXPLAIN call_stmt { ctx.object(@$, NodeType::OBJECT_EXT_EXPLAIN, &[attr(Key::EXT_EXPLAIN_STATEMENT, $2)]) }
   | EXPLAIN LRB explain_option_list RRB explainable_stmt {
       ctx.object(
           @$,

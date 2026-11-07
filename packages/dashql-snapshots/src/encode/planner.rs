@@ -112,6 +112,8 @@ pub struct Fixture {
     pub tolerant: bool,
     /// The attachments of the session
     pub attachments: Vec<FixtureAttachment>,
+    /// Do the connections have the fixture overlay (`overlay: tickets`)?
+    pub overlay: bool,
 }
 
 /// The directory of the materialized results in planner snapshots
@@ -128,6 +130,7 @@ impl Fixture {
         let names = |node: &Yaml| node.as_vec().into_iter().flatten().map(text).collect::<Vec<_>>();
         Self {
             catalog: present(&fixture["catalog"]).then(|| text(&fixture["catalog"])),
+            overlay: present(&fixture["overlay"]),
             connections: fixture["connections"]
                 .as_vec()
                 .into_iter()
@@ -278,6 +281,9 @@ pub fn prepare_fixture(fixture: &Fixture) -> Result<PreparedFixture, String> {
     let mut catalog_scripts = Vec::new();
     for connection in &connections {
         let mut catalog = Catalog::new();
+        if fixture.overlay {
+            catalog.register_overlay(crate::overlay_fixture::TICKETS).map_err(|e| e.message)?;
+        }
         if let Some(text) = &connection.catalog {
             let script = prepare(&catalog, &crate::trim_input(text))?;
             if !publishable(&script) {

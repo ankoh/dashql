@@ -1,0 +1,8 @@
+%type<Node> call_stmt;
+%type<NodeList> call_args;
+%type<Node> call_arg;
+%type<Node> call_value;
+%type<NodeList> call_values;
+%type<NodeList> call_members;
+%type<Node> call_member;
+%type<Node> call_scalar;

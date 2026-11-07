@@ -1,0 +1,73 @@
+parser-snapshots:
+  # A call without options
+  - name: call_no_args
+    input: |
+      CALL foo();
+  # A qualified name and named options
+  - name: call_options
+    input: |
+      CALL cdp.segment_list (batch_size => 200, offset => 0);
+  # Every keyword is a valid name
+  - name: call_keyword_names
+    input: |
+      CALL cdp.select (limit => 1, name => 'a', select => 2, table => 3, values => 4, with => 5, offset => 6);
+  # Objects, arrays, and the empty forms of both
+  - name: call_nested
+    input: |
+      CALL t.f (a => (b = 1, c = (d = [1, -2, -1.5, true, false, null, 'x'])), e => [], f => (), g => [(h = 1)]);
+  # Attributes called select, with, table and values are objects
+  - name: call_keyword_attributes
+    input: |
+      CALL t.f (a => (select = 1, with = 2, table = 3, values = 4));
+  # Queries are SQL, also with more parentheses
+  - name: call_embedded_sql
+    input: |
+      CALL t.f (a => (select x from y), b => ((select 1)), c => (with v as (select 1) select * from v), d => (values (1)), e => (table t));
+  # Parameters and functions, a name after the colon is no attribute
+  - name: call_params_and_functions
+    input: |
+      CALL t.f (a => :query_id, b => :offset, c => secret(password), d => secret('other'));
+  # Quoted names
+  - name: call_quoted_names
+    input: |
+      CALL t.f ("X-Trace-Id" => 'a', "Quoted" => ('k' = 1, "K" = 2));
+  # Dollar-quoted strings are verbatim
+  - name: call_dollar_string
+    input: |
+      CALL t.f (a => $$raw ' text with $ and -- no comment$$, b => $$$$);
+  # EXPLAIN of a call
+  - name: call_explain
+    input: |
+      EXPLAIN CALL t.f (a => 1);
+  # Calls next to other statements
+  - name: call_statements
+    input: |
+      CALL t.a (); SELECT 1; CALL t.b (x => 1);
+  # The name while it is typed
+  - name: call_trailing_dot
+    input: |
+      CALL cdp.
+  # Top-level options take =>
+  - name: call_error_equals
+    input: |
+      CALL t.f (a = 1);
+  # Nested attributes take =
+  - name: call_error_arrow
+    input: |
+      CALL t.f (a => (b => 1));
+  # A bare name is no value
+  - name: call_error_bare_name
+    input: |
+      CALL t.f (a => b);
+  # EXPLAIN options don't apply to a call
+  - name: call_error_explain_options
+    input: |
+      EXPLAIN (analyze) CALL t.f ();
+  # A dollar-quoted string is no SQL expression
+  - name: call_error_dollar_in_select
+    input: |
+      SELECT $$x$$;
+  # An unterminated dollar-quoted string
+  - name: call_error_unterminated_dollar
+    input: |
+      CALL t.f (a => $$open

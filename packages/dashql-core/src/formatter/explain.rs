@@ -1,4 +1,4 @@
-//! EXPLAIN statements.
+//! EXPLAIN and CALL statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
@@ -23,6 +23,23 @@ impl<'a> Formatter<'a> {
             return self.space_join(&[header, stmt_reg], FormattingJoinPolicy::ForceBreak, false);
         }
         f.concat(&[f.text("explain "), stmt_reg])
+    }
+
+    /// `call <name> (<args>)`, the args break like the arguments of a function
+    pub(super) fn format_call(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [name, args] = attrs!(self.children(node), [K::SQL_CALL_NAME, K::SQL_CALL_ARGS]);
+        let Some(name) = name else { return self.format_unimplemented(node) };
+        let name_reg = self.reg(name);
+        if name_reg == 0 {
+            return self.format_unimplemented(node);
+        }
+        let Some(args) = args else { return f.concat(&[f.text("call "), name_reg, f.text(" ()")]) };
+        let args_reg = self.reg(args);
+        if args_reg == 0 {
+            return self.format_unimplemented(node);
+        }
+        f.concat(&[f.text("call "), name_reg, f.text(" "), f.parenthesized(args_reg)])
     }
 
     pub(super) fn format_explain_expressions(&self, node: &'a Node) -> FmtReg {

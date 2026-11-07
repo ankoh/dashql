@@ -38,4 +38,5 @@ sql_query_statement:
   | sql_attach_database_stmt  { $1 }
   | sql_insert_stmt           { $1 }
   | sql_delete_stmt           { $1 }
+  | call_stmt                 { $1 }
     ;

@@ -582,6 +582,14 @@ impl<'a> Formatter<'a> {
         f.join(&parts, inline_separator, break_separator, None, true)
     }
 
+    /// The fields of an object in parentheses
+    fn format_vararg_object(&self, node: &Node) -> FmtReg {
+        if node.children_count() == 0 {
+            return self.fmt.text("()");
+        }
+        self.fmt.parenthesized(self.format_comma_list(node, false))
+    }
+
     fn format_array(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         if node.attribute_key() == K::NONE {
@@ -593,6 +601,10 @@ impl<'a> Formatter<'a> {
             }
             if parent_key == Some(K::SQL_EXPRESSION_ARGS) {
                 return self.format_comma_list(node, true);
+            }
+            // An object in an array of varargs
+            if parent_key == Some(K::EXT_VARARG_ARRAY_VALUES) {
+                return self.format_vararg_object(node);
             }
             if parent_key == Some(K::SQL_ROW_LOCKING_OF) {
                 return self.format_qualified_name(node);
@@ -660,15 +672,14 @@ impl<'a> Formatter<'a> {
                 self.format_operator_path(node)
             }
             K::SQL_TABLE_CONSTRAINT_ATTRIBUTES | K::SQL_COLUMN_DEF_CONSTRAINTS => self.format_space_list(node),
-            K::EXT_EXPLAIN_OPTIONS => self.format_comma_list(node, false),
+            K::EXT_EXPLAIN_OPTIONS | K::SQL_CALL_ARGS => self.format_comma_list(node, false),
             K::EXT_EXPLAIN_EXPRESSIONS => {
                 let parts = self.array_regs(node);
                 let (inline_separator, break_separator) = self.comma_separators();
                 f.join(&parts, inline_separator, break_separator, Some(FormattingJoinPolicy::ForceBreak), false)
             }
-            K::EXT_VARARG_FIELD_VALUE | K::SQL_GENERIC_OPTION_VALUE => {
-                f.parenthesized(self.format_comma_list(node, true))
-            }
+            K::EXT_VARARG_FIELD_VALUE | K::SQL_FUNCTION_ARG_VALUE => self.format_vararg_object(node),
+            K::SQL_GENERIC_OPTION_VALUE => f.parenthesized(self.format_comma_list(node, true)),
             K::SQL_INDIRECTION_PATH | K::SQL_SELECT_EXPRESSION_INDIRECTION => self.format_indirection_path(node),
             K::SQL_ROW_EXPRESSION_VALUES | K::SQL_ARRAY_EXPRESSION_VALUES => {
                 let values = self.array_regs(node);
@@ -711,6 +722,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_VIEW_NAME
             | K::SQL_CREATE_FUNCTION_NAME
             | K::SQL_DROP_NAME
+            | K::SQL_CALL_NAME
             | K::EXT_VARARG_FIELD_KEY
             | K::SQL_GRAPH_TABLE_GRAPH => self.format_qualified_name(node),
             K::SQL_SELECT_DISTINCT
@@ -2666,6 +2678,7 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_EXT_VARARG_FIELD => self.format_vararg_field(node),
             NodeType::OBJECT_EXT_EXPLAIN => self.format_explain(node_id),
             NodeType::OBJECT_EXT_EXPLAIN_EXPRESSIONS => self.format_explain_expressions(node),
+            NodeType::OBJECT_SQL_CALL => self.format_call(node),
             NodeType::OBJECT_SQL_TABLEREF => self.format_table_ref(node),
             NodeType::OBJECT_SQL_JOINED_TABLE => self.format_joined_table(node),
             NodeType::ENUM_SQL_JOIN_TYPE => f.empty(),

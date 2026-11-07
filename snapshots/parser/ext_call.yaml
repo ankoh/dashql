@@ -1,0 +1,1144 @@
+parser-snapshots:
+
+  - name: call_no_args
+    input: |-
+      CALL foo();
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "CALL foo();"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL foo()"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_options
+    input: |-
+      CALL cdp.segment_list (batch_size => 200, offset => 0);
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "CALL cdp.s..set => 0);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL cdp.s..fset => 0)"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "cdp.segment_list"
+                children:
+                  - type: NAME
+                    text: "cdp"
+                  - type: NAME
+                    text: "segment_list"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(batch_siz..fset => 0)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "batch_size => 200"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "batch_size"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "200"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "offset => 0"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "offset"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "0"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_keyword_names
+    input: |-
+      CALL cdp.select (limit => 1, name => 'a', select => 2, table => 3, values => 4, with => 5, offset => 6);
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 26
+          description:
+            text: "CALL cdp.s..set => 6);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL cdp.s..fset => 6)"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "cdp.select"
+                children:
+                  - type: NAME
+                    text: "cdp"
+                  - type: NAME
+                    text: "select"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(limit => ..fset => 6)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "limit => 1"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "limit"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "name => 'a'"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "name"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_STRING
+                        text: "'a'"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "select => 2"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "select"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "table => 3"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "table"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "3"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "values => 4"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "values"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "4"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "with => 5"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "with"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "5"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "offset => 6"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "offset"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "6"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_nested
+    input: |-
+      CALL t.f (a => (b = 1, c = (d = [1, -2, -1.5, true, false, null, 'x'])), e => [], f => (), g => [(h = 1)]);
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 46
+          description:
+            text: "CALL t.f (..(h = 1)]);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (..[(h = 1)])"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(a => (b =..[(h = 1)])"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "a => (b = ..ll, 'x']))"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: ARRAY
+                        text: "(b = 1, c ..ll, 'x']))"
+                        children:
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "b = 1"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "b"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "c = (d = [..ull, 'x'])"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "c"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: ARRAY
+                                text: "(d = [1, -..ull, 'x'])"
+                                children:
+                                  - type: OBJECT_EXT_VARARG_FIELD
+                                    text: "d = [1, -2..null, 'x']"
+                                    children:
+                                      - key: EXT_VARARG_FIELD_KEY
+                                        type: NAME
+                                        text: "d"
+                                      - key: EXT_VARARG_FIELD_VALUE
+                                        type: OBJECT_EXT_VARARG_ARRAY
+                                        text: "[1, -2, -1..null, 'x']"
+                                        children:
+                                          - key: EXT_VARARG_ARRAY_VALUES
+                                            type: ARRAY
+                                            text: "[1, -2, -1..null, 'x']"
+                                            children:
+                                              - type: LITERAL_INTEGER
+                                                text: "1"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "-2"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: NEGATE
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "-2"
+                                                    children:
+                                                      - type: LITERAL_INTEGER
+                                                        text: "2"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "-1.5"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: NEGATE
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "-1.5"
+                                                    children:
+                                                      - type: LITERAL_FLOAT
+                                                        text: "1.5"
+                                              - type: BOOL
+                                                value: 1
+                                              - type: BOOL
+                                                value: 0
+                                              - type: LITERAL_NULL
+                                                text: "null"
+                                              - type: LITERAL_STRING
+                                                text: "'x'"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "e => []"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "e"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "[]"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "[]"
+                            children: []
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "f => ()"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "f"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: ARRAY
+                        text: "()"
+                        children: []
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "g => [(h = 1)]"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "g"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "[(h = 1)]"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "[(h = 1)]"
+                            children:
+                              - type: ARRAY
+                                text: "(h = 1)"
+                                children:
+                                  - type: OBJECT_EXT_VARARG_FIELD
+                                    text: "h = 1"
+                                    children:
+                                      - key: EXT_VARARG_FIELD_KEY
+                                        type: NAME
+                                        text: "h"
+                                      - key: EXT_VARARG_FIELD_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_keyword_attributes
+    input: |-
+      CALL t.f (a => (select = 1, with = 2, table = 3, values = 4));
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 20
+          description:
+            text: "CALL t.f (..ues = 4));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (..lues = 4))"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(a => (sel..lues = 4))"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "a => (sele..alues = 4)"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: ARRAY
+                        text: "(select = ..alues = 4)"
+                        children:
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "select = 1"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "select"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "with = 2"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "with"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "table = 3"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "table"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "3"
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "values = 4"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "values"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_embedded_sql
+    input: |-
+      CALL t.f (a => (select x from y), b => ((select 1)), c => (with v as (select 1) select * from v), d => (values (1)), e => (table t));
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 57
+          description:
+            text: "CALL t.f (..table t));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (..(table t))"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(a => (sel..(table t))"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "a => (sele.. x from y)"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_SELECT_EXPRESSION
+                        text: "(select x from y)"
+                        children:
+                          - key: SQL_SELECT_EXPRESSION_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "(select x from y)"
+                            children:
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "x"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "x"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "x"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "x"
+                                            children:
+                                              - type: NAME
+                                                text: "x"
+                              - key: SQL_SELECT_FROM
+                                type: ARRAY
+                                text: "from y"
+                                children:
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "y"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "y"
+                                        children:
+                                          - type: NAME
+                                            text: "y"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "b => ((select 1))"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_SELECT_EXPRESSION
+                        text: "((select 1))"
+                        children:
+                          - key: SQL_SELECT_EXPRESSION_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "((select 1))"
+                            children:
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "1"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "1"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "c => (with.. * from v)"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_SELECT_EXPRESSION
+                        text: "(with v as.. * from v)"
+                        children:
+                          - key: SQL_SELECT_EXPRESSION_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "(with v as.. * from v)"
+                            children:
+                              - key: SQL_SELECT_WITH_CTES
+                                type: ARRAY
+                                text: "v as (select 1)"
+                                children:
+                                  - type: OBJECT_SQL_CTE
+                                    text: "v as (select 1)"
+                                    children:
+                                      - key: SQL_CTE_NAME
+                                        type: NAME
+                                        text: "v"
+                                      - key: SQL_CTE_STATEMENT
+                                        type: OBJECT_SQL_SELECT
+                                        text: "select 1"
+                                        children:
+                                          - key: SQL_SELECT_TARGETS
+                                            type: ARRAY
+                                            text: "1"
+                                            children:
+                                              - type: OBJECT_SQL_RESULT_TARGET
+                                                text: "1"
+                                                children:
+                                                  - key: SQL_RESULT_TARGET_VALUE
+                                                    type: LITERAL_INTEGER
+                                                    text: "1"
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "*"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "*"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_STAR
+                                        type: BOOL
+                                        value: 1
+                              - key: SQL_SELECT_FROM
+                                type: ARRAY
+                                text: "from v"
+                                children:
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "v"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "v"
+                                        children:
+                                          - type: NAME
+                                            text: "v"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "d => (values (1))"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "d"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_SELECT_EXPRESSION
+                        text: "(values (1))"
+                        children:
+                          - key: SQL_SELECT_EXPRESSION_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "(values (1))"
+                            children:
+                              - key: SQL_SELECT_VALUES
+                                type: ARRAY
+                                text: "values (1)"
+                                children:
+                                  - type: ARRAY
+                                    text: "1"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "e => (table t)"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "e"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_SELECT_EXPRESSION
+                        text: "(table t)"
+                        children:
+                          - key: SQL_SELECT_EXPRESSION_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "(table t)"
+                            children:
+                              - key: SQL_SELECT_TABLE
+                                type: OBJECT_SQL_TABLEREF
+                                text: "table t"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "t"
+                                    children:
+                                      - type: NAME
+                                        text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_params_and_functions
+    input: |-
+      CALL t.f (a => :query_id, b => :offset, c => secret(password), d => secret('other'));
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 35
+          description:
+            text: "CALL t.f (..'other'));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (..('other'))"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(a => :que..('other'))"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "a => :query_id"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_PARAMETER_REF
+                        text: ":query_id"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: ":"
+                          - key: SQL_PARAMETER_NAME
+                            type: ARRAY
+                            text: "query_id"
+                            children:
+                              - type: NAME
+                                text: "query_id"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "b => :offset"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_PARAMETER_REF
+                        text: ":offset"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: ":"
+                          - key: SQL_PARAMETER_NAME
+                            type: ARRAY
+                            text: "offset"
+                            children:
+                              - type: NAME
+                                text: "offset"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "c => secre..(password)"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "secret(password)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "secret"
+                            children:
+                              - type: NAME
+                                text: "secret"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "password"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "password"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "password"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "password"
+                                        children:
+                                          - type: NAME
+                                            text: "password"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "d => secre..t('other')"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "d"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "secret('other')"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "secret"
+                            children:
+                              - type: NAME
+                                text: "secret"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "'other'"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "'other'"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'other'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_quoted_names
+    input: |-
+      CALL t.f ("X-Trace-Id" => 'a', "Quoted" => ('k' = 1, "K" = 2));
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 17
+          description:
+            text: "CALL t.f (..\"K\" = 2));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (.. \"K\" = 2))"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(\"X-Trace-.. \"K\" = 2))"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "\"X-Trace-Id\" => 'a'"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "\"X-Trace-Id\""
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_STRING
+                        text: "'a'"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "\"Quoted\" =.., \"K\" = 2)"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "\"Quoted\""
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: ARRAY
+                        text: "('k' = 1, \"K\" = 2)"
+                        children:
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "'k' = 1"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: LITERAL_STRING
+                                text: "'k'"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "\"K\" = 2"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "\"K\""
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_dollar_string
+    input: |-
+      CALL t.f (a => $$raw ' text with $ and -- no comment$$, b => $$$$);
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "CALL t.f (.. => $$$$);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (..b => $$$$)"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(a => $$ra..b => $$$$)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "a => $$raw.. comment$$"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_STRING
+                        text: "$$raw ' te.. comment$$"
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "b => $$$$"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_STRING
+                        text: "$$$$"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_explain
+    input: |-
+      EXPLAIN CALL t.f (a => 1);
+    expected:
+      statements:
+        - type: EXPLAIN
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "EXPLAIN CA.. (a => 1);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "EXPLAIN CA..f (a => 1)"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_SQL_CALL
+                text: "CALL t.f (a => 1)"
+                children:
+                  - key: SQL_CALL_NAME
+                    type: ARRAY
+                    text: "t.f"
+                    children:
+                      - type: NAME
+                        text: "t"
+                      - type: NAME
+                        text: "f"
+                  - key: SQL_CALL_ARGS
+                    type: ARRAY
+                    text: "(a => 1)"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "a => 1"
+                        children:
+                          - key: SQL_FUNCTION_ARG_NAME
+                            type: NAME
+                            text: "a"
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_statements
+    input: |-
+      CALL t.a (); SELECT 1; CALL t.b (x => 1);
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "CALL t.a ();"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.a ()"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.a"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "a"
+        - type: SELECT
+          ast-begin: 4
+          ast-size: 4
+          description:
+            text: "SELECT 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: CALL
+          ast-begin: 8
+          ast-size: 8
+          description:
+            text: "CALL t.b (x => 1);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.b (x => 1)"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.b"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(x => 1)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "x => 1"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_trailing_dot
+    input: |-
+      CALL cdp.
+    expected:
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "CALL cdp."
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL cdp."
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "cdp."
+                children:
+                  - type: NAME
+                    text: "cdp"
+                  - type: OBJECT_EXT_TRAILING_DOT
+                    text: "."
+                    children: []
+      scanner-errors: []
+      parser-errors:
+        - message: name has a trailing dot
+          text: "."
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_error_equals
+    input: |-
+      CALL t.f (a = 1);
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected EQUALS, expecting EQUALS_GREATER'
+          text: "="
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_error_arrow
+    input: |-
+      CALL t.f (a => (b => 1));
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected EQUALS_GREATER, expecting EQUALS'
+          text: "=>"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_error_bare_name
+    input: |-
+      CALL t.f (a => b);
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected RRB, expecting DOT or DOT_TRAILING or LRB or LSB'
+          text: ")"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_error_explain_options
+    input: |-
+      EXPLAIN (analyze) CALL t.f ();
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected CALL_P'
+          text: "CALL"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_error_dollar_in_select
+    input: |-
+      SELECT $$x$$;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected dollar-quoted string'
+          text: "$$x$$"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: call_error_unterminated_dollar
+    input: |-
+      CALL t.f (a => $$open
+    expected:
+      statements: []
+      scanner-errors:
+        - message: unterminated dollar-quoted string
+          text: "$$open"
+      parser-errors:
+        - message: 'syntax error, unexpected EOF'
+          text: ""
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

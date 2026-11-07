@@ -109,7 +109,7 @@ fn token_type(symbol: &Symbol, text: &str) -> ScannerTokenType {
     match symbol.kind {
         S_NULLS_LA | S_NOT_LA | S_WITH_LA => ScannerTokenType::KEYWORD,
         kind if Keyword::name_of(kind).is_some() => ScannerTokenType::KEYWORD,
-        S_SCONST => ScannerTokenType::LITERAL_STRING,
+        S_SCONST | S_DCONST => ScannerTokenType::LITERAL_STRING,
         S_ICONST => ScannerTokenType::LITERAL_INTEGER,
         S_FCONST => ScannerTokenType::LITERAL_FLOAT,
         S_BCONST => ScannerTokenType::LITERAL_BINARY,

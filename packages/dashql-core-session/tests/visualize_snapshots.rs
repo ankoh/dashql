@@ -21,7 +21,7 @@ fn run_case(node: &Yaml) -> Result<(), String> {
     let catalog_input = node["catalog"]["script"]["input"].as_str().map(trim);
     let script_input = node["script"]["input"].as_str().map(trim).unwrap_or_default();
     // The snapshot shows the analysis of the catalog script, like the analyzer snapshots
-    if let (Some(catalog_yaml), _) = analyze_case(catalog_input.as_deref(), &script_input)? {
+    if let (Some(catalog_yaml), _) = analyze_case(None, catalog_input.as_deref(), &script_input)? {
         compare_script(&node["catalog"]["script"], &catalog_yaml).map_err(|e| format!("catalog: {e}"))?;
     }
     let analyzed = analyze_scripts(catalog_input.as_deref(), &script_input)?;
