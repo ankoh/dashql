@@ -379,8 +379,8 @@ fn append_verbatim(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan]) {
 /// follow each other with nothing but whitespace between them are merged into one canonical tagged
 /// comment, so an annotation reads as one block. Comments with tags that cannot be printed canonically
 /// are kept as written, since their content is structured (e.g. JSON) and rewrapping it would break it.
-/// A blank line that follows tagged comments is kept, `following` is the offset of the text after the
-/// comments.
+/// A blank line that follows tagged comments or ends the comments is kept, `following` is the offset of the text after
+/// the comments.
 pub(super) fn append_comments(
     output: &mut Vec<u8>,
     input: &[u8],
@@ -398,6 +398,9 @@ pub(super) fn append_comments(
                 append_verbatim(output, input, slice);
             } else {
                 append_wrapped_line_comments(output, input, slice, max_width);
+            }
+            if unit.comments.end == comments.len() {
+                keep_blank_line(output, input, comments[comments.len() - 1].end() as usize, following);
             }
             u += 1;
             continue;
@@ -436,7 +439,7 @@ pub(super) fn append_comments(
     }
 }
 
-/// Keep a blank line between the end of tagged comments and the text that follows them at `next`
+/// Keep a blank line between the end of comments and the text that follows them at `next`
 fn keep_blank_line(output: &mut Vec<u8>, input: &[u8], text_end: usize, next: Option<usize>) {
     if let Some(next) = next.filter(|&next| next >= text_end) {
         if count_line_breaks(substr(input, text_end, next - text_end)) > 1 {

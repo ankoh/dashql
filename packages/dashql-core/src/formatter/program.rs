@@ -96,6 +96,8 @@ pub struct FormattingOperation<'a> {
     pub indent_after_breaks: bool,
     /// The policy that decides where a join breaks
     pub join_policy: FormattingJoinPolicy,
+    /// Parentheses or brackets that break also break an all-or-none join inside, with one item per line
+    pub break_list: bool,
 }
 
 /// The options for rendering a formatting program
@@ -227,6 +229,32 @@ impl<'a> FormattingProgram<'a> {
             return self.empty();
         }
         self.push(FormattingOperation { code: FormattingOpCode::Brackets, children: vec![child], ..Default::default() })
+    }
+
+    /// A list in parentheses that has one item per line if the parentheses break
+    pub fn parenthesized_list(&self, list: FmtReg) -> FmtReg {
+        if list == 0 {
+            return self.empty();
+        }
+        self.push(FormattingOperation {
+            code: FormattingOpCode::Parenthesis,
+            children: vec![list],
+            break_list: true,
+            ..Default::default()
+        })
+    }
+
+    /// A list in brackets that has one item per line if the brackets break
+    pub fn bracketed_list(&self, list: FmtReg) -> FmtReg {
+        if list == 0 {
+            return self.empty();
+        }
+        self.push(FormattingOperation {
+            code: FormattingOpCode::Brackets,
+            children: vec![list],
+            break_list: true,
+            ..Default::default()
+        })
     }
 
     /// Join documents with separators, skipping empty ones.
@@ -695,10 +723,19 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 };
                 stack.push(RenderCommand { kind: close, reg: 0, indentation: command.indentation, next_index: 0 });
                 if !doc.children.is_empty() {
-                    stack.push(RenderCommand::format(
-                        get_only_child(doc),
-                        command.indentation + options.indentation_width,
-                    ));
+                    let child = get_only_child(doc);
+                    let indentation = command.indentation + options.indentation_width;
+                    let list = &program[child as usize];
+                    if doc.break_list
+                        && !render_flat
+                        && list.code == FormattingOpCode::Join
+                        && list.join_policy == FormattingJoinPolicy::BreakAllOrNone
+                    {
+                        let indentation = indentation + if list.indent_after_breaks { options.indentation_width } else { 0 };
+                        push_rendered_join(&mut stack, list, indentation, list.break_separator);
+                    } else {
+                        stack.push(RenderCommand::format(child, indentation));
+                    }
                 }
             }
         }

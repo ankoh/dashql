@@ -626,3 +626,58 @@ formatter-snapshots:
             expected: |-
               -- first line second line
               select 1;
+
+  - name: blank_line_after_block_comment
+    input: |-
+      /* Separated */
+
+      select 1;
+
+      /* Attached */
+      select 2;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+
+              select 2;
+          - mode: compact
+            expected: |-
+              /* Separated */
+
+              select 1;
+
+              /* Attached */
+              select 2;
+          - mode: pretty
+            expected: |-
+              /* Separated */
+
+              select 1;
+
+              /* Attached */
+              select 2;
+
+  - name: blank_line_after_line_comment
+    input: |-
+      -- Separated
+
+      select 1;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              -- Separated
+
+              select 1;
+          - mode: pretty
+            expected: |-
+              -- Separated
+
+              select 1;

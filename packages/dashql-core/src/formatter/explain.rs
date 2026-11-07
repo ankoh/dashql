@@ -25,7 +25,7 @@ impl<'a> Formatter<'a> {
         f.concat(&[f.text("explain "), stmt_reg])
     }
 
-    /// `call <name> (<args>)`, the args break like the arguments of a function
+    /// `call <name> (<args>)`, with one argument per line if they don't fit on one
     pub(super) fn format_call(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [name, args] = attrs!(self.children(node), [K::SQL_CALL_NAME, K::SQL_CALL_ARGS]);
@@ -39,7 +39,7 @@ impl<'a> Formatter<'a> {
         if args_reg == 0 {
             return self.format_unimplemented(node);
         }
-        f.concat(&[f.text("call "), name_reg, f.text(" "), f.parenthesized(args_reg)])
+        f.concat(&[f.text("call "), name_reg, f.text(" "), f.parenthesized_list(args_reg)])
     }
 
     pub(super) fn format_explain_expressions(&self, node: &'a Node) -> FmtReg {

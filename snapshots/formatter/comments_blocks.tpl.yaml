@@ -229,3 +229,21 @@ formatter-snapshots:
     input: "-- first line\r\n-- second line\r\nselect 1"
     dialects:
       hyper:
+  # A blank line between ordinary comments and the statement stays, without one none is added
+  - name: blank_line_after_block_comment
+    input: |-
+      /* Separated */
+
+      select 1;
+
+      /* Attached */
+      select 2;
+    dialects:
+      hyper:
+  - name: blank_line_after_line_comment
+    input: |-
+      -- Separated
+
+      select 1;
+    dialects:
+      hyper:

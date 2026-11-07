@@ -30,3 +30,39 @@ formatter-snapshots:
       call cdp.segment_create (dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000', include_dbt => (models = (models = [(name = 'any_high_value_order', sql = (select distinct a from b join c on d = e where f > 5000))])));
     dialects:
       hyper:
+  # Arguments that don't fit on one line get one line each, also if they would fit on one line of their own
+  - name: coverage_call_one_argument_per_line
+    input: |
+      call cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
+    dialects:
+      hyper:
+  # An array that breaks has one value per line, an array with one value stays next to its brackets
+  - name: coverage_call_array_of_objects
+    input: |
+      call cdp.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
+    dialects:
+      hyper:
+  # An object that breaks has one field per line, also if the fields would fit on one line of their own
+  - name: coverage_call_object_one_field_per_line
+    input: |
+      call t.f (advanced_attributes => (database = 'ANALYTICS_ANALYTICS_ANALYTICS', schema = 'PUBLIC_PUBLIC_PUBLIC', object = 'CUSTOMER_ORDERS_CUSTOMER_ORDERS_CUSTOMER'));
+    dialects:
+      hyper:
+  # A string over several lines stays as it is
+  - name: coverage_call_multiline_string
+    input: |
+      call t.f (id => :job_id, csv => $$id,total
+      o-1,77506
+      $$);
+    dialects:
+      hyper:
+  # The blank line after a description stays
+  - name: call_description_blank_line
+    input: |
+      /**
+       * The description.
+       */
+
+      call t.f (a => 1);
+    dialects:
+      hyper:

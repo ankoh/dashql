@@ -582,12 +582,12 @@ impl<'a> Formatter<'a> {
         f.join(&parts, inline_separator, break_separator, None, true)
     }
 
-    /// The fields of an object in parentheses
+    /// The fields of an object in parentheses, with one field per line if they don't fit on one
     fn format_vararg_object(&self, node: &Node) -> FmtReg {
         if node.children_count() == 0 {
             return self.fmt.text("()");
         }
-        self.fmt.parenthesized(self.format_comma_list(node, false))
+        self.fmt.parenthesized_list(self.format_comma_list(node, false))
     }
 
     fn format_array(&self, node: &'a Node) -> FmtReg {

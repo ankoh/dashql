@@ -35,6 +35,35 @@ describe('DashQL formatting', () => {
         catalog.destroy();
     });
 
+    it('prints the named arguments of a call that breaks on one line each', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `/* Maps */
+
+CALL cdp.mapping_create(dataspace=>'default',field_mapping=>[(source='order_id__c',target='OrderId__c'),(source='total__c',target='Total__c')])`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.PRETTY,
+            60,
+            4,
+        );
+        const formatted = script.format(config, catalog, true);
+
+        expect(formatted.toString()).toEqual(`/* Maps */
+
+call cdp.mapping_create (
+    dataspace => 'default',
+    field_mapping => [
+        (source = 'order_id__c', target = 'OrderId__c'),
+        (source = 'total__c', target = 'Total__c')
+    ]
+);`);
+
+        formatted.destroy();
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('formats inserts through WebAssembly', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

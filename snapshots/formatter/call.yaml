@@ -127,3 +127,141 @@ formatter-snapshots:
                   )
                 )
               );
+
+  - name: coverage_call_one_argument_per_line
+    input: |-
+      call cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              call cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
+          - mode: compact
+            expected: |-
+              call cdp.document_ai_schema_generate (
+                ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22
+              );
+          - mode: pretty
+            expected: |-
+              call cdp.document_ai_schema_generate (
+                ml_model => 'llmgateway__VertexAIGemini25Flash001',
+                files => [(file_id = :file_id)],
+                x => 1,
+                yy => 22
+              );
+
+  - name: coverage_call_array_of_objects
+    input: |-
+      call cdp.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              call cdp.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
+          - mode: compact
+            expected: |-
+              call cdp.dmo_mapping_create (
+                single => [(
+                  source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c',
+                  other_field_developer_name = 'x'
+                )],
+                field_mapping => [
+                  (source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (
+                    source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c'
+                  )
+                ]
+              );
+          - mode: pretty
+            expected: |-
+              call cdp.dmo_mapping_create (
+                single => [(
+                  source_field_developer_name = 'order_id__c',
+                  target_field_developer_name = 'OrderId__c',
+                  other_field_developer_name = 'x'
+                )],
+                field_mapping => [
+                  (source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'),
+                  (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')
+                ]
+              );
+
+  - name: coverage_call_object_one_field_per_line
+    input: |-
+      call t.f (advanced_attributes => (database = 'ANALYTICS_ANALYTICS_ANALYTICS', schema = 'PUBLIC_PUBLIC_PUBLIC', object = 'CUSTOMER_ORDERS_CUSTOMER_ORDERS_CUSTOMER'));
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              call t.f (advanced_attributes => (database = 'ANALYTICS_ANALYTICS_ANALYTICS', schema = 'PUBLIC_PUBLIC_PUBLIC', object = 'CUSTOMER_ORDERS_CUSTOMER_ORDERS_CUSTOMER'));
+          - mode: compact
+            expected: |-
+              call t.f (
+                advanced_attributes => (
+                  database = 'ANALYTICS_ANALYTICS_ANALYTICS', schema = 'PUBLIC_PUBLIC_PUBLIC',
+                  object = 'CUSTOMER_ORDERS_CUSTOMER_ORDERS_CUSTOMER'
+                )
+              );
+          - mode: pretty
+            expected: |-
+              call t.f (
+                advanced_attributes => (
+                  database = 'ANALYTICS_ANALYTICS_ANALYTICS',
+                  schema = 'PUBLIC_PUBLIC_PUBLIC',
+                  object = 'CUSTOMER_ORDERS_CUSTOMER_ORDERS_CUSTOMER'
+                )
+              );
+
+  - name: coverage_call_multiline_string
+    input: |-
+      call t.f (id => :job_id, csv => $$id,total
+      o-1,77506
+      $$);
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              call t.f (id => :job_id, csv => $$id,total
+              o-1,77506
+              $$);
+          - mode: compact
+            expected: |-
+              call t.f (id => :job_id, csv => $$id,total
+              o-1,77506
+              $$);
+          - mode: pretty
+            expected: |-
+              call t.f (id => :job_id, csv => $$id,total
+              o-1,77506
+              $$);
+
+  - name: call_description_blank_line
+    input: |-
+      /**
+       * The description.
+       */
+
+      call t.f (a => 1);
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              call t.f (a => 1);
+          - mode: compact
+            expected: |-
+              /**
+               * The description.
+               */
+
+              call t.f (a => 1);
+          - mode: pretty
+            expected: |-
+              /**
+               * The description.
+               */
+
+              call t.f (a => 1);

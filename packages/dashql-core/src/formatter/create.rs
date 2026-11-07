@@ -214,6 +214,8 @@ impl<'a> Formatter<'a> {
         f.concat(&[self.reg(key), f.text(" = "), self.reg(value)])
     }
 
+    /// The values of an array in brackets, with one value per line if they don't fit on one. A single value stays next
+    /// to the brackets, so that `[(` opens an object that breaks.
     pub(super) fn format_vararg_array(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [values] = attrs!(self.children(node), [K::EXT_VARARG_ARRAY_VALUES]);
@@ -227,10 +229,11 @@ impl<'a> Formatter<'a> {
         if items.is_empty() {
             return f.text("[]");
         }
+        if let [item] = items[..] {
+            return f.concat(&[f.text("["), item, f.text("]")]);
+        }
         let (inline_separator, break_separator) = self.comma_separators();
-        let list =
-            f.join(&items, inline_separator, break_separator, Some(FormattingJoinPolicy::BreakOnOverflow), false);
-        f.concat(&[f.text("["), list, f.text("]")])
+        f.bracketed_list(f.join(&items, inline_separator, break_separator, None, false))
     }
 
     pub(super) fn format_set(&self, node: &'a Node) -> FmtReg {
