@@ -10,8 +10,8 @@ describe('connector list', () => {
     it('shows the supported connectors in the browser', () => {
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
             ConnectorType.HYPER,
-            ConnectorType.SALESFORCE_DATA_CLOUD,
             ConnectorType.DBCOM,
+            ConnectorType.SALESFORCE_DATA_CLOUD,
             ConnectorType.TRINO,
         ]);
     });
@@ -20,8 +20,8 @@ describe('connector list', () => {
         (globalThis as any).dashqlElectron = {};
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
             ConnectorType.HYPER,
-            ConnectorType.SALESFORCE_DATA_CLOUD,
             ConnectorType.DBCOM,
+            ConnectorType.SALESFORCE_DATA_CLOUD,
             ConnectorType.TRINO,
         ]);
         expect(useConnectorList()[0]).toBe(CONNECTOR_INFOS[ConnectorType.HYPER]);

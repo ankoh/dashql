@@ -164,6 +164,6 @@ export function requiresSwitchingToNative(info: ConnectorInfo) {
 }
 
 export const useConnectorList = () => {
-    const connectorTypes = [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM, ConnectorType.TRINO];
+    const connectorTypes = [ConnectorType.HYPER, ConnectorType.DBCOM, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO];
     return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
 };
