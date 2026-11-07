@@ -2,26 +2,35 @@
  * Return one row for every hop of the matched paths instead of one row per path.
  */
 
-with
-    airports(code) as (
-        values ('MUC'), ('FRA'), ('JFK'), ('SFO')
-    ),
-    flights(origin, destination, minutes) as (
-        values ('MUC', 'FRA', 55), ('FRA', 'JFK', 520), ('JFK', 'SFO', 390)
-    ),
-    routes as property graph (
-        vertex tables (airports key (code) label airport properties (code))
-        edge tables (
-            flights key (origin, destination)
-                source key (origin) references airports (code)
-                destination key (destination) references airports (code)
-                label flight properties (minutes)
-        )
+with airports (code) as (
+    values
+        ('MUC'),
+        ('FRA'),
+        ('JFK'),
+        ('SFO')
+), flights (origin, destination, minutes) as (
+    values
+        ('MUC', 'FRA', 55),
+        ('FRA', 'JFK', 520),
+        ('JFK', 'SFO', 390)
+), routes as property graph (
+    vertex tables (
+        airports
+            key (code)
+            label airport properties (code)
     )
+    edge tables (
+        flights
+            key (origin, destination)
+            source key (origin) references airports(code)
+            destination key (destination) references airports(code)
+            label flight properties (minutes)
+    )
+)
 select *
-from graph_table (
+from graph_table(
     routes
-    match (a is airport where a.code = 'MUC')-[is flight]->{1,3}(b is airport where b.code = 'SFO')
-    one row per step (hop_from, hop, hop_to)
-    columns (hop_from.code as departs, hop_to.code as arrives, hop.minutes as minutes)
-) as g;
+        match (a :airport where a.code = 'MUC')-[:flight]->{1,3}(b :airport where b.code = 'SFO')
+        one row per step(hop_from, hop, hop_to)
+        columns (hop_from.code as departs, hop_to.code as arrives, hop.minutes as minutes)
+) g;

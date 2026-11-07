@@ -3,8 +3,12 @@
  * In a pattern, % matches any sequence of characters, _ a single one.
  */
 
-with products(name) as (
-    values ('Dark Roast Coffee'), ('Green Tea'), ('Iced coffee'), ('Hot Chocolate')
+with products (name) as (
+    values
+        ('Dark Roast Coffee'),
+        ('Green Tea'),
+        ('Iced coffee'),
+        ('Hot Chocolate')
 )
 select name
 from products

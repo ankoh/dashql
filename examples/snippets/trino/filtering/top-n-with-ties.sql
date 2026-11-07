@@ -3,8 +3,13 @@
  * rank() gives equal values the same rank, row_number() would cut ties at random.
  */
 
-with scores(player, points) as (
-    values ('ada', 98), ('alan', 95), ('grace', 91), ('edsger', 91), ('barbara', 87)
+with scores (player, points) as (
+    values
+        ('ada', 98),
+        ('alan', 95),
+        ('grace', 91),
+        ('edsger', 91),
+        ('barbara', 87)
 )
 select player, points
 from (

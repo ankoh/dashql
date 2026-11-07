@@ -4,4 +4,4 @@
  * Get a URL for `:library_id`, and PUT the file to it outside DashQL.
  */
 
-CALL cdp.presigned_urls_get (library_id => :library_id, file_names => ['report.pdf']);
+call cdp.presigned_urls_get (library_id => :library_id, file_names => ['report.pdf']);

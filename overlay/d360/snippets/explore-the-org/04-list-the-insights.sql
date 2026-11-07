@@ -4,4 +4,4 @@
  * List the calculated insights and what they measure.
  */
 
-CALL cdp.insights_metadata ();
+call cdp.insights_metadata ();

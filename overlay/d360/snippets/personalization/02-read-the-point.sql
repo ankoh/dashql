@@ -4,4 +4,4 @@
  * Check that the personalization point exists.
  */
 
-CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
+call cdp.p13n_point_get (id_or_name => 'home_page_experience');

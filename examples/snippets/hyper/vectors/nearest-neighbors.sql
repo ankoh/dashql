@@ -2,7 +2,7 @@
  * Rank documents by the cosine similarity of their embeddings to a query embedding.
  */
 
-with documents(title, embedding) as (
+with documents (title, embedding) as (
     values
         ('Recursive queries', cast(array[0.9, 0.1, 0.0] as real[])),
         ('Window functions', cast(array[0.7, 0.6, 0.1] as real[])),

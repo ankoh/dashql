@@ -4,4 +4,4 @@
  * Check that the transformer exists.
  */
 
-CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+call cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');

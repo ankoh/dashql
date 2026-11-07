@@ -4,4 +4,7 @@
  * Read one record through the graph.
  */
 
-CALL cdp.datagraph_lookup (data_graph_entity_name => 'Customer_Graph', lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]');
+call cdp.datagraph_lookup (
+    data_graph_entity_name => 'Customer_Graph',
+    lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]'
+);

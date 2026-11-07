@@ -4,4 +4,4 @@
  * Run the transform.
  */
 
-CALL cdp.transform_run (data_transform_name_or_id => 'account_rollup');
+call cdp.transform_run (data_transform_name_or_id => 'account_rollup');

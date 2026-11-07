@@ -4,4 +4,4 @@
  * List the templates. The `provider_id` leads to the provider whose `name` is `:provider_dev_name` in the next step.
  */
 
-CALL cdp.clean_room_template_list ();
+call cdp.clean_room_template_list ();

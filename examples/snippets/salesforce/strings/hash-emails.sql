@@ -3,11 +3,12 @@
  * `sha256` returns bytes, `encode` turns them into hex text.
  */
 
-with emails(individual_id, email) as (
-    values ('I-1', ' Ada@Example.com'), ('I-2', 'alan@example.com')
+with emails (individual_id, email) as (
+    values
+        ('I-1', ' Ada@Example.com'),
+        ('I-2', 'alan@example.com')
 )
-select
-    individual_id,
+select individual_id,
     lower(trim(email)) as normalized_email,
     encode(sha256(lower(trim(email))), 'hex') as sha256_hex,
     md5(lower(trim(email))) as md5_hex

@@ -4,4 +4,4 @@
  * Repeat until `runtime_status` is `READY`. This takes several minutes.
  */
 
-CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+call cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');

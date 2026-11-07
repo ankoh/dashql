@@ -4,4 +4,4 @@
  * Repeat until `state` is `JobComplete` or `Failed`.
  */
 
-CALL cdp.ingest_job_get (id => :job_id);
+call cdp.ingest_job_get (id => :job_id);

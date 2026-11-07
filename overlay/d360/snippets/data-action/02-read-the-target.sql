@@ -4,4 +4,4 @@
  * Read the target.
  */
 
-CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
+call cdp.dataaction_target_get (api_name => 'contact_webhook');

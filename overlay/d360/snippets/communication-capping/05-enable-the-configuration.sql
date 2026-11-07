@@ -4,4 +4,4 @@
  * Enable `:configuration_id`.
  */
 
-CALL cdp.communication_capping_enable (id => :configuration_id);
+call cdp.communication_capping_enable (id => :configuration_id);

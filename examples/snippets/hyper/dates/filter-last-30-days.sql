@@ -3,7 +3,7 @@
  * Compare against a moving bound, the result changes over time.
  */
 
-with events(occurred_at, name) as (
+with events (occurred_at, name) as (
     values
         (now() - interval '3' day, 'signup'),
         (now() - interval '12' day, 'purchase'),

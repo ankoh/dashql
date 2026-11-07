@@ -96,6 +96,15 @@ sh_test(
     ] + glob(["tests/*.json"], allow_empty = True),
 )
 
+# The snippets are what `dashql format` prints: bazel run //packages/dashql-cli:dashql -- format --write overlay/d360/snippets
+sh_test(
+    name = "snippets_formatted_test",
+    size = "small",
+    srcs = ["tests/check_snippets.sh"],
+    args = ["$(rootpath //packages/dashql-cli:dashql)"],
+    data = ["//packages/dashql-cli:dashql"] + glob(["snippets/*/*.sql"]),
+)
+
 # The core reads the spec: every documented example and snippet passes the checks, and completion offers exactly what
 # the reference lists
 rust_test(

@@ -1,4 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("//bazel:macos_packaging.bzl", "platform_binary")
 
 package(default_visibility = ["//visibility:private"])
@@ -85,6 +86,18 @@ BRIDGE_TEST_DEPS = [
     "@core_crates//:tokio",
     "@core_crates//:tokio-tungstenite",
 ]
+
+# The snippets of the app are what dashql format prints, in the dialect of their engine
+sh_test(
+    name = "example_snippets_formatted_test",
+    size = "small",
+    srcs = ["tests/check_example_snippets.sh"],
+    args = ["$(rootpath :dashql)"],
+    data = [
+        ":dashql",
+        "//:example_snippets",
+    ],
+)
 
 # The agent bridge end to end: the dashql binary as server, command line tool and `dashql` of harness runs,
 # a DashQL page on the WebSocket and a scripted harness

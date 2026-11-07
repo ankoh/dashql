@@ -4,4 +4,4 @@
  * Read the executions of the code.
  */
 
-CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10);
+call cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10);

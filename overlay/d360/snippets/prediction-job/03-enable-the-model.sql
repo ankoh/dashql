@@ -4,4 +4,7 @@
  * Enable the configured model.
  */
 
-CALL cdp.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
+call cdp.ml_configured_model_update (
+    configured_model_id_or_name => 'Attrition_Predictor_Catboost',
+    status => 'Enabled'
+);

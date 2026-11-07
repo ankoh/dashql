@@ -4,4 +4,4 @@
  * Check the model before querying it, `is_valid` is in the result.
  */
 
-CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+call cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');

@@ -4,4 +4,4 @@
  * Create the taxonomy that holds the tags.
  */
 
-CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
+call cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');

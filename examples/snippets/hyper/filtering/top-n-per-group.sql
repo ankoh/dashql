@@ -2,7 +2,7 @@
  * Keep the two best-selling products of every category with a ranking window function.
  */
 
-with sales(category, product, revenue) as (
+with sales (category, product, revenue) as (
     values
         ('books', 'Dune', 420),
         ('books', 'Emma', 310),
@@ -13,9 +13,7 @@ with sales(category, product, revenue) as (
 )
 select category, product, revenue
 from (
-    select
-        sales.*,
-        row_number() over (partition by category order by revenue desc) as rank_in_category
+    select sales.*, row_number() over (partition by category order by revenue desc) as rank_in_category
     from sales
 ) ranked
 where rank_in_category <= 2

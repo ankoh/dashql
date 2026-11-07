@@ -4,4 +4,4 @@
  * Create a tag in the taxonomy.
  */
 
-CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
+call cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');

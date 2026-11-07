@@ -4,4 +4,7 @@
  * Activate the job definition.
  */
 
-CALL cdp.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
+call cdp.prediction_job_def_update (
+    prediction_job_def_id_or_name => 'attrition_scores',
+    activation_status => 'Active'
+);

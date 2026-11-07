@@ -4,5 +4,6 @@
  * Repeat until `status` is `ACTIVE`, then check the fields of its data lake object.
  */
 
-CALL cdp.datastream_get (record_id_or_developer_name => 'Orders_snow', include_mappings => 'true');
-CALL cdp.dlo_get (record_id_or_developer_name => 'Orders_snow__dll');
+call cdp.datastream_get (record_id_or_developer_name => 'Orders_snow', include_mappings => 'true');
+
+call cdp.dlo_get (record_id_or_developer_name => 'Orders_snow__dll');

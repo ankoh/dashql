@@ -4,4 +4,4 @@
  * Find the data space to work in. The steps below use `default`.
  */
 
-CALL cdp.dataspace_list ();
+call cdp.dataspace_list ();

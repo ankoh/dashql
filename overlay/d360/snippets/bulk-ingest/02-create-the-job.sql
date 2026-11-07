@@ -4,4 +4,4 @@
  * Create the job. Its `id` in the result is the `:job_id` of the next steps.
  */
 
-CALL cdp.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');
+call cdp.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');

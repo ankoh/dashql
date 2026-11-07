@@ -4,5 +4,5 @@
 
 explain (analyze)
 select i % 10 as bucket, count(*) as numbers
-from generate_series(1, 100000) as numbers(i)
+from generate_series(1, 100000) numbers(i)
 group by bucket;

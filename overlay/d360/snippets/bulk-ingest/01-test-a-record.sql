@@ -4,4 +4,4 @@
  * Validate a record without storing it.
  */
 
-CALL cdp.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
+call cdp.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);

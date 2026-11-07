@@ -4,4 +4,4 @@
  * List the actions of the data space.
  */
 
-CALL cdp.dataaction_list (dataspace => 'default');
+call cdp.dataaction_list (dataspace => 'default');

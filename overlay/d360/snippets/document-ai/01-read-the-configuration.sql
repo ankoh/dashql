@@ -4,4 +4,4 @@
  * Read the global configuration, with the models to choose from.
  */
 
-CALL cdp.document_ai_global_configuration_get ();
+call cdp.document_ai_global_configuration_get ();

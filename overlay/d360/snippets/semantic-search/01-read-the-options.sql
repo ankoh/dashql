@@ -4,4 +4,4 @@
  * Read the chunking and embedding models that a search index can use.
  */
 
-CALL cdp.search_index_config ();
+call cdp.search_index_config ();

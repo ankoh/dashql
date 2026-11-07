@@ -4,4 +4,4 @@
  * Read `last_run_status`.
  */
 
-CALL cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+call cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');

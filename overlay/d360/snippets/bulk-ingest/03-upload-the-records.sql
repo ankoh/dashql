@@ -4,7 +4,7 @@
  * The first line of the CSV is its header, so it starts right after the opening quotes.
  */
 
-CALL cdp.ingest_job_upload (id => :job_id, csv => $$id,total
+call cdp.ingest_job_upload (id => :job_id, csv => $$id,total
 o-1,77506
 o-2,16986
 $$);
