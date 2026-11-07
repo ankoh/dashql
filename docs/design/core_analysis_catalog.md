@@ -165,6 +165,7 @@ pub struct CatalogSnapshot {
     entries_by_schema: BTreeMap<(schema, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
     databases: BTreeMap<db, Arc<DatabaseDeclaration>>,
     schemas: BTreeMap<(db, schema), Arc<SchemaDeclaration>>,
+    client_function_specs: BTreeMap<namespace, Arc<ClientFunctionSpec>>,
 }
 ```
 
@@ -205,7 +206,9 @@ catalog, so it only moves when what other entries resolve against may have chang
 | `replace_descriptor` | Import descriptor bytes and publish them. | **Unchanged** if the entry holds the same bytes in the same layer. Otherwise +1. |
 | `drop_descriptor` | Remove a descriptor. | +1 if it existed |
 | `apply_catalog_changes` | Unpack the descriptor, apply the changes, replace it. | As `replace_descriptor`: unchanged if the changes leave the bytes as they are. |
-| `clear` | Remove all entries (id reservations stay). | +1 |
+| `clear` | Remove all entries (id reservations and client function specs stay). | +1 |
+| `register_client_functions` | Parse a spec and shadow its namespace. A taken namespace is an error. | +1 |
+| `drop_client_functions` | Remove the spec of a namespace. | +1 if it existed |
 
 `same_declarations` compares what other entries resolve against: the ids and names of databases,
 schemas, tables, columns and functions, plus column order, function params and return types. It
@@ -217,6 +220,12 @@ current reads them from the catalog, its snapshot holds the locations of the ear
 
 A rebuilding publish stages new maps and swaps them in at the end, so a failed publish leaves the
 catalog unchanged.
+
+**Client function specs** come with the connector of a connection and not from its backend, so
+`clear` keeps them. They are no entries: they have no layer and no declarations, `flatten` and
+`describe_entries` leave them out, and the app doesn't store them. A snapshot holds them so that an
+analysis and completion read the spec of the catalog version they resolved against, see
+[Extensions](extensions.md#namespaces).
 
 ### Resolution
 
@@ -405,7 +414,8 @@ that script, not in the offset unit of the session. It is the target of a jump t
 resolved references) and the analysis's snapshot (the name indexes and declarations of all other
 entries, tables by schema). `ScriptView::catalog()` returns that snapshot, or the catalog's current
 snapshot for a script without analysis. Every location completion handles, from the analysis or
-from a name index, refers to the same snapshot.
+from a name index, refers to the same snapshot. The client function specs come from the same
+snapshot, see [Completion](extensions.md#completion).
 
 The session refreshes an outdated analysis before it places the cursor, so editor completion sees
 the current catalog. Completion on an outdated analysis through the `Script` API sees the catalog
@@ -525,6 +535,7 @@ connection once the statement succeeded (`QueryExecutionArgs.catalogChanges`).
 | Entry data, names, declarations, `same_declarations` | `packages/dashql-core/src/catalog/entry.rs` |
 | Catalog, snapshots, publishing, resolution, flatten | `packages/dashql-core/src/catalog/mod.rs` |
 | Descriptors | `packages/dashql-core/src/catalog/descriptor.rs` |
+| Client function specs | `packages/dashql-core/src/catalog/clfn.rs` |
 | Name search index | `packages/dashql-core/src/catalog/names.rs` |
 | Catalog changes: applying / deriving and persisting | `packages/dashql-core/src/catalog/changes.rs` / `packages/dashql-core-session/src/catalog_changes.rs` |
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
