@@ -229,6 +229,35 @@ HAVING SUM(CASE WHEN SalesOrders__dlm.TotalAmount__c IS NOT NULL AND SalesOrders
 
 These cover one criterion. Combining criteria would need `INTERSECT` or `UNION`, whose structural rules aren't published.
 
+## Zero copy
+
+The ways to read an outside warehouse without ingesting it, and what `snippets/zero-copy/` shows for each. The official guides answer automated requests with a 403, so what they say comes from search excerpts of them.
+
+| Mode | Where it is set | Snowflake | BigQuery | Databricks | Redshift |
+|---|---|---|---|---|---|
+| Live query | The default of a stream | yes | yes | yes | yes |
+| Acceleration | `refresh_config.is_acceleration_enabled` on the stream | yes | yes | yes | yes |
+| Unloading | An attribute of the connection | yes | yes | not documented | not documented |
+| File federation | A connector of its own | yes | no | yes | no |
+
+**Live query and acceleration:** [Trailhead](https://trailhead.salesforce.com/content/learn/modules/data-cloud-with-zero-copy/explore-use-cases-for-zero-copy-data-federation) describes both and says a file federation connector is always live-queried. The [interoperability guide](https://architect.salesforce.com/docs/architect/decision-guides/guide/data-360-interoperability.html) gives the cache interval of 15 minutes to 7 days, and says an incremental refresh only upserts.
+
+**Unloading:** it only affects accelerated streams. The same guide says Snowflake's is on by default. The [BigQuery connection guide](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-set-up-bigquery-connection.html) calls it a connection-level property that exports to a temporary Cloud Storage bucket. `unloadData` comes from a [community recipe](https://github.com/javrrr/afd360/blob/main/skills/afd360/references/connector-snowflake.md) for Snowflake, and Salesforce's [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SnowflakeConnectionTools.java) doesn't send it.
+
+**File federation:** [Snowflake](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-set-up-snowflake-file-federation-connection.html) goes through Open Catalog and [Databricks](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-set-up-databricks-file-federation-connection.html) through Unity Catalog. [One post](https://www.salesforceblogger.com/2025/11/10/unlocking-peak-performance-in-zero-copy-federation-a-guide-to-data-locality/) lists neither BigQuery nor Redshift, [another](https://www.concret.io/blog/zero-copy-architecture-snowflake-databricks-bigquery) rules out BigQuery, and the [Redshift connector page](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-redshift-connector.html) only covers data federation. No primary source excludes them outright.
+
+**What the snippets guess.** No source gives these, so they are written from the labels of the setup pages:
+
+| Snippets | Guessed |
+|---|---|
+| Databricks query federation | `clientId`, `clientSecret`, `url`, `httpPath`, and the stream's use of `database` for the catalog |
+| Databricks file federation | `accessToken`, `catalogUrl`, and the connector's name, so it is a `:param` |
+| Snowflake file federation | `clientId`, `clientSecret`, `catalogUrl`, and the connector's name, so it is a `:param` |
+| BigQuery unloading | `unloadData`, `gcsBucket`, `temporaryDataset` |
+| Every Redshift and Databricks stream | The shape of a Snowflake stream. [Community code](https://github.com/javrrr/data-360-sdk/blob/main/src/schemas.ts) says Databricks takes `Direct_Access`, and nothing shows a Redshift stream |
+
+The Redshift connection comes from a [community example](https://github.com/Jaganpro/sf-skills/blob/main/skills/sf-datacloud-connect/examples/connections/redshift.json), the BigQuery one from [community code](https://github.com/javrrr/data-360-sdk/blob/main/src/schemas.ts).
+
 ## Source conflicts
 
 | Topic | One source | Another |
@@ -348,3 +377,6 @@ Run these once an org is available, read-only first. Each settles something this
 
 **Response headers:**
 16. Do `202` responses carry a `Location`, and do list responses carry a `Link`? The normalized contract drops response headers, so this decides whether Data 360 needs `pending` or header paging. From a browser, check that `Access-Control-Expose-Headers` lists them.
+
+**Zero copy:**
+17. Run `connector_list` and `connector_metadata` for Snowflake, BigQuery, Databricks, Redshift and both file federation connectors, and replace the [guessed attributes](#zero-copy) of the snippets. Do Databricks and Redshift have an unload attribute?

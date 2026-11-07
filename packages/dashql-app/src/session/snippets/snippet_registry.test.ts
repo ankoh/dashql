@@ -148,6 +148,7 @@ describe('Snippet registry', () => {
         const salesforce = snippetsForConnector(registry, ConnectorType.SALESFORCE_DATA_CLOUD);
         expect(new Set(salesforce.map(snippet => snippet.category.split('/')[0]))).toEqual(new Set(['d360', 'd360-api']));
         expect(registry.byId.get('d360-api/scenarios/agent-memory/01-create-the-agent')).toBeDefined();
+        expect(registry.byId.get('d360-api/zero-copy/snowflake/live-query')).toBeDefined();
         for (const connector of [ConnectorType.HYPER, ConnectorType.DBCOM, ConnectorType.TRINO]) {
             expect(snippetsForConnector(registry, connector).filter(snippet => snippet.id.startsWith('d360')), ConnectorType[connector]).toEqual([]);
         }

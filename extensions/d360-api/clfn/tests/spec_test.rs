@@ -16,6 +16,7 @@ const REFERENCE: &str = "extensions/d360-api/clfn/docs";
 const SPEC: &str = "extensions/d360-api/clfn/spec/spec.json";
 const SCENARIOS: &str = "extensions/d360-api/snippets/scenarios";
 const FUNCTIONS: &str = "extensions/d360-api/snippets/functions";
+const ZERO_COPY: &str = "extensions/d360-api/snippets/zero-copy";
 
 fn spec_text() -> String {
     std::fs::read_to_string(SPEC).expect("the spec is a test input")
@@ -293,6 +294,33 @@ fn scenarios_pass_the_checks() {
     }
     println!("{workflows} workflows, {steps} steps");
     assert!(steps > 0);
+    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// `zero-copy/<connector>/<mode>.sql` are alternatives and not steps, each of them makes a connection and a stream.
+#[test]
+fn zero_copy_snippets_pass_the_checks() {
+    let catalog = catalog();
+    let modes = ["file-federation", "live-query", "live-query-with-acceleration", "unloading"];
+    let mut failures = Vec::new();
+    let mut snippets = 0;
+    for connector in sorted_entries(Path::new(ZERO_COPY)) {
+        for path in sorted_entries(&connector) {
+            let stem = path.file_stem().unwrap().to_string_lossy().to_string();
+            if !modes.contains(&stem.as_str()) {
+                failures.push(format!("{path:?} is not a mode of zero copy"));
+            }
+            let calls = check_snippet(&catalog, &path, &mut failures);
+            for function in ["connection_create", "datastream_create"] {
+                if !calls.iter().any(|c| c["function"] == function) {
+                    failures.push(format!("{path:?} doesn't call {function}"));
+                }
+            }
+            snippets += 1;
+        }
+    }
+    println!("{snippets} snippets");
+    assert!(snippets > 0);
     assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
 }
 

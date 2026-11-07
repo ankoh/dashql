@@ -131,7 +131,7 @@ One JSON document per namespace, in an extension named for the API, which needn'
 |---|---|
 | `clfn/spec/` | The source of `spec.json`, or the file itself. Data 360 generates it from YAML, and the app bundles what Bazel generates |
 | `clfn/tests/` | A fixture per family: calls, the requests they should send, and responses with the tables they should give |
-| `snippets/` | For the snippet browser: `functions/` with a snippet per function, and `scenarios/` with workflows whose steps build on each other. The extension is a root of the browser (`SNIPPET_ROOT_CONNECTORS`), and a connector with several roots shows them as top-level folders: a Salesforce connection has `d360` with the SQL of `examples/snippets/d360`, and `d360-api` |
+| `snippets/` | For the snippet browser: `functions/` with a snippet per function, `scenarios/` with workflows whose steps build on each other, and `zero-copy/` with a snippet per warehouse and way to read it. The extension is a root of the browser (`SNIPPET_ROOT_CONNECTORS`), and a connector with several roots shows them as top-level folders: a Salesforce connection has `d360` with the SQL of `examples/snippets/d360`, and `d360-api` |
 | `clfn/docs/` | The reference documents |
 
 This is the whole shape of a spec, with one function:

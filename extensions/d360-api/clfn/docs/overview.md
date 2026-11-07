@@ -152,11 +152,13 @@ Passing means an example has the shape the spec describes, not that the server a
 
 **Responses start as assumptions and get replaced by real ones.** An `assumed` response is built from the columns of the spec, so it shows that the runtime follows the spec, not that the spec is right. Replace `response` and `result` of a case with a real exchange, with `source: recorded` or `documented`, and regenerating keeps it. A real exchange must not contain tokens or the data of an org.
 
-**Snippets** come in two folders of `extensions/d360-api/snippets/`, and the tests hold each one to the checks and the rules of the snippet browser. Passing doesn't mean a snippet runs on an org, the object names are made up, and most write, so they don't run yet.
+**Snippets** come in three folders of `extensions/d360-api/snippets/`, and the tests hold each one to the checks and the rules of the snippet browser. Passing doesn't mean a snippet runs on an org, the object names are made up, and most write, so they don't run yet.
 
 `functions/<family>/<function>.sql` shows what one call can do, with one file per function of the spec, which the tests require. The call takes several options in a realistic use, and a call that takes one option or none comes with the call that gives it meaning: a read before a delete, or a read of the outcome after a run.
 
 `scenarios/<workflow>/<NN>-<step>.sql` are workflows, built from the examples of the reference. A single call of this API rarely does anything on its own, so the steps build on each other: `order-pipeline` goes from a Snowflake connection through a data stream, the data model, identity resolution, an insight and a segment to an activation, in the [documented order](api_notes.md#usage-order). The others are shorter, with most families having one, and `explore-the-org` only reads. Names stay the same from step to step, and a value that only a result can give is a `:param`, which the description of the step explains.
+
+`zero-copy/<connector>/<mode>.sql` connect a warehouse and read one table from it, with one file per connector and [mode](api_notes.md#zero-copy) that exists. The modes are alternatives and not steps, so each file makes its own connection and stream. Several attribute names in them are guesses, which the descriptions and the notes name.
 
 ## Where attributes come from
 

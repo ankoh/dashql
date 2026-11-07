@@ -5,7 +5,7 @@
 #   clfn/tests/  a fixture per family: calls, their requests, and responses with where they came from
 #   clfn/docs/   the reference: a document per family generated from clfn/spec/, and the notes behind it
 #   snippets/    for the snippet browser: functions/ with a snippet per function, scenarios/ with workflows whose steps
-#                build on each other
+#                build on each other, zero-copy/ with a snippet per warehouse and way to read it
 #
 # Bazel generates clfn/spec/spec.json from the source, which is what the core, the runtime and the app read. After
 # editing the source, regenerate the documents and the fixtures with `bazel run //extensions/d360-api:update`. A fixture
