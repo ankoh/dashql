@@ -15,6 +15,7 @@ use std::sync::Arc;
 const REFERENCE: &str = "extensions/d360-api/clfn/docs";
 const SPEC: &str = "extensions/d360-api/clfn/spec/spec.json";
 const SCENARIOS: &str = "extensions/d360-api/snippets/scenarios";
+const FUNCTIONS: &str = "extensions/d360-api/snippets/functions";
 
 fn spec_text() -> String {
     std::fs::read_to_string(SPEC).expect("the spec is a test input")
@@ -292,6 +293,41 @@ fn scenarios_pass_the_checks() {
     }
     println!("{workflows} workflows, {steps} steps");
     assert!(steps > 0);
+    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// Every function of the spec has a snippet `functions/<family>/<function>.sql` that calls it, and that shows more than
+/// its name and an id: the call takes several options, or another call goes with it.
+#[test]
+fn every_function_has_a_snippet() {
+    let catalog = catalog();
+    let spec: Value = serde_json::from_str(&spec_text()).unwrap();
+    let functions: BTreeSet<String> = spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();
+    let mut failures = Vec::new();
+    let mut snippets = BTreeSet::new();
+    for family in sorted_entries(Path::new(FUNCTIONS)) {
+        for path in sorted_entries(&family) {
+            let stem = path.file_stem().unwrap().to_string_lossy().to_string();
+            if !snippets.insert(stem.clone()) {
+                failures.push(format!("{path:?}: a second snippet of the function"));
+            }
+            if !functions.contains(&stem) {
+                failures.push(format!("{path:?}: the spec has no function of that name"));
+            }
+            let calls = check_snippet(&catalog, &path, &mut failures);
+            let Some(call) = calls.iter().find(|c| c["function"] == stem.as_str() && c["explain"] == false) else {
+                failures.push(format!("{path:?} doesn't call {stem}"));
+                continue;
+            };
+            if calls.len() < 2 && call["options"].as_object().map_or(0, |o| o.len()) < 2 {
+                failures.push(format!("{path:?} is trivial: one call with less than two options"));
+            }
+        }
+    }
+    for function in functions.difference(&snippets) {
+        failures.push(format!("{function} has no snippet"));
+    }
+    println!("{} snippets", snippets.len());
     assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
 }
 
