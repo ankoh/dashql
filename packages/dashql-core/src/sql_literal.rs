@@ -14,6 +14,7 @@
 //! it, and DashQL doesn't read the text of intervals.
 
 use crate::analyzer::sql_types::{generic_kind, interval_keyword, read_sql_type};
+use crate::analyzer::clfn_calls::number;
 use crate::analyzer::{SqlType, SqlTypeKind};
 use crate::formatter::Formatter;
 use crate::utils::{quote_string_literal, unquote_string_literal};
@@ -22,6 +23,7 @@ use dashql_buffers::parser::{AttributeKey as K, ExpressionOperator, IntervalType
 use dashql_parser::attrs;
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::scan;
+use serde_json::Value;
 use std::fmt;
 use std::sync::Arc;
 
@@ -236,6 +238,16 @@ impl SqlLiteral {
     /// The value as a control shows it: the number, the content of a string, the text of a typed literal
     pub fn display_value(&self) -> String {
         self.value.clone()
+    }
+
+    /// The value as JSON, for a request: a number, a boolean, a null, or the text that a control shows
+    pub fn to_json(&self) -> Value {
+        match self.sql_type.as_ref().map(|t| &t.kind) {
+            None => Value::Null,
+            Some(SqlTypeKind::Bool) => Value::Bool(self.value == "true"),
+            Some(SqlTypeKind::Int8 | SqlTypeKind::Numeric { .. }) => number(&self.value),
+            Some(_) => Value::String(self.value.clone()),
+        }
     }
 
     /// The literal in the Hyper dialect, the text of an `@param` tag

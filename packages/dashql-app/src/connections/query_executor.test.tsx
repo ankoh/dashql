@@ -9,6 +9,7 @@ import { ComputeConnectionProvider, useComputeDatabase } from '../compute/comput
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import { LoggableException, type Logger, type TracedLogger } from '../platform/logger/logger.js';
+import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '../query/query_result_cache.js';
 import {
@@ -27,7 +28,7 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import type { AsyncConsumer } from '../utils/async_consumer.js';
 import { ConnectionRegistry, useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from './connection_state.js';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import {
@@ -206,19 +207,21 @@ describe('QueryExecutorProvider', () => {
         );
         await act(async () => {
             root.render(<LoggerProvider>
-                <StorageProvider backend={new SessionTestBackend()}>
-                    <ConnectionRegistry>
-                        <SessionScriptsRegistryProvider>
-                            <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                                <HyperLogMetricsProvider>
-                                    <ComputeConnectionProvider>
-                                        {options.cache != null ? <QueryResultCacheProvider cache={options.cache}>{tree}</QueryResultCacheProvider> : tree}
-                                    </ComputeConnectionProvider>
-                                </HyperLogMetricsProvider>
-                            </EmbeddedDatabaseProvider>
-                        </SessionScriptsRegistryProvider>
-                    </ConnectionRegistry>
-                </StorageProvider>
+                <HttpClientProvider>
+                    <StorageProvider backend={new SessionTestBackend()}>
+                        <ConnectionRegistry>
+                            <SessionScriptsRegistryProvider>
+                                <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                                    <HyperLogMetricsProvider>
+                                        <ComputeConnectionProvider>
+                                            {options.cache != null ? <QueryResultCacheProvider cache={options.cache}>{tree}</QueryResultCacheProvider> : tree}
+                                        </ComputeConnectionProvider>
+                                    </HyperLogMetricsProvider>
+                                </EmbeddedDatabaseProvider>
+                            </SessionScriptsRegistryProvider>
+                        </ConnectionRegistry>
+                    </StorageProvider>
+                </HttpClientProvider>
             </LoggerProvider>);
         });
         await vi.waitFor(() => expect(api).not.toBeNull());
@@ -246,6 +249,75 @@ describe('QueryExecutorProvider', () => {
         await vi.waitFor(() => expect(api!.connection.queriesFinished.has(queryId)).toBe(true));
         return api!.connection.queriesFinished.get(queryId)!;
     }
+
+    describe('a client function call', () => {
+        const description = (name: string, options: Record<string, unknown> = {}) => ({ namespace: 'cdp', function: name, effect: 'read' as const, explain: false, options });
+        /// A Salesforce connection, the backend of its channel must stay out of a call
+        const salesforce = (executeQuery: unknown): ConnectionState => {
+            const database = createDatabase(executeQuery);
+            return {
+                ...database,
+                connectorInfo: CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD],
+                details: {
+                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    value: {
+                        proto: { setupParams: {} },
+                        channel: {
+                            executeQuery, close: vi.fn(),
+                            coreToken: { accessToken: 'core-token', instanceUrl: 'https://org.my.salesforce.com' },
+                            dataCloudToken: { instanceUrl: 'https://tenant.c360a.salesforce.com/', jwt: { raw: 'tenant-jwt' } },
+                        },
+                    },
+                },
+            } as unknown as ConnectionState;
+        };
+        afterEach(() => { vi.restoreAllMocks(); });
+
+        it('asks the service and shows its result like any query', async () => {
+            const backend = vi.fn();
+            const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ segments: [{ apiName: 'Vip' }, { apiName: 'New' }] })));
+            await renderExecutor(backend, { database: salesforce(backend) });
+            const { queryId, table } = await run(argsOf({
+                query: 'call cdp.segment_list ()',
+                clientFunctionCall: description('segment_list'),
+            }));
+            expect(backend).not.toHaveBeenCalled();
+            expect(fetch.mock.calls[0][0].toString()).toEqual('https://org.my.salesforce.com/services/data/v68.0/ssot/segments');
+            expect(table!.numRows).toBe(2);
+            expect(table!.getChild('api_name')!.get(1)).toEqual('New');
+            const query = await finished(queryId);
+            expect(query.status).toBe(QueryExecutionStatus.SUCCEEDED);
+            expect(query.resultTable?.numRows).toBe(2);
+        });
+
+        it('fails with the message of the service', async () => {
+            const backend = vi.fn();
+            vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify([{ message: 'No access' }]), { status: 403 }));
+            await renderExecutor(backend, { database: salesforce(backend) });
+            const [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ clientFunctionCall: description('segment_list'), throwOnError: true }));
+            await act(async () => { await expect(execution).rejects.toThrow('No access'); });
+            expect((await finished(queryId)).status).toBe(QueryExecutionStatus.FAILED);
+            expect(backend).not.toHaveBeenCalled();
+        });
+
+        it('stops its request when it is cancelled', async () => {
+            const backend = vi.fn();
+            let onStarted = () => {};
+            const started = new Promise<void>(resolve => { onStarted = resolve; });
+            vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => new Promise((_resolve, reject) => {
+                init!.signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+                onStarted();
+            }));
+            await renderExecutor(backend, { database: salesforce(backend) });
+            const [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ clientFunctionCall: description('segment_list') }));
+            await act(async () => {
+                await started;
+                await api!.executor.cancel(CONNECTION_ID, queryId);
+                await execution;
+            });
+            expect((await finished(queryId)).status).toBe(QueryExecutionStatus.CANCELLED);
+        });
+    });
 
     describe('a query', () => {
         it('collects the batches of the backend into a table', async () => {

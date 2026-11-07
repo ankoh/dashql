@@ -25,6 +25,7 @@ import { QueryCacheMissError, type QueryResultCacheEntry } from '../query/query_
 import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { computeQueryResultCacheKey } from '../query/query_result_cache_key.js';
+import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
@@ -139,6 +140,7 @@ function createConnectionQueryExecutionTracker(connectionId: string, dispatch: R
 
 export function QueryExecutorProvider(props: { children?: React.ReactElement }) {
     const logger = useLogger();
+    const http = useHttpClient();
 
     // The connection registry changes frequently.
     // This executor resolves everything ad-hoc through the registry store and never re-renders for registry changes.
@@ -378,7 +380,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                         // Start the query
                         startQueryExecution();
-                        resultStream = await executeConnectionQuery(conn.details, args, initialState.cancellation.signal);
+                        resultStream = await executeConnectionQuery(conn.details, args, { http, logger }, initialState.cancellation.signal);
                         if (initialState.cancellation.signal.aborted) {
                             await resultStream?.cancel?.();
                             initialState.cancellation.signal.throwIfAborted();
@@ -499,7 +501,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         });
         return execution;
 
-    }, [computeDb, connStore, connDispatch, computeDispatch, logger, queryResultCache, applyEngineProgress]);
+    }, [computeDb, connStore, connDispatch, computeDispatch, logger, http, queryResultCache, applyEngineProgress]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {

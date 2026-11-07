@@ -3,6 +3,7 @@ import type * as arrow from 'apache-arrow';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
 import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
+import type { ClientFunctionCallDescription } from '../../connections/clfn/clfn_spec.js';
 import { QueryType, type PlannedStatement } from '../../query/query_execution_state.js';
 import type { LoggerLike } from '../../platform/logger/logger.js';
 import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type ScriptData, type SessionScripts } from './session_scripts.js';
@@ -492,6 +493,7 @@ export async function runExecutionGraph(args: {
         const extra = node.scriptResult ? args.resultQueryArgs?.(scriptIndex) ?? {} : {};
         const [queryId, execution] = args.executeQuery(connectionId, {
             query: String(node.sql ?? ''), catalogChanges: node.catalogChanges, cacheable: false, throwOnError: true, abortSignal: signal,
+            clientFunctionCall: node.clientFunctionCall != null ? JSON.parse(String(node.clientFunctionCall)) as ClientFunctionCallDescription : undefined,
             analyzeResults: output, publishResults: output || materialization != null,
             onResultsReady: materialization == null ? release : undefined,
             ...extra,

@@ -1,6 +1,6 @@
 # CDP SQL
 
-Status: the spec is in `extensions/d360-api/clfn/spec/`, and the core and the runtime read it. Salesforce connections register it, for checks and completion. No call can run yet, and nothing has been tested against an org.
+Status: the spec is in `extensions/d360-api/clfn/spec/`, and the core and the runtime read it. Salesforce connections register it, for checks and completion, and calls that read run in the app. Calls that write fail before anything is sent, and nothing has been tested against an org.
 
 CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [extension](../../../../docs/design/extensions.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [extensions.md](../../../../docs/design/extensions.md) describes them.
 
@@ -56,13 +56,13 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 |---|---|---|---|
 | `core` | `/services/data/v{api_version}` | Core OAuth token | Calls the spec says need the core token, such as `segment_list` and `segment_create` |
 | `tenant` | none | Data 360 JWT | `/api/v1`, ingestion, agentic memory |
-| `connect` | `/services/data/v{api_version}` | Configurable | The other `/ssot/*`, `/connect`, `/personalization` and `/semantic-engine` calls |
+| `connect` | `/services/data/v{api_version}` | Core OAuth token, for now | The other `/ssot/*`, `/connect`, `/personalization` and `/semantic-engine` calls |
 
-**`connect` stays configurable** because the sources conflict: the spec places these calls on the tenant host after a token exchange, while DashQL's metadata call works on the core host with the core token (see [the notes](api_notes.md#hosts-and-tokens)). The spec only names `connect`, so settling this on an org changes the binding and not 400 functions.
+**`connect` takes the core host and token for now,** as DashQL's metadata call does, because the sources conflict: the spec places these calls on the tenant host after a token exchange, while that metadata call works on the core host with the core token (see [the notes](api_notes.md#hosts-and-tokens)). The spec only names `connect`, so settling this on an org changes `salesforce_client_functions.ts` and not 400 functions.
 
-**The token exchange** stays in `SalesforceApiClient`, as `POST /services/oauth2/token` and `POST /services/a360/token` aren't functions. Tokens aren't refreshed today, so `resolveHost` has to handle that before long-running sessions can rely on it.
+**The token exchange** stays in `SalesforceApiClient`, as `POST /services/oauth2/token` and `POST /services/a360/token` aren't functions. `resolveHost` reads the tokens of the connection's channel, and a call without a login fails. Tokens aren't refreshed today, so a call with an expired token fails with the service's error, and `resolveHost` has to handle that before long-running sessions can rely on it.
 
-**`api_version`** comes from the binding. DashQL's own calls use v64.0, while the spec is v68, and the hosted server needs v66 or later. The binding could load a spec per API version later, which needs no rebuild.
+**`api_version`** comes from the binding, which sends 68.0, the version of the spec. DashQL's own calls use v64.0, and the hosted server needs v66 or later. The binding could load a spec per API version later, which needs no rebuild.
 
 **SIDB** spreads the Salesforce descriptor and turns the binding off, since it isn't known whether it has this API, see the [open questions](#open-questions).
 
@@ -120,7 +120,7 @@ bazel run //extensions/d360-api:update
 
 **A family document lists** the schemas of its family and all that its functions and schemas reach, sorted. A schema is defined in one family, and other documents that reach it repeat its section.
 
-**The app bundles `spec.json`.** `//packages/dashql-app:extensions` stages it for the `@dashql/extensions` alias, and `loadClientFunctionSpec('d360')` in `clfn_specs.ts` loads it as a chunk of its own. The binding calls it when a Salesforce connection exists, so a session without one doesn't load it.
+**The app bundles `spec.json`.** `//packages/dashql-app:extensions` stages it for the `@dashql/extensions` alias, and `loadClientFunctionSpec('d360-api')` in `clfn_specs.ts` loads it as a chunk of its own. The binding calls it when a Salesforce connection exists, so a session without one doesn't load it.
 
 **Corrections go into the YAML.** The contract marks some fields required that its own examples leave out, such as every body field of the `PATCH` of `ml_configured_model_update`. Those attributes aren't required there, with a note.
 
@@ -154,7 +154,7 @@ Passing means an example has the shape the spec describes, not that the server a
 
 **Snippets** are workflows in `extensions/d360-api/snippets/<workflow>/<NN>-<step>.sql`, built from the examples of the reference. A single call of this API rarely does anything on its own, so the steps build on each other: `order-pipeline` goes from a Snowflake connection through a data stream, the data model, identity resolution, an insight and a segment to an activation, in the [documented order](api_notes.md#usage-order). The others are shorter, with most families having one, and `explore-the-org` only reads.
 
-Names stay the same from step to step, and a value that only a result can give is a `:param`, which the description of the step explains. The tests hold every step to the checks and the rules of the snippet browser, but passing doesn't mean a workflow runs on an org, and the object names are made up. The snippet browser doesn't list them yet, since a call can't run until the binding exists.
+Names stay the same from step to step, and a value that only a result can give is a `:param`, which the description of the step explains. The tests hold every step to the checks and the rules of the snippet browser, but passing doesn't mean a workflow runs on an org, and the object names are made up. Most steps write, so they don't run yet.
 
 ## Where attributes come from
 
@@ -299,7 +299,7 @@ It's the only function with a `body` option.
 
 The [extension roadmap](../../../../docs/design/extensions.md#roadmap) comes first. The spec exists. For Data 360:
 
-1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Needs a browser CORS check, since only `GET` on `/services/data` is exercised today.
+1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Built. It still needs a browser CORS check on the tenant host, since only `GET` on `/services/data` is exercised today.
 2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
 3. **Writes:** all other calls, on the generic write rules. Ingestion needs its own CORS check, since no code calls `/api/v1/ingest` yet.
 4. **High-level forms**, if wanted, compiling to `CALL cdp.*`. The canonical segment shapes in [the notes](api_notes.md#segment-sql) are the starting point, but multi-criterion segments need an org to test against.

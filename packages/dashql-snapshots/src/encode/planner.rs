@@ -497,6 +497,9 @@ fn encode_graph(
             } else {
                 m.quoted("sql", sql);
             }
+            if let Some(call) = n.client_function_call.as_deref() {
+                m.quoted("client-function-call", call);
+            }
             m.boolean("produces-output", n.produces_output);
             m.boolean("barrier", n.barrier);
             if n.script_result {

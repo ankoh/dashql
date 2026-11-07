@@ -406,7 +406,7 @@ fn select_text(text: &str) -> &str {
 }
 
 /// The number of a literal, as exact as JSON allows
-fn number(text: &str) -> Value {
+pub(crate) fn number(text: &str) -> Value {
     let compact: String = text.chars().filter(|c| !c.is_whitespace()).collect();
     if let Ok(n) = compact.parse::<i64>() {
         return Value::Number(n.into());

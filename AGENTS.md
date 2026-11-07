@@ -22,7 +22,7 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/core_quirks.md`
     - `docs/design/trino_plan.md` (Trino plan fragments to one operator tree, tree layout, stage contours)
 
-- Extensions (core and runtime implemented, Salesforce connections get checks and completion, calls can't run yet: an extension is a folder in `extensions/`, `CALL` is generic, declarative client functions shadow a namespace on a connection and reach a REST API, any other call goes to the backend)
+- Extensions (core and runtime implemented, Salesforce connections get checks and completion, calls that read run, calls that write fail before sending: an extension is a folder in `extensions/`, `CALL` is generic, declarative client functions shadow a namespace on a connection and reach a REST API, any other call goes to the backend)
     - `docs/design/extensions.md` (the statement, spec format, connector binding, checks, completion, paging, pending results, security, the core)
     - `docs/design/extensions/api_survey.md` (the format measured against Snowflake, GitHub and Stripe, similar formats)
 

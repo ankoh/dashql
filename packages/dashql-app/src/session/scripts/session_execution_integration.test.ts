@@ -119,6 +119,40 @@ describe('session execution with real core planning', () => {
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
     });
 
+    it('hands a client function call to the runtime with the values of its inputs, and caches nothing', async () => {
+        const f = fixture([['1_call.sql', `/* @param :id = 'Vip' */
+call clfn.item_get (id => :id, size => 2);`]]);
+        const script = f.script('1_call.sql');
+        script.connection.catalog.registerClientFunctions(JSON.stringify({
+            format: 1, namespace: 'clfn', functions: [{
+                name: 'item_get', method: 'GET', options: [{ name: 'id', in: 'path' }, { name: 'size', in: 'query' }],
+            }],
+        }));
+        const args: QueryExecutionArgs[] = [];
+        f.executeQuery.mockImplementation((_connectionId, query) => {
+            args.push(query);
+            return [1, Promise.resolve(tableFromArrays({ value: [1] }))];
+        });
+        const cache = memoryQueryResultCache();
+        await f.run({ cache, resultKey: async () => 'key', cachesResults: () => true });
+        expect(f.lastState()?.error).toBeNull();
+        expect(args).toHaveLength(1);
+        expect(args[0].query).toEqual("call clfn.item_get (id => 'Vip', size => 2)");
+        expect(args[0].clientFunctionCall).toEqual({
+            namespace: 'clfn', function: 'item_get', effect: 'read', explain: false, options: { id: 'Vip', size: 2 },
+        });
+        expect(args[0].cacheable).toEqual(false);
+        expect(args[0].cacheOnly).toBeUndefined();
+    });
+
+    it('sends another call to the backend as written', async () => {
+        const f = fixture([['1_call.sql', 'call other.procedure (a => 1);']]);
+        f.script('1_call.sql').connection.catalog.registerClientFunctions(JSON.stringify({ format: 1, namespace: 'clfn', functions: [{ name: 'f' }] }));
+        await f.run();
+        expect(f.calls.map(call => call.sql)).toEqual(['call other.procedure (a => 1)']);
+        expect(f.executeQuery.mock.calls[0][1].clientFunctionCall).toBeUndefined();
+    });
+
     it('inlines a script reference of the same connection into the query', async () => {
         const f = fixture([
             ['0_setup.sql', 'create table items (id int);'],

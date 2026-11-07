@@ -19,6 +19,7 @@ use dashql_core::analyzer::{AnalyzedScript, ParameterKind, SqlType, SqlTypeKind}
 use dashql_core::sql_literal::SqlLiteral;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
+use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -155,6 +156,19 @@ pub(crate) struct InputBindings {
     pub errors: Vec<(TextSpan, String)>,
     /// The bound values by name in the Hyper dialect, for the result key
     pub values: BTreeMap<Arc<str>, String>,
+}
+
+/// Describe the client function call of a statement for the host, with the values that the script binds in place of its
+/// parameters. A parameter without a value stays null, `bind_inputs` makes it an error of the plan.
+pub(crate) fn describe_call(inputs: &SessionInputs, analyzed: &AnalyzedScript, statement: u32) -> Option<String> {
+    let mut description = analyzed.describe_client_function_call(statement)?;
+    let bindings = description.as_object_mut()?.remove("bindings");
+    for binding in bindings.as_ref().and_then(Value::as_array).into_iter().flatten() {
+        let (Some(pointer), Some(param)) = (binding["pointer"].as_str(), binding["param"].as_str()) else { continue };
+        let (Some(literal), Some(option)) = (inputs.value_of(analyzed, param), description["options"].pointer_mut(pointer)) else { continue };
+        *option = literal.to_json();
+    }
+    Some(description.to_string())
 }
 
 /// Bind the inputs of a statement, every statement if None

@@ -20,7 +20,7 @@
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
 use crate::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
 use crate::script_references::{self, ReferenceErrors, ReferenceKind, ScriptReferences};
-use crate::session_inputs::{bind_inputs, collect_session_inputs, SessionInputs};
+use crate::session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::execution::{
@@ -723,12 +723,12 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                     barrier!("unsupported statement effects; backend session semantics are not guaranteed");
                 }
             }
-            // A spec shadows its namespace, a call in it never reaches the backend. Without a runtime that sends it, it can't
-            // run. Any other call goes to the backend as written.
-            if let Some(call) = analyzed.client_function_calls.iter().find(|c| c.ast_statement_id == statement_id as u32) {
+            // A spec shadows its namespace, a call in it never reaches the backend: the host runs its description, `sql`
+            // only tells what the statement says. Any other call goes to the backend as written.
+            let client_function_call = analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32);
+            if client_function_call {
                 barrier = true;
-                state.report(node_id, si as u32, None, format!("CALL {}.*: client function calls can't run yet", call.namespace), true);
-                sql.clear();
+                node.client_function_call = describe_call(&state.inputs, analyzed, statement_id as u32);
             }
             // A query with `@vis` tags carries its visualization
             let visualization = analyzed.visualization_specs.iter().find(|s| s.ast_statement_id == Some(statement_id as u32));
@@ -782,7 +782,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 if error_node < statement.nodes_begin || error_node >= statement.nodes_begin + statement.node_count {
                     continue;
                 }
-                state.diagnose(node_id, si as u32, format!("analyzer: {}", e.message));
+                // No backend gets to judge a client function call, so an error of its checks stops the plan
+                let stops = client_function_call && e.severity == AnalyzerErrorSeverity::ERROR;
+                state.report(node_id, si as u32, None, format!("analyzer: {}", e.message), stops);
                 if e.severity == AnalyzerErrorSeverity::ERROR {
                     barrier = true;
                 }
@@ -1235,8 +1237,12 @@ fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Pre
                             .collect::<Vec<_>>()
                             .join("\n")
                     }));
-                    // Queries only. The scripts that a script references are single queries, or the plan is invalid.
-                    meta.cacheable = p.parses() && !p.parsed.statements.is_empty() && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN));
+                    // Queries only, a client function call asks a service and not the backend. The scripts that a script
+                    // references are single queries, or the plan is invalid.
+                    meta.cacheable = p.parses()
+                        && !p.parsed.statements.is_empty()
+                        && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN))
+                        && p.analyzed.client_function_calls.is_empty();
                     meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
                     meta.referenced_scripts = opt_vec(references.producers_of(i as u32));
                 } else {
@@ -1388,8 +1394,11 @@ mod tests {
             ("set search_path = x; select 1", false),
             ("create table t (a int)", false),
             ("select 1 +;", false),
+            ("call x.y ()", false),
+            ("explain call clfn.f ()", false),
         ] {
-            let catalog = Catalog::new();
+            let mut catalog = Catalog::new();
+            catalog.register_client_functions(r#"{ "format": 1, "namespace": "clfn", "functions": [{ "name": "f" }] }"#).unwrap();
             let mut script = Script::new(&catalog);
             script.replace_text(text);
             script.scan();

@@ -8,7 +8,7 @@ planner-snapshots:
           call my_schema.procedure (a => 1);
           select 2;
 
-  # A spec shadows its namespace: a call in it never reaches the backend, it can't run without a runtime
+  # A spec shadows its namespace: a call in it never reaches the backend, the host runs its description
   - name: CallRegisteredNamespace
     client_functions: tickets
     scripts:
@@ -27,3 +27,51 @@ planner-snapshots:
         input: |
           call other.procedure (a => 1);
           call tickets.backend_procedure (a => 1);
+
+  # The values of the inputs fill in the parameters of a call
+  - name: CallInputs
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          /** @param :project = 'OPS'
+           * @param :size = 50
+           * @param :full = true */
+          call tickets.ticket_list (project => :project, page_size => :size);
+          call tickets.ticket_search (query => (full = :full));
+
+  # A parameter of a call needs a value
+  - name: CallInputWithoutValue
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_list (project => :project);
+
+  # No backend judges a client function call, so an error of its checks stops the plan
+  - name: CallCheckFails
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          select 1;
+          call tickets.ticket_list (page_size => 1);
+
+  # A write is planned, the runtime decides whether it may run
+  - name: CallWrite
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_delete (id => 1);
+
+  # A script reads a query of another script, not a call
+  - name: CallReferenced
+    client_functions: tickets
+    scripts:
+      - name: producer
+        input: |
+          call tickets.ticket_list (project => 'a');
+      - name: consumer
+        input: |
+          select * from :producer;

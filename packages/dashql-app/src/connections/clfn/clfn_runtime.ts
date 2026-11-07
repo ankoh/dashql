@@ -17,12 +17,18 @@ import {
     readJsonPointer,
 } from './clfn_spec.js';
 
+/// Where a host of a spec is, and what every request to it carries
+export interface ClientFunctionHostTarget {
+    baseUrl: URL;
+    headers: Record<string, string>;
+}
+
 /// What a connection provides for its client functions
 export interface ClientFunctionEnvironment {
     /// The HTTP client
     http: HttpClient;
     /// Resolve a host that the spec names. Async, since a token may need a refresh or an exchange.
-    resolveHost(host: string): Promise<{ baseUrl: URL; headers: Record<string, string> }>;
+    resolveHost(host: string): Promise<ClientFunctionHostTarget>;
     /// The values of the variables in the base paths
     variables?(): Record<string, string>;
     /// The values of the parameters of the script

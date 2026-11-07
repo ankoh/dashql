@@ -3,16 +3,21 @@ import * as arrow from 'apache-arrow';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
 import type { TracedLogger } from '../platform/logger/logger.js';
 import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import { executeConnectionClientFunction, type ClientFunctionServices } from './connection_client_functions.js';
 import { connectorOfDetails } from './connector_descriptor.js';
 import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 
-/// Execute a query on the channel of a connection
+/// Execute a query on the channel of a connection, a client function call as requests to its service
 export function executeConnectionQuery(
     details: ConnectionStateDetailsVariant,
     args: QueryExecutionArgs,
+    services: ClientFunctionServices,
     abort?: AbortSignal,
 ): Promise<QueryExecutionResponseStream> {
+    if (args.clientFunctionCall != null) {
+        return executeConnectionClientFunction(details, args.clientFunctionCall, services, abort);
+    }
     return connectorOfDetails(details).executeQuery(details.value, args, abort);
 }
 

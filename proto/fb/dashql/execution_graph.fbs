@@ -136,6 +136,9 @@ table ExecutionGraphNode {
     inlined_scripts: [uint32];
     /// The attachments that the statement scans, also those that inlined queries read
     attachments: [uint32];
+    /// A call of a client function: what `describe_client_function_call` says, as JSON, with the values of the inputs
+    /// filled in. The host runs it instead of sending `sql`, no backend sees the statement.
+    client_function_call: string;
 }
 
 table ExecutionGraphEdge {

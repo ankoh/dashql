@@ -1,6 +1,6 @@
 # Extensions
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. Salesforce connections register the spec, so scripts get checks and completion, but a client function call can't run in the app yet, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. On a Salesforce connection a script gets checks and completion, and a call that reads runs in the app. A call that writes fails before anything is sent, and nothing has run against a real service.
 
 An **extension** adds what DashQL needs for a service, in a folder of `extensions/`. It holds client functions and snippets so far. Extensions are bundled with the app and declarative: nothing gets installed, and an extension runs no code of its own.
 
@@ -263,13 +263,17 @@ There are three places to see the actual names: the reference of a spec, such as
 A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-app/src/connections/connector_descriptor.ts`):
 
 ```ts
-interface ClientFunctionBinding {
+interface ClientFunctionBinding<Details> {
     /// Load the spec, only when a connection needs it
     loadSpec(): Promise<ClientFunctionSpec>;
+    /// Where a host that the spec names is on a connection, and the credentials for it
+    resolveHost(details: Details, host: string): Promise<{ baseUrl: URL; headers: Record<string, string> }>;
+    /// The values of the variables in the base paths of the spec. They need no login, `EXPLAIN` prints them.
+    variables(details: Details): Record<string, string>;
 }
 ```
 
-This is all that exists so far, and it's enough for checks and completion. Running a call will add two more, to resolve a host that the spec names, async since a token may need a refresh or an exchange, and to fill the `{variables}` of the base paths. Requests will go through the existing `HttpClient`, with the headers of the host also carrying what a service wants on every call, such as an API version header or a token type.
+`resolveHost` is async since a token may need a refresh or an exchange. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
 
 **A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `ensureConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, and it drops the spec if the connection switches to a connector without it.
 
@@ -399,7 +403,12 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - **Strings are unescaped,** `$$` strings are verbatim, and a query is the text between its parentheses.
 - **`bindings` holds what core can't resolve:** a parameter is a null in `options` and an entry with its JSON pointer. A marker inside `options` could collide with a real key, such as OData's `$filter`.
 
-**The planner** treats a call in a namespace with a spec as a barrier that the executor hands to the runtime. It stays in session order, and its text never reaches the backend. Until the runtime exists, that makes it a planner error, so it can't reach a backend by accident. Any other `CALL` is an ordinary barrier that runs as written.
+**The planner** treats a call in a namespace with a spec as a barrier, so it stays in session order. Its node carries the description in `client_function_call`, with the values of the session's [inputs](session_inputs.md) in place of `bindings`, and `sql` only tells what the statement says. Any other `CALL` is an ordinary barrier that runs as written.
+
+- **No backend judges a call,** so an error of its [checks](#checks) fails the plan, where the same error on a backend statement is only a diagnostic. A warning doesn't.
+- **A script with a call isn't cacheable,** `EXPLAIN` included, since it asks a service and not the backend. The result cache never sees it.
+
+**The executor** gets the description as `clientFunctionCall` of its arguments, and `executeConnectionQuery` hands it to the runtime instead of the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
 
 **Rules for `effect: write`:**
 - It never runs implicitly: not on opening a script, not on a rerun of dependents.
@@ -410,7 +419,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - **Waiting on a job is explicit.** Polling a job means calling its status function. There is no `AWAIT`. [Pending results](#pending-results) cover the different case where the HTTP response itself says it isn't finished.
 - **No automatic retries.** Some POSTs aren't safe to repeat.
 
-**Reading a result from another script.** [Script references](script_references.md) read a query like a view, by inlining it, which a `CALL` can't do. So a script with a single `effect: read` call can be referenced only from a script on the LOCAL connection, through the scan path: the call runs first, and its result is written as a Parquet file and scanned. A reference from any other connection is an error, as is a reference to a write. This extends the rule that a referenced script is a single `SELECT`, and it needs a change in the planner. `:param` values can't come from a result, since inputs are literals in `@param` tags, so a script reads more pages with `_pages`, not by passing `_next` from another script.
+**Reading a result from another script** isn't built: a reference to a script with a call is an error today, because a referenced script is a single `SELECT`. [Script references](script_references.md) read a query like a view, by inlining it, which a `CALL` can't do. So a script with a single `effect: read` call should be referenced only from a script on the LOCAL connection, through the scan path: the call runs first, and its result is written as a Parquet file and scanned. A reference from any other connection stays an error, as does a reference to a write. This extends the rule that a referenced script is a single `SELECT`, and it needs a change in the planner and the result columns below. `:param` values can't come from a result, since inputs are literals in `@param` tags, so a script reads more pages with `_pages`, not by passing `_next` from another script.
 
 ## Paging
 
@@ -593,11 +602,11 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Description | `AnalyzedScript::describe_client_function_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.client_function_calls` in the packed analysis carries it, so the app needs no second call |
 | Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql-core-js/src/api.ts`. A binding registers the spec on the catalog of its connection |
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
-| Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and the error, see [Running calls](#running-calls) |
+| Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
 **Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
 
-**Still missing in core:** result columns for script references, which the runtime phase needs, since a result only exists once a call can run.
+**Still missing in core:** result columns for script references, see [Running calls](#running-calls).
 
 ## The runtime
 
@@ -611,9 +620,11 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | `clfn_runtime.ts` | `runClientFunctionCall` sends it through an `HttpClient`, with paging, polling and errors, and returns the result table. `explainClientFunctionCall` returns the request and sends nothing |
 | `clfn_result_stream.ts` | The result as a `QueryExecutionResponseStream`, like every other query result |
 
-**It only reads so far.** A call with `effect: write`, or a raw call with a method other than `GET`, fails before anything is sent. `EXPLAIN` works for every call, since it sends nothing.
+`executeConnectionClientFunction` (`connections/connection_client_functions.ts`) connects it to a connection: it takes the binding of the connector, loads the spec and returns the stream.
 
-**Nothing calls it yet.** Salesforce connections have their spec, for checks and completion, while the planner still rejects client function calls until a binding can resolve hosts. The tests use a mock `HttpClient`, so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec.
+**It only reads so far.** A call with `effect: write`, or a raw call with a method other than `GET`, fails before anything is sent, and the statements before it in the run have already run. This one check in the runtime is the gate. `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
+
+**The tests use a mock `HttpClient`,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec, `query_executor.test.tsx` runs a call through the executor without touching the backend, and `clfn_result_stream.hyper.test.ts` analyzes a result in Hyper.
 
 ## What was checked
 
@@ -626,7 +637,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 - Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](../../extensions/d360-api/clfn/docs/overview.md#the-fixtures).
 - The runtime only runs reads. Writes are only checked up to their requests.
 - A spec's load time isn't measured.
-- Nothing ran against a service.
+- Nothing ran against a service, and a call hasn't been run through the UI of the app, which needs a connection that is online.
 
 ## Roadmap
 
@@ -635,7 +646,7 @@ Each phase lands separately.
 1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, all tested with a made-up fixture spec. Done, apart from what [The core](#the-core) lists as missing.
 2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
-4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only, followed by the live checks on an org.
+4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
 5. **Writes:** mutating calls, run gating and agent policy. To be designed; `effect` and `billed` are its input. A [secret store](../wip/secret_store.md) is deferred.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 

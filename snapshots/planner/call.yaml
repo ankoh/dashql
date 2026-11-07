@@ -68,7 +68,7 @@ planner-snapshots:
           explain call tickets.ticket_delete (id => 1);
           select 2;
     expected:
-      valid: false
+      valid: true
       scripts:
         - name: queries
           text-version: 1
@@ -92,7 +92,8 @@ planner-snapshots:
           script: queries
           statement-id: 1
           type: CALL
-          sql: ""
+          sql: "call tickets.ticket_list (project => 'a')"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -100,7 +101,8 @@ planner-snapshots:
           script: queries
           statement-id: 2
           type: EXPLAIN
-          sql: ""
+          sql: "explain call tickets.ticket_delete (id => 1)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"id\":1}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -123,15 +125,7 @@ planner-snapshots:
         - from: 2
           to: 3
           reason: BARRIER
-      diagnostics:
-        - node: 1
-          script: queries
-          error: true
-          message: 'CALL tickets.*: client function calls can''t run yet'
-        - node: 2
-          script: queries
-          error: true
-          message: 'CALL tickets.*: client function calls can''t run yet'
+      diagnostics: []
 
   - name: CallShadowing
     client_functions: tickets
@@ -165,7 +159,7 @@ planner-snapshots:
           script: queries
           statement-id: 1
           type: CALL
-          sql: ""
+          sql: "call tickets.backend_procedure (a => 1)"
           produces-output: true
           barrier: true
           script-result: true
@@ -182,8 +176,214 @@ planner-snapshots:
         - node: 1
           script: queries
           error: true
-          message: 'CALL tickets.*: client function calls can''t run yet'
+          message: 'analyzer: unknown function tickets.backend_procedure'
+
+  - name: CallInputs
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          /** @param :project = 'OPS'
+           * @param :size = 50
+           * @param :full = true */
+          call tickets.ticket_list (project => :project, page_size => :size);
+          call tickets.ticket_search (query => (full = :full));
+    expected:
+      valid: true
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "a2a864b082bfbb92429f08d5e9962bde\n:full=true\n:project='OPS'\n:size=50"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: queries
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.ticket_list (project => 'OPS', page_size => 50)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
+          produces-output: true
+          barrier: true
+          accesses: []
+        - id: 1
+          script: queries
+          statement-id: 1
+          type: CALL
+          sql: "call tickets.ticket_search (query => (full = true))"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"effect\":\"read\",\"explain\":false,\"options\":{\"query\":{\"full\":true}}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+      diagnostics: []
+
+  - name: CallInputWithoutValue
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_list (project => :project);
+    expected:
+      valid: false
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "2b4f511e42a88924488d7fb1a690f5f1"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: queries
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.ticket_list (project => :project)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":null}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges: []
+      diagnostics:
+        - node: 0
+          script: queries
+          text: ":project"
+          error: true
+          message: 'input :project has no value'
+
+  - name: CallCheckFails
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          select 1;
+          call tickets.ticket_list (page_size => 1);
+    expected:
+      valid: false
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "a58e7b33e7baf68d9e00549b16145573"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: queries
+          statement-id: 0
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          accesses: []
+        - id: 1
+          script: queries
+          statement-id: 1
+          type: CALL
+          sql: "call tickets.ticket_list (page_size => 1)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"page_size\":1}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+      diagnostics:
         - node: 1
           script: queries
-          error: false
-          message: 'analyzer: unknown function tickets.backend_procedure'
+          error: true
+          message: 'analyzer: tickets.ticket_list needs the option project'
+
+  - name: CallWrite
+    client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_delete (id => 1);
+    expected:
+      valid: true
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "5259f458026825b77a687a68006dc9bc"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: queries
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.ticket_delete (id => 1)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges: []
+      diagnostics: []
+
+  - name: CallReferenced
+    client_functions: tickets
+    scripts:
+      - name: producer
+        input: |
+          call tickets.ticket_list (project => 'a');
+      - name: consumer
+        input: |
+          select * from :producer;
+    expected:
+      valid: false
+      scripts:
+        - name: producer
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "aa3502830ec220b1e836453542252a72"
+        - name: consumer
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "99c736729c014f3ff3be4b9340eca79c"
+          references: [producer]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: consumer
+          text: ":producer"
+          error: true
+          message: producer.sql is no single SELECT that consumer.sql could read
+      checked-references:
+        - script: consumer
+          references:
+            - text: ":producer"
+              target: producer
+              kind: invalid
+              errors:
+                - producer.sql is no single SELECT that consumer.sql could read

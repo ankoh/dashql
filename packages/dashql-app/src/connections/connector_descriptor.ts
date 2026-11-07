@@ -9,6 +9,7 @@ import type { TrinoConnectionStateDetails } from './trino/trino_connection_state
 import { ConnectorType, type ConnectorInfo } from './connector_info.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import type { QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import type { ClientFunctionHostTarget } from './clfn/clfn_runtime.js';
 import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
 import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
 import { SALESFORCE_CONNECTOR_DESCRIPTOR, SIDB_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
@@ -40,9 +41,13 @@ interface ConnectorDetailsMap {
 export type ConnectorParamsKey = keyof ConnectorParamsMap;
 
 /// The client functions that a connector enables on its connections
-export interface ClientFunctionBinding {
+export interface ClientFunctionBinding<Details = unknown> {
     /// Load the spec, only when a connection needs it
     loadSpec(): Promise<ClientFunctionSpec>;
+    /// Where a host that the spec names is on a connection, and the credentials for it
+    resolveHost(details: Details, host: string): Promise<ClientFunctionHostTarget>;
+    /// The values of the variables in the base paths of the spec. They need no login, `EXPLAIN` prints them.
+    variables(details: Details): Record<string, string>;
 }
 
 /// What the connection layer knows about a connector.
@@ -84,7 +89,7 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     /// Can the queries of a connection read the data files that are attached to a session?
     readsAttachments(details: ConnectorDetailsMap[K]): boolean;
     /// The client functions of the connections, undefined if they have none
-    clientFunctions?: ClientFunctionBinding;
+    clientFunctions?: ClientFunctionBinding<ConnectorDetailsMap[K]>;
 }
 
 /// The connectors by connector type

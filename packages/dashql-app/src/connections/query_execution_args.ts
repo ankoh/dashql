@@ -3,10 +3,14 @@ import { QueryMetadata } from "../query/query_execution_state.js";
 import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";
 import { TrinoChannelInterface } from "./trino/trino_channel.js";
 import type { buffers } from '@ankoh/dashql-core';
+import type { ClientFunctionCallDescription } from "./clfn/clfn_spec.js";
 
 /// The query executor args
 export interface QueryExecutionArgs {
     query: string;
+    /// The statement is a call of a client function: the runtime sends this, `query` only tells what the statement says
+    /// and never reaches the backend.
+    clientFunctionCall?: ClientFunctionCallDescription;
     /// Optional caller-owned cancellation signal. The executor links this to its
     /// own query cancellation controller without taking ownership of it.
     abortSignal?: AbortSignal;
