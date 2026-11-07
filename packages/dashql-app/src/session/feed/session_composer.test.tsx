@@ -11,6 +11,7 @@ import { buildSnippetRegistry } from '../snippets/snippet_registry.js';
 import { ComposerInputMode } from '../../agent/input_mode.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import * as identifierStyles from '../../agent/nl_identifier_plugin.module.css';
+import * as styles from './session_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 
@@ -27,6 +28,12 @@ function press(view: EditorView, key: string, modifiers: KeyboardEventInit = {})
 
 function type(view: EditorView, text: string) {
     view.dispatch({ changes: { from: view.state.doc.length, insert: text }, selection: { anchor: view.state.doc.length + text.length } });
+}
+
+function mouseDown(target: Element, button = 0): MouseEvent {
+    const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button });
+    act(() => { target.dispatchEvent(event); });
+    return event;
 }
 
 describe('Session composer', () => {
@@ -122,6 +129,37 @@ describe('Session composer', () => {
         const left = editor.coordsAtPos(0)!.left + parseFloat(getComputedStyle(container.querySelector('.cm-cursor')!).marginLeft);
         expect(left).toBeLessThan(editor.coordsAtPos(0)!.left);
         expect(left).toBeGreaterThanOrEqual(editor.scrollDOM.getBoundingClientRect().left);
+    });
+
+    it('focuses the editor on a click on the background of the prompt and keeps its cursor', async () => {
+        const editor = await render();
+        act(() => type(editor, 'select 1'));
+        act(() => editor.dispatch({ selection: { anchor: 3 } }));
+        for (const background of [`.${styles.composer_editor}`, `.${styles.composer_action_bar}`, `.${styles.composer_trailing_actions}`]) {
+            editor.contentDOM.blur();
+            expect(document.activeElement).not.toBe(editor.contentDOM);
+            const event = mouseDown(container.querySelector(background)!);
+            expect(event.defaultPrevented).toBe(true);
+            expect(document.activeElement).toBe(editor.contentDOM);
+            expect(editor.state.selection.main.head).toBe(3);
+        }
+    });
+
+    it('leaves clicks on the controls, secondary clicks and the overlays of the controls alone', async () => {
+        const editor = await render();
+        // The composer takes clicks once it holds the view, the snippets are enabled then
+        const snippets = container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!;
+        await vi.waitFor(() => expect(snippets.disabled).toBe(false));
+        const notFocused = (event: MouseEvent) => {
+            expect(event.defaultPrevented).toBe(false);
+            expect(document.activeElement).not.toBe(editor.contentDOM);
+        };
+        notFocused(mouseDown(modeButton('sql')));
+        notFocused(mouseDown(container.querySelector(`.${styles.composer_action_bar}`)!, 2));
+        act(() => snippets.click());
+        const overlay = document.querySelector('[data-testid="snippets-overlay"]')!;
+        expect(container.contains(overlay)).toBe(false);
+        notFocused(mouseDown(overlay));
     });
 
     it('ignores blank drafts and sends through the button', async () => {

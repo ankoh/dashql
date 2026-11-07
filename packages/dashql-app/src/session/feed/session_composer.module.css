@@ -52,6 +52,11 @@
     }
 }
 
+/* The editor and its action bar read as one input, a click on the background focuses the editor */
+.composer_prompt {
+    cursor: text;
+}
+
 .composer_editor {
     padding: 10px 12px 4px 12px;
 }

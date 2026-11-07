@@ -24,6 +24,9 @@ const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 /// A composer without session scripts
 const NO_SCRIPT_NAMES: readonly string[] = [];
 
+/// The parts of the prompt that handle a click themselves: the editor places its cursor, the controls act
+const PROMPT_CONTROLS = '.cm-editor, button, a, input, select, textarea, [role="button"]';
+
 /// Where the composer is shown
 export enum SessionComposerVariant {
     /// Docked below the feed of a session with scripts
@@ -173,6 +176,16 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
         send();
         view?.focus();
     }, [send, view]);
+    // The prompt looks like one input, a click on its background focuses the editor and keeps the cursor where it is
+    const handlePromptMouseDown = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const target = event.target;
+        if (view == null || event.button !== 0 || !(target instanceof Element)) return;
+        // The overlays of the controls are portals, their events still bubble through here
+        if (!event.currentTarget.contains(target) || target.closest(PROMPT_CONTROLS) != null) return;
+        // The browser would move the focus to the body after this event
+        event.preventDefault();
+        view.focus();
+    }, [view]);
     if (props.submitRef) {
         props.submitRef.current = send;
     }
@@ -242,48 +255,50 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
             data-agent={agent == null ? undefined : (isAgentWorking(agent) ? 'working' : 'ready')}
         >
             {agent != null && <AgentPromptPanel agent={agent} />}
-            <PromptEditor
-                className={styles.composer_editor}
-                scriptSession={scriptSession}
-                placeholder={placeholder}
-                keywordCase={props.keywordCase}
-                assist={input.assist}
-                onSubmit={send}
-                onTextChange={handleTextChange}
-                onEditorUpdate={input.onEditorUpdate}
-                setView={handleView}
-            />
-            <div className={styles.composer_action_bar}>
-                <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
-                    <SegmentedControl.Button leadingVisual={CodeIcon} selected={!naturalLanguage} data-testid="composer-mode" data-mode="sql">
-                        SQL
-                    </SegmentedControl.Button>
-                    <SegmentedControl.Button
-                        leadingVisual={SparklesFillIcon}
-                        selected={naturalLanguage}
-                        disabled={!props.aiAvailable}
-                        data-testid="composer-mode"
-                        data-mode="ai"
-                        title={props.aiAvailable ? undefined : 'Start an agent session in the header and connect the agent server to ask questions'}
-                    >
-                        AI
-                    </SegmentedControl.Button>
-                </SegmentedControl>
-                <div className={styles.composer_trailing_actions}>
-                    {props.connectionPicker}
-                    {props.snippetConnector != null && (
-                        <SnippetsOverlay
-                            scriptName="the prompt"
-                            connectorType={props.snippetConnector}
-                            disabled={view == null}
-                            onApply={applySnippet}
-                            registry={props.snippetRegistry}
-                            testId="composer-snippets"
-                        />
-                    )}
-                    {blockedSessionId != null
-                        ? <ExecuteConnectionGuard sessionId={blockedSessionId} blocked>{sendButton}</ExecuteConnectionGuard>
-                        : sendButton}
+            <div className={styles.composer_prompt} onMouseDown={handlePromptMouseDown}>
+                <PromptEditor
+                    className={styles.composer_editor}
+                    scriptSession={scriptSession}
+                    placeholder={placeholder}
+                    keywordCase={props.keywordCase}
+                    assist={input.assist}
+                    onSubmit={send}
+                    onTextChange={handleTextChange}
+                    onEditorUpdate={input.onEditorUpdate}
+                    setView={handleView}
+                />
+                <div className={styles.composer_action_bar}>
+                    <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
+                        <SegmentedControl.Button leadingVisual={CodeIcon} selected={!naturalLanguage} data-testid="composer-mode" data-mode="sql">
+                            SQL
+                        </SegmentedControl.Button>
+                        <SegmentedControl.Button
+                            leadingVisual={SparklesFillIcon}
+                            selected={naturalLanguage}
+                            disabled={!props.aiAvailable}
+                            data-testid="composer-mode"
+                            data-mode="ai"
+                            title={props.aiAvailable ? undefined : 'Start an agent session in the header and connect the agent server to ask questions'}
+                        >
+                            AI
+                        </SegmentedControl.Button>
+                    </SegmentedControl>
+                    <div className={styles.composer_trailing_actions}>
+                        {props.connectionPicker}
+                        {props.snippetConnector != null && (
+                            <SnippetsOverlay
+                                scriptName="the prompt"
+                                connectorType={props.snippetConnector}
+                                disabled={view == null}
+                                onApply={applySnippet}
+                                registry={props.snippetRegistry}
+                                testId="composer-snippets"
+                            />
+                        )}
+                        {blockedSessionId != null
+                            ? <ExecuteConnectionGuard sessionId={blockedSessionId} blocked>{sendButton}</ExecuteConnectionGuard>
+                            : sendButton}
+                    </div>
                 </div>
             </div>
         </div>
