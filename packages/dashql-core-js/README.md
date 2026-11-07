@@ -35,8 +35,9 @@ valid across subsequent operations; `destroy()` only drops the bytes.
 handles.
 
 `DashQL.create` accepts a `wasmBinary` or a precompiled WebAssembly `module` and
-loads the bundled binary otherwise. The shell module re-exports the core
-bindings, so `new DashQL(shellModule)` wraps it as well.
+loads the bundled binary otherwise. The module needs nothing but its own JS glue,
+no database or other Wasm module. It also holds the terminal shell, `bindings.Shell`,
+which runs on a catalog of the module and leaves running queries to its host.
 
 The root export does not export browser workers. In browsers, use:
 

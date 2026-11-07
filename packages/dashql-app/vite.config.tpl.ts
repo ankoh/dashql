@@ -41,8 +41,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
-    const SHELL_JS_PATH = path.resolve(rootDir, "__SHELL_JS_PATH__");
-    const SHELL_WASM_PATH = path.resolve(rootDir, "__SHELL_WASM_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
     // The SQL snippets of examples/snippets, bundled as text
     const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
@@ -345,14 +343,6 @@ export default vite.defineConfig(({ mode, command }) => {
                     replacement: path.join(CORE_PATH, 'wasm/dashql_dataflow.wasm') + "$1",
                 },
                 {
-                    find: /^@ankoh\/dashql-shell-js(\?.*)?$/,
-                    replacement: SHELL_JS_PATH + "$1",
-                },
-                {
-                    find: /^@ankoh\/dashql-shell-wasm(\?.*)?$/,
-                    replacement: SHELL_WASM_PATH + "$1",
-                },
-                {
                     find: /^@dashql\/hyperdb-wasm-worker\?url$/,
                     replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/browser_worker.js') + '?url',
                 }, {
@@ -400,8 +390,6 @@ export default vite.defineConfig(({ mode, command }) => {
                         CORE_PATH,
                         UI_PATH,
                         PROTOBUF_PATH,
-                        path.dirname(SHELL_JS_PATH),
-                        path.dirname(SHELL_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,
                         EXTENSIONS_PATH,

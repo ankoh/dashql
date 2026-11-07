@@ -1,4 +1,5 @@
 import * as arrow from 'apache-arrow';
+import * as dashql from '@ankoh/dashql-core';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,7 +7,7 @@ import { DashQLShell } from './api.js';
 import { embedDashQLShell, type BrowserShellController } from './browser_shell.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
-declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 describe('browser shell prompt queue', () => {
     let container: HTMLDivElement;
@@ -28,7 +29,7 @@ describe('browser shell prompt queue', () => {
                 },
             },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         controller = await embedDashQLShell({ container, shell });
     });
@@ -101,7 +102,7 @@ describe('browser shell replacement', () => {
                 },
             },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shells.push(shell);
         return shell;

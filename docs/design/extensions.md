@@ -275,7 +275,7 @@ interface ClientFunctionBinding<Details> {
 
 `resolveHost` is async since a token may need a refresh or an exchange. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
 
-**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `ensureConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, and it drops the spec if the connection switches to a connector without it.
+**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `ensureConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, and it drops the spec if the connection switches to a connector without it. The shell of a connection runs on that catalog, so its prompt completes the same calls.
 
 **A service with no SQL backend** would need a connector that runs no `SELECT`, with a setup UI and its own auth flows. That's later work, and it's not needed for a service that sits on an existing connection.
 

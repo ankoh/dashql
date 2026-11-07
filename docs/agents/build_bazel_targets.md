@@ -52,9 +52,8 @@ bazel build //...
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
-| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) shipped by `dashql-core-js` |
+| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `dashql-core-js`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `dashql-core-js`, loaded when the canvas opens |
-| `//packages/dashql-shell-wasm:shell_wasm` | Shell Wasm module (Rust, includes the core bindings) shipped by the app |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, catalog changes, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
@@ -472,7 +471,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-shell-wasm`, `dashql-cli` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-cli` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

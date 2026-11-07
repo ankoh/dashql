@@ -1,6 +1,6 @@
 # The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100 terminal renderer, the
-# rendering of Arrow query results, and the execution protocol of queries and dot commands. The wasm module is
-# //packages/dashql-shell-wasm.
+# rendering of Arrow query results, and the execution protocol of queries and dot commands. Its bindings are part of
+# //packages/dashql-core-wasm.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

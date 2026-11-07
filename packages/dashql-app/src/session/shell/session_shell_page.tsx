@@ -10,7 +10,6 @@ import {
     DashQLShell,
 } from '../../shell/api.js';
 import type { BrowserShellController } from '../../shell/browser_shell.js';
-import { createSessionShell } from './session_shell_catalog.js';
 import {
     createSessionShellEnvironment,
 } from './session_shell_environment.js';
@@ -30,12 +29,6 @@ import { splitShellScript } from '../../shell/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 
 const LOG_CTX = 'session_shell_page';
-
-function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): string {
-    if (bytesTotal <= 0) return `Loading ${Math.round(bytesLoaded / 1000)} kB`;
-    const blocks = Math.max(0, Math.min(10, Math.floor(bytesLoaded / bytesTotal * 10)));
-    return `Loading [${'#'.repeat(blocks)}${'-'.repeat(10 - blocks)}]`;
-}
 
 export interface SessionShellPageDependencies {
     ShellQueryResultOverlay: typeof ShellQueryResultOverlay;
@@ -93,8 +86,6 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
     const shellName = connection == null ? 'Shell' : `${connectionLabelText(connectionLabelParts(connection, ordinal))} Shell`;
     const prompt = `${connectorName.toLowerCase()}${ordinal == null ? '' : `#${ordinal}`}> `;
-    const relationsSql = connection?.catalogRelationScript.toString() ?? '';
-    const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
         connection?.connectorInfo.connectorType ?? ConnectorType.HYPER,
     );
@@ -142,14 +133,13 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
             // The prompts are filled in once the command finished
             queuePrompts: prompts => controllerRef.current?.queuePrompts(prompts),
         });
-        setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
-        void createSessionShell({ relationsSql, functionsSql }, environment, {
+        setStatus('Instantiating Shell');
+        // The shell runs on the catalog of its connection, so it follows the catalog as it changes
+        void DashQLShell.create({
+            core: connection.catalog.ptr.api,
+            catalog: connection.catalog,
+            environment,
             commands: mountsFiles ? [examplesCommand, outputCommand, filesCommand] : [examplesCommand, outputCommand],
-            onProgress: progress => {
-                if (!cancelled && generation === generationRef.current) {
-                    setStatus(`Instantiating Shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
-                }
-            },
         }).then(async nextShell => {
             nextShell.setKeywordCase(keywordCaseRef.current);
             if (cancelled || generation !== generationRef.current) {
@@ -187,7 +177,6 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                 controllerRef.current = controller;
             } else {
                 controllerRef.current.replaceShell(nextShell, prompt);
-                controllerRef.current.writeStatus('Catalog refreshed');
             }
             const previous = shellRef.current;
             shellRef.current = nextShell;
@@ -204,7 +193,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, prompt, sessionName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult]);
+    }, [connection?.connectionId, connection?.catalog, prompt, sessionName, shellName, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

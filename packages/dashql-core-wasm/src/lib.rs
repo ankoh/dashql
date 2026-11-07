@@ -22,6 +22,8 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
+mod shell;
+
 #[wasm_bindgen]
 extern "C" {
     /// The panic listener that `installPanicHook` reports to, set by the JS wrapper

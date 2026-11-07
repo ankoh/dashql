@@ -1,17 +1,15 @@
 //! The wasm-bindgen API of the shell. It drives a `ShellSession` and checks the integer keys and completion
 //! statuses at the boundary.
 //!
-//! The module carries the whole core: it re-exports the core bindings
-//! (`Catalog`, `Script`, `ScriptBatch`, `QueryProfile`, `processBatch`, ...) with their JS names, so a shell
-//! takes a `Catalog` of the same module and JS uses one initialized module for the core and the shell.
+//! A shell takes a `Catalog` of this module, so it can share the catalog of a connection with the scripts on it.
+//! Nothing here reaches a database: a query leaves as an effect, and the host decides where it runs.
 //!
 //! Keys, completion statuses and statuses are the numbers of the TypeScript enums in
 //! `packages/dashql-app/src/shell/api.ts` (`DashQLShellPromptInput`, `DashQLShellEffectCompletionStatus`,
 //! `DashQLShellStatus`). Results carry the status instead of throwing, except `completePrompt`, which throws when
 //! the completion fails.
 
-pub use dashql_core_wasm_lib::*;
-
+use crate::{Catalog, SharedCatalog};
 use dashql_core_shell::{
     CompletionCandidate, EffectCompletionStatus, PromptInputAction, PromptInputKey, PromptSnapshot, ShellOperation as CoreOperation,
     ShellSession, ShellStatus, TerminalOutput,

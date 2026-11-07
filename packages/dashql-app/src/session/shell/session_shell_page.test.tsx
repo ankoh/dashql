@@ -1,4 +1,5 @@
 import * as arrow from 'apache-arrow';
+import * as dashql from '@ankoh/dashql-core';
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
@@ -13,12 +14,13 @@ import { ConnectionRegistry, useConnectionRegistry } from '../../connections/con
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
 import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/query_executor.js';
+import { SALESFORCE_CLIENT_FUNCTIONS } from '../../connections/salesforce/salesforce_client_functions.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus } from '../../query/query_execution_state.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
-import { DashQLShell } from '../../shell/api.js';
+import { DashQLShell, type DashQLShellOptions } from '../../shell/api.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
@@ -28,30 +30,30 @@ import { SessionShellPage, type SessionShellPageDependencies } from './session_s
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 const WAIT = { timeout: 8000 };
 const SESSION_ID = 'session';
 const MAIN = 'main';
 const OTHER = 'other';
 
-type CacheGlobal = typeof globalThis & { __dashqlShellModuleCache?: unknown };
+let core: dashql.DashQL;
 
-/// The shell module is instantiated once per page and shared, tests start with it loaded
-async function loadShellModule(): Promise<void> {
-    const shell = await DashQLShell.create({
-        environment: { executeQuery: async () => new Uint8Array() },
-        wasmBinary: await DASHQL_SHELL_PRECOMPILED,
-    });
-    shell.destroy();
+/// Load relations into the catalog of a connection
+function loadRelations(catalog: dashql.DashQLCatalog, sql: string): void {
+    const script = core.createScript(catalog);
+    script.replaceText(sql);
+    script.analyze();
+    catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
 }
 
 function createConnection(connectionId: string, options: {
     setupParams?: object;
     relationsSql?: string;
-    functionsSql?: string;
     queriesFinished?: Map<number, unknown>;
 } = {}): ConnectionState {
+    const catalog = core.createCatalog();
+    if (options.relationsSql != null) loadRelations(catalog, options.relationsSql);
     return {
         connectionId,
         active: false,
@@ -60,8 +62,7 @@ function createConnection(connectionId: string, options: {
         metrics: createConnectionMetrics(),
         params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
         details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: options.setupParams ?? { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } } },
-        catalogRelationScript: { toString: () => options.relationsSql ?? '' },
-        catalogFunctionScript: { toString: () => options.functionsSql ?? '' },
+        catalog,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
         queriesFinished: options.queriesFinished ?? new Map(),
@@ -129,14 +130,15 @@ describe('SessionShellPage', () => {
     let database: EmbeddedComputeDatabase | null;
     let transcript: string[];
     let backend: SessionTestBackend;
+    let createShell: (options: DashQLShellOptions) => Promise<DashQLShell>;
 
     beforeEach(async () => {
-        await loadShellModule();
+        core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
         created = [];
         destroyed = new Set();
-        const create = DashQLShell.create.bind(DashQLShell);
+        createShell = DashQLShell.create.bind(DashQLShell);
         vi.spyOn(DashQLShell, 'create').mockImplementation(async options => {
-            const shell = await create(options);
+            const shell = await createShell(options);
             created.push(shell);
             return shell;
         });
@@ -237,12 +239,6 @@ describe('SessionShellPage', () => {
     /// so the rows of the terminal go stale.
     const screen = () => transcript.join('').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\r/g, '');
 
-    /// Forget the loaded shell module, the next shell downloads it with this response
-    function stubDownload(response: () => Response) {
-        vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => String(url).includes('.wasm') ? response() : new Response('{}')));
-        delete (globalThis as CacheGlobal).__dashqlShellModuleCache;
-    }
-
     /// Mount the page and wait until its terminal shows the prompt
     async function open(connections: ConnectionState[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
         render(props);
@@ -299,69 +295,24 @@ describe('SessionShellPage', () => {
             await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
         });
 
-        it('shows the progress of the download', async () => {
-            const wasm = await DASHQL_SHELL_PRECOMPILED;
-            const half = Math.floor(wasm.length / 2);
-            let finish = () => { };
-            stubDownload(() => new Response(new ReadableStream<Uint8Array>({
-                async start(controller) {
-                    controller.enqueue(wasm.subarray(0, half));
-                    await new Promise<void>(resolve => { finish = resolve; });
-                    controller.enqueue(wasm.subarray(half));
-                    controller.close();
-                },
-            }), { headers: { 'content-length': String(wasm.length) } }));
-
-            render();
-            act(() => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(status()).toContain('Instantiating Shell: Loading [####'), WAIT);
-            finish();
-            await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
-            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
-        });
-
-        it('counts the bytes of a download without a known size', async () => {
-            const wasm = await DASHQL_SHELL_PRECOMPILED;
-            let finish = () => { };
-            stubDownload(() => new Response(new ReadableStream<Uint8Array>({
-                async start(controller) {
-                    controller.enqueue(wasm.subarray(0, 5000));
-                    await new Promise<void>(resolve => { finish = resolve; });
-                    controller.enqueue(wasm.subarray(5000));
-                    controller.close();
-                },
-            })));
-
-            render();
-            act(() => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(status()).toContain('Instantiating Shell: Loading 5 kB'), WAIT);
-            finish();
-            await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
-        });
-
         it('reports a shell that cannot load', async () => {
-            stubDownload(() => new Response('', { status: 500, statusText: 'Broken' }));
-
+            vi.mocked(DashQLShell.create).mockRejectedValueOnce(new Error('shell is broken'));
             render();
             act(() => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: failed to fetch shell Wasm: 500 Broken'), WAIT);
+            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: shell is broken'), WAIT);
             expect(input()).toBeNull();
         });
 
         it('destroys a shell that finishes loading after the page closed', async () => {
-            const wasm = await DASHQL_SHELL_PRECOMPILED;
             let finish = () => { };
-            stubDownload(() => new Response(new ReadableStream<Uint8Array>({
-                async start(controller) {
-                    await new Promise<void>(resolve => { finish = resolve; });
-                    controller.enqueue(wasm);
-                    controller.close();
-                },
-            })));
-
+            vi.mocked(DashQLShell.create).mockImplementationOnce(async options => {
+                await new Promise<void>(resolve => { finish = resolve; });
+                const shell = await createShell(options);
+                created.push(shell);
+                return shell;
+            });
             render();
             act(() => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(status()).toContain('Instantiating Shell'), WAIT);
             await vi.waitFor(() => expect(DashQLShell.create).toHaveBeenCalled(), WAIT);
             act(() => root.render(<div />));
             finish();
@@ -522,32 +473,60 @@ describe('SessionShellPage', () => {
     });
 
     describe('when its inputs change', () => {
-        const catalog = (relationsSql: string) => createConnection(MAIN, { relationsSql });
-
         it('completes names of the catalog', async () => {
-            await open([catalog('create table orders (id integer);')]);
+            await open([createConnection(MAIN, { relationsSql: 'create table orders (id integer);' })]);
             type('select * from ord');
             press('Tab');
             await vi.waitFor(() => expect(screen()).toContain('orders'), WAIT);
         });
 
-        it('replaces the shell when the catalog changes and keeps the history', async () => {
-            await open([catalog('create table orders (id integer);')]);
+        it('runs on the catalog of its connection', async () => {
+            const connection = createConnection(MAIN);
+            await open([connection]);
+            expect(created[0].catalog).toBe(connection.catalog);
+        });
+
+        it('leaves the catalog to its connection when it closes', async () => {
+            const connection = createConnection(MAIN, { relationsSql: 'create table orders (id integer);' });
+            await open([connection]);
+            act(() => root.render(<div />));
+            await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
+            loadRelations(connection.catalog, 'create table items (id integer);');
+        });
+
+        it('completes what the catalog gets after the shell opened, on the same shell', async () => {
+            const connection = createConnection(MAIN, { relationsSql: 'create table orders (id integer);' });
+            await open([connection]);
+            loadRelations(connection.catalog, 'create table items (id integer);');
+            type('select * from ite');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
+            expect(created).toHaveLength(1);
+        });
+
+        it('completes client functions that are registered after the shell opened', async () => {
+            const connection = createConnection(MAIN);
+            await open([connection]);
+            connection.catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));
+            type('call cdp.access_policy_g');
+            press('Tab');
+            await vi.waitFor(() => expect(screen()).toContain('access_policy_get'), WAIT);
+            expect(created).toHaveLength(1);
+        });
+
+        it('keeps the history when the shell is replaced', async () => {
+            await open();
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
             await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
 
-            act(() => api.setConnections([catalog('create table items (id integer);')]));
-            await vi.waitFor(() => expect(screen()).toContain('Catalog refreshed'), WAIT);
+            render({ ordinal: 1 });
             await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
             await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
             expect(destroyed.has(created[1])).toBe(false);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
 
-            type('select * from ite');
-            press('Tab');
-            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
-            press('c', { ctrlKey: true });
+            transcript.length = 0;
             press('ArrowUp');
             await vi.waitFor(() => expect(screen()).toContain('select 42 as answer'), WAIT);
         });
@@ -561,15 +540,13 @@ describe('SessionShellPage', () => {
             await vi.waitFor(() => expect(screen()).toContain('hyper#1> '), WAIT);
         });
 
-        it('destroys a shell whose catalog is out of date when it finishes loading', async () => {
-            await open([catalog('create table orders (id integer);')]);
-            act(() => api.setConnections([catalog('create table a (id integer);')]));
-            act(() => api.setConnections([catalog('create table items (id integer);')]));
+        it('destroys a shell that is out of date when it finishes loading', async () => {
+            await open();
+            render({ ordinal: 1 });
+            render({ ordinal: 3 });
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
-            type('select * from ite');
-            press('Tab');
-            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('hyper#3> '), WAIT);
         });
 
         /// Run a function when the page opens its first terminal, which takes a while
@@ -584,18 +561,16 @@ describe('SessionShellPage', () => {
             return { Terminal };
         }
 
-        it('shows one terminal when the catalog changes while the terminal opens', async () => {
-            await whileTerminalOpens(() => act(() => api.setConnections([catalog('create table items (id integer);')])));
+        it('shows one terminal when the inputs change while the terminal opens', async () => {
+            await whileTerminalOpens(() => render({ ordinal: 1 }));
             render();
-            act(() => api.setConnections([catalog('create table orders (id integer);')]));
+            act(() => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(created.length).toBe(2), WAIT);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await new Promise(resolve => setTimeout(resolve, 200));
             expect(container.querySelectorAll('.xterm')).toHaveLength(1);
             expect(destroyed.has(created[0])).toBe(true);
-            type('select * from ite');
-            press('Tab');
-            await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('hyper#1> '), WAIT);
         });
 
         it('closes the terminal and its shell when the page closes while the terminal opens', async () => {
@@ -617,26 +592,13 @@ describe('SessionShellPage', () => {
             expect(destroyed.has(created[0])).toBe(true);
         });
 
-        it('reports a catalog that cannot be loaded', async () => {
-            const load = vi.spyOn(DashQLShell.prototype, 'loadCatalogScript').mockImplementationOnce(() => {
-                throw new Error('catalog is broken');
-            });
-            render();
-            act(() => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: catalog is broken'), WAIT);
-            expect(load).toHaveBeenCalled();
-            expect(input()).toBeNull();
-        });
-
-        it('prints a catalog refresh that failed into the terminal it keeps', async () => {
-            await open([catalog('create table orders (id integer);')]);
-            vi.spyOn(DashQLShell.prototype, 'loadCatalogScript').mockImplementationOnce(() => {
-                throw new Error('catalog is broken');
-            });
-            act(() => api.setConnections([catalog('create table items (id integer);')]));
-            await vi.waitFor(() => expect(screen()).toContain('Failed to load shell: catalog is broken'), WAIT);
-            expect(status()).toContain('catalog is broken');
-            // The shell of the old catalog still runs queries
+        it('prints a shell that failed to load into the terminal it keeps', async () => {
+            await open();
+            vi.mocked(DashQLShell.create).mockRejectedValueOnce(new Error('shell is broken'));
+            render({ ordinal: 1 });
+            await vi.waitFor(() => expect(screen()).toContain('Failed to load shell: shell is broken'), WAIT);
+            expect(status()).toContain('shell is broken');
+            // The shell that is there still runs queries
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
         });
@@ -657,7 +619,6 @@ describe('SessionShellPage', () => {
             await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull(), WAIT);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
-            await vi.waitFor(() => expect(screen()).toContain('Catalog refreshed'), WAIT);
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute.mock.calls[execute.mock.calls.length - 1]?.[0]).toBe(OTHER), WAIT);
         });

@@ -7,7 +7,6 @@ import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
-/// Every module that re-exports the core bindings (e.g. the shell module) satisfies this interface.
 export type DashQLBindings = Pick<
     typeof glue,
     | 'Catalog'
@@ -28,7 +27,11 @@ export type DashQLBindings = Pick<
     | 'appendCatalogChangesSql'
     | 'qualifyCatalogChanges'
     | 'installPanicHook'
+    | 'Shell'
 >;
+
+/// The shell of the module, the host runs its effects
+export type { Shell, ShellCompletionCandidate, ShellOperation, ShellPromptResult, ShellTerminalResult } from './wasm/dashql_core.js';
 
 /// The placement of a script on the dataflow canvas, its `@flow` tag
 export interface DataflowPlacement {

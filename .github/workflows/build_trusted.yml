@@ -46,7 +46,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=fastbuild \
-                    //packages/dashql-core-wasm:core_wasm //packages/dashql-shell-wasm:shell_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
+                    //packages/dashql-core-wasm:core_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
 
     core_wasm_release:
         name: Core Wasm Release
@@ -76,7 +76,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
-                    //packages/dashql-core-wasm:core_wasm //packages/dashql-shell-wasm:shell_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
+                    //packages/dashql-core-wasm:core_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
 
     linux_fastbuild:
         name: Linux Fastbuild
@@ -116,7 +116,7 @@ jobs:
               run: |
                 bazel build --config=fastbuild \
                     --experimental_remote_require_cached \
-                    //packages/dashql-core-wasm:core_wasm //packages/dashql-shell-wasm:shell_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
+                    //packages/dashql-core-wasm:core_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
 
             - name: Build Everything
               shell: bash
@@ -171,7 +171,7 @@ jobs:
               run: |
                 bazel build --config=release \
                     --experimental_remote_require_cached \
-                    //packages/dashql-core-wasm:core_wasm //packages/dashql-shell-wasm:shell_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
+                    //packages/dashql-core-wasm:core_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
 
             - name: Build Web App
               shell: bash
@@ -230,7 +230,7 @@ jobs:
               run: |
                 bazel build --config=release \
                     --experimental_remote_require_cached \
-                    //packages/dashql-core-wasm:core_wasm //packages/dashql-shell-wasm:shell_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
+                    //packages/dashql-core-wasm:core_wasm //packages/dashql-dataflow-wasm:dataflow_wasm
 
             - name: Build and validate core npm tarball
               shell: bash

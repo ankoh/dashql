@@ -1,9 +1,6 @@
-import * as shellModule from '@ankoh/dashql-shell-js';
-import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
-import { DashQL, DashQLCatalog, DashQLScript } from '@ankoh/dashql-core';
+import { DashQL, DashQLCatalog, DashQLScript, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
 import { stringifyError } from '../platform/logger/logger.js';
-import { decodedContentLength } from '../utils/content_length.js';
 
 export enum DashQLShellStatus {
     OK = 0,
@@ -75,87 +72,15 @@ interface DashQLShellSettings {
 }
 
 export interface DashQLShellOptions {
+    /// The core the shell runs on
+    core: DashQL;
+    /// The catalog of the shell, it stays with the caller. Without one the shell has a catalog of its own.
+    catalog?: DashQLCatalog;
     environment: DashQLShellEnvironment;
     trackSessionRelations?: boolean;
     autoQualifyNonDefaultDatabaseTables?: boolean;
     commands?: readonly DashQLShellCommand[];
     terminalColumns?: number;
-    onProgress?: (progress: DashQLShellInstantiationProgress) => void;
-    wasmBinary?: Uint8Array;
-    wasmUrl?: string | URL;
-}
-
-export interface DashQLShellInstantiationProgress {
-    bytesLoaded: number;
-    bytesTotal: number;
-}
-
-interface DashQLShellModuleCacheEntry {
-    promise: Promise<void>;
-    progress: DashQLShellInstantiationProgress | null;
-    listeners: Set<(progress: DashQLShellInstantiationProgress) => void>;
-}
-
-const shellModuleGlobal = globalThis as typeof globalThis & {
-    __dashqlShellModuleCache?: DashQLShellModuleCacheEntry;
-};
-
-/// Fetch the shell module, reporting the download progress
-async function fetchShellWasm(
-    wasmUrl: string,
-    onProgress: (progress: DashQLShellInstantiationProgress) => void,
-): Promise<ArrayBuffer> {
-    const response = await fetch(wasmUrl);
-    if (!response.ok) throw new Error(`failed to fetch shell Wasm: ${response.status} ${response.statusText}`);
-    const bytesTotal = decodedContentLength(response);
-    let bytesLoaded = 0;
-    onProgress({ bytesLoaded, bytesTotal });
-    const body = response.body?.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
-        transform(chunk, controller) {
-            bytesLoaded += chunk.byteLength;
-            onProgress({ bytesLoaded, bytesTotal });
-            controller.enqueue(chunk);
-        },
-    }));
-    return body == null ? await response.arrayBuffer() : await new Response(body).arrayBuffer();
-}
-
-/// Instantiate the wasm-bindgen shell module. It is instantiated once per page; later calls share it.
-async function instantiateShellModule(options: DashQLShellOptions): Promise<void> {
-    let entry = shellModuleGlobal.__dashqlShellModuleCache;
-    if (entry == null) {
-        const listeners = new Set<(progress: DashQLShellInstantiationProgress) => void>();
-        const created: DashQLShellModuleCacheEntry = {
-            progress: null,
-            listeners,
-            promise: Promise.resolve(),
-        };
-        const onProgress = (progress: DashQLShellInstantiationProgress) => {
-            created.progress = progress;
-            for (const listener of listeners) listener(progress);
-        };
-        const wasmUrl = options.wasmUrl?.toString() ?? shellWasmUrl;
-        created.promise = (async () => {
-            const moduleOrPath = options.wasmBinary ?? await fetchShellWasm(wasmUrl, onProgress);
-            await shellModule.default({ module_or_path: moduleOrPath });
-        })().catch(error => {
-            if (shellModuleGlobal.__dashqlShellModuleCache === created) {
-                delete shellModuleGlobal.__dashqlShellModuleCache;
-            }
-            throw error;
-        });
-        shellModuleGlobal.__dashqlShellModuleCache = created;
-        entry = created;
-    }
-    if (options.onProgress != null) {
-        entry.listeners.add(options.onProgress);
-        if (entry.progress != null) options.onProgress(entry.progress);
-    }
-    try {
-        await entry.promise;
-    } finally {
-        if (options.onProgress != null) entry.listeners.delete(options.onProgress);
-    }
 }
 
 export interface DashQLShellPrompt {
@@ -230,7 +155,7 @@ export class DashQLShellError extends Error {
 export class DashQLShell {
     protected readonly textDecoder = new TextDecoder();
     protected readonly textEncoder = new TextEncoder();
-    protected shell: shellModule.Shell | null;
+    protected shell: Shell | null;
     protected readonly lifecycleAbort = new AbortController();
     protected activeExecution: AbortController | null = null;
     protected readonly catalogScripts: DashQLScript[] = [];
@@ -240,6 +165,7 @@ export class DashQLShell {
     protected constructor(
         public readonly core: DashQL,
         public readonly catalog: DashQLCatalog,
+        protected readonly ownsCatalog: boolean,
         protected readonly environment: DashQLShellEnvironment,
         terminalColumns: number,
         autoQualifyNonDefaultDatabaseTables: boolean,
@@ -248,7 +174,7 @@ export class DashQLShell {
     ) {
         this.commands = commands;
         this.settings = settings;
-        this.shell = new shellModule.Shell(
+        this.shell = new core.bindings.Shell(
             catalog.ptr.assertNotNull(),
             terminalColumns,
             autoQualifyNonDefaultDatabaseTables,
@@ -264,13 +190,12 @@ export class DashQLShell {
     static async create(options: DashQLShellOptions): Promise<DashQLShell> {
         const settings: DashQLShellSettings = { timer: false };
         const commands = createShellCommands(options.commands ?? [], settings);
-        await instantiateShellModule(options);
-        // The shell module carries the core bindings, a shell takes catalogs of the same module
-        const core = new DashQL({ ...shellModule });
-        const catalog = core.createCatalog();
+        const core = options.core;
+        const catalog = options.catalog ?? core.createCatalog();
         const shell = new DashQLShell(
             core,
             catalog,
+            options.catalog == null,
             options.environment,
             options.terminalColumns ?? 100,
             options.autoQualifyNonDefaultDatabaseTables ?? false,
@@ -351,7 +276,7 @@ export class DashQLShell {
 
     completePrompt(limit = 20): DashQLShellCompletionCandidate[] {
         const shell = this.alive();
-        let candidates: shellModule.ShellCompletionCandidate[];
+        let candidates: ShellCompletionCandidate[];
         try {
             candidates = shell.completePrompt(limit);
         } catch (error) {
@@ -497,7 +422,7 @@ export class DashQLShell {
         }
     }
 
-    protected readPrompt(result: shellModule.ShellPromptResult): DashQLShellPrompt {
+    protected readPrompt(result: ShellPromptResult): DashQLShellPrompt {
         try {
             const status = result.status as DashQLShellStatus;
             const message = result.message;
@@ -516,7 +441,7 @@ export class DashQLShell {
         }
     }
 
-    protected readTerminal(result: shellModule.ShellTerminalResult): DashQLShellTerminalOutput {
+    protected readTerminal(result: ShellTerminalResult): DashQLShellTerminalOutput {
         try {
             const status = result.status as DashQLShellStatus;
             const output = result.data;
@@ -530,7 +455,7 @@ export class DashQLShell {
         }
     }
 
-    protected readOperation(operation: shellModule.ShellOperation): DashQLShellOperation {
+    protected readOperation(operation: ShellOperation): DashQLShellOperation {
         try {
             const status = operation.status as DashQLShellStatus;
             const effectId = operation.effectId;
@@ -668,11 +593,11 @@ export class DashQLShell {
                 this.catalogScripts[i].destroy();
             }
             this.catalogScripts.length = 0;
-            this.catalog.destroy();
+            if (this.ownsCatalog) this.catalog.destroy();
         }
     }
 
-    protected alive(): shellModule.Shell {
+    protected alive(): Shell {
         if (this.shell == null) {
             throw new DashQLShellError(DashQLShellStatus.INVALID_ARGUMENT, 'DashQL shell has been destroyed');
         }

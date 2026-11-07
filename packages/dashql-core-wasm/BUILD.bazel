@@ -1,42 +1,27 @@
-# The core wasm module shipped by @ankoh/dashql-core.
+# The core wasm module shipped by @ankoh/dashql-core: the bindings of the core and the shell.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
 load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
 
-# The wasm-bindgen items of the core, shared by the core and the shell module.
-rust_library(
-    name = "dashql_core_wasm_lib",
+rust_shared_library(
+    name = "dashql_core_wasm",
     srcs = glob(["src/**/*.rs"]),
-    crate_name = "dashql_core_wasm_lib",
+    crate_name = "dashql_core_wasm",
     crate_root = "src/lib.rs",
     edition = "2021",
     target_compatible_with = ["@platforms//cpu:wasm32"],
-    visibility = ["//packages/dashql-shell-wasm:__pkg__"],
     deps = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-session:dashql_core_session",
+        "//packages/dashql-core-shell:dashql_core_shell",
         "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
         "@core_crates//:serde_json",
-        "@core_crates//:wasm-bindgen",
-    ],
-)
-
-# The core module re-exports the bindings of :dashql_core_wasm_lib.
-rust_shared_library(
-    name = "dashql_core_wasm",
-    srcs = ["cdylib.rs"],
-    crate_name = "dashql_core_wasm",
-    crate_root = "cdylib.rs",
-    edition = "2021",
-    target_compatible_with = ["@platforms//cpu:wasm32"],
-    deps = [
-        ":dashql_core_wasm_lib",
         "@core_crates//:wasm-bindgen",
     ],
 )

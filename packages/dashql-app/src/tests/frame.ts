@@ -1,5 +1,4 @@
 import coreWasmUrl from '@ankoh/dashql-core/wasm?url';
-import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
 import { installSharedCoreTestPool } from './core_pool.js';
 import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '../platform/opfs_root.js';
 
@@ -54,7 +53,6 @@ function testFile(test: BrowserMochaTest): string {
 async function setupBrowserTestEnvironment(): Promise<void> {
     const globals = globalThis as typeof globalThis & {
         DASHQL_PRECOMPILED?: Promise<Uint8Array>;
-        DASHQL_SHELL_PRECOMPILED?: Promise<Uint8Array>;
         __DASHQL_TEST_HYPERDB_CLIENT__?: typeof globalThis.__DASHQL_TEST_HYPERDB_CLIENT__;
         IS_REACT_ACT_ENVIRONMENT?: boolean;
     };
@@ -66,7 +64,6 @@ async function setupBrowserTestEnvironment(): Promise<void> {
     globals.__DASHQL_TEST_CORE_FACTORY__ = parent.__DASHQL_TEST_CORE_FACTORY__;
     globals.__DASHQL_TEST_HYPERDB_CLIENT__ = parent.__DASHQL_TEST_HYPERDB_CLIENT__;
     installSharedCoreTestPool();
-    globals.DASHQL_SHELL_PRECOMPILED = fetch(shellWasmUrl).then(response => response.bytes());
     if (typeof ResizeObserver === 'undefined') {
         globals.ResizeObserver = class ResizeObserverMock {
             observe() {}

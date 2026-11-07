@@ -11,7 +11,7 @@ import {
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
-declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 describe('DashQL shell Wasm', () => {
     let shell: DashQLShell;
@@ -26,7 +26,7 @@ describe('DashQL shell Wasm', () => {
                 executeQuery: (query, signal) => executeQuery(query, signal),
             },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
     });
 
@@ -93,7 +93,7 @@ describe('DashQL shell Wasm', () => {
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             terminalColumns: 100,
             autoQualifyNonDefaultDatabaseTables: true,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.loadCatalogScript(
             'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
@@ -140,7 +140,7 @@ describe('DashQL shell Wasm', () => {
             },
             terminalColumns: 80,
             trackSessionRelations: true,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
 
         await shell.executeQuery('CREATE TABLE orders (order_id BIGINT, amount DOUBLE)');
@@ -164,7 +164,7 @@ describe('DashQL shell Wasm', () => {
                 },
             },
             trackSessionRelations: true,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
 
         await expect(shell.executeQuery('CREATE TABLE failed (id BIGINT)')).resolves.toBe('expected\r\n');
@@ -187,7 +187,7 @@ describe('DashQL shell Wasm', () => {
             environment: {
                 executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file'),
             },
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
 
         await shell.executeQuery('CREATE TABLE untracked (id BIGINT)');
@@ -228,7 +228,7 @@ describe('DashQL shell Wasm', () => {
                 },
             },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.setPrompt('SELECT 42;');
 
@@ -247,7 +247,7 @@ describe('DashQL shell Wasm', () => {
                 },
             },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.setPrompt('SELECT 42;');
 
@@ -393,7 +393,7 @@ describe('DashQL shell Wasm', () => {
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             commands: [['login', 'Log in to the service', execute]],
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.setPrompt('.login alice');
 
@@ -415,7 +415,7 @@ describe('DashQL shell Wasm', () => {
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             commands: [['login', 'Log in to the service', execute]],
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.setPrompt('.login');
 
@@ -435,7 +435,7 @@ describe('DashQL shell Wasm', () => {
                 ['fs', 'Return file output', () => '/mnt/external/data.csv'],
             ],
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
 
         for (const [command, expected] of [
@@ -485,7 +485,7 @@ describe('DashQL shell Wasm', () => {
                 },
             },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.setPrompt('.timer on');
         await shell.submitPrompt();
@@ -505,17 +505,17 @@ describe('DashQL shell Wasm', () => {
         await expect(DashQLShell.create({
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             commands: [['help', 'Replace help', () => undefined]],
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         })).rejects.toThrow('duplicate shell command: .help');
         await expect(DashQLShell.create({
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             commands: [['bad command', 'Invalid', () => undefined]],
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         })).rejects.toThrow('invalid shell command name: bad command');
         await expect(DashQLShell.create({
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             commands: [['.login', 'Invalid', () => undefined]],
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         })).rejects.toThrow('invalid shell command name: .login');
     });
 
@@ -733,7 +733,7 @@ describe('DashQL shell Wasm', () => {
         shell = await DashQLShell.create({
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
             terminalColumns: 80,
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
         });
         shell.importHistory(history);
         expect(shell.consumePromptInput(DashQLShellPromptInput.HISTORY_PREVIOUS).text).toBe('SELECT 42\n;');
@@ -840,84 +840,44 @@ describe('DashQL shell Wasm', () => {
     });
 });
 
-describe('DashQL shell Wasm download', () => {
-    const cache = globalThis as typeof globalThis & { __dashqlShellModuleCache?: unknown };
-    let savedCache: unknown;
+describe('DashQL shell catalog', () => {
+    const environment = { executeQuery: async () => new Uint8Array() };
 
-    beforeEach(() => {
-        savedCache = cache.__dashqlShellModuleCache;
-        delete cache.__dashqlShellModuleCache;
-    });
-
-    afterEach(() => {
-        vi.unstubAllGlobals();
-        cache.__dashqlShellModuleCache = savedCache;
-    });
-
-    /// A response that streams the bytes in two chunks
-    function streamedResponse(bytes: Uint8Array, headers: Record<string, string>): Response {
-        const half = Math.floor(bytes.length / 2);
-        const body = new ReadableStream<Uint8Array>({
-            start(controller) {
-                controller.enqueue(bytes.slice(0, half));
-                controller.enqueue(bytes.slice(half));
-                controller.close();
-            },
-        });
-        return new Response(body, { headers: { 'content-type': 'application/wasm', ...headers } });
-    }
-
-    it('reports the progress of the download to every waiting shell', async () => {
-        const bytes = await DASHQL_SHELL_PRECOMPILED;
-        const fetch = vi.fn().mockResolvedValue(streamedResponse(bytes, { 'content-length': bytes.length.toString() }));
-        vi.stubGlobal('fetch', fetch);
-        const first: { bytesLoaded: number; bytesTotal: number }[] = [];
-        const second: { bytesLoaded: number; bytesTotal: number }[] = [];
-        const environment = { executeQuery: async () => new Uint8Array() };
-        const shells = await Promise.all([
-            DashQLShell.create({ environment, wasmUrl: '/static/shell.wasm', onProgress: p => first.push(p) }),
-            DashQLShell.create({ environment, wasmUrl: '/static/other.wasm', onProgress: p => second.push(p) }),
-        ]);
-        expect(fetch).toHaveBeenCalledTimes(1);
-        expect(fetch).toHaveBeenCalledWith('/static/shell.wasm');
-        expect(first[0]).toEqual({ bytesLoaded: 0, bytesTotal: bytes.length });
-        expect(first[first.length - 1]).toEqual({ bytesLoaded: bytes.length, bytesTotal: bytes.length });
-        expect(first.length).toBe(3);
-        expect(second[second.length - 1]).toEqual(first[first.length - 1]);
-        // A shell created later shares the module
-        const later: unknown[] = [];
-        shells.push(await DashQLShell.create({ environment, onProgress: p => later.push(p) }));
-        expect(fetch).toHaveBeenCalledTimes(1);
-        expect(later).toEqual([first[first.length - 1]]);
-        for (const shell of shells) shell.destroy();
-    });
-
-    it('does not know the total of an encoded download', async () => {
-        const bytes = await DASHQL_SHELL_PRECOMPILED;
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamedResponse(bytes, { 'content-length': '10', 'content-encoding': 'br' })));
-        const progress: { bytesLoaded: number; bytesTotal: number }[] = [];
-        const shell = await DashQLShell.create({
-            environment: { executeQuery: async () => new Uint8Array() },
-            wasmUrl: new URL('/static/shell.wasm', location.href),
-            onProgress: p => progress.push(p),
-        });
-        expect(progress.every(p => p.bytesTotal === 0)).toBe(true);
-        expect(progress[progress.length - 1]?.bytesLoaded).toBe(bytes.length);
+    it('leaves a catalog of its caller to the caller', async () => {
+        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        const catalog = core.createCatalog();
+        const shell = await DashQLShell.create({ core, catalog, environment });
+        expect(shell.catalog).toBe(catalog);
         shell.destroy();
+        const script = core.createScript(catalog);
+        script.replaceText('create table t (a integer)');
+        script.analyze();
+        catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
+        script.destroy();
+        catalog.destroy();
     });
 
-    it('forgets a failed download so that the next shell retries it', async () => {
-        const bytes = await DASHQL_SHELL_PRECOMPILED;
-        const fetch = vi.fn()
-            .mockResolvedValueOnce(new Response(null, { status: 404, statusText: 'Not Found' }))
-            .mockResolvedValueOnce(streamedResponse(bytes, {}));
-        vi.stubGlobal('fetch', fetch);
-        const environment = { executeQuery: async () => new Uint8Array() };
-        await expect(DashQLShell.create({ environment, wasmUrl: '/missing.wasm' }))
-            .rejects.toThrow('failed to fetch shell Wasm: 404 Not Found');
-        expect(cache.__dashqlShellModuleCache).toBeUndefined();
-        const shell = await DashQLShell.create({ environment, wasmUrl: '/static/shell.wasm' });
-        expect(fetch).toHaveBeenCalledTimes(2);
+    it('destroys a catalog of its own', async () => {
+        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        const shell = await DashQLShell.create({ core, environment });
+        const { catalog } = shell;
         shell.destroy();
+        expect(() => core.createScript(catalog)).toThrow();
+    });
+
+    it('completes what the catalog holds when the prompt is completed', async () => {
+        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        const catalog = core.createCatalog();
+        const shell = await DashQLShell.create({ core, catalog, environment });
+        shell.setPrompt('select * from ord');
+        expect(shell.completePrompt().map(candidate => candidate.completionText)).not.toContain('orders');
+        const script = core.createScript(catalog);
+        script.replaceText('create table orders (id integer)');
+        script.analyze();
+        catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
+        expect(shell.completePrompt().map(candidate => candidate.completionText)).toContain('orders');
+        shell.destroy();
+        script.destroy();
+        catalog.destroy();
     });
 });

@@ -51,28 +51,6 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
-# The wasm-bindgen module of the Rust shell, which also carries the core bindings. The glue loads
-# `dashql_shell_bg.wasm` by default; the app ships the optimized module as `dashql_shell.wasm`.
-genrule(
-    name = "dep_shell_wasm",
-    srcs = [
-        "//packages/dashql-shell-wasm:dashql_shell_bindgen",
-        "//packages/dashql-shell-wasm:shell_wasm",
-    ],
-    outs = [
-        "dependencies/dashql-shell-wasm/dashql_shell.wasm",
-        "dependencies/dashql-shell-wasm/dashql_shell.js",
-    ],
-    cmd = """
-        for src in $(locations //packages/dashql-shell-wasm:dashql_shell_bindgen); do
-            case "$$src" in
-                */dashql_shell.js) sed 's/dashql_shell_bg[.]wasm/dashql_shell.wasm/g' "$$src" > "$(RULEDIR)/dependencies/dashql-shell-wasm/dashql_shell.js" ;;
-            esac
-        done
-        cp "$(location //packages/dashql-shell-wasm:shell_wasm)" "$(RULEDIR)/dependencies/dashql-shell-wasm/dashql_shell.wasm"
-    """,
-    visibility = ["//visibility:private"],
-)
 # The brand assets are also used by the website (//packages/dashql-org)
 exports_files(["utils/generate_svg_symbols.py"])
 filegroup(
@@ -106,7 +84,6 @@ genrule(
         "@dashql_app_version//:version.env",
         "//:package.json",
         ":dep_protobuf",
-        ":dep_shell_wasm",
         ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
@@ -121,8 +98,6 @@ genrule(
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
             -e "s|__CORE_PATH__|../../node_modules/@ankoh/dashql-core/dist|g" \\
             -e "s|__UI_PATH__|../../node_modules/@ankoh/dashql-ui|g" \\
-            -e "s|__SHELL_JS_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.js|g" \\
-            -e "s|__SHELL_WASM_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
             -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
@@ -155,8 +130,6 @@ genrule(
             -e "s|__UI_PATH__|../dashql-ui|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
-            -e "s|__SHELL_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.js|g" \
-            -e "s|__SHELL_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             -e "s|__SNIPPETS_PATH__|../../examples/snippets|g" \
             -e "s|__EXTENSIONS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/extensions|g" \
@@ -267,7 +240,6 @@ _vite_web_deps = [
     "//:node_modules/@ankoh/dashql-ui",
     ":dep_protobuf",
     ":dep_jsonschema",
-    ":dep_shell_wasm",
     ":dep_svg_symbols",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@codemirror/commands",
@@ -445,7 +417,6 @@ sh_binary(
         ":extensions",
         ":dep_protobuf",
         ":dep_jsonschema",
-        ":dep_shell_wasm",
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],

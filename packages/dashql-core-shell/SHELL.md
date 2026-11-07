@@ -8,7 +8,7 @@ APIs.
 The current boundary is:
 
 ```text
-shell environment -> Arrow IPC -> dashql-shell Wasm -> terminal text -> xterm host
+shell environment -> Arrow IPC -> dashql-core Wasm -> terminal text -> xterm host
 ```
 
 Asynchronous shell workflows are explicit pending effects. An operation that needs the host returns a pending status
@@ -16,8 +16,9 @@ with an effect envelope (version, type, id, payload); JavaScript performs the Pr
 workflow through `Shell.completeEffect` or `Shell.cancelEffect`. This avoids Asyncify and JSPI while keeping workflow
 ownership in Rust.
 
-The wasm-bindgen API is the `Shell` class of `dashql-shell-wasm` (`//packages/dashql-shell-wasm:shell_wasm`), which also
-re-exports the core bindings. Shell instances are independent and results are owned by JavaScript. Arrow rendering is
+The wasm-bindgen API is the `Shell` class of the core module (`//packages/dashql-core-wasm:core_wasm`), and a shell runs on a
+`Catalog` of that module. The app shell shares the catalog of its connection. Shell instances are independent and results are
+owned by JavaScript. Arrow rendering is
 internal to the query workflow; consumers execute queries through the database effect interface rather than passing
 result buffers to a public rendering function.
 
@@ -29,7 +30,7 @@ type that arrow-cast cannot format shows its type name. Values do not print like
 `Scalar::ToString`), see `docs/design/core_quirks.md`.
 
 The TypeScript binding lives in `packages/dashql-app/src/shell`. Its root entrypoint exports
-`createDashQLShell({ environment, ... })` and `createDuckDBShellEnvironment(connection)`. The environment returns Arrow IPC
+`createDashQLShell({ core, catalog, environment, ... })` and `createDuckDBShellEnvironment(connection)`. The environment returns Arrow IPC
 file bytes from `executeQuery()`, while the shell owns effect dispatch, cancellation, coroutine resumption, input handling,
 and ANSI terminal rendering. The browser controller only creates and disposes xterm, forwards terminal dimensions and raw
 input events, executes requested host effects, and writes the bytes returned by Wasm. Terminal rendering logic must not be
@@ -39,7 +40,7 @@ Build and test through Bazel:
 
 ```bash
 bazel test //packages/dashql-core-shell:all
-bazel build //packages/dashql-shell-wasm:shell_wasm
+bazel build //packages/dashql-core-wasm:core_wasm
 ```
 
 Prompt text uses a contiguous UTF-8 buffer with cached grapheme boundaries. Cursor movement and deletion operate on

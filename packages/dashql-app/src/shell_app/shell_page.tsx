@@ -6,6 +6,7 @@ import type { EmbeddedConnection } from '../platform/database/embedded_database.
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
 import { analyzeTable } from '../compute/analyze_table.js';
@@ -53,8 +54,12 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
     return `Loading [${'#'.repeat(blocks)}${'-'.repeat(10 - blocks)}]`;
 }
 
+const INSTANTIATING_SHELL = 'Instantiating shell';
+
 export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const logger = useLogger();
+    const setupCore = useDashQLCoreSetup();
+    const coreProgress = useDashQLCoreSetupProgress();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const queryExecutions = useShellQueryHistory();
     const dispatchComputation = useComputationDispatch();
@@ -122,7 +127,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             }
             connection = nextConnection;
 
-            setStatus('Instantiating shell');
+            setStatus(INSTANTIATING_SHELL);
+            const core = await setupCore(LOG_CTX);
             const getOutputMode = () => outputModeRef.current;
             const loginCommand = createLoginCommand({
                 requestForm: loginDialog.request,
@@ -245,6 +251,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 filesCommand,
             ];
             const nextShell = await createDashQLShell({
+                core,
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
                     getOutputMode,
                     getTerminalColumns: () => terminalColumnsRef.current,
@@ -259,11 +266,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 trackSessionRelations: true,
                 autoQualifyNonDefaultDatabaseTables: true,
                 commands,
-                onProgress: progress => {
-                    if (!cancelled) {
-                        setStatus(`Instantiating shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
-                    }
-                },
             });
             if (cancelled || containerRef.current == null) {
                 nextShell.destroy();
@@ -326,7 +328,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             fileRegistryRef.current = null;
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appEvents, dispatchComputation, filesCommand, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, dispatchComputation, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (
@@ -346,7 +348,9 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             </div>
             {status && (
                 <div className={styles.status} role="status" aria-live="polite">
-                    <strong>[ RUN ]</strong> {status}
+                    <strong>[ RUN ]</strong> {status === INSTANTIATING_SHELL && coreProgress != null
+                        ? `${status}: ${formatInstantiationProgress(Number(coreProgress.bytesLoaded), Number(coreProgress.bytesTotal))}`
+                        : status}
                 </div>
             )}
             {resultQuery != null && (
