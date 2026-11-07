@@ -723,8 +723,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const treeWriteRef = React.useRef(Promise.resolve());
     // The collapsed folders, by folder path key
     const [collapsedFolders, setCollapsedFolders] = React.useState<ReadonlySet<string>>(() => new Set());
-    // The sessions whose scripts are listed, all are collapsed at first
-    const [expandedSessions, setExpandedSessions] = React.useState<ReadonlySet<string>>(() => new Set());
+    // The session whose scripts are listed, all are collapsed at first
+    const [expandedSession, setExpandedSession] = React.useState<string | null>(null);
     // The folder whose name is being edited, by folder path key
     const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
     // Where would the dragged row land?
@@ -783,6 +783,11 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
             return next;
         });
     }, [currentSessionFolderKey]);
+    // Selecting another session collapses the one before, also when the selection doesn't come from the sidebar
+    const currentSessionId = props.sessionScripts.sessionId;
+    React.useEffect(() => {
+        setExpandedSession(current => current === currentSessionId ? current : null);
+    }, [currentSessionId]);
     const rows = React.useMemo<SessionListRow[]>(() => flattenSessionListRows(
         displayedTree,
         sessionItems,
@@ -914,11 +919,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     }, []);
 
     const toggleSession = React.useCallback((sessionId: string) => {
-        setExpandedSessions(current => {
-            const next = new Set(current);
-            if (current.has(sessionId)) next.delete(sessionId); else next.add(sessionId);
-            return next;
-        });
+        setExpandedSession(current => current === sessionId ? null : sessionId);
     }, []);
 
     /// Create a folder with a free name and edit its name
@@ -1281,7 +1282,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                                 onDuplicate={() => { void duplicateSession(row.item); }}
                                                 onDelete={() => { void deleteSession(row.item); }}
                                                 dropPosition={drop?.targetId === row.id && drop.position !== 'into' ? drop.position : null}
-                                                expanded={expandedSessions.has(row.item.sessionId)}
+                                                expanded={expandedSession === row.item.sessionId}
                                                 onToggle={() => toggleSession(row.item.sessionId)}
                                                 onOpenScript={fileName => openScript(row.item, fileName)}
                                                 dependencies={dependencies}

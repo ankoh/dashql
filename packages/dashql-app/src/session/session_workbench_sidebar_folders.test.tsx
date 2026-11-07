@@ -212,6 +212,25 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(container.querySelector('input[aria-label="Session name"]')).toBeNull();
     });
 
+    it('collapses a session when another one is selected', async () => {
+        addSession(ROOT_SESSION, 'Root', ['daily.sql']);
+        addSession(CLIENT_SESSION, 'Client', ['orders.sql']);
+        render();
+        const nameButton = (name: string) => sessionRow(name).querySelector<HTMLButtonElement>(':scope > button')!;
+        act(() => nameButton('Root').click());
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root', '1:daily']);
+
+        // A click on another session replaces the listed scripts right away and keeps them when the route follows
+        act(() => nameButton('Client').click());
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '0:Root']);
+        render(CLIENT_SESSION);
+        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '0:Root']));
+
+        // A selection from outside the sidebar collapses the session too
+        render(ACME_SESSION);
+        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']));
+    });
+
     it('renames a script of an expanded session', async () => {
         addSession(CLIENT_SESSION, 'Client', ['orders.sql', 'revenue.sql']);
         render();
