@@ -252,8 +252,8 @@ table DataflowScript {
     text_version: uint64;
     /// The statements in script order
     statements: [DataflowStatement];
-    /// Does the script run only on request, its `@manual` tag? Runs of the whole session and of input changes leave
-    /// it out.
+    /// Does the script run only on request, its `@manual` tag or a call of a client function that writes? Runs of the
+    /// whole session and of input changes leave it out.
     manual: bool;
 }
 

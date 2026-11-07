@@ -155,11 +155,21 @@ describe('client function requests', () => {
         await expect(runClientFunctionCall(spec([fn]), description, env([], { params: { k: 'abc' } }).environment)).rejects.toThrow(/:x has no value/);
     });
 
-    it('refuses writes for now', async () => {
-        const { fetch, environment } = env([]);
-        await expect(runClientFunctionCall(spec([{ name: 'w', method: 'POST' }]), call('w'), environment)).rejects.toThrow(/can only read/);
-        await expect(runClientFunctionCall(spec([{ name: 'r', raw: true }]), call('r', { method: 'POST', path: '/x' }), environment)).rejects.toThrow(/can only read/);
-        expect(fetch).not.toHaveBeenCalled();
+    it('sends writes like any other call', async () => {
+        const create: ClientFunction = { name: 'w', method: 'POST', options: [{ name: 'label', in: 'body' }], columns: [{ name: 'id', type: 'VARCHAR' }] };
+        const remove: ClientFunction = { name: 'd', method: 'DELETE', path: '/items/{id}', options: [{ name: 'id', in: 'path' }] };
+        const raw: ClientFunction = { name: 'r', raw: true };
+        const { fetch, environment } = env([json({ id: 'a1' }, { status: 201 }), new Response(null, { status: 204 }), json({ ok: true })]);
+        const created = await runClientFunctionCall(spec([create]), { ...call('w', { label: 'x' }), effect: 'write' }, environment);
+        expect(initOf(fetch, 0).method).toEqual('POST');
+        expect(JSON.parse(initOf(fetch, 0).body as string)).toEqual({ label: 'x' });
+        expect([cell(created, 0, 'id'), cell(created, 0, '_status')]).toEqual(['a1', 201]);
+        // No body is one row with only the standard columns
+        const removed = await runClientFunctionCall(spec([remove]), { ...call('d', { id: 7 }), effect: 'write' }, environment);
+        expect([initOf(fetch, 1).method, urlOf(fetch, 1)]).toEqual(['DELETE', `${BASE}/v2/items/7`]);
+        expect([removed.rows.length, cell(removed, 0, '_status')]).toEqual([1, 204]);
+        await runClientFunctionCall(spec([raw]), { ...call('r', { method: 'PATCH', path: '/x', host: 'api' }), effect: 'write' }, environment);
+        expect(initOf(fetch, 2).method).toEqual('PATCH');
     });
 
     it('keeps the escape hatch on its hosts', async () => {

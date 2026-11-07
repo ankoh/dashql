@@ -129,6 +129,7 @@ planner-snapshots:
 
   - name: CallShadowing
     client_functions: tickets
+    targets: [queries]
     scripts:
       - name: queries
         input: |
@@ -141,6 +142,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          target: true
           cacheable: false
           terminal-statement-id: 1
           signature: "67b7f81abf5bf04e40e6c980471b00a6"
@@ -168,6 +170,9 @@ planner-snapshots:
         - from: 0
           to: 1
           reason: BARRIER
+        - from: 0
+          to: 1
+          reason: SEQUENCE
       diagnostics:
         - node: 0
           script: queries
@@ -317,6 +322,18 @@ planner-snapshots:
       - name: queries
         input: |
           call tickets.ticket_delete (id => 1);
+      - name: explained
+        input: |
+          explain call tickets.ticket_delete (id => 1);
+      - name: listed
+        input: |
+          call tickets.ticket_list (project => 'a');
+      - name: raw_get
+        input: |
+          call tickets.request (method => 'GET', path => '/x', host => 'api');
+      - name: raw_post
+        input: |
+          call tickets.request (method => 'POST', path => '/x', host => 'api');
     expected:
       valid: true
       scripts:
@@ -324,6 +341,94 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "5259f458026825b77a687a68006dc9bc"
+        - name: explained
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "e76bc10aa9fa5a6a4ba1c1f5672425e7"
+        - name: listed
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "aa3502830ec220b1e836453542252a72"
+        - name: raw_get
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "108d70d86b98f1aacc9d8e167da6aeb7"
+        - name: raw_post
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "3d9300c1a96b875059f553f911902f29"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: explained
+          statement-id: 0
+          type: EXPLAIN
+          sql: "explain call tickets.ticket_delete (id => 1)"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"id\":1}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+        - id: 1
+          script: listed
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.ticket_list (project => 'a')"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+        - id: 2
+          script: raw_get
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.request (method => 'GET', path => '/x', host => 'api')"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"request\",\"effect\":\"read\",\"explain\":false,\"options\":{\"method\":\"GET\",\"path\":\"/x\",\"host\":\"api\"}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics: []
+
+  - name: CallWriteTarget
+    client_functions: tickets
+    targets: [queries]
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_delete (id => 1);
+    expected:
+      valid: true
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
           cacheable: false
           terminal-statement-id: 0
           signature: "5259f458026825b77a687a68006dc9bc"

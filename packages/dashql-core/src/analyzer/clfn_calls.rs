@@ -153,6 +153,17 @@ fn fields_of<'p>(parsed: &'p ParsedScript, object: &Node) -> Vec<(&'p Node, &'p 
         .collect()
 }
 
+/// Is the `method` option of a call of the escape hatch the string literal GET?
+fn raw_method_is_get(parsed: &ParsedScript, args: Option<&Node>) -> bool {
+    args.map(|a| parsed.children(a)).unwrap_or(&[]).iter().any(|arg| {
+        let [key, value] = attrs!(parsed.children(arg), [K::SQL_FUNCTION_ARG_NAME, K::SQL_FUNCTION_ARG_VALUE]);
+        let (Some(key), Some(value)) = (key, value) else { return false };
+        let name = read_key(parsed, key);
+        let is_method = if name.quoted { name.text == "method" } else { name.text.eq_ignore_ascii_case("method") };
+        is_method && value.node_type() == NodeType::LITERAL_STRING && string_text(source(parsed, value)).eq_ignore_ascii_case("GET")
+    })
+}
+
 /// A field as it decides the variant of a union
 fn read_field(parsed: &ParsedScript, key: &Node, value: &Node) -> ClientFunctionField {
     let name = read_key(parsed, key);
@@ -204,7 +215,12 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             explain,
             namespace: callee.namespace.clone(),
             function: function.map(|f| Arc::from(f.name.as_str())),
-            effect: function.map_or(ClientFunctionEffect::Write, ClientFunction::effect),
+            effect: match function {
+                // The escape hatch reads if its method is the literal GET
+                Some(function) if function.raw && raw_method_is_get(parsed, args) => ClientFunctionEffect::Read,
+                Some(function) => function.effect(),
+                None => ClientFunctionEffect::Write,
+            },
         });
     }
 }
@@ -500,6 +516,12 @@ impl Describer<'_> {
 }
 
 impl AnalyzedScript {
+    /// Does the script call a client function that writes? A call of an unknown function counts as one, its EXPLAIN
+    /// sends nothing. Such a script runs only on request, like one with a `@manual` tag.
+    pub fn calls_writes(&self) -> bool {
+        self.client_function_calls.iter().any(|c| !c.explain && c.effect == ClientFunctionEffect::Write)
+    }
+
     /// The call of a script that is a single call in a namespace with client functions
     pub fn single_client_function_call(&self) -> Option<&ClientFunctionCall> {
         match &self.parsed.statements[..] {

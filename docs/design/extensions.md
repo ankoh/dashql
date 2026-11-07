@@ -1,6 +1,6 @@
 # Extensions
 
-Status: proposed, with [the core](#the-core), [a read-only runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. On a Salesforce connection a script gets checks and completion, a call that reads runs in the app, and a script of the embedded Hyper reads its result. A call that writes fails before anything is sent, and nothing has run against a real service.
+Status: proposed, with [the core](#the-core), [the runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. On a Salesforce connection a script gets checks and completion, a call runs in the app, and a script of the embedded Hyper reads the result of a call that reads. A script with a call that writes runs only when someone runs it, see [Writes](#writes). Nothing has run against a real service.
 
 An **extension** adds what DashQL needs for a service, in a folder of `extensions/`. It holds client functions and snippets so far. Extensions are bundled with the app and declarative: nothing gets installed, and an extension runs no code of its own.
 
@@ -412,11 +412,6 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 
 **The shell of a connection** has no plan. `resolveClientFunctionCall` (`session/shell/session_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
 
-**Rules for `effect: write`:**
-- It never runs implicitly: not on opening a script, not on a rerun of dependents.
-- Its result is never read from or written to the query result cache. `queryResultCaching` is on for most connectors, so this needs an explicit check.
-- `ConnectorFeatures.readOnly` describes SQL and is what agents see, so run gating and agent policy have to treat writes separately.
-
 **Other behavior:**
 - **Waiting on a job is explicit.** Polling a job means calling its status function. There is no `AWAIT`. [Pending results](#pending-results) cover the different case where the HTTP response itself says it isn't finished.
 - **No automatic retries.** Some POSTs aren't safe to repeat.
@@ -437,6 +432,31 @@ select count(*), max(_next) from :open_tickets;
 - **Its file is transient.** A script with a call isn't cacheable, so a script that reads one has no reusable key either.
 
 `:param` values can't come from a result, since inputs are literals in `@param` tags, so a script reads more pages with `_pages`, not by passing `_next` from another script.
+
+## Writes
+
+A call writes if its function has `effect: write`, if the spec doesn't know the function, or if it's a raw call whose `method` isn't the literal `'GET'`. Its `EXPLAIN` sends nothing and doesn't write. The runtime sends a write like any other call: a `CREATE` of a connection is a `POST` with its body.
+
+```sql
+CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake prod', name => 'snowflake_prod', method => 'Ingress');
+```
+
+**A script with a write runs only on request,** like a script with a [`@manual` tag](script_references.md#scripts-that-run-on-request). A call is never cached, so a run of the whole session would send it again every time.
+
+| Run | A script with a write |
+|---|---|
+| The script itself, from its card, the feed, the dashboard, or SQL sent from the composer | Runs |
+| The shell of the connection | Runs, the statement is typed there |
+| Execute All, a run of the session | Left out (`runs_on_request` of the planner) |
+| A changed input | Left out, the dataflow marks the script `manual` |
+| An agent's `run` command | Refused, also with `force`: the agent asks the user to run it, and can show the request with `EXPLAIN CALL` |
+| A script that an agent wrote and didn't run | Not run when the answer ends |
+
+- **The feed marks the script** with `writes` (`EditorScriptAnnotations.writes`, `AnalyzedScript::calls_writes`).
+- **No script reads its result,** see [Running calls](#running-calls).
+- **Its result is never cached.** A script with a call isn't cacheable, and the shell runs nothing from the cache.
+- **The statements before it have run** when a write fails, and there is no rollback: a script is a sequence of requests.
+- **Credentials are literals.** A `:param` value is in the script's `@param` tag and the request. The [secret store](../wip/secret_store.md) is deferred.
 
 ## Paging
 
@@ -605,7 +625,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 - `host` is one of the spec's names, and `path` is relative, so the [security rules](#security) still hold.
 - Its `body` accepts any value, because the call has no schema.
 - Its result is one row with the response in `_raw`.
-- It always counts as `write`, unless the method is `GET`.
+- It counts as a write, unless its `method` is the literal `'GET'`. A parameter as the method is a write.
 
 ## The core
 
@@ -639,7 +659,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 `executeConnectionClientFunction` (`connections/connection_client_functions.ts`) connects it to a connection: it takes the binding of the connector, loads the spec and returns the stream.
 
-**It only reads so far.** A call with `effect: write`, or a raw call with a method other than `GET`, fails before anything is sent, and the statements before it in the run have already run. This one check in the runtime is the gate. `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
+**The runtime doesn't gate writes.** Which runs include a write is decided before, by the planner and the agent commands, see [Writes](#writes). `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
 
 **The tests use a mock `HttpClient`,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec, `query_executor.test.tsx` runs a call through the executor without touching the backend, and `clfn_result_stream.hyper.test.ts` analyzes a result in Hyper.
 
@@ -652,7 +672,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 **What this doesn't show:**
 - Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](../../extensions/d360-api/clfn/docs/overview.md#the-fixtures).
-- The runtime only runs reads. Writes are only checked up to their requests.
+- Writes are only checked against a mock `HttpClient`. No write has created anything on an org.
 - A spec's load time isn't measured.
 - Nothing ran against a service, and a call hasn't been run through the UI of the app, which needs a connection that is online.
 
@@ -661,10 +681,10 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 Each phase lands separately.
 
 1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, and script references to a call that reads, all tested with a made-up fixture spec. Done.
-2. **Runtime:** read-only calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
+2. **Runtime:** calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
-5. **Writes:** mutating calls, run gating and agent policy. To be designed; `effect` and `billed` are its input. A [secret store](../wip/secret_store.md) is deferred.
+5. **Writes:** mutating calls run, a script with one runs only on request, and agents don't run it, see [Writes](#writes). Done, apart from `billed`, which no function sets yet, and the [secret store](../wip/secret_store.md), which is deferred.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 
 ## Open questions

@@ -265,6 +265,12 @@ describe('agent commands', () => {
         await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('The connection db of orders is not online');
     });
 
+    it('never runs a script that calls a client function that writes', async () => {
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null, manual: false, writes: true };
+        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders calls a client function that writes, so only the user runs it');
+        await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('only the user runs it');
+    });
+
     it('pages through the last result of a script', async () => {
         state.scripts[1].latestQueryId = 7;
         const table = tableFromArrays({ n: Int32Array.from({ length: 60 }, (_, i) => i) });

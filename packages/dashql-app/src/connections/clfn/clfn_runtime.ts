@@ -4,7 +4,6 @@ import type { HttpClient, HttpFetchResult } from '../../platform/http/http_clien
 import { bindCallOptions, buildClientFunctionRequest, followRequest, ClientFunctionRequest, requestUrl, STANDARD_OPTIONS } from './clfn_request.js';
 import {
     findClientFunction,
-    isWriteCall,
     ClientFunctionCallDescription,
     ClientFunctionColumn,
     ClientFunctionError,
@@ -488,7 +487,8 @@ function abortableSleep(ms: number, abort?: AbortSignal): Promise<void> {
     });
 }
 
-/// Run a read-only call. Writes wait for run gating and the agent policy, see docs/design/extensions.md.
+/// Run a call. A call that writes is sent like any other: the planner leaves a script with one out of the runs of the
+/// session and of input changes, and agents don't run it, see docs/design/extensions.md.
 export async function runClientFunctionCall(spec: ClientFunctionSpec, description: ClientFunctionCallDescription, env: ClientFunctionEnvironment, abort?: AbortSignal): Promise<ClientFunctionResult> {
     const options = await bindCallOptions(description, async binding => {
         const name = binding.param;
@@ -498,9 +498,6 @@ export async function runClientFunctionCall(spec: ClientFunctionSpec, descriptio
         return env.params[name];
     });
     const run = new ClientFunctionCallRun(spec, description, env, abort);
-    if (isWriteCall(run.fn, options)) {
-        throw new ClientFunctionError(`${spec.namespace}.${run.fn.name} changes something, and client function calls can only read so far`);
-    }
     return run.run(options);
 }
 

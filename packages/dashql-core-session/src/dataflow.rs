@@ -77,7 +77,7 @@ pub struct DataflowScript {
     pub text_version: u64,
     /// The statements in script order
     pub statements: Vec<DataflowStatement>,
-    /// Does the script run only on request, its `@manual` tag?
+    /// Does the script run only on request, its `@manual` tag or a call of a client function that writes?
     pub manual: bool,
 }
 

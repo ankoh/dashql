@@ -162,15 +162,6 @@ export function pendingOf(spec: ClientFunctionSpec, fn: ClientFunction): ClientF
     return fn.pending === undefined ? (spec.pending ?? null) : fn.pending;
 }
 
-/// Does a call change anything? A raw call follows its method, an unknown method is a write.
-export function isWriteCall(fn: ClientFunction, options: Record<string, unknown>): boolean {
-    const isGet = (method: unknown) => typeof method === 'string' && method.toUpperCase() === 'GET';
-    if (fn.raw) {
-        return !isGet(options['method']);
-    }
-    return fn.effect !== undefined ? fn.effect === 'write' : !isGet(fn.method);
-}
-
 /// Read a JSON pointer, undefined if the path doesn't exist
 export function readJsonPointer(value: unknown, pointer: string): unknown {
     if (pointer === '') {

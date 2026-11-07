@@ -65,6 +65,8 @@ with a call isn't cacheable, so its file is transient and a script that reads it
 
 ## Scripts That Run on Request
 
+A script that calls a client function that writes runs only on request too, without a tag (`extensions.md`, Writes).
+
 A script whose query is too expensive without a filter is a building block. A `@manual` tag in a comment of any of
 its statements says so; the text after the tag is free, e.g. the reason:
 

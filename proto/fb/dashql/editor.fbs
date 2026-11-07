@@ -213,6 +213,8 @@ table EditorScriptAnnotations {
     manual: bool;
     /// Absent if the last statement of the script has no `@board` tag
     board_position: EditorBoardPosition;
+    /// Does the script call a client function that writes? It runs only on request, like a script with `@manual`.
+    writes: bool;
 }
 
 /// Plain processing values copied from ScriptStatistics.

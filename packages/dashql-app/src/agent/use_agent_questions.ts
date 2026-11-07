@@ -156,6 +156,8 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
                     const scriptData = unrun != null ? current.scripts[unrun[0]] : undefined;
                     if (scriptData == null) return;
                     feed.followScript(scriptData.scriptKey, 'result');
+                    // A call that writes changes the service, only the user runs it
+                    if (scriptData.annotations.writes) return;
                     feed.runScript(current, scriptData);
                 },
                 failed: (error, cancelled) => {

@@ -151,10 +151,14 @@ describe('A client function call of a connection', () => {
         await expect(executeConnectionClientFunction(offline, call('segment_list'), services())).rejects.toThrow(/not set up/);
     });
 
-    it('sends no write', async () => {
-        const s = services();
-        await expect(executeConnectionClientFunction(SALESFORCE, call('segment_delete', { segment_api_name: 'Vip' }), s)).rejects.toThrow(/can only read/);
-        expect(s.fetch).not.toHaveBeenCalled();
+    it('sends a write, such as creating a connection', async () => {
+        const s = services({ id: '0Xx000000000001', name: 'snowflake_prod' });
+        const create = { ...call('connection_create', { connector_type: 'SNOWFLAKE', label: 'Snowflake prod', name: 'snowflake_prod', method: 'Ingress' }), effect: 'write' as const };
+        const table = await read(await executeConnectionClientFunction(SALESFORCE, create, s));
+        const [url, init] = s.fetch.mock.calls[0];
+        expect([init!.method, url.toString()]).toEqual(['POST', 'https://org.my.salesforce.com/services/data/v68.0/ssot/connections']);
+        expect(JSON.parse(init!.body as string)).toEqual({ connectorType: 'SNOWFLAKE', label: 'Snowflake prod', name: 'snowflake_prod', method: 'Ingress' });
+        expect(table.getChild('_status')!.get(0)).toEqual(200);
     });
 
     it('fails on a connector without the namespace', async () => {

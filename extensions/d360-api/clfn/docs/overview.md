@@ -146,7 +146,7 @@ Passing means an example has the shape the spec describes, not that the server a
 }
 ```
 
-**There are 622 cases.** All 534 documented functions have a request, and 254 of the 256 reads have a response. Writes have no response yet, since the runtime only runs reads.
+**There are 622 cases.** All 534 documented functions have a request, and 254 of the 256 reads have a response. Writes have no response yet.
 
 **Two implementations check each other.** `tests/generate_tests.rs` computes the expected request from the spec, separately from the runtime, and `clfn_fixtures.test.ts` compares the two in the browser, on `EXPLAIN` and on a mock `HttpClient`.
 

@@ -19,9 +19,11 @@ planner-snapshots:
           explain call tickets.ticket_delete (id => 1);
           select 2;
 
-  # Another namespace goes to the backend as written, an unknown function of the shadowed namespace doesn't
+  # Another namespace goes to the backend as written, an unknown function of the shadowed namespace doesn't. It counts
+  # as a write, so only a run of the script plans it.
   - name: CallShadowing
     client_functions: tickets
+    targets: [queries]
     scripts:
       - name: queries
         input: |
@@ -57,9 +59,31 @@ planner-snapshots:
           select 1;
           call tickets.ticket_list (page_size => 1);
 
-  # A write is planned, the runtime decides whether it may run
+  # A script with a call that writes runs only on request: a run of the session leaves it out, an EXPLAIN of it and a
+  # call that reads run
   - name: CallWrite
     client_functions: tickets
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_delete (id => 1);
+      - name: explained
+        input: |
+          explain call tickets.ticket_delete (id => 1);
+      - name: listed
+        input: |
+          call tickets.ticket_list (project => 'a');
+      - name: raw_get
+        input: |
+          call tickets.request (method => 'GET', path => '/x', host => 'api');
+      - name: raw_post
+        input: |
+          call tickets.request (method => 'POST', path => '/x', host => 'api');
+
+  # A run of the script plans its write
+  - name: CallWriteTarget
+    client_functions: tickets
+    targets: [queries]
     scripts:
       - name: queries
         input: |

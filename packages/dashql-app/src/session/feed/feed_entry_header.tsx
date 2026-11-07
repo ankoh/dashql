@@ -170,6 +170,15 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                     manual
                 </span>
             )}
+            {props.scriptData?.annotations.writes && (
+                <span
+                    className={styles.feed_entry_manual}
+                    title="Calls a client function that writes: runs only when you run this script, Execute All, input changes and agents skip it"
+                    data-testid="script-writes"
+                >
+                    writes
+                </span>
+            )}
             <ScriptMentionTag
                 scriptName={displayName}
                 canTarget={props.canTarget}

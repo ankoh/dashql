@@ -933,6 +933,7 @@ impl ScriptSession {
             Box::new(position)
         });
         annotations.manual = analyzed.manual;
+        annotations.writes = analyzed.calls_writes();
         annotations.board_position = analyzed.board.as_ref().map(|board| {
             let mut position = EditorBoardPositionT::default();
             position.statement_id = board.statement_id;

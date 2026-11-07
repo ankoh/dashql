@@ -366,8 +366,14 @@ fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
     }
 }
 
-/// Does a script run only on request? Its current analysis has a `@manual` tag.
+/// Does a script run only on request? Its current analysis has a `@manual` tag, or it calls a client function that
+/// writes: a run of the session and of input changes would send the write again with every run.
 pub(crate) fn runs_on_request(script: &Script) -> bool {
+    script.current_analysis().is_some_and(|(_, _, analyzed)| analyzed.manual || analyzed.calls_writes())
+}
+
+/// Does a script have a `@manual` tag?
+pub(crate) fn has_manual_tag(script: &Script) -> bool {
     script.current_analysis().is_some_and(|(_, _, analyzed)| analyzed.manual)
 }
 

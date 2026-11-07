@@ -69,6 +69,9 @@ export interface ScriptAnnotations {
     lastStatementIsQuery?: boolean;
     // Does the script run only on request, its `@manual` tag? Execute All and input changes leave it out.
     manual?: boolean;
+    // Does the script call a client function that writes? It runs only on request like a script with `@manual`, and
+    // only when someone runs it: an agent doesn't.
+    writes?: boolean;
 }
 
 /// The dashboard placement of a script

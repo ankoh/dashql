@@ -22,7 +22,7 @@
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
 use crate::compiler::read_executable_text_with;
-use crate::planner::{runs_on_request, script_label, ConnectionKind, Prepared, SessionPlanRequest};
+use crate::planner::{has_manual_tag, script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
@@ -224,7 +224,7 @@ impl ScriptReferences {
             let connection = |c: u32| request.connections[c as usize].id;
             reference.kind = if producer_connection == consumer.connection {
                 ReferenceKind::Inline
-            } else if runs_on_request(request.scripts[producer].script) {
+            } else if has_manual_tag(request.scripts[producer].script) {
                 // Reading the result on another connection would run the script in full
                 reporter.error(
                     script,
