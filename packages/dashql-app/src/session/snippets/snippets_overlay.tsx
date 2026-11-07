@@ -7,7 +7,7 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
-import { DatabaseIcon, FileIcon, LibraryIcon, SearchIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { DatabaseIcon, FileDirectoryIcon, FileIcon, LibraryIcon, SearchIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { TextInput } from '../../ui/foundations/text_input.js';
 import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
@@ -41,12 +41,44 @@ export interface SnippetsOverlayProps {
 /// The registry while the bundled snippets are parsed
 const EMPTY_REGISTRY: SnippetRegistry = { snippets: [], byId: new Map(), errors: [] };
 
-/// The snippets of one category folder
+/// A folder of the snippet tree
 interface SnippetFolder {
-    /// The category, the name of the folder
-    category: string;
+    /// The path of the folder below the engine, it identifies the folder. Empty for the root.
+    path: string;
+    /// The name of the folder
+    name: string;
+    /// The folders in the folder, in the order of their first snippets
+    folders: SnippetFolder[];
     /// The snippets in the folder
     snippets: Snippet[];
+}
+
+/// Build the tree of the folders of snippets, it keeps the order of the snippets
+function buildSnippetTree(snippets: readonly Snippet[]): SnippetFolder {
+    const root: SnippetFolder = { path: '', name: '', folders: [], snippets: [] };
+    const byPath = new Map<string, SnippetFolder>([['', root]]);
+    const folderOf = (path: string): SnippetFolder => {
+        let folder = byPath.get(path);
+        if (folder == null) {
+            const slash = path.lastIndexOf('/');
+            folder = { path, name: path.slice(slash + 1), folders: [], snippets: [] };
+            byPath.set(path, folder);
+            folderOf(slash < 0 ? '' : path.slice(0, slash)).folders.push(folder);
+        }
+        return folder;
+    };
+    for (const snippet of snippets) {
+        folderOf(snippet.category).snippets.push(snippet);
+    }
+    return root;
+}
+
+/// The snippets of the expanded folders below a folder as the tree lists them, the folders before the files
+function expandedSnippets(folder: SnippetFolder, isExpanded: (path: string) => boolean): Snippet[] {
+    return [
+        ...folder.folders.flatMap(child => isExpanded(child.path) ? expandedSnippets(child, isExpanded) : []),
+        ...folder.snippets,
+    ];
 }
 
 /// The bundled snippets once the core is set up, null until then
@@ -179,33 +211,21 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
     const searchQuery = searchText.trim();
     const matches = useSnippetMatches(registry, props.connectorType, searchQuery);
 
-    // Only the snippets that run on the connection of the script and match the search, in the folders of their categories
+    // Only the snippets that run on the connection of the script and match the search
     const snippets = React.useMemo(() => {
         const all = snippetsForConnector(registry, props.connectorType);
         return matches.ids == null ? all : all.filter(snippet => matches.ids!.has(snippet.id));
     }, [registry, props.connectorType, matches.ids]);
     // The folders with matches stay open while searching
     const searching = matches.ids != null;
-    const folders = React.useMemo(() => {
-        const byCategory = new Map<string, SnippetFolder>();
-        for (const snippet of snippets) {
-            let folder = byCategory.get(snippet.category);
-            if (folder == null) {
-                folder = { category: snippet.category, snippets: [] };
-                byCategory.set(snippet.category, folder);
-            }
-            folder.snippets.push(snippet);
-        }
-        return [...byCategory.values()];
-    }, [snippets]);
+    const tree = React.useMemo(() => buildSnippetTree(snippets), [snippets]);
     // The keys move through the snippets of the expanded folders
-    const isExpanded = React.useCallback((category: string) => searching || !collapsed.has(category), [searching, collapsed]);
-    const visible = React.useMemo(() => folders.flatMap(folder => isExpanded(folder.category) ? folder.snippets : []),
-        [folders, isExpanded]);
+    const isExpanded = React.useCallback((path: string) => searching || !collapsed.has(path), [searching, collapsed]);
+    const visible = React.useMemo(() => expandedSnippets(tree, isExpanded), [tree, isExpanded]);
     const selected = snippets.find(snippet => snippet.id === selectedId) ?? visible[0] ?? null;
-    const toggle = React.useCallback((category: string) => setCollapsed(current => {
+    const toggle = React.useCallback((path: string) => setCollapsed(current => {
         const next = new Set(current);
-        if (!next.delete(category)) next.add(category);
+        if (!next.delete(path)) next.add(path);
         return next;
     }), []);
     const text = React.useMemo(() => selected == null ? '' : snippetText(selected, props.connectorType),
@@ -239,6 +259,49 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
         if (focusItem) item?.focus();
         item?.scrollIntoView({ block: 'nearest' });
     }, [apply, visible, selected, props.listRef]);
+
+    const folderIcon = (folder: SnippetFolder): React.ReactElement => {
+        // The datasets load data, the snippets of the other folders query it. A folder of folders holds no snippets to run.
+        if (folder.path === SNIPPET_DATASETS_FOLDER) return <DatabaseIcon size={14} />;
+        return folder.folders.length > 0 ? <FileDirectoryIcon size={14} /> : <SearchIcon size={14} />;
+    };
+    const renderEntries = (parent: SnippetFolder, depth: number): React.ReactNode => (
+        <>
+            {parent.folders.map(folder => {
+                const expanded = isExpanded(folder.path);
+                return (
+                    <React.Fragment key={folder.path}>
+                        <TreeEntry
+                            depth={depth}
+                            expanded={expanded}
+                            icon={folderIcon(folder)}
+                            label={<TreeEntryName title={folder.path}>{folder.name}</TreeEntryName>}
+                            data-testid="snippet-folder"
+                            data-folder={folder.path}
+                            onClick={() => toggle(folder.path)}
+                        />
+                        {expanded && renderEntries(folder, depth + 1)}
+                    </React.Fragment>
+                );
+            })}
+            {parent.snippets.map(snippet => {
+                const path = snippet.paths.get(props.connectorType)!;
+                return (
+                    <TreeEntry
+                        key={snippet.id}
+                        depth={depth}
+                        icon={<FileIcon size={14} />}
+                        label={<TreeEntryName title={path}>{path.slice(path.lastIndexOf('/') + 1)}</TreeEntryName>}
+                        selected={snippet === selected}
+                        data-testid="snippet"
+                        data-snippet-id={snippet.id}
+                        onClick={() => setSelectedId(snippet.id)}
+                        onDoubleClick={() => props.onApply(snippetText(snippet, props.connectorType))}
+                    />
+                );
+            })}
+        </>
+    );
 
     return (
         <section className={styles.overlay} role="dialog" aria-labelledby={titleId} data-testid="snippets-overlay">
@@ -278,41 +341,7 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
                                 {searching ? 'No snippets match the search.' : 'No snippets for this connection.'}
                             </div>
                         ) : (
-                            <div className={styles.tree}>
-                                {folders.map(folder => {
-                                    const expanded = isExpanded(folder.category);
-                                    return (
-                                        <React.Fragment key={folder.category}>
-                                            <TreeEntry
-                                                depth={0}
-                                                expanded={expanded}
-                                                // The datasets load data, the snippets of the other folders query it
-                                                icon={folder.category === SNIPPET_DATASETS_FOLDER ? <DatabaseIcon size={14} /> : <SearchIcon size={14} />}
-                                                label={<TreeEntryName>{folder.category}</TreeEntryName>}
-                                                data-testid="snippet-folder"
-                                                data-folder={folder.category}
-                                                onClick={() => toggle(folder.category)}
-                                            />
-                                            {expanded && folder.snippets.map(snippet => {
-                                                const path = snippet.paths.get(props.connectorType)!;
-                                                return (
-                                                    <TreeEntry
-                                                        key={snippet.id}
-                                                        depth={1}
-                                                        icon={<FileIcon size={14} />}
-                                                        label={<TreeEntryName title={path}>{path.slice(path.lastIndexOf('/') + 1)}</TreeEntryName>}
-                                                        selected={snippet === selected}
-                                                        data-testid="snippet"
-                                                        data-snippet-id={snippet.id}
-                                                        onClick={() => setSelectedId(snippet.id)}
-                                                        onDoubleClick={() => props.onApply(snippetText(snippet, props.connectorType))}
-                                                    />
-                                                );
-                                            })}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </div>
+                            <div className={styles.tree}>{renderEntries(tree, 0)}</div>
                         )}
                     </div>
                 </div>

@@ -161,6 +161,90 @@ describe('SnippetsOverlay', () => {
         expect(snippetIds().sort()).toEqual(['dates/month', 'json/access', 'strings/split']);
     });
 
+    describe('with nested folders', () => {
+        let nested: SnippetRegistry;
+        const folder = (path: string) => query<HTMLButtonElement>(`[data-testid="snippet-folder"][data-folder="${path}"]`);
+        const folders = () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="snippet-folder"]')).map(item => item.dataset.folder);
+
+        beforeAll(async () => {
+            const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+            nested = buildSnippetRegistry(core, {
+                'hyper/datasets/tpch.sql': file('select 1;'),
+                'hyper/d360/overview.sql': file('select 2;'),
+                'hyper/d360/agent-memory/01-create.sql': file('select 3;'),
+                'hyper/d360/agent-memory/02-list.sql': file('select 4;'),
+                'hyper/d360/segments/deep/run.sql': file('select 5;'),
+                'hyper/dates/month.sql': file('select 6;'),
+            });
+            expect(nested.errors).toEqual([]);
+        }, 60_000);
+
+        it('shows the folders of a folder with their own names, before its files', () => {
+            render(ConnectorType.HYPER, false, nested);
+            open();
+            expect(folders()).toEqual(['datasets', 'd360', 'd360/agent-memory', 'd360/segments', 'd360/segments/deep', 'dates']);
+            expect(folder('d360/agent-memory')!.textContent).toEqual('agent-memory');
+            expect(folder('d360/agent-memory')!.querySelector('[title]')!.getAttribute('title')).toEqual('d360/agent-memory');
+            expect(snippetIds()).toEqual([
+                'datasets/tpch',
+                'd360/agent-memory/01-create',
+                'd360/agent-memory/02-list',
+                'd360/segments/deep/run',
+                'd360/overview',
+                'dates/month',
+            ]);
+        });
+
+        it('indents every level', () => {
+            render(ConnectorType.HYPER, false, nested);
+            open();
+            const indent = (element: HTMLElement) => parseFloat(element.style.paddingLeft);
+            const entry = (id: string) => query<HTMLElement>(`[data-testid="snippet"][data-snippet-id="${id}"]`)!;
+            expect(indent(folder('d360/segments')!)).toBeGreaterThan(indent(folder('d360')!));
+            expect(indent(folder('d360/segments/deep')!)).toBeGreaterThan(indent(folder('d360/segments')!));
+            expect(indent(entry('d360/segments/deep/run'))).toBeGreaterThan(indent(folder('d360/segments/deep')!));
+            expect(indent(entry('d360/overview'))).toEqual(indent(folder('d360/segments')!));
+        });
+
+        it('hides everything below a collapsed folder and restores it', () => {
+            render(ConnectorType.HYPER, false, nested);
+            open();
+            act(() => folder('d360/segments/deep')!.click());
+            act(() => folder('d360')!.click());
+            expect(folders()).toEqual(['datasets', 'd360', 'dates']);
+            expect(snippetIds()).toEqual(['datasets/tpch', 'dates/month']);
+            // The inner folder stays as it was
+            act(() => folder('d360')!.click());
+            expect(folders()).toContain('d360/segments/deep');
+            expect(folder('d360/segments/deep')!.getAttribute('aria-expanded')).toEqual('false');
+            expect(snippetIds()).not.toContain('d360/segments/deep/run');
+        });
+
+        it('moves through the snippets in the order of the tree, past collapsed folders', () => {
+            render(ConnectorType.HYPER, false, nested);
+            open();
+            const list = query<HTMLElement>('[data-testid="snippet-list"]')!;
+            const selected = () => query('[data-testid="snippet-preview"]')!.dataset.snippetId;
+            const down = () => act(() => { list.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+            act(() => folder('d360/agent-memory')!.click());
+            expect(selected()).toEqual('datasets/tpch');
+            down();
+            expect(selected()).toEqual('d360/segments/deep/run');
+            down();
+            expect(selected()).toEqual('d360/overview');
+            down();
+            expect(selected()).toEqual('dates/month');
+        });
+
+        it('applies the text of a nested snippet', () => {
+            render(ConnectorType.HYPER, false, nested);
+            open();
+            selectSnippet('d360/agent-memory/02-list');
+            applySelected();
+            expect(onApply.mock.calls[0][0]).toContain('select 4');
+        });
+    });
+
     it('keeps a long name on one line at the start of the entry', () => {
         render(ConnectorType.SIDB);
         open();

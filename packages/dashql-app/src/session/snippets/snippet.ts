@@ -7,7 +7,7 @@ export const SNIPPET_DATASETS_FOLDER = 'datasets';
 export interface Snippet {
     /// The id of the snippet, `<category>/<name>`
     id: string;
-    /// The category of the snippet, the folder of its files
+    /// The category of the snippet, the path of the folder of its files below the engine, e.g. `dates` or `d360/agent-memory`
     category: string;
     /// The connectors that the snippet runs on
     connectors: ConnectorType[];
@@ -17,7 +17,7 @@ export interface Snippet {
     paths: ReadonlyMap<ConnectorType, string>;
 }
 
-/// The connectors of the engine folders of the snippets, `<engine>/<category>/<name>.sql`.
+/// The connectors of the engine folders of the snippets, `<engine>/<folders>/<name>.sql`.
 /// The snippets of an engine run on all of its connectors.
 export const SNIPPET_ENGINE_CONNECTORS: ReadonlyMap<string, readonly ConnectorType[]> = new Map([
     ['hyper', [ConnectorType.HYPER, ConnectorType.SIDB]],

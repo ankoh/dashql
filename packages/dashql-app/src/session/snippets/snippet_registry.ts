@@ -15,7 +15,7 @@ export interface SnippetRegistry {
 }
 
 /// The snippet files of examples/snippets, bundled as text. The Vite config aliases the folder.
-const SNIPPET_FILES = import.meta.glob<string>('@dashql/snippets/*/*/*.sql', {
+const SNIPPET_FILES = import.meta.glob<string>('@dashql/snippets/**/*.sql', {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -49,8 +49,8 @@ function mergeSnippetFiles(files: SnippetFile[]): Snippet {
     };
 }
 
-/// Build the registry from the raw snippet files by path below the snippet folder, the folders below the engine
-/// folders are the categories
+/// Build the registry from the raw snippet files by path below the snippet folder, the folder of a file below its
+/// engine folder is its category
 export function buildSnippetRegistry(core: dashql.DashQL, rawFiles: Record<string, string>): SnippetRegistry {
     const errors: string[] = [];
 
@@ -76,8 +76,9 @@ export function buildSnippetRegistry(core: dashql.DashQL, rawFiles: Record<strin
 export function bundledSnippetFiles(): Record<string, string> {
     const files: Record<string, string> = {};
     for (const [path, raw] of Object.entries(SNIPPET_FILES)) {
-        // The files are `<engine>/<category>/<name>.sql`
-        files[path.split('/').slice(-3).join('/')] = raw;
+        // The depth below the folder varies, and the path of the folder itself differs between the dev server and a build
+        const folder = '/snippets/';
+        files[path.slice(path.indexOf(folder) + folder.length)] = raw;
     }
     return files;
 }

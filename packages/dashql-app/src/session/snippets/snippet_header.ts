@@ -3,14 +3,14 @@ import * as dashql from '@ankoh/dashql-core';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
 
-/// One snippet file, `<engine>/<category>/<name>.sql`, a leading comment describes the snippet.
-/// The files of the engines with the same category and name are the variants of one snippet.
+/// One snippet file, `<engine>/<folders>/<name>.sql` with at least one folder, a leading comment describes the snippet.
+/// The files of the engines with the same folders and name are the variants of one snippet.
 export interface SnippetFile {
     /// The path of the file below the snippet folder
     path: string;
     /// The id of the snippet, `<category>/<name>`
     id: string;
-    /// The category of the snippet, the folder of the file
+    /// The category of the snippet, the path of the folder of the file below the engine
     category: string;
     /// The connectors that the body of the file runs on, those of its engine
     connectors: readonly ConnectorType[];
@@ -57,7 +57,7 @@ function readComments(core: dashql.DashQL, text: string, bytes: Uint8Array): Sni
 
 /// Parse a snippet file, throws if the path or the comments are invalid
 export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string): SnippetFile {
-    const pathMatch = /^([a-z0-9_-]+)\/([a-z0-9_-]+)\/([a-z0-9_-]+)\.sql$/.exec(path);
+    const pathMatch = /^([a-z0-9_-]+)\/((?:[a-z0-9_-]+\/)*[a-z0-9_-]+)\/([a-z0-9_-]+)\.sql$/.exec(path);
     if (pathMatch == null) {
         throw new Error(`invalid snippet path: ${path}`);
     }

@@ -45,7 +45,7 @@ describe('Snippet registry', () => {
         expect(registry.errors).toEqual([]);
         expect(Object.keys(files).length).toBeGreaterThan(0);
         expect(new Set(Object.keys(files).map(path => path.split('/')[0]))).toEqual(new Set(SNIPPET_ENGINE_CONNECTORS.keys()));
-        const folders = new Set(Object.keys(files).map(path => path.split('/')[1]));
+        const folders = new Set(Object.keys(files).map(path => path.split('/').slice(1, -1).join('/')));
         expect(new Set(registry.snippets.map(snippet => snippet.category))).toEqual(folders);
         for (const snippet of registry.snippets) {
             for (const connector of snippet.connectors) {
@@ -104,6 +104,34 @@ describe('Snippet registry', () => {
         expect(snippet.paths.get(ConnectorType.TRINO)).toEqual('trino/json/access.sql');
         expect(snippetText(snippet, ConnectorType.TRINO)).toContain('json_extract_scalar');
         expect(snippetText(snippet, ConnectorType.HYPER)).toContain('::json');
+    });
+
+    it('reads snippets in nested folders', () => {
+        const registry = buildSnippetRegistry(core, {
+            'hyper/d360/agent-memory/01-create.sql': file(),
+            'salesforce/d360/agent-memory/01-create.sql': file('select 2;'),
+            'hyper/d360/overview.sql': file(),
+            'hyper/a/b/c/d/deep.sql': file(),
+            'hyper/datasets/tpch_1.sql': file(),
+        });
+        expect(registry.errors).toEqual([]);
+        const snippet = registry.byId.get('d360/agent-memory/01-create')!;
+        expect(snippet.category).toEqual('d360/agent-memory');
+        expect(snippet.paths.get(ConnectorType.HYPER)).toEqual('hyper/d360/agent-memory/01-create.sql');
+        expect(snippetText(snippet, ConnectorType.SALESFORCE_DATA_CLOUD)).toContain('select 2');
+        expect(registry.byId.get('d360/overview')!.category).toEqual('d360');
+        expect(registry.byId.get('a/b/c/d/deep')!.category).toEqual('a/b/c/d');
+        expect(registry.snippets[0].id).toEqual('datasets/tpch_1');
+    });
+
+    it('rejects an empty folder and a snippet without a folder', () => {
+        const registry = buildSnippetRegistry(core, {
+            'hyper/a//empty.sql': file(),
+            'hyper/no-folder.sql': file(),
+            'hyper/A/upper.sql': file(),
+        });
+        expect(registry.errors).toHaveLength(3);
+        expect(registry.snippets).toEqual([]);
     });
 
     it('reports invalid snippet files', () => {
