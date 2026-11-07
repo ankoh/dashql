@@ -423,6 +423,30 @@ table InferredTableSchema {
     columns: [InferredColumn];
 }
 
+/// Does a function of an overlay change anything?
+enum OverlayEffect: uint8 {
+    READ = 0,
+    WRITE = 1,
+}
+
+/// A call in a namespace with an overlay, it never reaches the backend
+table OverlayCall {
+    // The id of the call node, the root of the statement or the body of its EXPLAIN
+    ast_node_id: uint32;
+    // The id of the statement
+    ast_statement_id: uint32;
+    // Prints the request, sends nothing?
+    explain: bool = false;
+    // The namespace of the overlay
+    namespace_name: string;
+    // The function, null if the overlay does not know it
+    function_name: string;
+    // The effect of the function, a write if it is unknown
+    effect: OverlayEffect = WRITE;
+    // The call as JSON for the runtime, null if the overlay does not know the function
+    description: string;
+}
+
 table AnalyzedScript {
     /// The external id that the user specified for this catalog entry
     catalog_entry_id: uint32;
@@ -480,4 +504,7 @@ table AnalyzedScript {
 
     /// The parameters, in the order of the script
     parameters: [Parameter];
+
+    /// The calls in a namespace with an overlay
+    overlay_calls: [OverlayCall];
 }

@@ -567,13 +567,14 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Formatter | `formatter/explain.rs`, `formatter/mod.rs` | `call <name> (<options>)`, objects and arrays |
 | Specs | `packages/dashql-core/src/catalog/overlay.rs` | `OverlaySpec` reads the generic part of a document and ignores what only the runtime needs. `Catalog::register_overlay` and `drop_overlay` bump the catalog version |
 | Checks | `packages/dashql-core/src/analyzer/overlay_calls.rs` | A pass after the others walks every call against its signature. `AnalyzedScript::overlay_calls` lists the calls in a namespace with a spec |
-| Description | `AnalyzedScript::describe_overlay_call` | The JSON for the runtime, see [Running calls](#running-calls) |
+| Description | `AnalyzedScript::describe_overlay_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.overlay_calls` in the packed analysis carries it, so the app needs no second call |
+| Bindings | `Catalog.registerOverlay`, `dropOverlay` | Wasm and `DashQLCatalog` in `packages/dashql-core-js/src/api.ts`. A binding registers the spec on the catalog of its connection |
 | Completion | `packages/dashql-core/src/completion_overlay.rs` | The token walk, see [Completion](#completion) |
 | Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and the error, see [Running calls](#running-calls) |
 
 **Tests:** `packages/dashql-snapshots/src/overlay_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `overlay: tickets`. The `call` files in `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
 
-**Still missing in core:** the Wasm and JavaScript bindings for registering a spec and describing a call, packing `overlay_calls` for the app, and result columns for script references.
+**Still missing in core:** result columns for script references, which the runtime phase needs, since a result only exists once a call can run.
 
 ## What was checked
 

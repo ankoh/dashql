@@ -14,6 +14,7 @@ use dashql_buffers::algebra::{
 };
 use dashql_buffers::analyzer::{
     AnalyzedScriptT, AnalyzerErrorT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
+    OverlayCallT, OverlayEffect as PackedOverlayEffect,
     IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
     ParameterKind as PackedParameterKind, ParameterT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT,
     QualifiedColumnNameT, QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, TableColumnT,
@@ -662,6 +663,24 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             })
         })
         .collect();
+    let overlay_calls = script
+        .overlay_calls
+        .iter()
+        .map(|call| {
+            build!(OverlayCallT {
+                ast_node_id: call.ast_node_id,
+                ast_statement_id: call.ast_statement_id,
+                explain: call.explain,
+                namespace_name: Some(call.namespace.to_string()),
+                function_name: call.function.as_deref().map(str::to_string),
+                effect: match call.effect {
+                    crate::catalog::overlay::OverlayEffect::Read => PackedOverlayEffect::READ,
+                    crate::catalog::overlay::OverlayEffect::Write => PackedOverlayEffect::WRITE,
+                },
+                description: script.describe_overlay_call(call.ast_statement_id).map(|d| d.to_string()),
+            })
+        })
+        .collect();
     let function_declarations = entry.function_declarations.iter().map(pack_function_declaration).collect();
     let visualization_specs = script
         .visualization_specs
@@ -736,6 +755,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
         visualization_specs: Some(visualization_specs),
         inferred_table_schemas: Some(inferred_table_schemas),
         parameters: non_empty(parameters),
+        overlay_calls: non_empty(overlay_calls),
     })
 }
 

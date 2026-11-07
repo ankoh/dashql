@@ -188,6 +188,18 @@ impl Catalog {
         self.inner.borrow_mut().drop_descriptor(id).map_err(js_error)
     }
 
+    /// Register an overlay from its JSON spec and return its namespace. The namespace must be free.
+    #[wasm_bindgen(js_name = registerOverlay)]
+    pub fn register_overlay(&self, spec: &str) -> Result<String, JsError> {
+        self.inner.borrow_mut().register_overlay(spec).map(|namespace| namespace.to_string()).map_err(js_error)
+    }
+
+    /// Drop the overlay of a namespace
+    #[wasm_bindgen(js_name = dropOverlay)]
+    pub fn drop_overlay(&self, namespace: &str) {
+        self.inner.borrow_mut().drop_overlay(namespace);
+    }
+
     /// Apply packed `CatalogChanges` to a descriptor entry, an unknown entry is created in the layer
     #[wasm_bindgen(js_name = applyCatalogChanges)]
     pub fn apply_catalog_changes(&self, id: u32, layer: u8, changes: &[u8]) -> Result<(), JsError> {
