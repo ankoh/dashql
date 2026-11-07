@@ -6,6 +6,8 @@ import { SESSION_FORMAT_VERSION } from './versions.js';
 import { scriptsInSessionFile } from './session/v5_scripts_in_session_file.js';
 import { sessionConnections } from './session/v6_session_connections.js';
 import { connectionsOfScripts } from './session/v8_connections_of_scripts.js';
+import { dbcomConnector } from './session/v10_dbcom_connector.js';
+import { validateSessionData } from '../session_validation.js';
 
 const SESSION_ID = '11111111-2222-4333-8444-555555555555';
 
@@ -146,6 +148,32 @@ describe('session migration', () => {
             formatVersion: SESSION_FORMAT_VERSION, sessionId: SESSION_ID, connections: [trino],
             scripts: [{ name: 'a.sql', connectionId: trino.connectionId }], attachments: [], metadata: {},
         });
+    });
+
+    it('moves the params of SIDB connections to the key dbcom', async () => {
+        const params = { instanceUrl: 'https://example.my.salesforce.com', databaseName: 'sales' };
+        const trino = { connectionId: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff', params: { trino: { endpoint: 'http://localhost:8080' } } };
+        const folder = new MemoryFolder([
+            ['dashql-session.json', JSON.stringify({
+                formatVersion: 9, sessionId: SESSION_ID, scripts: [], attachments: [], metadata: {},
+                connections: [
+                    { connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { sidb: params }, paramsDraft: { sidb: { ...params, databaseName: 'draft' } } },
+                    trino,
+                ],
+            })],
+        ]);
+        expect(await migrateSessionFolder(folder)).toBe(SessionMigrationResult.Migrated);
+        const metadata = JSON.parse(folder.files.get('dashql-session.json')!);
+        expect(metadata.formatVersion).toBe(SESSION_FORMAT_VERSION);
+        expect(metadata.connections).toEqual([
+            { connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { dbcom: params }, paramsDraft: { dbcom: { ...params, databaseName: 'draft' } } },
+            trino,
+        ]);
+        expect(validateSessionData(metadata)).toEqual({ ok: true });
+
+        // Repeating the step after an interruption changes nothing
+        await dbcomConnector.migrate(folder);
+        expect(JSON.parse(folder.files.get('dashql-session.json')!).connections).toEqual(metadata.connections);
     });
 
     it('moves the index into the session metadata with the default connection', async () => {

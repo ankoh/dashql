@@ -157,7 +157,7 @@ describe('storage migration', () => {
         dirs.add('sessiontree/clients');
         files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }] }));
 
-        expect((await migrateStorage(new TestLogger(), root)).steps).toBe(1);
+        expect((await migrateStorage(new TestLogger(), root)).steps).toBe(STORAGE_VERSION - 6);
         expect(json('sessiontree/My Sessions/dashql-folder.json')).toEqual({ sessions: [{ path: SESSION_A, storageType: 'opfs' }] });
         expect(json('sessiontree/clients/dashql-folder.json').sessions).toEqual([{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
         expect(json('sessiontree/dashql-folder.json')).toEqual({ sessions: [] });
@@ -219,6 +219,23 @@ describe('storage migration', () => {
         const manifest = json('dashql-manifest.json');
         expect(manifest.storageVersion).toBe(STORAGE_VERSION);
         expect(manifest.connections).toEqual([{ id: DB_A, params: WASM, createdAt }, { id: DB_B, params: WASM }]);
+    });
+
+    it('moves the params of SIDB connections to the key dbcom', async () => {
+        const params = { instanceUrl: 'https://example.my.salesforce.com', databaseName: 'sales' };
+        files.set('dashql-manifest.json', JSON.stringify({
+            connections: [{ id: DB_A, params: { sidb: params }, paramsDraft: { sidb: params } }, { id: DB_B, params: WASM }],
+            storageVersion: 7,
+        }));
+
+        await migrateStorage(new TestLogger(), root);
+
+        const manifest = json('dashql-manifest.json');
+        expect(manifest.storageVersion).toBe(STORAGE_VERSION);
+        expect(manifest.connections).toEqual([
+            { id: DB_A, params: { dbcom: params }, paramsDraft: { dbcom: params } },
+            { id: DB_B, params: WASM },
+        ]);
     });
 
     it('moves the files of the shell to the shell folder', async () => {

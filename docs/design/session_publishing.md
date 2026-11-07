@@ -25,7 +25,7 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
 
 ```json
 {
-  "formatVersion": 9,
+  "formatVersion": 10,
   "sessionId": "…",
   "connections": [
     { "connectionId": "22bdfa32-…", "params": { "…": "…" } },

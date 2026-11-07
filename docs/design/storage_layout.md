@@ -204,8 +204,8 @@ Two versions describe the stored data:
 
 - The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` brings an older
   root to the current version at startup with the steps in `src/storage/migration/storage/`, e.g. version 5 moves `dashql-shell/`
-  to `shell/`, version 6 drops the `aliases` of the connections and version 7 moves the `sessions` of the manifest into
-  the folder `My Sessions` of `sessiontree/`.
+  to `shell/`, version 6 drops the `aliases` of the connections, version 7 moves the `sessions` of the manifest into
+  the folder `My Sessions` of `sessiontree/` and version 8 moves the connection params under `sidb` to `dbcom`.
 - The session format version, `formatVersion` in `dashql-session.json`, describes one session folder. The steps in
   `src/storage/migration/session/` run for every reachable session folder, and for folders that are registered later.
 

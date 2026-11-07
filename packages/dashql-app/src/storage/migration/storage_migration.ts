@@ -9,6 +9,7 @@ import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_c
 import { shellFolder } from './storage/v5_shell_folder.js';
 import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
 import { sessionTree } from './storage/v7_session_tree.js';
+import { dbcomConnector } from './storage/v8_dbcom_connector.js';
 import { flattenSessionTree, readSessionTree } from '../session_tree.js';
 import { getOPFSRoot } from '../../platform/opfs_root.js';
 
@@ -45,6 +46,7 @@ export const STORAGE_MIGRATION_STEPS: readonly StorageMigrationStep[] = [
     shellFolder,
     dropConnectionAliases,
     sessionTree,
+    dbcomConnector,
 ];
 
 /// What a storage migration changed
