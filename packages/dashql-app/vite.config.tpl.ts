@@ -44,7 +44,7 @@ export default vite.defineConfig(({ mode, command }) => {
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
     // The SQL snippets of examples/snippets, bundled as text
     const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
-    // The extensions: the app bundles their generated specs, and the browser tests read the fixtures as well
+    // The extensions: the app bundles their generated specs and their snippets
     const EXTENSIONS_PATH = path.resolve(rootDir, "__EXTENSIONS_PATH__");
     // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs.
     const declaredTestInputs = (manifest: string) => includesBrowserTests && command === 'build'

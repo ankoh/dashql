@@ -2,14 +2,13 @@
 # extensions/d360-api/clfn/docs/overview.md.
 #
 #   clfn/spec/   the source, edited by hand: clfn.yaml and a file per family with its functions, schemas and prose
-#   clfn/tests/  a fixture per family: calls, their requests, and responses with where they came from
+#   clfn/tests/  the tests of the spec and the snippets against the core
 #   clfn/docs/   the reference: a document per family generated from clfn/spec/, and the notes behind it
 #   snippets/    for the snippet browser: functions/ with a snippet per function, scenarios/ with workflows whose steps
 #                build on each other, zero-copy/ with a snippet per warehouse and way to read it
 #
 # Bazel generates clfn/spec/spec.json from the source, which is what the core, the runtime and the app read. After
-# editing the source, regenerate the documents and the fixtures with `bazel run //extensions/d360-api:update`. A fixture
-# response that isn't `assumed` is kept.
+# editing the source, regenerate the documents with `bazel run //extensions/d360-api:update`.
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
@@ -17,7 +16,7 @@ load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 filegroup(
     name = "files",
-    srcs = ["clfn/spec/spec.json"] + glob(["clfn/tests/*.json"], allow_empty = True) + glob(["snippets/**/*.sql"]),
+    srcs = ["clfn/spec/spec.json"] + glob(["snippets/**/*.sql"]),
     visibility = ["//packages/dashql-app:__pkg__"],
 )
 
@@ -47,30 +46,11 @@ genrule(
     tools = [":generate_spec"],
 )
 
-rust_binary(
-    name = "generate_tests",
-    srcs = ["clfn/tests/generate_tests.rs"],
-    edition = "2021",
-    deps = [
-        "//packages/dashql-core:dashql_core",
-        "//packages/dashql-parser:dashql_parser",
-        "@core_crates//:serde_json",
-    ],
-)
-
 sh_binary(
     name = "update",
     srcs = ["update.sh"],
-    args = [
-        "$(rootpath :generate_spec)",
-        "$(rootpath :generate_tests)",
-        "$(rootpath clfn/spec/spec.json)",
-    ],
-    data = [
-        "clfn/spec/spec.json",
-        ":generate_spec",
-        ":generate_tests",
-    ],
+    args = ["$(rootpath :generate_spec)"],
+    data = [":generate_spec"],
 )
 
 # The documents are what the source generates
@@ -83,19 +63,6 @@ sh_test(
         ":generate_spec",
         "//extensions/d360-api/clfn/docs:reference",
     ] + glob(["clfn/spec/*.yaml"]),
-)
-
-# The fixtures are what the spec and the examples of the reference generate
-sh_test(
-    name = "tests_up_to_date_test",
-    size = "small",
-    srcs = ["clfn/tests/check_tests.sh"],
-    args = ["$(rootpath :generate_tests)"],
-    data = [
-        "clfn/spec/spec.json",
-        ":generate_tests",
-        "//extensions/d360-api/clfn/docs:reference",
-    ] + glob(["clfn/tests/*.json"], allow_empty = True),
 )
 
 # The snippets are what `dashql format` prints: bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets

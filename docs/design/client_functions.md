@@ -700,7 +700,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 **The runtime doesn't gate writes.** Which runs include a write is decided before, by the planner, see [Writes](#writes). `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
 
-**The tests use a mock `HttpClient`,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec, `query_executor.test.tsx` runs a call through the executor without touching the backend, and `clfn_result_stream.hyper.test.ts` analyzes a result in Hyper.
+**The tests use a mock `HttpClient`,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_examples.test.ts` runs the example of every function of the real Data 360 spec through the core and `EXPLAIN`, `query_executor.test.tsx` runs a call through the executor without touching the backend, and `clfn_result_stream.hyper.test.ts` analyzes a result in Hyper.
 
 ## What was checked
 
@@ -710,7 +710,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 - **The format:** [the survey](extensions/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
 
 **What this doesn't show:**
-- Most fixture responses are assumptions, built from the spec, so they check the runtime against the spec and not against Salesforce, see [the fixtures](../../extensions/d360-api/clfn/docs/overview.md#the-fixtures).
+- No response of a real service has been recorded. The tests of the runtime make their responses up, so they check it against the format and not against Salesforce.
 - Writes are only checked against a mock `HttpClient`. No write has created anything on an org.
 - A spec's load time isn't measured.
 - Nothing ran against a service, and a call hasn't been run through the UI of the app, which needs a connection that is online.

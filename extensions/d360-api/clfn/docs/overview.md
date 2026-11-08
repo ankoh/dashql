@@ -99,7 +99,7 @@ The extension lives in `extensions/d360-api/`, while its namespace is `cdp`. `cl
 - `spec.json`, the facts that the core and the runtime read, and the descriptions, examples and result descriptions that completion shows. It's a build output, `//extensions/d360-api:spec`, and isn't checked in.
 - The family documents of [the reference](functions.md), which are checked in so that they can be read anywhere.
 
-This writes the documents and [the fixtures](#the-fixtures):
+This writes the documents:
 
 ```
 bazel run //extensions/d360-api:update
@@ -129,30 +129,13 @@ bazel run //extensions/d360-api:update
 - `docs_up_to_date_test` fails if a family document isn't what the YAML generates.
 - `spec_test` loads the spec into the core. Every `CALL` example in the reference and every snippet has to parse and pass the checks, and completion has to offer exactly the functions, the options of every function and the attributes of every object option.
 
-Passing means an example has the shape the spec describes, not that the server accepts it.
+**In the browser tests of the app,** `clfn_examples.test.ts` runs the example of every function through the core and the `EXPLAIN` of the runtime, so a request can be built from each of them.
 
-## The fixtures
+Passing means an example has the shape the spec describes, not that the server accepts it. No response of Data 360 has been recorded yet. The first real exchange gets a file in `clfn/tests/` and a test that reads it, and it must not contain tokens or the data of an org.
 
-`extensions/d360-api/clfn/tests/` has a JSON file per family, generated from the spec and the examples of the reference:
+## Snippets
 
-```json
-{
-  "function": "segment_get",
-  "call": "CALL cdp.segment_get (segment_api_name => 'Vip')",
-  "description": { "...": "what the core describes" },
-  "request": { "method": "GET", "host": "connect", "path": "/services/data/v68.0/ssot/segments/Vip", "query": [], "headers": {}, "body": null },
-  "response": { "source": "assumed", "status": 200, "headers": {}, "body": { "...": "..." } },
-  "result": { "rows": [{ "api_name": "api_name_value", "_status": 200 }] }
-}
-```
-
-**There are 622 cases.** All 534 documented functions have a request, and 254 of the 256 reads have a response. Writes have no response yet.
-
-**Two implementations check each other.** `tests/generate_tests.rs` computes the expected request from the spec, separately from the runtime, and `clfn_fixtures.test.ts` compares the two in the browser, on `EXPLAIN` and on a mock `HttpClient`.
-
-**Responses start as assumptions and get replaced by real ones.** An `assumed` response is built from the columns of the spec, so it shows that the runtime follows the spec, not that the spec is right. Replace `response` and `result` of a case with a real exchange, with `source: recorded` or `documented`, and regenerating keeps it. A real exchange must not contain tokens or the data of an org.
-
-**Snippets** come in three folders of `extensions/d360-api/snippets/`, and the tests hold each one to the checks and the rules of the snippet browser. Passing doesn't mean a snippet runs on an org, the object names are made up, and most write, so they don't run yet.
+Snippets come in three folders of `extensions/d360-api/snippets/`, and the tests hold each one to the checks and the rules of the snippet browser. Passing doesn't mean a snippet runs on an org, the object names are made up, and most write, so they don't run yet.
 
 `functions/<family>/<function>.sql` shows what one call can do, with one file per function of the spec, which the tests require. The call takes several options in a realistic use, and a call that takes one option or none comes with the call that gives it meaning: a read before a delete, or a read of the outcome after a run.
 

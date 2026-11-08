@@ -16,7 +16,7 @@ A folder is named for the API, which needn't equal the namespace of its client f
 | Folder | Holds |
 |---|---|
 | `clfn/spec/` | The source of `spec.json`, or the file itself. Data 360 generates it from YAML, and the app bundles what Bazel generates |
-| `clfn/tests/` | A fixture per family: calls, the requests they should send, and responses with the tables they should give |
+| `clfn/tests/` | The tests of the spec and the snippets against the core |
 | `clfn/docs/` | The reference documents |
 | `snippets/` | The snippets, in folders. Data 360 has `functions/` with a snippet per function, `scenarios/` with workflows whose steps build on each other, and `zero-copy/` with a snippet per warehouse and way to read it |
 
@@ -28,7 +28,6 @@ A folder is named for the API, which needn't equal the namespace of its client f
 |---|---|
 | `<extension>/clfn/spec/spec.json` | `loadClientFunctionSpec` (`connections/clfn/clfn_specs.ts`), for the binding of a connector. Every spec is a chunk of its own, so a connection only loads it when it needs it |
 | `<extension>/snippets/**/*.sql` | The snippet registry (`session/snippets/snippet_registry.ts`) |
-| `<extension>/clfn/tests/*.json` | The browser tests of the runtime |
 
 ## Snippets
 

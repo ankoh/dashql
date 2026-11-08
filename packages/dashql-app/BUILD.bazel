@@ -39,8 +39,7 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
-# Stage the extensions for the @dashql/extensions alias: the app bundles their generated specs, and the browser tests read
-# the fixtures as well.
+# Stage the extensions for the @dashql/extensions alias: the app bundles their generated specs and their snippets.
 copy_to_directory(
     name = "extensions",
     srcs = ["//extensions/d360-api:files"],

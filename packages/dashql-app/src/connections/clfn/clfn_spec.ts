@@ -93,6 +93,8 @@ export interface ClientFunction {
     name: string;
     /// A grouping for documents and lists
     family?: string;
+    /// A call that completion shows
+    example?: string;
     method?: string;
     host?: string;
     path?: string;
