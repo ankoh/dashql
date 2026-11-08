@@ -12,6 +12,16 @@ _PLATFORM_SUFFIX = {
     ("linux", "x86_64"): "linux-x64",
 }
 
+# Without a hash Bazel can't serve the archive from its repository cache. Recomputed by
+# scripts/update_bazel_hashes.py on a version bump.
+_SHA256 = {
+    "darwin-arm64": "e46dd1b8ae40125c7180470fccddde121ebf219e7cd27a3b7c118d2815247a3c",
+    "darwin-x64": "d45064315fa2612817979399ac11532ffe68c4786fa664ed6655b233e8bc818b",
+    "linux-arm64": "907ff696b73a01d1224ac193c9e1a966bf53336eb3e7bc7dee459ea9e086284f",
+    "linux-arm": "b094cf6591d137ba5de81305f4e841c894ad5a2e2aa01447491e3bc82e1624c6",
+    "linux-x64": "543bc8f31c05713c5506c1a7dfa4fe81e57dec3cc41c243a47a08e4defd6100d",
+}
+
 _ARCH_ALIASES = {
     "amd64": "x86_64",
     "arm64": "aarch64",
@@ -37,6 +47,7 @@ def _bison_prebuilt_repository_impl(repository_ctx):
     url = _BASE_URL + "/" + filename
     repository_ctx.download_and_extract(
         url = url,
+        sha256 = _SHA256[suffix],
         stripPrefix = strip_prefix,
     )
     repository_ctx.file("BUILD.bazel", content = """

@@ -10,16 +10,25 @@ and macOS developer/CI machines without re-fetching.
 _WABT_VERSION = "1.0.42"
 _BASE_URL = "https://github.com/WebAssembly/wabt/releases/download/" + _WABT_VERSION
 
+# Without a hash Bazel can't serve the archive from its repository cache. Recomputed by
+# scripts/update_bazel_hashes.py on a version bump.
+_SHA256 = {
+    "linux-x64": "84895407a6bbb80e918f33b16b2fb2206021c150b6bc9ff6f761263a745ab131",
+    "macos-arm64": "3f654779b436c628db3ca4323c51538815f5fbc887a6d5f3bb1c18d36281e240",
+}
+
 def _wabt_prebuilt_repository_impl(repository_ctx):
     strip_prefix = "wabt-{}".format(_WABT_VERSION)
 
     repository_ctx.download_and_extract(
         url = _BASE_URL + "/wabt-{}-linux-x64.tar.gz".format(_WABT_VERSION),
+        sha256 = _SHA256["linux-x64"],
         output = "linux",
         stripPrefix = strip_prefix,
     )
     repository_ctx.download_and_extract(
         url = _BASE_URL + "/wabt-{}-macos-arm64.tar.gz".format(_WABT_VERSION),
+        sha256 = _SHA256["macos-arm64"],
         output = "macos",
         stripPrefix = strip_prefix,
     )

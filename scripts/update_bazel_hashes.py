@@ -6,6 +6,7 @@
 #   python3 scripts/update_bazel_hashes.py                          # core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl
+#   python3 scripts/update_bazel_hashes.py bazel/external_bison.bzl           # also m4, wabt, binaryen
 #   python3 scripts/update_bazel_hashes.py bazel/playwright_chromium.bzl      # follows playwright-core
 import hashlib
 import json
@@ -182,6 +183,61 @@ def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool =
 
 
 # ---------------------------------------------------------------------------
+# Handler: bazel/external_{bison,m4,wabt,binaryen}.bzl
+# ---------------------------------------------------------------------------
+#
+# The _SHA256 dict pins one archive per platform, its keys are the platform names in the
+# archive names. File name -> (version_var, url_template).
+
+_PREBUILT_ARCHIVES = {
+    "external_bison.bzl": (
+        "_XPACK_VERSION",
+        "https://github.com/xpack-dev-tools/bison-xpack/releases/download/v{VERSION}/xpack-bison-{VERSION}-{PLATFORM}.tar.gz",
+    ),
+    "external_m4.bzl": (
+        "_XPACK_VERSION",
+        "https://github.com/xpack-dev-tools/m4-xpack/releases/download/v{VERSION}/xpack-m4-{VERSION}-{PLATFORM}.tar.gz",
+    ),
+    "external_wabt.bzl": (
+        "_WABT_VERSION",
+        "https://github.com/WebAssembly/wabt/releases/download/{VERSION}/wabt-{VERSION}-{PLATFORM}.tar.gz",
+    ),
+    "external_binaryen.bzl": (
+        "_BINARYEN_VERSION",
+        "https://github.com/WebAssembly/binaryen/releases/download/version_{VERSION}/binaryen-version_{VERSION}-{PLATFORM}.tar.gz",
+    ),
+}
+
+
+def update_prebuilt_archives(filepath: Path, workspace: Path, force: bool = False) -> None:
+    if not force and not versions_changed(filepath, workspace):
+        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
+        return
+
+    print(f"Updating sha256 hashes in {filepath} ...")
+    content = filepath.read_text()
+    version_var, url_template = _PREBUILT_ARCHIVES[filepath.name]
+    version = get_version(content, version_var)
+    print(f"[{filepath.stem}] version={version}")
+
+    dict_match = re.search(r"^_SHA256\s*=\s*\{([^}]*)\}", content, re.DOTALL | re.MULTILINE)
+    if not dict_match:
+        raise ValueError("_SHA256 dict not found")
+
+    for platform in re.findall(r'"([^"]+)":\s*"', dict_match.group(1)):
+        sha = compute_sha256(url_template.replace("{VERSION}", version).replace("{PLATFORM}", platform))
+        print(f"  [{platform}] sha256={sha}")
+        content = re.sub(
+            r'("' + re.escape(platform) + r'":\s*")[^"]*(")',
+            lambda m, s=sha: m.group(1) + s + m.group(2),
+            content,
+        )
+
+    filepath.write_text(content)
+    print("Done.")
+
+
+# ---------------------------------------------------------------------------
 # Handler: packages/dashql-datasets/datasets.bzl (vendored DuckDB tpch extension)
 # ---------------------------------------------------------------------------
 #
@@ -276,6 +332,7 @@ _HANDLERS = {
     "datasets.bzl": update_dashql_datasets,
     "playwright_chromium.bzl": update_playwright_chromium,
     "playwright_firefox.bzl": update_playwright_firefox,
+    **{name: update_prebuilt_archives for name in _PREBUILT_ARCHIVES},
 }
 
 

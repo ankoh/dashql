@@ -11,16 +11,25 @@ This is necessary to keep the wasm-opt output cacheable across MacOS and Linux
 _BINARYEN_VERSION = "133"
 _BASE_URL = "https://github.com/WebAssembly/binaryen/releases/download/version_" + _BINARYEN_VERSION
 
+# Without a hash Bazel can't serve the archive from its repository cache. Recomputed by
+# scripts/update_bazel_hashes.py on a version bump.
+_SHA256 = {
+    "x86_64-linux": "2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489",
+    "arm64-macos": "ad66da82ac13f163e424b1643f16c6dfcccc98b5966296b43e52d3cab04f84a8",
+}
+
 def _binaryen_prebuilt_repository_impl(repository_ctx):
     strip_prefix = "binaryen-version_{}".format(_BINARYEN_VERSION)
 
     repository_ctx.download_and_extract(
         url = _BASE_URL + "/binaryen-version_{}-x86_64-linux.tar.gz".format(_BINARYEN_VERSION),
+        sha256 = _SHA256["x86_64-linux"],
         output = "linux",
         stripPrefix = strip_prefix,
     )
     repository_ctx.download_and_extract(
         url = _BASE_URL + "/binaryen-version_{}-arm64-macos.tar.gz".format(_BINARYEN_VERSION),
+        sha256 = _SHA256["arm64-macos"],
         output = "macos",
         stripPrefix = strip_prefix,
     )
