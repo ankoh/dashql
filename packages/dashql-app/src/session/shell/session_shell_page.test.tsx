@@ -274,7 +274,7 @@ describe('SessionShellPage', () => {
         it('names the connection and the session in the greeter', async () => {
             await open();
             expect(screen()).toContain('Hyper #2');
-            expect(screen()).toContain('My session');
+            expect(screen()).toContain('Session: My session');
             expect(screen()).toContain('Enter .help for usage hints.');
             expect(page()?.getAttribute('aria-label')).toContain('Hyper #2');
             expect(page()?.getAttribute('aria-label')).toContain('Shell');
@@ -282,7 +282,7 @@ describe('SessionShellPage', () => {
 
         it('leaves out the session and the ordinal when there are none', async () => {
             await open([createConnection(MAIN)], { sessionName: null, ordinal: null }, 'hyper> ');
-            expect(screen()).not.toContain('My session');
+            expect(screen()).not.toContain('Session:');
             expect(screen()).not.toContain('#');
         });
 

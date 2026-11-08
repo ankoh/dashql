@@ -159,7 +159,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                     controller = await embedDashQLShell({
                         container: containerRef.current,
                         shell: nextShell,
-                        greeter: sessionName ? [shellName, sessionName, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
+                        greeter: sessionName ? [shellName, `Session: ${sessionName}`, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
                         prompt,
                         onExit: () => setMode(SessionViewMode.Session),
                         onQueryResult: setResultQueryId,
