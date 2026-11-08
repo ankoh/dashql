@@ -415,6 +415,38 @@ function dbcomBrand(): WobbleBrand {
 }
 export const DBCOM_BRAND: WobbleBrand = dbcomBrand();
 
+/// An ominous mark without a logo file: a skull on a staff, with a serpent climbing the staff towards the skull.
+/// The eye sockets are arches in the lower edge of the cranium, the nose is a notch in the upper edge of the jaw.
+const OMEN_CRANIUM = 'M60,94C42,70 44,18 100,18C156,18 158,70 140,94L130,94C134,62 104,62 106,94L94,94C96,62 66,62 70,94Z';
+const OMEN_JAW = 'M60,94L100,94L90,114L110,114L100,94L140,94L134,114L129,130L117,130L117,121L113,121L113,130L109.5,130L109.5,121L105.5,121L105.5,130L102,130L102,121L98,121L98,130L94.5,130L94.5,121L90.5,121L90.5,130L87,130L87,121L83,121L83,130L71,130L66,114Z';
+/// The skull is drawn larger than it is placed, on top of the staff
+const omenSkullPoint = (x: number, y: number): [number, number] => [100 + (x - 100) * 0.68, 8 + (y - 18) * 0.68];
+/// The staff is cut where the serpent passes in front of it
+const OMEN_STAFF = [
+    'M96,85L104,85L104,108L96,108Z',
+    'M96,129L104,129L104,176L96,176Z',
+    'M96,191.5L104,191.5L104,198L96,198Z',
+];
+/// The serpent passes behind the staff once. The upper part ends in the head below the jaw, the lower part in the tail.
+const OMEN_SERPENT_UPPER = 'M95,152.5C80,152 67,146 67,135C67,124 86,122 98,114C104,110 112,108 113,103C110,98 110,92 116,90C122,92 126,98 122,103C122,112 116,117 106,122C96,127 78,128 77,135C77,141 85,143 95,143.5Z';
+const OMEN_SERPENT_LOWER = 'M78,194C95,180 120,176 123,164C123,159 114,155.5 105,154.5L105,145.5C118,147 133,154 133,164C133,184 98,190 78,194Z';
+
+/// The top of the face turns into the cranium, the band below it into the jaw, and the bottom into the staff and the serpent.
+/// The regions overlap, so the joined regions show no seam.
+export const OMEN_BRAND: WobbleBrand = {
+    id: 'omen',
+    pieces: [
+        buildPiece(faceBand(-1, 0.09), { d: OMEN_CRANIUM, map: omenSkullPoint }, OUTLINE_POINTS),
+        buildPiece(faceBand(0.01, 0.39), { d: OMEN_JAW, map: omenSkullPoint }, OUTLINE_POINTS),
+        buildPiece(faceBand(0.31, 0.54), { d: OMEN_STAFF[0] }, OUTLINE_POINTS),
+        buildPiece(faceBand(0.46, 0.79), { d: OMEN_STAFF[1] }, OUTLINE_POINTS),
+        buildPiece(faceBand(0.71, 1), { d: OMEN_STAFF[2] }, OUTLINE_POINTS),
+        buildPiece(faceBand(0.31, 0.69), { d: OMEN_SERPENT_UPPER }, OUTLINE_POINTS),
+        buildPiece(faceBand(0.61, 1), { d: OMEN_SERPENT_LOWER }, OUTLINE_POINTS),
+    ],
+    cutouts: [],
+};
+
 /// The parameters of one frame of the morph
 export interface MorphFrame {
     /// The morph progress, 0 is the face and 1 is the brand mark, a spring can overshoot both ends

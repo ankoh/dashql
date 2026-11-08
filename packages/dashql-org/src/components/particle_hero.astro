@@ -12,16 +12,17 @@ import styles from './particle_hero.module.css';
 </section>
 
 <script>
-    import { DASHQL_BRAND } from '@ankoh/dashql-ui/wobble/wobble_morph';
+    import { DASHQL_BRAND, OMEN_BRAND } from '@ankoh/dashql-ui/wobble/wobble_morph';
     import { DEFAULT_LANDING_BACKDROP, attachLandingBackdrop, type LandingBackdrop } from '@ankoh/dashql-ui/landing_backdrop/landing_backdrop';
 
+    // `?morsmordre=true` shows the omen mark instead of the brand mark
+    const brand = new URLSearchParams(window.location.search).get('morsmordre') === 'true' ? OMEN_BRAND : DASHQL_BRAND;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     for (const host of document.querySelectorAll<HTMLElement>('[data-landing-backdrop]')) {
         let backdrop: LandingBackdrop | null = null;
         const attach = () => {
             backdrop?.dispose();
-            // More contrast than on the near-black page of the demo, the backdrop of the site is lighter
-            backdrop = attachLandingBackdrop(host, { ...DEFAULT_LANDING_BACKDROP, contrast: 0.8, ringInk: 0.31, brand: DASHQL_BRAND, motion: !reducedMotion.matches });
+            backdrop = attachLandingBackdrop(host, { ...DEFAULT_LANDING_BACKDROP, brand, motion: !reducedMotion.matches });
         };
         reducedMotion.addEventListener('change', attach);
         attach();

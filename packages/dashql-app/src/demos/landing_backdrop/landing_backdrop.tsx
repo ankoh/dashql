@@ -3,7 +3,7 @@ import { attachLandingBackdrop, type LandingBackdrop as Backdrop, type LandingBa
 
 import * as styles from './landing_backdrop_page.module.css';
 
-/// The backdrop in a React tree on the near-black page of the demo
+/// The backdrop in a React tree on the background of the app
 export function LandingBackdrop(props: LandingBackdropOptions): React.ReactElement {
     const { brand, motion, dots, particles } = props;
     const hostRef = React.useRef<HTMLDivElement>(null);
@@ -23,5 +23,5 @@ export function LandingBackdrop(props: LandingBackdropOptions): React.ReactEleme
 
     React.useEffect(() => { backdropRef.current?.update(props); });
 
-    return <div ref={hostRef} className={styles.host} style={{ background: 'rgb(8, 9, 11)' }} aria-hidden="true" />;
+    return <div ref={hostRef} className={styles.host} aria-hidden="true" />;
 }

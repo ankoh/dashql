@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as baseStyles from '../../ui/foundations/banner_page.module.css';
 
 import { useFlavorWobbleBrand } from '../../agent/wobble.js';
-import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/wobble/wobble_morph';
+import { DASHQL_BRAND, DBCOM_BRAND, OMEN_BRAND } from '@ankoh/dashql-ui/wobble/wobble_morph';
 import { CLOUD_DENSITIES, DEFAULT_LANDING_BACKDROP as DEFAULTS, type BackdropStats } from '@ankoh/dashql-ui/landing_backdrop/landing_backdrop';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
@@ -13,6 +13,7 @@ import * as styles from './landing_backdrop_page.module.css';
 const BRANDS = [
     { label: 'DashQL', brand: DASHQL_BRAND },
     { label: 'Database.com', brand: DBCOM_BRAND },
+    { label: 'Omen', brand: OMEN_BRAND },
 ];
 
 /// The sphere of dots that turns into the brand mark, with knobs to tune it

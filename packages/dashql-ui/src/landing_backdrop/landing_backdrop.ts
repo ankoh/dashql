@@ -57,10 +57,10 @@ export interface BackdropStats {
 /// The settings of the backdrop as it is meant to look
 export const DEFAULT_LANDING_BACKDROP = {
     period: 10,
-    contrast: 0.4,
+    contrast: 0.8,
     dots: 5000,
     particles: 5000,
-    ringInk: 1.6,
+    ringInk: 0.31,
     ringFps: 15,
     outerWobble: 0.06,
     gap: 2,
@@ -139,7 +139,7 @@ const REVEAL_START = 0.8;
 const REVEAL_SPREAD = 1.5;
 const REVEAL_FADE = 0.4;
 /// The soft light that circles over the brand mark: its radius and the radius of its circle, in units of the viewBox.
-/// Both brand marks fill about the same part of the viewBox, the same light fits them.
+/// The brand marks fill about the same part of the viewBox, the same light fits them.
 const LIGHT_RADIUS = 52;
 const LIGHT_CIRCLE = 46;
 /// Where the light stands when nothing moves

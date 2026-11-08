@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { DASHQL_BRAND, DBCOM_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from '@ankoh/dashql-ui/wobble/wobble_morph';
+import { DASHQL_BRAND, DBCOM_BRAND, OMEN_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from '@ankoh/dashql-ui/wobble/wobble_morph';
 
 /// The frame of a morph without wobble and ripple
 const frame = (progress: number) => ({ progress, time: 0, wobble: 0, lag: 0.35, ripple: 0 });
 
 /// The pieces of all brands
-const PIECES = [...DASHQL_BRAND.pieces, ...DBCOM_BRAND.pieces];
+const PIECES = [...DASHQL_BRAND.pieces, ...DBCOM_BRAND.pieces, ...OMEN_BRAND.pieces];
 
 /// Morph a piece to a progress
 function morph(index: number, progress: number): Float64Array {
@@ -24,6 +24,22 @@ describe('Wobble morph', () => {
         // The bands of the face run from top to bottom like the shapes of the logo
         const top = DBCOM_BRAND.pieces.map(piece => outlineBounds(piece.faceRest)[1]);
         expect([...top].sort((a, b) => a - b)).toEqual(top);
+    });
+
+    it('turns the face into a skull on a staff with a serpent climbing it', () => {
+        const [cranium, jaw, staffTop, staffMiddle, staffBottom, serpentUpper, serpentLower] = OMEN_BRAND.pieces;
+        // The cranium comes from the top of the face and the tail of the serpent from its bottom
+        expect(outlineBounds(cranium.faceRest)[3]).toBeLessThan(outlineBounds(serpentLower.faceRest)[1]);
+        // The jaw sits above the staff, the parts of the staff run from top to bottom
+        const skullBottom = Math.max(outlineBounds(cranium.logo)[3], outlineBounds(jaw.logo)[3]);
+        const staff = [staffTop, staffMiddle, staffBottom].map(piece => outlineBounds(piece.logo));
+        expect(staff[0][1]).toBeGreaterThanOrEqual(skullBottom);
+        expect(staff[0][3]).toBeLessThan(staff[1][1]);
+        expect(staff[1][3]).toBeLessThan(staff[2][1]);
+        // The head of the serpent stays below the jaw, the serpent reaches to both sides of the staff
+        expect(outlineBounds(serpentUpper.logo)[1]).toBeGreaterThan(skullBottom);
+        expect(outlineBounds(serpentUpper.logo)[0]).toBeLessThan(staff[0][0]);
+        expect(outlineBounds(serpentLower.logo)[2]).toBeGreaterThan(staff[0][2]);
     });
 
     it('parses quadratic segments as cubics', () => {
