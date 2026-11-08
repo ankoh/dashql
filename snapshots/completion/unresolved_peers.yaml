@@ -76,6 +76,7 @@ completion-snapshots:
               qualified: foo.juice0
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · foo"
         - score: 55
           value: juice1
           name-tags: [COLUMN_NAME]
@@ -90,4 +91,5 @@ completion-snapshots:
               qualified: bar.juice1
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · bar"
       text: "ju"

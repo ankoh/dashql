@@ -1,0 +1,48 @@
+completion-snapshots:
+  # Overloads, aggregates, and functions whose signature is unknown
+  - name: function_signatures
+    catalog:
+      script:
+        input: |-
+          create function mysum(x int, y text) returns int;
+          create function mysum(x int) returns int;
+          create function myproc(x int) returns any;
+          create aggregate mymax(x int) returns int;
+          create aggregate myagg() returns any;
+          create function myany() returns any;
+    editor:
+      input: |-
+        select my
+    cursor:
+      search:
+        text: 'my'
+        index: 2
+    completions:
+      limit: 6
+  # A table counts its columns and tells a view, a column names its table
+  - name: table_and_column_details
+    catalog:
+      script:
+        input: |-
+          create table mytable (mya int, myb int);
+          create table myone (myc int);
+    editor:
+      input: |-
+        select my from mytable
+    cursor:
+      search:
+        text: 'my'
+        index: 2
+    completions:
+      limit: 6
+  - name: view_details
+    editor:
+      input: |-
+        create view myview as select 1 as a;
+        select * from my
+    cursor:
+      search:
+        text: 'from my'
+        index: 7
+    completions:
+      limit: 3

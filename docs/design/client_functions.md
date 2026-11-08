@@ -210,6 +210,7 @@ This is the whole shape of a spec, with one function:
 | `errors` | Overrides, see [Results and errors](#results-and-errors) |
 | `effect` | `read` or `write`, see [Writes](#writes). Without it, a `GET` reads and any other method writes |
 | `raw` | Marks the [escape hatch](#the-escape-hatch) |
+| `example`, `result_description` | A call and what a result holds, for completion. `result_description` can have inline Markdown |
 | `evidence` | Free text on where the entry came from. The runtime ignores it |
 
 **An option or schema attribute:**
@@ -220,13 +221,13 @@ This is the whole shape of a spec, with one function:
 | `api_name` | The API's exact spelling |
 | `in` | Options only: `path`, `query`, `header`, `body`, or `body_root` when this option is the whole body. A `path` option fills the placeholder of its `api_name`, which isn't sent any other way, so the placeholder is the spelling |
 | `type` | `string`, `integer`, `number`, `boolean`, `object`, `sql` or `any`. Values aren't checked against it |
-| `enum`, `format` | The values and the format of a scalar, such as `date-time`. Not checked either |
+| `enum`, `format` | The values and the format of a scalar, such as `date-time`. Not checked either, completion shows them |
 | `array`, `map` | The nesting of a value: how many arrays, and whether it's a map. The keys of a map are free and keep the script's spelling, and its `type` or `schema` holds for its values |
 | `schema` | A name in `schemas`, in place of `type`, for an object |
 | `required` | Missing it is an error |
 | `style` | Query options holding arrays or objects: `repeat` (`a=1&a=2`, the default), `csv` (`a=1,2`) or `deep` (`created[gte]=1`) |
 | `multi_segment` | Path options whose value may contain `/`, see [Security](#security) |
-| `description` | For completion, which doesn't show it yet. The Data 360 spec leaves it out |
+| `description` | The text that completion shows for the selected candidate, also on a function. It can have inline Markdown: code, bold and links |
 
 **Names are mapped explicitly, not converted by a rule.** A script writes `name`, and the request carries `api_name`, the API's exact spelling. A rule couldn't do this: APIs mix `primaryDMO`, `orderBy`, `orderby` and `dataSpace`, and some of those spellings differ per endpoint. A generator can derive `name` from `api_name`, but the spec records both. A missing `api_name` means the two are the same, and a name the spec doesn't list is sent as written, so `new_field` is not turned into `newField`.
 
@@ -356,6 +357,21 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 3. Among functions, one that only reads ranks first.
 
 The editor opens the list as soon as a position takes a function, option or attribute (`client_function_name` of the completion), before the first character: right after `CALL cdp.|` or `(`, and after the `,` between options. The list holds the top 10 (`DASHQL_COMPLETION_LIMIT`), so a script finds a function by typing part of its name. `CALL |` keeps the inline hint of an empty target. The prompt of the shell opens the list after `.` and shows the inline hint after `(`.
+
+**A candidate says what it is,** from the spec. Only the top candidates read it, a namespace can have many functions. See [Candidate info](core_completion.md#candidate-info).
+
+A row only shows the name, everything else is in the side pane:
+
+| Candidate | Side pane |
+|---|---|
+| Namespace | The `title` of the spec |
+| Function | Its signature with the required options first, such as `(id_or_name string, limit? integer)`, then its `description`, a table of its options with the required ones first and the standard ones last, its `result_description`, its `columns`, its `example`, and its family, endpoint and paging |
+| Option or attribute | Its type and nesting, none for a schema, and if it's required, then its `description`, the attributes of its schema or of the variants of a union one level deep, and its values and format |
+| `_next`, `_pages`, `_poll`, `_wait` | Their type and a text of the core |
+
+The table of a function's result leaves out the [standard columns](#results-and-errors), since every result has them. The names of schemas stay out of all of this: `ThingOutputRepresentation` means nothing in a script.
+
+The effect of a function isn't shown, it only decides what Execute All does.
 
 **The position comes from tokens, not the tree,** because the text being typed usually doesn't parse. From the start of the statement, the walk keeps a stack with the key that opened each `(` and `[`. A `(` followed by `select`, `with`, `table` or `values` (not followed by `=`, or with `values` followed by `(`) starts embedded SQL, which falls through to normal completion. A wrong decision here only affects suggestions, since it isn't part of parsing.
 
@@ -715,7 +731,7 @@ Each phase lands separately.
 1. **Format stability.** `format` allows changes, but anything published has to keep working. This is why publishing comes last.
 2. **Specs from elsewhere.** This document covers bundled specs. Loading others needs a trust decision, even with the security rules above.
 3. **Tags beside an object.** A `tag` reads an attribute of the object itself. Some APIs select a variant with a sibling instead, such as `type` next to `config` in Data 360, so only the attributes of those objects decide. A `tag` that reads a sibling would close this, once a source says which value selects which variant.
-4. **Spec size.** The Data 360 spec is 745 KB, or 62 KB gzipped, for 535 functions and it loads lazily. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
+4. **Spec size.** The Data 360 spec is 1,322 KB, or 166 KB gzipped, for 535 functions and it loads lazily. What completion shows is about 575 KB of that. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
 5. **`_next` on an empty page.** The one-row rule covers it, at the cost of `count(*)`. If that turns out to be wrong in practice, the alternative is carrying the value in result metadata, outside the table.
 6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a session attachment.
 7. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.

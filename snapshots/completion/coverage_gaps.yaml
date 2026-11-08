@@ -340,6 +340,7 @@ completion-snapshots:
               qualified: x.a
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · t"
         - score: 34
           value: b
           name-tags: [COLUMN_NAME]
@@ -354,6 +355,7 @@ completion-snapshots:
               qualified: x.b
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · t"
         - score: 34
           value: name
           name-tags: [COLUMN_NAME]
@@ -368,6 +370,7 @@ completion-snapshots:
               qualified: x.name
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "text · t"
       text: "."
 
   - name: cov_dot_two_tables
@@ -454,6 +457,7 @@ completion-snapshots:
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 34
           value: c
           name-tags: [COLUMN_NAME]
@@ -468,6 +472,7 @@ completion-snapshots:
               qualified: u.c
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
       text: "."
 
   - name: cov_dot_partial_column
@@ -550,6 +555,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 34
           value: a
           name-tags: [COLUMN_NAME]
@@ -564,6 +570,7 @@ completion-snapshots:
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
         - score: 34
           value: b
           name-tags: [COLUMN_NAME]
@@ -578,6 +585,7 @@ completion-snapshots:
               qualified: t.b
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
       text: "na"
 
   - name: cov_function_qualified
@@ -627,6 +635,7 @@ completion-snapshots:
               qualified: myabs
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 47
           value: mymax
           name-tags: [FUNCTION_NAME]
@@ -641,6 +650,7 @@ completion-snapshots:
               qualified: sch2.mymax
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 47
           value: mysum
           name-tags: [FUNCTION_NAME]
@@ -655,6 +665,7 @@ completion-snapshots:
               qualified: db1.sch1.mysum
               qualified-idx: 2
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 4
           value: from
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
@@ -728,6 +739,7 @@ completion-snapshots:
               qualified: myabs
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 47
           value: mymax
           name-tags: [FUNCTION_NAME]
@@ -742,6 +754,7 @@ completion-snapshots:
               qualified: sch2.mymax
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 47
           value: mysum
           name-tags: [FUNCTION_NAME]
@@ -756,6 +769,7 @@ completion-snapshots:
               qualified: db1.sch1.mysum
               qualified-idx: 2
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 3
           value: group
           keyword-continuation: by
@@ -839,6 +853,8 @@ completion-snapshots:
               qualified: t
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "3 columns"
+              columns: ["a integer","b integer","name text"]
         - score: 50
           value: t
           candidate-tags: [IDENTITY]
@@ -946,6 +962,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: a
           candidate-tags: [IDENTITY]
@@ -966,6 +983,7 @@ completion-snapshots:
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
             - score: 37
               type: column
               id: "256.65536.4294967297.0"
@@ -973,6 +991,7 @@ completion-snapshots:
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 3
           value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
@@ -1604,6 +1623,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: na
           candidate-tags: [IDENTITY]
@@ -1837,6 +1857,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 56
           value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
@@ -1930,6 +1951,8 @@ completion-snapshots:
               qualified: u
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["a integer","c integer"]
         - score: 55
           value: unbounded
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -2030,6 +2053,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: na
           candidate-tags: [IDENTITY]
@@ -2140,6 +2164,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: na
           candidate-tags: [IDENTITY]
@@ -2428,6 +2453,7 @@ completion-snapshots:
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
             - score: 52
               type: column
               id: "256.65536.4294967297.0"
@@ -2435,6 +2461,7 @@ completion-snapshots:
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 55
           value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -2702,6 +2729,7 @@ completion-snapshots:
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · t"
             - score: 63
               type: column
               id: "256.65536.4294967297.0"
@@ -2709,6 +2737,7 @@ completion-snapshots:
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · u"
         - score: 63
           value: name
           name-tags: [COLUMN_NAME]
@@ -2723,6 +2752,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: a
           candidate-tags: [IDENTITY]
@@ -2822,6 +2852,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: '"na"'
           candidate-tags: [IDENTITY]
@@ -2927,6 +2958,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: NA
           candidate-tags: [IDENTITY]
@@ -3044,6 +3076,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "text · t"
         - score: 59
           value: na
           candidate-tags: [IDENTITY]

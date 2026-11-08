@@ -370,6 +370,8 @@ completion-snapshots:
               qualified: s1.tt
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
       text: "t"
 
   - name: cov_schema_tables_catalog
@@ -448,6 +450,8 @@ completion-snapshots:
               qualified: s1.t1
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
         - score: 59
           value: t2
           name-tags: [TABLE_NAME]
@@ -462,6 +466,8 @@ completion-snapshots:
               qualified: s1.t2
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["b integer"]
       text: "t"
 
   - name: cov_schema_tables_both
@@ -554,6 +560,8 @@ completion-snapshots:
               qualified: s1.t1
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
         - score: 59
           value: t2
           name-tags: [TABLE_NAME]
@@ -568,6 +576,8 @@ completion-snapshots:
               qualified: s1.t2
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["b integer"]
         - score: 57
           value: t9
           name-tags: [TABLE_NAME]
@@ -582,6 +592,8 @@ completion-snapshots:
               qualified: s1.t9
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
       text: "t"
 
   - name: cov_database_schemas

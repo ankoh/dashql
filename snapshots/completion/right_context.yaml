@@ -66,6 +66,7 @@ completion-snapshots:
               qualified: tbl.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · tbl"
         - score: 59
           value: a
           candidate-tags: [IDENTITY]
@@ -312,6 +313,8 @@ completion-snapshots:
               qualified: sales
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["id integer"]
         - score: 56
           value: sample
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
@@ -407,6 +410,7 @@ completion-snapshots:
               qualified: tbl.a
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · tbl"
         - score: 59
           value: a
           candidate-tags: [IDENTITY]

@@ -7,7 +7,7 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_core::catalog::Catalog;
-use dashql_core::completion::{is_symbol_kind_completable, Candidate, Completion};
+use dashql_core::completion::{is_symbol_kind_completable, Candidate, CandidateField, CandidateInfo, Completion};
 use dashql_core::pack::pack_completion;
 use dashql_core::script::Script;
 use dashql_parser::symbol_kind::*;
@@ -532,4 +532,299 @@ fn completes_columns_of_derived_tables_after_a_recovered_dot() {
         assert!(has_tag(k, CandidateTag::DOT_RESOLUTION_COLUMN), "{text}");
         assert!(find_candidate(&completion, "b").is_some(), "{text}");
     }
+}
+
+/// Client functions that cover what a list shows about a candidate
+const INFO_SPEC: &str = r#"{
+  "format": 1,
+  "namespace": "svc",
+  "title": "The Service",
+  "schemas": {
+    "Owner": {
+      "attributes": [
+        { "name": "note", "type": "string" },
+        { "name": "id", "type": "integer", "required": true, "description": "The id." }
+      ]
+    },
+    "Email": { "attributes": [{ "name": "address", "type": "string" }] },
+    "Queue": { "attributes": [{ "name": "name", "type": "string" }] },
+    "Target": { "variants": ["Email", "Queue"] }
+  },
+  "functions": [
+    {
+      "name": "item_get",
+      "family": "Items",
+      "method": "GET",
+      "path": "/items/{id}",
+      "description": "Reads an item.",
+      "example": "CALL svc.item_get (id => 'a');",
+      "result_description": "One row.",
+      "options": [
+        { "name": "owner", "schema": "Owner" },
+        { "name": "id", "in": "path", "type": "string", "required": true, "description": "The `id` of the item." },
+        { "name": "labels", "type": "string", "map": true }
+      ],
+      "columns": [{ "name": "id", "type": "VARCHAR" }, { "name": "size", "type": "BIGINT" }]
+    },
+    {
+      "name": "item_find",
+      "method": "GET",
+      "options": [
+        { "name": "ids", "type": "integer", "array": 2 },
+        { "name": "kind", "type": "string", "enum": ["a", "b"], "format": "kind-name" },
+        { "name": "target", "schema": "Target", "array": 1 }
+      ]
+    },
+    { "name": "item_list", "method": "GET", "paging": { "kind": "url", "from": { "link": "next" } } },
+    { "name": "item_ping", "method": "GET", "options": [{ "name": "id", "type": "string", "required": true }] },
+    { "name": "item_raw", "raw": true }
+  ]
+}"#;
+
+fn info_catalog() -> Catalog {
+    let mut catalog = Catalog::new();
+    catalog.register_client_functions(INFO_SPEC).unwrap();
+    catalog
+}
+
+/// The name of a candidate, its name tags and what a list shows about it
+fn client_candidates(catalog: &Catalog, text: &str) -> Vec<(String, u8, Option<String>, Option<String>)> {
+    let mut out = Vec::new();
+    complete_at(catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
+        for candidate in &completion.top_candidates {
+            assert!(candidate.catalog_objects.is_empty());
+            out.push((
+                candidate.completion_text.to_string(),
+                candidate.coarse_name_tags,
+                candidate.info.detail.clone(),
+                candidate.info.description.clone(),
+            ));
+        }
+    });
+    out
+}
+
+fn text(value: &str) -> Option<String> {
+    Some(value.to_string())
+}
+
+#[test]
+fn client_namespaces_are_described() {
+    let candidates = client_candidates(&info_catalog(), "call sv");
+    assert_eq!(candidates, vec![("svc".to_string(), NameTag::SCHEMA_NAME.0, text("The Service"), None)]);
+}
+
+#[test]
+fn client_functions_are_described() {
+    let tag = NameTag::FUNCTION_NAME.0;
+    assert_eq!(
+        client_candidates(&info_catalog(), "call svc."),
+        vec![
+            ("item_find".to_string(), tag, text("(ids? array of array of integer, kind? string, target? array)"), None),
+            ("item_get".to_string(), tag, text("(id string, owner?, labels? map of string)"), text("Reads an item.")),
+            ("item_list".to_string(), tag, None, None),
+            ("item_ping".to_string(), tag, text("(id string)"), None),
+            ("item_raw".to_string(), tag, None, None),
+        ]
+    );
+}
+
+#[test]
+fn client_options_are_described() {
+    let tag = NameTag::OPTION_NAME.0;
+    assert_eq!(
+        client_candidates(&info_catalog(), "call svc.item_get ("),
+        vec![
+            ("id".to_string(), tag, text("string · required"), text("The `id` of the item.")),
+            ("labels".to_string(), tag, text("map of string"), None),
+            ("owner".to_string(), tag, None, None),
+        ]
+    );
+    assert_eq!(
+        client_candidates(&info_catalog(), "call svc.item_get (owner => ("),
+        vec![
+            ("id".to_string(), tag, text("integer · required"), text("The id.")),
+            ("note".to_string(), tag, text("string"), None),
+        ]
+    );
+}
+
+#[test]
+fn standard_options_are_described() {
+    let candidates = client_candidates(&info_catalog(), "call svc.item_list (");
+    let names: Vec<&str> = candidates.iter().map(|c| c.0.as_str()).collect();
+    assert_eq!(names, vec!["_next", "_pages"]);
+    assert_eq!(candidates[0].1, NameTag::OPTION_NAME.0);
+    assert_eq!(candidates[0].2, text("string"));
+    assert!(candidates[0].3.as_ref().unwrap().contains("`_next`"));
+    assert_eq!(candidates[1].2, text("integer"));
+}
+
+/// The info of a candidate of a call
+fn client_info(text: &str, name: &str) -> CandidateInfo {
+    let mut info = None;
+    complete_at(&info_catalog(), text, text.len(), DEFAULT_LIMIT, |completion| {
+        let candidate = completion.top_candidates.iter().find(|c| &*c.completion_text == name).unwrap();
+        info = Some(candidate.info.clone());
+    });
+    info.unwrap()
+}
+
+/// The names and details of a table of an info
+fn field_details(fields: &[CandidateField]) -> Vec<(&str, Option<&str>)> {
+    fields.iter().map(|f| (f.name.as_str(), f.detail.as_deref())).collect()
+}
+
+#[test]
+fn a_function_shows_its_parameters_and_result() {
+    let info = client_info("call svc.", "item_get");
+    assert_eq!(
+        field_details(&info.parameters),
+        vec![("id", Some("string · required")), ("owner", None), ("labels", Some("map of string"))]
+    );
+    assert_eq!(info.parameters[0].description.as_deref(), Some("The `id` of the item."));
+    assert_eq!(field_details(&info.columns), vec![("id", Some("VARCHAR")), ("size", Some("BIGINT"))]);
+    assert_eq!(info.result_description.as_deref(), Some("One row."));
+    assert_eq!(info.example.as_deref(), Some("CALL svc.item_get (id => 'a');"));
+    assert_eq!(field_details(&info.facts), vec![("Family", Some("Items")), ("Endpoint", Some("GET /items/{id}"))]);
+}
+
+#[test]
+fn a_function_lists_its_standard_options_after_its_own() {
+    let info = client_info("call svc.", "item_list");
+    assert_eq!(field_details(&info.parameters), vec![("_next", Some("string")), ("_pages", Some("integer"))]);
+    assert!(info.parameters[0].description.as_ref().unwrap().contains("`_next`"));
+    assert_eq!(field_details(&info.facts), vec![("Paging", Some("url"))]);
+}
+
+#[test]
+fn an_option_shows_the_attributes_of_its_schema() {
+    let info = client_info("call svc.item_get (", "owner");
+    assert_eq!(field_details(&info.parameters), vec![("id", Some("integer · required")), ("note", Some("string"))]);
+}
+
+#[test]
+fn an_option_shows_its_nesting_values_and_what_its_variants_take() {
+    assert_eq!(client_info("call svc.item_find (", "ids").detail.as_deref(), Some("array of array of integer"));
+    let kind = client_info("call svc.item_find (", "kind");
+    assert_eq!(field_details(&kind.facts), vec![("Values", Some("a, b")), ("Format", Some("kind-name"))]);
+    let target = client_info("call svc.item_find (", "target");
+    assert_eq!(target.detail.as_deref(), Some("array"));
+    assert!(target.facts.is_empty());
+    assert_eq!(field_details(&target.parameters), vec![("address", Some("string")), ("name", Some("string"))]);
+}
+
+#[test]
+fn a_table_shows_its_columns_as_written_with_their_types() {
+    let mut catalog = Catalog::new();
+    let _schema = load_schema(
+        &mut catalog,
+        r#"create table mytable (zip varchar(10), amount numeric(10,2), kind "USER-DEFINED", tags text[], plain "timestamp with time zone");"#,
+    );
+    let text = "select * from mytab";
+    complete_at(&catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
+        let candidate = completion.top_candidates.iter().find(|c| &*c.completion_text == "mytable").unwrap();
+        let info = &completion.candidate_objects[candidate.catalog_objects[0]].info;
+        assert_eq!(info.detail.as_deref(), Some("5 columns"));
+        assert_eq!(
+            field_details(&info.columns),
+            vec![
+                ("zip", Some("varchar(10)")),
+                ("amount", Some("numeric(10,2)")),
+                ("kind", Some("user-defined")),
+                ("tags", Some("text[]")),
+                ("plain", Some("timestamp with time zone")),
+            ]
+        );
+    });
+}
+
+#[test]
+fn a_wide_table_shows_only_its_first_columns() {
+    let mut catalog = Catalog::new();
+    let columns: Vec<String> = (0..250).map(|i| format!("c{i} int")).collect();
+    let _schema = load_schema(&mut catalog, &format!("create table mytable ({});", columns.join(", ")));
+    let text = "select * from mytab";
+    complete_at(&catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
+        let candidate = completion.top_candidates.iter().find(|c| &*c.completion_text == "mytable").unwrap();
+        let info = &completion.candidate_objects[candidate.catalog_objects[0]].info;
+        assert_eq!(info.detail.as_deref(), Some("250 columns"));
+        assert_eq!(info.columns.len(), 200);
+        assert_eq!(info.columns[0].name, "c0");
+        assert_eq!(info.columns[199].name, "c199");
+    });
+}
+
+#[test]
+fn a_column_shows_its_type_and_table() {
+    let mut catalog = Catalog::new();
+    let _schema = load_schema(&mut catalog, "create table mytable (mycolumn bigint);");
+    let text = "select mycol from mytable";
+    complete_at(&catalog, text, "select mycol".len(), DEFAULT_LIMIT, |completion| {
+        let candidate = completion.top_candidates.iter().find(|c| &*c.completion_text == "mycolumn").unwrap();
+        let info = &completion.candidate_objects[candidate.catalog_objects[0]].info;
+        assert_eq!(info.detail.as_deref(), Some("bigint · mytable"));
+    });
+}
+
+#[test]
+fn only_the_top_client_candidates_get_their_info() {
+    let text = "call svc.item_g";
+    complete_at(&info_catalog(), text, text.len(), 1, |completion| {
+        assert_eq!(completion.top_candidates.len(), 1);
+        assert_eq!(completion.top_candidates[0].info.description.as_deref(), Some("Reads an item."));
+    });
+}
+
+#[test]
+fn only_the_objects_of_top_candidates_get_their_info() {
+    let mut catalog = Catalog::new();
+    let _schema = load_schema(&mut catalog, "create table mya (x int); create table myb (x int, y int);");
+    let text = "select * from my";
+    complete_at(&catalog, text, text.len(), 1, |completion| {
+        assert_eq!(completion.top_candidates.len(), 1);
+        let top: Vec<usize> = completion.top_candidates[0].catalog_objects.clone();
+        assert!(!top.is_empty());
+        for (index, object) in completion.candidate_objects.iter().enumerate() {
+            assert_eq!(object.info.detail.is_some(), top.contains(&index), "{index}");
+        }
+    });
+}
+
+#[test]
+fn candidate_info_is_packed() {
+    let catalog = info_catalog();
+    let text = "call svc.";
+    complete_at(&catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
+        let packed = pack_completion(completion, false);
+        let candidates = packed.candidates.unwrap();
+        let candidate = candidates.iter().find(|c| c.display_text.as_deref() == Some("item_get")).unwrap();
+        let info = candidate.info.as_ref().unwrap();
+        assert_eq!(info.detail.as_deref(), Some("(id string, owner?, labels? map of string)"));
+        assert_eq!(info.description.as_deref(), Some("Reads an item."));
+        let parameters = info.parameters.as_ref().unwrap();
+        assert_eq!(parameters[0].name.as_deref(), Some("id"));
+        assert_eq!(parameters[0].detail.as_deref(), Some("string · required"));
+        assert_eq!(parameters[0].description.as_deref(), Some("The `id` of the item."));
+        assert_eq!(info.columns.as_ref().unwrap()[1].name.as_deref(), Some("size"));
+        assert_eq!(info.result_description.as_deref(), Some("One row."));
+        assert_eq!(info.example.as_deref(), Some("CALL svc.item_get (id => 'a');"));
+        assert_eq!(info.facts.as_ref().unwrap()[0].name.as_deref(), Some("Family"));
+    });
+
+    let mut catalog = Catalog::new();
+    let _schema = load_schema(&mut catalog, "create function myfn(x int) returns text; create table mytable (a int);");
+    let text = "select my";
+    complete_at(&catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
+        let packed = pack_completion(completion, false);
+        let candidates = packed.candidates.unwrap();
+        let detail = |name: &str| {
+            let candidate = candidates.iter().find(|c| c.display_text.as_deref() == Some(name)).unwrap();
+            assert!(candidate.info.is_none());
+            let objects = candidate.catalog_objects.as_ref().unwrap();
+            objects[0].info.as_ref().and_then(|i| i.detail.clone())
+        };
+        assert_eq!(detail("myfn").as_deref(), Some("(x int) → text"));
+        assert_eq!(detail("mytable").as_deref(), Some("1 column"));
+    });
 }

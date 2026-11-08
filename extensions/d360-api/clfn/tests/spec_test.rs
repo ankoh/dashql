@@ -98,6 +98,42 @@ fn names(attributes: Option<&Value>) -> BTreeSet<String> {
 }
 
 #[test]
+fn completion_describes_what_the_spec_describes() {
+    let catalog = catalog();
+    let text = "call cdp.";
+    let entry_id = catalog.allocate_entry_id();
+    let scanned = Arc::new(scan(text, 0, entry_id));
+    let parsed = Arc::new(parse(scanned.clone()));
+    let analyzed = Arc::new(analyze(parsed.clone(), &catalog).expect("the analysis runs"));
+    let view = ScriptView { scanned: Some(&scanned), parsed: Some(&parsed), analyzed: Some(&analyzed), catalog: &catalog };
+    let cursor = ScriptCursor::place(view, text.len());
+    let completion = Completion::compute(&cursor, 100_000);
+    let spec: Value = serde_json::from_str(&spec_text()).unwrap();
+    let functions = spec["functions"].as_array().unwrap();
+    let described = functions.iter().filter(|f| f["description"].is_string()).count();
+    assert!(described > 500, "only {described} functions have a description");
+    for candidate in &completion.top_candidates {
+        let function = functions.iter().find(|f| f["name"].as_str() == Some(&*candidate.completion_text)).unwrap();
+        assert_eq!(candidate.info.description.as_deref(), function["description"].as_str(), "{}", candidate.completion_text);
+        assert_eq!(candidate.info.example.as_deref(), function["example"].as_str(), "{}", candidate.completion_text);
+        assert_eq!(candidate.info.result_description.as_deref(), function["result_description"].as_str(), "{}", candidate.completion_text);
+        // The names of schemas mean nothing in a script
+        let schemas = spec["schemas"].as_object().unwrap();
+        let details = candidate.info.parameters.iter().filter_map(|p| p.detail.as_deref()).chain(candidate.info.detail.as_deref());
+        for detail in details {
+            assert!(!schemas.keys().any(|schema| detail.contains(schema.as_str())), "{}: {detail}", candidate.completion_text);
+        }
+        let result = candidate.info.result_description.as_deref().unwrap_or("");
+        assert!(!result.contains("Schema `"), "{}: {result}", candidate.completion_text);
+        let options = function["options"].as_array().map_or(0, Vec::len);
+        assert_eq!(candidate.info.detail.is_some(), options > 0 && function.get("raw").is_none(), "{}", candidate.completion_text);
+        assert!(candidate.info.parameters.len() >= options, "{}", candidate.completion_text);
+        let columns = function["columns"].as_array().map_or(0, Vec::len);
+        assert_eq!(candidate.info.columns.len(), columns, "{}", candidate.completion_text);
+    }
+}
+
+#[test]
 fn completion_offers_every_function() {
     let spec: Value = serde_json::from_str(&spec_text()).unwrap();
     let expected: BTreeSet<String> = spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();

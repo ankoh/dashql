@@ -58,6 +58,7 @@ completion-snapshots:
               qualified: foo.bar
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · foo"
         - score: 55
           value: backward
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -154,6 +155,7 @@ completion-snapshots:
               qualified: supplier.s_comment
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "varchar(101) · supplier"
         - score: 59
           value: s_co
           candidate-tags: [IDENTITY]
@@ -257,6 +259,7 @@ completion-snapshots:
               qualified: other_table.s_comment
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "varchar(101) · other_table"
         - score: 3
           value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
@@ -337,6 +340,8 @@ completion-snapshots:
               qualified: supplier
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["s_name char(25)"]
         - score: 50
           value: sup
           candidate-tags: [IDENTITY]

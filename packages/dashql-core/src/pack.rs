@@ -870,6 +870,36 @@ pub fn pack_cursor(cursor: &crate::cursor::ScriptCursor) -> dashql_buffers::curs
     out
 }
 
+/// Pack what a list shows about a candidate or a catalog object
+fn pack_candidate_fields(fields: &[crate::completion::CandidateField]) -> Option<Vec<dashql_buffers::completion::CompletionCandidateFieldT>> {
+    if fields.is_empty() {
+        return None;
+    }
+    let pack = |field: &crate::completion::CandidateField| {
+        let mut out = dashql_buffers::completion::CompletionCandidateFieldT::default();
+        out.name = Some(field.name.clone());
+        out.detail = field.detail.clone();
+        out.description = field.description.clone();
+        out
+    };
+    Some(fields.iter().map(pack).collect())
+}
+
+fn pack_candidate_info(info: &crate::completion::CandidateInfo) -> Option<Box<dashql_buffers::completion::CompletionCandidateInfoT>> {
+    if *info == crate::completion::CandidateInfo::default() {
+        return None;
+    }
+    let mut out = dashql_buffers::completion::CompletionCandidateInfoT::default();
+    out.detail = info.detail.clone();
+    out.description = info.description.clone();
+    out.parameters = pack_candidate_fields(&info.parameters);
+    out.result_description = info.result_description.clone();
+    out.columns = pack_candidate_fields(&info.columns);
+    out.example = info.example.clone();
+    out.facts = pack_candidate_fields(&info.facts);
+    Some(Box::new(out))
+}
+
 /// Pack a completion
 pub fn pack_completion(
     completion: &crate::completion::Completion,
@@ -910,6 +940,7 @@ pub fn pack_completion(
                     o.qualified_name = Some(object.qualified_name.iter().map(|n| quote_identifier(n)).collect());
                     o.qualified_name_target_idx = object.qualified_name_target_idx as u32;
                     o.prefer_qualified = object.prefer_qualified;
+                    o.info = pack_candidate_info(&object.info);
                     match object.object {
                         CandidateObjectRef::Database(id) => o.catalog_database_id = id.unpack_database_id(),
                         CandidateObjectRef::Schema(id) => {
@@ -968,6 +999,7 @@ pub fn pack_completion(
             c.candidate_tags = candidate.candidate_tags;
             c.name_tags = candidate.coarse_name_tags;
             c.catalog_objects = Some(catalog_objects);
+            c.info = pack_candidate_info(&candidate.info);
             c.score = candidate.score;
             c.target_location = Some(symbol_span(candidate.target_location));
             c.target_location_qualified = Some(symbol_span(candidate.target_location_qualified));

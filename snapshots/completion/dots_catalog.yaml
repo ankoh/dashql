@@ -304,6 +304,8 @@ completion-snapshots:
               qualified: x.foo
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
             - score: 4
               type: schema
               id: "257.65537"

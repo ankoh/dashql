@@ -1,0 +1,340 @@
+completion-snapshots:
+
+  - name: function_signatures
+    catalog:
+      script:
+        input: |-
+          create function mysum(x int, y text) returns int;
+          create function mysum(x int) returns int;
+          create function myproc(x int) returns any;
+          create aggregate mymax(x int) returns int;
+          create aggregate myagg() returns any;
+          create function myany() returns any;
+        catalog-id: 1
+        errors: []
+    editor:
+      input: |-
+        select my
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "my"
+    cursor:
+      search:
+        text: 'my'
+        index: 2
+    completions:
+      limit: 6
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 59
+          value: my
+          candidate-tags: [IDENTITY]
+          location: "my"
+          location-qualified: "my"
+          objects: []
+        - score: 47
+          value: myagg
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: function
+              id: "256.65536.4294967300"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: myagg
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "aggregate"
+        - score: 47
+          value: myany
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: function
+              id: "256.65536.4294967301"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: myany
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 47
+          value: mymax
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: function
+              id: "256.65536.4294967299"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: mymax
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "(x int) → int · aggregate"
+        - score: 47
+          value: myproc
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: function
+              id: "256.65536.4294967298"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: myproc
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "(x int)"
+        - score: 47
+          value: mysum
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: function
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: mysum
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "(x int, y text) → int"
+            - score: 37
+              type: function
+              id: "256.65536.4294967297"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: mysum
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "(x int) → int"
+      text: "my"
+
+  - name: table_and_column_details
+    catalog:
+      script:
+        input: |-
+          create table mytable (mya int, myb int);
+          create table myone (myc int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: mytable
+            text: "create tab.., myb int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: mya
+                text: "mya int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: myb
+                text: "myb int"
+          - catalog-id: "256.65536.4294967297"
+            name: myone
+            text: "create tab.. (myc int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: myc
+                text: "myc int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: mytable
+            columns: [mya,myb]
+          - statement-id: 1
+            type: create
+            name: myone
+            columns: [myc]
+        errors: []
+    editor:
+      input: |-
+        select my from mytable
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "mytable"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "my"
+    cursor:
+      search:
+        text: 'my'
+        index: 2
+    completions:
+      limit: 6
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 67
+          value: mya
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 47
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: mytable.mya
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · mytable"
+        - score: 67
+          value: myb
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 47
+              type: column
+              id: "256.65536.4294967296.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: mytable.myb
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · mytable"
+        - score: 59
+          value: my
+          candidate-tags: [IDENTITY]
+          location: "my"
+          location-qualified: "my"
+          objects: []
+        - score: 57
+          value: myc
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: column
+              id: "256.65536.4294967297.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: myone.myc
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · myone"
+        - score: 47
+          value: myone
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967297"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: myone
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["myc integer"]
+        - score: 47
+          value: mytable
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: mytable
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["mya integer","myb integer"]
+      text: "my"
+
+  - name: view_details
+    editor:
+      input: |-
+        create view myview as select 1 as a;
+        select * from my
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: myview
+          text: "create vie..ect 1 as a"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: myview
+          columns: [a]
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 1
+          text: "my"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: 'from my'
+        index: 7
+    completions:
+      limit: 3
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: myview
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - score: 35
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: myview
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "view · 1 column"
+              columns: ["a"]
+        - score: 50
+          value: my
+          candidate-tags: [IDENTITY]
+          location: "my"
+          location-qualified: "my"
+          objects: []
+        - score: 4
+          value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "my"
+          location-qualified: "my"
+          objects: []
+      text: "my"

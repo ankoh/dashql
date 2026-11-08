@@ -17,9 +17,11 @@ completion-snapshots:
       entries:
         - score: 1048576
           value: tickets
+          name-tags: [SCHEMA_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "tic"
           location-qualified: "tic"
+          detail: "Ticket Service"
           objects: []
       text: "tic"
 
@@ -115,21 +117,58 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: ticket_feed
+          name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "(project string)"
+          parameters:
+            - name: "project"
+              detail: "string · required"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          facts: ["Endpoint GET /feed","Paging url"]
           objects: []
         - score: 1048577
           value: ticket_list
+          name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "(project string, page_size? integer, page_token? string)"
+          description: "Lists the tickets of a project, see `ticket_feed` for a feed."
+          parameters:
+            - name: "project"
+              detail: "string · required"
+              description: "The key of the project."
+            - name: "page_size"
+              detail: "integer"
+            - name: "page_token"
+              detail: "string"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          result-description: "One row per item of `/items` in the response."
+          columns: ["id BIGINT"]
+          example: "CALL tickets.ticket_list (project => 'CORE');"
+          facts: ["Family Tickets","Endpoint GET /projects/{project}/tickets","Paging token"]
           objects: []
         - score: 1048577
           value: ticket_search
+          name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "(query? string)"
+          parameters: ["query string"]
+          facts: ["Endpoint POST /tickets:search"]
           objects: []
       text: "."
 
@@ -151,9 +190,13 @@ completion-snapshots:
       entries:
         - score: 1048576
           value: webhook_create
+          name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "web"
           location-qualified: "web"
+          detail: "(url? string, signing_key? string, credentials? any)"
+          parameters: ["url string","signing_key string","credentials any"]
+          facts: ["Endpoint POST /webhooks"]
           objects: []
       text: "web"
 
@@ -195,33 +238,46 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: project
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string · required"
+          description: "The key of the project."
           objects: []
         - score: 1048577
           value: page_size
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer"
           objects: []
         - score: 1048577
           value: page_token
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
         - score: 1048576
           value: _next
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
+          description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
           objects: []
         - score: 1048576
           value: _pages
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer"
+          description: "The number of pages to read, 1 without this option."
           objects: []
       text: "("
 
@@ -243,21 +299,28 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: page_size
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "pa"
           location-qualified: "pa"
+          detail: "integer"
           objects: []
         - score: 1048577
           value: page_token
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "pa"
           location-qualified: "pa"
+          detail: "string"
           objects: []
         - score: 0
           value: _pages
+          name-tags: [OPTION_NAME]
           candidate-tags: [SUBSTRING_MATCH]
           location: "pa"
           location-qualified: "pa"
+          detail: "integer"
+          description: "The number of pages to read, 1 without this option."
           objects: []
       text: "pa"
 
@@ -279,15 +342,19 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: labels
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "l"
           location-qualified: "l"
+          detail: "any"
           objects: []
         - score: 262144
           value: title
+          name-tags: [OPTION_NAME]
           candidate-tags: [SUBSTRING_MATCH]
           location: "l"
           location-qualified: "l"
+          detail: "string · required"
           objects: []
       text: "l"
 
@@ -309,9 +376,11 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: title
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "title"
           location-qualified: "title"
+          detail: "string · required"
           objects: []
       text: "title"
 
@@ -338,27 +407,37 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: page_size
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer"
           objects: []
         - score: 1048577
           value: page_token
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
         - score: 1048576
           value: _next
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
+          description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
           objects: []
         - score: 1048576
           value: _pages
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer"
+          description: "The number of pages to read, 1 without this option."
           objects: []
       text: ","
 
@@ -393,27 +472,37 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: page_size
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer"
           objects: []
         - score: 1048577
           value: page_token
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
         - score: 1048576
           value: _next
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
+          description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
           objects: []
         - score: 1048576
           value: _pages
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer"
+          description: "The number of pages to read, 1 without this option."
           objects: []
       text: ","
 
@@ -452,15 +541,20 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: id
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer · required"
+          description: "The id of the user."
           objects: []
         - score: 1048577
           value: notify
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "boolean"
           objects: []
       text: "("
 
@@ -500,15 +594,20 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: id
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer · required"
+          description: "The id of the user."
           objects: []
         - score: 1048577
           value: notify
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "boolean"
           objects: []
       text: "("
 
@@ -556,15 +655,20 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: id
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer · required"
+          description: "The id of the user."
           objects: []
         - score: 1048577
           value: notify
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "boolean"
           objects: []
       text: "("
 
@@ -591,15 +695,19 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: children
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          parameters: ["name string","children"]
           objects: []
         - score: 1048577
           value: name
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
       text: "("
 
@@ -644,15 +752,20 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: id
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer · required"
+          description: "The id of the user."
           objects: []
         - score: 1048577
           value: notify
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "boolean"
           objects: []
       text: ","
 
@@ -708,6 +821,8 @@ completion-snapshots:
               qualified: alerts
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["host text"]
         - score: 50
           value: coalesce
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
@@ -742,21 +857,27 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: project
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string · required"
           objects: []
         - score: 1310720
           value: title
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string · required"
           objects: []
         - score: 1048577
           value: '"X-Trace-Id"'
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
       text: ","
 
@@ -829,9 +950,11 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: '"X-Trace-Id"'
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "X"
           location-qualified: "X"
+          detail: "string"
           objects: []
       text: "-"
 
@@ -853,9 +976,11 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: id
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "integer · required"
           objects: []
       text: "("
 
@@ -882,15 +1007,21 @@ completion-snapshots:
       entries:
         - score: 1048576
           value: _poll
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "_"
           location-qualified: "_"
+          detail: "string"
+          description: "The pending result to poll, the `_poll` column of an earlier result."
           objects: []
         - score: 1048576
           value: _wait
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "_"
           location-qualified: "_"
+          detail: "integer"
+          description: "The seconds to poll a pending result for, no polling without this option."
           objects: []
       text: "_"
 
@@ -912,21 +1043,27 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: cron
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
         - score: 1048577
           value: event
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
         - score: 1048577
           value: filter
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
       text: "("
 
@@ -953,9 +1090,11 @@ completion-snapshots:
       entries:
         - score: 1048577
           value: filter
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string"
           objects: []
       text: ","
 
@@ -982,14 +1121,23 @@ completion-snapshots:
       entries:
         - score: 1310720
           value: queue
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          detail: "string · required"
           objects: []
         - score: 1048577
           value: owner
+          name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
+          parameters:
+            - name: "id"
+              detail: "integer · required"
+              description: "The id of the user."
+            - name: "notify"
+              detail: "boolean"
           objects: []
       text: ","

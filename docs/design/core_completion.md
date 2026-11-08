@@ -40,6 +40,7 @@ Completion::compute(cursor, k)
 ├─ promote_identifiers_in_scope()  (not between symbols)
 ├─ select_top_candidates()         → top-k heap
 ├─ qualify_top_candidates()        → derive qualified names (not between symbols)
+├─ describe_top_candidates()       → derive what a list shows about their objects (not between symbols)
 │
 ├─ derive_keyword_continuations(prefix snapshot)
 │   └─ probe::probe_suffix_sequence() — keep continuation if suffix still parses (mid-statement)
@@ -145,6 +146,10 @@ Each candidate carries a coarse type used for visual identification:
 | FUNCTION   | FN     | Function name                                    |
 | IDENTITY   | ID     | Identity candidate (matches what the user typed) |
 | SCRIPT     | :      | Script of the session, after the `:` of a table parameter (`script_references.md`) |
+| ATTACHMENT | :      | Attachment of the session, after the `:` of a table parameter (`script_references.md`) |
+| OPTION     | OPT    | Option or attribute of a client function (`client_functions.md`) |
+
+The type comes from the catalog object of a candidate, the selected one on the selected row. A candidate without objects has only its name tags: the candidates of a client function call carry `SCHEMA_NAME`, `FUNCTION_NAME` or `OPTION_NAME`, and everything else is a keyword.
 
 ### Name-index candidates
 
@@ -239,6 +244,32 @@ Ties are broken lexicographically (case-insensitive, smaller name wins).
 `select_top_candidates()` extracts the top-k candidates from the scored heap.
 `qualify_top_candidates()` derives qualified names for the winners (e.g. `schema.table` instead of just `table`) when the catalog object prefers qualification.
 
+## Candidate info
+
+`CandidateInfo` is what the pane of a list shows about a candidate:
+
+- `detail` is one line: a signature, a type or a table.
+- `description` is prose for the selected candidate. It can have inline Markdown: code, bold and links.
+- `parameters` is a table of what the candidate takes, with a name, a type and prose for each entry.
+- `result_description` tells what a result holds, in prose.
+- `columns` is a table of the columns of a result or a table.
+- `example` is a call that shows how to write it.
+- `facts` are short labels and values.
+
+The core formats all of it, so that snapshots cover the text and the app has no rules of its own. Only the top candidates get an info, and scoring doesn't read it. A catalog object has its own info, so that it follows the object that the arrows select. A candidate without objects has it on the candidate.
+
+| Candidate | `detail` | `description` |
+|---|---|---|
+| Function | `(a INT, b TEXT) → INT`, with `· aggregate` for an aggregate | None yet |
+| Function declared as `name()` returning `any` | None, or `aggregate` | None yet |
+| Table | `12 columns`, or `view · 12 columns` | None |
+| Column | Its type and table, such as `bigint · orders` | None |
+| Client function call | From the spec, see `client_functions.md` | From the spec |
+
+`columns` holds the result of a client function and the columns of a table. A client function's signature lists the options of its spec, and `?` marks an optional one. In the pane it's clamped to three lines above a table with the same parameters. Only client function calls fill the parameters and the example so far. A catalog function's signature fits in its row, and enrichment can fill the same fields through `describe_function`.
+
+Everything known about a catalog function goes through `describe_function`. A function without parameters that returns `any` is one whose signature is unknown: the catalog file of the bundled functions declares all of them like that. A table lists up to 200 of its columns as they are written, with the types of a `CREATE TABLE`. Other tables, such as views and table parameters, only know the names. A connection's catalog script writes each type as a quoted name, such as `"id" "bigint"`, since a backend can name types that aren't SQL. The text stays as it is, only in lower case.
+
 ## Keyword continuations
 
 When a keyword candidate is selected, the engine computes a *continuation* — the most likely keyword that follows it.
@@ -319,8 +350,16 @@ The TypeScript layer is split into four CodeMirror plugins:
 |--------------------------------|-------------------------------------------------------------|
 | `DashQLProcessorPlugin`        | State field holding completion buffer, cursor, patch state  |
 | `DashQLCompletionHintPlugin`   | Renders inline ghost-text decorations from computed patches |
-| `DashQLCompletionListPlugin`   | Virtualized dropdown list of candidates (no React)          |
+| `DashQLCompletionListPlugin`   | Dropdown list of candidates and a side pane (no React)      |
 | `DashQLCompletionListenerPlugin` | Keyboard bindings and scroll/abort handling               |
+
+### The list
+
+A row shows the type and the name. The pane next to the list shows what is known about the selected candidate, its [info](#candidate-info): a header with the detail and the description, then sections for the parameters, the result or columns, the example and the facts. It scrolls on its own, and a section keeps its title in view. A table is an overview with one row per entry: its name, its type and one line of its prose. The pane is up to 520px wide and gives way to a narrow window first, then hides. A candidate without an info, such as a keyword, has no pane.
+
+A description is rendered through text nodes, with `code` and `strong` elements for its inline Markdown. A link shows its label and can't be clicked, since a click must not leave the editor. A click anywhere in the list keeps the focus in the editor, because a blur ends the completion.
+
+The list is as wide as its content. If that doesn't fit the window, the pane goes first, then the list moves left from the cursor.
 
 ### Patch computation
 

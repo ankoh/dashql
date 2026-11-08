@@ -13,9 +13,7 @@ describe('client function specs', () => {
         const spec = await loadClientFunctionSpec('d360-api');
         for (const fn of spec.functions) {
             expect(Object.keys(fn)).not.toContain('notes');
-            expect(Object.keys(fn)).not.toContain('example');
         }
-        expect(JSON.stringify(spec).length).toBeLessThan(1_000_000);
     });
 
     it('fails for an extension that does not exist', async () => {

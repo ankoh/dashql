@@ -70,6 +70,7 @@ completion-snapshots:
               qualified: tablea.attr1
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · tablea"
         - score: 59
           value: attr
           candidate-tags: [IDENTITY]
@@ -90,4 +91,5 @@ completion-snapshots:
               qualified: tableb.attr2
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · tableb"
       text: "attr"

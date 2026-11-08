@@ -11,7 +11,7 @@ pub const TICKETS: &str = r#"{
   "schemas": {
     "Assignee": {
       "attributes": [
-        { "name": "id", "api_name": "id", "type": "integer", "required": true },
+        { "name": "id", "api_name": "id", "type": "integer", "required": true, "description": "The id of the user." },
         { "name": "notify", "api_name": "notifyUser", "type": "boolean" }
       ]
     },
@@ -57,11 +57,14 @@ pub const TICKETS: &str = r#"{
     {
       "name": "ticket_list",
       "family": "Tickets",
+      "description": "Lists the tickets of a project, see `ticket_feed` for a feed.",
+      "example": "CALL tickets.ticket_list (project => 'CORE');",
+      "result_description": "One row per item of `/items` in the response.",
       "method": "GET",
       "host": "api",
       "path": "/projects/{project}/tickets",
       "options": [
-        { "name": "project", "api_name": "project", "in": "path", "type": "string", "required": true },
+        { "name": "project", "api_name": "project", "in": "path", "type": "string", "required": true, "description": "The key of the project." },
         { "name": "page_size", "api_name": "pageSize", "in": "query", "type": "integer" },
         { "name": "page_token", "api_name": "pageToken", "in": "query", "type": "string" }
       ],

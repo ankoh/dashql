@@ -4,10 +4,11 @@
 //! start of the statement keeps a stack with the schema of every open `(` and `[`. A wrong decision here only affects
 //! suggestions, since nothing of this is part of parsing.
 
-use crate::catalog::clfn::{ClientFunctionAttribute, ClientFunctionEffect, ClientFunctionField, ClientFunction, ClientFunctionSchema, ClientFunctionSpec, ClientFunctionUnknownPolicy};
+use crate::catalog::clfn::{ClientFunctionAttribute, ClientFunctionEffect, ClientFunctionField, ClientFunction, ClientFunctionSchema, ClientFunctionSpec, ClientFunctionUnknownPolicy, OPTION_NEXT, OPTION_PAGES, OPTION_POLL, OPTION_WAIT};
 use crate::catalog::CatalogSnapshot;
-use crate::completion::{Candidate, CandidateTags, Completion, Score};
+use crate::completion::{Candidate, CandidateField, CandidateInfo, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
+use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_buffers::parser::SymbolSpan;
 use dashql_parser::scanner::Symbol;
@@ -66,20 +67,22 @@ impl<'s> Scope<'s> {
     fn attributes(&self, spec: &'s ClientFunctionSpec) -> Vec<(&'s ClientFunctionAttribute, bool)> {
         match self.frame {
             Frame::Options(function) => function.options.iter().map(|o| (o, o.required)).collect(),
-            Frame::Fields(Some(schema)) => {
-                let variants = spec.fit(schema, &self.used).variants;
-                let mut out: Vec<(&'s ClientFunctionAttribute, bool)> = Vec::new();
-                for attribute in variants.iter().flat_map(|v| v.attributes.iter()) {
-                    if !out.iter().any(|(a, _)| a.name == attribute.name) {
-                        let required = variants.iter().all(|v| v.attributes.iter().any(|a| a.name == attribute.name && a.required));
-                        out.push((attribute, required));
-                    }
-                }
-                out
-            }
+            Frame::Fields(Some(schema)) => variant_attributes(&spec.fit(schema, &self.used).variants),
             _ => Vec::new(),
         }
     }
+}
+
+/// What variants take, and if each attribute is required: an attribute is only required if all of them need it
+fn variant_attributes<'s>(variants: &[&'s ClientFunctionSchema]) -> Vec<(&'s ClientFunctionAttribute, bool)> {
+    let mut out: Vec<(&'s ClientFunctionAttribute, bool)> = Vec::new();
+    for attribute in variants.iter().flat_map(|v| v.attributes.iter()) {
+        if !out.iter().any(|(a, _)| a.name == attribute.name) {
+            let required = variants.iter().all(|v| v.attributes.iter().any(|a| a.name == attribute.name && a.required));
+            out.push((attribute, required));
+        }
+    }
+    out
 }
 
 /// Where the cursor is
@@ -241,19 +244,173 @@ fn insert_text(name: &str) -> Arc<str> {
     if plain { Arc::from(name) } else { Arc::from(quote_identifier(name)) }
 }
 
+/// What a candidate of a call is
+#[derive(Clone, Copy)]
+enum Source<'s> {
+    Namespace(&'s ClientFunctionSpec),
+    Function(&'s ClientFunctionSpec, &'s ClientFunction),
+    /// An option or attribute, and is it required here? In a union that depends on the variants that still fit.
+    Attribute(&'s ClientFunctionSpec, &'s ClientFunctionAttribute, bool),
+    StandardOption(&'static str),
+}
+
+impl Source<'_> {
+    fn name_tags(self) -> u8 {
+        match self {
+            Source::Namespace(_) => NameTag::SCHEMA_NAME.0,
+            Source::Function(..) => NameTag::FUNCTION_NAME.0,
+            Source::Attribute(..) | Source::StandardOption(_) => NameTag::OPTION_NAME.0,
+        }
+    }
+
+    /// What a list shows about the candidate
+    fn info(self) -> CandidateInfo {
+        match self {
+            Source::Namespace(spec) => CandidateInfo { detail: spec.title.clone(), ..Default::default() },
+            Source::Function(spec, function) => function_info(spec, function),
+            Source::Attribute(spec, attribute, required) => attribute_info(spec, attribute, required),
+            Source::StandardOption(option) => standard_option_info(option),
+        }
+    }
+}
+
+/// A fact of the details: a label and a value
+fn fact(label: &str, value: impl Into<String>) -> CandidateField {
+    CandidateField { name: label.to_string(), detail: Some(value.into()), description: None }
+}
+
+/// The table of options or attributes, the required ones first
+fn attribute_fields(attributes: &[(&ClientFunctionAttribute, bool)]) -> Vec<CandidateField> {
+    let required = attributes.iter().filter(|(_, required)| *required);
+    let optional = attributes.iter().filter(|(_, required)| !*required);
+    required
+        .chain(optional)
+        .map(|(a, required)| CandidateField { name: a.name.clone(), detail: attribute_detail(a, *required), description: a.description.clone() })
+        .collect()
+}
+
+/// The signature of a function: the options of the spec with the required ones first, `?` marks an optional one. A
+/// function without options has none, and neither does the escape hatch, which takes any option.
+fn function_signature(function: &ClientFunction) -> Option<String> {
+    if function.raw || function.options.is_empty() {
+        return None;
+    }
+    let required = function.options.iter().filter(|o| o.required);
+    let optional = function.options.iter().filter(|o| !o.required);
+    let options: Vec<String> = required
+        .chain(optional)
+        .map(|option| {
+            let name = if option.required { option.name.clone() } else { format!("{}?", option.name) };
+            match attribute_detail(option, false) {
+                Some(value) => format!("{name} {value}"),
+                None => name,
+            }
+        })
+        .collect();
+    Some(format!("({})", options.join(", ")))
+}
+
+/// What a list shows about a function
+fn function_info(spec: &ClientFunctionSpec, function: &ClientFunction) -> CandidateInfo {
+    let options: Vec<(&ClientFunctionAttribute, bool)> = function.options.iter().map(|o| (o, o.required)).collect();
+    let mut parameters = attribute_fields(&options);
+    parameters.extend(function.standard_options(spec).into_iter().map(|option| {
+        let info = standard_option_info(option);
+        CandidateField { name: option.to_string(), detail: info.detail, description: info.description }
+    }));
+    let columns = function
+        .columns
+        .iter()
+        .map(|column| CandidateField { name: column.name.clone(), detail: column.column_type.clone(), description: None })
+        .collect();
+    let mut facts = Vec::new();
+    if let Some(family) = &function.family {
+        facts.push(fact("Family", family));
+    }
+    if let (Some(method), Some(path)) = (&function.method, &function.path) {
+        facts.push(fact("Endpoint", format!("{method} {path}")));
+    }
+    if let Some(paging) = &function.paging {
+        facts.push(fact("Paging", &paging.kind));
+    }
+    CandidateInfo {
+        detail: function_signature(function),
+        description: function.description.clone(),
+        parameters,
+        result_description: function.result_description.clone(),
+        columns,
+        example: function.example.clone(),
+        facts,
+    }
+}
+
+/// What a list shows about an option or attribute. A schema lists its attributes one level deep, the list of the object
+/// shows the next level when someone writes it.
+fn attribute_info(spec: &ClientFunctionSpec, attribute: &ClientFunctionAttribute, required: bool) -> CandidateInfo {
+    let schema = attribute.schema.as_deref().and_then(|name| spec.schema(name));
+    let mut facts = Vec::new();
+    if !attribute.values.is_empty() {
+        let values: Vec<String> = attribute.values.iter().map(|v| v.as_str().map_or_else(|| v.to_string(), str::to_string)).collect();
+        facts.push(fact("Values", values.join(", ")));
+    }
+    if let Some(format) = &attribute.format {
+        facts.push(fact("Format", format));
+    }
+    CandidateInfo {
+        detail: attribute_detail(attribute, required),
+        description: attribute.description.clone(),
+        parameters: schema.map_or_else(Vec::new, |s| attribute_fields(&variant_attributes(&spec.fit(s, &[]).variants))),
+        facts,
+        ..Default::default()
+    }
+}
+
+/// The type of an option or attribute. A schema has none to show: its name says nothing in a script, and a list shows
+/// its attributes instead.
+fn attribute_detail(attribute: &ClientFunctionAttribute, required: bool) -> Option<String> {
+    let arrays = "array of ".repeat(attribute.array as usize);
+    let value = match attribute.value_type.as_deref().filter(|_| attribute.schema.is_none()) {
+        Some(value) => Some(format!("{arrays}{value}")),
+        None if attribute.array > 0 => Some(arrays.trim_end_matches(" of ").to_string()),
+        None => None,
+    };
+    let value = match (attribute.map, value) {
+        (true, Some(value)) => Some(format!("map of {value}")),
+        (true, None) => Some("map".to_string()),
+        (false, value) => value,
+    };
+    match (value, required) {
+        (Some(value), true) => Some(format!("{value} · required")),
+        (None, true) => Some("required".to_string()),
+        (value, false) => value,
+    }
+}
+
+/// What a list shows about a standard option, no spec describes them
+fn standard_option_info(option: &str) -> CandidateInfo {
+    let (detail, description) = match option {
+        OPTION_NEXT => ("string", "The page to read, the `_next` column of an earlier result. `null` means the first page."),
+        OPTION_PAGES => ("integer", "The number of pages to read, 1 without this option."),
+        OPTION_POLL => ("string", "The pending result to poll, the `_poll` column of an earlier result."),
+        OPTION_WAIT => ("integer", "The seconds to poll a pending result for, no polling without this option."),
+        _ => return CandidateInfo::default(),
+    };
+    CandidateInfo { detail: Some(detail.to_string()), description: Some(description.to_string()), ..Default::default() }
+}
+
 /// The candidates at a cursor
-struct Candidates {
+struct Candidates<'s> {
     /// The typed prefix in lower case
     prefix: String,
     /// The text range that a candidate replaces
     target: SymbolSpan,
-    /// The candidates
-    out: Vec<Candidate>,
+    /// The candidates and what they are
+    out: Vec<(Candidate, Source<'s>)>,
 }
 
-impl Candidates {
+impl<'s> Candidates<'s> {
     /// Add a candidate if it matches the prefix, the bonus ranks the candidates that match equally well
-    fn add(&mut self, name: &str, bonus: Score) {
+    fn add(&mut self, name: &str, bonus: Score, source: Source<'s>) {
         let lower = name.to_ascii_lowercase();
         let (tags, bonus): (CandidateTags, Score) = if self.prefix.is_empty() || lower.starts_with(&self.prefix) {
             (CandidateTag::PREFIX_MATCH.0, bonus + PREFIX_BONUS)
@@ -262,17 +419,23 @@ impl Candidates {
         } else {
             return;
         };
-        let mut candidate = Candidate::new(insert_text(name), 0, tags, self.target, self.target);
+        let mut candidate = Candidate::new(insert_text(name), source.name_tags(), tags, self.target, self.target);
         candidate.completion_text_is_verbatim = true;
         candidate.score = bonus;
-        self.out.push(candidate);
+        self.out.push((candidate, source));
     }
 
-    /// The top k candidates: by score, then by name
+    /// The top k candidates: by score, then by name. Only these get their info, a namespace can have many functions.
     fn finish(mut self, k: usize) -> Vec<Candidate> {
-        self.out.sort_by(|l, r| r.score.cmp(&l.score).then_with(|| l.completion_text.cmp(&r.completion_text)));
+        self.out.sort_by(|(l, _), (r, _)| r.score.cmp(&l.score).then_with(|| l.completion_text.cmp(&r.completion_text)));
         self.out.truncate(k);
         self.out
+            .into_iter()
+            .map(|(mut candidate, source)| {
+                candidate.info = source.info();
+                candidate
+            })
+            .collect()
     }
 }
 
@@ -320,8 +483,8 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         Position::Nothing => {}
         // A procedure of the backend is possible as well, core SQL completes it if no namespace matches
         Position::Namespace => {
-            for namespace in specs.client_function_specs().keys() {
-                candidates.add(namespace, 0);
+            for (namespace, spec) in specs.client_function_specs() {
+                candidates.add(namespace, 0, Source::Namespace(spec));
             }
             if candidates.out.is_empty() {
                 return false;
@@ -329,7 +492,11 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         }
         Position::Function(spec) => {
             for function in &spec.functions {
-                candidates.add(&function.name, if function.effect() == ClientFunctionEffect::Read { READ_FUNCTION_BONUS } else { 0 });
+                candidates.add(
+                    &function.name,
+                    if function.effect() == ClientFunctionEffect::Read { READ_FUNCTION_BONUS } else { 0 },
+                    Source::Function(spec, function),
+                );
             }
         }
         Position::Key(spec, scope) => {
@@ -341,11 +508,15 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
             if !free_form {
                 let used = |name: &str| scope.used.iter().any(|u| u.name.eq_ignore_ascii_case(name));
                 for (attribute, required) in scope.attributes(spec).into_iter().filter(|(a, _)| !used(&a.name)) {
-                    candidates.add(&attribute.name, if required { REQUIRED_BONUS } else { SPEC_OPTION_BONUS });
+                    candidates.add(
+                        &attribute.name,
+                        if required { REQUIRED_BONUS } else { SPEC_OPTION_BONUS },
+                        Source::Attribute(spec, attribute, required),
+                    );
                 }
                 if let Frame::Options(function) = scope.frame {
                     for option in function.standard_options(spec).iter().filter(|o| !used(o)) {
-                        candidates.add(option, 0);
+                        candidates.add(option, 0, Source::StandardOption(option));
                     }
                 }
             }

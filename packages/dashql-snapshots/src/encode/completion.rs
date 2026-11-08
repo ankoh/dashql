@@ -6,7 +6,7 @@ use crate::ryml::Node;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_core::catalog::{Catalog, CatalogLayer};
-use dashql_core::completion::{CandidateObjectRef, Completion};
+use dashql_core::completion::{CandidateField, CandidateInfo, CandidateObjectRef, Completion};
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_core::utils::quote_identifier;
 use dashql_parser::parser::parse;
@@ -27,6 +27,56 @@ fn insert_tags(map: &mut Map, key: &str, tags: Vec<Node>) {
 
 fn candidate_tag_names(value: u32) -> Vec<Node> {
     tag_names(value, 32, |t| CandidateTag(t).variant_name())
+}
+
+/// Encode a table of the details of a candidate
+fn insert_fields(out: &mut Map, key: &str, fields: &[CandidateField]) {
+    if fields.is_empty() {
+        return;
+    }
+    // A table of names and types stays on one line
+    if fields.iter().all(|field| field.description.is_none()) {
+        let fields = fields
+            .iter()
+            .map(|field| Node::dquo(field.detail.as_ref().map_or(field.name.clone(), |detail| format!("{} {detail}", field.name))))
+            .collect();
+        out.insert(key, Node::flow_seq(fields));
+        return;
+    }
+    let fields = fields
+        .iter()
+        .map(|field| {
+            let mut m = Map::new();
+            m.quoted("name", &field.name);
+            if let Some(detail) = &field.detail {
+                m.quoted("detail", detail);
+            }
+            if let Some(description) = &field.description {
+                m.quoted("description", description);
+            }
+            m.into_node()
+        })
+        .collect();
+    out.insert(key, Node::seq(fields));
+}
+
+/// Encode what a list shows about a candidate or a catalog object
+fn insert_info(out: &mut Map, info: &CandidateInfo) {
+    if let Some(detail) = &info.detail {
+        out.quoted("detail", detail);
+    }
+    if let Some(description) = &info.description {
+        out.quoted("description", description);
+    }
+    insert_fields(out, "parameters", &info.parameters);
+    if let Some(description) = &info.result_description {
+        out.quoted("result-description", description);
+    }
+    insert_fields(out, "columns", &info.columns);
+    if let Some(example) = &info.example {
+        out.quoted("example", example);
+    }
+    insert_fields(out, "facts", &info.facts);
 }
 
 /// Encode a completion, without the limit and text keys
@@ -67,6 +117,7 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
             if qualified.offset() != 0 || qualified.length() != 0 {
                 encode_location_text(&mut m, text, qualified.offset(), qualified.length(), "location-qualified");
             }
+            insert_info(&mut m, &candidate.info);
             let objects = candidate
                 .catalog_objects
                 .iter()
@@ -108,6 +159,7 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
                         o.int("qualified-idx", object.qualified_name_target_idx as i64);
                         o.int("prefer-qualified", object.prefer_qualified as i64);
                     }
+                    insert_info(&mut o, &object.info);
                     o.into_node()
                 })
                 .collect();

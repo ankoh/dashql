@@ -166,6 +166,24 @@ describe('updateHyperCatalog', () => {
         expect(result.failures).toEqual([]);
         expect(script.toString().match(/"id" "bigint"/g)).toHaveLength(1);
         expect(catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+
+        // Completion reads the columns of the published catalog with their types
+        const text = 'select * from orde';
+        const editor = dql.createScript(catalog);
+        editor.insertTextAt(0, text);
+        editor.analyze();
+        editor.moveCursor(text.length);
+        const completion = editor.completeAtCursor(10).read();
+        let columns: string[] = [];
+        for (let i = 0; i < completion.candidatesLength(); ++i) {
+            const candidate = completion.candidates(i)!;
+            if (candidate.displayText() != 'orders') continue;
+            const info = candidate.catalogObjects(0)!.info()!;
+            for (let c = 0; c < info.columnsLength(); ++c) {
+                columns.push(`${info.columns(c)!.name()} ${info.columns(c)!.detail()}`);
+            }
+        }
+        expect(columns).toEqual(['id bigint', 'name text']);
     });
 
     it('uses the unqualified default database and live function catalog for Hyper WASM', async () => {

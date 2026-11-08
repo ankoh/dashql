@@ -330,6 +330,8 @@ enum NameTag: uint8 {
     TABLE_ALIAS = 8,
     COLUMN_NAME = 16,
     FUNCTION_NAME = 32,
+    /// An option or an attribute of a client function
+    OPTION_NAME = 64,
 }
 
 enum AnalyzerErrorType: uint8 {

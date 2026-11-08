@@ -96,7 +96,7 @@ Data 360's contract doesn't exercise the format much: it has no top-level array 
 
 The extension lives in `extensions/d360-api/`, while its namespace is `cdp`. `clfn/spec/*.yaml` is edited by hand and holds everything, prose included: `clfn.yaml` the spec itself, and every other file one family with its functions and schemas. `clfn/spec/generate_spec.rs` generates two things from it and reads nothing back:
 
-- `spec.json`, the facts that the core and the runtime read. It's a build output, `//extensions/d360-api:spec`, and isn't checked in.
+- `spec.json`, the facts that the core and the runtime read, and the descriptions, examples and result descriptions that completion shows. It's a build output, `//extensions/d360-api:spec`, and isn't checked in.
 - The family documents of [the reference](functions.md), which are checked in so that they can be read anywhere.
 
 This writes the documents and [the fixtures](#the-fixtures):
@@ -112,9 +112,9 @@ bazel run //extensions/d360-api:update
 | Schemas | 466 |
 | Schema attributes | 1,889 |
 | Result columns | 4,700 |
-| Size of `spec.json` | 745 KB, 62 KB gzipped |
+| Size of `spec.json` | 1,322 KB, 166 KB gzipped |
 
-**Changing the API means editing the YAML.** Facts are plain fields, so a reworded sentence can't change what a call does. The prose sits next to them as block text: `description`, `example`, `result_description` and `notes` on a function, `description` on a schema, an attribute and a family. `spec_url`, `reference_url`, `tools` and `evidence` are for the documents too. None of this reaches `spec.json`. `overview.md`, `functions.md` and `api_notes.md` are written by hand, and the other documents here say at the top that they're generated.
+**Changing the API means editing the YAML.** Facts are plain fields, so a reworded sentence can't change what a call does. The prose sits next to them as block text: `description`, `example`, `result_description` and `notes` on a function, `description` on a schema, an attribute and a family. `spec_url`, `reference_url`, `tools` and `evidence` are for the documents too. Only the `description`, `example` and `result_description` of a function and the `description` of an option and a schema attribute reach `spec.json`, for completion, and the sentence of a `result_description` that names a schema stays out. `overview.md`, `functions.md` and `api_notes.md` are written by hand, and the other documents here say at the top that they're generated.
 
 **YAML can't change a type silently.** It reads `1.0` or `true` as something other than a string, so the generator fails on a value that isn't a string where one belongs, such as `enum: [1.0]`, and on a key that isn't a string. Quote those. It also fails on a schema that two families define, and on one that nothing defines.
 

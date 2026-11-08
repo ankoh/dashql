@@ -71,6 +71,13 @@ pub struct ClientFunctionAttribute {
     pub schema: Option<String>,
     /// Is the value a map? Its keys are free, the type or schema holds for its values.
     pub map: bool,
+    /// How many arrays the value is nested in. Only completion reads it.
+    pub array: u32,
+    /// The values of a scalar. Only completion reads them, they aren't checked.
+    #[serde(rename = "enum")]
+    pub values: Vec<serde_json::Value>,
+    /// The format of a scalar, such as `date-time`. Only completion reads it.
+    pub format: Option<String>,
     /// Is the attribute required?
     pub required: bool,
     /// The description that completion shows
@@ -179,6 +186,12 @@ pub struct ClientFunction {
     pub name: String,
     /// The grouping for documentation and completion
     pub family: Option<String>,
+    /// The description that completion shows
+    pub description: Option<String>,
+    /// A call that completion shows
+    pub example: Option<String>,
+    /// What a result holds, completion shows it
+    pub result_description: Option<String>,
     /// The HTTP method, it decides the default effect
     pub method: Option<String>,
     /// The path below the host, with `{placeholders}`

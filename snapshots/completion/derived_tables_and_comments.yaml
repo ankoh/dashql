@@ -94,6 +94,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
         - score: 56
           value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
@@ -196,6 +197,7 @@ completion-snapshots:
               qualified: u.na
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 67
           value: name
           name-tags: [COLUMN_NAME]
@@ -210,6 +212,7 @@ completion-snapshots:
               qualified: x.name
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · t"
         - score: 67
           value: nb
           name-tags: [COLUMN_NAME]
@@ -224,6 +227,7 @@ completion-snapshots:
               qualified: u.nb
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 59
           value: n
           candidate-tags: [IDENTITY]
@@ -335,6 +339,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
         - score: 56
           value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
@@ -503,6 +508,7 @@ completion-snapshots:
               qualified: u.na
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 67
           value: name
           name-tags: [COLUMN_NAME]
@@ -517,6 +523,7 @@ completion-snapshots:
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · t"
         - score: 67
           value: nb
           name-tags: [COLUMN_NAME]
@@ -531,6 +538,7 @@ completion-snapshots:
               qualified: u.nb
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · u"
         - score: 59
           value: n
           candidate-tags: [IDENTITY]

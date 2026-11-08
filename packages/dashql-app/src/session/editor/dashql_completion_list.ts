@@ -11,7 +11,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
-// The rendering itself is virtualized but deliberately does NOT use React.
+// The rendering deliberately does NOT use React.
 // We're implementing the view consolidation manually here.
 //
 // This makes the extension independent and allows separating it as library later.
@@ -26,18 +26,246 @@ interface Position {
     left: number;
 }
 
+/// An entry of a table in the side pane
+interface CandidateDetailsField {
+    /// The name of a parameter or column, or the label of a fact
+    name: string;
+    /// The type, or the value of a fact
+    detail: string | null;
+    /// The prose
+    description: string | null;
+}
+
+/// What the side pane shows about a candidate
+interface CandidateDetails {
+    /// One line: a signature, a type, a table
+    detail: string | null;
+    /// The prose
+    description: string | null;
+    /// What the candidate takes
+    parameters: CandidateDetailsField[];
+    /// What a result holds
+    resultDescription: string | null;
+    /// The columns of a result or a table
+    columns: CandidateDetailsField[];
+    /// A call that shows how to write it
+    example: string | null;
+    /// Short facts
+    facts: CandidateDetailsField[];
+}
+
 interface VirtualCandidate {
     /// The candidate type.
     /// Either the object type of the selected object or the first one.
-    candidateType: CompletionCandidateType | null;
+    candidateType: CompletionCandidateType;
     /// The candidate text
     candidateLabel: string;
+    /// What the side pane shows, only read for the selected candidate and of its selected object
+    details: CandidateDetails | null;
     /// Is selected?
     isSelected: boolean;
     /// The total catalog objects
     totalObjectCount: number;
     /// The selected catalog object
     selectedCatalogObject: number | null;
+}
+
+/// Derive the type of a candidate from an object of it, a candidate without objects has only its name tags
+function getCandidateType(
+    candidate: dashql.buffers.completion.CompletionCandidate,
+    object: dashql.buffers.completion.CompletionCandidateObject | null,
+): CompletionCandidateType {
+    if (candidate.candidateTags() & dashql.buffers.completion.CandidateTag.IDENTITY) {
+        return CompletionCandidateType.IDENTITY;
+    }
+    if (object != null) {
+        // A table parameter reads the result of a script or an attachment
+        switch (object.tableParameter()) {
+            case dashql.buffers.completion.CompletionTableParameter.SCRIPT:
+                return CompletionCandidateType.SCRIPT;
+            case dashql.buffers.completion.CompletionTableParameter.ATTACHMENT:
+                return CompletionCandidateType.ATTACHMENT;
+        }
+        return (object.objectType() as number) as CompletionCandidateType;
+    }
+    const nameTags = candidate.nameTags();
+    if (nameTags & dashql.buffers.analyzer.NameTag.FUNCTION_NAME) return CompletionCandidateType.FUNCTION;
+    if (nameTags & dashql.buffers.analyzer.NameTag.SCHEMA_NAME) return CompletionCandidateType.SCHEMA;
+    if (nameTags & dashql.buffers.analyzer.NameTag.OPTION_NAME) return CompletionCandidateType.OPTION;
+    return CompletionCandidateType.KEYWORD;
+}
+
+/// The inline Markdown of a description: code, bold and links
+const INLINE_MARKDOWN = /`([^`]+)`|\*\*([^*]+)\*\*|\[([^\]]+)\]\([^)\s]+\)/g;
+
+/// Render a description into an element.
+/// A description is text, everything goes through text nodes. A link shows its label, a click must not leave the editor.
+function renderDescription(element: HTMLElement, description: string) {
+    const nodes: Node[] = [];
+    let offset = 0;
+    for (const match of description.matchAll(INLINE_MARKDOWN)) {
+        nodes.push(document.createTextNode(description.slice(offset, match.index)));
+        offset = match.index + match[0].length;
+        if (match[1] !== undefined) {
+            const code = document.createElement('code');
+            code.textContent = match[1];
+            nodes.push(code);
+        } else if (match[2] !== undefined) {
+            const strong = document.createElement('strong');
+            strong.textContent = match[2];
+            nodes.push(strong);
+        } else {
+            nodes.push(document.createTextNode(match[3]));
+        }
+    }
+    nodes.push(document.createTextNode(description.slice(offset)));
+    element.replaceChildren(...nodes);
+}
+
+/// Read the details of a candidate
+function readCandidateDetails(info: dashql.buffers.completion.CompletionCandidateInfo): CandidateDetails {
+    const tmpField = new dashql.buffers.completion.CompletionCandidateField();
+    const readFields = (length: number, field: (index: number, tmp: dashql.buffers.completion.CompletionCandidateField) => dashql.buffers.completion.CompletionCandidateField | null) => {
+        const out: CandidateDetailsField[] = [];
+        for (let i = 0; i < length; ++i) {
+            const f = field(i, tmpField)!;
+            out.push({ name: f.name()!, detail: f.detail(), description: f.description() });
+        }
+        return out;
+    };
+    return {
+        detail: info.detail(),
+        description: info.description(),
+        parameters: readFields(info.parametersLength(), (i, tmp) => info.parameters(i, tmp)),
+        resultDescription: info.resultDescription(),
+        columns: readFields(info.columnsLength(), (i, tmp) => info.columns(i, tmp)),
+        example: info.example(),
+        facts: readFields(info.factsLength(), (i, tmp) => info.facts(i, tmp)),
+    };
+}
+
+/// Create an element with a class
+function createDetailsElement(tag: string, className: string, text: string | null = null): HTMLElement {
+    const element = document.createElement(tag);
+    element.classList.add(className);
+    element.textContent = text;
+    return element;
+}
+
+/// Render a table of the side pane
+function renderDetailsFields(tableClass: string, fields: CandidateDetailsField[]): HTMLElement {
+    const table = createDetailsElement('div', tableClass);
+    // A table with prose has a third column, every row fills it so that the rows line up
+    const described = fields.some(field => field.description != null);
+    table.classList.toggle(styles.details_fields_described, described);
+    for (const field of fields) {
+        table.appendChild(createDetailsElement('div', styles.details_field_name, field.name));
+        table.appendChild(createDetailsElement('div', styles.details_field_detail, field.detail));
+        if (described) {
+            const description = createDetailsElement('div', styles.details_field_description);
+            renderDescription(description, field.description ?? '');
+            table.appendChild(description);
+        }
+    }
+    return table;
+}
+
+/// The pane next to the list, with what is known about the selected candidate
+class CandidateDetailsRenderer {
+    /// What is rendered
+    renderedKey: string | null = null;
+    /// Is the pane shown?
+    visible: boolean = true;
+
+    /// The pane
+    public readonly rootElement: HTMLDivElement;
+
+    constructor() {
+        this.rootElement = document.createElement('div');
+        this.rootElement.classList.add(styles.details_container);
+        this.hide();
+    }
+
+    /// Is the pane shown?
+    public get isVisible() { return this.visible; }
+    /// Hide the pane (if shown)
+    public hide() {
+        if (this.visible) {
+            this.rootElement.classList.add(styles.hidden);
+            this.visible = false;
+        }
+    }
+    /// Show the pane (if hidden)
+    protected show() {
+        if (!this.visible) {
+            this.rootElement.classList.remove(styles.hidden);
+            this.visible = true;
+        }
+    }
+    /// Render the selected candidate.
+    /// A candidate that nothing is known about has no pane.
+    public render(selected: VirtualCandidate | null) {
+        const details = selected?.details ?? null;
+        if (details == null) {
+            this.hide();
+            return;
+        }
+        // A selection and a keystroke can both change the details, so compare what they say
+        const key = JSON.stringify([details, selected!.candidateType]);
+        if (key != this.renderedKey) {
+            this.rootElement.replaceChildren(...this.renderContent(selected!.candidateType, details));
+            this.renderedKey = key;
+            this.rootElement.scrollTop = 0;
+        }
+        this.show();
+    }
+    /// Render the pane: a header that says what the candidate is, and a section for everything else
+    protected renderContent(type: CompletionCandidateType, details: CandidateDetails): HTMLElement[] {
+        const out: HTMLElement[] = [];
+        if (details.detail != null || details.description != null) {
+            const header = createDetailsElement('div', styles.details_header);
+            if (details.detail != null) {
+                // The table below has the same parameters, the description should stay in view
+                const detail = createDetailsElement('div', styles.details_detail, details.detail);
+                detail.classList.toggle(styles.details_detail_clamped, details.parameters.length > 0);
+                header.appendChild(detail);
+            }
+            if (details.description != null) {
+                const description = createDetailsElement('div', styles.details_description);
+                renderDescription(description, details.description);
+                header.appendChild(description);
+            }
+            out.push(header);
+        }
+        const addSection = (title: string, ...content: HTMLElement[]) => {
+            const section = createDetailsElement('div', styles.details_section);
+            section.appendChild(createDetailsElement('div', styles.details_title, title));
+            section.append(...content);
+            out.push(section);
+        };
+        if (details.parameters.length > 0) {
+            addSection(type == CompletionCandidateType.OPTION ? 'Attributes' : 'Parameters', renderDetailsFields(styles.details_fields, details.parameters));
+        }
+        if (details.resultDescription != null || details.columns.length > 0) {
+            const content: HTMLElement[] = [];
+            if (details.resultDescription != null) {
+                const description = createDetailsElement('div', styles.details_description);
+                renderDescription(description, details.resultDescription);
+                content.push(description);
+            }
+            if (details.columns.length > 0) {
+                content.push(renderDetailsFields(styles.details_fields, details.columns));
+            }
+            addSection(type == CompletionCandidateType.FUNCTION ? 'Result' : 'Columns', ...content);
+        }
+        if (details.example != null) {
+            addSection('Example', createDetailsElement('div', styles.details_example, details.example));
+        }
+        if (details.facts.length > 0) {
+            addSection('Details', renderDetailsFields(styles.details_facts, details.facts));
+        }
+        return out;
+    }
 }
 
 class CandidateRenderer {
@@ -135,8 +363,8 @@ class CandidateRenderer {
         this.navArrowRightElement.classList.add(styles.info_nav_right);
         this.objectContainerElement.classList.add(styles.info_object_container);
 
-        this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
-        this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
+        this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType);
+        this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType);
 
         // Wire containers
         this.navContainerElement.appendChild(this.navArrowLeftElement);
@@ -225,8 +453,8 @@ class CandidateRenderer {
         }
         // Does the object type differ?
         if (candidate.candidateType != this.rendered?.candidateType) {
-            this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
-            this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
+            this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType);
+            this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType);
         }
         // Is selected and has selectable?
         const anySelectable = candidate.totalObjectCount > 0;
@@ -273,6 +501,8 @@ class CandidateListRenderer {
     readonly listContainer: HTMLDivElement;
     /// The list entries
     readonly renderedCandidates: CandidateRenderer[];
+    /// The pane next to the list
+    readonly details: CandidateDetailsRenderer;
     readonly selectPreviousVariant: () => void;
     readonly selectNextVariant: () => void;
 
@@ -287,7 +517,11 @@ class CandidateListRenderer {
         this.rootElement.dataset.dashqlCompletionList = 'true';
         this.listContainer = document.createElement('div');
         this.listContainer.className = styles.list_container;
+        this.details = new CandidateDetailsRenderer();
         this.rootElement.appendChild(this.listContainer);
+        this.rootElement.appendChild(this.details.rootElement);
+        // A click must not take the focus from the editor, that ends the completion. Scrolling still works.
+        this.rootElement.addEventListener('mousedown', event => event.preventDefault());
 
         this.renderedCandidates = [];
 
@@ -348,6 +582,20 @@ class CandidateListRenderer {
             this.listContainer.appendChild(entry.rootElement);
             this.renderedCandidates.push(entry);
         }
+        // Render what is known about the selected candidate, and keep that candidate in view
+        const selected = candidates.findIndex(c => c.isSelected);
+        this.details.render(candidates[selected] ?? null);
+        this.renderedCandidates[selected]?.rootElement.scrollIntoView({ block: 'nearest' });
+    }
+    /// Fit the rendered list into the window: the pane is the first to go, then the list moves away from the cursor
+    public fitIntoWindow(position: Position): Position {
+        const windowWidth = window.innerWidth;
+        // The pane shrinks to its min-width first, the content then overflows the list
+        if (this.details.isVisible && this.rootElement.scrollWidth > windowWidth) {
+            this.details.hide();
+        }
+        const left = Math.max(0, Math.min(position.left, windowWidth - this.rootElement.offsetWidth));
+        return { ...position, left };
     }
 }
 
@@ -391,26 +639,18 @@ class CompletionList {
         const candidateCoords = view.coordsAtPos(offset);
         if (candidateCoords == null) return null;
 
-        // Estimate box dimensions for overflow checks
-        const boxWidth = 50;
+        // The height for overflow checks. The width is only known after rendering, see fitIntoWindow.
         const boxHeight = 240; // max-height from CSS
 
         // coordsAtPos returns viewport coordinates, which map 1:1 to position:fixed.
         const windowHeight = window.innerHeight;
-        const windowWidth = window.innerWidth;
 
         // Flip to above if there's insufficient space below.
         // Use CSS `bottom` positioning so the list anchors above the cursor line.
         const spaceBelow = windowHeight - (candidateCoords.bottom + 5);
         const spaceAbove = candidateCoords.top - 5;
         const renderAbove = spaceBelow < boxHeight && spaceAbove > spaceBelow;
-
-        // Adjust horizontal position if it would overflow the window
-        let left = candidateCoords.left;
-        if (left + boxWidth > windowWidth) {
-            left = windowWidth - boxWidth;
-        }
-        left = Math.max(0, left);
+        const left = candidateCoords.left;
 
         if (renderAbove) {
             // position:fixed bottom = distance from viewport bottom to list's bottom edge.
@@ -428,55 +668,27 @@ class CompletionList {
         const out: VirtualCandidate[] = [];
         const tmpCandidate = new dashql.buffers.completion.CompletionCandidate();
         const tmpCatalogObject = new dashql.buffers.completion.CompletionCandidateObject();
+        const tmpInfo = new dashql.buffers.completion.CompletionCandidateInfo();
 
-        // Collect the candidates
         for (let i = 0; i < completion.candidatesLength(); ++i) {
             const ca = completion.candidates(i, tmpCandidate)!;
-            let totalObjects = ca.catalogObjectsLength();
-            let candidateType: CompletionCandidateType;
-            if (ca.candidateTags()! & dashql.buffers.completion.CandidateTag.IDENTITY) {
-                candidateType = CompletionCandidateType.IDENTITY;
-            } else if (ca.catalogObjectsLength() > 0) {
-                const co = ca.catalogObjects(0, tmpCatalogObject)!;
-                candidateType = (co.objectType() as number) as CompletionCandidateType;
-                // A table parameter reads the result of a script or an attachment
-                switch (co.tableParameter()) {
-                    case dashql.buffers.completion.CompletionTableParameter.SCRIPT:
-                        candidateType = CompletionCandidateType.SCRIPT;
-                        break;
-                    case dashql.buffers.completion.CompletionTableParameter.ATTACHMENT:
-                        candidateType = CompletionCandidateType.ATTACHMENT;
-                        break;
-                }
-            } else {
-                candidateType = CompletionCandidateType.KEYWORD;
-            }
+            const isSelected = i === selectedCandidate;
+            const objectCount = ca.catalogObjectsLength();
+            // The selected candidate shows its selected object, the others their first one
+            const selectedObject = isSelected && objectCount > 0 && selectedCatalogObject != null && selectedCatalogObject < objectCount
+                ? selectedCatalogObject
+                : null;
+            const object = objectCount > 0 ? ca.catalogObjects(selectedObject ?? 0, tmpCatalogObject)! : null;
+            const info = object != null ? object.info(tmpInfo) : ca.info(tmpInfo);
             out.push({
                 candidateLabel: ca.displayText()!,
-                candidateType,
-                isSelected: false,
-                totalObjectCount: totalObjects,
-                selectedCatalogObject: null,
+                candidateType: getCandidateType(ca, object),
+                // An info only exists if it says something, the core doesn't pack an empty one
+                details: isSelected && info != null ? readCandidateDetails(info) : null,
+                isSelected,
+                totalObjectCount: objectCount,
+                selectedCatalogObject: selectedObject,
             });
-        }
-
-        // Mark selected
-        if (selectedCandidate < out.length) {
-            out[selectedCandidate].isSelected = true;
-        }
-
-        // Update the selected candidate
-        const ca = completion.candidates(selectedCandidate, tmpCandidate)!;
-        if (selectedCatalogObject != null && ca.catalogObjectsLength() > 0) {
-            const co = ca.catalogObjects(selectedCatalogObject, tmpCatalogObject)!;
-            const o = out[selectedCandidate];
-            o.selectedCatalogObject = selectedCatalogObject;
-            const ot = co.objectType();
-            o.candidateType = (ot == dashql.buffers.completion.CompletionCandidateObjectType.NONE)
-                ? null
-                : (ot as number) as CompletionCandidateType;
-            o.isSelected = true;
-            o.totalObjectCount = ca.catalogObjectsLength();
         }
         return out;
     }
@@ -540,8 +752,8 @@ class CompletionList {
                     return;
                 }
                 this.list.show();
-                this.list.updatePosition(pos);
                 this.list.updateCandidates(pending);
+                this.list.updatePosition(this.list.fitIntoWindow(pos));
             }
         });
     }

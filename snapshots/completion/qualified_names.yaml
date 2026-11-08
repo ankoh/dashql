@@ -74,6 +74,7 @@ completion-snapshots:
               qualified: '"AmbiguousAttribute1".attr1'
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute1"
             - score: 47
               type: column
               id: "256.65536.4294967297.0"
@@ -81,6 +82,7 @@ completion-snapshots:
               qualified: '"AmbiguousAttribute2".attr1'
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute2"
         - score: 59
           value: attr
           candidate-tags: [IDENTITY]
@@ -171,6 +173,7 @@ completion-snapshots:
               qualified: '"AmbiguousAttribute1".attr1'
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · AmbiguousAttribute1"
             - score: 37
               type: column
               id: "256.65536.4294967297.0"
@@ -178,6 +181,7 @@ completion-snapshots:
               qualified: '"AmbiguousAttribute2".attr1'
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · AmbiguousAttribute2"
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -272,6 +276,7 @@ completion-snapshots:
               qualified: db0.schema0."AmbiguousCrossSchema".attr1
               qualified-idx: 3
               prefer-qualified: 0
+              detail: "integer · AmbiguousCrossSchema"
             - score: 37
               type: column
               id: "256.65537.4294967297.0"
@@ -279,6 +284,7 @@ completion-snapshots:
               qualified: db0.schema1."AmbiguousCrossSchema".attr1
               qualified-idx: 3
               prefer-qualified: 0
+              detail: "integer · AmbiguousCrossSchema"
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -361,6 +367,7 @@ completion-snapshots:
               qualified: db0.schema0."AmbiguousAttribute1".attr1
               qualified-idx: 3
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute1"
             - score: 47
               type: column
               id: "257.65537.4294967297.0"
@@ -368,6 +375,7 @@ completion-snapshots:
               qualified: db1.schema0."AmbiguousAttribute2".attr1
               qualified-idx: 3
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute2"
         - score: 59
           value: attr
           candidate-tags: [IDENTITY]
@@ -456,6 +464,7 @@ completion-snapshots:
               qualified: a.attr1
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute1"
             - score: 47
               type: column
               id: "256.65536.4294967297.0"
@@ -463,6 +472,7 @@ completion-snapshots:
               qualified: b.attr1
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute2"
         - score: 59
           value: attr
           candidate-tags: [IDENTITY]
@@ -551,6 +561,7 @@ completion-snapshots:
               qualified: a.attr1
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute1"
             - score: 47
               type: column
               id: "256.65536.4294967297.0"
@@ -558,6 +569,7 @@ completion-snapshots:
               qualified: '"AmbiguousAttribute2".attr1'
               qualified-idx: 1
               prefer-qualified: 1
+              detail: "integer · AmbiguousAttribute2"
         - score: 59
           value: attr
           candidate-tags: [IDENTITY]

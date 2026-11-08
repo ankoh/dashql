@@ -206,6 +206,8 @@ completion-snapshots:
               qualified: foo
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
         - score: 55
           value: following
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -340,6 +342,8 @@ completion-snapshots:
               qualified: table2
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["attr2 integer"]
         - score: 57
           value: table1
           name-tags: [TABLE_NAME]
@@ -354,6 +358,8 @@ completion-snapshots:
               qualified: table1
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["attr1 integer"]
         - score: 57
           value: table3
           name-tags: [TABLE_NAME]
@@ -368,6 +374,8 @@ completion-snapshots:
               qualified: table3
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["attr3 integer"]
       text: "tab"
 
   - name: complete_function_name
@@ -415,6 +423,7 @@ completion-snapshots:
               qualified: mysum
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "(x int) → int"
         - score: 4
           value: from
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
@@ -491,6 +500,7 @@ completion-snapshots:
               qualified: external_name1.external_name2
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · external_name1"
         - score: 59
           value: external_
           candidate-tags: [IDENTITY]
@@ -511,6 +521,8 @@ completion-snapshots:
               qualified: external_name1
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["external_name2 integer"]
         - score: 3
           value: group
           keyword-continuation: by
@@ -582,6 +594,7 @@ completion-snapshots:
               qualified: external_name1.external_name2
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · external_name1"
         - score: 59
           value: external_
           candidate-tags: [IDENTITY]
@@ -602,6 +615,8 @@ completion-snapshots:
               qualified: external_name1
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "1 column"
+              columns: ["external_name2 integer"]
         - score: 3
           value: group
           keyword-continuation: by

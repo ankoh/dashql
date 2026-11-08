@@ -228,6 +228,96 @@ impl CandidateObjectRef {
     }
 }
 
+/// An entry of a table in the details of a candidate
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CandidateField {
+    /// The name of a parameter or column, or the label of a fact
+    pub name: String,
+    /// The type, or the value of a fact
+    pub detail: Option<String>,
+    /// The prose, it can have inline Markdown
+    pub description: Option<String>,
+}
+
+/// What the pane of a list shows about a candidate or a catalog object
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CandidateInfo {
+    /// One line: a signature, a type, a table
+    pub detail: Option<String>,
+    /// The prose for the selected candidate. It can have inline Markdown: code, bold and links.
+    pub description: Option<String>,
+    /// What the candidate takes: the parameters of a function, the attributes of a schema
+    pub parameters: Vec<CandidateField>,
+    /// What a result holds, it can have inline Markdown
+    pub result_description: Option<String>,
+    /// The columns of a result or a table
+    pub columns: Vec<CandidateField>,
+    /// A call that shows how to write it
+    pub example: Option<String>,
+    /// Short facts: a label and a value
+    pub facts: Vec<CandidateField>,
+}
+
+/// What a list shows about a function. Everything known about a function goes through here.
+fn describe_function(function: &FunctionDeclaration) -> CandidateInfo {
+    let returns_any = function.return_type.is_empty() || function.return_type.eq_ignore_ascii_case("any");
+    // A function without parameters that returns anything is one whose signature is unknown
+    let signature = if function.params.is_empty() && returns_any {
+        None
+    } else {
+        let params: Vec<String> = function.params.iter().map(|p| format!("{} {}", p.param_name.text, p.param_type)).collect();
+        let params = params.join(", ");
+        Some(if returns_any { format!("({params})") } else { format!("({params}) → {}", function.return_type) })
+    };
+    let detail = match (signature, function.is_aggregate) {
+        (Some(signature), true) => Some(format!("{signature} · aggregate")),
+        (None, true) => Some("aggregate".to_string()),
+        (signature, false) => signature,
+    };
+    CandidateInfo { detail, ..Default::default() }
+}
+
+/// The columns that a list shows of a table. Top candidates pay for it on every keystroke, and a table can be wide.
+const MAX_DESCRIBED_COLUMNS: usize = 200;
+
+/// What a list shows about a table
+fn describe_table(table: &TableDeclaration) -> CandidateInfo {
+    let count = match table.table_columns.len() {
+        0 => None,
+        1 => Some("1 column".to_string()),
+        n => Some(format!("{n} columns")),
+    };
+    let detail = match (table.is_view, count) {
+        (true, Some(count)) => Some(format!("view · {count}")),
+        (true, None) => Some("view".to_string()),
+        (false, count) => count,
+    };
+    // A declaration keeps its columns sorted by name, a list shows them as they are written
+    let mut columns: Vec<&TableColumn> = table.table_columns.iter().collect();
+    columns.sort_by_key(|column| column.location.map(|location| location.offset));
+    let columns = columns
+        .into_iter()
+        .take(MAX_DESCRIBED_COLUMNS)
+        .map(|column| CandidateField {
+            name: column.column_name.text.to_string(),
+            detail: column.column_type.as_deref().map(str::to_string),
+            description: None,
+        })
+        .collect();
+    CandidateInfo { detail, columns, ..Default::default() }
+}
+
+/// What a list shows about a column: its type and its table
+fn describe_column(table: &TableDeclaration, column: &TableColumn) -> CandidateInfo {
+    let table_name = Some(table.table_name.table_name.text.to_string()).filter(|name| !name.is_empty());
+    let detail = match (column.column_type.as_deref(), table_name) {
+        (Some(column_type), Some(table_name)) => Some(format!("{column_type} · {table_name}")),
+        (Some(column_type), None) => Some(column_type.to_string()),
+        (None, table_name) => table_name,
+    };
+    CandidateInfo { detail, ..Default::default() }
+}
+
 /// A catalog object of a candidate
 #[derive(Clone, Debug)]
 pub struct CandidateObject {
@@ -247,6 +337,8 @@ pub struct CandidateObject {
     pub qualified_name_target_idx: usize,
     /// Whether to prefer the qualified name, set for ambiguous names and aliased tables
     pub prefer_qualified: bool,
+    /// What a list shows about the object, set on the objects of the top candidates
+    pub info: CandidateInfo,
 }
 
 /// A completion candidate
@@ -272,6 +364,8 @@ pub struct Candidate {
     pub keyword_symbol: Option<SymbolKind>,
     /// The keyword continuation (e.g. "by")
     pub keyword_continuation: Option<&'static str>,
+    /// What a list shows about a candidate without catalog objects
+    pub info: CandidateInfo,
 }
 
 impl Candidate {
@@ -293,6 +387,7 @@ impl Candidate {
             score: 0,
             keyword_symbol: None,
             keyword_continuation: None,
+            info: CandidateInfo::default(),
         }
     }
 }
@@ -531,6 +626,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             self.add_object(candidate, tags, object_id, CandidateObjectRef::Table(loc));
         }
         self.select_top_candidates();
+        self.describe_top_candidates();
         true
     }
 
@@ -574,6 +670,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             qualified_name: Vec::new(),
             qualified_name_target_idx: 0,
             prefer_qualified: false,
+            info: CandidateInfo::default(),
         });
         self.candidates[candidate].catalog_objects.push(co);
         self.candidate_objects_by_id.insert(object_id, co);
@@ -758,6 +855,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         completion.select_top_candidates();
         if !between_symbols {
             completion.qualify_top_candidates();
+            completion.describe_top_candidates();
         }
         completion.derive_keyword_continuations(&expected_at_cursor.prefix);
         completion
@@ -1606,6 +1704,26 @@ impl<'c, 'a> Completion<'c, 'a> {
             names.push(name.table_name.text.clone());
         }
         names
+    }
+
+    /// Derive what a list shows about the catalog objects of the top candidates
+    fn describe_top_candidates(&mut self) {
+        for top in &self.top_candidates {
+            for &co in &top.catalog_objects {
+                let info = match self.candidate_objects[co].object {
+                    CandidateObjectRef::Function(loc) => self
+                        .entry_data(loc.entry)
+                        .and_then(|d| d.function_declarations.get(loc.index as usize))
+                        .map(describe_function),
+                    CandidateObjectRef::Table(loc) => self.table(loc).map(describe_table),
+                    CandidateObjectRef::Column(loc) => self.table(loc.table).and_then(|table| {
+                        table.table_columns.get(loc.column as usize).map(|column| describe_column(table, column))
+                    }),
+                    CandidateObjectRef::Database(_) | CandidateObjectRef::Schema(_) => None,
+                };
+                self.candidate_objects[co].info = info.unwrap_or_default();
+            }
+        }
     }
 
     /// Derive qualified names of the top candidates

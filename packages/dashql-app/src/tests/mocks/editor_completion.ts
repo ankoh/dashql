@@ -36,12 +36,27 @@ export function ordersCompletion(dql: dashql.DashQL): DashQLProcessorUpdateIn {
     ].join('\n'));
     schemaScript.analyze();
     catalog.loadScript(schemaScript, 0);
+    return completionAtEnd(dql, ORDERS_COMPLETION_TEXT, catalog, 'orders');
+}
 
-    const text = ORDERS_COMPLETION_TEXT;
+/// The processor state of an editor at the end of a text whose completion selects a candidate.
+/// The setup can publish table parameters that the session reads.
+export function completionAtEnd(
+    dql: dashql.DashQL,
+    text: string,
+    catalog: dashql.DashQLCatalog,
+    candidate: string,
+    setup: ((session: dashql.DashQLScriptSession) => void) | null = null,
+): DashQLProcessorUpdateIn {
     const state = editorProcessorState(dql, text, catalog);
+    if (setup != null) {
+        setup(state.scriptSession!);
+        expect(state.scriptSession!.analyze().analysisAvailable).toBe(true);
+        state.editorUpdate = state.scriptSession!.setCursor(2n, BigInt(text.length));
+    }
     const buffer = state.scriptSession!.completeAtCursor(10);
     const completion = buffer.read();
-    const candidateId = Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)?.displayText()).indexOf('orders');
+    const candidateId = Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)?.displayText()).indexOf(candidate);
     expect(candidateId).toBeGreaterThanOrEqual(0);
 
     const scriptCompletion = computePatches({

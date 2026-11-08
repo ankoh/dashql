@@ -19,8 +19,9 @@ const HAND_WRITTEN: [&str; 3] = ["overview.md", "functions.md", "api_notes.md"];
 const PART_OF: &str = "Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).";
 const SCHEMAS_INTRO: &str = "Attribute names are keywords inside the object they belong to, so completion offers exactly these.";
 
-/// What only the documents read, a function of the spec goes without it
-const FUNCTION_PROSE: [&str; 8] = ["description", "example", "result_description", "notes", "spec_url", "reference_url", "tools", "evidence"];
+/// What only the documents read, a function of the spec goes without it. Its `description`, `example` and
+/// `result_description` stay, completion shows them.
+const FUNCTION_PROSE: [&str; 5] = ["notes", "spec_url", "reference_url", "tools", "evidence"];
 /// The fields that are strings. YAML would read `1.0` or `true` as something else without a word.
 const STRING_FIELDS: [&str; 19] = [
     "name", "api_name", "in", "type", "schema", "format", "family", "method", "host", "path", "spec_url", "reference_url", "evidence", "effect",
@@ -400,19 +401,29 @@ fn render_document(sources: &Sources, family: &Family, problems: &mut Vec<String
     text
 }
 
-/// An attribute or a column as the spec has it
-fn fact_of_attribute(attribute: &Value) -> Value {
-    let mut out = attribute.as_object().cloned().unwrap_or_default();
-    out.remove("description");
-    Value::Object(out)
-}
-
+/// A column as the spec has it
 fn fact_of_column(column: &Value) -> Value {
     let mut out = column.as_object().cloned().unwrap_or_default();
     for field in ["description", "schema", "array"] {
         out.remove(field);
     }
     Value::Object(out)
+}
+
+/// The prose of a result without the sentence that names its schema. The documents link the schema, completion shows
+/// this text and a name such as `ThingOutputRepresentation` means nothing in a script.
+fn without_schema_sentence(text: &str) -> String {
+    const PREFIX: &str = "Schema `";
+    let mut out = text.to_string();
+    let mut from = 0;
+    while let Some(begin) = out[from..].find(PREFIX).map(|i| from + i) {
+        let name = begin + PREFIX.len();
+        match out[name..].find('`').map(|i| name + i) {
+            Some(end) if out[end + 1..].starts_with('.') => out.replace_range(begin..end + 2, ""),
+            _ => from = name,
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn fact_of_function(function: &Value, family: Option<&str>) -> Value {
@@ -422,8 +433,8 @@ fn fact_of_function(function: &Value, family: Option<&str>) -> Value {
             continue;
         }
         let value = match key.as_str() {
-            "options" => Value::Array(value.as_array().into_iter().flatten().map(fact_of_attribute).collect()),
             "columns" => Value::Array(value.as_array().into_iter().flatten().map(fact_of_column).collect()),
+            "result_description" => Value::String(without_schema_sentence(value.as_str().unwrap_or(""))),
             _ => value.clone(),
         };
         out.insert(key.clone(), value);
@@ -442,10 +453,6 @@ fn spec_of(sources: &Sources) -> Value {
     for (name, schema) in &sources.schemas {
         let mut fact = schema.as_object().cloned().unwrap_or_default();
         fact.remove("description");
-        if let Some(Value::Array(attributes)) = fact.get("attributes") {
-            let attributes = attributes.iter().map(fact_of_attribute).collect();
-            fact.insert("attributes".to_string(), Value::Array(attributes));
-        }
         schemas.insert(name.clone(), Value::Object(fact));
     }
     out.insert("schemas".to_string(), Value::Object(schemas));
@@ -560,7 +567,7 @@ schemas:
     }
 
     #[test]
-    fn the_spec_holds_the_facts_only() {
+    fn the_spec_holds_the_facts_and_what_completion_shows() {
         let (sources, problems) = sources(FAMILY);
         assert_eq!(problems, Vec::<String>::new());
         let spec = spec_of(&sources.unwrap());
@@ -569,13 +576,24 @@ schemas:
         for field in FUNCTION_PROSE {
             assert!(function.get(field).is_none(), "{field}");
         }
-        assert!(function["options"][0].get("description").is_none());
+        assert_eq!(function["description"], "Makes a thing.");
+        assert!(function["example"].as_str().unwrap().contains("CALL t.thing_create"));
+        assert_eq!(function["options"][0]["description"], "One | of them.");
         assert_eq!(function["options"][0]["api_name"], "thingKind");
         assert_eq!(function["columns"][0].as_object().unwrap().len(), 2);
         assert!(spec["schemas"]["A"].get("description").is_none());
+        assert_eq!(spec["schemas"]["A"]["attributes"][0]["description"], "Which.");
         assert_eq!(spec["schemas"]["A"]["attributes"][0]["enum"][0], "None");
         assert_eq!(spec["schemas"]["Kind"]["tag"]["values"]["None"], "A");
         assert_eq!(spec["functions"][1]["family"], "Escape hatch");
+    }
+
+    #[test]
+    fn a_result_goes_without_its_schema_sentence() {
+        assert_eq!(without_schema_sentence("One row. Schema `A`."), "One row.");
+        assert_eq!(without_schema_sentence("One row. Schema `A`. Other fields go to `_meta`."), "One row. Other fields go to `_meta`.");
+        assert_eq!(without_schema_sentence("One row of `A`."), "One row of `A`.");
+        assert_eq!(without_schema_sentence("Schema `A` and more."), "Schema `A` and more.");
     }
 
     #[test]

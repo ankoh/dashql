@@ -21,6 +21,35 @@ enum CompletionTableParameter: uint8 {
     ATTACHMENT = 2
 }
 
+/// An entry of a table in the details of a candidate
+table CompletionCandidateField {
+    /// The name of a parameter or column, or the label of a fact
+    name: string;
+    /// The type, or the value of a fact
+    detail: string;
+    /// The prose, it can have inline Markdown
+    description: string;
+}
+
+/// What the pane of a list shows about a candidate or a catalog object
+table CompletionCandidateInfo {
+    /// One line: a signature, a type, a table
+    detail: string;
+    /// The prose for the selected candidate.
+    /// It can have inline Markdown: code, bold and links.
+    description: string;
+    /// What the candidate takes: the parameters of a function, the attributes of a schema
+    parameters: [CompletionCandidateField];
+    /// What a result holds, it can have inline Markdown
+    result_description: string;
+    /// The columns of a result or a table
+    columns: [CompletionCandidateField];
+    /// A call that shows how to write it
+    example: string;
+    /// Short facts: a label and a value
+    facts: [CompletionCandidateField];
+}
+
 table CompletionCandidateObject {
     /// The object type
     object_type: CompletionCandidateObjectType;
@@ -49,6 +78,8 @@ table CompletionCandidateObject {
     prefer_qualified: bool;
     /// What a table that is a table parameter reads
     table_parameter: CompletionTableParameter;
+    /// What is known about this object
+    info: CompletionCandidateInfo;
 }
 
 enum CandidateTag: uint32 {
@@ -119,6 +150,8 @@ table CompletionCandidate {
     keyword_continuation: string;
     /// Cursor offset relative to the start of the inserted completion text.
     completion_cursor_offset: uint32;
+    /// What is known about a candidate without catalog objects
+    info: CompletionCandidateInfo;
 }
 
 enum CompletionStrategy: uint8 {

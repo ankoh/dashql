@@ -11,6 +11,8 @@ export enum CompletionCandidateType {
     SCRIPT = 7,
     /// An attachment of the session, a table parameter `:foo`
     ATTACHMENT = 8,
+    /// An option or an attribute of a client function
+    OPTION = 9,
 }
 
 export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
@@ -23,6 +25,7 @@ export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "ID",
     ":",
     ":",
+    "OPT",
 ];
 
 /// The badge colors of the candidate types, emphasis colors of the theme that carry white text in both schemes
@@ -36,6 +39,7 @@ export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
     "var(--color_neutral_emphasis)",
     "var(--color_accent_emphasis)",
     "var(--color_success_emphasis)",
+    "var(--color_danger_emphasis)",
 ];
 
 export function getCandidateTypeSymbolText(type: CompletionCandidateType) {

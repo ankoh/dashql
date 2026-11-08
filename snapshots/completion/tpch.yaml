@@ -633,6 +633,7 @@ completion-snapshots:
               qualified: supplier.s_comment
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "varchar(101) · supplier"
         - score: 52
           value: ps_comment
           name-tags: [COLUMN_NAME]
@@ -647,6 +648,7 @@ completion-snapshots:
               qualified: partsupp.ps_comment
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "varchar(199) · partsupp"
       text: "s_co"
 
   - name: table_ref_outranks_keyword
@@ -1275,6 +1277,8 @@ completion-snapshots:
               qualified: part
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "9 columns"
+              columns: ["p_partkey integer","p_name varchar(55)","p_mfgr char(25)","p_brand char(10)","p_type varchar(25)","p_size integer","p_container char(10)","p_retailprice numeric(12,2)","p_comment varchar(23)"]
         - score: 57
           value: partsupp
           name-tags: [TABLE_NAME]
@@ -1289,6 +1293,8 @@ completion-snapshots:
               qualified: partsupp
               qualified-idx: 0
               prefer-qualified: 0
+              detail: "5 columns"
+              columns: ["ps_partkey integer","ps_suppkey integer","ps_availqty integer","ps_supplycost numeric(12,2)","ps_comment varchar(199)"]
         - score: 55
           value: parallel
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -1929,6 +1935,7 @@ completion-snapshots:
               qualified: lineitem.l_orderkey
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · lineitem"
         - score: 62
           value: l_partkey
           name-tags: [COLUMN_NAME]
@@ -1943,6 +1950,7 @@ completion-snapshots:
               qualified: lineitem.l_partkey
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · lineitem"
         - score: 62
           value: l_suppkey
           name-tags: [COLUMN_NAME]
@@ -1957,4 +1965,5 @@ completion-snapshots:
               qualified: lineitem.l_suppkey
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · lineitem"
       text: "ke"

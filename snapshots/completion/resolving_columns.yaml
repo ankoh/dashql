@@ -64,6 +64,7 @@ completion-snapshots:
               qualified: similar_name_0.juice0
               qualified-idx: 1
               prefer-qualified: 0
+              detail: "integer · similar_name_0"
         - score: 59
           value: j
           candidate-tags: [IDENTITY]
