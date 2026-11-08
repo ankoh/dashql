@@ -109,6 +109,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
@@ -146,6 +147,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048576
           value: webhook_create
@@ -189,6 +191,7 @@ completion-snapshots:
     completions:
       limit: 10
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: project
@@ -236,6 +239,7 @@ completion-snapshots:
     completions:
       limit: 10
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: page_size
@@ -271,6 +275,7 @@ completion-snapshots:
     completions:
       limit: 10
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: labels
@@ -300,6 +305,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: title
@@ -328,6 +334,7 @@ completion-snapshots:
     completions:
       limit: 10
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: page_size
@@ -382,6 +389,7 @@ completion-snapshots:
     completions:
       limit: 10
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: page_size
@@ -440,6 +448,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: id
@@ -474,6 +483,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: children
@@ -503,6 +513,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries: []
       text: "("
 
@@ -525,6 +536,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: id
@@ -622,6 +634,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: project
@@ -708,6 +721,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: '"X-Trace-Id"'
@@ -731,6 +745,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: id
@@ -759,6 +774,7 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048576
           value: _poll
@@ -788,6 +804,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: cron
@@ -828,6 +845,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1048577
           value: filter
@@ -856,6 +874,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      client-function-name: 1
       entries:
         - score: 1310720
           value: queue

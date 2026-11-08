@@ -300,7 +300,7 @@ The editor renders inline decorations for pending patches:
 - **Candidate hints** — ghost text showing what Tab will insert or delete.
 - **Catalog object hints** — ghost text showing the qualification prefix/suffix that the next Tab will add.
 
-At a zero-length completion target, the editor and shell show only the best candidate as an inline hint. The candidate list appears after the user enters the first character of the prefix.
+At a zero-length completion target, the editor and shell show only the best candidate as an inline hint. The candidate list appears after the user enters the first character of the prefix. Right after a dot both open the list at once, and the editor also opens it at the names of a client function call (`client_function_name`).
 
 Each hint category has a distinct visual style (color-coded CSS classes) and a Tab key icon widget.
 

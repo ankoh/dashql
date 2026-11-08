@@ -305,6 +305,7 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         None => (String::new(), SymbolSpan::new(offset, 0)),
     };
     let mut candidates = Candidates { prefix, target: span, out: Vec::new() };
+    completion.client_function_name = matches!(position, Position::Function(_) | Position::Key(..));
     match position {
         Position::Outside => return false,
         Position::Nothing => {}

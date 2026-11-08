@@ -320,6 +320,8 @@ pub struct Completion<'c, 'a> {
     pub strategy: CompletionStrategy,
     /// Is the target qualified?
     pub dot_completion: bool,
+    /// Is the target a function, option or attribute of a client function call?
+    pub client_function_name: bool,
     /// Is the cursor at a name definition?
     pub at_definition: bool,
     /// Is the cursor between symbols?
@@ -393,6 +395,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             cursor,
             strategy,
             dot_completion: false,
+            client_function_name: false,
             at_definition: false,
             between_symbols: false,
             has_post_cursor_token: false,

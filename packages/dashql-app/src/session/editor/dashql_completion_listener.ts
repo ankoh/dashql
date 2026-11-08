@@ -2,7 +2,7 @@ import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { insertTab } from '@codemirror/commands';
 
-import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionStatus, DashQLProcessorPlugin, hasEmptyCompletionTarget } from './dashql_processor.js';
 import { applyCompletion, shouldAutoQualifyNonDefaultTable, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type EventListener = (event: Event) => void;
@@ -281,16 +281,17 @@ const KEYBINDINGS: KeyBinding[] = [
 ];
 const KEYMAP = Prec.highest(keymap.of(KEYBINDINGS));
 
-const PASSIVE_HINT_ABORT = EditorState.transactionExtender.of((tr) => {
+// Moving the cursor away from an empty target leaves nothing for the completion to stand on
+const EMPTY_TARGET_ABORT = EditorState.transactionExtender.of((tr) => {
     if (tr.docChanged || !tr.selection) return null;
-    const processor = tr.startState.field(DashQLProcessorPlugin);
-    if (!processor.scriptCompletion?.passiveHint) return null;
-    if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE) return null;
+    const completion = tr.startState.field(DashQLProcessorPlugin).scriptCompletion;
+    if (completion?.status !== DashQLCompletionStatus.AVAILABLE) return null;
+    if (!hasEmptyCompletionTarget(completion.buffer.read())) return null;
     return { effects: DashQLCompletionAbortEffect.of(null) };
 });
 
 export const DashQLCompletionListenerPlugin = [
     Prec.highest(ViewPlugin.fromClass(DashQLCompletionEventListener)),
     Prec.highest(KEYMAP),
-    PASSIVE_HINT_ABORT,
+    EMPTY_TARGET_ABORT,
 ];

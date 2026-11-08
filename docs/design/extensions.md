@@ -343,7 +343,7 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 2. Among options and attributes, a required one ranks first, then one of the spec, then a standard option.
 3. Among functions, one that only reads ranks first.
 
-The editor is the same as for SQL. Right after `.` or `(` it shows the first candidate as an inline hint, such as `access_policy_get` for `CALL cdp.|`. Typing a name opens the list, which holds the top 10 (`DASHQL_COMPLETION_LIMIT`), so a script finds a function by typing part of its name.
+The editor opens the list as soon as a position takes a function, option or attribute (`client_function_name` of the completion), before the first character: right after `CALL cdp.|` or `(`, and after the `,` between options. The list holds the top 10 (`DASHQL_COMPLETION_LIMIT`), so a script finds a function by typing part of its name. `CALL |` keeps the inline hint of an empty target. The prompt of the shell opens the list after `.` and shows the inline hint after `(`.
 
 **The position comes from tokens, not the tree,** because the text being typed usually doesn't parse. From the start of the statement, the walk keeps a stack with the key that opened each `(` and `[`. A `(` followed by `select`, `with`, `table` or `values` (not followed by `=`, or with `values` followed by `(`) starts embedded SQL, which falls through to normal completion. A wrong decision here only affects suggestions, since it isn't part of parsing.
 

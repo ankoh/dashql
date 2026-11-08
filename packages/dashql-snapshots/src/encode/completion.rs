@@ -37,6 +37,9 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
     if completion.dot_completion {
         out.int("dot", 1);
     }
+    if completion.client_function_name {
+        out.int("client-function-name", 1);
+    }
     if let (Some(node_id), Some(parsed)) = (cursor.ast_node_id, cursor.script.parsed) {
         out.plain("symbol", parsed.nodes[node_id as usize].node_type().variant_name().unwrap_or(""));
         let relative = completion.target_symbol.map(|t| t.relative_pos.variant_name().unwrap_or("")).unwrap_or("");

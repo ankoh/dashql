@@ -18,7 +18,8 @@ import { applyCompletion, computePatches } from './dashql_completion_patches.js'
 import { DashQLDecorationPlugin } from './dashql_decorations.js';
 import { deriveFocusFromEditorUpdate } from '../scripts/focus.js';
 import { xcodeTheme } from './themes/xcode.js';
-import { ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
+import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
+import { editorProcessorState, ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -591,6 +592,84 @@ describe('DashQL processor completion triggers', () => {
         const completion = editorState.field(DashQLProcessorPlugin).scriptCompletion;
         expect(completion).not.toBeNull();
         expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('vegalite');
+    });
+
+    describe('at an empty target', () => {
+        const TICKETS = JSON.stringify({
+            format: 1,
+            namespace: 'tickets',
+            functions: [
+                {
+                    name: 'ticket_list',
+                    method: 'GET',
+                    path: '/tickets',
+                    options: [
+                        { name: 'project', api_name: 'project', in: 'query', type: 'string', required: true },
+                        { name: 'page_size', api_name: 'pageSize', in: 'query', type: 'integer' },
+                    ],
+                },
+            ],
+        });
+
+        function ticketsCatalog() {
+            const catalog = dql!.createCatalog();
+            catalog.registerClientFunctions(TICKETS);
+            return catalog;
+        }
+
+        function typeAtEnd(catalog: dashql.DashQLCatalog, before: string, typed: string) {
+            const processorState = editorProcessorState(dql!, before, catalog);
+            const editorState = EditorState.create({
+                doc: before,
+                selection: EditorSelection.cursor(before.length),
+                extensions: [DashQLProcessorPlugin, DashQLCompletionListenerPlugin],
+            }).update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+            return editorState.update({
+                changes: { from: before.length, insert: typed },
+                selection: EditorSelection.cursor(before.length + typed.length),
+                annotations: Transaction.userEvent.of('input.type'),
+            }).state;
+        }
+
+        it.each([
+            ['the functions after the dot', 'call tickets', '.', 'ticket_list'],
+            ['the options after the parenthesis', 'call tickets.ticket_list ', '(', 'project'],
+            ['the remaining options after a comma', "call tickets.ticket_list (project => 'a'", ',', 'page_size'],
+        ])('opens the list of %s of a call', (_name, before, typed, first) => {
+            const completion = typeAtEnd(ticketsCatalog(), before, typed).field(DashQLProcessorPlugin).scriptCompletion;
+            expect(completion!.passiveHint).toBe(false);
+            expect(completion!.buffer.read().candidates(0)?.displayText()).toBe(first);
+        });
+
+        it('opens the list after the dot of a name in SQL', () => {
+            const catalog = dql!.createCatalog();
+            const schema = dql!.createScript(catalog);
+            schema.insertTextAt(0, 'create table db0.public.orders(id int);');
+            schema.analyze();
+            catalog.loadScript(schema, 0);
+
+            const completion = typeAtEnd(catalog, 'select * from db0', '.').field(DashQLProcessorPlugin).scriptCompletion;
+            expect(completion!.passiveHint).toBe(false);
+            expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('public');
+        });
+
+        it('keeps the inline hint for the namespace of a call', () => {
+            const completion = typeAtEnd(ticketsCatalog(), 'call', ' ').field(DashQLProcessorPlugin).scriptCompletion;
+            expect(completion!.passiveHint).toBe(true);
+            expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('tickets');
+        });
+
+        it('keeps the inline hint for a keyword after a space', () => {
+            const completion = typeAtEnd(dql!.createCatalog(), 'select 1', ' ').field(DashQLProcessorPlugin).scriptCompletion;
+            expect(completion!.passiveHint).toBe(true);
+        });
+
+        it('dismisses an open list when the cursor moves', () => {
+            const editorState = typeAtEnd(ticketsCatalog(), 'call tickets', '.');
+            expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).not.toBeNull();
+            const moved = editorState.update({ selection: EditorSelection.cursor(0) }).state;
+            expect(moved.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
+        });
     });
 
     it('cycles catalog objects for the selected completion candidate', () => {

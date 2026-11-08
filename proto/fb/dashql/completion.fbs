@@ -138,4 +138,7 @@ table Completion {
     dot_completion: bool;
     /// The completion candidates
     candidates: [CompletionCandidate];
+    /// Is the target a function, option or attribute of a client function call?
+    /// The editor opens the list for these before the first character of the name.
+    client_function_name: bool;
 }

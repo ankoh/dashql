@@ -983,6 +983,7 @@ pub fn pack_completion(
     let mut out = CompletionT::default();
     out.cursor_offset = completion.cursor.text_offset as u32;
     out.dot_completion = completion.dot_completion;
+    out.client_function_name = completion.client_function_name;
     out.strategy = completion.strategy;
     out.candidates = Some(candidates);
     out

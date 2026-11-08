@@ -394,12 +394,18 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
     return state;
 };
 
-function isPassiveHint(buffer: dashql.buffers.completion.Completion): boolean {
+/// Is there no text yet that the candidates replace?
+export function hasEmptyCompletionTarget(buffer: dashql.buffers.completion.Completion): boolean {
     const count = buffer.candidatesLength();
     if (count === 0) return false;
     const first = buffer.candidates(0)!;
     const targetLoc = first.targetLocation();
     return targetLoc != null && targetLoc.length() === 0;
+}
+
+// An empty target is only an inline hint, unless the position asks for a name
+function isPassiveHint(buffer: dashql.buffers.completion.Completion): boolean {
+    return hasEmptyCompletionTarget(buffer) && !buffer.dotCompletion() && !buffer.clientFunctionName();
 }
 
 // Helper to determine if a user event triggers completions.
