@@ -72,7 +72,8 @@ export default defineConfig({
         },
         resolve: {
             alias: [
-                { find: /^@ankoh\/dashql-ui\/particle_flow$/, replacement: join(uiPath, 'src/particle_flow/attach_particle_flow.ts') },
+                { find: /^@ankoh\/dashql-ui\/agent_face_morph$/, replacement: join(uiPath, 'src/agent_face/agent_face_morph.ts') },
+                { find: /^@ankoh\/dashql-ui\/landing_backdrop$/, replacement: join(uiPath, 'src/landing_backdrop/landing_backdrop.ts') },
                 { find: /^@ankoh\/dashql-ui\/((fonts|styles)\/.*\.css)$/, replacement: join(uiPath, '$1') },
                 { find: /^@dashql\/svg-symbols$/, replacement: `${svgSymbolsPath}?url` },
                 { find: /^@dashql\/favicons\/(.*)$/, replacement: join(faviconsPath, '$1') },

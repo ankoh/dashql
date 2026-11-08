@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { AgentFace, AgentFaceMode, DEFAULT_AGENT_FACE_TUNING, useFlavorAgentFaceBrand, type AgentFaceTuning } from '../../agent/agent_face.js';
-import { DASHQL_BRAND, DBCOM_BRAND } from '../../agent/agent_face_morph.js';
+import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/agent_face_morph';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';

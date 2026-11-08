@@ -13,12 +13,6 @@
     pointer-events: none;
 }
 
-/* The canvas only covers the shapes and the ring, its size and place come from the script */
-.host canvas {
-    position: absolute;
-    display: block;
-}
-
 .controls {
     position: absolute;
     z-index: 2;

@@ -37,7 +37,7 @@
     --site_button_fg_muted: var(--site_header_fg_muted);
     --site_button_border: var(--site_header_segment_border);
 
-    /* The accent of SQL in the hero headline. The backdrop is a desaturated blue grey (hue 210),
+    /* The accent of the eyebrows and links. The backdrop is a desaturated blue grey (hue 210),
        coral sits next to its complement (orange, hue ~25), a warm contrast on the cool backdrop. */
     --hero_accent: var(--base_color_coral_3);
 

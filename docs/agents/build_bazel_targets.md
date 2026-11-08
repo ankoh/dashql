@@ -47,7 +47,7 @@ bazel build //...
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
-| `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the particle flow shared by the app and the website, a source package with nothing compiled |
+| `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts, the particle flow and the landing backdrop shared by the app and the website, a source package with nothing compiled |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |

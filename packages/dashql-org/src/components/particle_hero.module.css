@@ -1,44 +1,70 @@
-/* A full-bleed opener with the particle flow of the DashQL mark on the dark backdrop of the site */
+/* A full-bleed opener on the dark backdrop of the site: the globe and the DashQL mark in their ring on the left, the headline and
+   the call to action on the right, centered on each other. A hairline marks the bottom edge of the hero. */
 .hero {
-    /* The flow reaches this far above the hero, under the header. It extends as far below the hero to stay centered,
-       but the hero cuts it off at its bottom edge, which a hairline marks. */
-    --hero_underflow: 10rem;
+    /* The height of the backdrop sets its size. Its canvases reach 0.362 of that height from its middle, so that they are as large
+       as the box of the animation, whatever the ring does. */
+    --backdrop_height: 540px;
+    --animation_size: calc(var(--backdrop_height) * 0.724);
 
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 3rem;
     width: 100%;
-    min-height: min(54vh, 470px);
-    padding: calc(var(--header_height) + 2.5rem) max(1.5rem, calc((100% - var(--content_width)) / 2)) 3rem;
+    box-sizing: border-box;
+    padding: calc(var(--header_height) + 0.25rem) max(1.5rem, calc((100% - var(--content_width)) / 2)) 0.25rem;
     color: var(--site_fg);
     border-bottom: 1px solid var(--site_border);
-    clip-path: inset(calc(-1 * var(--hero_underflow)) 0 0 0);
+    overflow: hidden;
 }
 
-/* Extends the same distance above and below the hero, so the flow stays centered on it */
-.particles {
-    position: absolute;
-    z-index: 0;
-    inset: calc(-1 * var(--hero_underflow)) 0;
-    overflow: hidden;
+.animation {
+    position: relative;
+    flex: none;
+    width: var(--animation_size);
+    height: var(--animation_size);
     pointer-events: none;
 }
 
-.particles canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
+/* Higher than the box of the animation and around its middle */
+.particles {
+    position: absolute;
+    top: calc((var(--animation_size) - var(--backdrop_height)) / 2);
+    left: 0;
+    right: 0;
+    height: var(--backdrop_height);
+    overflow: hidden;
 }
 
-/* A centered headline */
 .content {
     position: relative;
     z-index: 1;
-    max-width: 48rem;
-    text-align: center;
+    min-width: 0;
 }
 
 .content h1 {
     margin: 0;
+}
+
+/* On a narrow page the text moves below the animation */
+@media (max-width: 760px) {
+    .hero {
+        /* The ring is about 0.59 of this wide, it fits next to the padding of the hero */
+        --backdrop_height: min(540px, 140vw);
+
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-bottom: 2rem;
+    }
+
+    /* The top of the box only holds the reach of the ring at a switch, the ring stays below the header */
+    .animation {
+        width: 100%;
+        margin-top: calc(var(--backdrop_height) * -0.05);
+    }
+
+    .content {
+        text-align: center;
+    }
 }

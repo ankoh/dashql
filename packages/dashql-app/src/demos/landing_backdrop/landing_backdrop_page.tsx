@@ -3,10 +3,11 @@ import * as React from 'react';
 import * as baseStyles from '../../ui/foundations/banner_page.module.css';
 
 import { useFlavorAgentFaceBrand } from '../../agent/agent_face.js';
-import { DASHQL_BRAND, DBCOM_BRAND } from '../../agent/agent_face_morph.js';
+import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/agent_face_morph';
+import { CLOUD_DENSITIES, DEFAULT_LANDING_BACKDROP as DEFAULTS, type BackdropStats } from '@ankoh/dashql-ui/landing_backdrop';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { CLOUD_DENSITIES, LandingBackdrop, type BackdropStats } from './landing_backdrop.js';
+import { LandingBackdrop } from './landing_backdrop.js';
 import * as styles from './landing_backdrop_page.module.css';
 
 const BRANDS = [
@@ -18,31 +19,32 @@ const BRANDS = [
 function LandingBackdropPage(): React.ReactElement {
     const flavorBrand = useFlavorAgentFaceBrand();
     const [brand, setBrand] = React.useState(() => Math.max(0, BRANDS.findIndex(entry => entry.brand === flavorBrand)));
-    const [period, setPeriod] = React.useState(10);
-    const [contrast, setContrast] = React.useState(0.4);
+    const [period, setPeriod] = React.useState(DEFAULTS.period);
+    const [contrast, setContrast] = React.useState(DEFAULTS.contrast);
     const [density, setDensity] = React.useState(0);
-    const [particles, setParticles] = React.useState(5000);
-    const [ringFps, setRingFps] = React.useState(15);
-    const [outerWobble, setOuterWobble] = React.useState(0.06);
-    const [gap, setGap] = React.useState(2);
-    const [fly, setFly] = React.useState(0.5);
-    const [lightSeconds, setLightSeconds] = React.useState(6);
-    const [glow, setGlow] = React.useState(0.2);
-    const [logoDensity, setLogoDensity] = React.useState(0.5);
-    const [sphereDensity, setSphereDensity] = React.useState(0.5);
-    const [ringDensity, setRingDensity] = React.useState(0.6);
-    const [twinkleSeconds, setTwinkleSeconds] = React.useState(6);
-    const [wobble, setWobble] = React.useState(0.07);
-    const [markWobble, setMarkWobble] = React.useState(0.005);
-    const [scale, setScale] = React.useState(0.3);
-    const [eyes, setEyes] = React.useState(true);
+    const [particles, setParticles] = React.useState(DEFAULTS.particles);
+    const [ringFps, setRingFps] = React.useState(DEFAULTS.ringFps);
+    const [ringInk, setRingInk] = React.useState(DEFAULTS.ringInk);
+    const [outerWobble, setOuterWobble] = React.useState(DEFAULTS.outerWobble);
+    const [gap, setGap] = React.useState(DEFAULTS.gap);
+    const [fly, setFly] = React.useState(DEFAULTS.fly);
+    const [lightSeconds, setLightSeconds] = React.useState(DEFAULTS.lightSeconds);
+    const [glow, setGlow] = React.useState(DEFAULTS.glow);
+    const [logoDensity, setLogoDensity] = React.useState(DEFAULTS.density);
+    const [sphereDensity, setSphereDensity] = React.useState(DEFAULTS.sphereDensity);
+    const [ringDensity, setRingDensity] = React.useState(DEFAULTS.ringDensity);
+    const [twinkleSeconds, setTwinkleSeconds] = React.useState(DEFAULTS.twinkleSeconds);
+    const [wobble, setWobble] = React.useState(DEFAULTS.wobble);
+    const [markWobble, setMarkWobble] = React.useState(DEFAULTS.markWobble);
+    const [scale, setScale] = React.useState(DEFAULTS.scale);
+    const [eyes, setEyes] = React.useState<boolean>(DEFAULTS.eyes);
     const [stats, setStats] = React.useState<BackdropStats | null>(null);
     const [motion, setMotion] = React.useState(() => !(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false));
     const [controlsShown, setControlsShown] = React.useState(true);
 
     return (
         <div className={`${baseStyles.page} ${styles.page}`}>
-            <LandingBackdrop brand={BRANDS[brand].brand} period={period} contrast={contrast} motion={motion} dots={CLOUD_DENSITIES[density]} wobble={wobble} markWobble={markWobble} scale={scale} eyes={eyes} particles={particles} ringFps={ringFps} outerWobble={outerWobble} gap={gap} fly={fly} lightSeconds={lightSeconds} glow={glow} density={logoDensity} sphereDensity={sphereDensity} ringDensity={ringDensity} twinkleSeconds={twinkleSeconds} onStats={setStats} />
+            <LandingBackdrop brand={BRANDS[brand].brand} period={period} contrast={contrast} motion={motion} dots={CLOUD_DENSITIES[density]} wobble={wobble} markWobble={markWobble} scale={scale} eyes={eyes} particles={particles} ringFps={ringFps} ringInk={ringInk} outerWobble={outerWobble} gap={gap} fly={fly} lightSeconds={lightSeconds} glow={glow} density={logoDensity} sphereDensity={sphereDensity} ringDensity={ringDensity} twinkleSeconds={twinkleSeconds} onStats={setStats} />
             {controlsShown
                 ? (
                     <div className={styles.controls}>
@@ -127,6 +129,12 @@ function LandingBackdropPage(): React.ReactElement {
                             <input id="landing-backdrop-particles" type="range" min={0} max={10000} step={100} value={particles}
                                 onChange={e => setParticles(Number(e.target.value))} />
                             <span className={styles.knob_value}>{particles}</span>
+                        </label>
+                        <label className={styles.knob}>
+                            <span className={styles.control_label}>Ring ink</span>
+                            <input id="landing-backdrop-ring-ink" type="range" min={0.2} max={3} step={0.05} value={ringInk}
+                                onChange={e => setRingInk(Number(e.target.value))} />
+                            <span className={styles.knob_value}>{ringInk.toFixed(2)}</span>
                         </label>
                         <label className={styles.knob}>
                             <span className={styles.control_label}>Ring fps</span>

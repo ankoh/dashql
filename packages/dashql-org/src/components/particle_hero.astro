@@ -3,16 +3,27 @@ import styles from './particle_hero.module.css';
 ---
 
 <section class={styles.hero}>
-    <div class={styles.particles} data-particle-flow aria-hidden="true"></div>
+    <div class={styles.animation} aria-hidden="true">
+        <div class={styles.particles} data-landing-backdrop></div>
+    </div>
     <div class={styles.content}>
         <slot />
     </div>
 </section>
 
 <script>
-    import { attachParticleFlow } from '@ankoh/dashql-ui/particle_flow';
+    import { DASHQL_BRAND } from '@ankoh/dashql-ui/agent_face_morph';
+    import { DEFAULT_LANDING_BACKDROP, attachLandingBackdrop, type LandingBackdrop } from '@ankoh/dashql-ui/landing_backdrop';
 
-    for (const container of document.querySelectorAll<HTMLElement>('[data-particle-flow]')) {
-        attachParticleFlow(container);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    for (const host of document.querySelectorAll<HTMLElement>('[data-landing-backdrop]')) {
+        let backdrop: LandingBackdrop | null = null;
+        const attach = () => {
+            backdrop?.dispose();
+            // More contrast than on the near-black page of the demo, the backdrop of the site is lighter
+            backdrop = attachLandingBackdrop(host, { ...DEFAULT_LANDING_BACKDROP, contrast: 0.8, ringInk: 0.31, brand: DASHQL_BRAND, motion: !reducedMotion.matches });
+        };
+        reducedMotion.addEventListener('change', attach);
+        attach();
     }
 </script>

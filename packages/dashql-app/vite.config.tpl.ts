@@ -330,6 +330,8 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@ankoh\/dashql-ui\/particle_flow$/,
                     replacement: path.join(UI_PATH, 'src/particle_flow/attach_particle_flow.ts'),
                 },
+                { find: /^@ankoh\/dashql-ui\/agent_face_morph$/, replacement: path.join(UI_PATH, 'src/agent_face/agent_face_morph.ts') },
+                { find: /^@ankoh\/dashql-ui\/landing_backdrop$/, replacement: path.join(UI_PATH, 'src/landing_backdrop/landing_backdrop.ts') },
                 { find: /^@ankoh\/dashql-ui\/xcode$/, replacement: path.join(UI_PATH, 'src/editor/xcode_palette.ts') },
                 { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },

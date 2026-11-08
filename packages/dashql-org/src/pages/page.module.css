@@ -19,15 +19,18 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
     gap: 0.75rem 1.25rem;
-    margin-top: 2.5rem;
+    margin-top: 1.25rem;
 }
 
-.note {
-    font-size: 1rem;
-    color: var(--site_fg_muted);
+/* The text is centered below the animation on a narrow page, see the hero */
+@media (max-width: 760px) {
+    .actions {
+        justify-content: center;
+    }
 }
+
+/* The text is centered below the animation on a narrow page, see the hero */
 
 .lead {
     margin: 0;
@@ -36,29 +39,29 @@
     color: var(--card_fg_muted);
 }
 
-/* The headline of the front page, typed at a prompt: a setup with SQL in the accent color and a punchline with a caret */
+/* The headline of the front page, typed at a prompt, with a caret */
 .headline {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.15em;
+    color: var(--site_fg);
     font-family: var(--font_family_mono);
-    font-size: clamp(1.4rem, 3.6vw, 2.5rem);
+    font-size: clamp(1.25rem, 2.7vw, 1.875rem);
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.03em;
 }
 
-.headline_setup {
-    color: var(--site_fg);
+/* Larger on a narrow page, where the text has the whole width */
+@media (max-width: 760px) {
+    .headline {
+        font-size: clamp(1.35rem, 7vw, 2rem);
+    }
 }
 
-.headline_sql {
-    color: var(--hero_accent);
+.headline_line {
+    display: block;
 }
 
-.headline_punchline {
-    color: var(--site_fg);
+.headline_line + .headline_line {
+    margin-top: 0.15em;
 }
 
 .caret {

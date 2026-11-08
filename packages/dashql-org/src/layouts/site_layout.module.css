@@ -10,7 +10,7 @@
     padding: 0 max(1.5rem, calc((100% - var(--content_width)) / 2));
     background: var(--site_header_bg);
     border-bottom: 1px solid var(--site_header_border);
-    /* A light blur, the thin lines of the particle flow still shine through */
+    /* A light blur, the dots of the backdrop still shine through */
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
 }

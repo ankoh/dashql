@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from './agent_face_morph.js';
+import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from '@ankoh/dashql-ui/agent_face_morph';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import * as styles from './agent_face.module.css';
 

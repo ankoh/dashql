@@ -69,7 +69,6 @@ _astro_deps = [
     ":node_modules",
     ":svg_symbols",
     "//:node_modules/@ankoh/dashql-ui",
-    "//:node_modules/three",
     "//packages/dashql-app:favicons",
 ]
 
