@@ -98,7 +98,7 @@ whether their results are cached.
   Session bundles rebase these paths when a session is imported under a new id.
 
 The greeter at the root of the app shows the ephemeral session, a session without scripts with `metadata.ephemeral: true`.
-It is stored and restored like any other session. The sidebar always lists it as the last session of the root, with the
+It is stored and restored like any other session, since its session file already holds what it can gain before its first script: the connection picked for it and its attachments. The sidebar always lists it as the last session of the root, with the
 italic name "New Session" and no menu, and the create button of the sessions jumps to it. Its first script promotes it, whatever created the script: the marker goes, the session takes a free
 "Untitled" name and the session moves to the end of the root. The next ephemeral session is created right away.
 Every launch ends with exactly one: it creates a missing one and deletes all but the first in restore order. A marked
