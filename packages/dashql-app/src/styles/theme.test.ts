@@ -1,4 +1,4 @@
-import { xcodeDarkPalette, xcodeLightPalette } from '@ankoh/dashql-ui/xcode';
+import { xcodeDarkPalette, xcodeLightPalette } from '@ankoh/dashql-ui/editor/xcode_palette';
 import TOKENS_CSS from '@ankoh/dashql-ui/styles/tokens.css?raw';
 
 // The stylesheets of the app. The theme and its flavors live in @ankoh/dashql-ui, the app defines no colors.

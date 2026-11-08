@@ -6,11 +6,8 @@
   "type": "module",
   "license": "MPL-2.0",
   "exports": {
-    "./agent_face_morph": "./src/agent_face/agent_face_morph.ts",
-    "./landing_backdrop": "./src/landing_backdrop/landing_backdrop.ts",
-    "./particle_flow": "./src/particle_flow/attach_particle_flow.ts",
-    "./xcode": "./src/editor/xcode_palette.ts",
     "./fonts/*.css": "./fonts/*.css",
-    "./styles/*.css": "./styles/*.css"
+    "./styles/*.css": "./styles/*.css",
+    "./*": "./src/*.ts"
   }
 }

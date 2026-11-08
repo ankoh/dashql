@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { attachParticleFlow } from '@ankoh/dashql-ui/particle_flow';
+import { attachParticleFlow } from '@ankoh/dashql-ui/particle_flow/attach_particle_flow';
 
 import * as styles from './particle_flow_background.module.css';
 

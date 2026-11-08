@@ -72,9 +72,8 @@ export default defineConfig({
         },
         resolve: {
             alias: [
-                { find: /^@ankoh\/dashql-ui\/agent_face_morph$/, replacement: join(uiPath, 'src/agent_face/agent_face_morph.ts') },
-                { find: /^@ankoh\/dashql-ui\/landing_backdrop$/, replacement: join(uiPath, 'src/landing_backdrop/landing_backdrop.ts') },
                 { find: /^@ankoh\/dashql-ui\/((fonts|styles)\/.*\.css)$/, replacement: join(uiPath, '$1') },
+                { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: join(uiPath, 'src/$1.ts') },
                 { find: /^@dashql\/svg-symbols$/, replacement: `${svgSymbolsPath}?url` },
                 { find: /^@dashql\/favicons\/(.*)$/, replacement: join(faviconsPath, '$1') },
             ],

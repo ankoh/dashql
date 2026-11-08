@@ -3,8 +3,8 @@ import * as React from 'react';
 import * as baseStyles from '../../ui/foundations/banner_page.module.css';
 
 import { useFlavorAgentFaceBrand } from '../../agent/agent_face.js';
-import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/agent_face_morph';
-import { CLOUD_DENSITIES, DEFAULT_LANDING_BACKDROP as DEFAULTS, type BackdropStats } from '@ankoh/dashql-ui/landing_backdrop';
+import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/agent_face/agent_face_morph';
+import { CLOUD_DENSITIES, DEFAULT_LANDING_BACKDROP as DEFAULTS, type BackdropStats } from '@ankoh/dashql-ui/landing_backdrop/landing_backdrop';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { LandingBackdrop } from './landing_backdrop.js';

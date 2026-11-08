@@ -248,7 +248,7 @@ bazel test //packages/dashql-app:tsc_typecheck_test
 bazel test //packages/dashql-app:tsc_transitive_typecheck_test
 ```
 
-**Never run `npx tsc` directly.** The typecheck tests use the same `tsconfig.json` but run through Bazel's sandbox with correct `NODE_PATH` resolution.
+**Never run `npx tsc` directly.** The typecheck tests of the app use `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolve `@ankoh/dashql-ui` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail these tests.
 
 ### Rust
 

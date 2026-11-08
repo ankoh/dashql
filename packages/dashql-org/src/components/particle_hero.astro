@@ -12,8 +12,8 @@ import styles from './particle_hero.module.css';
 </section>
 
 <script>
-    import { DASHQL_BRAND } from '@ankoh/dashql-ui/agent_face_morph';
-    import { DEFAULT_LANDING_BACKDROP, attachLandingBackdrop, type LandingBackdrop } from '@ankoh/dashql-ui/landing_backdrop';
+    import { DASHQL_BRAND } from '@ankoh/dashql-ui/agent_face/agent_face_morph';
+    import { DEFAULT_LANDING_BACKDROP, attachLandingBackdrop, type LandingBackdrop } from '@ankoh/dashql-ui/landing_backdrop/landing_backdrop';
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     for (const host of document.querySelectorAll<HTMLElement>('[data-landing-backdrop]')) {

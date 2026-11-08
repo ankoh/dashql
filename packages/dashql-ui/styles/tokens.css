@@ -162,8 +162,9 @@
     --chart_color_7: light-dark(var(--base_color_blue_3), var(--base_color_blue_2));
     --chart_color_8: light-dark(var(--base_color_orange_6), var(--base_color_orange_5));
 
-    /* Code: the editor and code views. The syntax colors are the Xcode themes of @ankoh/dashql-ui/xcode, which the
-       code blocks of the website use too, a test keeps them in sync. The editor sits on the card surface. */
+    /* Code: the editor and code views. The syntax colors are the Xcode themes of
+       @ankoh/dashql-ui/editor/xcode_palette, which the code blocks of the website use too, a test keeps them in sync.
+       The editor sits on the card surface. */
     --code_bg: var(--color_bg_card);
     --code_fg: light-dark(#3D3D3D, #CECFD0);
     --code_caret: light-dark(#3D3D3D, #fff);

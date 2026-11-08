@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { attachLandingBackdrop, type LandingBackdrop as Backdrop, type LandingBackdropOptions } from '@ankoh/dashql-ui/landing_backdrop';
+import { attachLandingBackdrop, type LandingBackdrop as Backdrop, type LandingBackdropOptions } from '@ankoh/dashql-ui/landing_backdrop/landing_backdrop';
 
 import * as styles from './landing_backdrop_page.module.css';
 

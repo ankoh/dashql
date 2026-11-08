@@ -326,14 +326,8 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /^@ankoh\/dashql-core$/, replacement: path.join(CORE_PATH, 'index.js') },
                 { find: /^@ankoh\/dashql-core\/buffers$/, replacement: path.join(CORE_PATH, 'buffers.js') },
                 { find: /^@ankoh\/dashql-core\/browser-worker$/, replacement: path.join(CORE_PATH, 'browser_worker.js') },
-                {
-                    find: /^@ankoh\/dashql-ui\/particle_flow$/,
-                    replacement: path.join(UI_PATH, 'src/particle_flow/attach_particle_flow.ts'),
-                },
-                { find: /^@ankoh\/dashql-ui\/agent_face_morph$/, replacement: path.join(UI_PATH, 'src/agent_face/agent_face_morph.ts') },
-                { find: /^@ankoh\/dashql-ui\/landing_backdrop$/, replacement: path.join(UI_PATH, 'src/landing_backdrop/landing_backdrop.ts') },
-                { find: /^@ankoh\/dashql-ui\/xcode$/, replacement: path.join(UI_PATH, 'src/editor/xcode_palette.ts') },
                 { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
+                { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
                 { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
