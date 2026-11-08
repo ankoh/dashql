@@ -105,6 +105,13 @@ describe('QueryResultActionMenu', () => {
         });
     }
 
+    it('renders nothing for a result without a script, outside of any provider', async () => {
+        // The standalone shell has no storage and no session scripts
+        root = createTestRoot();
+        await act(async () => { root!.render(<QueryResultActionMenu query={query({ a: [1] }, null)} />); });
+        expect(root.container.childElementCount).toBe(0);
+    });
+
     const trigger = () => root!.container.querySelector<HTMLButtonElement>('[data-testid="query-result-more-actions"]');
     const item = () => document.querySelector<HTMLButtonElement>('[data-testid="query-result-project-columns"]');
     async function open() {

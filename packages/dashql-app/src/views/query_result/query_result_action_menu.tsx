@@ -41,8 +41,21 @@ interface Props {
 }
 
 /// The actions of a query result that rewrite the script of the result. Results without a script, e.g. of the
-/// shell or the catalog, have no menu.
+/// shell or the catalog, have no menu. The standalone shell also has no storage or scripts, so the hooks that need
+/// them must not run for its results.
 export function QueryResultActionMenu({ query }: Props): React.ReactElement | null {
+    const sessionId = query.queryMetadata.sessionId;
+    const owner = query.queryMetadata.resultOwner;
+    if (sessionId == null || owner == null) return null;
+    return <ScriptResultActionMenu query={query} sessionId={sessionId} owner={owner} />;
+}
+
+interface ScriptResultProps extends Props {
+    sessionId: string;
+    owner: string;
+}
+
+function ScriptResultActionMenu({ query, sessionId, owner }: ScriptResultProps): React.ReactElement {
     const readRegistry = useSessionScriptsRegistryReader();
     const dispatchSessionScripts = useSessionScriptsDispatch();
     const config = useAppConfig();
@@ -51,9 +64,6 @@ export function QueryResultActionMenu({ query }: Props): React.ReactElement | nu
     const [projection, setProjection] = React.useState<{ scriptKey: number; text: string } | ResultProjectionError | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
 
-    const sessionId = query.queryMetadata.sessionId;
-    const owner = query.queryMetadata.resultOwner;
-    if (sessionId == null || owner == null) return null;
     const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && query.resultTable != null;
 
     const openMenu = () => {
