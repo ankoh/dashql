@@ -227,8 +227,8 @@ pub fn command_reference(page: Page) -> String {
 /// How DashQL works, and that the page should be newer if it lacks features of the guide
 fn dashql_section(page: Page) -> String {
     let outdated = if page.outdated() {
-        "The open DashQL is older than this `dashql` and lacks some of what it describes: ask the user to reload the\n\
-         DashQL tab or to update the DashQL app.\n\n"
+        "The open DashQL is older than this `dashql` and lacks some of what it describes. If that stops you, say in your\n\
+         answer that the user has to reload the DashQL tab or update the DashQL app.\n\n"
     } else {
         ""
     };
@@ -318,8 +318,8 @@ Work only through `dashql agent`; this folder holds no project files.
 pub fn cli_guide(page: Page) -> String {
     let connected = match page {
         Page::Unknown => {
-            "No DashQL is connected to the agent server: ask the user to open DashQL and turn on agent access for the\n\
-             session.\n\n"
+            "No DashQL is connected to the agent server. Say in your answer that the user has to open DashQL and turn on\n\
+             agent access for the session.\n\n"
         }
         Page::Features(_) => "",
     };
@@ -334,8 +334,8 @@ pub fn cli_guide(page: Page) -> String {
 
 ## How to work
 
-1. `dashql agent status` shows whether DashQL is connected. Exit code 2 means it is not: ask the user to
-   open DashQL and turn on agent access for the session.
+1. `dashql agent status` shows whether DashQL is connected. Exit code 2 means it is not: say in your answer
+   that the user has to open DashQL and turn on agent access for the session.
 2. `dashql agent scripts` and `dashql agent catalog` show the session and the schema.
 3. Write SQL with `dashql agent edit`, one statement per script: a script that other scripts read must be a
    single `SELECT`, and new statements go into new scripts that build on the existing ones. Check a script with

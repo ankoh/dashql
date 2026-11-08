@@ -228,7 +228,7 @@ page stops the agent server first.
   `attachments`, `embedded-hyper`, `manual-scripts`. The server keeps the ones it knows (`PAGE_FEATURES` in
   `instructions.rs`), a page that announced none has the ones of every older page (`BASELINE_FEATURES`), and the
   status shows them. Every note about what the page does names its feature, only the options of the binary hold
-  for every page. The guide for a page leaves out the notes of the features it lacks and asks the user to reload
+  for every page. The guide for a page leaves out the notes of the features it lacks and tells the agent that the user has to reload
   DashQL or update the app. Harness runs get the guide for the page that holds the session, `dashql agent guide` the one for
   the page of the session in the status of the server, or the full guide when no page is connected. A page can
   only hide notes of the binary or ask for an update this way, never add text.

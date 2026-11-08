@@ -153,7 +153,7 @@ function pickedScriptConnection(env: AgentCommandEnvironment, state: SessionScri
     if (typeof connectionId !== 'string' || connectionId.length === 0) usage('invalid connection');
     requireSessionConnection(env, state, connectionId);
     const conn = env.connections().connections.get(connectionId);
-    if (conn == null) fail(`The connection ${connectionId} is not set up in DashQL, ask the user to connect it`);
+    if (conn == null) fail(`The connection ${connectionId} is not set up in DashQL, the user has to connect it`);
     return scriptConnectionOf(conn);
 }
 
@@ -420,14 +420,14 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     const force = booleanArg(args, 'force');
     const conn = env.connections().connections.get(script.connection.connectionId);
     if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {
-        fail(`The connection ${script.connection.connectionId} of ${name} is not online, ask the user to connect it`);
+        fail(`The connection ${script.connection.connectionId} of ${name} is not online, the user has to connect it`);
     }
     const modify: ModifySessionScripts = action => env.modifySessionScripts(sessionId, action);
     // What a script may do comes from its analysis, which is only current right before the run
     const beforeRun = (current: ScriptData) => {
         // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
         if (current.annotations.manual && !force) {
-            fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or ask the user whether to run it in full.`);
+            fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or pass --force if the request is to run it in full.`);
         }
         env.onScriptRun?.(sessionId, current.scriptKey);
     };
