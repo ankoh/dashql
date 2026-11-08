@@ -135,7 +135,7 @@ function LandingBackdropPage(): React.ReactElement {
                             <span className={styles.knob_value}>{ringFps}</span>
                         </label>
                         <label className={styles.knob}>
-                            <span className={styles.control_label}>Fly in</span>
+                            <span className={styles.control_label}>Fly</span>
                             <input id="landing-backdrop-fly" type="range" min={0.2} max={4} step={0.05} value={fly}
                                 onChange={e => setFly(Number(e.target.value))} />
                             <span className={styles.knob_value}>{fly.toFixed(2)}s</span>

@@ -32,7 +32,7 @@ interface LandingBackdropProps {
     ringDensity: number;
     /// How many seconds a dot takes to fade in, fade out and be hidden again, on average
     twinkleSeconds: number;
-    /// How many seconds a particle takes to fly into the shape at a switch
+    /// How many seconds a particle takes to fly into or out of the shape at a switch
     fly: number;
     /// How far the inner edge of the ring lies from the center, in radii of the sphere
     gap: number;
@@ -100,12 +100,14 @@ const RING_INK = 1.6;
 const RING_WIDTH = 0.6;
 /// How much of its radius the ring comes closer to the viewer, it lies at a slant of 1.2 radians
 const RING_REACH_TOWARDS_VIEWER = Math.cos(1.2);
-/// The share of the particles that joins the shape at a switch
+/// The share of the particles that flies at a switch
 const PARTICLE_JOIN_SHARE = 0.55;
 /// A switch is timed in the seconds that a particle takes to fly in: everything else follows, so the order stays the same
 /// at any speed. Over how long the particles leave, and how long they stay on the shape.
 const JOIN_SPREAD = 1.4;
 const JOIN_HOLD = 1.6;
+/// How long a particle that flies out takes to fade out in the ring and fade in on the shape
+const JOIN_SWAP = 0.3;
 /// The old shape dissolves dot by dot into a trace while it melts: over this time, each dot taking the fade time
 const SHAPE_TRACE = 0.16;
 const DISSOLVE_SPREAD = 0.9;
@@ -540,19 +542,32 @@ in float aMarkSeed;
 uniform float uOuterWobble;
 uniform float uGap;
 uniform float uRingDensity;
+// Do the particles fly out of the shape at this switch, or into it
+uniform float uOutward;
 
 void main() {
     float a = aSeeds.x, b = aSeeds.y, c = aSeeds.z, d = aSeeds.w;
     const float R = ${SPHERE_RADIUS.toFixed(1)};
 
-    // Some particles join the new shape: each leaves at its own moment, arcs to its dot and rides along with it. Later it
-    // fades out there and fades in again where it came from, it never flies back.
     float start = aJoin.y * ${JOIN_SPREAD.toFixed(2)} * uFly;
-    float arrive = aJoin.x * smoothstep(start, start + uFly, uSwitch);
-    float leaveAt = start + uFly * (1.0 + ${JOIN_HOLD.toFixed(2)});
-    float release = smoothstep(leaveAt, leaveAt + 0.6, uSwitch);
-    float handover = aJoin.x > 0.5 ? abs(2.0 * release - 1.0) : 1.0;
-    if (release > 0.5) arrive = 0.0;
+    float arrive;
+    float handover;
+    if (uOutward > 0.5) {
+        // The globe turns into the brand mark and throws particles off: each fades out in the ring at its own moment, fades in
+        // on the shape and flies out to where it came from
+        float swapEnd = start + ${JOIN_SWAP.toFixed(2)} * uFly;
+        float swap = smoothstep(start, swapEnd, uSwitch);
+        handover = aJoin.x > 0.5 ? abs(2.0 * swap - 1.0) : 1.0;
+        arrive = aJoin.x > 0.5 && swap > 0.5 ? 1.0 - smoothstep(swapEnd, swapEnd + uFly, uSwitch) : 0.0;
+    } else {
+        // The brand mark turns into the globe and draws particles in: each leaves at its own moment, arcs to its dot and rides
+        // along with it. Later it fades out there and fades in again where it came from, it never flies back.
+        arrive = aJoin.x * smoothstep(start, start + uFly, uSwitch);
+        float leaveAt = start + uFly * (1.0 + ${JOIN_HOLD.toFixed(2)});
+        float release = smoothstep(leaveAt, leaveAt + 0.6, uSwitch);
+        handover = aJoin.x > 0.5 ? abs(2.0 * release - 1.0) : 1.0;
+        if (release > 0.5) arrive = 0.0;
+    }
 
     // Most of the time most particles are just part of the ring, and many of them are hidden
     float shown = twinkle(aTwinkle, uRingDensity);
@@ -703,7 +718,7 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
         const eyeVertices = createVertices(shapeGl, eyeProgram, 4, eyeData, [['aEye', 4, 0]]);
         const eyeUniforms = uniformLocations(shapeGl, eyeProgram, [...SHARED_UNIFORMS, 'uEyes', 'uPixels']);
         const cloudUniforms = uniformLocations(shapeGl, cloudProgram, [...SHARED_UNIFORMS, 'uSphereDensity', 'uEyes']);
-        const particleUniforms = uniformLocations(ringGl, particleProgram, [...SHARED_UNIFORMS, 'uOuterWobble', 'uGap', 'uRingDensity']);
+        const particleUniforms = uniformLocations(ringGl, particleProgram, [...SHARED_UNIFORMS, 'uOuterWobble', 'uGap', 'uRingDensity', 'uOutward']);
 
         for (const gl of [ringGl, shapeGl]) {
             gl.enable(gl.BLEND);
@@ -869,6 +884,7 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
             setShared(gl, ringView, particleUniforms, rotationNow());
             gl.uniform1f(particleUniforms.uOuterWobble, current.outerWobble);
             gl.uniform1f(particleUniforms.uGap, current.gap);
+            gl.uniform1f(particleUniforms.uOutward, lastTarget === 1 ? 1 : 0);
             const ringDensity = motion ? current.ringDensity : 1;
             gl.uniform1f(particleUniforms.uRingDensity, ringDensity);
             gl.bindVertexArray(particleVertices.vao);
@@ -925,7 +941,7 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
             pointer.y += (aim.y - pointer.y) * follow;
 
             // Most of the time only slow things move. Only the particles on their way need every frame.
-            const flying = time - switchedAt < current.fly * (JOIN_SPREAD + 1);
+            const flying = time - switchedAt < current.fly * (JOIN_SPREAD + JOIN_SWAP + 1);
             if (now - lastShapeDraw >= (flying ? FAST_FRAME_MS : REST_FRAME_MS) - 2) {
                 lastShapeDraw = now;
                 drawShape();
