@@ -1,4 +1,4 @@
-/// Geometry of the agent face that morphs into the DashQL brand mark and back.
+/// Geometry of Wobble that morphs into the DashQL brand mark and back.
 ///
 /// Morphs between arbitrary paths only look fluid when both shapes share one point structure, so the morph
 /// does not interpolate path strings. The face is a disk split along its diagonal into two halves, the brand mark
@@ -354,8 +354,8 @@ export interface BrandCutout {
     transform: string;
 }
 
-/// A brand mark the face morphs into
-export interface AgentFaceBrand {
+/// A brand mark Wobble morphs into
+export interface WobbleBrand {
     /// The id of the brand
     id: string;
     /// The morphing shapes, every one starts as a region of the face
@@ -367,7 +367,7 @@ export interface AgentFaceBrand {
 /// The DashQL brand mark, `static/svg/logo/dashql.svg`.
 /// The upper right face half turns into the upper right piece of the brand mark, the lower left half into the
 /// lower left piece. The diagonal runs from the top left to the bottom right.
-export const DASHQL_BRAND: AgentFaceBrand = {
+export const DASHQL_BRAND: WobbleBrand = {
     id: 'dashql',
     pieces: [
         buildPiece([[(5 * Math.PI) / 4 - FACE_SEAM_OVERLAP, (9 * Math.PI) / 4 + FACE_SEAM_OVERLAP]], DASHQL_PIECE_UPPER, OUTLINE_POINTS),
@@ -394,7 +394,7 @@ const hyperPoint = (x: number, y: number): [number, number] => [
 
 /// The face splits into horizontal bands from top to bottom, one per shape of the logo. The bands end halfway between
 /// the centers of two neighboring shapes, mapped from the height of the logo onto the height of the face.
-function dbcomBrand(): AgentFaceBrand {
+function dbcomBrand(): WobbleBrand {
     const centers = HYPER_SHAPES.map(d => {
         const ys = parseClosedPath(d).flatMap(c => [c[1], c[7]]);
         return (Math.min(...ys) + Math.max(...ys)) / 2;
@@ -413,7 +413,7 @@ function dbcomBrand(): AgentFaceBrand {
         cutouts: [],
     };
 }
-export const DBCOM_BRAND: AgentFaceBrand = dbcomBrand();
+export const DBCOM_BRAND: WobbleBrand = dbcomBrand();
 
 /// The parameters of one frame of the morph
 export interface MorphFrame {

@@ -1,19 +1,19 @@
 import * as React from 'react';
 
-import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type AgentFaceBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from '@ankoh/dashql-ui/agent_face/agent_face_morph';
+import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type WobbleBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from '@ankoh/dashql-ui/wobble/wobble_morph';
 import { useAppFlavor } from '../config/flavor_provider.js';
-import * as styles from './agent_face.module.css';
+import * as styles from './wobble.module.css';
 
 /// The brand marks by the id of their app flavor
-const BRANDS_BY_FLAVOR: ReadonlyMap<string, AgentFaceBrand> = new Map([DASHQL_BRAND, DBCOM_BRAND].map(brand => [brand.id, brand]));
+const BRANDS_BY_FLAVOR: ReadonlyMap<string, WobbleBrand> = new Map([DASHQL_BRAND, DBCOM_BRAND].map(brand => [brand.id, brand]));
 
 /// The brand mark of the app flavor, the DashQL brand mark for a flavor without one
-export function useFlavorAgentFaceBrand(): AgentFaceBrand {
+export function useFlavorWobbleBrand(): WobbleBrand {
     return BRANDS_BY_FLAVOR.get(useAppFlavor().id) ?? DASHQL_BRAND;
 }
 
-/// The knobs of the agent face animation
-export interface AgentFaceTuning {
+/// The knobs of the animation of Wobble
+export interface WobbleTuning {
     /// The stiffness of the morph spring
     stiffness: number;
     /// The damping of the morph spring, low values overshoot
@@ -41,7 +41,7 @@ export interface AgentFaceTuning {
     blinkIntervalMs: number;
 }
 
-export const DEFAULT_AGENT_FACE_TUNING: AgentFaceTuning = {
+export const DEFAULT_WOBBLE_TUNING: WobbleTuning = {
     stiffness: 70,
     damping: 9,
     lag: 0.35,
@@ -56,8 +56,8 @@ export const DEFAULT_AGENT_FACE_TUNING: AgentFaceTuning = {
     blinkIntervalMs: 4500,
 };
 
-/// What the agent face shows
-export enum AgentFaceMode {
+/// What Wobble shows
+export enum WobbleMode {
     /// The face, morphing into the brand mark now and then
     Cycle = 'cycle',
     /// Only the face
@@ -94,26 +94,26 @@ const CUTOUT_REVEAL_FROM = 0.8;
 /// How long the eyes take to close before a morph
 const EYES_CLOSE_MS = 180;
 
-interface AgentFaceProps extends Omit<React.SVGProps<SVGSVGElement>, 'ref' | 'mode'> {
-    /// The brand mark the face morphs into, the brand mark of the app flavor by default
-    brand?: AgentFaceBrand;
-    tuning?: Partial<AgentFaceTuning>;
-    mode?: AgentFaceMode;
-    /// Stops the animation, e.g. while the face is hidden
+interface WobbleProps extends Omit<React.SVGProps<SVGSVGElement>, 'ref' | 'mode'> {
+    /// The brand mark Wobble morphs into, the brand mark of the app flavor by default
+    brand?: WobbleBrand;
+    tuning?: Partial<WobbleTuning>;
+    mode?: WobbleMode;
+    /// Stops the animation, e.g. while Wobble is hidden
     paused?: boolean;
-    /// The accessible label of the face
+    /// The accessible label of Wobble
     label?: string;
     /// Called when the face starts to morph into the brand mark, and when it is back
-    onMorph?: (event: AgentFaceMorphEvent) => void;
+    onMorph?: (event: WobbleMorphEvent) => void;
     /// What the eyes look at, they glance around on their own without
-    gaze?: AgentFaceGaze;
-    /// The time of the last input the face reacts to, on the clock of `performance.now()`, read every frame.
+    gaze?: WobbleGaze;
+    /// The time of the last input Wobble reacts to, on the clock of `performance.now()`, read every frame.
     /// The eyes squint happily while the input goes on.
     lastInput?: () => number | null;
 }
 
-/// What the eyes of the agent face look at
-export interface AgentFaceGaze {
+/// What the eyes of Wobble look at
+export interface WobbleGaze {
     /// Follow the mouse pointer while it moves
     pointer?: boolean;
     /// A point in client coordinates, read every frame, it wins over the pointer. Null when there is none.
@@ -121,7 +121,7 @@ export interface AgentFaceGaze {
 }
 
 /// The moments of the morph that `onMorph` reports
-export enum AgentFaceMorphEvent {
+export enum WobbleMorphEvent {
     /// The eyes close and the face starts to morph into the brand mark
     Leaving = 'leaving',
     /// The face is back and opens its eyes
@@ -141,13 +141,13 @@ enum Phase {
     Returning,
 }
 
-/// The agent face, a liquid disk with eyes that glance around and morphs into the DashQL brand mark and back.
-/// The frames write the path data through refs, React renders the face once.
-export function AgentFace(props: AgentFaceProps): React.ReactElement {
-    const flavorBrand = useFlavorAgentFaceBrand();
-    const { brand = flavorBrand, tuning, mode = AgentFaceMode.Cycle, paused = false, label, onMorph, gaze, lastInput, className, ...svgProps } = props;
-    const tuningRef = React.useRef<AgentFaceTuning>(DEFAULT_AGENT_FACE_TUNING);
-    tuningRef.current = { ...DEFAULT_AGENT_FACE_TUNING, ...tuning };
+/// Wobble, a liquid disk with eyes that glance around and morphs into the DashQL brand mark and back.
+/// The frames write the path data through refs, React renders Wobble once.
+export function Wobble(props: WobbleProps): React.ReactElement {
+    const flavorBrand = useFlavorWobbleBrand();
+    const { brand = flavorBrand, tuning, mode = WobbleMode.Cycle, paused = false, label, onMorph, gaze, lastInput, className, ...svgProps } = props;
+    const tuningRef = React.useRef<WobbleTuning>(DEFAULT_WOBBLE_TUNING);
+    tuningRef.current = { ...DEFAULT_WOBBLE_TUNING, ...tuning };
     const modeRef = React.useRef(mode);
     modeRef.current = mode;
     const onMorphRef = React.useRef(onMorph);
@@ -160,8 +160,8 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
     const svgRef = React.useRef<SVGSVGElement | null>(null);
 
     const id = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
-    const maskId = `agent-face-mask-${id}`;
-    const gooId = `agent-face-goo-${id}`;
+    const maskId = `wobble-mask-${id}`;
+    const gooId = `wobble-goo-${id}`;
     const pathRefs = React.useRef<(SVGPathElement | null)[]>([]);
     const eyeRefs = React.useRef<(SVGRectElement | null)[]>([]);
     const gooGroupRef = React.useRef<SVGGElement | null>(null);
@@ -174,7 +174,7 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
         if (paused) return;
         const outlines = brand.pieces.map(() => new Float64Array(2 * OUTLINE_POINTS));
         const scratch = new Float64Array(2 * OUTLINE_POINTS);
-        const morph: Spring = { value: modeRef.current === AgentFaceMode.Logo ? 1 : 0, velocity: 0 };
+        const morph: Spring = { value: modeRef.current === WobbleMode.Logo ? 1 : 0, velocity: 0 };
         const glance: Spring = { value: 0, velocity: 0 };
         const lookY: Spring = { value: 0, velocity: 0 };
         // The excitement about input, happy eyes
@@ -215,8 +215,8 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
             phase = next;
             phaseStart = now;
             if (next === Phase.Face) faceHold = jitter(tuningRef.current.faceHoldMs);
-            if (previous === Phase.Face && next === Phase.ClosingEyes) onMorphRef.current?.(AgentFaceMorphEvent.Leaving);
-            if (previous !== Phase.Face && next === Phase.Face) onMorphRef.current?.(AgentFaceMorphEvent.Back);
+            if (previous === Phase.Face && next === Phase.ClosingEyes) onMorphRef.current?.(WobbleMorphEvent.Leaving);
+            if (previous !== Phase.Face && next === Phase.Face) onMorphRef.current?.(WobbleMorphEvent.Back);
         };
 
         const render = (now: number) => {
@@ -229,21 +229,21 @@ export function AgentFace(props: AgentFaceProps): React.ReactElement {
             // Advance the cycle
             switch (phase) {
                 case Phase.Face:
-                    if (requested === AgentFaceMode.Logo || (requested === AgentFaceMode.Cycle && elapsed >= faceHold && !reducedMotion)) {
+                    if (requested === WobbleMode.Logo || (requested === WobbleMode.Cycle && elapsed >= faceHold && !reducedMotion)) {
                         enterPhase(Phase.ClosingEyes, now);
                     }
                     break;
                 case Phase.ClosingEyes:
-                    if (requested === AgentFaceMode.Face) enterPhase(Phase.Face, now);
+                    if (requested === WobbleMode.Face) enterPhase(Phase.Face, now);
                     else if (elapsed >= EYES_CLOSE_MS) enterPhase(Phase.Logo, now);
                     break;
                 case Phase.Logo:
-                    if (requested === AgentFaceMode.Face || (requested === AgentFaceMode.Cycle && elapsed >= t.logoHoldMs)) {
+                    if (requested === WobbleMode.Face || (requested === WobbleMode.Cycle && elapsed >= t.logoHoldMs)) {
                         enterPhase(Phase.Returning, now);
                     }
                     break;
                 case Phase.Returning:
-                    if (requested === AgentFaceMode.Logo) enterPhase(Phase.Logo, now);
+                    if (requested === WobbleMode.Logo) enterPhase(Phase.Logo, now);
                     else if (morph.value < 0.05) enterPhase(Phase.Face, now);
                     break;
             }

@@ -23,7 +23,7 @@ and blocks that never ran, with their lines and the enclosing function, largest 
   that survives a reload, the session storage, the navbar, the color scheme, a session opened from its link, and the warning
   and the drawer of a narrow screen;
 - the shell: a query, its query history, a file mounted with `.fs`, a reset;
-- the demos: the index, the stock analysis on the synthetic feed, the UI foundations, the agent face;
+- the demos: the index, the stock analysis on the synthetic feed, the UI foundations, Wobble;
 - the redirect page of OAuth without a provider response.
 
 The folders that were low, before and after:

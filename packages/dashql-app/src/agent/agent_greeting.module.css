@@ -1,4 +1,4 @@
-/* The questions share one cell, the widest one sizes it, so the face does not move while a question is typed */
+/* The questions share one cell, the widest one sizes it, so Wobble does not move while a question is typed */
 .question {
     display: grid;
     margin: 0;
@@ -14,7 +14,7 @@
 }
 
 /* The caret follows the typed characters while they appear or disappear, slanted like the italic question.
-   It takes no width, the widest question would otherwise grow the cell past its sizer and move the face. */
+   It takes no width, the widest question would otherwise grow the cell past its sizer and move Wobble. */
 .caret {
     display: inline-block;
     width: 2px;

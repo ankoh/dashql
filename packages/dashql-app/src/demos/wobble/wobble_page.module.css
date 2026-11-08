@@ -57,13 +57,13 @@
     color-scheme: dark;
 }
 
-.stage_face {
+.stage_wobble {
     width: min(280px, 70%);
     height: auto;
     aspect-ratio: 1;
 }
 
-/* The face next to its question, like on the empty session */
+/* Wobble next to its question, like on the empty session */
 .greeting {
     display: flex;
     flex-wrap: wrap;
@@ -72,7 +72,7 @@
     gap: 24px;
 }
 
-.greeting_face {
+.greeting_wobble {
     width: 72px;
     height: 72px;
     flex-shrink: 0;

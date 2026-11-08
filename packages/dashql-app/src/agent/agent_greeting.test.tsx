@@ -18,8 +18,8 @@ describe('Agent greeting', () => {
         container.remove();
     });
 
-    it('shows the face next to the question', () => {
-        act(() => root.render(<AgentGreeting face={{ label: 'Agent' }} questionTestId="question" greetings={['Where do we start?']} />));
+    it('shows Wobble next to the question', () => {
+        act(() => root.render(<AgentGreeting wobble={{ label: 'Agent' }} questionTestId="question" greetings={['Where do we start?']} />));
         expect(container.querySelector('svg[aria-label="Agent"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="question"]')?.getAttribute('aria-label')).toBe('Where do we start?');
     });

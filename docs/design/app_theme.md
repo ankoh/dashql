@@ -53,7 +53,7 @@ deliberately, with a role that other stylesheets can share. The groups:
 | Shell | `--shell_bg`, `--shell_header_bg`, `--shell_divider`, `--shell_edge`, `--shell_hover`, `--shell_focus`, `--shell_fg`, `--shell_fg_muted`, `--shell_fg_subtle` | The terminal on the dark backdrop, the same in both schemes |
 | Charts | `--chart_color_1..8` | Categorical series, the first one is a single series |
 | Code | `--code_*` | The editors and code views, the Xcode palettes of `@ankoh/dashql-ui/editor/xcode_palette` |
-| Agent | `--agent_gradient_1..3`, `--agent_accent`, `--agent_accent_text`, `--agent_fg` | The agent, its face and question |
+| Agent | `--agent_gradient_1..3`, `--agent_accent`, `--agent_accent_text`, `--agent_fg` | The agent, Wobble and its question |
 
 Translucent derivations of a token are fine where no token fits, e.g. `color-mix(in srgb, var(--color_success_fg) 18%,
 transparent)` for the inserted statements of a diff.

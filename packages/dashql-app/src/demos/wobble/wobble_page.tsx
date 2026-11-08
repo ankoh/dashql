@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-import { AgentFace, AgentFaceMode, DEFAULT_AGENT_FACE_TUNING, useFlavorAgentFaceBrand, type AgentFaceTuning } from '../../agent/agent_face.js';
-import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/agent_face/agent_face_morph';
+import { Wobble, WobbleMode, DEFAULT_WOBBLE_TUNING, useFlavorWobbleBrand, type WobbleTuning } from '../../agent/wobble.js';
+import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/wobble/wobble_morph';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import * as styles from './agent_face_page.module.css';
+import * as styles from './wobble_page.module.css';
 
 /// A slider of a tuning knob
 interface Knob {
-    key: keyof AgentFaceTuning;
+    key: keyof WobbleTuning;
     label: string;
     min: number;
     max: number;
@@ -57,12 +57,12 @@ const BRANDS = [
     { label: 'Database.com', brand: DBCOM_BRAND },
 ];
 /// The demo cycles faster than the app, to watch the morph without waiting
-const DEMO_TUNING: AgentFaceTuning = { ...DEFAULT_AGENT_FACE_TUNING, faceHoldMs: 4000, logoHoldMs: 2000 };
+const DEMO_TUNING: WobbleTuning = { ...DEFAULT_WOBBLE_TUNING, faceHoldMs: 4000, logoHoldMs: 2000 };
 
 /// The eyes follow the mouse pointer
 const FOLLOW_POINTER = { pointer: true };
 
-const MODES = [AgentFaceMode.Cycle, AgentFaceMode.Face, AgentFaceMode.Logo];
+const MODES = [WobbleMode.Cycle, WobbleMode.Face, WobbleMode.Logo];
 const MODE_LABELS = ['Cycle', 'Face', 'Logo'];
 const SURFACES = ['light', 'dark'] as const;
 const INKS = [
@@ -72,15 +72,15 @@ const INKS = [
 ];
 const SIZES = [24, 48, 96];
 
-/// A playground of the agent face that morphs into the DashQL brand mark, to tune its motion
-function AgentFacePage(): React.ReactElement {
-    const [tuning, setTuning] = React.useState<AgentFaceTuning>(DEMO_TUNING);
-    // The demo starts with the brand mark of the flavor, `demos.html?flavor=dbcom#/agent_face`
-    const flavorBrand = useFlavorAgentFaceBrand();
+/// A playground of Wobble, which morphs into the DashQL brand mark, to tune its motion
+function WobblePage(): React.ReactElement {
+    const [tuning, setTuning] = React.useState<WobbleTuning>(DEMO_TUNING);
+    // The demo starts with the brand mark of the flavor, `demos.html?flavor=dbcom#/wobble`
+    const flavorBrand = useFlavorWobbleBrand();
     const [brand, setBrand] = React.useState(() => Math.max(0, BRANDS.findIndex(entry => entry.brand === flavorBrand)));
     const [mode, setMode] = React.useState(0);
     const [followPointer, setFollowPointer] = React.useState(1);
-    // The face gets excited about every key typed into the try field
+    // Wobble gets excited about every key typed into the try field
     const lastInput = React.useRef<number | null>(null);
     const readLastInput = React.useCallback(() => lastInput.current, []);
     const [surface, setSurface] = React.useState(0);
@@ -94,28 +94,28 @@ function AgentFacePage(): React.ReactElement {
         setTimeout(() => setCopied(false), 1200);
     };
 
-    const faceProps = { brand: BRANDS[brand].brand, tuning, lastInput: readLastInput, gaze: followPointer === 1 ? FOLLOW_POINTER : undefined, mode: MODES[mode], style: { color: INKS[ink].color } };
+    const wobbleProps = { brand: BRANDS[brand].brand, tuning, lastInput: readLastInput, gaze: followPointer === 1 ? FOLLOW_POINTER : undefined, mode: MODES[mode], style: { color: INKS[ink].color } };
     return (
         <div className={styles.root}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Agent Face</h1>
+                <h1 className={styles.title}>Wobble</h1>
                 <p className={styles.subtitle}>
-                    The face of the agent on the empty session, it glances around and now and then melts into a brand mark.
+                    The agent on the empty session, it glances around and now and then melts into a brand mark.
                 </p>
             </div>
             <div className={styles.layout}>
                 <div className={styles.stage} data-surface={SURFACES[surface]}>
-                    <AgentFace {...faceProps} className={styles.stage_face} label="Agent face" />
+                    <Wobble {...wobbleProps} className={styles.stage_wobble} label="Wobble" />
                     <div className={styles.greeting}>
-                        <AgentGreeting face={{ ...faceProps, className: styles.greeting_face, label: 'Agent face next to its question' }}
+                        <AgentGreeting wobble={{ ...wobbleProps, className: styles.greeting_wobble, label: 'Wobble next to its question' }}
                             questionClassName={styles.greeting_text} questionElement="p" />
                     </div>
-                    <input id="agent-face-try" className={styles.try_input} placeholder="Type here, the face gets excited"
-                        aria-label="Type to excite the face" onKeyDown={() => { lastInput.current = performance.now(); }} />
+                    <input id="wobble-try" className={styles.try_input} placeholder="Type here, Wobble gets excited"
+                        aria-label="Type to excite Wobble" onKeyDown={() => { lastInput.current = performance.now(); }} />
                     <div className={styles.sizes}>
                         {SIZES.map(size => (
                             <div key={size} className={styles.size}>
-                                <AgentFace {...faceProps} width={size} height={size} label={`Agent face at ${size} pixels`} />
+                                <Wobble {...wobbleProps} width={size} height={size} label={`Wobble at ${size} pixels`} />
                                 <span className={styles.size_label}>{size}px</span>
                             </div>
                         ))}
@@ -139,7 +139,7 @@ function AgentFacePage(): React.ReactElement {
                     </div>
                     <div className={styles.control_row}>
                         <span className={styles.control_label}>Shows</span>
-                        <SegmentedControl aria-label="What the face shows" size={SegmentedControlSize.Small} onChange={setMode}>
+                        <SegmentedControl aria-label="What Wobble shows" size={SegmentedControlSize.Small} onChange={setMode}>
                             {MODE_LABELS.map((label, i) => (
                                 <SegmentedControl.Button key={label} selected={mode === i}>{label}</SegmentedControl.Button>
                             ))}
@@ -166,7 +166,7 @@ function AgentFacePage(): React.ReactElement {
                             {group.knobs.map(knob => (
                                 <label key={knob.key} className={styles.knob}>
                                     <span className={styles.knob_label}>{knob.label}</span>
-                                    <input id={`agent-face-${knob.key}`} type="range" min={knob.min} max={knob.max} step={knob.step}
+                                    <input id={`wobble-${knob.key}`} type="range" min={knob.min} max={knob.max} step={knob.step}
                                         value={tuning[knob.key]}
                                         onChange={e => {
                                             const value = Number(e.target.value);
@@ -192,4 +192,4 @@ function AgentFacePage(): React.ReactElement {
     );
 }
 
-export default AgentFacePage;
+export default WobblePage;

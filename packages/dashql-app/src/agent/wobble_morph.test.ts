@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DASHQL_BRAND, DBCOM_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from '@ankoh/dashql-ui/agent_face/agent_face_morph';
+import { DASHQL_BRAND, DBCOM_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from '@ankoh/dashql-ui/wobble/wobble_morph';
 
 /// The frame of a morph without wobble and ripple
 const frame = (progress: number) => ({ progress, time: 0, wobble: 0, lag: 0.35, ripple: 0 });
@@ -15,7 +15,7 @@ function morph(index: number, progress: number): Float64Array {
     return out;
 }
 
-describe('Agent face morph', () => {
+describe('Wobble morph', () => {
     it('splits the face into a band per shape of the Hyper logo', () => {
         expect(DASHQL_BRAND.cutouts).toHaveLength(0);
         // The top of the cylinder and the three rings below it

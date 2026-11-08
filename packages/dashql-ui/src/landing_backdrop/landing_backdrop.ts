@@ -1,9 +1,9 @@
-import { outlineBounds, springAtRest, stepSpring, type AgentFaceBrand, type Spring } from '../agent_face/agent_face_morph.js';
+import { outlineBounds, springAtRest, stepSpring, type WobbleBrand, type Spring } from '../wobble/wobble_morph.js';
 
 /// What the backdrop shows. The brand, motion, dots and particles are fixed when it is attached, the rest can change.
 export interface LandingBackdropOptions {
     /// The brand mark the sphere turns into
-    brand: AgentFaceBrand;
+    brand: WobbleBrand;
     /// The length of one cycle in seconds
     period: number;
     /// The multiplier of the ink
@@ -38,7 +38,7 @@ export interface LandingBackdropOptions {
     gap: number;
     /// The size of the cloud, 1 is about as high as the page
     scale: number;
-    /// Does the sphere have the eyes of the agent face
+    /// Does the sphere have the eyes of Wobble
     eyes: boolean;
     /// How far the surface of the sphere wobbles, relative to its radius
     wobble: number;
@@ -86,7 +86,7 @@ const DRAWN_SHARE = 0.56;
 /// The time between two frames while a shape turns into the other, and while only slow things move
 const FAST_FRAME_MS = 1000 / 60;
 const REST_FRAME_MS = 1000 / 30;
-/// The radius of the sphere in units of the viewBox of the mark, the disk of the agent face
+/// The radius of the sphere in units of the viewBox of the mark, the disk of Wobble
 const SPHERE_RADIUS = 70;
 /// The units of the viewBox of the mark in half of the height of the page
 const UNITS_PER_PAGE = 92;
@@ -94,13 +94,13 @@ const UNITS_PER_PAGE = 92;
 const PERSPECTIVE = 0.3;
 /// The share of the morph by which the dots that travel the least start later
 const MORPH_LAG = 0.32;
-/// The eyes of the agent face, relative to the center of its disk in the same units as the sphere: two pills
+/// The eyes of Wobble, relative to the center of its disk in the same units as the sphere: two pills
 const EYE_DX = 24;
 const EYE_DY = 10;
 const EYE_WIDTH = 17;
 const EYE_HEIGHT = 27;
 const EYE_DOT_SPACING = 3.1;
-/// The dots per row of an eye from top to bottom: a pill like the eyes of the agent face, straight sides with round ends
+/// The dots per row of an eye from top to bottom: a pill like the eyes of Wobble, straight sides with round ends
 const EYE_ROWS = [2, 4, 6, 6, 6, 6, 6, 6, 4, 2];
 /// How far the eyes glance, and how often they glance and blink
 const GLANCE_AMPLITUDE = 15;
@@ -161,7 +161,7 @@ function seededRandom(seed: number): () => number {
 
 /// The places of a honeycomb inside of the outlines of the brand mark, around its middle with y up.
 /// Every row of the honeycomb is cut by the outlines, the places between the cuts are inside.
-function latticePlaces(brand: AgentFaceBrand, spacing: number): { x: number; y: number }[] {
+function latticePlaces(brand: WobbleBrand, spacing: number): { x: number; y: number }[] {
     const places: { x: number; y: number }[] = [];
     const crossings: number[] = [];
     let row = 0;
@@ -191,7 +191,7 @@ function latticePlaces(brand: AgentFaceBrand, spacing: number): { x: number; y: 
 }
 
 /// A honeycomb with at least this many places
-function markLattice(brand: AgentFaceBrand, count: number): { x: number; y: number }[] {
+function markLattice(brand: WobbleBrand, count: number): { x: number; y: number }[] {
     // The number of places grows with one over the square of the spacing, a few steps find the spacing
     let spacing = 2;
     for (let i = 0; i < 4; ++i) spacing *= Math.sqrt(latticePlaces(brand, spacing).length / count);
@@ -213,7 +213,7 @@ const CLOUDS = new Map<string, Float32Array>();
 /// Seen from the front, a side of the sphere and the mark are two regions of the plane. They are matched by cutting both
 /// into rows with the same number of dots, and pairing the dots of a row from left to right. Dots that are neighbors on the
 /// sphere stay neighbors on the mark, so the dots flow without crossing each other.
-function buildCloud(brand: AgentFaceBrand, count: number): Float32Array {
+function buildCloud(brand: WobbleBrand, count: number): Float32Array {
     const key = `${brand.id}-${count}`;
     const cached = CLOUDS.get(key);
     if (cached != null) return cached;
@@ -295,7 +295,7 @@ function buildEyes(): Float32Array {
 
 /// The particles of the ring. A particle that joins a shape lands on a dot of its front: it becomes one of its dots, it shows
 /// and hides with it.
-function buildParticles(brand: AgentFaceBrand, dots: number, count: number): Float32Array {
+function buildParticles(brand: WobbleBrand, dots: number, count: number): Float32Array {
     const cloud = buildCloud(brand, dots);
     const particles = new Float32Array(PARTICLE_FLOATS * count);
     const random = seededRandom(23);
@@ -437,7 +437,7 @@ void main() {
         return;
     }
 
-    // The harmonics of the wobble of the agent face, on the surface of the sphere
+    // The harmonics of the outline of Wobble, on the surface of the sphere
     float a1 = 3.0 * aSphere.x + 1.6 * aSphere.y + 1.3 * uTime;
     float a2 = 2.0 * aSphere.y - 2.4 * aSphere.z - 0.9 * uTime + 1.7;
     float a3 = 5.0 * aSphere.z + 3.0 * aSphere.x + 2.1 * uTime + 0.4;
@@ -517,7 +517,7 @@ void main() {
     // The point between the eyes: both eyes move as one block, one of them must not step a frame before the other
     vec2 onFace = vec2(0.0, aEye.y) + uEyes.xy * ${GLANCE_AMPLITUDE.toFixed(1)};
     vec3 s = vec3(onFace, sqrt(max(0.0, R * R - dot(onFace, onFace)))) / R;
-    // Like on the agent face, the eyes do not follow the wobble of the surface: they rest while it moves around them
+    // Like on Wobble, the eyes do not follow the wobble of the surface: they rest while it moves around them
     vec3 place = uRotation * s * R / ${UNITS_PER_PAGE.toFixed(1)} * uScale;
     float perspective = 1.0 / (1.0 - place.z * ${PERSPECTIVE.toFixed(2)});
     float pixelsPerUnit = uScale / ${UNITS_PER_PAGE.toFixed(1)} * uView.y * uPixels.y;

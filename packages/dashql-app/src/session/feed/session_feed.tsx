@@ -5,7 +5,7 @@ import * as styles from './session_feed.module.css';
 import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
-import type { AgentFaceTuning } from '../../agent/agent_face.js';
+import type { WobbleTuning } from '../../agent/wobble.js';
 
 import { List } from 'react-window';
 import {
@@ -156,8 +156,8 @@ function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
 
-/// The face of the empty session wobbles more and faster than by default, it is the only thing moving on the page
-const LANDING_FACE_TUNING: Partial<AgentFaceTuning> = { wobble: 0.03, wobbleSpeed: 2 };
+/// Wobble moves more and faster on the empty session than by default, it is the only thing moving on the page
+const LANDING_WOBBLE_TUNING: Partial<WobbleTuning> = { wobble: 0.03, wobbleSpeed: 2 };
 
 export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
@@ -745,14 +745,14 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // The cards of the inputs of the draft stand below the greeting and lift it, the prompt stays in place.
     // The session has no inputs yet on the landing view, later the strip shows the inputs of the scripts.
     const [landingInputs, setLandingInputs] = React.useState<HTMLDivElement | null>(null);
-    // While the user writes, the face watches the caret of the composer
+    // While the user writes, Wobble watches the caret of the composer
     const composerCaret = React.useCallback(() => {
         const head = composerView?.state?.selection?.main.head;
         if (composerView == null || head == null || !composerView.hasFocus) return null;
         const coords = composerView.coordsAtPos(head);
         return coords == null ? null : { x: coords.left, y: (coords.top + coords.bottom) / 2 };
     }, [composerView]);
-    // The face gets excited about every keystroke in the composer, a ref keeps the feed from rendering per key
+    // Wobble gets excited about every keystroke in the composer, a ref keeps the feed from rendering per key
     const lastComposerInput = React.useRef<number | null>(null);
     React.useEffect(() => {
         const dom = composerView?.contentDOM;
@@ -766,12 +766,12 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         return () => dom.removeEventListener('keydown', onKeyDown);
     }, [composerView]);
     const composerLastInput = React.useCallback(() => lastComposerInput.current, []);
-    const landingFace = React.useMemo(() => ({
-        className: styles.feed_landing_face,
-        'data-testid': 'feed-landing-face',
+    const landingWobble = React.useMemo(() => ({
+        className: styles.feed_landing_wobble,
+        'data-testid': 'feed-landing-wobble',
         label: 'DashQL agent',
         paused: greetingHidden,
-        tuning: LANDING_FACE_TUNING,
+        tuning: LANDING_WOBBLE_TUNING,
         gaze: { pointer: true, target: composerCaret },
         lastInput: composerLastInput,
     }), [greetingHidden, composerCaret, composerLastInput]);
@@ -831,7 +831,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 <div className={styles.feed_landing_top}>
                     <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
                         <AgentGreeting
-                            face={landingFace}
+                            wobble={landingWobble}
                             questionClassName={styles.feed_landing_question}
                             questionTestId="feed-landing-question" />
                     </div>

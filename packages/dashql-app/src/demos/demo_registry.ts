@@ -27,10 +27,10 @@ export const DEMOS: readonly DemoEntry[] = [
         load: () => import('./ui/ui_page.js'),
     },
     {
-        id: 'agent_face',
-        title: 'Agent Face',
-        description: 'The face of the agent that glances around and melts into the DashQL brand mark, with knobs to tune its motion.',
-        load: () => import('./agent_face/agent_face_page.js'),
+        id: 'wobble',
+        title: 'Wobble',
+        description: 'Wobble glances around and melts into the DashQL brand mark, with knobs to tune its motion.',
+        load: () => import('./wobble/wobble_page.js'),
     },
     {
         id: 'landing_backdrop',

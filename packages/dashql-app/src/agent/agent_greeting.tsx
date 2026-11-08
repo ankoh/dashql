@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { AgentFace, AgentFaceMorphEvent } from './agent_face.js';
+import { Wobble, WobbleMorphEvent } from './wobble.js';
 import * as styles from './agent_greeting.module.css';
 
-/// The questions the agent face asks on an empty session, in the order they rotate.
+/// The questions Wobble asks on an empty session, in the order they rotate.
 /// They speak of the user and the agent together, the analysis is not handed off to the agent.
 export const AGENT_GREETINGS: readonly string[] = [
     'What are we exploring?',
@@ -14,8 +14,8 @@ export const AGENT_GREETINGS: readonly string[] = [
 ];
 
 interface AgentGreetingProps {
-    /// The props of the face
-    face?: React.ComponentProps<typeof AgentFace> & { 'data-testid'?: string };
+    /// The props of Wobble
+    wobble?: React.ComponentProps<typeof Wobble> & { 'data-testid'?: string };
     /// The class of the question
     questionClassName?: string;
     /// The test id of the question
@@ -42,8 +42,8 @@ enum Typing {
     Deleting,
 }
 
-/// The agent face with its question right of it, the face and the question are siblings for the layout of the parent.
-/// The question is typed character by character. When the face starts to melt into the brand mark, it is deleted
+/// Wobble with its question right of it, Wobble and the question are siblings for the layout of the parent.
+/// The question is typed character by character. When Wobble starts to melt into the brand mark, it is deleted
 /// and the next question is typed.
 export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
     const greetings = props.greetings ?? AGENT_GREETINGS;
@@ -53,8 +53,8 @@ export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
     const chars = React.useMemo(() => Array.from(greetings[index % greetings.length]), [greetings, index]);
     const [count, setCount] = React.useState(reducedMotion ? chars.length : 0);
 
-    const onMorph = React.useCallback((event: AgentFaceMorphEvent) => {
-        if (event !== AgentFaceMorphEvent.Leaving) return;
+    const onMorph = React.useCallback((event: WobbleMorphEvent) => {
+        if (event !== WobbleMorphEvent.Leaving) return;
         if (reducedMotion) {
             setIndex(i => (i + 1) % greetings.length);
         } else {
@@ -90,9 +90,9 @@ export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
     const questionClassName = props.questionClassName == null ? styles.question : `${styles.question} ${props.questionClassName}`;
     return (
         <>
-            <AgentFace {...props.face} onMorph={onMorph} />
+            <Wobble {...props.wobble} onMorph={onMorph} />
             <Question className={questionClassName} data-testid={props.questionTestId} aria-label={chars.join('')}>
-                {/* Every question takes the cell invisibly, the widest one sizes it so the face does not move */}
+                {/* Every question takes the cell invisibly, the widest one sizes it so Wobble does not move */}
                 {greetings.map(text => (
                     <span key={text} className={styles.sizer} aria-hidden>{text}</span>
                 ))}

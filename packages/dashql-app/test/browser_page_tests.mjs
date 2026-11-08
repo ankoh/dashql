@@ -61,7 +61,7 @@ async function testAppWrappedScript(page, navigate) {
 /// The greeter at the root: a session only appears with its first script, a reload stays in it, the brand goes back
 async function testAppGreeter(page, navigate) {
     const expectGreeter = async () => {
-        await page.getByTestId('feed-landing-face').waitFor();
+        await page.getByTestId('feed-landing-wobble').waitFor();
         await page.getByTestId('session-ephemeral-row').waitFor();
         if (pathnameOf(page) !== '/') throw new Error(`The greeter is at ${page.url()}`);
         if (!await page.getByTestId('create-session').isDisabled()) throw new Error('The greeter can jump to itself');
@@ -232,8 +232,8 @@ async function testDemos(page, navigate) {
     await page.getByText('UI Design System', { exact: true }).waitFor();
     await page.goBack();
 
-    await page.getByRole('link', { name: /Agent Face/ }).click();
-    await page.getByRole('heading', { name: 'Agent Face' }).waitFor();
+    await page.getByRole('link', { name: /Wobble/ }).click();
+    await page.getByRole('heading', { name: 'Wobble' }).waitFor();
     await page.getByRole('button', { name: 'Dark' }).click();
     await page.getByRole('button', { name: 'Logo' }).click();
 }

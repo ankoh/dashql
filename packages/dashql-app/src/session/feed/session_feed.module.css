@@ -69,14 +69,14 @@
     opacity: 0;
 }
 
-.feed_landing_face {
+.feed_landing_wobble {
     width: 72px;
     height: 72px;
     flex-shrink: 0;
     color: var(--agent_fg);
 }
 
-/* The question of the agent, right of its face */
+/* The question of the agent, right of Wobble */
 .feed_landing_question {
     margin: 0;
     color: var(--agent_fg);
