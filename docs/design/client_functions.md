@@ -599,7 +599,7 @@ CALL snowflake.warehouse_create (_poll => '/api/v2/results/01b66701');
 | `_meta` | `JSON` | Response fields outside the rows, or `NULL` |
 | `_raw` | `JSON` | Row fields the spec doesn't list, or `NULL`. A new API field lands here, so no data is lost |
 
-**Column types** are `VARCHAR`, `TIMESTAMPTZ`, `DATE`, `INTEGER`, `BIGINT`, `DOUBLE`, `BOOLEAN` and `JSON`. A value that can't be converted goes to `_raw`, and the column is `NULL`, so a spec that disagrees with a response doesn't fail the statement. A `JSON` column holds its JSON as text, in the API's spelling, because it's the response as sent. Rows become Arrow through `translateAnyRowsToArrowBatch`, as Trino's do.
+**Column types** are `VARCHAR`, `TIMESTAMPTZ`, `DATE`, `INTEGER`, `BIGINT`, `DOUBLE`, `BOOLEAN` and `JSON`. A value that can't be converted goes to `_raw`, and the column is `NULL`, so a spec that disagrees with a response doesn't fail the statement. A `TIMESTAMPTZ` needs a date and a time, and a `DATE` starts with `YYYY-MM-DD` and keeps that day, whatever follows it. A `JSON` column holds its JSON as text, in the API's spelling, because it's the response as sent. Rows become Arrow through `translateAnyRowsToArrowBatch`, as Trino's do.
 
 **Errors:** a non-2xx response fails the statement, with its status and the message from the `errors` pointers. A function can override this:
 

@@ -1,6 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
+import { parseTrinoTimestampMs } from '../trino/arrow_conversion.js';
 import { bindCallOptions, buildClientFunctionRequest, followRequest, ClientFunctionRequest, requestUrl, STANDARD_OPTIONS } from './clfn_request.js';
 import {
     findClientFunction,
@@ -86,9 +87,14 @@ function convertValue(value: unknown, type: string | undefined): unknown {
         }
         case 'BOOLEAN':
             return typeof value === 'boolean' ? value : undefined;
+        // What the Arrow batch can read: a value that passes here and fails there would be lost
         case 'TIMESTAMPTZ':
-        case 'DATE':
-            return typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : undefined;
+            return typeof value === 'string' && parseTrinoTimestampMs(value) !== null ? value : undefined;
+        // The day as written, whatever time and zone follow it
+        case 'DATE': {
+            const day = typeof value === 'string' ? value.slice(0, 10) : '';
+            return /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(Date.parse(day)) ? day : undefined;
+        }
         case 'JSON':
             return JSON.stringify(value);
         default:

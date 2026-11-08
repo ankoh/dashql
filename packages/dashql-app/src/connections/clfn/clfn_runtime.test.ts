@@ -486,6 +486,38 @@ describe('client function results', () => {
         expect(cell(empty, 0, '_status')).toEqual(404);
     });
 
+    it('keeps a timestamp or a date that the column can\'t hold in _raw', async () => {
+        const dated: ClientFunction = { name: 'one', columns: [{ name: 'at', type: 'TIMESTAMPTZ' }, { name: 'day', type: 'DATE' }] };
+        /// The cells of a value in both columns, as the Arrow batch holds them
+        const read = async (value: unknown) => {
+            const result = await runClientFunctionCall(spec([dated]), call('one'), env([json({ at: value, day: value })]).environment);
+            const batches: arrow.RecordBatch[] = [];
+            await new ClientFunctionResultStream(new TestLogger(), result).produce(new AsyncConsumerLambdas((_, batch) => { batches.push(batch); }), new AsyncConsumerLambdas());
+            return new arrow.Table(batches).get(0)!.toJSON();
+        };
+        const instant = Date.parse('2024-03-11T09:01:22Z');
+        const midnight = Date.parse('2024-03-11T00:00:00Z');
+        for (const text of ['2024-03-11T09:01:22Z', '2024-03-11T09:01:22.000+0000', '2024-03-11T09:01:22+00:00']) {
+            const row = await read(text);
+            expect(row['at']).toEqual(instant);
+            expect(row['day']).toEqual(midnight);
+            expect(row['_raw']).toBeNull();
+        }
+        // A day alone fits the date column and not the timestamp column
+        const dayOnly = await read('2024-03-11');
+        expect(dayOnly['at']).toBeNull();
+        expect(dayOnly['day']).toEqual(midnight);
+        expect(JSON.parse(dayOnly['_raw'] as string)).toEqual({ at: '2024-03-11' });
+        // The day that a value says, wherever its zone puts it in UTC
+        expect((await read('2024-03-11T23:30:00-05:00'))['day']).toEqual(midnight);
+        for (const value of ['Mar 11 2024', '2024-13-45', 1710147682000]) {
+            const row = await read(value);
+            expect(row['at']).toBeNull();
+            expect(row['day']).toBeNull();
+            expect(JSON.parse(row['_raw'] as string)).toEqual({ at: value, day: value });
+        }
+    });
+
     it('produces Arrow batches', async () => {
         const { environment } = env([json({ apiName: 'a', count: 3, size: '9007199254740993', ratio: 0.5, active: true, created: '2026-01-02T03:04:05Z', day: '2026-01-02', status: { a: 1 } })]);
         const result = await runClientFunctionCall(spec([{ name: 'one', columns }]), call('one'), environment);
