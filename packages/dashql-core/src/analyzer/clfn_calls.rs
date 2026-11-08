@@ -310,16 +310,17 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    /// `_pages` and `_wait` take a positive number
+    /// `_pages` takes a positive number, and `_wait` a number of seconds, which can be its default 0
     fn check_standard_value(&mut self, option: &str, value: &Node) {
         if !matches!(option, OPTION_PAGES | OPTION_WAIT) {
             return;
         }
         match value.node_type() {
             NodeType::OBJECT_SQL_PARAMETER_REF => {}
-            NodeType::LITERAL_INTEGER if source(self.state.parsed, value).parse::<u64>().is_ok_and(|n| n > 0) => {}
+            NodeType::LITERAL_INTEGER if source(self.state.parsed, value).parse::<u64>().is_ok_and(|n| n > 0 || option == OPTION_WAIT) => {}
             _ => {
-                self.error(AnalyzerErrorType::CLIENT_FUNCTION_INVALID_VALUE, value, format!("{option} takes a positive number"));
+                let expected = if option == OPTION_WAIT { "a number of seconds" } else { "a positive number" };
+                self.error(AnalyzerErrorType::CLIENT_FUNCTION_INVALID_VALUE, value, format!("{option} takes {expected}"));
             }
         }
     }

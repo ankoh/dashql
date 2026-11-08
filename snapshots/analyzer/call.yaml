@@ -1173,6 +1173,7 @@ analyzer-snapshots:
     script:
       input: |
         call tickets.export_start (format => 'csv', _wait => 60);
+        call tickets.export_start (format => 'csv', _wait => 0);
         call tickets.export_start (_poll => '/results/1');
       catalog-id: 1
       errors: []
@@ -1182,6 +1183,10 @@ analyzer-snapshots:
           function: export_start
           description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":60}}"
         - statement: 1
+          namespace: tickets
+          function: export_start
+          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":0}}"
+        - statement: 2
           namespace: tickets
           function: export_start
           description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"_poll\":\"/results/1\"}}"
@@ -1200,6 +1205,16 @@ analyzer-snapshots:
           type: literal/string
           is-const: true
           statement-id: 1
+          text: "'csv'"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "0"
+        - expression-idx: 4
+          type: literal/string
+          is-const: true
+          statement-id: 2
           text: "'/results/1'"
       constants:
         - expression: 0
@@ -1207,6 +1222,10 @@ analyzer-snapshots:
         - expression: 1
           text: "60"
         - expression: 2
+          text: "'csv'"
+        - expression: 3
+          text: "0"
+        - expression: 4
           text: "'/results/1'"
 
   - name: call_pending_errors
@@ -1250,6 +1269,38 @@ analyzer-snapshots:
           text: "60"
         - expression: 2
           text: "'x'"
+
+  - name: call_wait_errors
+    catalog:
+      client_functions: tickets
+    script:
+      input: call tickets.export_start (format => 'csv', _wait => -1);
+      catalog-id: 1
+      errors:
+        - type: CLIENT_FUNCTION_INVALID_VALUE
+          message: _wait takes a number of seconds
+          text: "-1"
+      client-function-calls:
+        - statement: 0
+          namespace: tickets
+          function: export_start
+          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":-1}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'csv'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'csv'"
+        - expression: 1
+          text: "1"
 
   - name: call_union_tag
     catalog:

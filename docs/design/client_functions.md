@@ -308,7 +308,7 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 | A missing required option, or a duplicate | Error. A `_poll`, or a `_next` that is a URL, carries the whole request and needs no required options |
 | A function in a value | Error |
 | A standard option the function doesn't support | Error, see [Paging](#paging) and [Pending results](#pending-results) |
-| `_pages` or `_wait` that isn't a positive integer or a parameter | Error |
+| `_pages` that isn't a positive integer, or `_wait` that isn't an integer from 0, unless it's a parameter | Error |
 
 | `unknown` | Unlisted, unquoted name |
 |---|---|

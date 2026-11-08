@@ -195,6 +195,7 @@ analyzer-snapshots:
     script:
       input: |
         call tickets.export_start (format => 'csv', _wait => 60);
+        call tickets.export_start (format => 'csv', _wait => 0);
         call tickets.export_start (_poll => '/results/1');
   # A function without pending results has neither
   - name: call_pending_errors
@@ -202,6 +203,11 @@ analyzer-snapshots:
       client_functions: tickets
     script:
       input: call tickets.ticket_delete (id => 1, _wait => 60, _poll => 'x');
+  - name: call_wait_errors
+    catalog:
+      client_functions: tickets
+    script:
+      input: call tickets.export_start (format => 'csv', _wait => -1);
   # A tag selects the variant of a union, whatever the case of its value
   - name: call_union_tag
     catalog:

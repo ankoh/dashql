@@ -445,7 +445,7 @@ class ClientFunctionCallRun {
             throw new ClientFunctionError('_pages takes a positive number');
         }
         if (!Number.isFinite(wait) || wait < 0) {
-            throw new ClientFunctionError('_wait takes a positive number');
+            throw new ClientFunctionError('_wait takes a number of seconds');
         }
         if (next !== null && poll !== null) {
             throw new ClientFunctionError('_next and _poll continue different things, use one of them');
