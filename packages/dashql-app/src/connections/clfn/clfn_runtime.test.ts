@@ -53,6 +53,48 @@ function cell(result: ClientFunctionResult, row: number, column: string): unknow
     return result.rows[row][result.schema.fields.findIndex(f => f.name === column)];
 }
 
+describe('client function responses without the rows of the spec', () => {
+    const list: ClientFunction = {
+        name: 'list',
+        rows: '/items',
+        columns: [{ name: 'id' }],
+        options: [{ name: 'token', in: 'query' }],
+        paging: { kind: 'token', from: { body: '/next' }, option: 'token' },
+    };
+
+    it('keeps the body in _raw and ends the list', async () => {
+        for (const [response, raw] of [
+            [new Response('<html>login</html>'), '"<html>login</html>"'],
+            [json({ records: [{ id: 1 }], next: 'a' }), '{"records":[{"id":1}],"next":"a"}'],
+            [json({ items: { id: 1 } }), '{"items":{"id":1}}'],
+        ] as [Response, string][]) {
+            const { fetch, environment } = env([response]);
+            const result = await runClientFunctionCall(spec([list]), call('list', { _pages: 3 }), environment);
+            expect(fetch).toHaveBeenCalledTimes(1);
+            expect(result.rows).toHaveLength(1);
+            expect(cell(result, 0, 'id')).toBeNull();
+            expect(cell(result, 0, '_status')).toEqual(200);
+            expect(cell(result, 0, '_next')).toBeNull();
+            expect(cell(result, 0, '_raw')).toEqual(raw);
+        }
+    });
+
+    it('reads an empty list from a null, an empty object and no body', async () => {
+        for (const response of [json({ items: null }), json({}), new Response(null, { status: 204 })]) {
+            const result = await runClientFunctionCall(spec([list]), call('list'), env([response]).environment);
+            expect(result.rows).toEqual([]);
+        }
+    });
+
+    it('keeps the rows of the pages before it', async () => {
+        const { environment } = env([json({ items: [{ id: 1 }], next: 'a' }), json({ error: 'gone' })]);
+        const result = await runClientFunctionCall(spec([list]), call('list', { _pages: 3 }), environment);
+        expect(result.rows).toHaveLength(2);
+        expect(cell(result, 0, 'id')).toEqual('1');
+        expect(cell(result, 1, '_raw')).toEqual('{"error":"gone"}');
+    });
+});
+
 describe('client function requests', () => {
     const create: ClientFunction = {
         name: 'create',

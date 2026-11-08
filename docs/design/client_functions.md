@@ -578,6 +578,7 @@ CALL snowflake.warehouse_create (_poll => '/api/v2/results/01b66701');
 | Response | Rows | Columns |
 |---|---|---|
 | `rows` is set | One row per item | The item's fields. Other response fields go to `_meta` |
+| `rows` is set, and the body doesn't hold an array there | One row | Only the standard columns, with the body in `_raw`. It ends the list, so a spec that disagrees with a response doesn't look like an empty list. A null there and an empty object are an empty list |
 | No `rows`, and the body is an object | One row | The object's fields |
 | No `rows`, and no body (such as HTTP 204) | One row | Only the standard columns |
 | No `rows`, and any other body: an array, or text that isn't JSON | One row | Only the standard columns, with the body in `_raw` |

@@ -107,6 +107,9 @@ interface Page {
     body: unknown;
     /// The headers
     headers: Headers;
+    /// A body that doesn't hold the rows the spec promises. It ends the list and lands in `_raw`, so a spec that disagrees
+    /// with a response doesn't look like an empty list.
+    unexpected?: unknown;
 }
 
 /// Read the entry with a `rel` of a `Link` header
@@ -229,6 +232,11 @@ function readPage(fn: ClientFunction, status: number, body: unknown, headers: He
         return { status, items: body === null ? [{}] : [body], meta: null, body, headers };
     }
     const items = readJsonPointer(body, fn.rows);
+    // An explicit null and an empty object are an empty list
+    const isEmpty = items === null || body === null || (typeof body === 'object' && Object.keys(body).length === 0);
+    if (!Array.isArray(items) && !isEmpty) {
+        return { status, items: [], meta: null, body, headers, unexpected: body };
+    }
     let meta: Record<string, unknown> | null = null;
     if (fn.rows !== '' && typeof body === 'object' && body !== null && !Array.isArray(body)) {
         const rowsField = fn.rows.split('/')[1];
@@ -425,7 +433,7 @@ class ClientFunctionCallRun {
             }
             const page = await this.finish(outcome.response);
             pageRows.push({ page });
-            const value = nextValue(paging, page, position, size);
+            const value = page.unexpected === undefined ? nextValue(paging, page, position, size) : null;
             // A list that doesn't move on would repeat forever
             if (value !== null && value === (i === 0 ? next : lastNext)) {
                 throw new ClientFunctionError(`${spec.namespace}.${fn.name} returned the same next value twice`);
@@ -450,6 +458,9 @@ class ClientFunctionCallRun {
         for (const { page } of pageRows) {
             for (const item of page.items) {
                 rows.push(this.itemRow(item, page, lastNext));
+            }
+            if (page.unexpected !== undefined) {
+                rows.push(this.standardRow(page.status, lastNext, null, null, page.unexpected));
             }
         }
         if (rows.length === 0 && (lastNext !== null || paging === undefined)) {
