@@ -3,6 +3,8 @@ import * as core from '@ankoh/dashql-core';
 
 import type { LoggerLike, Logger } from '../platform/logger/logger.js';
 import { stringifyError } from '../platform/logger/logger.js';
+import type { ClientFunctionSpec } from '../connections/clfn/clfn_spec.js';
+import { connectorOfDetails } from '../connections/connector_descriptor.js';
 import type { AgentCommandParams, AgentCommandResult } from './agent_protocol.js';
 import { AgentCommandError } from './agent_client.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
@@ -365,7 +367,29 @@ async function editVis(env: AgentCommandEnvironment, sessionId: string, state: S
     return reportEdit(env, sessionId, next, edited, 'Visualized', {});
 }
 
-function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
+/// The client functions of a connection as lines of a schema: a family per line, with what it reads and what it writes
+async function describeClientFunctions(env: AgentCommandEnvironment, conn: ConnectionState | null): Promise<string[]> {
+    const binding = conn == null ? undefined : connectorOfDetails(conn.details).clientFunctions;
+    if (binding == null) return [];
+    let spec: ClientFunctionSpec;
+    try {
+        spec = await binding.loadSpec();
+    } catch (e: unknown) {
+        env.logger.warn('Failed to load the client functions', { error: stringifyError(e) }, 'agent_commands');
+        return [];
+    }
+    const families = new Map<string, { reads: string[]; writes: string[] }>();
+    for (const fn of spec.functions) {
+        const family = fn.family ?? spec.namespace;
+        const names = families.get(family) ?? { reads: [], writes: [] };
+        (fn.effect === 'read' ? names.reads : names.writes).push(fn.name);
+        families.set(family, names);
+    }
+    const lines = [...families].map(([family, { reads, writes }]) => `-- ${family}: ${[reads.join(', '), writes.length > 0 ? `writes: ${writes.join(', ')}` : ''].filter(s => s.length > 0).join(' | ')}`);
+    return [`-- The client functions of the connection, call them with CALL ${spec.namespace}.<function> (<option> => <value>, ...)`, ...lines];
+}
+
+async function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const connectionId = typeof args.connection === 'string' ? args.connection : newScriptConnection(state, null)?.connectionId;
     if (connectionId == null) fail('The session has no connection');
     requireSessionConnection(env, state, connectionId);
@@ -377,6 +401,7 @@ function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, ar
         const lines = attachments.map(a => `-- :${a.name}${a.columns == null ? '' : ` (${a.columns.join(', ')})`}`);
         schema = [schema, '-- The attachments of the session, read them as table parameters', ...lines].filter(s => s.length > 0).join('\n');
     }
+    schema = [schema, ...await describeClientFunctions(env, conn)].filter(s => s.length > 0).join('\n');
     const text = schema.length > 0 ? schema : '-- The catalog is empty';
     return { text, data: { connection: connectionId, schema } };
 }

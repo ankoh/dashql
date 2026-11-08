@@ -30,8 +30,10 @@ pub const FEATURE_EMBEDDED_HYPER: &str = "embedded-hyper";
 pub const FEATURE_MANUAL_SCRIPTS: &str = "manual-scripts";
 /// The page marks the connections whose results the embedded Hyper reads from the query result cache
 pub const FEATURE_RESULT_CACHING: &str = "result-caching";
+/// Scripts call the REST API of a connection, `catalog` lists its functions
+pub const FEATURE_CLIENT_FUNCTIONS: &str = "client-functions";
 /// The features of the page that the guide knows
-pub const PAGE_FEATURES: [&str; 9] = [
+pub const PAGE_FEATURES: [&str; 10] = [
     FEATURE_CONNECTIONS,
     FEATURE_EDIT,
     FEATURE_VIS,
@@ -41,6 +43,7 @@ pub const PAGE_FEATURES: [&str; 9] = [
     FEATURE_EMBEDDED_HYPER,
     FEATURE_MANUAL_SCRIPTS,
     FEATURE_RESULT_CACHING,
+    FEATURE_CLIENT_FUNCTIONS,
 ];
 /// The features of every page from before pages announced features
 const BASELINE_FEATURES: [&str; 5] =
@@ -145,7 +148,7 @@ const COMMAND_NOTES: [Note; 8] = [
 ];
 
 /// How DashQL works: connections, the parameters of scripts and the attachments of the session
-const DASHQL_NOTES: [Note; 7] = [
+const DASHQL_NOTES: [Note; 8] = [
     Note {
         feature: FEATURE_EMBEDDED_HYPER,
         text: "Every script runs on one connection. The embedded Hyper runs inside DashQL, `scripts` marks it as
@@ -170,6 +173,14 @@ const DASHQL_NOTES: [Note; 7] = [
   region instead of a single number, below about 100k rows, and rank, pivot, join and slice it in scripts on the
   embedded Hyper. A follow-up question is then often another script on the embedded Hyper over the same remote
   script. The other way round does not work: a remote connection cannot read scripts of other connections.",
+    },
+    Note {
+        feature: FEATURE_CLIENT_FUNCTIONS,
+        text: "A connection can have client functions, which `catalog <id>` lists. `CALL <namespace>.<function> (<option> =>
+  <value>, ...)` in a script of that connection calls its REST API instead of its database, and returns one table.
+  `lint` checks the options and suggests the names it knows. `EXPLAIN CALL` prints the request and sends nothing.
+  `run` refuses a script with a function that writes, ask the user to run it. A script of the embedded Hyper reads
+  the result of a script that is a single call that reads, as a table parameter.",
     },
     Note {
         feature: FEATURE_RESULT_CACHING,

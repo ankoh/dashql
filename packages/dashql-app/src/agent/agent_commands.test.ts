@@ -4,7 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { runAgentCommand, findScript, type AgentCommandEnvironment } from './agent_commands.js';
 import { AgentCommandError } from './agent_client.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionHealth } from '../connections/connection_state.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
@@ -245,6 +245,19 @@ describe('agent commands', () => {
     it('refuses invalid script names', async () => {
         await expect(run('edit', { script: '../x', text: '' })).rejects.toThrow('invalid script name');
         expect(modify).not.toHaveBeenCalled();
+    });
+
+    it('lists the client functions of a connection in its catalog', async () => {
+        connections.get('db').details = { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: {} };
+        const { text } = await run('catalog', { connection: 'db' });
+        expect(text).toContain('-- The client functions of the connection, call them with CALL cdp.<function> (<option> => <value>, ...)');
+        const segments = text.split('\n').find(line => line.startsWith('-- Segments: '))!;
+        expect(segments).toMatch(/-- Segments: .*segment_list.* \| writes: .*segment_create/);
+        expect(segments.split('writes: ')[0]).not.toContain('segment_create');
+    });
+
+    it('lists no client functions on a connection without them', async () => {
+        expect((await run('catalog', { connection: 'db' })).text).not.toContain('client functions');
     });
 
     it('lints a script', async () => {

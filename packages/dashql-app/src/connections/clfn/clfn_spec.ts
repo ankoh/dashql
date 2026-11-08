@@ -91,6 +91,8 @@ export interface ClientFunctionErrors {
 /// A client function
 export interface ClientFunction {
     name: string;
+    /// A grouping for documents and lists
+    family?: string;
     method?: string;
     host?: string;
     path?: string;
