@@ -259,6 +259,47 @@ function readPage(fn: ClientFunction, status: number, body: unknown, headers: He
     return { status, items: Array.isArray(items) ? items : [], meta, body, headers };
 }
 
+/// The options of a call with `_next` applied, if that sets an option
+function optionsWithNext(fn: ClientFunction, options: Record<string, unknown>): Record<string, unknown> {
+    const next = options['_next'] ?? null;
+    const paging = fn.paging;
+    if (next === null || paging === undefined || paging.kind === 'url' || paging.option === undefined) {
+        return options;
+    }
+    const numeric = paging.kind === 'offset' || paging.kind === 'page';
+    return { ...options, [paging.option]: numeric ? Number(next) : next };
+}
+
+/// The first request of a call, which a run sends and `EXPLAIN` prints. A followed `_next` or `_poll` URL replaces the path
+/// and query, the headers of options still apply.
+function firstRequest(spec: ClientFunctionSpec, fn: ClientFunction, options: Record<string, unknown>, variables: Record<string, string>): ClientFunctionRequest {
+    const label = `${spec.namespace}.${fn.name}`;
+    const next = options['_next'] ?? null;
+    const poll = options['_poll'] ?? null;
+    // Only a request that repeats has this value, anything else would send the request again, even a write
+    const pending = pendingOf(spec, fn);
+    if (poll === POLL_SAME && (pending === null || !('repeat' in pending.poll))) {
+        throw new ClientFunctionError(`${label} polls a URL, _poll takes the value of its result`);
+    }
+    const followed = next !== null && fn.paging?.kind === 'url' ? next : poll !== null && poll !== POLL_SAME ? poll : null;
+    if (followed === null) {
+        return buildClientFunctionRequest(spec, fn, optionsWithNext(fn, options), variables);
+    }
+    if (fn.raw === true) {
+        throw new ClientFunctionError(`${label} can't follow a URL`);
+    }
+    if (fn.host === undefined) {
+        throw new ClientFunctionError(`${label} has no host`);
+    }
+    const headers: [string, string][] = [];
+    for (const option of fn.options ?? []) {
+        if (option.in === 'header' && options[option.name] !== undefined && options[option.name] !== null) {
+            headers.push([option.api_name ?? option.name, String(options[option.name])]);
+        }
+    }
+    return followRequest({ method: 'GET', host: fn.host, path: '', query: [], headers, body: null, followUrl: null }, String(followed));
+}
+
 /// Run calls of one function
 class ClientFunctionCallRun {
     readonly fn: ClientFunction;
@@ -412,27 +453,15 @@ class ClientFunctionCallRun {
         if (poll !== null && this.pending === null) {
             throw new ClientFunctionError(`${spec.namespace}.${fn.name} has no option _poll`);
         }
-        // Only a request that repeats has this value, anything else would send the request again, even a write
-        if (poll === POLL_SAME && (this.pending === null || !('repeat' in this.pending.poll))) {
-            throw new ClientFunctionError(`${spec.namespace}.${fn.name} polls a URL, _poll takes the value of its result`);
-        }
         if ((next !== null || pages > 1) && paging === undefined) {
             throw new ClientFunctionError(`${spec.namespace}.${fn.name} doesn't page`);
         }
 
-        // `_next` sets an option, a URL replaces the path and query
-        const send: Record<string, unknown> = { ...options };
-        const paged = paging !== undefined && paging.kind !== 'url' && paging.option !== undefined;
+        const send: Record<string, unknown> = { ...optionsWithNext(fn, options) };
         const numeric = paging?.kind === 'offset' || paging?.kind === 'page';
-        if (next !== null && paged) {
-            send[paging!.option!] = numeric ? Number(next) : next;
-        }
-        const isFollow = (next !== null && paging?.kind === 'url') || (poll !== null && poll !== POLL_SAME);
-        if (fn.raw === true && isFollow) {
-            throw new ClientFunctionError(`${spec.namespace}.${fn.name} can't follow a URL`);
-        }
-        const build = (values: Record<string, unknown>) => buildClientFunctionRequest(spec, fn, values, env.variables?.() ?? {});
-        let request = isFollow ? followRequest(this.headerRequest(options), String(next ?? poll)) : build(send);
+        const variables = env.variables?.() ?? {};
+        const build = (values: Record<string, unknown>) => buildClientFunctionRequest(spec, fn, values, variables);
+        let request = firstRequest(spec, fn, options, variables);
 
         const start = paging?.start ?? 0;
         const size = paging?.size !== undefined && typeof options[paging.size] === 'number' ? options[paging.size] as number : null;
@@ -486,21 +515,6 @@ class ClientFunctionCallRun {
         }
         return { schema: this.schema(), rows, pending: false };
     }
-
-    /// The request that a followed URL replaces: the path and query come from the URL, the headers of options still apply
-    private headerRequest(options: Record<string, unknown>): ClientFunctionRequest {
-        const host = this.fn.host;
-        if (host === undefined) {
-            throw new ClientFunctionError(`${this.spec.namespace}.${this.fn.name} has no host`);
-        }
-        const headers: [string, string][] = [];
-        for (const option of this.fn.options ?? []) {
-            if (option.in === 'header' && options[option.name] !== undefined && options[option.name] !== null) {
-                headers.push([option.api_name ?? option.name, String(options[option.name])]);
-            }
-        }
-        return { method: 'GET', host, path: '', query: [], headers, body: null, followUrl: null };
-    }
 }
 
 /// Sleep until the time is over or the signal aborts
@@ -542,19 +556,7 @@ export async function explainClientFunctionCall(spec: ClientFunctionSpec, descri
     const variables = new Proxy(env.variables?.() ?? {}, {
         get: (target, name: string) => target[name] ?? `{${name}}`,
     });
-    let send = options;
-    const next = options['_next'] ?? null;
-    const poll = options['_poll'] ?? null;
-    let request: ClientFunctionRequest;
-    if (poll !== null && poll !== POLL_SAME || (next !== null && fn.paging?.kind === 'url')) {
-        const host = fn.host ?? '';
-        request = followRequest({ method: 'GET', host, path: '', query: [], headers: [], body: null, followUrl: null }, String(poll ?? next));
-    } else {
-        if (next !== null && fn.paging?.option !== undefined) {
-            send = { ...options, [fn.paging.option]: next };
-        }
-        request = buildClientFunctionRequest(spec, fn, send, variables);
-    }
+    const request = firstRequest(spec, fn, options, variables);
     const standard = Object.fromEntries(Object.entries(options).filter(([name]) => (STANDARD_OPTIONS as readonly string[]).includes(name)));
     const text = (value: unknown) => value === null ? null : String(value);
     const query = request.query.map(([name, value]) => `${name}=${value}`).join('&');

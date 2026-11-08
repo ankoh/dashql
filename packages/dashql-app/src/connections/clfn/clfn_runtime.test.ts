@@ -678,6 +678,30 @@ describe('client function EXPLAIN', () => {
         expect(cell(result, 0, 'path')).toEqual('/v{version}/projects/a');
     });
 
+    it('prints the first request that a run sends', async () => {
+        const feed: ClientFunction = { name: 'feed', options: [{ name: 'trace', api_name: 'X-Trace', in: 'header' }, { name: 'offset', in: 'query' }], rows: '/items', paging: { kind: 'offset', option: 'offset' } };
+        const follow: ClientFunction = { ...feed, name: 'follow', paging: { kind: 'url', from: { body: '/next' } } };
+        for (const [fn, options, path, query] of [
+            [follow, { trace: 'a', _next: '/feed?page=2' }, '/feed?page=2', null],
+            [feed, { trace: 'a', _next: '20' }, '/v2/items', 'offset=20'],
+        ] as [ClientFunction, Record<string, unknown>, string, string | null][]) {
+            const explained = await explainClientFunctionCall(spec([fn]), call(fn.name, options), { variables: () => ({ version: '2' }) });
+            expect(cell(explained, 0, 'path')).toEqual(path);
+            expect(cell(explained, 0, 'query')).toEqual(query);
+            expect(JSON.parse(cell(explained, 0, 'headers') as string)).toEqual({ 'X-Trace': 'a' });
+            const { fetch, environment } = env([json({ items: [] })]);
+            await runClientFunctionCall(spec([fn]), call(fn.name, options), environment);
+            const sent = new URL(urlOf(fetch, 0));
+            expect(`${sent.pathname}${sent.search}`).toEqual(query === null ? path : `${path}?${query}`);
+            expect(new Headers(initOf(fetch, 0).headers).get('X-Trace')).toEqual('a');
+        }
+    });
+
+    it('refuses what a run refuses', async () => {
+        const create: ClientFunction = { name: 'create', method: 'POST', pending: { status: 202, poll: { header: 'Location' } } };
+        await expect(explainClientFunctionCall(spec([create]), call('create', { _poll: 'same' }))).rejects.toThrow(/polls a URL/);
+    });
+
     it('shows a followed URL and what the runtime applies itself', async () => {
         const url: ClientFunction = { name: 'feed', paging: { kind: 'url', from: { body: '/next' } } };
         const result = await explainClientFunctionCall(spec([url]), call('feed', { _next: '/feed?page=2', _pages: 3 }));
