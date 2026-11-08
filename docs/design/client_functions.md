@@ -461,6 +461,8 @@ CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake p
 | An agent's `run` command | Refused, also with `force`: the agent asks the user to run it, and can show the request with `EXPLAIN CALL` |
 | A script that an agent wrote and didn't run | Not run when the answer ends |
 
+Both agent paths decide on the analysis that the run itself gets, not on the annotations before it, which say nothing about a script that isn't analyzed yet.
+
 - **The feed marks the script** with `writes` (`EditorScriptAnnotations.writes`, `AnalyzedScript::calls_writes`).
 - **No script reads its result,** see [Running calls](#running-calls).
 - **Its result is never cached.** A script with a call isn't cacheable, and the shell runs nothing from the cache.

@@ -271,6 +271,19 @@ describe('agent commands', () => {
         await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('only the user runs it');
     });
 
+    it('decides on a write with the analysis of the run, not with the annotations before it', async () => {
+        // The script was never analyzed, its annotations say nothing yet
+        state.scripts[1].analysisOutdated = true;
+        const ran: number[] = [];
+        env.onScriptRun = (_session, scriptKey) => ran.push(scriptKey);
+        const analyzed = { ...state.scripts[1], analysisOutdated: false, annotations: { tableDefs: [], visualizeQuery: null, manual: false, writes: true } };
+        modify.mockImplementation(async () => ({ ...state, scripts: { ...state.scripts, 1: analyzed } }));
+        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders calls a client function that writes, so only the user runs it');
+        expect(env.executeQuery).not.toHaveBeenCalled();
+        expect(ran).toEqual([]);
+        expect(isSessionExecutionRunning(state)).toBe(false);
+    });
+
     it('pages through the last result of a script', async () => {
         state.scripts[1].latestQueryId = 7;
         const table = tableFromArrays({ n: Int32Array.from({ length: 60 }, (_, i) => i) });

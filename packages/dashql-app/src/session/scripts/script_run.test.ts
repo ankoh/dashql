@@ -18,7 +18,7 @@ import {
     replaceScriptSessionText, SET_SCRIPT_CONNECTION, type SessionScripts, type SessionScriptsAction,
 } from './session_scripts.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './script_types.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -198,6 +198,20 @@ describe('script runs', () => {
         expect(path).toMatch(/^\/mnt\/external\/cache\/[0-9a-f-]{36}\.transient\.parquet$/);
         expect(scan.query).toContain(`external('${path}', format => 'parquet')`);
         expect(scan.cacheable).toBeFalsy();
+    });
+
+    it('leaves a script out that a run without a request finds to write once it is analyzed', async () => {
+        const spec = JSON.stringify({ format: 1, namespace: 't', functions: [{ name: 'remove', method: 'DELETE', effect: 'write' }, { name: 'list', method: 'GET', effect: 'read' }] });
+        const f = fixture([['remove.sql', 'call t.remove ();'], ['list.sql', 'call t.list ();']], ['remove.sql', 'list.sql'], true, spec);
+        // The annotations of a script before its analysis say nothing
+        const outdated = { ...f.script('remove.sql'), analysisOutdated: true, annotations: createEmptyAnnotations() };
+        await runSessionScript(f.session(), outdated, f.executeQuery, f.modifySessionScripts, logger, { skipWrites: true });
+        expect(f.executeQuery).not.toHaveBeenCalled();
+        await runSessionScript(f.session(), f.script('list.sql'), f.executeQuery, f.modifySessionScripts, logger, { skipWrites: true });
+        expect(f.executeQuery).toHaveBeenCalledTimes(1);
+        // A run on request sends it
+        await runSessionScript(f.session(), f.script('remove.sql'), f.executeQuery, f.modifySessionScripts, logger);
+        expect(f.executeQuery).toHaveBeenCalledTimes(2);
     });
 
     it('reuses the cached result of a materialized script of another connection', async () => {

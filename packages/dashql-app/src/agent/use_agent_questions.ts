@@ -38,7 +38,7 @@ export interface AgentQuestionsArgs {
     agent: AgentBridge | null;
     /// The scripts of the session
     sessionScripts: SessionScripts;
-    /// Runs a script that the agent wrote
+    /// Runs a script that the agent wrote, unless it calls a client function that writes: only the user runs that
     runScript: (next: SessionScripts, scriptData: ScriptData) => void;
     /// Follows the agent to a script, every time the agent edits or runs it
     followScript?: (scriptKey: number, target: AgentFollowTarget) => void;
@@ -156,8 +156,6 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
                     const scriptData = unrun != null ? current.scripts[unrun[0]] : undefined;
                     if (scriptData == null) return;
                     feed.followScript(scriptData.scriptKey, 'result');
-                    // A call that writes changes the service, only the user runs it
-                    if (scriptData.annotations.writes) return;
                     feed.runScript(current, scriptData);
                 },
                 failed: (error, cancelled) => {

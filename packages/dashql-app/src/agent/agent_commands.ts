@@ -392,25 +392,30 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     const script = requireScript(state, stringArg(args, 'script'));
     const maxRows = numberArg(args, 'maxRows', DEFAULT_RUN_ROWS);
     const name = scriptDisplayName(script.fileName);
-    // A call that writes changes the service, only the user runs it
-    if (script.annotations.writes) {
-        fail(`${name} calls a client function that writes, so only the user runs it. Ask the user to run ${name}, and use EXPLAIN CALL to show the request before.`);
-    }
-    // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
-    if (script.annotations.manual && !booleanArg(args, 'force')) {
-        fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or ask the user whether to run it in full.`);
-    }
+    const force = booleanArg(args, 'force');
     const conn = env.connections().connections.get(script.connection.connectionId);
     if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {
         fail(`The connection ${script.connection.connectionId} of ${name} is not online, ask the user to connect it`);
     }
     const modify: ModifySessionScripts = action => env.modifySessionScripts(sessionId, action);
-    env.onScriptRun?.(sessionId, script.scriptKey);
+    // What a script may do comes from its analysis, which is only current right before the run
+    const beforeRun = (current: ScriptData) => {
+        // A call that writes changes the service, only the user runs it
+        if (current.annotations.writes) {
+            fail(`${name} calls a client function that writes, so only the user runs it. Ask the user to run ${name}, and use EXPLAIN CALL to show the request before.`);
+        }
+        // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
+        if (current.annotations.manual && !force) {
+            fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or ask the user whether to run it in full.`);
+        }
+        env.onScriptRun?.(sessionId, current.scriptKey);
+    };
     let table: arrow.Table | null;
     try {
         // Waits for the run of another script of the session, e.g. one of another turn
-        table = await runSessionScriptForResult(() => env.sessionScripts(sessionId), script.scriptKey, env.executeQuery, modify, env.logger as LoggerLike);
+        table = await runSessionScriptForResult(() => env.sessionScripts(sessionId), script.scriptKey, env.executeQuery, modify, env.logger as LoggerLike, beforeRun);
     } catch (e: unknown) {
+        if (e instanceof AgentCommandError) throw e;
         fail(`${name} failed: ${stringifyError(e)}`);
     }
     if (table == null) {
