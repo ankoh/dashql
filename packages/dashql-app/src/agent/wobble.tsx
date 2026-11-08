@@ -143,6 +143,7 @@ enum Phase {
 
 /// Wobble, a liquid disk with eyes that glance around and morphs into the DashQL brand mark and back.
 /// The frames write the path data through refs, React renders Wobble once.
+/// It keeps moving with prefers-reduced-motion.
 export function Wobble(props: WobbleProps): React.ReactElement {
     const flavorBrand = useFlavorWobbleBrand();
     const { brand = flavorBrand, tuning, mode = WobbleMode.Cycle, paused = false, label, onMorph, gaze, lastInput, className, ...svgProps } = props;
@@ -167,8 +168,6 @@ export function Wobble(props: WobbleProps): React.ReactElement {
     const gooGroupRef = React.useRef<SVGGElement | null>(null);
     const blurRef = React.useRef<SVGFEGaussianBlurElement | null>(null);
     const cutoutsRef = React.useRef<SVGGElement | null>(null);
-
-    const reducedMotion = React.useMemo(() => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, []);
 
     React.useEffect(() => {
         if (paused) return;
@@ -229,7 +228,7 @@ export function Wobble(props: WobbleProps): React.ReactElement {
             // Advance the cycle
             switch (phase) {
                 case Phase.Face:
-                    if (requested === WobbleMode.Logo || (requested === WobbleMode.Cycle && elapsed >= faceHold && !reducedMotion)) {
+                    if (requested === WobbleMode.Logo || (requested === WobbleMode.Cycle && elapsed >= faceHold)) {
                         enterPhase(Phase.ClosingEyes, now);
                     }
                     break;
@@ -248,12 +247,7 @@ export function Wobble(props: WobbleProps): React.ReactElement {
                     break;
             }
             const morphTarget = phase === Phase.Logo ? 1 : 0;
-            if (reducedMotion) {
-                morph.value = morphTarget;
-                morph.velocity = 0;
-            } else {
-                stepSpring(morph, morphTarget, t.stiffness, t.damping, dt);
-            }
+            stepSpring(morph, morphTarget, t.stiffness, t.damping, dt);
 
             // The eyes close before the morph and open once the face is back
             const eyesTarget = phase === Phase.Face ? 1 : 0;
@@ -261,7 +255,7 @@ export function Wobble(props: WobbleProps): React.ReactElement {
             eyesOpen = eyesTarget > eyesOpen ? Math.min(eyesTarget, eyesOpen + eyesStep) : Math.max(eyesTarget, eyesOpen - eyesStep);
             // A gaze target or the pointer draws the eyes, the face otherwise glances around on its own
             let lookYTarget = 0;
-            const gaze = !reducedMotion && phase === Phase.Face ? gazePoint(now) : null;
+            const gaze = phase === Phase.Face ? gazePoint(now) : null;
             if (gaze != null && svgRef.current != null) {
                 const rect = svgRef.current.getBoundingClientRect();
                 const dx = gaze.x - (rect.left + rect.width / 2);
@@ -269,25 +263,21 @@ export function Wobble(props: WobbleProps): React.ReactElement {
                 glanceTarget = dx / Math.hypot(dx, Math.max(1, rect.width * GAZE_SOFTNESS_X));
                 lookYTarget = dy / Math.hypot(dy, Math.max(1, rect.width * GAZE_SOFTNESS_Y));
                 nextGlance = now + jitter(t.glanceIntervalMs);
-            } else if (!reducedMotion && phase === Phase.Face) {
+            } else if (phase === Phase.Face) {
                 if (now >= nextGlance) {
                     const choices = [-1, -1, -0.6, 0, 0.6, 1, 1].filter(c => c !== glanceTarget);
                     glanceTarget = choices[Math.floor(Math.random() * choices.length)];
                     nextGlance = now + jitter(t.glanceIntervalMs);
                 }
             }
-            if (!reducedMotion && phase === Phase.Face && now >= nextBlink + BLINK_MS) nextBlink = now + jitter(t.blinkIntervalMs);
+            if (phase === Phase.Face && now >= nextBlink + BLINK_MS) nextBlink = now + jitter(t.blinkIntervalMs);
             if (phase !== Phase.Face) glanceTarget = 0;
             stepSpring(glance, glanceTarget, 260, 26, dt);
             stepSpring(lookY, lookYTarget, 260, 26, dt);
             // The eyes squint happily while the input goes on
             const input = lastInputRef.current?.() ?? null;
             const happyTarget = phase === Phase.Face && input != null && now - input < HAPPY_HOLD_MS ? 1 : 0;
-            if (reducedMotion) {
-                happy.value = happyTarget;
-            } else {
-                stepSpring(happy, happyTarget, 320, 30, dt);
-            }
+            stepSpring(happy, happyTarget, 320, 30, dt);
 
             const blinkT = (now - nextBlink) / BLINK_MS;
             const blink = blinkT > 0 && blinkT < 1 ? Math.abs(2 * blinkT - 1) : 1;
@@ -326,9 +316,9 @@ export function Wobble(props: WobbleProps): React.ReactElement {
                 morphPoints(brand.pieces[i], {
                     progress: morph.value,
                     time,
-                    wobble: reducedMotion ? 0 : t.wobble * Math.max(0, 1 - morph.value),
+                    wobble: t.wobble * Math.max(0, 1 - morph.value),
                     lag: t.lag,
-                    ripple: reducedMotion ? 0 : t.ripple,
+                    ripple: t.ripple,
                 }, outlines[i], scratch);
                 path.setAttribute('d', outlinePath(outlines[i]));
             }
@@ -343,7 +333,7 @@ export function Wobble(props: WobbleProps): React.ReactElement {
             // The goo filter melts the halves together, until they are joined again on the way back.
             // The face is a disk the goo leaves as it is, the corners of the brand mark stay crisp at rest.
             const towardsLogo = Math.min(Math.max((1 - morph.value) / GOO_FADE, 0), 1);
-            const blur = reducedMotion ? 0 : t.gooBlur * towardsLogo * towardsLogo * (3 - 2 * towardsLogo);
+            const blur = t.gooBlur * towardsLogo * towardsLogo * (3 - 2 * towardsLogo);
             const wantGoo = blur > 0.2;
             if (wantGoo !== gooOn) {
                 gooOn = wantGoo;
@@ -352,16 +342,15 @@ export function Wobble(props: WobbleProps): React.ReactElement {
             }
             if (wantGoo) blurRef.current?.setAttribute('stdDeviation', blur.toFixed(2));
 
-            // With reduced motion, a single frame shows the requested shape
-            frame = reducedMotion ? 0 : requestAnimationFrame(render);
+            frame = requestAnimationFrame(render);
         };
         render(performance.now());
         return () => {
-            if (frame !== 0) cancelAnimationFrame(frame);
+            cancelAnimationFrame(frame);
             globalThis.removeEventListener?.('pointermove', onPointerMove);
         };
-        // The tuning and the mode are read through refs, only a still face redraws when the mode changes
-    }, [brand, paused, reducedMotion, gooId, reducedMotion ? mode : null]);
+        // The tuning and the mode are read through refs
+    }, [brand, paused, gooId]);
 
     const initialPaths = React.useMemo(() => brand.pieces.map(piece => outlinePath(piece.faceRest)), [brand]);
     return (
