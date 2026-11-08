@@ -137,7 +137,9 @@ struct Callee<'a> {
 fn resolve_callee<'a>(parsed: &ParsedScript, specs: &'a CatalogSnapshot, call: &Node) -> Option<Callee<'a>> {
     let [name] = attrs!(parsed.children(call), [K::SQL_CALL_NAME]);
     let mut path = read_name_path(parsed, name?).into_iter();
-    let (namespace, spec) = specs.client_function_specs().get_key_value(path.next()?.as_str())?;
+    // A namespace is a plain lower-case name, also if a script quotes it, like `starts_client_function_call` and completion read it
+    let namespace = path.next()?.to_ascii_lowercase();
+    let (namespace, spec) = specs.client_function_specs().get_key_value(namespace.as_str())?;
     Some(Callee { namespace, spec, path: path.collect() })
 }
 

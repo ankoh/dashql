@@ -1151,6 +1151,22 @@ analyzer-snapshots:
         - expression: 6
           text: "2"
 
+  - name: call_quoted_namespace
+    catalog:
+      client_functions: tickets
+    script:
+      input: call "TICKETS".ticket_delete ();
+      catalog-id: 1
+      errors:
+        - type: CLIENT_FUNCTION_MISSING_OPTION
+          message: tickets.ticket_delete needs the option id
+          text: "call \"TICK.._delete ()"
+      client-function-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_delete
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{}}"
+
   - name: call_pending
     catalog:
       client_functions: tickets

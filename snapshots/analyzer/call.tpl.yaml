@@ -182,6 +182,12 @@ analyzer-snapshots:
       input: |
         call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (notify = true), second = (id = 2, notifi = true)));
         call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (id = 1), first = (id = 2)));
+  # A quoted namespace is still the namespace, so its calls never reach the backend
+  - name: call_quoted_namespace
+    catalog:
+      client_functions: tickets
+    script:
+      input: call "TICKETS".ticket_delete ();
   # A function with pending results waits and polls, a poll needs no other option
   - name: call_pending
     catalog:
