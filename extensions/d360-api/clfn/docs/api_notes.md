@@ -372,11 +372,8 @@ Run these once an org is available, read-only first. Each settles something this
 13. Test `IS NOT DISTINCT FROM` in `ON`, subqueries in `WHERE`, and table aliases, to settle the source conflicts.
 14. Test `INTERSECT` and `UNION` of canonical shapes. High-level segments depend on it.
 
-**Cost:**
-15. Measure credit use per family, and how Headless Platform Interactions apply. Set the `billed` flag from the results.
-
 **Response headers:**
-16. Do `202` responses carry a `Location`, and do list responses carry a `Link`? The normalized contract drops response headers, so this decides whether Data 360 needs `pending` or header paging. From a browser, check that `Access-Control-Expose-Headers` lists them.
+15. Do `202` responses carry a `Location`, and do list responses carry a `Link`? The normalized contract drops response headers, so this decides whether Data 360 needs `pending` or header paging. From a browser, check that `Access-Control-Expose-Headers` lists them.
 
 **Zero copy:**
-17. Run `connector_list` and `connector_metadata` for Snowflake, BigQuery, Databricks, Redshift and both file federation connectors, and replace the [guessed attributes](#zero-copy) of the snippets. Do Databricks and Redshift have an unload attribute?
+16. Run `connector_list` and `connector_metadata` for Snowflake, BigQuery, Databricks, Redshift and both file federation connectors, and replace the [guessed attributes](#zero-copy) of the snippets. Do Databricks and Redshift have an unload attribute?

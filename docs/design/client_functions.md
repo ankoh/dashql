@@ -209,7 +209,6 @@ This is the whole shape of a spec, with one function:
 | `pending` | Overrides the top-level value, or `null` for none |
 | `errors` | Overrides, see [Results and errors](#results-and-errors) |
 | `effect` | `read` or `write`, see [Writes](#writes). Without it, a `GET` reads and any other method writes |
-| `billed` | Whether a call costs money. Recorded for run gating, which doesn't read it yet |
 | `raw` | Marks the [escape hatch](#the-escape-hatch) |
 | `evidence` | Free text on where the entry came from. The runtime ignores it |
 
@@ -469,7 +468,6 @@ CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake p
 
 An agent runs a write for now, and its guide says that a write takes effect as soon as its script runs. An approval step is planned.
 
-- **The feed marks the script** with `writes` (`EditorScriptAnnotations.writes`, `AnalyzedScript::calls_writes`).
 - **No script reads its result,** see [Running calls](#running-calls).
 - **Its result is never cached.** A script with a call isn't cacheable, and the shell runs nothing from the cache.
 - **The statements before it have run** when a write fails, and there is no rollback: a script is a sequence of requests.
@@ -709,7 +707,7 @@ Each phase lands separately.
 2. **Runtime:** calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
-5. **Writes:** mutating calls run, a script with one runs only on request, see [Writes](#writes). An approval step for agents is still to come. Done, apart from `billed`, which no function sets yet, and the [secret store](../wip/secret_store.md), which is deferred.
+5. **Writes:** mutating calls run, a script with one runs only on request, see [Writes](#writes). An approval step for agents is still to come. Done, apart from the [secret store](../wip/secret_store.md), which is deferred.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 
 ## Open questions

@@ -290,14 +290,13 @@ It's the only function with a `body` option.
   ],
   "columns": [{ "name": "api_name", "api_name": "apiName", "type": "VARCHAR" }],
   "effect": "write",
-  "billed": false,
   "evidence": "O"
 }
 ```
 
 `evidence` is `O`, `S`, `D` or `C` per function (see [the reference](functions.md#evidence)), plus a source per annotated attribute.
 
-`effect` follows the method, except for reads that use `POST`, such as `transform_validate` and `ci_run_status`. `billed` gets set from the [cost checks](api_notes.md#live-checks).
+`effect` follows the method, except for reads that use `POST`, such as `transform_validate` and `ci_run_status`.
 
 ## Roadmap
 

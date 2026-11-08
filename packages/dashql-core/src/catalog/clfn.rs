@@ -681,7 +681,7 @@ mod tests {
 
     #[test]
     fn ignores_what_the_runtime_reads() {
-        let spec = ClientFunctionSpec::parse(&function("f", r#", "path": "/x", "host": "api", "rows": "", "billed": true"#)).unwrap();
+        let spec = ClientFunctionSpec::parse(&function("f", r#", "path": "/x", "host": "api", "rows": "", "errors": {"empty_on": [404]}"#)).unwrap();
         assert!(spec.function("f").is_some());
     }
 
