@@ -142,6 +142,20 @@ export interface DashQLShellCompletionCandidate {
     targetLength: number;
 }
 
+/// The completion list that the host shows over the terminal
+export interface DashQLShellCompletionList {
+    /// Changes when the candidates change, the buffer only has to be read then
+    revision: bigint;
+    /// The index of the selected candidate
+    selection: number;
+    /// The index of the selected catalog object of the selected candidate
+    variant: number;
+    /// The terminal column of the start of the replaced text
+    anchorColumn: number;
+}
+
+const SHELL_COMPLETION_TYPE = Symbol('SHELL_COMPLETION_TYPE');
+
 export class DashQLShellError extends Error {
     constructor(
         public readonly status: DashQLShellStatus,
@@ -289,6 +303,29 @@ export class DashQLShell {
 
     consumeTerminalInput(key: DashQLShellPromptInput, text = ''): DashQLShellTerminalOutput {
         return this.readTerminal(this.alive().consumeTerminalInput(key, text));
+    }
+
+    /// The completion list to show over the terminal, null if there is none
+    terminalCompletionList(): DashQLShellCompletionList | null {
+        const list = this.alive().terminalCompletionList();
+        if (list == null) return null;
+        try {
+            return {
+                revision: list.revision,
+                selection: list.selection,
+                variant: list.variant,
+                anchorColumn: list.anchorColumn,
+            };
+        } finally {
+            list.free();
+        }
+    }
+
+    /// The candidates of the completion list, null if there is none
+    terminalCompletionBuffer(): dashql.FlatBufferPtr<dashql.buffers.completion.Completion> | null {
+        const bytes = this.alive().terminalCompletionBuffer();
+        if (bytes == null) return null;
+        return new dashql.FlatBufferPtr(SHELL_COMPLETION_TYPE, this.core, bytes, () => new dashql.buffers.completion.Completion());
     }
 
     finishTerminalQuery(output: string, error = false): DashQLShellTerminalOutput {

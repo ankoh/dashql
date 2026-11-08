@@ -28,6 +28,7 @@ import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import { SessionViewMode, SessionViewModeProvider, useSessionViewMode } from '../session_view_mode.js';
 import { resolveClientFunctionCall } from './session_shell_environment.js';
 import { SessionShellPage, type SessionShellPageDependencies } from './session_shell_page.js';
+import * as completionListStyles from '../../views/completion_list/completion_list.module.css';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -239,6 +240,11 @@ describe('SessionShellPage', () => {
     /// What the page wrote to the terminal without its escape sequences. The renderer of xterm pauses in a test frame,
     /// so the rows of the terminal go stale.
     const screen = () => transcript.join('').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\r/g, '');
+    /// The names in the completion list over the terminal
+    const completionNames = () => Array.from(
+        container.querySelectorAll(`[data-dashql-completion-list] .${completionListStyles.candidate_name}`),
+        name => name.textContent,
+    );
 
     /// Mount the page and wait until its terminal shows the prompt
     async function open(connections: ConnectionState[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
@@ -559,6 +565,8 @@ describe('SessionShellPage', () => {
         it('completes names of the catalog', async () => {
             await open([createConnection(MAIN, { relationsSql: 'create table orders (id integer);' })]);
             type('select * from ord');
+            await vi.waitFor(() => expect(completionNames()).toContain('orders'), WAIT);
+            for (let i = 0; i < completionNames().indexOf('orders'); ++i) press('ArrowDown');
             press('Tab');
             await vi.waitFor(() => expect(screen()).toContain('orders'), WAIT);
         });

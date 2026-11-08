@@ -12,7 +12,7 @@
 use crate::{Catalog, SharedCatalog};
 use dashql_core_shell::{
     CompletionCandidate, EffectCompletionStatus, PromptInputAction, PromptInputKey, PromptSnapshot, ShellOperation as CoreOperation,
-    ShellSession, ShellStatus, TerminalOutput,
+    ShellSession, ShellStatus, TerminalCompletionList, TerminalOutput,
 };
 use wasm_bindgen::prelude::*;
 
@@ -168,6 +168,40 @@ impl ShellCompletionCandidate {
     #[wasm_bindgen(getter, js_name = targetLength)]
     pub fn target_length(&self) -> u32 {
         self.inner.target_length
+    }
+}
+
+/// The completion list that the host shows over the terminal
+#[wasm_bindgen]
+pub struct ShellCompletionList {
+    /// The core completion list
+    inner: TerminalCompletionList,
+}
+
+#[wasm_bindgen]
+impl ShellCompletionList {
+    /// Changes when the candidates change, `terminalCompletionBuffer` only has to be read then
+    #[wasm_bindgen(getter)]
+    pub fn revision(&self) -> u64 {
+        self.inner.revision
+    }
+
+    /// The index of the selected candidate
+    #[wasm_bindgen(getter)]
+    pub fn selection(&self) -> u32 {
+        self.inner.selection
+    }
+
+    /// The index of the selected catalog object of the selected candidate
+    #[wasm_bindgen(getter)]
+    pub fn variant(&self) -> u32 {
+        self.inner.variant
+    }
+
+    /// The terminal column of the start of the replaced text
+    #[wasm_bindgen(getter, js_name = anchorColumn)]
+    pub fn anchor_column(&self) -> u32 {
+        self.inner.anchor_column
     }
 }
 
@@ -338,6 +372,22 @@ impl Shell {
             Some(key) => terminal(alive(&mut self.inner).consume_terminal_input(key, text.as_bytes(), &self.catalog.borrow())),
             None => invalid_terminal("invalid terminal input"),
         }
+    }
+
+    /// The completion list that the host shows over the terminal, undefined if there is none
+    #[wasm_bindgen(js_name = terminalCompletionList)]
+    pub fn terminal_completion_list(&self) -> Option<ShellCompletionList> {
+        self.inner.as_ref()?.terminal_completion_list().map(|inner| ShellCompletionList { inner })
+    }
+
+    /// The packed `Completion` of the completion list, undefined if there is none
+    #[wasm_bindgen(js_name = terminalCompletionBuffer)]
+    pub fn terminal_completion_buffer(&self) -> Option<Vec<u8>> {
+        let completion = self.inner.as_ref()?.terminal_completion_buffer()?;
+        let mut builder = flatbuffers::FlatBufferBuilder::new();
+        let packed = completion.pack(&mut builder);
+        builder.finish(packed, None);
+        Some(builder.finished_data().to_vec())
     }
 
     #[wasm_bindgen(js_name = finishTerminalQuery)]

@@ -568,27 +568,25 @@ describe('DashQL shell Wasm', () => {
         expect(selectIndex).toBeGreaterThanOrEqual(0);
 
         expect(opened.action).toBe(DashQLShellPromptAction.NONE);
-        expect(opened.data).toContain(VT100.REVERSE_VIDEO);
-        expect(opened.data).toContain(
-            vt100Sequence(1, VT100Command.CURSOR_DOWN) + vt100Sequence(4, VT100Command.CURSOR_FORWARD) +
-            VT100.FOREGROUND_BRIGHT_BLACK + '╭',
-        );
-        expect(opened.data).not.toContain(
-            vt100Sequence(4, VT100Command.CURSOR_FORWARD) + VT100.ERASE_ENTIRE_LINE,
-        );
-        expect(opened.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + '╰');
-        expect(opened.data).not.toContain(VT100.ERASE_ENTIRE_LINE + '> ');
+        expect(opened.data).not.toContain('╭');
+        const list = shell.terminalCompletionList()!;
+        expect(list.selection).toBe(0);
+        expect(list.anchorColumn).toBe(4);
         let selected = opened;
         for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         expect(selected.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + 'ect');
+        expect(shell.terminalCompletionList()!.selection).toBe(selectIndex);
+        expect(shell.terminalCompletionList()!.revision).toBe(list.revision);
         const accepted = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(accepted.action).toBe(DashQLShellPromptAction.NONE);
         expect(accepted.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'select' + VT100.RESET_ATTRIBUTES);
         expect(shell.movePromptRight().text).toBe('select');
 
         shell.consumeTerminalInput(DashQLShellPromptInput.CANCEL);
-        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel').data).toContain(VT100.REVERSE_VIDEO);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
+        expect(shell.terminalCompletionList()).not.toBeNull();
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.terminalCompletionList()).toBeNull();
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.EXIT);
     });
 
@@ -597,12 +595,12 @@ describe('DashQL shell Wasm', () => {
         const hinted = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' ');
 
         expect(hinted.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK);
-        expect(hinted.data).not.toContain('╭');
-        expect(hinted.data).not.toContain(VT100.REVERSE_VIDEO);
+        expect(shell.terminalCompletionList()).toBeNull();
+        expect(shell.terminalCompletionBuffer()).toBeNull();
 
-        const listed = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 's');
-        expect(listed.data).toContain('╭');
-        expect(listed.data).toContain(VT100.REVERSE_VIDEO);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 's');
+        expect(shell.terminalCompletionList()).not.toBeNull();
+        expect(shell.terminalCompletionBuffer()).not.toBeNull();
 
         shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text.length).toBeGreaterThan(2);
@@ -618,7 +616,8 @@ describe('DashQL shell Wasm', () => {
         shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
         shell.consumeTerminalInput(DashQLShellPromptInput.END);
-        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TAB).data).toContain('╭');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(shell.terminalCompletionList()).not.toBeNull();
         shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text).toBe(candidates[0].completionText);
     });
@@ -662,13 +661,22 @@ describe('DashQL shell Wasm', () => {
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'x');
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.BACKSPACE);
         expect(output.data).not.toContain(vt100Sequence(9, VT100Command.INSERT_LINE));
-        expect(output.data).toContain(
-            vt100Sequence(1, VT100Command.CURSOR_DOWN) + vt100Sequence(4, VT100Command.CURSOR_FORWARD) +
-            VT100.FOREGROUND_BRIGHT_BLACK + '╭',
-        );
-        expect(output.data).not.toContain(
-            vt100Sequence(4, VT100Command.CURSOR_FORWARD) + VT100.ERASE_ENTIRE_LINE,
-        );
+        expect(shell.terminalCompletionList()!.anchorColumn).toBe(4);
+    });
+
+    it('hands out the candidates of the completion list with what is known about them', () => {
+        loadCatalogScript(shell, 'create table orders(order_id bigint, amount double);');
+        shell.openTerminal('db> ');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'select * from orders o where o.');
+
+        const completion = shell.terminalCompletionBuffer()!.read();
+        const names = shell.completePrompt(50).map(candidate => candidate.displayText);
+        expect(completion.candidatesLength()).toBe(names.length);
+        const listed = Array.from({ length: names.length }, (_, i) => completion.candidates(i)!.displayText());
+        expect(listed).toEqual(names);
+
+        const orderId = completion.candidates(listed.indexOf('order_id'))!;
+        expect(orderId.catalogObjects(0)!.info()!.detail()!.toLowerCase()).toContain('bigint');
     });
 
     it('shows qualification inline before accepting the candidate', () => {

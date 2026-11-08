@@ -12,7 +12,12 @@
     max-width: 100vw;
     overflow: hidden;
 
+    color: var(--color_fg);
     font-size: 0.8rem;
+}
+/* On a surface that is dark in both schemes, like the terminal of the shell */
+.on_dark_surface {
+    color-scheme: dark;
 }
 .list_container {
     /* Fills the min-width of the overlay if the names are short, the pane gives way if the window is narrow */

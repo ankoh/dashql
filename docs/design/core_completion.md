@@ -266,7 +266,7 @@ The core formats all of it, so that snapshots cover the text and the app has no 
 | Column | Its type and table, such as `bigint · orders` | None |
 | Client function call | From the spec, see `client_functions.md` | From the spec |
 
-`columns` holds the result of a client function and the columns of a table. A client function's signature lists the options of its spec, and `?` marks an optional one. In the pane it's clamped to three lines above a table with the same parameters. Only client function calls fill the parameters and the example so far. A catalog function's signature fits in its row, and enrichment can fill the same fields through `describe_function`.
+`columns` holds the result of a client function and the columns of a table. A client function's signature lists the options of its spec, and `?` marks an optional one. In the pane it's clamped to three lines above a table with the same parameters. Only client function calls fill the parameters and the example so far. A catalog function's signature is its detail in the pane, and enrichment can fill the same fields through `describe_function`.
 
 Everything known about a catalog function goes through `describe_function`. A function without parameters that returns `any` is one whose signature is unknown: the catalog file of the bundled functions declares all of them like that. A table lists up to 200 of its columns as they are written, with the types of a `CREATE TABLE`. Other tables, such as views and table parameters, only know the names. A connection's catalog script writes each type as a quoted name, such as `"id" "bigint"`, since a backend can name types that aren't SQL. The text stays as it is, only in lower case.
 
@@ -360,6 +360,17 @@ A row shows the type and the name. The pane next to the list shows what is known
 A description is rendered through text nodes, with `code` and `strong` elements for its inline Markdown. A link shows its label and can't be clicked, since a click must not leave the editor. A click anywhere in the list keeps the focus in the editor, because a blur ends the completion.
 
 The list is as wide as its content. If that doesn't fit the window, the pane goes first, then the list moves left from the cursor.
+
+The view lives in `views/completion_list/completion_list_view.ts` and knows nothing about its host. The editor and the shell both show it.
+
+### The list in the shell
+
+The shell shows the same list over the terminal (`shell/completion_overlay.ts`). The Rust shell keeps the candidates, the selection and the keys, and the host reads what to show after every input, see `packages/dashql-core-shell/SHELL.md`. The differences to the editor come from the terminal:
+
+- **Position:** the anchor is a terminal cell, the column of the replaced text in the row of the cursor. The list follows it when the terminal scrolls or resizes, and hides while that row is scrolled out of view.
+- **Mount:** the list sits in the terminal container and not on `body`, so it hides with a page that goes to the background. It's dark in both schemes, like the terminal.
+- **Variants:** Left and Right cycle the qualified names that the shell offers, which can be fewer than the catalog objects of a candidate. The shell packs only the objects with a qualified name, or the first one if there are none, so that the arrows of a row appear exactly when Left and Right cycle.
+- **Dot commands:** a command is a candidate without an info, with the keyword badge and no pane.
 
 ### Patch computation
 

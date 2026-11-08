@@ -1,7 +1,7 @@
 # DashQL Shell
 
 The shell (`dashql_core_shell`) is the Rust/WebAssembly core of an embeddable SQL terminal. It owns the complete terminal state machine
-and terminal rendering, including prompt redraws, syntax highlighting, cursor placement, completion lists, status and
+and terminal rendering, including prompt redraws, syntax highlighting, cursor placement, inline completion hints, status and
 error output, and width-constrained UTF-8 tables. It deliberately does not own the xterm object, a database, or browser
 APIs.
 
@@ -32,9 +32,16 @@ type that arrow-cast cannot format shows its type name. Values do not print like
 The TypeScript binding lives in `packages/dashql-app/src/shell`. Its root entrypoint exports
 `createDashQLShell({ core, catalog, environment, ... })` and `createDuckDBShellEnvironment(connection)`. The environment returns Arrow IPC
 file bytes from `executeQuery()`, while the shell owns effect dispatch, cancellation, coroutine resumption, input handling,
-and ANSI terminal rendering. The browser controller only creates and disposes xterm, forwards terminal dimensions and raw
+and ANSI terminal rendering. The browser controller creates and disposes xterm, forwards terminal dimensions and raw
 input events, executes requested host effects, and writes the bytes returned by Wasm. Terminal rendering logic must not be
 implemented or duplicated in TypeScript.
+
+The completion list is the one thing the host paints, as DOM over the terminal, since terminal cells can't show what is
+known about a candidate. The shell still decides everything about it: the candidates, the selection, the variants, the
+keys and what a candidate replaces. `terminalCompletionList` says what to show after an input, with the terminal column
+of the replaced text, and `terminalCompletionBuffer` holds the candidates as a packed `Completion`, in the order of the
+prompt candidates. The list writes nothing to the terminal, so the rows below the prompt stay as they are. The inline
+hint of the selected candidate is part of the prompt and stays in the terminal.
 
 Build and test through Bazel:
 
@@ -48,6 +55,6 @@ extended grapheme clusters, while cursor positions remain UTF-8 byte offsets for
 Clusters come from `unicode-segmentation` and occupy the terminal columns of `unicode-width`; clusters that start with a
 control character take no columns, and text that is not valid UTF-8 takes one column per byte (`shell::unicode`).
 
-The Rust shell is the single source of truth for shell behavior and rendering. New highlighting, completion
-presentation, cursor, redraw, history, and status behavior belongs in the Rust shell code, not in the TypeScript xterm
-host.
+The Rust shell is the single source of truth for shell behavior and terminal rendering. New highlighting, inline hint,
+cursor, redraw, history, and status behavior belongs in the Rust shell code, not in the TypeScript xterm host. The same
+holds for how the completion list behaves, only its painting is in the host.

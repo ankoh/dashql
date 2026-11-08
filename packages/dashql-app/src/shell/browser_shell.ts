@@ -4,6 +4,7 @@ import type { WebglAddon } from '@xterm/addon-webgl';
 
 import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
 import { stringifyError } from '../platform/logger/logger.js';
+import { TerminalCompletionOverlay } from './completion_overlay.js';
 import { VT100 } from './vt100.js';
 
 const QUERY_SPINNER_INTERVAL_MS = 80;
@@ -254,12 +255,34 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     const helper = options.container.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
     helper?.setAttribute('aria-label', options.inputAriaLabel ?? 'DashQL shell input');
 
+    const completionOverlay = new TerminalCompletionOverlay(
+        options.container,
+        terminal,
+        () => consume(DashQLShellPromptInput.LEFT),
+        () => consume(DashQLShellPromptInput.RIGHT),
+    );
+    const syncCompletion = () => {
+        if (!disposed) completionOverlay.update(shell);
+    };
+    // The cursor that the completion list follows is only current once the terminal processed the output
+    const writeOutput = (data: string) => {
+        if (data.length === 0) syncCompletion();
+        else terminal.write(data, syncCompletion);
+    };
+    // A blur ends the completion, like in the editor
+    const abortCompletionOnBlur = () => {
+        if (completionOverlay.isOpen && !disposed) consume(DashQLShellPromptInput.ABORT);
+    };
+    helper?.addEventListener('blur', abortCompletionOnBlur);
+    const renderSubscription: IDisposable = terminal.onRender(() => completionOverlay.place());
+
     const syncSize = () => {
         if (disposed || options.container.clientWidth === 0 || options.container.clientHeight === 0) return;
         fitAddon.fit();
         const columns = Math.max(1, terminal.cols);
         shell.resize(columns);
         options.onTerminalResize?.(columns);
+        completionOverlay.place();
     };
     const resizeObserver = new ResizeObserver(syncSize);
     resizeObserver.observe(options.container);
@@ -308,7 +331,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     const consume = (key: DashQLShellPromptInput, text = '') => {
         if (key === DashQLShellPromptInput.CANCEL) pendingPrompts = [];
         const output = shell.consumeTerminalInput(key, text);
-        terminal.write(output.data);
+        writeOutput(output.data);
         if (output.action === DashQLShellPromptAction.SUBMIT) void submit();
         else if (output.action === DashQLShellPromptAction.EXIT) options.onExit?.();
     };
@@ -382,11 +405,11 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             prompt = nextPrompt;
             shell.importHistory(history);
             shell.setTerminalPromptColor(promptColor);
-            terminal.write(shell.openTerminal(prompt).data);
+            writeOutput(shell.openTerminal(prompt).data);
             syncSize();
         },
         writeStatus(message) {
-            terminal.write(shell.renderTerminalStatus(message).data);
+            writeOutput(shell.renderTerminalStatus(message).data);
         },
         queuePrompts(prompts) {
             if (disposed) return;
@@ -400,6 +423,9 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             activeProgress = null;
             disposed = true;
             activeQuery?.abort();
+            helper?.removeEventListener('blur', abortCompletionOnBlur);
+            renderSubscription.dispose();
+            completionOverlay.destroy();
             dataSubscription.dispose();
             resizeObserver.disconnect();
             terminal.dispose();

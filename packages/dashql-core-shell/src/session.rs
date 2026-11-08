@@ -9,10 +9,10 @@ use super::*;
 use dashql_core::catalog::ids::CatalogObjectType;
 use dashql_core::catalog::Catalog;
 use dashql_core::error::Error;
-use dashql_core::pack::pack_tokens;
+use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::Script;
 use dashql_core::utils::{ci_cmp, ci_find, ci_starts_with, quote_identifier};
-use dashql_buffers::completion::CandidateTag;
+use dashql_buffers::completion::{CandidateTag, CompletionCandidateT, CompletionT};
 use dashql_buffers::parser::ScannerTokenType;
 use dashql_parser::symbol_kind::S_SEMICOLON;
 use std::cmp::Ordering;
@@ -21,7 +21,6 @@ use std::collections::VecDeque;
 const DEFAULT_DATABASE_NAME: &str = "hyper";
 const DEFAULT_TERMINAL_PROMPT: &[u8] = b"dashql> ";
 const HISTORY_LIMIT: usize = 1000;
-const TERMINAL_COMPLETION_ROWS: usize = 10;
 const TERMINAL_PROMPT_CAPACITY: usize = 256;
 const TERMINAL_QUERY_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -91,12 +90,19 @@ fn truncate_display_text(text: &[u8], width: usize) -> Vec<u8> {
     output
 }
 
-fn completion_variant_info_width(count: usize) -> usize {
-    if count < 2 {
-        return 0;
+/// Keep the catalog objects that the variants of a candidate stand for, the first one if it has no variants.
+/// An object index of the list is then also a variant index.
+fn keep_variant_objects<T>(objects: &mut Vec<T>, variants: &[usize]) {
+    if variants.is_empty() {
+        objects.truncate(1);
+        return;
     }
-    let digits = count.to_string().len();
-    " <- /".len() + digits * 2 + " ->".len()
+    let mut index = 0;
+    objects.retain(|_| {
+        let keep = variants.contains(&index);
+        index += 1;
+        keep
+    });
 }
 
 /// The extent of a laid out prompt in the terminal
@@ -359,25 +365,21 @@ fn find_first_of(text: &[u8], set: &[u8], from: usize) -> Option<usize> {
     text[from..].iter().position(|c| set.contains(c)).map(|i| i + from)
 }
 
-/// The completion overlay of the terminal
+/// The completion of the terminal: the inline hint in the terminal, and the list that the host shows over it
 #[derive(Clone, Debug, Default)]
 struct TerminalCompletionOverlay {
     /// The completion candidates
     candidates: Vec<CompletionCandidate>,
+    /// The packed candidates of the list in the same order, None if only the inline hint is shown
+    completion: Option<CompletionT>,
     /// The index of the selected candidate
     selection: usize,
     /// The index of the selected qualification variant of the selected candidate
     variant_selection: usize,
-    /// The index of the first visible candidate
-    window_begin: usize,
-    /// The number of terminal rows below the prompt that the list occupies, 0 if not drawn
-    rows: usize,
     /// The prompt row of the cursor
     cursor_row: usize,
-    /// The terminal column of the left list border
+    /// The terminal column of the start of the replaced text
     anchor_column: usize,
-    /// The width of the list content in columns
-    content_width: usize,
     /// The width of the inline hint before the typed text
     hint_prefix_width: usize,
     /// The width of the inline hint after the cursor
@@ -388,8 +390,6 @@ struct TerminalCompletionOverlay {
     hint_suffix_inserted: bool,
     /// Show only the inline hint without the candidate list?
     hint_only: bool,
-    /// Does the ` <- i/n ->` variant indicator fit into the list?
-    show_variant_info: bool,
 }
 
 /// The spinner line of a running query
@@ -481,6 +481,8 @@ pub struct ShellSession {
     terminal_action: PromptInputAction,
     /// The completion overlay, if open
     overlay: Option<TerminalCompletionOverlay>,
+    /// Bumped when a completion list gets new candidates
+    terminal_completion_revision: u64,
     /// The progress line of a running query, if shown
     progress: Option<TerminalQueryProgress>,
 }
@@ -508,6 +510,7 @@ impl ShellSession {
             terminal_prompt_cursor_row: 0,
             terminal_action: PromptInputAction::None,
             overlay: None,
+            terminal_completion_revision: 0,
             progress: None,
         }
     }
@@ -642,6 +645,15 @@ impl ShellSession {
 
     /// Complete the prompt at the cursor. Errors are the messages of the core errors (`error_message`).
     pub fn complete_prompt(&mut self, limit: usize, catalog: &Catalog) -> Result<Vec<CompletionCandidate>, String> {
+        self.complete_prompt_packed(limit, catalog).map(|(candidates, _)| candidates)
+    }
+
+    /// Complete the prompt at the cursor, with the same candidates packed for the list of the host
+    fn complete_prompt_packed(
+        &mut self,
+        limit: usize,
+        catalog: &Catalog,
+    ) -> Result<(Vec<CompletionCandidate>, CompletionT), String> {
         let prompt_text = self.prompt.text();
         let text = prompt_text.as_bytes();
         let cursor = self.prompt.cursor_byte_offset();
@@ -673,7 +685,19 @@ impl ShellSession {
                             break;
                         }
                     }
-                    return Ok(candidates);
+                    let mut packed = CompletionT::default();
+                    packed.candidates = Some(
+                        candidates
+                            .iter()
+                            .map(|candidate| {
+                                let mut packed_candidate = CompletionCandidateT::default();
+                                packed_candidate.display_text = Some(candidate.display_text.clone());
+                                packed_candidate.completion_text = Some(candidate.completion_text.clone());
+                                packed_candidate
+                            })
+                            .collect(),
+                    );
+                    return Ok((candidates, packed));
                 }
             }
         }
@@ -684,8 +708,9 @@ impl ShellSession {
         script.analyze(catalog, true).map_err(error_message)?;
         let cursor = script.move_cursor(catalog, cursor);
         let completion = Script::complete_at_cursor(&cursor, limit).map_err(error_message)?;
+        let mut packed = pack_completion(&completion, upper_keywords);
         let mut candidates = Vec::with_capacity(completion.top_candidates.len());
-        for candidate in &completion.top_candidates {
+        for (candidate_index, candidate) in completion.top_candidates.iter().enumerate() {
             let upper_keyword = upper_keywords && candidate.keyword_symbol.is_some();
             let keyword_text =
                 if upper_keyword { candidate.completion_text.to_ascii_uppercase() } else { String::new() };
@@ -703,7 +728,8 @@ impl ShellSession {
                 completion_text.push_str("()");
             }
             let mut qualification_texts = Vec::new();
-            for object in &objects {
+            let mut qualified_objects = Vec::new();
+            for (object_index, object) in objects.iter().enumerate() {
                 let auto_qualify_table = auto_qualify
                     && object.object.object_type() == CatalogObjectType::TableDeclaration
                     && object.qualified_name.len() == 3
@@ -729,8 +755,14 @@ impl ShellSession {
                         };
                     if !qualifier_already_present {
                         qualification_texts.push(qualification_text);
+                        qualified_objects.push(object_index);
                     }
                 }
+            }
+            if let Some(packed_objects) =
+                packed.candidates.as_mut().and_then(|packed| packed[candidate_index].catalog_objects.as_mut())
+            {
+                keep_variant_objects(packed_objects, &qualified_objects);
             }
             let mut continuation = candidate.keyword_continuation.unwrap_or("").to_string();
             if upper_keywords {
@@ -750,7 +782,24 @@ impl ShellSession {
                 qualification_target_length: candidate.target_location_qualified.length(),
             });
         }
-        Ok(candidates)
+        Ok((candidates, packed))
+    }
+
+    /// The completion list that the host shows over the terminal, None if there is none
+    pub fn terminal_completion_list(&self) -> Option<TerminalCompletionList> {
+        let overlay = self.overlay.as_ref()?;
+        overlay.completion.as_ref()?;
+        Some(TerminalCompletionList {
+            revision: self.terminal_completion_revision,
+            selection: overlay.selection as u32,
+            variant: overlay.variant_selection as u32,
+            anchor_column: overlay.anchor_column as u32,
+        })
+    }
+
+    /// The candidates of the completion list, in the order of the prompt candidates
+    pub fn terminal_completion_buffer(&self) -> Option<&CompletionT> {
+        self.overlay.as_ref()?.completion.as_ref()
     }
 
     /// Replace the target of a candidate
@@ -996,10 +1045,10 @@ impl ShellSession {
                 if key == PromptInputKey::HistoryNext || key == PromptInputKey::Down {
                     return Ok(self.move_terminal_completion(1));
                 }
-                if overlay.show_variant_info && variant_count > 1 && key == PromptInputKey::Left {
+                if variant_count > 1 && key == PromptInputKey::Left {
                     return Ok(self.move_terminal_completion_variant(-1));
                 }
-                if overlay.show_variant_info && variant_count > 1 && key == PromptInputKey::Right {
+                if variant_count > 1 && key == PromptInputKey::Right {
                     return Ok(self.move_terminal_completion_variant(1));
                 }
             }
@@ -1059,7 +1108,7 @@ impl ShellSession {
             return Ok(ShellOperation::ok(output_prefix));
         }
         if action == PromptInputAction::Complete {
-            let candidates = self.complete_prompt(50, catalog)?;
+            let (candidates, completion) = self.complete_prompt_packed(50, catalog)?;
             if candidates.len() == 1 {
                 let snapshot = self.apply_completion(&candidates[0]);
                 if snapshot.status != ShellStatus::Ok {
@@ -1070,7 +1119,7 @@ impl ShellSession {
                 return Ok(ShellOperation::ok(output_prefix));
             }
             if candidates.len() > 1 {
-                output_prefix.extend(self.open_terminal_completion_overlay(candidates));
+                output_prefix.extend(self.open_terminal_completion_overlay(candidates, completion));
                 return Ok(ShellOperation::ok(output_prefix));
             }
         }
@@ -1495,7 +1544,11 @@ impl ShellSession {
         output
     }
 
-    fn open_terminal_completion_overlay(&mut self, candidates: Vec<CompletionCandidate>) -> Vec<u8> {
+    fn open_terminal_completion_overlay(
+        &mut self,
+        candidates: Vec<CompletionCandidate>,
+        completion: CompletionT,
+    ) -> Vec<u8> {
         let mut overlay = TerminalCompletionOverlay { candidates, ..Default::default() };
         let prompt_text = self.prompt.text();
         let text = prompt_text.as_bytes();
@@ -1514,117 +1567,34 @@ impl ShellSession {
         );
         overlay.cursor_row = cursor_layout.rows - 1;
         overlay.anchor_column = target_layout.column;
-        let max_content_width = if terminal_columns > 4 { terminal_columns - 4 } else { 1 };
-        if overlay.anchor_column + 4 > terminal_columns {
-            overlay.anchor_column = 0;
-        }
-        let max_variant_info_width = overlay
-            .candidates
-            .iter()
-            .map(|c| completion_variant_info_width(c.qualification_texts.len()))
-            .max()
-            .unwrap_or(0);
-        overlay.show_variant_info = max_variant_info_width < max_content_width;
-        for candidate in overlay.candidates.iter_mut() {
-            let variant_info_width = if overlay.show_variant_info {
-                completion_variant_info_width(candidate.qualification_texts.len())
-            } else {
-                0
-            };
-            let display = truncate_display_text(
-                &escape_terminal_text(candidate.display_text.as_bytes()),
-                max_content_width - variant_info_width,
-            );
-            overlay.content_width = overlay.content_width.max(display_width(&display) + variant_info_width);
-            candidate.display_text = String::from_utf8_lossy(&display).into_owned();
-        }
         select_terminal_completion_hint(&mut overlay, text);
-        if overlay.anchor_column + overlay.content_width + 4 > terminal_columns {
-            overlay.anchor_column = if terminal_columns > overlay.content_width + 4 {
-                terminal_columns - overlay.content_width - 4
-            } else {
-                0
-            };
+        if !overlay.hint_only {
+            overlay.completion = Some(completion);
+            self.terminal_completion_revision += 1;
         }
         self.overlay = Some(overlay);
         self.render_terminal_completion_overlay()
     }
 
     fn refresh_terminal_completion_overlay(&mut self, catalog: &Catalog) -> Result<Vec<u8>, String> {
-        let candidates = self.complete_prompt(50, catalog)?;
+        let (candidates, completion) = self.complete_prompt_packed(50, catalog)?;
         if candidates.is_empty() {
             self.overlay = None;
             return Ok(Vec::new());
         }
-        Ok(self.open_terminal_completion_overlay(candidates))
+        Ok(self.open_terminal_completion_overlay(candidates, completion))
     }
 
+    /// Render the inline hint of the selected candidate, the host shows the list
     fn render_terminal_completion_overlay(&mut self) -> Vec<u8> {
         let mut output = self.clear_terminal_completion_overlay();
-        let Some(overlay) = self.overlay.as_ref() else {
+        if self.overlay.is_none() {
             return output;
-        };
-        if overlay.rows == 0 && !output.is_empty() {
+        }
+        if !output.is_empty() {
             output.extend(self.render_terminal_prompt());
         }
         output.extend(self.render_terminal_completion_hint());
-        let overlay = self.overlay.as_mut().unwrap();
-        if overlay.hint_only {
-            return output;
-        }
-        let window_end = (overlay.window_begin + TERMINAL_COMPLETION_ROWS).min(overlay.candidates.len());
-        let candidate_rows = window_end - overlay.window_begin;
-        overlay.rows = candidate_rows + 2;
-        let horizontal = "─".repeat(overlay.content_width + 2);
-        push(&mut output, vt100::SAVE_CURSOR);
-        push(&mut output, vt100::CARRIAGE_RETURN);
-        append_cursor_move(&mut output, 1, Command::CursorDown);
-        append_cursor_move(&mut output, overlay.anchor_column, Command::CursorForward);
-        push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-        push(&mut output, "╭");
-        push(&mut output, &horizontal);
-        push(&mut output, "╮");
-        push(&mut output, vt100::RESET_ATTRIBUTES);
-        push(&mut output, vt100::NEW_LINE);
-        for i in overlay.window_begin..window_end {
-            append_cursor_move(&mut output, overlay.anchor_column, Command::CursorForward);
-            push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-            push(&mut output, "│");
-            push(&mut output, vt100::RESET_ATTRIBUTES);
-            output.push(b' ');
-            if i == overlay.selection {
-                push(&mut output, vt100::REVERSE_VIDEO);
-            }
-            let candidate = &overlay.candidates[i];
-            push(&mut output, &candidate.display_text);
-            let width = display_width(candidate.display_text.as_bytes());
-            let variant_count = candidate.qualification_texts.len();
-            if i == overlay.selection && overlay.show_variant_info && variant_count > 1 {
-                let variant_info = format!(" <- {}/{} ->", overlay.variant_selection + 1, variant_count);
-                output.extend(std::iter::repeat_n(
-                    b' ',
-                    overlay.content_width - width - display_width(variant_info.as_bytes()),
-                ));
-                push(&mut output, &variant_info);
-            } else {
-                output.extend(std::iter::repeat_n(b' ', overlay.content_width - width));
-            }
-            if i == overlay.selection {
-                push(&mut output, vt100::RESET_ATTRIBUTES);
-            }
-            output.push(b' ');
-            push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-            push(&mut output, "│");
-            push(&mut output, vt100::RESET_ATTRIBUTES);
-            push(&mut output, vt100::NEW_LINE);
-        }
-        append_cursor_move(&mut output, overlay.anchor_column, Command::CursorForward);
-        push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-        push(&mut output, "╰");
-        push(&mut output, &horizontal);
-        push(&mut output, "╯");
-        push(&mut output, vt100::RESET_ATTRIBUTES);
-        push(&mut output, vt100::RESTORE_CURSOR);
         output
     }
 
@@ -1653,21 +1623,6 @@ impl ShellSession {
             overlay.hint_prefix_width = 0;
             overlay.hint_current_width = 0;
         }
-        if overlay.rows == 0 {
-            return output;
-        }
-        push(&mut output, vt100::SAVE_CURSOR);
-        push(&mut output, vt100::CARRIAGE_RETURN);
-        append_cursor_move(&mut output, 1, Command::CursorDown);
-        for i in 0..overlay.rows {
-            push(&mut output, vt100::ERASE_ENTIRE_LINE);
-            if i + 1 < overlay.rows {
-                append_cursor_move(&mut output, 1, Command::CursorDown);
-                push(&mut output, vt100::CARRIAGE_RETURN);
-            }
-        }
-        push(&mut output, vt100::RESTORE_CURSOR);
-        overlay.rows = 0;
         output
     }
 
@@ -1716,7 +1671,7 @@ impl ShellSession {
         if prefix.is_empty() && suffix.is_empty() {
             return Vec::new();
         }
-        // Names can hold control characters, the hint shows them escaped like the overlay
+        // Names can hold control characters, the hint shows them escaped
         let prefix = escape_terminal_text(&prefix);
         let suffix = escape_terminal_text(&suffix);
         overlay.hint_prefix_width = display_width(&prefix);
@@ -1827,11 +1782,6 @@ impl ShellSession {
             overlay.selection = (overlay.selection + 1) % count;
         }
         overlay.variant_selection = 0;
-        if overlay.selection < overlay.window_begin {
-            overlay.window_begin = overlay.selection;
-        } else if overlay.selection >= overlay.window_begin + TERMINAL_COMPLETION_ROWS {
-            overlay.window_begin = overlay.selection - TERMINAL_COMPLETION_ROWS + 1;
-        }
         ShellOperation::ok(self.render_terminal_completion_overlay())
     }
 

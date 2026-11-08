@@ -203,6 +203,19 @@ pub struct CompletionCandidate {
     pub qualification_target_length: u32,
 }
 
+/// The completion list that the host shows over the terminal
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TerminalCompletionList {
+    /// Changes when the candidates change, the host only reads the buffer of the list then
+    pub revision: u64,
+    /// The index of the selected candidate
+    pub selection: u32,
+    /// The index of the selected catalog object of the selected candidate
+    pub variant: u32,
+    /// The terminal column of the start of the replaced text
+    pub anchor_column: u32,
+}
+
 /// The state of the prompt after an edit
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PromptSnapshot {

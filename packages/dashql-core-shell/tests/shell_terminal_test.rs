@@ -104,6 +104,12 @@ fn history(entries: &[&str]) -> Vec<u8> {
     out
 }
 
+/// The display texts of the candidates of the completion list
+fn list_display_texts(shell: &Shell) -> Vec<String> {
+    let completion = shell.terminal_completion_buffer().expect("a completion list");
+    completion.candidates.as_ref().unwrap().iter().map(|c| c.display_text.clone().unwrap()).collect()
+}
+
 fn bright(text: &str) -> String {
     format!("{}{}", vt100::FOREGROUND_BRIGHT_BLACK, text)
 }
@@ -269,9 +275,9 @@ fn uppercase_terminal_hint_extends_lowercase_typed_keyword() {
     let output = consume(&mut shell, Key::Text, "sel");
     assert_eq!(output.status, ShellStatus::Ok);
     let rendered = data(&output);
-    assert!(rendered.contains("SELECT"), "{rendered}");
     assert!(rendered.contains(&bright("ECT")), "{rendered}");
     assert!(!rendered.contains(&bright("SELECT")), "{rendered}");
+    assert!(list_display_texts(&shell).iter().any(|name| name == "SELECT"));
 }
 
 #[test]
@@ -443,12 +449,13 @@ fn aborts_readline_completion_without_exiting() {
     let mut shell = shell(&catalog, 80);
 
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
-    let output = consume(&mut shell, Key::Text, "sel");
-    assert!(data(&output).contains(vt100::REVERSE_VIDEO));
+    assert_eq!(consume(&mut shell, Key::Text, "sel").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_some());
 
     let output = consume(&mut shell, Key::Abort, "");
     assert_eq!(output.status, ShellStatus::Ok);
     assert_eq!(output.action, PromptInputAction::None);
+    assert!(shell.terminal_completion_list().is_none());
     let output = consume(&mut shell, Key::Abort, "");
     assert_eq!(output.status, ShellStatus::Ok);
     assert_eq!(output.action, PromptInputAction::None);
@@ -699,23 +706,6 @@ fn renders_inline_completion_hint_at_right_margin_with_auto_wrap_disabled() {
 }
 
 #[test]
-fn keeps_completion_overlay_inside_right_border() {
-    let catalog = catalog();
-    let mut shell = shell(&catalog, 12);
-
-    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
-    let output = consume(&mut shell, Key::Text, " sel");
-    assert_eq!(output.status, ShellStatus::Ok);
-    let rendered = data(&output);
-    assert!(rendered.contains('╭'), "{rendered}");
-    assert!(rendered.contains("╭─────────╮"), "{rendered}");
-    assert!(
-        !rendered.contains(&format!("{}{}{}╭", sequence(9, Command::CursorForward), vt100::ERASE_ENTIRE_LINE, vt100::FOREGROUND_BRIGHT_BLACK)),
-        "{rendered}"
-    );
-}
-
-#[test]
 fn navigates_and_accepts_terminal_completion_overlay() {
     let catalog = catalog();
     let mut shell = shell(&catalog, 80);
@@ -725,13 +715,11 @@ fn navigates_and_accepts_terminal_completion_overlay() {
     assert_eq!(output.status, ShellStatus::Ok, "{}", data(&output));
     assert_eq!(output.action, PromptInputAction::None);
     let initial_output = data(&output);
-    assert!(initial_output.contains(vt100::REVERSE_VIDEO));
-    assert!(initial_output.contains("select"));
-    let completion_anchor = format!("{}{}", sequence(1, Command::CursorDown), sequence(8, Command::CursorForward));
-    assert!(initial_output.contains(&format!("{}{}╭", completion_anchor, vt100::FOREGROUND_BRIGHT_BLACK)));
-    assert!(!initial_output.contains(&format!("{}{}", sequence(8, Command::CursorForward), vt100::ERASE_ENTIRE_LINE)));
-    assert!(initial_output.contains(&bright("╰")));
-    assert!(!initial_output.contains(&format!("{}> ", vt100::ERASE_ENTIRE_LINE)));
+    assert!(!initial_output.contains('╭'), "{initial_output}");
+    let opened = shell.terminal_completion_list().unwrap();
+    assert_eq!(opened.selection, 0);
+    assert_eq!(opened.variant, 0);
+    assert_eq!(opened.anchor_column, 8);
 
     let completions = completion_texts(&mut shell);
     assert!(completions.len() > 1);
@@ -748,6 +736,10 @@ fn navigates_and_accepts_terminal_completion_overlay() {
         selected_output = initial_output;
     }
     assert!(selected_output.contains(&bright("ect")));
+    let selected = shell.terminal_completion_list().unwrap();
+    assert_eq!(selected.selection as usize, select_index);
+    // Moving the selection keeps the candidates, the host doesn't read the buffer again
+    assert_eq!(selected.revision, opened.revision);
 
     let output = consume(&mut shell, Key::Tab, "");
     assert_eq!(output.status, ShellStatus::Ok);
@@ -775,8 +767,7 @@ fn lists_hints_and_accepts_column_after_fully_qualified_table_alias() {
     let rendered = data(&output.unwrap());
     assert!(rendered.contains(vt100::FOREGROUND_BRIGHT_BLACK), "{rendered}");
     assert!(rendered.contains("event_id") || rendered.contains("processed_rows"), "{rendered}");
-    assert!(rendered.contains('╭'), "{rendered}");
-    assert!(rendered.contains(vt100::REVERSE_VIDEO), "{rendered}");
+    assert!(shell.terminal_completion_list().is_some());
 
     let completions = shell.complete_prompt(50).unwrap();
     assert!(!completions.is_empty());
@@ -807,8 +798,7 @@ fn lists_columns_after_short_table_alias() {
     }
     let rendered = data(&output.unwrap());
     assert!(rendered.contains("only_column"), "{rendered}");
-    assert!(rendered.contains('╭'), "{rendered}");
-    assert!(rendered.contains(vt100::REVERSE_VIDEO), "{rendered}");
+    assert_eq!(list_display_texts(&shell), ["only_column"]);
 }
 
 #[test]
@@ -823,11 +813,17 @@ fn escapes_control_characters_of_completion_candidates() {
         output = Some(consume(&mut shell, Key::Text, &c.to_string()));
     }
     let rendered = data(&output.unwrap());
-    // Tabs are 4 spaces, other control characters are hex escapes, in the overlay and in the hint at the cursor
-    assert!(rendered.contains("tab    col"), "{rendered}");
+    // Control characters are hex escapes and tabs are 4 spaces in the hint at the cursor
     assert!(rendered.contains(&format!("{}\"bell\\x07col\"", vt100::FOREGROUND_BRIGHT_BLACK)), "{rendered}");
-    assert!(rendered.contains("bell\\x07col"), "{rendered}");
     assert!(!rendered.contains('\x07'), "{rendered}");
+    let rendered = data(&consume(&mut shell, Key::Down, ""));
+    assert!(rendered.contains("tab    col"), "{rendered}");
+    assert!(!rendered.contains('\t'), "{rendered}");
+
+    // The list gets the names as they are, it renders them through text nodes
+    let names = list_display_texts(&shell);
+    assert!(names.iter().any(|name| name == "bell\x07col"), "{names:?}");
+    assert!(names.iter().any(|name| name == "tab\tcol"), "{names:?}");
 }
 
 #[test]
@@ -886,13 +882,11 @@ fn shows_only_inline_hint_before_completion_prefix() {
     let output = consume(&mut shell, Key::Text, " ");
     assert_eq!(output.status, ShellStatus::Ok);
     assert!(data(&output).contains(vt100::FOREGROUND_BRIGHT_BLACK));
-    assert!(!data(&output).contains('╭'));
-    assert!(!data(&output).contains(vt100::REVERSE_VIDEO));
+    assert!(shell.terminal_completion_list().is_none());
 
     let output = consume(&mut shell, Key::Text, "s");
     assert_eq!(output.status, ShellStatus::Ok);
-    assert!(data(&output).contains('╭'));
-    assert!(data(&output).contains(vt100::REVERSE_VIDEO));
+    assert!(shell.terminal_completion_list().is_some());
 
     assert_eq!(consume(&mut shell, Key::Tab, "").status, ShellStatus::Ok);
     assert!(shell.move_prompt_right().text.len() > 2);
@@ -935,7 +929,7 @@ fn does_not_cycle_terminal_candidates_with_left_and_right() {
     assert_eq!(consume(&mut shell, Key::End, "").status, ShellStatus::Ok);
     let output = consume(&mut shell, Key::Tab, "");
     assert_eq!(output.status, ShellStatus::Ok);
-    assert!(data(&output).contains('╭'), "{}", data(&output));
+    assert!(shell.terminal_completion_list().is_some());
     assert_eq!(consume(&mut shell, Key::Tab, "").status, ShellStatus::Ok);
 
     assert_eq!(shell.move_prompt_right().text, expected);
@@ -947,16 +941,14 @@ fn cursor_movement_dismisses_completion_without_reopening_it() {
     let mut shell = shell(&catalog, 80);
 
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
-    let output = consume(&mut shell, Key::Text, "sel");
-    assert!(data(&output).contains('╭'), "{}", data(&output));
+    assert_eq!(consume(&mut shell, Key::Text, "sel").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_some());
 
-    let output = consume(&mut shell, Key::Left, "");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert!(!data(&output).contains('╭'), "{}", data(&output));
+    assert_eq!(consume(&mut shell, Key::Left, "").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_none());
 
-    let output = consume(&mut shell, Key::Left, "");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert!(!data(&output).contains('╭'), "{}", data(&output));
+    assert_eq!(consume(&mut shell, Key::Left, "").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_none());
 
     let prompt = shell.move_prompt_right();
     assert_eq!(prompt.cursor_byte_offset, 2);
@@ -1040,17 +1032,116 @@ fn anchors_completion_below_cursor_in_multiline_prompt() {
     assert_eq!(output.status, ShellStatus::Ok);
     let rendered = data(&output);
     assert!(!rendered.contains(&sequence(9, Command::InsertLine)));
-    assert!(rendered.contains(&format!(
-        "{}{}{}╭",
-        sequence(1, Command::CursorDown),
-        sequence(8, Command::CursorForward),
-        vt100::FOREGROUND_BRIGHT_BLACK
-    )));
-    assert!(!rendered.contains(&format!("{}{}", sequence(8, Command::CursorForward), vt100::ERASE_ENTIRE_LINE)));
+    assert_eq!(shell.terminal_completion_list().unwrap().anchor_column, 8);
 
     let output = consume(&mut shell, Key::Escape, "");
     assert_eq!(output.status, ShellStatus::Ok);
     assert!(!data(&output).contains(&sequence(9, Command::DeleteLine)));
+    assert!(shell.terminal_completion_list().is_none());
+}
+
+#[test]
+fn completion_list_leaves_the_rows_below_the_prompt_alone() {
+    let catalog = catalog();
+    let mut shell = shell(&catalog, 100);
+
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Text, "sel\nFROM supplier").status, ShellStatus::Ok);
+    for _ in 0.."\nFROM supplier".len() {
+        assert_eq!(shell.move_prompt_left().status, ShellStatus::Ok);
+    }
+    assert_eq!(consume(&mut shell, Key::Text, "x").status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Backspace, "").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_some());
+
+    // Only the two rows of the prompt are erased when moving through the list and when closing it
+    for key in [Key::Down, Key::Up, Key::Escape] {
+        let rendered = data(&consume(&mut shell, key, ""));
+        assert!(!rendered.contains('╭'), "{rendered}");
+        assert!(count_occurrences(&rendered, vt100::ERASE_ENTIRE_LINE) <= 2, "{rendered}");
+    }
+}
+
+#[test]
+fn completion_list_holds_the_prompt_candidates() {
+    let catalog = catalog();
+    let _schema = load_schema(&catalog, "CREATE TABLE foo(first_column BIGINT, second_column VARCHAR);");
+    let mut shell = shell(&catalog, 100);
+    shell.set_keyword_case(1);
+
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Text, "sel").status, ShellStatus::Ok);
+    let keywords = shell.terminal_completion_list().unwrap();
+    let displayed: Vec<String> = shell.complete_prompt(50).unwrap().into_iter().map(|c| c.display_text).collect();
+    assert_eq!(list_display_texts(&shell), displayed);
+    assert!(list_display_texts(&shell).iter().any(|name| name == "SELECT"));
+
+    // New candidates change the revision
+    assert_eq!(consume(&mut shell, Key::Abort, "").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_buffer().is_none());
+    assert_eq!(consume(&mut shell, Key::Text, "ect * from foo x where x.").status, ShellStatus::Ok);
+    let columns = shell.terminal_completion_list().unwrap();
+    assert_ne!(columns.revision, keywords.revision);
+
+    // The info of a catalog object reaches the side pane of the list
+    let completion = shell.terminal_completion_buffer().unwrap();
+    let candidates = completion.candidates.as_ref().unwrap();
+    let column = candidates.iter().find(|c| c.display_text.as_deref() == Some("second_column")).unwrap();
+    let object = &column.catalog_objects.as_ref().unwrap()[0];
+    assert!(object.info.is_some());
+}
+
+#[test]
+fn completion_list_holds_dot_commands() {
+    let catalog = catalog();
+    let mut shell = shell(&catalog, 100);
+    assert_eq!(shell.set_commands(b"clear\nhelp\ntimer"), ShellStatus::Ok);
+
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Text, ".").status, ShellStatus::Ok);
+    assert_eq!(list_display_texts(&shell), [".clear", ".help", ".timer"]);
+    assert_eq!(consume(&mut shell, Key::Down, "").status, ShellStatus::Ok);
+    assert_eq!(shell.terminal_completion_list().unwrap().selection, 1);
+    assert_eq!(consume(&mut shell, Key::Enter, "").status, ShellStatus::Ok);
+    assert_eq!(shell.move_prompt_right().text, ".help");
+}
+
+/// The list shows and selects catalog objects, Left and Right cycle variants: both have to count the same
+fn assert_variants_match_list_objects(shell: &mut Shell) {
+    let candidates = shell.complete_prompt(50).unwrap();
+    let completion = shell.terminal_completion_buffer().expect("a completion list");
+    let listed = completion.candidates.as_ref().unwrap();
+    assert_eq!(listed.len(), candidates.len());
+    for (candidate, packed) in candidates.iter().zip(listed) {
+        let objects = packed.catalog_objects.as_ref().map(|objects| objects.len()).unwrap_or(0);
+        if objects > 0 {
+            assert_eq!(objects, candidate.qualification_texts.len().max(1), "{}", candidate.display_text);
+        } else {
+            assert!(candidate.qualification_texts.is_empty(), "{}", candidate.display_text);
+        }
+    }
+}
+
+#[test]
+fn completion_variants_match_the_objects_of_the_list() {
+    let catalog = catalog();
+    let _schema = load_schema(&catalog, "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);");
+
+    // With and without auto qualification, so that objects without a qualification are dropped as well
+    for auto_qualify in [true, false] {
+        let mut shell = Shell::new(&catalog, 100, auto_qualify);
+        assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+        assert_eq!(consume(&mut shell, Key::Text, "select * from acc").status, ShellStatus::Ok);
+        assert_variants_match_list_objects(&mut shell);
+    }
+
+    let mut shell = shell(&catalog, 100);
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    let schema = "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ";
+    let query = "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id";
+    assert_eq!(consume(&mut shell, Key::Text, schema).status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Text, query).status, ShellStatus::Ok);
+    assert_variants_match_list_objects(&mut shell);
 }
 
 #[test]
@@ -1138,7 +1229,7 @@ fn cycles_auto_qualified_table_options_with_left_and_right() {
     let (index, output) = select_terminal_completion(&mut shell, "accounts");
     assert!(index < 50);
     let rendered = data(&output);
-    assert!(rendered.contains("1/2"), "{rendered}");
+    assert_eq!(shell.terminal_completion_list().unwrap().variant, 0);
     let first_is_alpha = rendered.contains("alpha.public.");
     let first_is_beta = rendered.contains("beta.public.");
     assert_ne!(first_is_alpha, first_is_beta, "{rendered}");
@@ -1146,42 +1237,21 @@ fn cycles_auto_qualified_table_options_with_left_and_right() {
     let output = consume(&mut shell, Key::Right, "");
     assert_eq!(output.status, ShellStatus::Ok);
     let rendered = data(&output);
-    assert!(rendered.contains("2/2"), "{rendered}");
+    assert_eq!(shell.terminal_completion_list().unwrap().variant, 1);
     assert!(!rendered.contains(if first_is_alpha { "alpha.public." } else { "beta.public." }), "{rendered}");
     assert!(rendered.contains(if first_is_alpha { "beta.public." } else { "alpha.public." }), "{rendered}");
 
-    let output = consume(&mut shell, Key::Left, "");
-    assert!(data(&output).contains("1/2"), "{}", data(&output));
+    assert_eq!(consume(&mut shell, Key::Left, "").status, ShellStatus::Ok);
+    assert_eq!(shell.terminal_completion_list().unwrap().variant, 0);
 
-    let output = consume(&mut shell, Key::Left, "");
-    assert!(data(&output).contains("2/2"), "{}", data(&output));
+    assert_eq!(consume(&mut shell, Key::Left, "").status, ShellStatus::Ok);
+    assert_eq!(shell.terminal_completion_list().unwrap().variant, 1);
 
     assert_eq!(consume(&mut shell, Key::Tab, "").status, ShellStatus::Ok);
     assert_eq!(
         shell.move_prompt_right().text,
         if first_is_alpha { "select * from beta.public.accounts" } else { "select * from alpha.public.accounts" }
     );
-}
-
-#[test]
-fn narrow_completion_list_keeps_left_and_right_as_cursor_keys() {
-    let catalog = catalog();
-    let _schema = load_schema(&catalog, "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);");
-
-    let mut shell = Shell::new(&catalog, 12, true);
-    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
-
-    let output = consume(&mut shell, Key::Text, "acc");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert!(!data(&output).contains("1/2"), "{}", data(&output));
-
-    let output = consume(&mut shell, Key::Left, "");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert!(!data(&output).contains('╭'), "{}", data(&output));
-
-    let prompt = shell.move_prompt_right();
-    assert_eq!(prompt.cursor_byte_offset, 3);
-    assert_eq!(prompt.text, "acc");
 }
 
 #[test]
